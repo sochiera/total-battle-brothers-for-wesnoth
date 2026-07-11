@@ -91,13 +91,21 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
   - AC: niemutowalna rana określa kary do celności/obrony i czas trwania
     (`None` = trwała); `Unit` przechowuje rany, a efektywne statystyki uwzględniają
     ich sumę z podłogą na zero; katalog zawiera po jednej ranie czasowej i trwałej.
-- [~] **B4.5b** Rozstrzygnięcie jednostki z 0 HP: śmierć albo ogłuszenie + rana.
+- [x] **B4.5b** Rozstrzygnięcie jednostki z 0 HP: śmierć albo ogłuszenie + rana.
   - AC: dokładnie jeden deterministyczny przy ustalonym RNG rzut 50/50 usuwa
     martwą jednostkę albo pozostawia ją ogłuszoną z `BRUISE`; rozstrzygać można
     tylko nierozstrzygniętą jednostkę z 0 HP; ogłuszona jednostka nie może działać;
     stan wejściowy pozostaje niemutowalny (DESIGN §3.2 i §7).
-- [ ] **B4.6** Warunek końca bitwy i wynik (kto wygrał, straty, zdobyte doświadczenie).
-  - AC: bitwa kończy się gdy jedna strona wybita/wycofana; wynik raportowany.
+- [~] **B4.6a** Warunek końca bitwy i zwycięska strona.
+  - AC: aktywna jednostka ma HP > 0 i nie jest ogłuszona; przy aktywnych obu
+    stron bitwa trwa, przy aktywnej jednej stronie wygrywa ta strona, a przy braku
+    aktywnych jednostek wynik jest remisem; zapytanie nie mutuje stanu.
+- [ ] **B4.6b** Raport wyniku bitwy: polegli, ogłuszeni i zdolni do działania.
+  - AC: wynik zachowuje przynależność pokonanych jednostek i raportuje straty obu
+    stron deterministycznie, także gdy martwa jednostka zniknęła z rozstawienia.
+- [ ] **B4.6c** Doświadczenie za udział w rozstrzygniętej bitwie.
+  - AC: ocalałe jednostki dostają deterministyczny przyrost doświadczenia dopiero
+    po końcu bitwy; stan wejściowy pozostaje niemutowalny; zasady z DESIGN.
 
 ## Kamień milowy 5 — mapa strategiczna i tura
 - [ ] **M5.1** `WorldMap` z regionami/osadami i pozycjami party.

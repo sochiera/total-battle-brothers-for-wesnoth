@@ -103,6 +103,13 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   mająca HP lub już ogłuszona są błędem. Ogłuszona jednostka nie może się ruszać
   ani atakować. Usunięcie ogłuszonej jednostki z pola i przeniesienie ocalałej
   wraz z ranami do warstwy strategicznej nastąpi przy wyniku bitwy (B4.6).
+- **ROZSTRZYGNIĘTE (B4.6a, minimalny koniec bitwy):** jednostka jest **aktywna**,
+  gdy ma bieżące HP większe od `0` i nie jest ogłuszona. Po zakończeniu rozstawienia
+  bitwa trwa, dopóki obie strony mają co najmniej jedną aktywną jednostkę. Gdy
+  aktywne jednostki ma tylko jedna strona, ta strona wygrywa; brak aktywnych
+  jednostek obu stron oznacza remis. Wycofanie nie jest jeszcze dostępne, więc nie
+  uczestniczy w tym przyroście. Raport strat i przyznanie doświadczenia powstaną
+  osobno w B4.6b–c.
 
 ## 4. Osady, populacja, ekonomia
 - **Surowce (dokładnie dwa, celowo prosto):** **pszenica** i **złoto**.
