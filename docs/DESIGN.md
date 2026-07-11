@@ -84,6 +84,11 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
 - **Bohater:** dokładnie **jeden** na księstwo — król i dowódca w jednym. Armia
   rusza się **wyłącznie** razem z bohaterem. Bez bohatera jednostki stoją; mogą
   zostać w osadzie jako **garnizon** (obrona).
+  **ROZSTRZYGNIĘTE (D6.1a, minimalne księstwo):** `Duchy` jest niemutowalnym
+  stanem z niepustym tekstowym `duchy_id`, dokładnie jednym wymaganym
+  `hero: Unit` i podpisanym całkowitym `morale` (domyślnie 0). `duchy_id` jest
+  tym samym identyfikatorem, który `Party` i `Settlement` przechowują jako
+  `owner_id`. Dziedzic, osady i party dochodzą w D6.1b.
 - **Party:** bohater prowadzi maksymalnie **12 jednostek**.
   **ROZSTRZYGNIĘTE (M5.2a, minimalny skład party):** `Party` jest
   niemutowalnym stanem z jednym wymaganym `hero: Unit` oraz krotką najwyżej

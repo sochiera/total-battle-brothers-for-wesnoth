@@ -45,6 +45,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │       ├── battlefield.py # rzadka plansza heksowa Hex→Terrain z domyślnym terenem
 │       ├── building.py   # niemutowalne typy budynków i katalog startowy
 │       ├── combat.py     # czyste, deterministyczne wyliczenia reguł walki
+│       ├── duchy.py      # niemutowalne księstwo: identyfikator, bohater i morale
 │       ├── hex.py        # niemutowalne współrzędne heksów axial/cube
 │       ├── party.py      # niemutowalny bohater i skład armii strategicznej
 │       ├── terrain.py    # niemutowalne typy terenu i katalog startowy
@@ -62,6 +63,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │   ├── test_battlefield.py
 │   ├── test_building.py
 │   ├── test_combat.py
+│   ├── test_duchy.py
 │   ├── test_hex.py
 │   ├── test_party.py
 │   ├── test_terrain.py

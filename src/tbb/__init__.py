@@ -8,6 +8,7 @@ from tbb.building import Building, FARM, MARKET, SMITH
 from tbb.battlefield import Battlefield
 from tbb.battle import BattleReport, BattleResult, BattleSide, BattleSideReport, HexBattle
 from tbb.combat import melee_hit_chance
+from tbb.duchy import Duchy
 from tbb.hex import Hex
 from tbb.party import Party
 from tbb.progression import investment_for_level, pillar_level
@@ -31,6 +32,7 @@ __all__ = [
     "BattleSideReport",
     "BRUISE",
     "Calendar",
+    "Duchy",
     "FARM",
     "FOREST",
     "Hex",
