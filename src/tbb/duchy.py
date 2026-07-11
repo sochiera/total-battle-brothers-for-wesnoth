@@ -16,7 +16,7 @@ class Duchy:
     """Identify a duchy and hold its people and owned strategic entities."""
 
     duchy_id: str
-    hero: Unit
+    hero: Unit | None
     morale: int = 0
     heir: Unit | None = None
     settlements: tuple[Settlement, ...] = ()
@@ -25,7 +25,7 @@ class Duchy:
     def __init__(
         self,
         duchy_id: str,
-        hero: Unit,
+        hero: Unit | None,
         morale: int = 0,
         heir: Unit | None = None,
         settlements: Iterable[Settlement] = (),
@@ -44,13 +44,15 @@ class Duchy:
             raise TypeError("duchy_id must be text")
         if self.duchy_id == "":
             raise ValueError("duchy_id cannot be empty")
-        if not isinstance(self.hero, Unit):
-            raise TypeError("duchy hero must be a Unit")
+        if self.hero is not None and not isinstance(self.hero, Unit):
+            raise TypeError("duchy hero must be a Unit or None")
         if type(self.morale) is not int:
             raise TypeError("duchy morale must be an integer")
         if self.heir is not None and not isinstance(self.heir, Unit):
             raise TypeError("duchy heir must be a Unit or None")
-        if self.heir is self.hero:
+        if self.hero is None and self.heir is not None:
+            raise ValueError("duchy without a hero cannot have an heir")
+        if self.hero is not None and self.heir is self.hero:
             raise ValueError("duchy heir cannot be its hero")
         if any(not isinstance(item, Settlement) for item in self.settlements):
             raise TypeError("duchy settlements must be Settlements")
@@ -61,10 +63,13 @@ class Duchy:
         if any(item.owner_id != self.duchy_id for item in self.parties):
             raise ValueError("duchy parties must be owned by the duchy")
 
+    @property
+    def has_hero(self) -> bool:
+        """Report whether the duchy currently has a living hero."""
+        return self.hero is not None
+
     def succeed(self) -> "Duchy":
-        """Promote the designated heir after the hero's death."""
-        if self.heir is None:
-            raise ValueError("duchy cannot succeed without an heir")
+        """Resolve the hero's death by promoting an heir when available."""
         return Duchy(
             duchy_id=self.duchy_id,
             hero=self.heir,

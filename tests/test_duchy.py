@@ -69,7 +69,7 @@ def test_duchy_rejects_non_text_identifier():
         Duchy(123, Unit())
 
 
-@pytest.mark.parametrize("hero", ["x", None])
+@pytest.mark.parametrize("hero", ["x"])
 def test_duchy_rejects_non_unit_hero(hero):
     with pytest.raises(TypeError):
         Duchy("north", hero)
@@ -196,9 +196,53 @@ def test_succeed_preserves_identifier_and_owned_collections():
     assert succeeded.parties is duchy.parties
 
 
-def test_succeed_rejects_duchy_without_heir():
+def test_duchy_reports_when_it_has_a_hero():
+    assert Duchy("north", Unit()).has_hero is True
+
+
+def test_duchy_without_hero_is_allowed_and_reported():
+    duchy = Duchy("north", None)
+
+    assert duchy.hero is None
+    assert duchy.has_hero is False
+
+
+def test_duchy_without_hero_rejects_heir():
     with pytest.raises(ValueError):
-        Duchy("north", Unit()).succeed()
+        Duchy("north", None, heir=Unit())
+
+
+@pytest.mark.parametrize("morale", [3, -3])
+def test_succeed_without_heir_creates_hero_less_duchy(morale):
+    succeeded = Duchy("north", Unit(), morale=morale).succeed()
+
+    assert succeeded.hero is None
+    assert succeeded.heir is None
+    assert succeeded.has_hero is False
+    assert succeeded.morale == morale - SUCCESSION_MORALE_PENALTY
+
+
+def test_succeed_without_heir_preserves_identifier_and_owned_collections():
+    settlement = Settlement("Keep", population=10, owner_id="north")
+    party = Party(Unit(), owner_id="north")
+    duchy = Duchy("north", Unit(), settlements=[settlement], parties=[party])
+
+    succeeded = duchy.succeed()
+
+    assert succeeded.duchy_id == duchy.duchy_id
+    assert succeeded.settlements is duchy.settlements
+    assert succeeded.parties is duchy.parties
+
+
+def test_succeed_without_heir_does_not_mutate_original_duchy():
+    hero = Unit(training=2)
+    duchy = Duchy("north", hero, morale=3)
+
+    duchy.succeed()
+
+    assert duchy.hero is hero
+    assert duchy.heir is None
+    assert duchy.morale == 3
 
 
 def test_succeed_does_not_mutate_original_duchy():
