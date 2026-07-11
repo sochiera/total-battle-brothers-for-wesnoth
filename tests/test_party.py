@@ -20,6 +20,17 @@ def test_party_accepts_hero_with_zero_or_twelve_subordinates():
     assert hero not in full_party.units
 
 
+def test_party_owner_id_defaults_to_none_and_preserves_explicit_value():
+    assert Party(Unit()).owner_id is None
+    assert Party(Unit(), owner_id="north").owner_id == "north"
+
+
+@pytest.mark.parametrize("owner_id", ["", 1, object()])
+def test_party_rejects_empty_or_non_text_owner_id(owner_id):
+    with pytest.raises((TypeError, ValueError)):
+        Party(Unit(), owner_id=owner_id)
+
+
 @pytest.mark.parametrize("hero", [None, "not a unit"])
 def test_party_rejects_missing_or_invalid_hero(hero):
     with pytest.raises((TypeError, ValueError)):
@@ -53,6 +64,8 @@ def test_party_copies_units_to_tuple_and_is_immutable():
         party.hero = Unit()
     with pytest.raises(FrozenInstanceError):
         party.units = ()
+    with pytest.raises(FrozenInstanceError):
+        party.owner_id = "changed"
 
 
 def test_public_api_exports_party():

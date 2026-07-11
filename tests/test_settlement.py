@@ -18,6 +18,17 @@ def test_construction_with_occupied_population():
     assert Settlement("A", 10, occupied=3).free == 7
 
 
+def test_settlement_owner_id_defaults_to_none_and_preserves_explicit_value():
+    assert Settlement("A", 10).owner_id is None
+    assert Settlement("A", 10, owner_id="north").owner_id == "north"
+
+
+@pytest.mark.parametrize("owner_id", ["", 1, object()])
+def test_settlement_rejects_empty_or_non_text_owner_id(owner_id):
+    with pytest.raises((TypeError, ValueError)):
+        Settlement("A", 10, owner_id=owner_id)
+
+
 @pytest.mark.parametrize(
     "population, occupied", [(-1, 0), (10, -1), (10, 11)]
 )
@@ -31,6 +42,8 @@ def test_settlement_is_immutable():
 
     with pytest.raises(FrozenInstanceError):
         settlement.occupied = 1
+    with pytest.raises(FrozenInstanceError):
+        settlement.owner_id = "changed"
 
 
 def test_occupy_returns_new_state_without_changing_original():

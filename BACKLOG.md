@@ -136,7 +136,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     bohater i podkomendni party trafiają do `HexBattle` jako atakujący, a garnizon
     osady jako obrońcy, w deterministycznym rozstawieniu; mapa, party, osada
     i garnizon pozostają niezmienione; błędny kontakt jest odrzucany.
-- [~] **M5.3b2** Własność strategiczna ogranicza kontakt do wrogich celów.
+- [x] **M5.3b2** Własność strategiczna ogranicza kontakt do wrogich celów.
   - AC: party i osada przechowują opcjonalny, niepusty `owner_id`; rozpoczęcie
     bitwy wymaga jawnego właściciela obu stron i różnych identyfikatorów;
     kontakt z własną osadą/party oraz brak właściciela nie tworzą bitwy, a kontakt

@@ -18,6 +18,7 @@ class Settlement:
     storage: Resources = Resources(0, 0)
     capacity: int | None = None
     garrison: tuple[Unit, ...] = ()
+    owner_id: str | None = None
 
     def __post_init__(self) -> None:
         """Reject an inconsistent population pool."""
@@ -27,6 +28,10 @@ class Settlement:
             raise ValueError("occupied must be between zero and population")
         if self.capacity is not None and self.capacity < self.population:
             raise ValueError("capacity cannot be below population")
+        if self.owner_id is not None and not isinstance(self.owner_id, str):
+            raise TypeError("settlement owner_id must be text or None")
+        if self.owner_id == "":
+            raise ValueError("settlement owner_id cannot be empty")
 
     @property
     def free(self) -> int:

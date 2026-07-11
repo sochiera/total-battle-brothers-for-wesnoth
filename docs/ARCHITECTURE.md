@@ -115,6 +115,8 @@ Uruchamiaj z katalogu `game/`.
   w efektywnych statystykach z podłogą na zero.
 - **Skład party:** `Party` wymaga bohatera `Unit` i kopiuje do krotki maksymalnie
   12 podkomendnych `Unit`; bohater jest osobnym polem i nie wlicza się do limitu.
+- **Własność strategiczna:** `Party` i `Settlement` mają opcjonalny, niemutowalny
+  `owner_id`; kontakt bojowy wymaga niepustych, różnych identyfikatorów obu stron.
 - **Kolejność raportu bitwy:** `HexBattle` przechowuje osobny, niemutowalny
   rejestr kolejności rozstawienia aktywnych jednostek. Ruch aktualizuje w nim
   pozycję bez zmiany kolejności, więc kolejność mapy `units` nie wpływa na raport.

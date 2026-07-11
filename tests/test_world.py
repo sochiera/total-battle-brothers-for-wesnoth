@@ -213,8 +213,8 @@ def test_move_party_rejects_region_outside_map(unknown_endpoint):
 def test_start_battle_deploys_adjacent_parties_in_deterministic_rows():
     camp = Region("Camp")
     vale = Region("Vale")
-    attacker = Party(Unit(training=3), [Unit(equipment=1), Unit(experience=2)])
-    defender = Party(Unit(training=4), [Unit(equipment=2)])
+    attacker = Party(Unit(training=3), [Unit(equipment=1), Unit(experience=2)], "north")
+    defender = Party(Unit(training=4), [Unit(equipment=2)], "south")
     world = WorldMap(
         [camp, vale],
         [(camp, vale)],
@@ -244,8 +244,8 @@ def test_start_battle_deploys_adjacent_parties_in_deterministic_rows():
 def test_start_battle_does_not_change_world_or_party_composition():
     camp = Region("Camp")
     vale = Region("Vale")
-    attacker = Party(Unit(training=1), [Unit(equipment=1)])
-    defender = Party(Unit(training=2), [Unit(equipment=2)])
+    attacker = Party(Unit(training=1), [Unit(equipment=1)], "north")
+    defender = Party(Unit(training=2), [Unit(equipment=2)], "south")
     world = WorldMap(
         [camp, vale], [(camp, vale)], parties={camp: attacker, vale: defender}
     )
@@ -304,12 +304,33 @@ def test_start_battle_rejects_invalid_contact(
         )
 
 
+@pytest.mark.parametrize(
+    "attacker_owner, defender_owner",
+    [("north", "north"), (None, "south"), ("north", None)],
+    ids=["same-owner", "missing-attacker-owner", "missing-defender-owner"],
+)
+def test_start_battle_rejects_non_enemy_contact(attacker_owner, defender_owner):
+    camp = Region("Camp")
+    vale = Region("Vale")
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        parties={
+            camp: Party(Unit(), owner_id=attacker_owner),
+            vale: Party(Unit(), owner_id=defender_owner),
+        },
+    )
+
+    with pytest.raises(ValueError):
+        world.start_battle(camp, vale)
+
+
 def test_start_settlement_battle_deploys_party_and_garrison_in_deterministic_rows():
     camp = Region("Camp")
     vale = Region("Vale")
-    attacker = Party(Unit(training=3), [Unit(equipment=1), Unit(experience=2)])
+    attacker = Party(Unit(training=3), [Unit(equipment=1), Unit(experience=2)], "north")
     garrison = (Unit(training=4), Unit(equipment=2), Unit(experience=1))
-    settlement = Settlement("Oakrest", population=6, garrison=garrison)
+    settlement = Settlement("Oakrest", population=6, garrison=garrison, owner_id="south")
     world = WorldMap(
         [camp, vale],
         [(camp, vale)],
@@ -340,9 +361,9 @@ def test_start_settlement_battle_deploys_party_and_garrison_in_deterministic_row
 def test_start_settlement_battle_does_not_change_world_party_or_settlement():
     camp = Region("Camp")
     vale = Region("Vale")
-    attacker = Party(Unit(training=1), [Unit(equipment=1)])
+    attacker = Party(Unit(training=1), [Unit(equipment=1)], "north")
     garrison = (Unit(training=2), Unit(equipment=2))
-    settlement = Settlement("Oakrest", population=4, garrison=garrison)
+    settlement = Settlement("Oakrest", population=4, garrison=garrison, owner_id="south")
     world = WorldMap(
         [camp, vale],
         [(camp, vale)],
@@ -404,3 +425,28 @@ def test_start_settlement_battle_rejects_invalid_contact(
 
     with pytest.raises(ValueError):
         world.start_settlement_battle(regions[source_name], destination)
+
+
+@pytest.mark.parametrize(
+    "party_owner, settlement_owner",
+    [("north", "north"), (None, "south"), ("north", None)],
+    ids=["same-owner", "missing-party-owner", "missing-settlement-owner"],
+)
+def test_start_settlement_battle_rejects_non_enemy_contact(
+    party_owner, settlement_owner
+):
+    camp = Region("Camp")
+    vale = Region("Vale")
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        settlements={
+            vale: Settlement(
+                "Oakrest", 2, garrison=(Unit(),), owner_id=settlement_owner
+            )
+        },
+        parties={camp: Party(Unit(), owner_id=party_owner)},
+    )
+
+    with pytest.raises(ValueError):
+        world.start_settlement_battle(camp, vale)

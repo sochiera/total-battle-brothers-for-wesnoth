@@ -148,10 +148,14 @@ class WorldMap:
         if destination not in self.parties:
             raise ValueError("destination region has no party")
 
+        attacker = self.parties[source]
+        defender = self.parties[destination]
+        self._require_enemy_owners(attacker.owner_id, defender.owner_id)
+
         battle = HexBattle(Battlefield())
         deployments = (
-            (self.parties[source], 0, BattleSide.ATTACKER),
-            (self.parties[destination], 2, BattleSide.DEFENDER),
+            (attacker, 0, BattleSide.ATTACKER),
+            (defender, 2, BattleSide.DEFENDER),
         )
         for party, column, side in deployments:
             for row, unit in enumerate((party.hero, *party.units)):
@@ -175,9 +179,20 @@ class WorldMap:
 
         party = self.parties[source]
         settlement = self.settlements[destination]
+        self._require_enemy_owners(party.owner_id, settlement.owner_id)
         battle = HexBattle(Battlefield())
         for row, unit in enumerate((party.hero, *party.units)):
             battle = battle.deploy(unit, Hex(0, row), BattleSide.ATTACKER)
         for row, unit in enumerate(settlement.garrison):
             battle = battle.deploy(unit, Hex(2, row), BattleSide.DEFENDER)
         return battle
+
+    @staticmethod
+    def _require_enemy_owners(
+        attacker_owner_id: str | None, defender_owner_id: str | None
+    ) -> None:
+        """Reject strategic contact unless both owners are known and different."""
+        if attacker_owner_id is None or defender_owner_id is None:
+            raise ValueError("battle participants must have owners")
+        if attacker_owner_id == defender_owner_id:
+            raise ValueError("battle participants must have different owners")
