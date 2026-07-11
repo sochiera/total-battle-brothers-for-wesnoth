@@ -98,6 +98,20 @@ class HexBattle:
             raise ValueError("cannot get side from an empty hex")
         return self.sides[position]
 
+    def nearest_enemy(self, position: Hex) -> Hex | None:
+        """Return the nearest active enemy, breaking ties by deployment order."""
+        if not self.is_occupied(position):
+            raise ValueError("cannot select an enemy from an empty hex")
+        source_side = self.sides[position]
+        enemies = (
+            enemy
+            for enemy in self._deployment_order
+            if self.sides[enemy] is not source_side
+            and self._current_hp[enemy] > 0
+            and not self.units[enemy].stunned
+        )
+        return min(enemies, key=position.distance, default=None)
+
     def result(self) -> BattleResult | None:
         """Return the resolved result, or ``None`` while both sides are active."""
         active_sides = {

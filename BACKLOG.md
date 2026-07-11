@@ -209,7 +209,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > Bitwa ma już wszystkie prymitywy (ruch, walka wręcz/dystans, rozstrzygnięcie 0 HP,
 > koniec/raport), ale nic nie rozgrywa jej do końca. Driver domyka ten szew i jest
 > warunkiem koniecznym AI (A7.1) i pętli MVP (A7.2). Dzielimy go na małe kroki.
-- [~] **BD.1** Wybór najbliższego wrogiego celu w bitwie (`HexBattle.nearest_enemy`).
+- [x] **BD.1** Wybór najbliższego wrogiego celu w bitwie (`HexBattle.nearest_enemy`).
   - AC: czyste zapytanie zwraca pozycję najbliższej **aktywnej** (HP>0, nieogłuszonej)
     jednostki po przeciwnej stronie względem jednostki na danym heksie; dystans wg
     `Hex.distance`, remis rozstrzygany deterministycznie kolejnością rozstawienia;

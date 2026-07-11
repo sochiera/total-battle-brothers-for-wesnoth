@@ -22,6 +22,73 @@ def test_empty_battle_has_no_units():
     assert battle.units == {}
 
 
+def test_nearest_enemy_returns_closer_enemy_and_ignores_same_side_unit():
+    source = Hex(0, 0)
+    ally = Hex(1, 0)
+    closer_enemy = Hex(2, 0)
+    farther_enemy = Hex(4, 0)
+    battle = HexBattle(Battlefield()).deploy(Unit(), source, BattleSide.ATTACKER)
+    battle = battle.deploy(Unit(), ally, BattleSide.ATTACKER)
+    battle = battle.deploy(Unit(), farther_enemy, BattleSide.DEFENDER)
+    battle = battle.deploy(Unit(), closer_enemy, BattleSide.DEFENDER)
+
+    assert battle.nearest_enemy(source) == closer_enemy
+
+
+def test_nearest_enemy_breaks_distance_tie_by_deployment_order():
+    source = Hex(0, 0)
+    first_enemy = Hex(2, 0)
+    second_enemy = Hex(0, 2)
+    battle = HexBattle(Battlefield()).deploy(Unit(), source, BattleSide.ATTACKER)
+    battle = battle.deploy(Unit(), first_enemy, BattleSide.DEFENDER)
+    battle = battle.deploy(Unit(), second_enemy, BattleSide.DEFENDER)
+
+    assert battle.nearest_enemy(source) == first_enemy
+
+
+def test_nearest_enemy_ignores_stunned_and_zero_hp_enemies():
+    source = Hex(0, 0)
+    stunned_enemy = Hex(1, 0)
+    defeated_enemy = Hex(2, 0)
+    battle = HexBattle(Battlefield()).deploy(Unit(), source, BattleSide.ATTACKER)
+    battle = battle.deploy(replace(Unit(), stunned=True), stunned_enemy, BattleSide.DEFENDER)
+    battle = battle.deploy(Unit(), defeated_enemy, BattleSide.DEFENDER)
+    battle = battle.damage(defeated_enemy, battle.current_hp_at(defeated_enemy))
+
+    assert battle.nearest_enemy(source) is None
+
+
+def test_nearest_enemy_returns_none_when_no_enemies_are_deployed():
+    source = Hex(0, 0)
+    battle = HexBattle(Battlefield()).deploy(Unit(), source, BattleSide.ATTACKER)
+    battle = battle.deploy(Unit(), Hex(1, 0), BattleSide.ATTACKER)
+
+    assert battle.nearest_enemy(source) is None
+
+
+def test_nearest_enemy_rejects_empty_source_hex():
+    battle = HexBattle(Battlefield()).deploy(Unit(), Hex(0, 0), BattleSide.ATTACKER)
+
+    with pytest.raises(ValueError):
+        battle.nearest_enemy(Hex(1, 0))
+
+
+def test_nearest_enemy_does_not_mutate_battle_state():
+    source = Hex(0, 0)
+    enemy = Hex(1, 0)
+    battle = HexBattle(Battlefield()).deploy(Unit(), source, BattleSide.ATTACKER)
+    battle = battle.deploy(Unit(), enemy, BattleSide.DEFENDER).damage(enemy, 1)
+    units_before = dict(battle.units)
+    sides_before = dict(battle.sides)
+    hp_before = {position: battle.current_hp_at(position) for position in battle.units}
+
+    battle.nearest_enemy(source)
+
+    assert dict(battle.units) == units_before
+    assert dict(battle.sides) == sides_before
+    assert {position: battle.current_hp_at(position) for position in battle.units} == hp_before
+
+
 def test_deploy_places_one_unit():
     unit = Unit(training=1)
     position = Hex(2, -1)
