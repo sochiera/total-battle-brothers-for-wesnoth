@@ -40,6 +40,19 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
 ### 3.2 Warstwa bitwy (heksy, turowa)
 - Turowa, na siatce **heksów**. Gracz steruje pojedynczymi jednostkami.
 - **Teren** ma znaczenie — modyfikatory (obrona/celność/koszt ruchu).
+  **ROZSTRZYGNIĘTE (B4.1, katalog placeholder):** `Terrain` to niemutowalny typ
+  z trzema polami całkowitymi: `move_cost` (koszt wejścia na heks, `≥ 1`),
+  `defense_mod` (modyfikator obrony jednostki stojącej na heksie) i `accuracy_mod`
+  (modyfikator celności). Startowy katalog: **Plains** (`move_cost=1`, `defense_mod=0`,
+  `accuracy_mod=0` — neutralna baza), **Forest** (`move_cost=2`, `defense_mod=+2`,
+  `accuracy_mod=-1` — osłona, ale utrudnia celowanie), **Hills** (`move_cost=2`,
+  `defense_mod=+1`, `accuracy_mod=+1` — wysoka pozycja). Pole bitwy (`Battlefield`)
+  to rzadkie odwzorowanie `Hex → Terrain` z **domyślnym terenem Plains** dla heksów
+  bez nadpisania; zwraca modyfikatory przez zapytania (`terrain_at`, `move_cost_at`,
+  `defense_at`, `accuracy_at`). **NADAL OTWARTE:** dokładna semantyka aplikowania
+  modyfikatorów w walce (czy `accuracy_mod` obrońcy obniża celność atakującego, czy
+  własną) dochodzi w **B4.3**; granice/kształt planszy oraz strojenie wartości —
+  później.
 - **Jednostki dystansowe** obecne (model jak w Wesnoth / Battle Brothers).
 - **Morale** wpływa **wyłącznie na celność** (bonus/kara do trafienia). Morale
   **nie** powoduje ucieczek.

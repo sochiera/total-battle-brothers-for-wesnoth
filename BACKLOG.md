@@ -50,8 +50,9 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
   - AC: rekrutacja zdejmuje pop z puli; brak pop blokuje; jednostka trafia do osady.
 
 ## Kamień milowy 4 — bitwa heksowa
-- [ ] **B4.1** Plansza heksowa + teren z modyfikatorami.
+- [~] **B4.1** Plansza heksowa + teren z modyfikatorami.
   - AC: pola mają typ terenu; modyfikatory (ruch/obrona/celność) odczytywalne.
+    Katalog Plains/Forest/Hills, `Battlefield` z domyślnym terenem (DESIGN §3.2).
 - [ ] **B4.2** Rozstawienie jednostek i ruch po punktach ruchu z kosztem terenu.
   - AC: legalne ruchy respektują koszt i zasięg; nielegalne odrzucone.
 - [ ] **B4.3** Walka wręcz: trafienie (celność+teren+morale) i obrażenia.
