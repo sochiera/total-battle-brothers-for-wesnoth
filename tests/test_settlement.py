@@ -4,7 +4,7 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
-from tbb import Building, Settlement, SMITH
+from tbb import Building, FARM, MARKET, Resources, Settlement, SMITH
 
 
 def test_construction_defaults_all_population_to_free():
@@ -132,3 +132,43 @@ def test_close_inactive_building_is_rejected_without_changing_state():
         settlement.close_building(mill)
 
     assert settlement == Settlement("A", population=3)
+
+
+def test_settlement_without_buildings_has_no_production():
+    assert Settlement("A", population=3).production == Resources(0, 0)
+
+
+def test_production_sums_outputs_of_active_buildings():
+    settlement = Settlement("A", population=2).open_building(FARM).open_building(MARKET)
+
+    assert settlement.production == Resources(wheat=3, gold=2)
+
+
+def test_consumption_equals_total_population():
+    assert Settlement("A", population=5).consumption == Resources(wheat=5, gold=0)
+
+
+def test_tick_economy_applies_production_and_consumption():
+    settlement = Settlement("A", population=2).open_building(FARM)
+
+    ticked = settlement.tick_economy()
+
+    assert ticked.storage == Resources(wheat=1, gold=0)
+
+
+def test_tick_economy_clamps_wheat_shortage_to_zero():
+    settlement = Settlement("A", population=5)
+
+    assert settlement.tick_economy().storage.wheat == 0
+
+
+def test_tick_economy_returns_new_state_without_changing_original():
+    original = Settlement("A", population=2).open_building(FARM)
+
+    ticked = original.tick_economy()
+
+    assert original.storage == Resources(0, 0)
+    assert ticked is not original
+    assert ticked.population == original.population
+    assert ticked.occupied == original.occupied
+    assert ticked.active_buildings == original.active_buildings

@@ -3,6 +3,7 @@
 from dataclasses import dataclass, replace
 
 from tbb.building import Building
+from tbb.resources import Resources
 
 
 @dataclass(frozen=True)
@@ -13,6 +14,7 @@ class Settlement:
     population: int
     occupied: int = 0
     active_buildings: tuple[Building, ...] = ()
+    storage: Resources = Resources(0, 0)
 
     def __post_init__(self) -> None:
         """Reject an inconsistent population pool."""
@@ -25,6 +27,26 @@ class Settlement:
     def free(self) -> int:
         """Return population currently available for assignment."""
         return self.population - self.occupied
+
+    @property
+    def production(self) -> Resources:
+        """Return the combined output of all active buildings."""
+        total = Resources(0, 0)
+        for building in self.active_buildings:
+            total = total.add(building.output)
+        return total
+
+    @property
+    def consumption(self) -> Resources:
+        """Return resources consumed by the total population each month."""
+        return Resources(wheat=self.population, gold=0)
+
+    def tick_economy(self) -> "Settlement":
+        """Return the settlement state after one monthly economy tick."""
+        storage = self.storage.add(self.production).subtract(
+            self.consumption, allow_negative=True
+        )
+        return replace(self, storage=storage)
 
     def occupy(self, amount: int) -> "Settlement":
         """Return a new settlement with ``amount`` population assigned."""
