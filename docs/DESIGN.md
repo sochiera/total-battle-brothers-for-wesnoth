@@ -393,5 +393,10 @@ ich dotykają, i notować wynik tutaj:
   się o jeden miesiąc dopiero przy zakończeniu fazy bitew. Akcja wywołana
   poza właściwą fazą jest odrzucana. Rozstrzyganie bitew i zapisywanie ich
   skutków na mapie pozostaje poza tym szkieletem. Maszynę faz implementuje
-  `StrategicTurn.advance_phase()`; **M5.4c2** dokłada bramkowane fazą akcje
-  ruchu i rozpoczęcia bitew.
+  `StrategicTurn.advance_phase()`.
+  **ROZSTRZYGNIĘTE (M5.4c2, bramkowanie akcji fazą):** `StrategicTurn.move_party()`
+  deleguje ruch do mapy wyłącznie w fazie ruchu i zwraca nowy stan tury z tą samą
+  fazą oraz kalendarzem. Rozpoczęcie starcia party↔party przez `start_battle()`
+  lub party↔osada przez `start_settlement_battle()` deleguje do mapy wyłącznie
+  w fazie bitew i nie zmienia stanu tury. Wywołanie akcji w innej fazie jest
+  odrzucane przed walidacją mapy; w poprawnej fazie błędy mapy propagują się.

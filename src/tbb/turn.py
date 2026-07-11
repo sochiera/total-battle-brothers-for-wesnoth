@@ -4,7 +4,8 @@ from dataclasses import dataclass, replace
 from enum import Enum, auto
 from typing import ClassVar
 
-from tbb.world import WorldMap
+from tbb.battle import HexBattle
+from tbb.world import Region, WorldMap
 
 
 @dataclass(frozen=True)
@@ -46,6 +47,31 @@ class StrategicTurn:
     world: WorldMap
     calendar: Calendar
     phase: TurnPhase = TurnPhase.SETTLEMENTS
+
+    def move_party(
+        self, source: Region, destination: Region, move_points: int
+    ) -> "StrategicTurn":
+        """Move a party during the movement phase."""
+        if self.phase is not TurnPhase.MOVEMENT:
+            raise ValueError("party movement is only allowed in the movement phase")
+        return replace(
+            self,
+            world=self.world.move_party(source, destination, move_points),
+        )
+
+    def start_battle(self, source: Region, destination: Region) -> HexBattle:
+        """Start a party battle during the battles phase."""
+        if self.phase is not TurnPhase.BATTLES:
+            raise ValueError("battles can only start in the battles phase")
+        return self.world.start_battle(source, destination)
+
+    def start_settlement_battle(
+        self, source: Region, destination: Region
+    ) -> HexBattle:
+        """Start a settlement battle during the battles phase."""
+        if self.phase is not TurnPhase.BATTLES:
+            raise ValueError("battles can only start in the battles phase")
+        return self.world.start_settlement_battle(source, destination)
 
     def advance_phase(self) -> "StrategicTurn":
         """Return the state after completing the current phase."""

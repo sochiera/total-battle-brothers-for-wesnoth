@@ -4,7 +4,7 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
-from tbb import Calendar, FARM, Region, Resources, Settlement, WorldMap
+from tbb import Calendar, FARM, Region, Resources, Settlement, TurnPhase, WorldMap
 from tbb.turn import end_turn
 
 
@@ -172,3 +172,138 @@ def test_public_api_exports_strategic_turn_and_phase():
 
     assert StrategicTurn is ModuleStrategicTurn
     assert TurnPhase is ModuleTurnPhase
+
+
+def test_move_party_in_movement_returns_new_turn_and_preserves_input():
+    from tbb import Party, StrategicTurn, TurnPhase, Unit
+
+    source, destination = Region("Vale"), Region("Ford")
+    party = Party(Unit(), owner_id="player")
+    world = WorldMap(
+        [source, destination],
+        connections=[(source, destination)],
+        parties={source: party},
+    )
+    calendar = Calendar(year=2, month=3)
+    turn = StrategicTurn(world, calendar, TurnPhase.MOVEMENT)
+
+    advanced = turn.move_party(source, destination, move_points=1)
+
+    assert advanced is not turn
+    assert advanced.phase is TurnPhase.MOVEMENT
+    assert advanced.calendar is calendar
+    assert advanced.world.party_at(destination) is party
+    assert advanced.world.party_at(source) is None
+    assert turn.world is world
+    assert world.party_at(source) is party
+    assert world.party_at(destination) is None
+
+
+@pytest.mark.parametrize(
+    "phase",
+    [TurnPhase.SETTLEMENTS, TurnPhase.BATTLES, TurnPhase.ENDED],
+)
+def test_move_party_is_rejected_outside_movement(phase):
+    from tbb import Party, StrategicTurn, Unit
+
+    source, destination = Region("Vale"), Region("Ford")
+    party = Party(Unit(), owner_id="player")
+    world = WorldMap(
+        [source, destination],
+        connections=[(source, destination)],
+        parties={source: party},
+    )
+    turn = StrategicTurn(world, Calendar(), phase)
+
+    with pytest.raises(ValueError):
+        turn.move_party(source, destination, 1)
+
+    assert turn.world is world
+    assert world.party_at(source) is party
+    assert world.party_at(destination) is None
+
+
+def test_start_battle_in_battles_delegates_without_changing_turn():
+    from tbb import Party, StrategicTurn, TurnPhase, Unit
+
+    source, destination = Region("Vale"), Region("Ford")
+    attacker = Party(Unit(training=1), [Unit(equipment=1)], owner_id="player")
+    defender = Party(Unit(training=2), [Unit(equipment=2)], owner_id="enemy")
+    world = WorldMap(
+        [source, destination],
+        connections=[(source, destination)],
+        parties={source: attacker, destination: defender},
+    )
+    turn = StrategicTurn(world, Calendar(), TurnPhase.BATTLES)
+
+    battle = turn.start_battle(source, destination)
+    expected = world.start_battle(source, destination)
+
+    assert battle.units == expected.units
+    assert battle.sides == expected.sides
+    assert turn.world is world
+    assert turn.phase is TurnPhase.BATTLES
+
+
+@pytest.mark.parametrize(
+    "phase",
+    [TurnPhase.SETTLEMENTS, TurnPhase.MOVEMENT, TurnPhase.ENDED],
+)
+def test_start_battle_is_rejected_outside_battles(phase):
+    from tbb import StrategicTurn
+
+    turn = StrategicTurn(WorldMap([]), Calendar(), phase)
+
+    with pytest.raises(ValueError):
+        turn.start_battle(Region("Vale"), Region("Ford"))
+
+
+def test_start_settlement_battle_in_battles_delegates():
+    from tbb import HexBattle, Party, StrategicTurn, TurnPhase, Unit
+
+    source, destination = Region("Vale"), Region("Ford")
+    party = Party(Unit(), owner_id="player")
+    settlement = Settlement(
+        "Ford Keep", population=1, garrison=(Unit(),), owner_id="enemy"
+    )
+    world = WorldMap(
+        [source, destination],
+        connections=[(source, destination)],
+        settlements={destination: settlement},
+        parties={source: party},
+    )
+    turn = StrategicTurn(world, Calendar(), TurnPhase.BATTLES)
+
+    battle = turn.start_settlement_battle(source, destination)
+
+    assert isinstance(battle, HexBattle)
+    assert battle.units == world.start_settlement_battle(source, destination).units
+    assert turn.world is world
+
+
+@pytest.mark.parametrize(
+    "phase",
+    [TurnPhase.SETTLEMENTS, TurnPhase.MOVEMENT, TurnPhase.ENDED],
+)
+def test_start_settlement_battle_is_rejected_outside_battles(phase):
+    from tbb import StrategicTurn
+
+    turn = StrategicTurn(WorldMap([]), Calendar(), phase)
+
+    with pytest.raises(ValueError):
+        turn.start_settlement_battle(Region("Vale"), Region("Ford"))
+
+
+def test_world_validation_error_propagates_in_correct_phase():
+    from tbb import Party, StrategicTurn, TurnPhase, Unit
+
+    source, destination = Region("Vale"), Region("Distant Ford")
+    party = Party(Unit(), owner_id="player")
+    turn = StrategicTurn(
+        WorldMap([source, destination], parties={source: party}),
+        Calendar(),
+        TurnPhase.MOVEMENT,
+    )
+
+    with pytest.raises(ValueError, match="not adjacent"):
+        turn.move_party(source, destination, 1)
