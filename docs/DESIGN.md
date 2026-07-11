@@ -297,9 +297,18 @@ Wstępne encje rdzenia (nazwy robocze, doprecyzowywane wraz z implementacją):
   dawny `heir` awansuje na `hero`, `heir` wraca do `None`, a `morale` spada o stałą
   `SUCCESSION_MORALE_PENALTY` (placeholder, obecnie `2` — destabilizacja przy zmianie
   władcy; wartość do strojenia balansu). `duchy_id`, osady i party pozostają bez
-  zmian, a stan wejściowy jest niemutowalny. Wariant bez dziedzica (`succeed()`
-  odrzucone) oraz spadek morale konkretnych osad/wojsk dochodzą w D6.2b, a warunek
-  przegranej/wygranej w D6.3.
+  zmian, a stan wejściowy jest niemutowalny.
+  **ROZSTRZYGNIĘTE (D6.2b, śmierć bez dziedzica):** `hero` staje się `Unit | None`.
+  Inwariant „dokładnie jeden bohater" łagodnieje do „co najwyżej jeden": księstwo
+  **bezhetmańskie** (`hero=None`) to dozwolony, przejściowy stan po śmierci bohatera
+  bez wyznaczonego dziedzica. Sygnalizuje go jawnie właściwość `has_hero: bool`
+  (`False`, gdy `hero is None`). `succeed()` bez dziedzica **nie jest już odrzucane**:
+  zwraca nowe księstwo z `hero=None`, `heir=None`, morale obniżonym o
+  `SUCCESSION_MORALE_PENALTY` (ta sama placeholderowa kara — próżnia władzy
+  destabilizuje przynajmniej tak jak zmiana władcy) oraz zachowanym `duchy_id`,
+  osadami i party. Konstruktor odrzuca dziedzica przy `hero=None` (dziedzic bez
+  bohatera byłby po prostu bohaterem). Spadek morale konkretnych osad/wojsk oraz
+  warunek przegranej/wygranej (brak osad ORAZ bohatera) dochodzą w D6.3.
 - `Party` — bohater + ≤12 jednostek, pozycja na mapie, punkty ruchu.
 - `WorldMap` — regiony/prowincje, osady, pozycje party.
 - `HexBattle` — siatka heksów, teren, jednostki, kolejka tur, rozstrzyganie walki.
