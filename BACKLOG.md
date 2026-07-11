@@ -27,9 +27,9 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 ## Kamień milowy 2 — osada i ekonomia
 - [x] **E2.1** `Settlement` z pulą populacji (wolna vs zajęta).
   - AC: rekrutacja/obsada zajmuje populację; brak wolnej populacji blokuje akcję.
-- [~] **E2.2** Budynki: uruchomienie wymaga wolnej populacji; zamknięcie ją zwalnia.
+- [x] **E2.2** Budynki: uruchomienie wymaga wolnej populacji; zamknięcie ją zwalnia.
   - AC: za mała populacja → nie można uruchomić kowala; zamknięcie oddaje 1 pop.
-- [ ] **E2.3** Produkcja surowców per tura (pszenica/złoto z budynków) + konsumpcja.
+- [~] **E2.3** Produkcja surowców per tura (pszenica/złoto z budynków) + konsumpcja.
   - AC: bilans miesięczny liczony deterministycznie; testy na przykładowej osadzie.
 - [ ] **E2.4** Wzrost populacji (urodzenia + imigranci, z sufitem).
   - AC: populacja rośnie wg reguły z DESIGN §10; sufit respektowany.

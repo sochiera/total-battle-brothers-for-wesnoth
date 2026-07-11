@@ -89,7 +89,9 @@ Wstępne encje rdzenia (nazwy robocze, doprecyzowywane wraz z implementacją):
   dopuszczone (wtedy podłoga na zero).
 - `Unit` — filary { training, equipment, experience } → statystyki pochodne;
   stan { hp, wounds[], stunned }.
-- `Settlement` — populacja (pula + zajęte), budynki, garnizon, magazyn surowców.
+- `Settlement` — populacja (pula + zajęte), budynki, garnizon, **magazyn surowców**
+  (`storage: Resources`, domyślnie pusty). Ekonomia miesięczna to czyste przejście
+  stanu zwracające nową osadę (§4, E2.3).
 - `Duchy` (księstwo) — bohater, dziedzic, lista osad, party, morale.
 - `Party` — bohater + ≤12 jednostek, pozycja na mapie, punkty ruchu.
 - `WorldMap` — regiony/prowincje, osady, pozycje party.
@@ -119,6 +121,14 @@ ich dotykają, i notować wynik tutaj:
 - **Wzór na trafienie:** bazowa celność + teren + morale → prawdopodobieństwo.
 - **Model ran:** ile rodzajów, jak wpływają na statystyki, czasowe vs trwałe.
 - **Wzrost populacji:** tempo urodzeń, skąd imigranci, sufit populacji.
-- **Ekonomia:** produkcja pszenicy/złota per budynek, konsumpcja, bilans.
+- ~~**Ekonomia:** produkcja pszenicy/złota per budynek, konsumpcja, bilans.~~
+  **ROZSTRZYGNIĘTE (E2.3, minimalny model):** każdy **aktywny** (obsadzony) budynek
+  produkuje swój stały `output: Resources` na turę (miesiąc); budynek zamknięty nie
+  produkuje. **Konsumpcja:** cała populacja (wolna + zajęta) je pszenicę — **1
+  pszenica / mieszkaniec / miesiąc**; złoto nie jest konsumowane. **Bilans miesięczny:**
+  `storage = storage + Σ output_aktywnych − konsumpcja`; niedobór pszenicy jest
+  **podłogowany na zero** (skutki głodu — spadek populacji/morale — poza E2.3).
+  Startowy katalog: **Farm** (`wheat=3`, `staff=1`), **Market** (`gold=2`, `staff=1`);
+  **Smith** nie produkuje surowców (`output` zerowy — to budynek uzbrojenia, M3).
 - **AI księstw:** poziom ambicji dla MVP (od skryptowego „rozwijaj i atakuj").
 - **Zakończenie tury na mapie:** kolejność faz (produkcja → wzrost → ruch → bitwy).
