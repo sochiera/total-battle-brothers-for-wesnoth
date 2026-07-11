@@ -46,6 +46,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │       ├── building.py   # niemutowalne typy budynków i katalog startowy
 │       ├── combat.py     # czyste, deterministyczne wyliczenia reguł walki
 │       ├── duchy.py      # niemutowalne księstwo: identyfikator, bohater i morale
+│       ├── game.py       # niemutowalny stan końca gry nad zbiorem księstw
 │       ├── hex.py        # niemutowalne współrzędne heksów axial/cube
 │       ├── party.py      # niemutowalny bohater i skład armii strategicznej
 │       ├── terrain.py    # niemutowalne typy terenu i katalog startowy
@@ -64,6 +65,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │   ├── test_building.py
 │   ├── test_combat.py
 │   ├── test_duchy.py
+│   ├── test_game.py
 │   ├── test_hex.py
 │   ├── test_party.py
 │   ├── test_terrain.py
