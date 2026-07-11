@@ -38,6 +38,13 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   rusza się **wyłącznie** razem z bohaterem. Bez bohatera jednostki stoją; mogą
   zostać w osadzie jako **garnizon** (obrona).
 - **Party:** bohater prowadzi maksymalnie **12 jednostek**.
+  **ROZSTRZYGNIĘTE (M5.2a, minimalny skład party):** `Party` jest
+  niemutowalnym stanem z jednym wymaganym `hero: Unit` oraz krotką najwyżej
+  12 podkomendnych `units`. Bohater zajmuje osobne pole i **nie wlicza się** do
+  limitu 12 jednostek. Rola bohatera wynika z pola `hero`; na tym etapie korzysta
+  on z tego samego modelu bojowego `Unit`, bez osobnego typu i bez reguł
+  następstwa. Party nie przechowuje jeszcze pozycji ani punktów ruchu, a jego
+  utworzenie nie przenosi jednostek z garnizonu — te przejścia dochodzą osobno.
 - **Następstwo:** gdy bohater ginie, przejmuje **wyznaczony dziedzic**. Osady i
   wojownicy tracą wtedy **morale**, ale gra toczy się dalej.
 - **Przegrana:** utrata **wszystkich** osad **oraz** brak bohatera (zginął i nie

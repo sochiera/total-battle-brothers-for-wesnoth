@@ -109,11 +109,11 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     stan wejściowy pozostaje niemutowalny; zasady z DESIGN.
 
 ## Kamień milowy 5 — mapa strategiczna i tura
-- [~] **M5.1a** `WorldMap`: niemutowalny graf regionów i rozmieszczenie osad.
+- [x] **M5.1a** `WorldMap`: niemutowalny graf regionów i rozmieszczenie osad.
   - AC: jawne regiony i dwukierunkowe połączenia; deterministyczne zapytanie
     o sąsiadów; najwyżej jedna osada w regionie; odrzucenie połączeń i osad spoza
     mapy; wejściowe kolekcje nie pozwalają zmutować utworzonej mapy.
-- [ ] **M5.2a** Party (bohater + ≤12 jednostek), bez mapy i ruchu.
+- [~] **M5.2a** Party (bohater + ≤12 jednostek), bez mapy i ruchu.
   - AC: dokładnie jeden bohater; limit 12 jednostek; utworzenie party bez bohatera
     lub ponad limitem jest odrzucane; garnizon osady pozostaje odrębnym stanem.
 - [ ] **M5.1b** Pozycje party na `WorldMap` (po utworzeniu modelu `Party` w M5.2a).
