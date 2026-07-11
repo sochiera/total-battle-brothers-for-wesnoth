@@ -165,15 +165,17 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     mapie), dokładnie jednym wymaganym `hero: Unit` (inwariant 1 bohatera) oraz
     podpisanym `morale: int` (domyślnie 0); pusty/nietekstowy identyfikator i
     nie-`Unit` bohater są odrzucane; dziedzic, osady i party dochodzą w D6.1b.
-- [~] **D6.1b1** `Duchy`: wyznaczony dziedzic (opcjonalny `heir`).
+- [x] **D6.1b1** `Duchy`: wyznaczony dziedzic (opcjonalny `heir`).
   - AC: niemutowalny `Duchy` trzyma opcjonalny `heir: Unit | None` (domyślnie
     `None` = brak dziedzica); podany dziedzic musi być `Unit` i nie może być tym
     samym obiektem co `hero`; brak dziedzica jest dozwolony; sukcesja i kara
     morale po śmierci bohatera dochodzą w D6.2.
-- [ ] **D6.1b2** `Duchy`: lista osad i party (spięcie z mapą).
+- [~] **D6.1b2** `Duchy`: lista osad i party (spięcie z mapą).
   - AC: księstwo trzyma odwołania do swoich osad i party; własność spójna
     z `duchy_id` (`owner_id` każdej osady/party = `duchy_id`); niemutowalne
-    kolekcje kopiowane przy tworzeniu.
+    kolekcje kopiowane przy tworzeniu; osada/party bez `owner_id` lub z innym
+    `owner_id` jest odrzucana; niepoprawny typ członka odrzucany; puste kolekcje
+    są dozwolone i domyślne.
 - [ ] **D6.2** Śmierć bohatera → sukcesja dziedzica + kara morale.
   - AC: dziedzic przejmuje; morale osad/wojsk spada; brak dziedzica → patrz D6.3.
 - [ ] **D6.3** Warunek przegranej/wygranej (brak osad ORAZ brak bohatera).

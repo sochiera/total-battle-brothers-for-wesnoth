@@ -96,6 +96,17 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   nierozróżnialne. Samo przechowanie dziedzica nie uruchamia sukcesji ani nie
   zmienia morale — to należy do D6.2. Lista osad i party księstwa dochodzi
   w D6.1b2.
+  **ROZSTRZYGNIĘTE (D6.1b2, osady i party księstwa):** `Duchy` przechowuje dwie
+  niemutowalne krotki — `settlements: tuple[Settlement, ...]` oraz
+  `parties: tuple[Party, ...]` (obie domyślnie puste). Wejściowe kolekcje są
+  **kopiowane** do krotek przy tworzeniu, więc późniejsza mutacja źródła nie
+  zmienia księstwa. Każda osada i każde party muszą mieć jawny `owner_id`
+  **równy** `duchy_id` tego księstwa — to spina własność strategiczną z M5.3b2
+  z modelem właściciela. Członek bez `owner_id` (`None`) albo z innym `owner_id`
+  jest odrzucany, podobnie jak człon niewłaściwego typu. Puste kolekcje są
+  dozwolone (księstwo bez osad/party np. tuż przed przegraną). Samo posiadanie
+  list nie synchronizuje jeszcze zmian stanu osad/party z powrotem na `WorldMap`
+  ani nie liczy warunku przegranej — to D6.2–D6.3.
 - **Party:** bohater prowadzi maksymalnie **12 jednostek**.
   **ROZSTRZYGNIĘTE (M5.2a, minimalny skład party):** `Party` jest
   niemutowalnym stanem z jednym wymaganym `hero: Unit` oraz krotką najwyżej
@@ -278,8 +289,11 @@ Wstępne encje rdzenia (nazwy robocze, doprecyzowywane wraz z implementacją):
   Pojedyncze pole `hero` realizuje inwariant „dokładnie jeden bohater na księstwo".
   **ROZSTRZYGNIĘTE (D6.1b1):** dochodzi opcjonalne pole `heir: Unit | None`
   (domyślnie `None`); wyznaczony dziedzic musi być `Unit` odrębnym od `hero`.
-  Lista osad oraz przypisane party dochodzą w D6.1b2, a sukcesja i kara morale
-  po śmierci bohatera w D6.2.
+  **ROZSTRZYGNIĘTE (D6.1b2):** dochodzą niemutowalne, kopiowane krotki
+  `settlements: tuple[Settlement, ...]` i `parties: tuple[Party, ...]` (domyślnie
+  puste); `owner_id` każdej osady i party musi równać się `duchy_id`. Sukcesja
+  i kara morale po śmierci bohatera dochodzą w D6.2, a warunek przegranej/wygranej
+  w D6.3.
 - `Party` — bohater + ≤12 jednostek, pozycja na mapie, punkty ruchu.
 - `WorldMap` — regiony/prowincje, osady, pozycje party.
 - `HexBattle` — siatka heksów, teren, jednostki, kolejka tur, rozstrzyganie walki.
