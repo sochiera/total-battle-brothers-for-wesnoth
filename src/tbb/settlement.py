@@ -57,6 +57,16 @@ class Settlement:
         growth = 1 if self.storage.wheat > 0 and below_capacity else 0
         return replace(self, population=self.population + growth)
 
+    def tick_immigration(self) -> "Settlement":
+        """Return the settlement state after deterministic monthly immigration."""
+        below_capacity = self.capacity is None or self.population < self.capacity
+        immigration = (
+            1
+            if self.storage.gold > 0 and self.storage.wheat > 0 and below_capacity
+            else 0
+        )
+        return replace(self, population=self.population + immigration)
+
     def occupy(self, amount: int) -> "Settlement":
         """Return a new settlement with ``amount`` population assigned."""
         if amount < 0:

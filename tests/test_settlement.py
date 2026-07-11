@@ -228,3 +228,58 @@ def test_tick_growth_returns_new_state_without_mutating_original():
     assert grown.population == 3
     assert original.population == 2
     assert original.storage == Resources(1, 0)
+
+
+def test_prosperous_fed_settlement_attracts_free_immigrant():
+    original = Settlement(
+        "A", population=2, occupied=1, capacity=4, storage=Resources(1, 1)
+    )
+
+    grown = original.tick_immigration()
+
+    assert grown.population == original.population + 1
+    assert grown.free == original.free + 1
+    assert grown.occupied == original.occupied
+
+
+def test_settlement_without_gold_does_not_attract_immigrant():
+    settlement = Settlement("A", population=2, storage=Resources(1, 0))
+
+    assert settlement.tick_immigration().population == settlement.population
+
+
+def test_starving_prosperous_settlement_does_not_attract_immigrant():
+    settlement = Settlement("A", population=2, storage=Resources(0, 1))
+
+    assert settlement.tick_immigration().population == settlement.population
+
+
+def test_settlement_at_capacity_does_not_attract_immigrant():
+    settlement = Settlement(
+        "A", population=2, capacity=2, storage=Resources(1, 1)
+    )
+
+    assert settlement.tick_immigration().population == settlement.population
+
+
+def test_settlement_without_capacity_attracts_immigrant():
+    settlement = Settlement("A", population=2, storage=Resources(1, 1))
+
+    assert settlement.tick_immigration().population == 3
+
+
+def test_tick_immigration_does_not_consume_resources():
+    settlement = Settlement("A", population=2, storage=Resources(3, 4))
+
+    assert settlement.tick_immigration().storage == Resources(3, 4)
+
+
+def test_tick_immigration_returns_new_state_without_mutating_original():
+    original = Settlement("A", population=2, storage=Resources(1, 1))
+
+    grown = original.tick_immigration()
+
+    assert grown is not original
+    assert grown.population == 3
+    assert original.population == 2
+    assert original.storage == Resources(1, 1)
