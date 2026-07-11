@@ -79,11 +79,11 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     atak wymaga wrogich stron, używa wzoru trafienia z B4.3a i dokładnie jednego
     rzutu RNG; trafienie zadaje `Unit.damage`, pudło nie zmienia HP; brak
     kontrataku; stan wejściowy pozostaje niemutowalny.
-- [~] **B4.4b1** Deterministyczna linia heksów dla widoczności.
+- [x] **B4.4b1** Deterministyczna linia heksów dla widoczności.
   - AC: `Hex.line_to()` zwraca oba końce i heksy linii wyznaczone między nimi
     w stabilnej kolejności; kolejne heksy są sąsiadami; odwrócenie końców odwraca
     wynik; testy obejmują linię prostą, ukośną i przypadek przechodzący po granicy.
-- [ ] **B4.4b2** Jednostki jako przeszkody dla ataku dystansowego.
+- [~] **B4.4b2** Jednostki jako przeszkody dla ataku dystansowego.
   - AC: każda jednostka na heksie pośrednim wyznaczonym przez `Hex.line_to()`
     blokuje strzał; testy obejmują czystą i zablokowaną linię axial; sprawdzenie
     następuje przed rzutem RNG i nie zmienia stanu bitwy.
