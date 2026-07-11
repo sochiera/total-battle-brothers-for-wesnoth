@@ -43,6 +43,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │       ├── __main__.py   # headless entry point (python -m tbb)
 │       ├── building.py   # niemutowalne typy budynków i katalog startowy
 │       ├── hex.py        # niemutowalne współrzędne heksów axial/cube
+│       ├── progression.py # krzywa skumulowany nakład → poziom filaru
 │       ├── resources.py  # niemutowalne wartości pszenicy i złota
 │       ├── settlement.py # niemutowalna osada z pulą populacji
 │       ├── unit.py       # niemutowalna jednostka i pochodne statystyki bojowe
@@ -51,6 +52,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │   ├── test_rng.py
 │   ├── test_building.py
 │   ├── test_hex.py
+│   ├── test_progression.py
 │   ├── test_resources.py
 │   ├── test_settlement.py
 │   ├── test_unit.py

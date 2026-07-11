@@ -43,7 +43,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 - [x] **U3.1** `Unit` z trzema filarami (trening/uzbrojenie/doświadczenie).
   - AC: statystyki pochodne = funkcja filarów; niezależność filarów pokryta testem.
     Mapowanie liniowe (placeholder, DESIGN §5); krzywe malejącego zysku → U3.2.
-- [~] **U3.2** Malejący zysk treningu i uzbrojenia (czas/surowce → poziom filaru).
+- [x] **U3.2** Malejący zysk treningu i uzbrojenia (czas/surowce → poziom filaru).
   - AC: przyrost maleje z poziomem; parametry z DESIGN; monotoniczność w teście.
     Wzór `level(inv) = (isqrt(8·inv+1)−1)//2` (progi trójkątne), deterministyczny.
 - [ ] **U3.3** Rekrutacja jednostki z populacji osady.

@@ -6,6 +6,7 @@ Nie importuj tu bibliotek prezentacji/UI — patrz docs/ARCHITECTURE.md.
 
 from tbb.building import Building, FARM, MARKET, SMITH
 from tbb.hex import Hex
+from tbb.progression import investment_for_level, pillar_level
 from tbb.rng import Rng
 from tbb.resources import Resources
 from tbb.settlement import Settlement
@@ -17,11 +18,13 @@ __all__ = [
     "Building",
     "FARM",
     "Hex",
+    "investment_for_level",
     "Resources",
     "Rng",
     "Settlement",
     "Unit",
     "MARKET",
+    "pillar_level",
     "SMITH",
     "__version__",
 ]
