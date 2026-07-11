@@ -2,7 +2,7 @@
 
 import pytest
 
-from tbb.battle import BattleResult, BattleSide, HexBattle
+from tbb.battle import BattleReport, BattleResult, BattleSide, BattleSideReport, HexBattle
 from tbb.battlefield import Battlefield
 from tbb.hex import Hex
 from tbb.terrain import FOREST
@@ -623,3 +623,98 @@ def test_reading_result_is_repeatable_and_does_not_mutate_battle_state():
         defender: battle.current_hp_at(defender),
     } == hp_before
     assert dict(battle.sides) == sides_before
+
+
+def test_report_keeps_dead_unit_and_its_original_side_after_removal():
+    dead = Unit(training=3)
+    dead_position = Hex(1, 0)
+    battle = HexBattle(Battlefield()).deploy(
+        Unit(), Hex(0, 0), BattleSide.ATTACKER
+    ).deploy(dead, dead_position, BattleSide.DEFENDER)
+    battle = battle.damage(dead_position, dead.hp).resolve_defeat(
+        dead_position, ControlledRng(True)
+    )
+
+    report = battle.report()
+
+    assert report.result is BattleResult.ATTACKER_WIN
+    assert report.defender.fallen == (dead,)
+    assert report.attacker.fallen == ()
+
+
+def test_report_classifies_stunned_and_active_units_for_each_side():
+    active_attacker = Unit(training=1)
+    stunned_attacker = Unit(training=2)
+    active_defender = Unit(equipment=1)
+    battle = HexBattle(Battlefield()).deploy(
+        active_attacker, Hex(0, 0), BattleSide.ATTACKER
+    ).deploy(stunned_attacker, Hex(1, 0), BattleSide.ATTACKER)
+    battle = battle.deploy(active_defender, Hex(2, 0), BattleSide.DEFENDER)
+    battle = battle.damage(Hex(1, 0), stunned_attacker.hp).resolve_defeat(
+        Hex(1, 0), ControlledRng(False)
+    )
+    battle = battle.damage(Hex(2, 0), active_defender.hp).resolve_defeat(
+        Hex(2, 0), ControlledRng(True)
+    )
+
+    report = battle.report()
+
+    assert report.attacker.active == (active_attacker,)
+    assert report.attacker.stunned[0].stunned is True
+    assert report.defender.active == ()
+    assert report.defender.stunned == ()
+    assert report.defender.fallen == (active_defender,)
+
+
+def test_report_rejects_an_unfinished_battle():
+    battle, _, _ = _battle_with_both_sides()
+
+    with pytest.raises(ValueError):
+        battle.report()
+
+
+def test_report_is_repeatable_stable_and_does_not_mutate_battle():
+    first = Unit(training=1)
+    second = Unit(training=2)
+    defender = Unit()
+    positions = (Hex(2, 0), Hex(0, 0), Hex(3, 0))
+    battle = HexBattle(Battlefield()).deploy(
+        first, positions[0], BattleSide.ATTACKER
+    ).deploy(second, positions[1], BattleSide.ATTACKER)
+    battle = battle.deploy(defender, positions[2], BattleSide.DEFENDER)
+    battle = battle.damage(positions[2], defender.hp).resolve_defeat(
+        positions[2], ControlledRng(True)
+    )
+    units_before = dict(battle.units)
+    hp_before = dict(battle._current_hp)
+    sides_before = dict(battle.sides)
+
+    first_report = battle.report()
+    second_report = battle.report()
+
+    assert first_report == second_report
+    assert first_report.attacker.active == (first, second)
+    assert isinstance(first_report, BattleReport)
+    assert isinstance(first_report.attacker, BattleSideReport)
+    assert dict(battle.units) == units_before
+    assert dict(battle._current_hp) == hp_before
+    assert dict(battle.sides) == sides_before
+
+
+def test_report_keeps_deployment_order_after_a_unit_moves():
+    first = Unit(training=1)
+    second = Unit(training=2)
+    defender = Unit()
+    first_start = Hex(0, 0)
+    second_position = Hex(2, 0)
+    defender_position = Hex(4, 0)
+    battle = HexBattle(Battlefield()).deploy(
+        first, first_start, BattleSide.ATTACKER
+    ).deploy(second, second_position, BattleSide.ATTACKER)
+    battle = battle.deploy(defender, defender_position, BattleSide.DEFENDER)
+    battle = battle.move(first_start, Hex(0, 1), move_points=1)
+    battle = battle.damage(defender_position, defender.hp).resolve_defeat(
+        defender_position, ControlledRng(True)
+    )
+
+    assert battle.report().attacker.active == (first, second)

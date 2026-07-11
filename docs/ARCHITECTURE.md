@@ -109,6 +109,9 @@ Uruchamiaj z katalogu `game/`.
 - **Rany:** `Wound` jest niemutowalnym modyfikatorem celności i obrony;
   `Unit.wounds` przechowuje niemutowalną krotkę ran, których kary sumują się
   w efektywnych statystykach z podłogą na zero.
+- **Kolejność raportu bitwy:** `HexBattle` przechowuje osobny, niemutowalny
+  rejestr kolejności rozstawienia aktywnych jednostek. Ruch aktualizuje w nim
+  pozycję bez zmiany kolejności, więc kolejność mapy `units` nie wpływa na raport.
 - **Małe przejścia stanu:** funkcje przekształcające stan zamiast wielkich metod
   z ukrytymi efektami.
 - **Nazwy:** moduł ↔ test 1:1 (patrz wyżej).

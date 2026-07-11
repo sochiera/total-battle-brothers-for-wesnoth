@@ -30,6 +30,24 @@ class BattleResult(Enum):
 
 
 @dataclass(frozen=True)
+class BattleSideReport:
+    """Immutable final classification of one side's units."""
+
+    fallen: tuple[Unit, ...] = ()
+    stunned: tuple[Unit, ...] = ()
+    active: tuple[Unit, ...] = ()
+
+
+@dataclass(frozen=True)
+class BattleReport:
+    """Immutable result and final unit state for both battle sides."""
+
+    result: BattleResult
+    attacker: BattleSideReport
+    defender: BattleSideReport
+
+
+@dataclass(frozen=True)
 class HexBattle:
     """Combine battlefield terrain with units deployed on hexes."""
 
@@ -37,19 +55,28 @@ class HexBattle:
     units: Mapping[Hex, Unit] = field(default_factory=dict)
     _current_hp: Mapping[Hex, int] = field(default_factory=dict, repr=False)
     sides: Mapping[Hex, BattleSide] = field(default_factory=dict)
+    _fallen: tuple[tuple[BattleSide, Unit], ...] = field(
+        default_factory=tuple, repr=False
+    )
+    _deployment_order: tuple[Hex, ...] = field(default_factory=tuple, repr=False)
 
     def __post_init__(self) -> None:
         """Protect deployment data from mutation through the public mapping."""
         units = dict(self.units)
         current_hp = dict(self._current_hp)
         sides = dict(self.sides)
+        deployment_order = self._deployment_order or tuple(units)
         for position, unit in units.items():
             current_hp.setdefault(position, unit.hp)
         if sides.keys() != units.keys():
             raise ValueError("every deployed unit must have exactly one battle side")
+        if len(deployment_order) != len(units) or set(deployment_order) != set(units):
+            raise ValueError("deployment order must contain every deployed position")
         object.__setattr__(self, "units", MappingProxyType(units))
         object.__setattr__(self, "_current_hp", MappingProxyType(current_hp))
         object.__setattr__(self, "sides", MappingProxyType(sides))
+        object.__setattr__(self, "_fallen", tuple(self._fallen))
+        object.__setattr__(self, "_deployment_order", tuple(deployment_order))
 
     def unit_at(self, position: Hex) -> Unit | None:
         """Return the unit at ``position``, if any."""
@@ -86,6 +113,34 @@ class HexBattle:
             return BattleResult.DEFENDER_WIN
         return BattleResult.DRAW
 
+    def report(self) -> BattleReport:
+        """Return the immutable final report for a resolved battle."""
+        result = self.result()
+        if result is None:
+            raise ValueError("cannot report an unfinished battle")
+        if any(self._current_hp[position] == 0 and not unit.stunned
+               for position, unit in self.units.items()):
+            raise ValueError("cannot report an unresolved defeated unit")
+
+        def for_side(side: BattleSide) -> BattleSideReport:
+            return BattleSideReport(
+                fallen=tuple(unit for fallen_side, unit in self._fallen
+                             if fallen_side is side),
+                stunned=tuple(self.units[position] for position in self._deployment_order
+                              if self.sides[position] is side
+                              and self.units[position].stunned),
+                active=tuple(self.units[position] for position in self._deployment_order
+                             if self.sides[position] is side
+                             and self._current_hp[position] > 0
+                             and not self.units[position].stunned),
+            )
+
+        return BattleReport(
+            result=result,
+            attacker=for_side(BattleSide.ATTACKER),
+            defender=for_side(BattleSide.DEFENDER),
+        )
+
     def deploy(self, unit: Unit, position: Hex, side: BattleSide) -> "HexBattle":
         """Return a new state with ``unit`` deployed at ``position``."""
         if self.is_occupied(position):
@@ -98,7 +153,10 @@ class HexBattle:
         current_hp[position] = unit.hp
         sides = dict(self.sides)
         sides[position] = side
-        return HexBattle(self.battlefield, units, current_hp, sides)
+        return HexBattle(
+            self.battlefield, units, current_hp, sides, self._fallen,
+            self._deployment_order + (position,),
+        )
 
     def damage(self, position: Hex, amount: int) -> "HexBattle":
         """Return a new state after dealing non-negative damage at ``position``."""
@@ -108,7 +166,10 @@ class HexBattle:
             raise ValueError("cannot damage an empty hex")
         current_hp = dict(self._current_hp)
         current_hp[position] = max(0, current_hp[position] - amount)
-        return HexBattle(self.battlefield, self.units, current_hp, self.sides)
+        return HexBattle(
+            self.battlefield, self.units, current_hp, self.sides, self._fallen,
+            self._deployment_order,
+        )
 
     def melee_attack(
         self, attacker: Hex, target: Hex, morale: int, rng: Rng
@@ -216,7 +277,14 @@ class HexBattle:
         current_hp[destination] = current_hp.pop(source)
         sides = dict(self.sides)
         sides[destination] = sides.pop(source)
-        return HexBattle(self.battlefield, units, current_hp, sides)
+        deployment_order = tuple(
+            destination if position == source else position
+            for position in self._deployment_order
+        )
+        return HexBattle(
+            self.battlefield, units, current_hp, sides, self._fallen,
+            deployment_order,
+        )
 
     def resolve_defeat(self, position: Hex, rng: Rng) -> "HexBattle":
         """Resolve death or stunned survival for a unit reduced to zero HP."""
@@ -231,12 +299,20 @@ class HexBattle:
         units = dict(self.units)
         current_hp = dict(self._current_hp)
         sides = dict(self.sides)
+        fallen = self._fallen
+        deployment_order = self._deployment_order
         if rng.chance(0.5):
+            fallen += ((sides[position], unit),)
             del units[position]
             del current_hp[position]
             del sides[position]
+            deployment_order = tuple(
+                deployed for deployed in deployment_order if deployed != position
+            )
         else:
             units[position] = replace(
                 unit, stunned=True, wounds=unit.wounds + (BRUISE,)
             )
-        return HexBattle(self.battlefield, units, current_hp, sides)
+        return HexBattle(
+            self.battlefield, units, current_hp, sides, fallen, deployment_order
+        )
