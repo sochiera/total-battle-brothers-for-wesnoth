@@ -61,7 +61,14 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   używa tego samego wzoru szansy trafienia co walka wręcz oraz `Unit.damage`,
   wykonuje jeden rzut RNG i nie wywołuje kontrataku. Jest to profil placeholder:
   bez kary za odległość, amunicji i osobnej statystyki obrażeń dystansowych.
-  Jednostki na linii strzału i widoczność dochodzą w B4.4b; typy broni później.
+  **ROZSTRZYGNIĘTE (B4.4b1, geometria linii):** `Hex.line_to(other)` zwraca
+  niemutowalną, deterministyczną sekwencję heksów od źródła do celu włącznie,
+  długości `distance + 1`; kolejne elementy są sąsiadami, a zamiana końców
+  dokładnie odwraca wynik. Linia powstaje przez interpolację w układzie cube i
+  zaokrąglenie do heksu; przypadki biegnące dokładnie po granicy rozstrzyga stałe,
+  symetryczne przesunięcie współrzędnych, aby widoczność nie zależała od kierunku
+  sprawdzania. Jednostki na heksach pośrednich będą blokować strzał w B4.4b2.
+  Teren blokujący widoczność i typy broni pozostają na później.
 - **Morale** wpływa **wyłącznie na celność** (bonus/kara do trafienia). Morale
   **nie** powoduje ucieczek.
 - **ROZSTRZYGNIĘTE (B4.3a, szansa trafienia w zwarciu):** szansa jest liczona jako
