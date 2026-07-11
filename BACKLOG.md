@@ -87,8 +87,13 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
   - AC: każda jednostka na heksie pośrednim wyznaczonym przez `Hex.line_to()`
     blokuje strzał; testy obejmują czystą i zablokowaną linię axial; sprawdzenie
     następuje przed rzutem RNG i nie zmienia stanu bitwy.
-- [ ] **B4.5** Śmierć permanentna oraz ogłuszenie + rana (czasowa/trwała).
-  - AC: 0 HP → śmierć lub (wg reguły) ogłuszenie+rana; rana modyfikuje statystyki.
+- [~] **B4.5a** Minimalny model ran czasowych i trwałych.
+  - AC: niemutowalna rana określa kary do celności/obrony i czas trwania
+    (`None` = trwała); `Unit` przechowuje rany, a efektywne statystyki uwzględniają
+    ich sumę z podłogą na zero; katalog zawiera po jednej ranie czasowej i trwałej.
+- [ ] **B4.5b** Rozstrzygnięcie jednostki z 0 HP: śmierć albo ogłuszenie + rana.
+  - AC: deterministyczny przy ustalonym RNG rzut usuwa martwą jednostkę albo
+    pozostawia ją ogłuszoną z raną; stan wejściowy pozostaje niemutowalny.
 - [ ] **B4.6** Warunek końca bitwy i wynik (kto wygrał, straty, zdobyte doświadczenie).
   - AC: bitwa kończy się gdy jedna strona wybita/wycofana; wynik raportowany.
 

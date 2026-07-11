@@ -86,6 +86,14 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   bez RNG; rzut, wymóg sąsiedztwa, obrażenia i bieżące HP dochodzą w B4.3b.
 - **Śmierć permanentna.** Alternatywnie zamiast zginąć jednostka może zostać
   **ogłuszona** i odnieść **ranę** — trwałą lub czasową.
+  **ROZSTRZYGNIĘTE (B4.5a, minimalny model ran):** rana jest niemutowalnym
+  modyfikatorem `accuracy` i `defense`, z czasem trwania wyrażonym w miesiącach;
+  `duration_months=None` oznacza ranę trwałą. Kary wielu ran sumują się,
+  a efektywne statystyki nie spadają poniżej `0`. Startowy katalog placeholder:
+  **Bruise** (czasowa, 2 miesiące, `accuracy=-1`, `defense=-1`) oraz **Maimed**
+  (trwała, `accuracy=-2`, `defense=-2`). Rany należą do trwałego modelu
+  `Unit`, aby mogły przejść z bitwy na warstwę strategiczną. Upływ czasu ran,
+  rzut śmierć/ogłuszenie i sam stan ogłuszenia dochodzą w osobnych przyrostach.
 
 ## 4. Osady, populacja, ekonomia
 - **Surowce (dokładnie dwa, celowo prosto):** **pszenica** i **złoto**.
@@ -231,7 +239,9 @@ ich dotykają, i notować wynik tutaj:
 - ~~**Wzór na trafienie:** bazowa celność + teren + morale → prawdopodobieństwo.~~
   **ROZSTRZYGNIĘTE (B4.3a):** całkowity procent z bazą 50 i limitem 5–95; pełny
   wzór oraz semantyka modyfikatorów terenu są w §3.2.
-- **Model ran:** ile rodzajów, jak wpływają na statystyki, czasowe vs trwałe.
+- ~~**Model ran:** ile rodzajów, jak wpływają na statystyki, czasowe vs trwałe.~~
+  **CZĘŚCIOWO ROZSTRZYGNIĘTE (B4.5a):** minimalny katalog i wpływ na statystyki
+  opisano w §3.2. **NADAL OTWARTE:** bogatszy katalog, leczenie i balans kar.
 - **Wzrost populacji:** ~~urodzenia~~ **CZĘŚCIOWO ROZSTRZYGNIĘTE (E2.4a, urodzenia):**
   każda osada ma **sufit** `capacity` (max populacji; `None` = brak limitu). Faza
   **wzrostu** następuje po produkcji (§10 kolejność faz) i jest osobnym przejściem
