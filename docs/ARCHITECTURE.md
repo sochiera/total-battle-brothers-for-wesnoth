@@ -43,11 +43,13 @@ game/                     # katalog projektu (repo root dla tej gry)
 │       ├── __main__.py   # headless entry point (python -m tbb)
 │       ├── hex.py        # niemutowalne współrzędne heksów axial/cube
 │       ├── resources.py  # niemutowalne wartości pszenicy i złota
+│       ├── settlement.py # niemutowalna osada z pulą populacji
 │       └── rng.py        # seedowalny RNG izolowany od stanu globalnego
 ├── tests/                # testy pytest (mirror struktury src/tbb)
 │   ├── test_rng.py
 │   ├── test_hex.py
 │   ├── test_resources.py
+│   ├── test_settlement.py
 │   └── test_smoke.py
 ├── scripts/
 │   ├── test.sh           # uruchamia pełny pakiet testów

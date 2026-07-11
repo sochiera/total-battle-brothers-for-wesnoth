@@ -25,7 +25,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
   - AC: dystans heksowy, sąsiedzi, konwersje axial↔cube; testy na znanych przypadkach.
 
 ## Kamień milowy 2 — osada i ekonomia
-- [~] **E2.1** `Settlement` z pulą populacji (wolna vs zajęta).
+- [x] **E2.1** `Settlement` z pulą populacji (wolna vs zajęta).
   - AC: rekrutacja/obsada zajmuje populację; brak wolnej populacji blokuje akcję.
 - [ ] **E2.2** Budynki: uruchomienie wymaga wolnej populacji; zamknięcie ją zwalnia.
   - AC: za mała populacja → nie można uruchomić kowala; zamknięcie oddaje 1 pop.
