@@ -121,7 +121,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     `None`; początkowe rozmieszczenie jest kopiowane i niemutowalne;
     `place_party()` tworzy nową mapę, a pozycjonowanie poza mapą i kolizja
     party są odrzucane. Party może współdzielić region z osadą.
-- [~] **M5.2b** Ruch party między sąsiednimi regionami z punktami ruchu.
+- [x] **M5.2b** Ruch party między sąsiednimi regionami z punktami ruchu.
   - AC: `move_party(source, destination, move_points)` przenosi całe party wyłącznie
     po jednym istniejącym połączeniu, którego koszt wynosi 1 punkt; wymaga budżetu
     `>= 1` i wolnego celu; region niesąsiedni, cel zajęty i brak party w źródle są

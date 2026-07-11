@@ -107,3 +107,27 @@ class WorldMap:
             self.settlements,
             parties,
         )
+
+    def move_party(
+        self, source: Region, destination: Region, move_points: int
+    ) -> "WorldMap":
+        """Return a new world after moving a party along one connection."""
+        if source not in self._neighbors or destination not in self._neighbors:
+            raise ValueError("region is outside the world map")
+        if move_points < 1:
+            raise ValueError("at least one movement point is required")
+        if destination not in self._neighbors[source]:
+            raise ValueError("destination is not adjacent to source")
+        if source not in self.parties:
+            raise ValueError("source region has no party")
+        if destination in self.parties:
+            raise ValueError("destination is already occupied by a party")
+
+        parties = dict(self.parties)
+        parties[destination] = parties.pop(source)
+        return WorldMap(
+            self.regions,
+            self.connections,
+            self.settlements,
+            parties,
+        )

@@ -139,3 +139,72 @@ def test_party_and_settlement_can_share_a_region():
 
     assert world.settlement_at(vale) == settlement
     assert world.party_at(vale) == party
+
+
+def test_move_party_to_adjacent_region_preserves_input_and_settlement():
+    camp = Region("Camp")
+    vale = Region("Vale")
+    garrison = (Unit(training=1),)
+    settlement = Settlement("Oakrest", population=4, garrison=garrison)
+    party = Party(Unit(equipment=1), [Unit(experience=1)])
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        settlements={vale: settlement},
+        parties={camp: party},
+    )
+
+    moved = world.move_party(camp, vale, move_points=1)
+
+    assert world.party_at(camp) is party
+    assert world.party_at(vale) is None
+    assert moved.party_at(camp) is None
+    assert moved.party_at(vale) is party
+    assert world.settlement_at(vale) is settlement
+    assert moved.settlement_at(vale) is settlement
+    assert moved.settlement_at(vale).garrison == garrison
+
+
+@pytest.mark.parametrize(
+    "source_name, destination_name, move_points",
+    [
+        ("Camp", "Wilds", 1),
+        ("Camp", "Vale", 0),
+        ("Vale", "Camp", 1),
+        ("Camp", "Vale", 1),
+    ],
+    ids=["not-adjacent", "no-budget", "no-source-party", "occupied-target"],
+)
+def test_move_party_rejects_illegal_moves(
+    source_name, destination_name, move_points
+):
+    camp = Region("Camp")
+    vale = Region("Vale")
+    wilds = Region("Wilds")
+    regions = {region.name: region for region in (camp, vale, wilds)}
+    parties = {camp: Party(Unit())}
+    if source_name == "Camp" and destination_name == "Vale" and move_points == 1:
+        parties[vale] = Party(Unit(training=1))
+    world = WorldMap(
+        [camp, vale, wilds], [(camp, vale)], parties=parties
+    )
+
+    with pytest.raises(ValueError):
+        world.move_party(
+            regions[source_name], regions[destination_name], move_points
+        )
+
+
+@pytest.mark.parametrize("unknown_endpoint", ["source", "destination"])
+def test_move_party_rejects_region_outside_map(unknown_endpoint):
+    camp = Region("Camp")
+    vale = Region("Vale")
+    unknown = Region("Unknown")
+    world = WorldMap(
+        [camp, vale], [(camp, vale)], parties={camp: Party(Unit())}
+    )
+    source = unknown if unknown_endpoint == "source" else camp
+    destination = unknown if unknown_endpoint == "destination" else vale
+
+    with pytest.raises(ValueError):
+        world.move_party(source, destination, move_points=1)
