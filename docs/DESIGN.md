@@ -70,6 +70,20 @@ wskaźnikiem):
 Filary są niezależne: jednostka może być dobrze wytrenowana, ale słabo uzbrojona
 itd. Statystyki bojowe (celność, obrażenia, obrona, HP) są funkcją tych filarów.
 
+**ROZSTRZYGNIĘTE (U3.1, minimalne mapowanie — placeholder):** `Unit` to niemutowalna
+encja z trzema filarami całkowitymi i nieujemnymi { training, equipment, experience }.
+Statystyki pochodne liczone **liniowo** (waga 1, bez krzywych malejącego zysku — te
+dochodzą w U3.2), każdy filar wpływa na **rozłączny** podzbiór statystyk, by
+niezależność filarów była testowalna:
+- `hp` = `10 + training` (trening = kondycja/wytrzymałość),
+- `accuracy` (celność) = `training + experience` (doświadczenie wspiera celność),
+- `damage` (obrażenia) = `equipment` (uzbrojenie),
+- `defense` (obrona) = `equipment + experience`.
+
+Osłabiona waga doświadczenia (§5: „wpływ nieco słabszy") i krzywe malejącego zysku
+to zakres **U3.2** — w U3.1 wagi są jednostkowe. Stan bojowy jednostki
+{ hp bieżące, wounds[], stunned } dochodzi przy warstwie bitwy (kamień milowy 4).
+
 ## 6. Pętla rozgrywki (MVP)
 Najmniejsza grywalna pętla, single-player vs **jedno** księstwo AI:
 1. Twoje księstwo: 1 osada z populacją, pszenicą i złotem; naprzeciw księstwo AI.
