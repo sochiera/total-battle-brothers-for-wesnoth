@@ -172,3 +172,59 @@ def test_tick_economy_returns_new_state_without_changing_original():
     assert ticked.population == original.population
     assert ticked.occupied == original.occupied
     assert ticked.active_buildings == original.active_buildings
+
+
+def test_capacity_defaults_to_unlimited_and_valid_limits_are_accepted():
+    assert Settlement("A", population=2).capacity is None
+    assert Settlement("A", population=2, capacity=2).capacity == 2
+    assert Settlement("A", population=2, capacity=3).capacity == 3
+
+
+def test_capacity_below_population_is_rejected():
+    with pytest.raises(ValueError):
+        Settlement("A", population=3, capacity=2)
+
+
+def test_fed_settlement_grows_free_population_only():
+    original = Settlement(
+        "A", population=2, occupied=1, active_buildings=(FARM,),
+        storage=Resources(1, 0),
+    )
+
+    grown = original.tick_growth()
+
+    assert grown.population == 3
+    assert grown.free == original.free + 1
+    assert grown.occupied == original.occupied
+    assert grown.active_buildings == original.active_buildings
+
+
+def test_starving_settlement_does_not_grow():
+    settlement = Settlement("A", population=2, storage=Resources(0, 0))
+
+    assert settlement.tick_growth().population == settlement.population
+
+
+def test_settlement_at_capacity_does_not_grow_despite_wheat_surplus():
+    settlement = Settlement(
+        "A", population=5, capacity=5, storage=Resources(3, 0)
+    )
+
+    assert settlement.tick_growth().population == settlement.population
+
+
+def test_settlement_without_capacity_grows_with_wheat_surplus():
+    settlement = Settlement("A", population=5, storage=Resources(3, 0))
+
+    assert settlement.tick_growth().population == 6
+
+
+def test_tick_growth_returns_new_state_without_mutating_original():
+    original = Settlement("A", population=2, storage=Resources(1, 0))
+
+    grown = original.tick_growth()
+
+    assert grown is not original
+    assert grown.population == 3
+    assert original.population == 2
+    assert original.storage == Resources(1, 0)

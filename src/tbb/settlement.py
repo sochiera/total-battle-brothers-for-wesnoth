@@ -15,6 +15,7 @@ class Settlement:
     occupied: int = 0
     active_buildings: tuple[Building, ...] = ()
     storage: Resources = Resources(0, 0)
+    capacity: int | None = None
 
     def __post_init__(self) -> None:
         """Reject an inconsistent population pool."""
@@ -22,6 +23,8 @@ class Settlement:
             raise ValueError("population cannot be negative")
         if self.occupied < 0 or self.occupied > self.population:
             raise ValueError("occupied must be between zero and population")
+        if self.capacity is not None and self.capacity < self.population:
+            raise ValueError("capacity cannot be below population")
 
     @property
     def free(self) -> int:
@@ -47,6 +50,12 @@ class Settlement:
             self.consumption, allow_negative=True
         )
         return replace(self, storage=storage)
+
+    def tick_growth(self) -> "Settlement":
+        """Return the settlement state after deterministic monthly births."""
+        below_capacity = self.capacity is None or self.population < self.capacity
+        growth = 1 if self.storage.wheat > 0 and below_capacity else 0
+        return replace(self, population=self.population + growth)
 
     def occupy(self, amount: int) -> "Settlement":
         """Return a new settlement with ``amount`` population assigned."""
