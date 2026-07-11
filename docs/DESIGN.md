@@ -110,6 +110,14 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   jednostek obu stron oznacza remis. Wycofanie nie jest jeszcze dostępne, więc nie
   uczestniczy w tym przyroście. Raport strat i przyznanie doświadczenia powstaną
   osobno w B4.6b–c.
+- **ROZSTRZYGNIĘTE (B4.6b, minimalny raport bitwy):** rozstrzygnięta bitwa zwraca
+  niemutowalny raport zawierający wynik oraz, osobno dla każdej strony, jednostki
+  **poległe**, **ogłuszone** i **zdolne do działania**. `HexBattle` zachowuje
+  niemutowalny rejestr poległych wraz z ich stroną, ponieważ śmierć usuwa jednostkę
+  z rozstawienia; ogłuszeni i aktywni pochodzą z końcowego rozstawienia. Kolejność
+  w każdej kategorii jest deterministyczna (kolejność rozstawienia/rozstrzygania).
+  Raport można utworzyć dopiero po końcu bitwy; nie zmienia stanu i nie przyznaje
+  doświadczenia — to osobny przyrost B4.6c.
 
 ## 4. Osady, populacja, ekonomia
 - **Surowce (dokładnie dwa, celowo prosto):** **pszenica** i **złoto**.
