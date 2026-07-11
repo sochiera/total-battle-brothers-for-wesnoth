@@ -83,3 +83,56 @@ def test_neighbor_matches_neighbors_for_every_direction():
 def test_neighbor_rejects_out_of_range_direction(direction):
     with pytest.raises(ValueError):
         Hex(0, 0).neighbor(direction)
+
+
+def test_line_to_same_hex_returns_immutable_singleton():
+    origin = Hex(2, -3)
+
+    assert origin.line_to(origin) == (origin,)
+
+
+@pytest.mark.parametrize(
+    ("start", "end", "expected"),
+    [
+        (
+            Hex(0, 0),
+            Hex(3, 0),
+            (Hex(0, 0), Hex(1, 0), Hex(2, 0), Hex(3, 0)),
+        ),
+        (
+            Hex(0, 0),
+            Hex(2, -3),
+            (Hex(0, 0), Hex(1, -1), Hex(1, -2), Hex(2, -3)),
+        ),
+    ],
+)
+def test_line_to_known_straight_and_diagonal_lines(start, end, expected):
+    line = start.line_to(end)
+
+    assert line == expected
+    assert len(line) == start.distance(end) + 1
+    assert all(first.distance(second) == 1 for first, second in zip(line, line[1:]))
+
+
+def test_line_to_breaks_boundary_tie_stably_and_symmetrically():
+    start = Hex(0, 0)
+    end = Hex(1, 1)
+    expected = (start, Hex(1, 0), end)
+
+    assert start.line_to(end) == expected
+    assert start.line_to(end) == expected
+    assert end.line_to(start) == tuple(reversed(expected))
+    assert (start.q, start.r, end.q, end.r) == (0, 0, 1, 1)
+
+
+def test_line_to_preserves_large_integer_endpoints_length_and_adjacency():
+    start = Hex(10**16, 10**16)
+    end = Hex(10**16 + 1, 10**16 + 1)
+
+    line = start.line_to(end)
+
+    assert line[0] == start
+    assert line[-1] == end
+    assert len(line) == start.distance(end) + 1
+    assert all(first.distance(second) == 1 for first, second in zip(line, line[1:]))
+    assert end.line_to(start) == tuple(reversed(line))

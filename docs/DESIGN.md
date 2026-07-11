@@ -65,9 +65,11 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   niemutowalną, deterministyczną sekwencję heksów od źródła do celu włącznie,
   długości `distance + 1`; kolejne elementy są sąsiadami, a zamiana końców
   dokładnie odwraca wynik. Linia powstaje przez interpolację w układzie cube i
-  zaokrąglenie do heksu; przypadki biegnące dokładnie po granicy rozstrzyga stałe,
-  symetryczne przesunięcie współrzędnych, aby widoczność nie zależała od kierunku
-  sprawdzania. Jednostki na heksach pośrednich będą blokować strzał w B4.4b2.
+  zaokrąglenie do heksu. Interpolacja używa dokładnej arytmetyki całkowitej/
+  wymiernej, więc zachowuje kontrakt także dla dowolnie dużych współrzędnych;
+  przypadki biegnące dokładnie po granicy rozstrzyga stała, symetryczna reguła
+  remisu, aby widoczność nie zależała od kierunku sprawdzania. Jednostki na
+  heksach pośrednich będą blokować strzał w B4.4b2.
   Teren blokujący widoczność i typy broni pozostają na później.
 - **Morale** wpływa **wyłącznie na celność** (bonus/kara do trafienia). Morale
   **nie** powoduje ucieczek.
