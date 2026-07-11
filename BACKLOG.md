@@ -66,7 +66,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
   - AC: wzór z DESIGN §3.2 uwzględnia celność atakującego, obronę celu, teren obu
     jednostek i morale; wynik jest całkowitym procentem ograniczonym do 5–95;
     funkcja nie używa RNG ani nie mutuje stanu.
-- [~] **B4.3b1** Stan bieżącego HP jednostek w bitwie.
+- [x] **B4.3b1** Stan bieżącego HP jednostek w bitwie.
   - AC: rozstawiona jednostka zaczyna z `current_hp == Unit.hp`; obrażenia zmniejszają
     bieżące HP z podłogą na 0; ruch przenosi HP razem z jednostką; przejścia nie
     mutują stanu wejściowego; błędna pozycja i ujemne obrażenia są odrzucane.

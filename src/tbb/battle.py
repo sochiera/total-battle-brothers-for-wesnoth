@@ -16,10 +16,16 @@ class HexBattle:
 
     battlefield: Battlefield
     units: Mapping[Hex, Unit] = field(default_factory=dict)
+    _current_hp: Mapping[Hex, int] = field(default_factory=dict, repr=False)
 
     def __post_init__(self) -> None:
         """Protect deployment data from mutation through the public mapping."""
-        object.__setattr__(self, "units", MappingProxyType(dict(self.units)))
+        units = dict(self.units)
+        current_hp = dict(self._current_hp)
+        for position, unit in units.items():
+            current_hp.setdefault(position, unit.hp)
+        object.__setattr__(self, "units", MappingProxyType(units))
+        object.__setattr__(self, "_current_hp", MappingProxyType(current_hp))
 
     def unit_at(self, position: Hex) -> Unit | None:
         """Return the unit at ``position``, if any."""
@@ -29,13 +35,31 @@ class HexBattle:
         """Return whether a unit occupies ``position``."""
         return position in self.units
 
+    def current_hp_at(self, position: Hex) -> int:
+        """Return current HP of the unit at ``position``."""
+        if not self.is_occupied(position):
+            raise ValueError("cannot get HP from an empty hex")
+        return self._current_hp[position]
+
     def deploy(self, unit: Unit, position: Hex) -> "HexBattle":
         """Return a new state with ``unit`` deployed at ``position``."""
         if self.is_occupied(position):
             raise ValueError("cannot deploy a unit on an occupied hex")
         units = dict(self.units)
         units[position] = unit
-        return HexBattle(self.battlefield, units)
+        current_hp = dict(self._current_hp)
+        current_hp[position] = unit.hp
+        return HexBattle(self.battlefield, units, current_hp)
+
+    def damage(self, position: Hex, amount: int) -> "HexBattle":
+        """Return a new state after dealing non-negative damage at ``position``."""
+        if amount < 0:
+            raise ValueError("damage cannot be negative")
+        if not self.is_occupied(position):
+            raise ValueError("cannot damage an empty hex")
+        current_hp = dict(self._current_hp)
+        current_hp[position] = max(0, current_hp[position] - amount)
+        return HexBattle(self.battlefield, self.units, current_hp)
 
     def reachable(self, source: Hex, move_points: int) -> set[Hex]:
         """Return unoccupied hexes reachable within ``move_points``."""
@@ -78,4 +102,6 @@ class HexBattle:
         units = dict(self.units)
         del units[source]
         units[destination] = unit
-        return HexBattle(self.battlefield, units)
+        current_hp = dict(self._current_hp)
+        current_hp[destination] = current_hp.pop(source)
+        return HexBattle(self.battlefield, units, current_hp)
