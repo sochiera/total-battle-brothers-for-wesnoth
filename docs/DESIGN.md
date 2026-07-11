@@ -39,6 +39,15 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   a `place_party()` to czyste przejście do nowej mapy, odrzucające region spoza
   grafu i region zajęty. Ruch, punkty ruchu i rozstrzyganie próby wejścia do
   regionu z wrogim party pozostają w M5.2b–M5.3.
+- **ROZSTRZYGNIĘTE (M5.2b, minimalny ruch party):** pojedyncze przejście ruchu
+  przenosi całe party (bohatera razem z podkomendnymi) z regionu źródłowego do
+  wolnego, bezpośrednio sąsiedniego regionu. Każde połączenie ma na tym etapie
+  jednolity koszt **1 punktu ruchu**, a dostępny budżet jest jawnym argumentem
+  przejścia i musi wynosić co najmniej 1. Ruch tworzy nową `WorldMap`; mapa
+  wejściowa, osady i ich garnizony pozostają bez zmian. Wejście do regionu już
+  zajętego przez party jest jeszcze odrzucane — kontakt z wrogiem i rozpoczęcie
+  bitwy zastąpią tę regułę w M5.3. Przechowywanie oraz odnawianie punktów ruchu,
+  różne koszty regionów i ruch wieloodcinkowy pozostają na później.
 - **Bitwa** startuje przy kontakcie party z wrogą osadą lub wrogim party.
 - **Czas:** 1 tura = **1 miesiąc**. Rok = **13 miesięcy po 4 tygodnie**
   (52 tygodnie). Trening i wyposażenie mierzone są w miesiącach.

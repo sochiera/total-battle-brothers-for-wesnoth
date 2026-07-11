@@ -121,9 +121,11 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     `None`; początkowe rozmieszczenie jest kopiowane i niemutowalne;
     `place_party()` tworzy nową mapę, a pozycjonowanie poza mapą i kolizja
     party są odrzucane. Party może współdzielić region z osadą.
-- [ ] **M5.2b** Ruch party między sąsiednimi regionami z punktami ruchu.
-  - AC: party rusza się tylko wraz z bohaterem; ruch respektuje połączenia mapy
-    i dostępny budżet; garnizon zostaje w osadzie; przejście jest niemutowalne.
+- [~] **M5.2b** Ruch party między sąsiednimi regionami z punktami ruchu.
+  - AC: `move_party(source, destination, move_points)` przenosi całe party wyłącznie
+    po jednym istniejącym połączeniu, którego koszt wynosi 1 punkt; wymaga budżetu
+    `>= 1` i wolnego celu; region niesąsiedni, cel zajęty i brak party w źródle są
+    odrzucane; mapa wejściowa oraz garnizon osady pozostają niezmienione.
 - [ ] **M5.3** Kontakt party↔osada/party wyzwala bitwę (przejście do warstwy B4).
   - AC: kontakt tworzy `HexBattle` z właściwymi składami.
 - [ ] **M5.4** Faza tury miesięcznej (produkcja → wzrost → ruch → bitwy), 13 mies./rok.
