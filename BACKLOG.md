@@ -53,12 +53,14 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 - [x] **B4.1** Plansza heksowa + teren z modyfikatorami.
   - AC: pola mają typ terenu; modyfikatory (ruch/obrona/celność) odczytywalne.
     Katalog Plains/Forest/Hills, `Battlefield` z domyślnym terenem (DESIGN §3.2).
-- [~] **B4.2a** Rozstawienie jednostek na planszy (deployment, bez ruchu).
+- [x] **B4.2a** Rozstawienie jednostek na planszy (deployment, bez ruchu).
   - AC: `HexBattle` trzyma teren + pozycje jednostek (`Hex→Unit`); rozstawienie na
     zajęty heks odrzucone; niemutowalne (deploy zwraca nowy stan); DESIGN §7.
-- [ ] **B4.2b** Ruch jednostki po punktach ruchu z kosztem terenu.
+- [~] **B4.2b** Ruch jednostki po punktach ruchu z kosztem terenu.
   - AC: legalne ruchy respektują koszt (`move_cost` terenu) i zasięg; wejście na
     zajęty heks odrzucone; nielegalne ruchy odrzucone; determinizm.
+    Ruch po heksach źródło→cel; koszt = najtańsza ścieżka (`move_cost` wchodzonych
+    heksów); inne jednostki blokują; budżet `move_points` jako parametr (DESIGN §7).
 - [ ] **B4.3** Walka wręcz: trafienie (celność+teren+morale) i obrażenia.
   - AC: rozstrzyganie deterministyczne przy ustalonym seedzie; morale zmienia celność.
 - [ ] **B4.4** Atak dystansowy (model Wesnoth/BB).

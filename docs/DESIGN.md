@@ -139,8 +139,19 @@ Wstępne encje rdzenia (nazwy robocze, doprecyzowywane wraz z implementacją):
   (jednostka lub `None`), `is_occupied(position)`, `units` (deterministyczna mapa
   pozycji → jednostka); teren dostępny przez `battlefield`. Jednostki są
   identyfikowane przez **pozycję** (nie tożsamość obiektu), bo równe `Unit` są
-  nierozróżnialne — dlatego ruch (B4.2b) będzie operował na heksach źródłowym i
-  docelowym. **Poza B4.2a:** ruch i punkty ruchu (B4.2b), granice/kształt planszy,
+  nierozróżnialne — dlatego ruch operuje na heksach źródłowym i docelowym.
+  **ROZSTRZYGNIĘTE (B4.2b, ruch):** `move(source, destination, move_points)` to czyste
+  przejście: zwraca **nowy** `HexBattle` z jednostką przeniesioną z `source` na
+  `destination`. Koszt ruchu = suma `move_cost` **wchodzonych** heksów po
+  **najtańszej ścieżce** (koszt wejścia na heks, źródło się nie liczy); ruch legalny,
+  gdy koszt `≤ move_points`. **Inne jednostki blokują** — nie można przez nie
+  przechodzić ani na nie wejść. Cel musi być wolny. Nielegalny ruch (brak jednostki
+  w `source`, zajęty/nieosiągalny w budżecie `destination`) to błąd (`ValueError`).
+  Zapytanie `reachable(source, move_points)` zwraca deterministyczny zbiór wolnych,
+  osiągalnych heksów (bez `source`). Wyszukiwanie to Dijkstra ograniczony budżetem —
+  plansza jest nieskończona (domyślny Plains), więc budżet domyka przeszukanie.
+  **Punkty ruchu jako parametr:** wyprowadzenie `move_points` z filarów jednostki
+  dochodzi później (kamień 4/5). **Poza B4.2b:** granice/kształt planszy,
   kolejka tur i rozstrzyganie walki (B4.3+).
 - `Rng` — deterministyczny, seedowalny generator (dla powtarzalnych testów).
 
