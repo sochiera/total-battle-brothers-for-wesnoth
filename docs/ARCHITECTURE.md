@@ -46,6 +46,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │       ├── building.py   # niemutowalne typy budynków i katalog startowy
 │       ├── combat.py     # czyste, deterministyczne wyliczenia reguł walki
 │       ├── hex.py        # niemutowalne współrzędne heksów axial/cube
+│       ├── party.py      # niemutowalny bohater i skład armii strategicznej
 │       ├── terrain.py    # niemutowalne typy terenu i katalog startowy
 │       ├── progression.py # krzywa skumulowany nakład → poziom filaru
 │       ├── resources.py  # niemutowalne wartości pszenicy i złota
@@ -61,6 +62,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │   ├── test_building.py
 │   ├── test_combat.py
 │   ├── test_hex.py
+│   ├── test_party.py
 │   ├── test_terrain.py
 │   ├── test_progression.py
 │   ├── test_resources.py
@@ -111,6 +113,8 @@ Uruchamiaj z katalogu `game/`.
 - **Rany:** `Wound` jest niemutowalnym modyfikatorem celności i obrony;
   `Unit.wounds` przechowuje niemutowalną krotkę ran, których kary sumują się
   w efektywnych statystykach z podłogą na zero.
+- **Skład party:** `Party` wymaga bohatera `Unit` i kopiuje do krotki maksymalnie
+  12 podkomendnych `Unit`; bohater jest osobnym polem i nie wlicza się do limitu.
 - **Kolejność raportu bitwy:** `HexBattle` przechowuje osobny, niemutowalny
   rejestr kolejności rozstawienia aktywnych jednostek. Ruch aktualizuje w nim
   pozycję bez zmiany kolejności, więc kolejność mapy `units` nie wpływa na raport.

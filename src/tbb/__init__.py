@@ -9,6 +9,7 @@ from tbb.battlefield import Battlefield
 from tbb.battle import BattleReport, BattleResult, BattleSide, BattleSideReport, HexBattle
 from tbb.combat import melee_hit_chance
 from tbb.hex import Hex
+from tbb.party import Party
 from tbb.progression import investment_for_level, pillar_level
 from tbb.rng import Rng
 from tbb.resources import Resources
@@ -42,6 +43,7 @@ __all__ = [
     "Unit",
     "MARKET",
     "MAIMED",
+    "Party",
     "pillar_level",
     "PLAINS",
     "SMITH",
