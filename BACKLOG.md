@@ -58,7 +58,8 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     zajęty heks odrzucone; niemutowalne (deploy zwraca nowy stan); DESIGN §7.
 - [~] **B4.2b** Ruch jednostki po punktach ruchu z kosztem terenu.
   - AC: legalne ruchy respektują koszt (`move_cost` terenu) i zasięg; wejście na
-    zajęty heks odrzucone; nielegalne ruchy odrzucone; determinizm.
+    zajęty heks odrzucone; nielegalne ruchy odrzucone; stan wejściowy pozostaje
+    niezmieniony; `reachable()` zwraca wolne heksy w budżecie; determinizm.
     Ruch po heksach źródło→cel; koszt = najtańsza ścieżka (`move_cost` wchodzonych
     heksów); inne jednostki blokują; budżet `move_points` jako parametr (DESIGN §7).
 - [ ] **B4.3** Walka wręcz: trafienie (celność+teren+morale) i obrażenia.
