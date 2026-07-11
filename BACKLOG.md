@@ -70,7 +70,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
   - AC: rozstawiona jednostka zaczyna z `current_hp == Unit.hp`; obrażenia zmniejszają
     bieżące HP z podłogą na 0; ruch przenosi HP razem z jednostką; przejścia nie
     mutują stanu wejściowego; błędna pozycja i ujemne obrażenia są odrzucane.
-- [~] **B4.3b2** Walka wręcz: strony, sąsiedztwo, rzut na trafienie i obrażenia.
+- [x] **B4.3b2** Walka wręcz: strony, sąsiedztwo, rzut na trafienie i obrażenia.
   - AC: atak tylko na sąsiedni zajęty heks wroga; ustalony seed daje ten sam wynik;
     pudło nie zmienia HP, trafienie odejmuje obrażenia; stan wejściowy jest niemutowalny.
 - [ ] **B4.4** Atak dystansowy (model Wesnoth/BB).

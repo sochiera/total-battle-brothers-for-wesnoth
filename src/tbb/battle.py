@@ -2,12 +2,22 @@
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from enum import Enum
 import heapq
 from types import MappingProxyType
 
 from tbb.battlefield import Battlefield
+from tbb.combat import melee_hit_chance
 from tbb.hex import Hex
+from tbb.rng import Rng
 from tbb.unit import Unit
+
+
+class BattleSide(Enum):
+    """One of the two opposing sides in a battle."""
+
+    ATTACKER = "attacker"
+    DEFENDER = "defender"
 
 
 @dataclass(frozen=True)
@@ -17,15 +27,20 @@ class HexBattle:
     battlefield: Battlefield
     units: Mapping[Hex, Unit] = field(default_factory=dict)
     _current_hp: Mapping[Hex, int] = field(default_factory=dict, repr=False)
+    sides: Mapping[Hex, BattleSide] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         """Protect deployment data from mutation through the public mapping."""
         units = dict(self.units)
         current_hp = dict(self._current_hp)
+        sides = dict(self.sides)
         for position, unit in units.items():
             current_hp.setdefault(position, unit.hp)
+        if sides.keys() != units.keys():
+            raise ValueError("every deployed unit must have exactly one battle side")
         object.__setattr__(self, "units", MappingProxyType(units))
         object.__setattr__(self, "_current_hp", MappingProxyType(current_hp))
+        object.__setattr__(self, "sides", MappingProxyType(sides))
 
     def unit_at(self, position: Hex) -> Unit | None:
         """Return the unit at ``position``, if any."""
@@ -41,15 +56,25 @@ class HexBattle:
             raise ValueError("cannot get HP from an empty hex")
         return self._current_hp[position]
 
-    def deploy(self, unit: Unit, position: Hex) -> "HexBattle":
+    def side_at(self, position: Hex) -> BattleSide:
+        """Return the side of the unit at ``position``."""
+        if not self.is_occupied(position):
+            raise ValueError("cannot get side from an empty hex")
+        return self.sides[position]
+
+    def deploy(self, unit: Unit, position: Hex, side: BattleSide) -> "HexBattle":
         """Return a new state with ``unit`` deployed at ``position``."""
         if self.is_occupied(position):
             raise ValueError("cannot deploy a unit on an occupied hex")
+        if not isinstance(side, BattleSide):
+            raise ValueError("unit must be deployed on a battle side")
         units = dict(self.units)
         units[position] = unit
         current_hp = dict(self._current_hp)
         current_hp[position] = unit.hp
-        return HexBattle(self.battlefield, units, current_hp)
+        sides = dict(self.sides)
+        sides[position] = side
+        return HexBattle(self.battlefield, units, current_hp, sides)
 
     def damage(self, position: Hex, amount: int) -> "HexBattle":
         """Return a new state after dealing non-negative damage at ``position``."""
@@ -59,7 +84,33 @@ class HexBattle:
             raise ValueError("cannot damage an empty hex")
         current_hp = dict(self._current_hp)
         current_hp[position] = max(0, current_hp[position] - amount)
-        return HexBattle(self.battlefield, self.units, current_hp)
+        return HexBattle(self.battlefield, self.units, current_hp, self.sides)
+
+    def melee_attack(
+        self, attacker: Hex, target: Hex, morale: int, rng: Rng
+    ) -> "HexBattle":
+        """Resolve one melee attack and return the resulting immutable state."""
+        attacking_unit = self.unit_at(attacker)
+        target_unit = self.unit_at(target)
+        if attacking_unit is None:
+            raise ValueError("cannot attack from an empty hex")
+        if target_unit is None:
+            raise ValueError("cannot attack an empty hex")
+        if attacker.distance(target) != 1:
+            raise ValueError("melee target must be adjacent")
+        if self.side_at(attacker) is self.side_at(target):
+            raise ValueError("cannot attack a unit on the same side")
+
+        hit_chance = melee_hit_chance(
+            attacking_unit,
+            target_unit,
+            self.battlefield.terrain_at(attacker),
+            self.battlefield.terrain_at(target),
+            morale,
+        )
+        if rng.chance(hit_chance / 100):
+            return self.damage(target, attacking_unit.damage)
+        return self
 
     def reachable(self, source: Hex, move_points: int) -> set[Hex]:
         """Return unoccupied hexes reachable within ``move_points``."""
@@ -104,4 +155,6 @@ class HexBattle:
         units[destination] = unit
         current_hp = dict(self._current_hp)
         current_hp[destination] = current_hp.pop(source)
-        return HexBattle(self.battlefield, units, current_hp)
+        sides = dict(self.sides)
+        sides[destination] = sides.pop(source)
+        return HexBattle(self.battlefield, units, current_hp, sides)
