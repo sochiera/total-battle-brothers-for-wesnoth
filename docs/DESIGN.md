@@ -382,3 +382,14 @@ ich dotykają, i notować wynik tutaj:
   nową `WorldMap`, zachowując graf, party i regiony bez osad; mapa oraz osady
   wejściowe pozostają niezmienione. Kalendarz nie jest częścią tego przejścia —
   jego przesunięcie i spięcie z ruchem oraz bitwami należą do M5.4c.
+  **ROZSTRZYGNIĘTE (plan M5.4c, szkielet strategicznej tury):** pojedynczą
+  turę opisuje niemutowalny stan z mapą, kalendarzem i jawną fazą:
+  **osady → ruch → bitwy → zakończona**. Wejście do fazy ruchu wykonuje
+  dokładnie jedno `WorldMap.tick_settlements()`. W fazie ruchu można wykonać
+  zero lub więcej istniejących przejść `WorldMap.move_party()`, a w fazie
+  bitew utworzyć zero lub więcej starć party↔party albo party↔osada przez
+  istniejące metody mapy. Jawne zakończenie fazy pozwala też przejść dalej
+  bez akcji. Kalendarz pozostaje bez zmian przez pierwsze trzy fazy i przesuwa
+  się o jeden miesiąc dopiero przy zakończeniu fazy bitew. Akcja wywołana
+  poza właściwą fazą jest odrzucana. Rozstrzyganie bitew i zapisywanie ich
+  skutków na mapie pozostaje poza tym szkieletem.

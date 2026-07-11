@@ -148,7 +148,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 - [x] **M5.4b** Miesięczne przejście osad: produkcja → urodzenia → imigracja.
   - AC: wszystkie osady mapy przechodzą fazy w tej kolejności; wynik fazy jest
     wejściem następnej; mapa i osady wejściowe pozostają niezmienione.
-- [ ] **M5.4c** Szkielet strategicznej tury: osady → ruch → bitwy → nowy miesiąc.
+- [~] **M5.4c** Szkielet strategicznej tury: osady → ruch → bitwy → nowy miesiąc.
   - AC: fazy są jawne i wymuszają kolejność z DESIGN §10; ruch i bitwy używają
     istniejących przejść mapy, a kalendarz zmienia się dopiero po ich zakończeniu.
 
