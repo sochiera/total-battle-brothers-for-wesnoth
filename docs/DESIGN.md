@@ -107,7 +107,13 @@ Wstępne encje rdzenia (nazwy robocze, doprecyzowywane wraz z implementacją):
   stan { hp, wounds[], stunned }.
 - `Settlement` — populacja (pula + zajęte), budynki, garnizon, **magazyn surowców**
   (`storage: Resources`, domyślnie pusty). Ekonomia miesięczna to czyste przejście
-  stanu zwracające nową osadę (§4, E2.3).
+  stanu zwracające nową osadę (§4, E2.3). **ROZSTRZYGNIĘTE (U3.3, rekrutacja):**
+  osada trzyma zrekrutowane jednostki w `garrison: tuple[Unit, ...]`. `recruit()`
+  to czyste przejście: **zajmuje 1 populację** z puli wolnej (przez `occupy(1)` —
+  żołnierz jest mieszkańcem osady, więc `population` bez zmian, rośnie `occupied`)
+  i dokłada `Unit` do garnizonu. Bez argumentu tworzy **świeżego rekruta** `Unit()`
+  (filary 0). Brak wolnej populacji **blokuje** rekrutację (`ValueError`). Koszt
+  surowców/miesięcy rekrutacji i przenoszenie jednostek do party dochodzą później.
 - `Duchy` (księstwo) — bohater, dziedzic, lista osad, party, morale.
 - `Party` — bohater + ≤12 jednostek, pozycja na mapie, punkty ruchu.
 - `WorldMap` — regiony/prowincje, osady, pozycje party.

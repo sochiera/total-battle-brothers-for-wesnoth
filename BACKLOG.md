@@ -46,7 +46,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 - [x] **U3.2** Malejący zysk treningu i uzbrojenia (czas/surowce → poziom filaru).
   - AC: przyrost maleje z poziomem; parametry z DESIGN; monotoniczność w teście.
     Wzór `level(inv) = (isqrt(8·inv+1)−1)//2` (progi trójkątne), deterministyczny.
-- [ ] **U3.3** Rekrutacja jednostki z populacji osady.
+- [~] **U3.3** Rekrutacja jednostki z populacji osady.
   - AC: rekrutacja zdejmuje pop z puli; brak pop blokuje; jednostka trafia do osady.
 
 ## Kamień milowy 4 — bitwa heksowa
