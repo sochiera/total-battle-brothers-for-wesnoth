@@ -131,6 +131,17 @@ Wstępne encje rdzenia (nazwy robocze, doprecyzowywane wraz z implementacją):
 - `Party` — bohater + ≤12 jednostek, pozycja na mapie, punkty ruchu.
 - `WorldMap` — regiony/prowincje, osady, pozycje party.
 - `HexBattle` — siatka heksów, teren, jednostki, kolejka tur, rozstrzyganie walki.
+  **ROZSTRZYGNIĘTE (B4.2a, deployment):** `HexBattle` to niemutowalny stan bitwy
+  łączący `Battlefield` (teren) z **rozstawieniem** jednostek jako mapa `Hex → Unit`
+  (co najwyżej **jedna jednostka na heks**). `deploy(unit, position)` to czyste
+  przejście: zwraca **nowy** `HexBattle` z jednostką na wskazanym heksie; wejście na
+  **zajęty** heks jest błędem (`ValueError`). Zapytania: `unit_at(position)`
+  (jednostka lub `None`), `is_occupied(position)`, `units` (deterministyczna mapa
+  pozycji → jednostka); teren dostępny przez `battlefield`. Jednostki są
+  identyfikowane przez **pozycję** (nie tożsamość obiektu), bo równe `Unit` są
+  nierozróżnialne — dlatego ruch (B4.2b) będzie operował na heksach źródłowym i
+  docelowym. **Poza B4.2a:** ruch i punkty ruchu (B4.2b), granice/kształt planszy,
+  kolejka tur i rozstrzyganie walki (B4.3+).
 - `Rng` — deterministyczny, seedowalny generator (dla powtarzalnych testów).
 
 ## 8. Zasady projektowe
