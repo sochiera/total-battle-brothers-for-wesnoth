@@ -4,7 +4,7 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
-from tbb.duchy import Duchy
+from tbb.duchy import SUCCESSION_MORALE_PENALTY, Duchy
 from tbb.party import Party
 from tbb.settlement import Settlement
 from tbb.unit import Unit
@@ -159,3 +159,55 @@ def test_duchy_settlements_are_immutable():
 
     with pytest.raises((FrozenInstanceError, AttributeError)):
         duchy.settlements = ()
+
+
+def test_succeed_promotes_heir_and_clears_heir():
+    hero = Unit(training=2)
+    heir = Unit(training=1)
+
+    succeeded = Duchy("north", hero, heir=heir).succeed()
+
+    assert succeeded.hero is heir
+    assert succeeded.heir is None
+
+
+@pytest.mark.parametrize("morale", [3, -3])
+def test_succeed_applies_morale_penalty_without_a_floor(morale):
+    succeeded = Duchy("north", Unit(), morale=morale, heir=Unit()).succeed()
+
+    assert succeeded.morale == morale - SUCCESSION_MORALE_PENALTY
+
+
+def test_succeed_preserves_identifier_and_owned_collections():
+    settlement = Settlement("Keep", population=10, owner_id="north")
+    party = Party(Unit(), owner_id="north")
+    duchy = Duchy(
+        "north",
+        Unit(),
+        heir=Unit(),
+        settlements=[settlement],
+        parties=[party],
+    )
+
+    succeeded = duchy.succeed()
+
+    assert succeeded.duchy_id == duchy.duchy_id
+    assert succeeded.settlements is duchy.settlements
+    assert succeeded.parties is duchy.parties
+
+
+def test_succeed_rejects_duchy_without_heir():
+    with pytest.raises(ValueError):
+        Duchy("north", Unit()).succeed()
+
+
+def test_succeed_does_not_mutate_original_duchy():
+    hero = Unit(training=2)
+    heir = Unit(training=1)
+    duchy = Duchy("north", hero, morale=3, heir=heir)
+
+    duchy.succeed()
+
+    assert duchy.hero is hero
+    assert duchy.heir is heir
+    assert duchy.morale == 3

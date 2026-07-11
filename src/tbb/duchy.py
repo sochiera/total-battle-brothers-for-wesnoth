@@ -8,6 +8,9 @@ from tbb.settlement import Settlement
 from tbb.unit import Unit
 
 
+SUCCESSION_MORALE_PENALTY = 2
+
+
 @dataclass(frozen=True)
 class Duchy:
     """Identify a duchy and hold its people and owned strategic entities."""
@@ -57,3 +60,15 @@ class Duchy:
             raise ValueError("duchy settlements must be owned by the duchy")
         if any(item.owner_id != self.duchy_id for item in self.parties):
             raise ValueError("duchy parties must be owned by the duchy")
+
+    def succeed(self) -> "Duchy":
+        """Promote the designated heir after the hero's death."""
+        if self.heir is None:
+            raise ValueError("duchy cannot succeed without an heir")
+        return Duchy(
+            duchy_id=self.duchy_id,
+            hero=self.heir,
+            morale=self.morale - SUCCESSION_MORALE_PENALTY,
+            settlements=self.settlements,
+            parties=self.parties,
+        )
