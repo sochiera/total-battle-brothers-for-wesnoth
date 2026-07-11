@@ -54,6 +54,14 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   własną) dochodzi w **B4.3**; granice/kształt planszy oraz strojenie wartości —
   później.
 - **Jednostki dystansowe** obecne (model jak w Wesnoth / Battle Brothers).
+  **ROZSTRZYGNIĘTE (B4.4a, minimalny profil dystansowy):** `Unit` ma niemutowalne
+  pole `ranged_range` (domyślnie `0`, czyli brak ataku dystansowego). Wartość
+  `>= 2` pozwala wykonać strzał do wrogiej jednostki w odległości heksowej od `2`
+  do `ranged_range` włącznie; dystans `1` pozostaje domeną ataku wręcz. Strzał
+  używa tego samego wzoru szansy trafienia co walka wręcz oraz `Unit.damage`,
+  wykonuje jeden rzut RNG i nie wywołuje kontrataku. Jest to profil placeholder:
+  bez kary za odległość, amunicji i osobnej statystyki obrażeń dystansowych.
+  Jednostki na linii strzału i widoczność dochodzą w B4.4b; typy broni później.
 - **Morale** wpływa **wyłącznie na celność** (bonus/kara do trafienia). Morale
   **nie** powoduje ucieczek.
 - **ROZSTRZYGNIĘTE (B4.3a, szansa trafienia w zwarciu):** szansa jest liczona jako

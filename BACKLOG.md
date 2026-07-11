@@ -73,8 +73,15 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 - [x] **B4.3b2** Walka wręcz: strony, sąsiedztwo, rzut na trafienie i obrażenia.
   - AC: atak tylko na sąsiedni zajęty heks wroga; ustalony seed daje ten sam wynik;
     pudło nie zmienia HP, trafienie odejmuje obrażenia; stan wejściowy jest niemutowalny.
-- [ ] **B4.4** Atak dystansowy (model Wesnoth/BB).
-  - AC: zasięg, brak kontrataku poza zasięgiem, trafienie wg wzoru.
+- [~] **B4.4a** Minimalny atak dystansowy: profil jednostki, zasięg i obrażenia.
+  - AC: jednostka bez zdolności dystansowej nie może strzelać; cel w odległości
+    2–`ranged_range` może zostać zaatakowany, a cel bliższy/dalszy jest odrzucony;
+    atak wymaga wrogich stron, używa wzoru trafienia z B4.3a i dokładnie jednego
+    rzutu RNG; trafienie zadaje `Unit.damage`, pudło nie zmienia HP; brak
+    kontrataku; stan wejściowy pozostaje niemutowalny.
+- [ ] **B4.4b** Przeszkody i linia widzenia dla ataku dystansowego.
+  - AC: jednostki pośrednie blokują strzał; testy obejmują czystą i zablokowaną
+    linię na współrzędnych axial; wynik jest deterministyczny.
 - [ ] **B4.5** Śmierć permanentna oraz ogłuszenie + rana (czasowa/trwała).
   - AC: 0 HP → śmierć lub (wg reguły) ogłuszenie+rana; rana modyfikuje statystyki.
 - [ ] **B4.6** Warunek końca bitwy i wynik (kto wygrał, straty, zdobyte doświadczenie).
