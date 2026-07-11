@@ -157,3 +157,27 @@ class WorldMap:
             for row, unit in enumerate((party.hero, *party.units)):
                 battle = battle.deploy(unit, Hex(column, row), side)
         return battle
+
+    def start_settlement_battle(
+        self, source: Region, destination: Region
+    ) -> HexBattle:
+        """Create a battle between a party and an adjacent settlement garrison."""
+        if source not in self._neighbors or destination not in self._neighbors:
+            raise ValueError("region is outside the world map")
+        if source == destination:
+            raise ValueError("battle regions must be different")
+        if destination not in self._neighbors[source]:
+            raise ValueError("battle regions must be adjacent")
+        if source not in self.parties:
+            raise ValueError("source region has no party")
+        if destination not in self.settlements:
+            raise ValueError("destination region has no settlement")
+
+        party = self.parties[source]
+        settlement = self.settlements[destination]
+        battle = HexBattle(Battlefield())
+        for row, unit in enumerate((party.hero, *party.units)):
+            battle = battle.deploy(unit, Hex(0, row), BattleSide.ATTACKER)
+        for row, unit in enumerate(settlement.garrison):
+            battle = battle.deploy(unit, Hex(2, row), BattleSide.DEFENDER)
+        return battle

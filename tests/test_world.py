@@ -302,3 +302,105 @@ def test_start_battle_rejects_invalid_contact(
             regions[source_name],
             destination,
         )
+
+
+def test_start_settlement_battle_deploys_party_and_garrison_in_deterministic_rows():
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(Unit(training=3), [Unit(equipment=1), Unit(experience=2)])
+    garrison = (Unit(training=4), Unit(equipment=2), Unit(experience=1))
+    settlement = Settlement("Oakrest", population=6, garrison=garrison)
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        settlements={vale: settlement},
+        parties={camp: attacker},
+    )
+
+    battle = world.start_settlement_battle(camp, vale)
+
+    expected = (
+        (Hex(0, 0), attacker.hero, BattleSide.ATTACKER),
+        (Hex(0, 1), attacker.units[0], BattleSide.ATTACKER),
+        (Hex(0, 2), attacker.units[1], BattleSide.ATTACKER),
+        (Hex(2, 0), garrison[0], BattleSide.DEFENDER),
+        (Hex(2, 1), garrison[1], BattleSide.DEFENDER),
+        (Hex(2, 2), garrison[2], BattleSide.DEFENDER),
+    )
+    assert tuple(
+        (position, battle.unit_at(position), battle.side_at(position))
+        for position in battle.units
+    ) == expected
+    assert all(
+        battle.battlefield.terrain_at(position) == PLAINS
+        for position in battle.units
+    )
+
+
+def test_start_settlement_battle_does_not_change_world_party_or_settlement():
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(Unit(training=1), [Unit(equipment=1)])
+    garrison = (Unit(training=2), Unit(equipment=2))
+    settlement = Settlement("Oakrest", population=4, garrison=garrison)
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        settlements={vale: settlement},
+        parties={camp: attacker},
+    )
+    parties_before = dict(world.parties)
+    settlements_before = dict(world.settlements)
+    party_before = (attacker.hero, attacker.units)
+    garrison_before = settlement.garrison
+
+    world.start_settlement_battle(camp, vale)
+
+    assert dict(world.parties) == parties_before
+    assert dict(world.settlements) == settlements_before
+    assert world.party_at(camp) is attacker
+    assert world.settlement_at(vale) is settlement
+    assert (attacker.hero, attacker.units) == party_before
+    assert settlement.garrison == garrison_before
+
+
+@pytest.mark.parametrize(
+    "party_region, settlement_region, source_name, destination_name",
+    [
+        (None, "Vale", "Camp", "Vale"),
+        ("Camp", None, "Camp", "Vale"),
+        ("Camp", "Camp", "Camp", "Camp"),
+        ("Camp", "Wilds", "Camp", "Wilds"),
+        ("Camp", "Vale", "Camp", "Unknown"),
+    ],
+    ids=["no-party", "no-settlement", "same-region", "not-adjacent", "outside-map"],
+)
+def test_start_settlement_battle_rejects_invalid_contact(
+    party_region, settlement_region, source_name, destination_name
+):
+    camp = Region("Camp")
+    vale = Region("Vale")
+    wilds = Region("Wilds")
+    regions = {region.name: region for region in (camp, vale, wilds)}
+    parties = (
+        {regions[party_region]: Party(Unit())} if party_region is not None else {}
+    )
+    settlements = (
+        {regions[settlement_region]: Settlement("Oakrest", 2, garrison=(Unit(),))}
+        if settlement_region is not None
+        else {}
+    )
+    world = WorldMap(
+        [camp, vale, wilds],
+        [(camp, vale)],
+        settlements=settlements,
+        parties=parties,
+    )
+    destination = (
+        Region("Unknown")
+        if destination_name == "Unknown"
+        else regions[destination_name]
+    )
+
+    with pytest.raises(ValueError):
+        world.start_settlement_battle(regions[source_name], destination)
