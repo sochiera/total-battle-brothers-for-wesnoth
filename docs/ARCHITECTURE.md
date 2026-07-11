@@ -41,6 +41,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │   └── tbb/              # pakiet rdzenia ("Total Battle Brothers")
 │       ├── __init__.py   # wersja + publiczne API
 │       ├── __main__.py   # headless entry point (python -m tbb)
+│       ├── battle.py     # niemutowalny stan bitwy: teren + rozstawienie jednostek
 │       ├── battlefield.py # rzadka plansza heksowa Hex→Terrain z domyślnym terenem
 │       ├── building.py   # niemutowalne typy budynków i katalog startowy
 │       ├── hex.py        # niemutowalne współrzędne heksów axial/cube
@@ -51,6 +52,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │       ├── unit.py       # niemutowalna jednostka i pochodne statystyki bojowe
 │       └── rng.py        # seedowalny RNG izolowany od stanu globalnego
 ├── tests/                # testy pytest (mirror struktury src/tbb)
+│   ├── test_battle.py
 │   ├── test_rng.py
 │   ├── test_battlefield.py
 │   ├── test_building.py
