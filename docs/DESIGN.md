@@ -23,6 +23,14 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
 ### 3.1 Warstwa strategiczna (mapa świata, turowa)
 - **Mapa** w stylu **Total War**: regiony/prowincje z osadami. Party (armia)
   przemieszcza się po mapie kosztem punktów ruchu / tur.
+- **ROZSTRZYGNIĘTE (M5.1a, minimalna mapa świata):** warstwa strategiczna jest
+  skończonym, niemutowalnym **grafem regionów**. `Region` jest identyfikowany
+  przez niemutowalną wartość `name`, a jawne połączenia są dwukierunkowe; ruch
+  między niesąsiadującymi regionami nie jest bezpośrednio możliwy. Region może
+  zawierać najwyżej jedną `Settlement`, ale może też być pusty. Kolejność regionów
+  zadana przy tworzeniu mapy wyznacza deterministyczną kolejność zapytań o
+  sąsiadów. Pozycje party, koszty ruchu i przejście ruchu dochodzą osobno w M5.1b
+  i M5.2b, po utworzeniu modelu `Party` w M5.2a.
 - **Bitwa** startuje przy kontakcie party z wrogą osadą lub wrogim party.
 - **Czas:** 1 tura = **1 miesiąc**. Rok = **13 miesięcy po 4 tygodnie**
   (52 tygodnie). Trening i wyposażenie mierzone są w miesiącach.
