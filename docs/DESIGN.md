@@ -231,6 +231,15 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   raport, więc raport bazowy i stan bitwy pozostają niezmienione. To minimalny
   placeholder za sam udział, bez premii za zwycięstwo, zabójstwa lub obrażenia;
   tempo progresji doświadczenia pozostaje do późniejszego balansu.
+- **ROZSTRZYGNIĘTE (BD.1, wybór celu):** `HexBattle.nearest_enemy(position)` to
+  czyste zapytanie (bez RNG, bez mutacji) zwracające pozycję najbliższej **aktywnej**
+  jednostki (bieżące HP > 0 i nieogłuszonej) po **przeciwnej** stronie względem
+  jednostki stojącej na `position`. Odległość liczy `Hex.distance`; remis między
+  równie odległymi celami rozstrzyga **kolejność rozstawienia** (`_deployment_order`,
+  ta sama, która porządkuje raport bitwy), więc wybór jest w pełni deterministyczny
+  i niezależny od kolejności iteracji mapy. Brak wrogich celów zwraca `None`; pusty
+  heks źródłowy jest błędem. To pierwszy klocek drivera bitwy (BD.2–BD.3): pojedyncza
+  tura jednostki i pełna auto-rozgrywka do rozstrzygnięcia dochodzą osobno.
 
 ## 4. Osady, populacja, ekonomia
 - **Surowce (dokładnie dwa, celowo prosto):** **pszenica** i **złoto**.

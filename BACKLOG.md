@@ -195,7 +195,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     wszystkich innych układach (jest bohater, jest osada, lub oba) jest `False`;
     party nie wpływają na predykat (bez bohatera i tak nie walczą); zapytanie
     nie mutuje stanu (DESIGN §3.1, §7).
-- [~] **D6.3b** Rozstrzygnięcie wygranej/przegranej między księstwami (stan gry).
+- [x] **D6.3b** Rozstrzygnięcie wygranej/przegranej między księstwami (stan gry).
   - AC: nad zbiorem księstw gra sygnalizuje koniec dokładnie gdy pokonane są
     wszystkie księstwa poza jednym (`is_defeated`), a to jedno wygrywa; póki
     stoją co najmniej dwa niepokonane księstwa, gra trwa; determinizm.
@@ -204,6 +204,25 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     `is_over` gdy pretendentów ≤ 1; `winner` = jedyny pretendent albo `None`
     (≥2 pretendentów: gra trwa; 0 pretendentów: koniec bez zwycięzcy). `duchy_id`
     księstw muszą być różne. Zapytania nie mutują stanu.
+
+## Kamień milowy 6.5 — automatyczne rozegranie bitwy (driver)
+> Bitwa ma już wszystkie prymitywy (ruch, walka wręcz/dystans, rozstrzygnięcie 0 HP,
+> koniec/raport), ale nic nie rozgrywa jej do końca. Driver domyka ten szew i jest
+> warunkiem koniecznym AI (A7.1) i pętli MVP (A7.2). Dzielimy go na małe kroki.
+- [~] **BD.1** Wybór najbliższego wrogiego celu w bitwie (`HexBattle.nearest_enemy`).
+  - AC: czyste zapytanie zwraca pozycję najbliższej **aktywnej** (HP>0, nieogłuszonej)
+    jednostki po przeciwnej stronie względem jednostki na danym heksie; dystans wg
+    `Hex.distance`, remis rozstrzygany deterministycznie kolejnością rozstawienia;
+    brak wrogów → `None`; pusty heks źródłowy odrzucony; zapytanie nie mutuje stanu
+    i nie używa RNG.
+- [ ] **BD.2** Tura pojedynczej jednostki: podejście do najbliższego wroga + atak wręcz.
+  - AC: jednostka rusza się najtańszą ścieżką w budżecie ku sąsiedztwu celu z BD.1,
+    a jeśli już sąsiaduje — wykonuje `melee_attack`; przy 0 HP celu rozstrzyga
+    `resolve_defeat`; jeden rzut RNG na atak; determinizm; niemutowalność wejścia.
+- [ ] **BD.3** Pełna auto-rozgrywka bitwy do rozstrzygnięcia (`HexBattle.auto_resolve`).
+  - AC: deterministyczna pętla tur (kolejność rozstawienia) doprowadza bitwę do
+    `result` innego niż `None` przy ustalonym seedzie; zwraca końcowy stan/raport;
+    limit tur chroni przed zapętleniem; niemutowalność wejścia.
 
 ## Kamień milowy 7 — AI i grywalna pętla MVP
 - [ ] **A7.1** Proste AI księstwa (rozwijaj osadę → zbierz party → atakuj).
