@@ -89,6 +89,13 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   `hero: Unit` i podpisanym całkowitym `morale` (domyślnie 0). `duchy_id` jest
   tym samym identyfikatorem, który `Party` i `Settlement` przechowują jako
   `owner_id`. Dziedzic, osady i party dochodzą w D6.1b.
+  **ROZSTRZYGNIĘTE (D6.1b1, wyznaczony dziedzic):** `Duchy` przechowuje
+  opcjonalny `heir: Unit | None` (domyślnie `None` = brak wyznaczonego dziedzica).
+  Podany dziedzic musi być `Unit` i nie może być **tym samym obiektem** co `hero`
+  (nikt nie dziedziczy po sobie); równe, lecz odrębne `Unit` są dozwolone, bo są
+  nierozróżnialne. Samo przechowanie dziedzica nie uruchamia sukcesji ani nie
+  zmienia morale — to należy do D6.2. Lista osad i party księstwa dochodzi
+  w D6.1b2.
 - **Party:** bohater prowadzi maksymalnie **12 jednostek**.
   **ROZSTRZYGNIĘTE (M5.2a, minimalny skład party):** `Party` jest
   niemutowalnym stanem z jednym wymaganym `hero: Unit` oraz krotką najwyżej
@@ -269,8 +276,10 @@ Wstępne encje rdzenia (nazwy robocze, doprecyzowywane wraz z implementacją):
   `duchy_id` jest **dokładnie** tym identyfikatorem, którego księstwo używa jako
   `owner_id` swoich party i osad (M5.3b2) — to on rozstrzyga wrogość na mapie.
   Pojedyncze pole `hero` realizuje inwariant „dokładnie jeden bohater na księstwo".
-  Wyznaczony dziedzic, lista osad oraz przypisane party dochodzą w D6.1b, a sukcesja
-  i kara morale po śmierci bohatera w D6.2.
+  **ROZSTRZYGNIĘTE (D6.1b1):** dochodzi opcjonalne pole `heir: Unit | None`
+  (domyślnie `None`); wyznaczony dziedzic musi być `Unit` odrębnym od `hero`.
+  Lista osad oraz przypisane party dochodzą w D6.1b2, a sukcesja i kara morale
+  po śmierci bohatera w D6.2.
 - `Party` — bohater + ≤12 jednostek, pozycja na mapie, punkty ruchu.
 - `WorldMap` — regiony/prowincje, osady, pozycje party.
 - `HexBattle` — siatka heksów, teren, jednostki, kolejka tur, rozstrzyganie walki.

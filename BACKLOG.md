@@ -160,14 +160,20 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     i zwracają nowy stan tury; akcja poza właściwą fazą jest odrzucana.
 
 ## Kamień milowy 6 — księstwa, następstwo, warunki gry
-- [~] **D6.1a** `Duchy` minimalny: identyfikator + jeden bohater + morale.
+- [x] **D6.1a** `Duchy` minimalny: identyfikator + jeden bohater + morale.
   - AC: niemutowalny `Duchy` z niepustym `duchy_id` (= `owner_id` party/osad na
     mapie), dokładnie jednym wymaganym `hero: Unit` (inwariant 1 bohatera) oraz
     podpisanym `morale: int` (domyślnie 0); pusty/nietekstowy identyfikator i
     nie-`Unit` bohater są odrzucane; dziedzic, osady i party dochodzą w D6.1b.
-- [ ] **D6.1b** `Duchy`: dziedzic, lista osad i party (spięcie z mapą).
-  - AC: księstwo trzyma opcjonalnego dziedzica oraz odwołania do swoich osad
-    i party; własność spójna z `duchy_id`; niemutowalne przejścia.
+- [~] **D6.1b1** `Duchy`: wyznaczony dziedzic (opcjonalny `heir`).
+  - AC: niemutowalny `Duchy` trzyma opcjonalny `heir: Unit | None` (domyślnie
+    `None` = brak dziedzica); podany dziedzic musi być `Unit` i nie może być tym
+    samym obiektem co `hero`; brak dziedzica jest dozwolony; sukcesja i kara
+    morale po śmierci bohatera dochodzą w D6.2.
+- [ ] **D6.1b2** `Duchy`: lista osad i party (spięcie z mapą).
+  - AC: księstwo trzyma odwołania do swoich osad i party; własność spójna
+    z `duchy_id` (`owner_id` każdej osady/party = `duchy_id`); niemutowalne
+    kolekcje kopiowane przy tworzeniu.
 - [ ] **D6.2** Śmierć bohatera → sukcesja dziedzica + kara morale.
   - AC: dziedzic przejmuje; morale osad/wojsk spada; brak dziedzica → patrz D6.3.
 - [ ] **D6.3** Warunek przegranej/wygranej (brak osad ORAZ brak bohatera).
