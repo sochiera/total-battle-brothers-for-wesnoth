@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Mapping, Sequence
 
+from tbb.party import Party
 from tbb.settlement import Settlement
 
 
@@ -21,6 +22,7 @@ class WorldMap:
     regions: tuple[Region, ...]
     connections: tuple[tuple[Region, Region], ...]
     settlements: Mapping[Region, Settlement]
+    parties: Mapping[Region, Party]
     _neighbors: Mapping[Region, tuple[Region, ...]] = field(repr=False)
 
     def __init__(
@@ -28,10 +30,12 @@ class WorldMap:
         regions: Sequence[Region],
         connections: Sequence[tuple[Region, Region]] = (),
         settlements: Mapping[Region, Settlement] | None = None,
+        parties: Mapping[Region, Party] | None = None,
     ) -> None:
         region_tuple = tuple(regions)
         connection_tuple = tuple(connections)
         settlement_dict = dict(settlements or {})
+        party_dict = dict(parties or {})
         region_set = set(region_tuple)
 
         if len(region_set) != len(region_tuple):
@@ -50,6 +54,8 @@ class WorldMap:
 
         if any(region not in region_set for region in settlement_dict):
             raise ValueError("settlement region is outside the world map")
+        if any(region not in region_set for region in party_dict):
+            raise ValueError("party region is outside the world map")
 
         ordered_neighbors = {
             region: tuple(
@@ -64,6 +70,7 @@ class WorldMap:
         object.__setattr__(
             self, "settlements", MappingProxyType(settlement_dict)
         )
+        object.__setattr__(self, "parties", MappingProxyType(party_dict))
         object.__setattr__(self, "_neighbors", MappingProxyType(ordered_neighbors))
 
     def neighbors(self, region: Region) -> tuple[Region, ...]:
@@ -78,3 +85,25 @@ class WorldMap:
         if region not in self._neighbors:
             raise ValueError("region is outside the world map")
         return self.settlements.get(region)
+
+    def party_at(self, region: Region) -> Party | None:
+        """Return the party occupying the region, if present."""
+        if region not in self._neighbors:
+            raise ValueError("region is outside the world map")
+        return self.parties.get(region)
+
+    def place_party(self, party: Party, region: Region) -> "WorldMap":
+        """Return a new world with a party placed in an empty region."""
+        if region not in self._neighbors:
+            raise ValueError("region is outside the world map")
+        if region in self.parties:
+            raise ValueError("region is already occupied by a party")
+
+        parties = dict(self.parties)
+        parties[region] = party
+        return WorldMap(
+            self.regions,
+            self.connections,
+            self.settlements,
+            parties,
+        )
