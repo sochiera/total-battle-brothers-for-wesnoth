@@ -2,6 +2,8 @@
 
 from dataclasses import dataclass, replace
 
+from tbb.building import Building
+
 
 @dataclass(frozen=True)
 class Settlement:
@@ -10,6 +12,7 @@ class Settlement:
     name: str
     population: int
     occupied: int = 0
+    active_buildings: tuple[Building, ...] = ()
 
     def __post_init__(self) -> None:
         """Reject an inconsistent population pool."""
@@ -38,3 +41,20 @@ class Settlement:
         if amount > self.occupied:
             raise ValueError("cannot release more than occupied population")
         return replace(self, occupied=self.occupied - amount)
+
+    def open_building(self, building: Building) -> "Settlement":
+        """Return a new state with ``building`` active and staffed."""
+        staffed = self.occupy(building.staff)
+        return replace(
+            staffed,
+            active_buildings=staffed.active_buildings + (building,),
+        )
+
+    def close_building(self, building: Building) -> "Settlement":
+        """Return a new state with one matching building closed."""
+        if building not in self.active_buildings:
+            raise ValueError("building is not active")
+        active = list(self.active_buildings)
+        active.remove(building)
+        released = self.release(building.staff)
+        return replace(released, active_buildings=tuple(active))

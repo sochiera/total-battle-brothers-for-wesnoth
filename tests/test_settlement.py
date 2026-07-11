@@ -4,7 +4,7 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
-from tbb import Settlement
+from tbb import Building, Settlement, SMITH
 
 
 def test_construction_defaults_all_population_to_free():
@@ -89,3 +89,46 @@ def test_zero_amount_transitions_are_allowed():
 
     assert settlement.occupy(0) == settlement
     assert settlement.release(0) == settlement
+
+
+def test_open_building_assigns_staff_and_keeps_original_unchanged():
+    original = Settlement("A", population=3)
+
+    opened = original.open_building(SMITH)
+
+    assert opened.occupied == 1
+    assert opened.free == 2
+    assert opened.active_buildings == (SMITH,)
+    assert original == Settlement("A", population=3)
+    assert opened is not original
+
+
+def test_open_building_rejects_insufficient_free_population():
+    settlement = Settlement("A", population=1, occupied=1)
+
+    with pytest.raises(ValueError):
+        settlement.open_building(SMITH)
+
+    assert settlement == Settlement("A", population=1, occupied=1)
+
+
+def test_close_building_releases_staff_and_keeps_original_unchanged():
+    original = Settlement("A", population=3).open_building(SMITH)
+
+    closed = original.close_building(SMITH)
+
+    assert closed.occupied == 0
+    assert closed.free == 3
+    assert closed.active_buildings == ()
+    assert original.active_buildings == (SMITH,)
+    assert closed is not original
+
+
+def test_close_inactive_building_is_rejected_without_changing_state():
+    settlement = Settlement("A", population=3)
+    mill = Building("Mill", staff=1)
+
+    with pytest.raises(ValueError):
+        settlement.close_building(mill)
+
+    assert settlement == Settlement("A", population=3)

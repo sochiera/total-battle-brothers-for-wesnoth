@@ -41,12 +41,14 @@ game/                     # katalog projektu (repo root dla tej gry)
 │   └── tbb/              # pakiet rdzenia ("Total Battle Brothers")
 │       ├── __init__.py   # wersja + publiczne API
 │       ├── __main__.py   # headless entry point (python -m tbb)
+│       ├── building.py   # niemutowalne typy budynków i katalog startowy
 │       ├── hex.py        # niemutowalne współrzędne heksów axial/cube
 │       ├── resources.py  # niemutowalne wartości pszenicy i złota
 │       ├── settlement.py # niemutowalna osada z pulą populacji
 │       └── rng.py        # seedowalny RNG izolowany od stanu globalnego
 ├── tests/                # testy pytest (mirror struktury src/tbb)
 │   ├── test_rng.py
+│   ├── test_building.py
 │   ├── test_hex.py
 │   ├── test_resources.py
 │   ├── test_settlement.py
