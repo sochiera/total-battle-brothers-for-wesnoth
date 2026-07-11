@@ -170,14 +170,22 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     `None` = brak dziedzica); podany dziedzic musi być `Unit` i nie może być tym
     samym obiektem co `hero`; brak dziedzica jest dozwolony; sukcesja i kara
     morale po śmierci bohatera dochodzą w D6.2.
-- [~] **D6.1b2** `Duchy`: lista osad i party (spięcie z mapą).
+- [x] **D6.1b2** `Duchy`: lista osad i party (spięcie z mapą).
   - AC: księstwo trzyma odwołania do swoich osad i party; własność spójna
     z `duchy_id` (`owner_id` każdej osady/party = `duchy_id`); niemutowalne
     kolekcje kopiowane przy tworzeniu; osada/party bez `owner_id` lub z innym
     `owner_id` jest odrzucana; niepoprawny typ członka odrzucany; puste kolekcje
     są dozwolone i domyślne.
-- [ ] **D6.2** Śmierć bohatera → sukcesja dziedzica + kara morale.
-  - AC: dziedzic przejmuje; morale osad/wojsk spada; brak dziedzica → patrz D6.3.
+- [ ] **D6.2a** Śmierć bohatera z dziedzicem → sukcesja + kara morale.
+  - AC: czyste przejście `Duchy.succeed()` wymaga wyznaczonego dziedzica; przy
+    obecnym dziedzicu zwraca nowe księstwo, w którym dawny `heir` staje się `hero`,
+    `heir` wraca do `None`, a `morale` spada o stałą karę sukcesji (DESIGN §7);
+    `duchy_id`, osady i party pozostają bez zmian; wywołanie bez dziedzica jest
+    odrzucane (wariant bez dziedzica → D6.2b/D6.3); stan wejściowy niemutowalny.
+- [ ] **D6.2b** Śmierć bohatera bez dziedzica → księstwo bez bohatera (sygnał).
+  - AC: rozstrzygnięcie sukcesji bez dziedzica pozostawia księstwo bez żywego
+    bohatera i sygnalizuje to jawnie; warunek przegranej (brak osad ORAZ bohatera)
+    rozstrzyga D6.3.
 - [ ] **D6.3** Warunek przegranej/wygranej (brak osad ORAZ brak bohatera).
   - AC: gra sygnalizuje koniec dokładnie w tym warunku, nie wcześniej.
 

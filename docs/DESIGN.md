@@ -291,9 +291,15 @@ Wstępne encje rdzenia (nazwy robocze, doprecyzowywane wraz z implementacją):
   (domyślnie `None`); wyznaczony dziedzic musi być `Unit` odrębnym od `hero`.
   **ROZSTRZYGNIĘTE (D6.1b2):** dochodzą niemutowalne, kopiowane krotki
   `settlements: tuple[Settlement, ...]` i `parties: tuple[Party, ...]` (domyślnie
-  puste); `owner_id` każdej osady i party musi równać się `duchy_id`. Sukcesja
-  i kara morale po śmierci bohatera dochodzą w D6.2, a warunek przegranej/wygranej
-  w D6.3.
+  puste); `owner_id` każdej osady i party musi równać się `duchy_id`.
+  **ROZSTRZYGNIĘTE (D6.2a, sukcesja dziedzica):** śmierć bohatera z wyznaczonym
+  dziedzicem rozstrzyga czyste przejście `succeed()`: zwraca nowe księstwo, w którym
+  dawny `heir` awansuje na `hero`, `heir` wraca do `None`, a `morale` spada o stałą
+  `SUCCESSION_MORALE_PENALTY` (placeholder, obecnie `2` — destabilizacja przy zmianie
+  władcy; wartość do strojenia balansu). `duchy_id`, osady i party pozostają bez
+  zmian, a stan wejściowy jest niemutowalny. Wariant bez dziedzica (`succeed()`
+  odrzucone) oraz spadek morale konkretnych osad/wojsk dochodzą w D6.2b, a warunek
+  przegranej/wygranej w D6.3.
 - `Party` — bohater + ≤12 jednostek, pozycja na mapie, punkty ruchu.
 - `WorldMap` — regiony/prowincje, osady, pozycje party.
 - `HexBattle` — siatka heksów, teren, jednostki, kolejka tur, rozstrzyganie walki.
