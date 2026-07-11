@@ -103,7 +103,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 - [x] **B4.6b** Raport wyniku bitwy: polegli, ogłuszeni i zdolni do działania.
   - AC: wynik zachowuje przynależność pokonanych jednostek i raportuje straty obu
     stron deterministycznie, także gdy martwa jednostka zniknęła z rozstawienia.
-- [~] **B4.6c** Doświadczenie za udział w rozstrzygniętej bitwie.
+- [x] **B4.6c** Doświadczenie za udział w rozstrzygniętej bitwie.
   - AC: ocalałe jednostki dostają deterministyczny przyrost doświadczenia dopiero
     po końcu bitwy; aktywni i ogłuszeni dostają +1, polegli nie dostają nagrody;
     stan wejściowy pozostaje niemutowalny; zasady z DESIGN.

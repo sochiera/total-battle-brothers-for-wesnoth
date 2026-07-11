@@ -1,5 +1,7 @@
 """Tests for immutable unit deployment on a hex battlefield."""
 
+from dataclasses import replace
+
 import pytest
 
 from tbb.battle import BattleReport, BattleResult, BattleSide, BattleSideReport, HexBattle
@@ -718,3 +720,59 @@ def test_report_keeps_deployment_order_after_a_unit_moves():
     )
 
     assert battle.report().attacker.active == (first, second)
+
+
+def test_award_experience_rewards_only_survivors_and_preserves_report():
+    active = Unit(training=1, experience=2, wounds=(MAIMED,))
+    stunned = Unit(equipment=2, experience=4, wounds=(MAIMED,))
+    fallen = Unit(training=3, experience=6, wounds=(BRUISE,))
+    positions = (Hex(0, 0), Hex(1, 0), Hex(2, 0))
+    battle = HexBattle(Battlefield()).deploy(
+        active, positions[0], BattleSide.ATTACKER
+    ).deploy(stunned, positions[1], BattleSide.ATTACKER)
+    battle = battle.deploy(fallen, positions[2], BattleSide.DEFENDER)
+    battle = battle.damage(positions[1], stunned.hp).resolve_defeat(
+        positions[1], ControlledRng(False)
+    )
+    battle = battle.damage(positions[2], fallen.hp).resolve_defeat(
+        positions[2], ControlledRng(True)
+    )
+    base_report = battle.report()
+
+    rewarded = battle.award_experience()
+
+    assert rewarded == BattleReport(
+        result=base_report.result,
+        attacker=BattleSideReport(
+            fallen=(),
+            stunned=(replace(base_report.attacker.stunned[0], experience=5),),
+            active=(replace(active, experience=3),),
+        ),
+        defender=base_report.defender,
+    )
+    assert rewarded.attacker.stunned[0].stunned is True
+    assert rewarded.attacker.stunned[0].wounds == (MAIMED, BRUISE)
+
+
+def test_award_experience_rejects_an_unfinished_battle():
+    battle, _, _ = _battle_with_both_sides()
+
+    with pytest.raises(ValueError):
+        battle.award_experience()
+
+
+def test_award_experience_is_repeatable_without_mutating_battle_or_base_report():
+    survivor = Unit(experience=7)
+    battle = HexBattle(Battlefield()).deploy(
+        survivor, Hex(0, 0), BattleSide.ATTACKER
+    )
+    base_report = battle.report()
+    units_before = dict(battle.units)
+
+    first = battle.award_experience()
+    second = battle.award_experience()
+
+    assert first == second
+    assert first.attacker.active == (replace(survivor, experience=8),)
+    assert battle.report() == base_report
+    assert dict(battle.units) == units_before

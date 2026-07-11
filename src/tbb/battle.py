@@ -141,6 +141,29 @@ class HexBattle:
             defender=for_side(BattleSide.DEFENDER),
         )
 
+    def award_experience(self) -> BattleReport:
+        """Return a final report with one experience awarded to each survivor."""
+        report = self.report()
+
+        def reward(side: BattleSideReport) -> BattleSideReport:
+            return BattleSideReport(
+                fallen=side.fallen,
+                stunned=tuple(
+                    replace(unit, experience=unit.experience + 1)
+                    for unit in side.stunned
+                ),
+                active=tuple(
+                    replace(unit, experience=unit.experience + 1)
+                    for unit in side.active
+                ),
+            )
+
+        return BattleReport(
+            result=report.result,
+            attacker=reward(report.attacker),
+            defender=reward(report.defender),
+        )
+
     def deploy(self, unit: Unit, position: Hex, side: BattleSide) -> "HexBattle":
         """Return a new state with ``unit`` deployed at ``position``."""
         if self.is_occupied(position):
