@@ -52,6 +52,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │       ├── settlement.py # niemutowalna osada z pulą populacji
 │       ├── unit.py       # niemutowalna jednostka i pochodne statystyki bojowe
 │       ├── wound.py      # niemutowalne rany czasowe/trwałe i katalog startowy
+│       ├── world.py      # niemutowalny graf regionów i rozmieszczenie osad
 │       └── rng.py        # seedowalny RNG izolowany od stanu globalnego
 ├── tests/                # testy pytest (mirror struktury src/tbb)
 │   ├── test_battle.py
@@ -66,6 +67,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │   ├── test_settlement.py
 │   ├── test_unit.py
 │   ├── test_wound.py
+│   ├── test_world.py
 │   └── test_smoke.py
 ├── scripts/
 │   ├── test.sh           # uruchamia pełny pakiet testów

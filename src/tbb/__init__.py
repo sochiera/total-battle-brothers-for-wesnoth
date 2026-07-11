@@ -16,6 +16,7 @@ from tbb.settlement import Settlement
 from tbb.terrain import FOREST, HILLS, PLAINS, Terrain
 from tbb.unit import Unit
 from tbb.wound import BRUISE, MAIMED, Wound
+from tbb.world import Region, WorldMap
 
 __version__ = "0.0.1"
 
@@ -35,6 +36,7 @@ __all__ = [
     "investment_for_level",
     "melee_hit_chance",
     "Resources",
+    "Region",
     "Rng",
     "Settlement",
     "Unit",
@@ -45,5 +47,6 @@ __all__ = [
     "SMITH",
     "Terrain",
     "Wound",
+    "WorldMap",
     "__version__",
 ]
