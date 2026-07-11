@@ -126,8 +126,14 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     po jednym istniejącym połączeniu, którego koszt wynosi 1 punkt; wymaga budżetu
     `>= 1` i wolnego celu; region niesąsiedni, cel zajęty i brak party w źródle są
     odrzucane; mapa wejściowa oraz garnizon osady pozostają niezmienione.
-- [ ] **M5.3** Kontakt party↔osada/party wyzwala bitwę (przejście do warstwy B4).
-  - AC: kontakt tworzy `HexBattle` z właściwymi składami.
+- [~] **M5.3a** Kontakt dwóch party tworzy minimalną bitwę heksową.
+  - AC: jawne rozpoczęcie starcia wymaga dwóch party w sąsiednich regionach;
+    bohater i podkomendni strony atakującej/broniącej trafiają na właściwe
+    strony `HexBattle` w deterministycznym rozstawieniu; mapa świata pozostaje
+    niezmieniona; brak party, ten sam/niesąsiedni region są odrzucane.
+- [ ] **M5.3b** Kontakt party z wrogą osadą/garnizonem tworzy bitwę.
+  - AC: kontakt tworzy `HexBattle` z party jako atakującym i garnizonem jako
+    obrońcą; własność księstwa rozróżnia osadę własną od wrogiej.
 - [ ] **M5.4** Faza tury miesięcznej (produkcja → wzrost → ruch → bitwy), 13 mies./rok.
   - AC: kolejność faz z DESIGN §10; kalendarz 13×4 tyg. liczony poprawnie.
 

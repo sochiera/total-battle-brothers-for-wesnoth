@@ -49,6 +49,15 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   bitwy zastąpią tę regułę w M5.3. Przechowywanie oraz odnawianie punktów ruchu,
   różne koszty regionów i ruch wieloodcinkowy pozostają na później.
 - **Bitwa** startuje przy kontakcie party z wrogą osadą lub wrogim party.
+  **ROZSTRZYGNIĘTE (M5.3a, minimalny kontakt party↔party):** próba starcia
+  dwóch party stojących w bezpośrednio sąsiednich regionach tworzy nowy
+  `HexBattle`, nie mutując ani nie przesuwając party na mapie. Party inicjujące
+  jest stroną atakującą, a party w regionie docelowym — broniącą. Każdy
+  skład trafia do bitwy w kolejności **bohater, potem podkomendni**; pozycje
+  startowe są deterministycznymi, rozłącznymi rzędami na domyślnym terenie
+  Plains. To rozstawienie jest placeholderem integracyjnym. Kontakt z osadą,
+  własność księstw, teren zależny od regionu oraz zapis wyniku z powrotem
+  na mapę pozostają poza M5.3a.
 - **Czas:** 1 tura = **1 miesiąc**. Rok = **13 miesięcy po 4 tygodnie**
   (52 tygodnie). Trening i wyposażenie mierzone są w miesiącach.
 - **Bohater:** dokładnie **jeden** na księstwo — król i dowódca w jednym. Armia
