@@ -83,7 +83,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
   - AC: `Hex.line_to()` zwraca oba końce i heksy linii wyznaczone między nimi
     w stabilnej kolejności; kolejne heksy są sąsiadami; odwrócenie końców odwraca
     wynik; testy obejmują linię prostą, ukośną i przypadek przechodzący po granicy.
-- [~] **B4.4b2** Jednostki jako przeszkody dla ataku dystansowego.
+- [x] **B4.4b2** Jednostki jako przeszkody dla ataku dystansowego.
   - AC: każda jednostka na heksie pośrednim wyznaczonym przez `Hex.line_to()`
     blokuje strzał; testy obejmują czystą i zablokowaną linię axial; sprawdzenie
     następuje przed rzutem RNG i nie zmienia stanu bitwy.

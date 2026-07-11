@@ -127,6 +127,8 @@ class HexBattle:
             raise ValueError("target is outside ranged attack range")
         if self.side_at(attacker) is self.side_at(target):
             raise ValueError("cannot attack a unit on the same side")
+        if any(self.is_occupied(position) for position in attacker.line_to(target)[1:-1]):
+            raise ValueError("a unit blocks the ranged attack line")
 
         hit_chance = melee_hit_chance(
             attacking_unit,

@@ -68,8 +68,11 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   zaokrąglenie do heksu. Interpolacja używa dokładnej arytmetyki całkowitej/
   wymiernej, więc zachowuje kontrakt także dla dowolnie dużych współrzędnych;
   przypadki biegnące dokładnie po granicy rozstrzyga stała, symetryczna reguła
-  remisu, aby widoczność nie zależała od kierunku sprawdzania. Jednostki na
-  heksach pośrednich będą blokować strzał w B4.4b2.
+  remisu, aby widoczność nie zależała od kierunku sprawdzania.
+  **ROZSTRZYGNIĘTE (B4.4b2, przeszkody jednostkowe):** każda jednostka — własna
+  lub wroga — na dowolnym heksie pośrednim `attacker.line_to(target)` blokuje
+  atak dystansowy. Heksy atakującego i celu nie są przeszkodami. Zablokowany
+  strzał jest odrzucany przed rzutem RNG i nie zmienia stanu bitwy.
   Teren blokujący widoczność i typy broni pozostają na później.
 - **Morale** wpływa **wyłącznie na celność** (bonus/kara do trafienia). Morale
   **nie** powoduje ucieczek.

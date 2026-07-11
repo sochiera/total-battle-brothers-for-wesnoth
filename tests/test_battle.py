@@ -413,3 +413,51 @@ def test_ranged_attack_applies_terrain_and_morale_to_hit_chance():
     battle.ranged_attack(attacker, target, morale=7, rng=rng)
 
     assert rng.probabilities == [0.54]
+
+
+def test_ranged_attack_allows_a_clear_axial_line():
+    battle, attacker, target = _ranged_battle(ranged_range=3)
+
+    result = battle.ranged_attack(attacker, target, morale=50, rng=Rng(1))
+
+    assert result.current_hp_at(target) == battle.current_hp_at(target) - 3
+
+
+def test_allied_unit_in_the_middle_blocks_ranged_attack_before_rng_and_hp_change():
+    class FailingRng(Rng):
+        def __init__(self):
+            self.calls = 0
+
+        def chance(self, p):
+            self.calls += 1
+            raise AssertionError("blocked shot must not call RNG")
+
+    battle, attacker, target = _ranged_battle(ranged_range=3)
+    blocker = Hex(1, 0)
+    battle = battle.deploy(Unit(), blocker, BattleSide.ATTACKER)
+    target_hp = battle.current_hp_at(target)
+    rng = FailingRng()
+
+    with pytest.raises(ValueError):
+        battle.ranged_attack(attacker, target, morale=50, rng=rng)
+
+    assert rng.calls == 0
+    assert battle.current_hp_at(target) == target_hp
+    assert battle.unit_at(blocker) == Unit()
+
+
+def test_enemy_unit_in_the_middle_blocks_ranged_attack():
+    battle, attacker, target = _ranged_battle(ranged_range=3)
+    battle = battle.deploy(Unit(), Hex(2, 0), BattleSide.DEFENDER)
+
+    with pytest.raises(ValueError):
+        battle.ranged_attack(attacker, target, morale=50, rng=Rng(1))
+
+
+def test_minimum_range_shot_ignores_attacker_and_target_as_obstacles():
+    battle, attacker, target = _ranged_battle(ranged_range=2)
+
+    result = battle.ranged_attack(attacker, target, morale=50, rng=Rng(1))
+
+    assert attacker.line_to(target) == (attacker, Hex(1, 0), target)
+    assert result.current_hp_at(target) == battle.current_hp_at(target) - 3
