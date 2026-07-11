@@ -69,3 +69,79 @@ def test_battle_exposes_its_battlefield():
 
     assert battle.battlefield is battlefield
     assert battle.battlefield.move_cost_at(forest) == battlefield.move_cost_at(forest)
+
+
+def test_move_to_adjacent_plains_with_exact_budget_preserves_original():
+    source = Hex(0, 0)
+    destination = Hex(1, 0)
+    unit = Unit(training=1)
+    original = HexBattle(Battlefield()).deploy(unit, source)
+
+    moved = original.move(source, destination, move_points=1)
+
+    assert moved.unit_at(source) is None
+    assert moved.unit_at(destination) == unit
+    assert original.unit_at(source) == unit
+    assert original.unit_at(destination) is None
+
+
+def test_forest_and_two_plains_hexes_require_two_move_points():
+    source = Hex(0, 0)
+    forest = Hex(1, 0)
+    two_plains_away = Hex(2, 0)
+    battle = HexBattle(Battlefield({forest: FOREST})).deploy(Unit(), source)
+
+    assert forest not in battle.reachable(source, move_points=1)
+    assert forest in battle.reachable(source, move_points=2)
+    assert two_plains_away in HexBattle(Battlefield()).deploy(Unit(), source).reachable(
+        source, move_points=2
+    )
+
+
+def test_reachable_uses_cheaper_detour_around_expensive_terrain():
+    source = Hex(0, 0)
+    expensive_direct_step = Hex(1, 0)
+    destination = Hex(1, 1)
+    battle = HexBattle(Battlefield({expensive_direct_step: FOREST})).deploy(
+        Unit(), source
+    )
+
+    assert destination in battle.reachable(source, move_points=2)
+
+
+def test_units_block_routes_and_occupied_destinations():
+    source = Hex(0, 0)
+    destination = Hex(1, 1)
+    blocker = Hex(0, 1)
+    battle = HexBattle(Battlefield({Hex(1, 0): FOREST})).deploy(Unit(), source)
+    battle = battle.deploy(Unit(training=2), blocker)
+
+    assert destination not in battle.reachable(source, move_points=2)
+
+    occupied_destination = battle.deploy(Unit(equipment=1), destination)
+    with pytest.raises(ValueError):
+        occupied_destination.move(source, destination, move_points=10)
+
+
+def test_move_rejects_empty_source_and_destination_outside_budget():
+    source = Hex(0, 0)
+    battle = HexBattle(Battlefield()).deploy(Unit(), source)
+
+    with pytest.raises(ValueError):
+        battle.move(Hex(-1, 0), Hex(0, 1), move_points=1)
+    with pytest.raises(ValueError):
+        battle.move(source, Hex(2, 0), move_points=1)
+
+
+def test_reachable_omits_source_and_occupied_hexes_and_is_repeatable():
+    source = Hex(0, 0)
+    occupied = Hex(1, 0)
+    battle = HexBattle(Battlefield()).deploy(Unit(), source)
+    battle = battle.deploy(Unit(training=3), occupied)
+
+    first = battle.reachable(source, move_points=2)
+    second = battle.reachable(source, move_points=2)
+
+    assert source not in first
+    assert occupied not in first
+    assert first == second

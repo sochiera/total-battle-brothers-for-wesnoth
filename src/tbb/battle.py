@@ -2,6 +2,7 @@
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+import heapq
 from types import MappingProxyType
 
 from tbb.battlefield import Battlefield
@@ -34,4 +35,47 @@ class HexBattle:
             raise ValueError("cannot deploy a unit on an occupied hex")
         units = dict(self.units)
         units[position] = unit
+        return HexBattle(self.battlefield, units)
+
+    def reachable(self, source: Hex, move_points: int) -> set[Hex]:
+        """Return unoccupied hexes reachable within ``move_points``."""
+        best_cost = {source: 0}
+        frontier = [(0, source.q, source.r)]
+        reachable: set[Hex] = set()
+
+        while frontier:
+            cost, q, r = heapq.heappop(frontier)
+            position = Hex(q, r)
+            if cost != best_cost[position]:
+                continue
+
+            for neighbor in position.neighbors():
+                if self.is_occupied(neighbor):
+                    continue
+                next_cost = cost + self.battlefield.move_cost_at(neighbor)
+                if next_cost > move_points or next_cost >= best_cost.get(
+                    neighbor, next_cost + 1
+                ):
+                    continue
+                best_cost[neighbor] = next_cost
+                reachable.add(neighbor)
+                heapq.heappush(frontier, (next_cost, neighbor.q, neighbor.r))
+
+        return reachable
+
+    def move(
+        self, source: Hex, destination: Hex, move_points: int
+    ) -> "HexBattle":
+        """Return a new state with the source unit moved to a reachable hex."""
+        unit = self.unit_at(source)
+        if unit is None:
+            raise ValueError("cannot move from an empty hex")
+        if self.is_occupied(destination):
+            raise ValueError("cannot move to an occupied hex")
+        if destination not in self.reachable(source, move_points):
+            raise ValueError("destination is outside the movement budget")
+
+        units = dict(self.units)
+        del units[source]
+        units[destination] = unit
         return HexBattle(self.battlefield, units)
