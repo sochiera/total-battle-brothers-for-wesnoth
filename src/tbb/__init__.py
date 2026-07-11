@@ -5,7 +5,8 @@ Nie importuj tu bibliotek prezentacji/UI — patrz docs/ARCHITECTURE.md.
 """
 
 from tbb.rng import Rng
+from tbb.resources import Resources
 
 __version__ = "0.0.1"
 
-__all__ = ["Rng", "__version__"]
+__all__ = ["Resources", "Rng", "__version__"]
