@@ -4,7 +4,7 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
-from tbb import Building, FARM, MARKET, Resources, Settlement, SMITH
+from tbb import Building, FARM, MARKET, Resources, Settlement, SMITH, Unit
 
 
 def test_construction_defaults_all_population_to_free():
@@ -283,3 +283,50 @@ def test_tick_immigration_returns_new_state_without_mutating_original():
     assert grown.population == 3
     assert original.population == 2
     assert original.storage == Resources(1, 1)
+
+
+def test_recruit_creates_fresh_recruit_and_occupies_population():
+    settlement = Settlement("A", population=2)
+
+    recruited = settlement.recruit()
+
+    assert recruited.population == 2
+    assert recruited.occupied == 1
+    assert recruited.free == 1
+    assert recruited.garrison == (Unit(),)
+
+
+def test_recruit_adds_custom_unit_to_garrison():
+    unit = Unit(training=2, equipment=1, experience=3)
+
+    recruited = Settlement("A", population=1).recruit(unit)
+
+    assert recruited.garrison == (unit,)
+    assert recruited.garrison[0] is unit
+
+
+def test_recruit_returns_new_state_without_mutating_original():
+    original = Settlement("A", population=1)
+
+    recruited = original.recruit()
+
+    assert recruited is not original
+    assert original.occupied == 0
+    assert original.garrison == ()
+
+
+def test_recruit_rejects_settlement_without_free_population():
+    settlement = Settlement("A", population=2, occupied=2)
+
+    with pytest.raises(ValueError):
+        settlement.recruit()
+
+    assert settlement == Settlement("A", population=2, occupied=2)
+
+
+def test_two_recruits_occupy_two_population_and_join_garrison():
+    recruited = Settlement("A", population=2).recruit().recruit()
+
+    assert recruited.occupied == 2
+    assert recruited.free == 0
+    assert len(recruited.garrison) == 2
