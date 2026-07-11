@@ -168,6 +168,14 @@ Wstępne encje rdzenia (nazwy robocze, doprecyzowywane wraz z implementacją):
   niemutowalnego stanu bitwy i podczas ruchu podąża razem z jednostką. Zadawanie
   obrażeń jest na razie niskopoziomowym, czystym przejściem po pozycji; rzut na
   trafienie, strony konfliktu i legalność ataku dochodzą w B4.3b2.
+  **ROZSTRZYGNIĘTE (B4.3b2, kontrakt walki wręcz):** każda rozstawiona jednostka
+  należy do jednej z dwóch jawnych stron bitwy (`ATTACKER` albo `DEFENDER`), a
+  informacja o stronie podczas ruchu podąża razem z jednostką. Atak wręcz wskazuje
+  heks atakującego i celu; jest legalny wyłącznie między wrogimi jednostkami na
+  sąsiednich heksach. Szansa trafienia pochodzi z wzoru B4.3a i terenu obu pozycji,
+  a wstrzyknięty `Rng` wykonuje jeden rzut. Pudło nie zmienia HP, trafienie odejmuje
+  `Unit.damage` od bieżącego HP celu. Kontratak, punkty akcji/kolejka tur, usuwanie
+  jednostki przy 0 HP oraz raport zdarzenia dochodzą w kolejnych przyrostach.
 - `Rng` — deterministyczny, seedowalny generator (dla powtarzalnych testów).
 
 ## 8. Zasady projektowe
