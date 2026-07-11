@@ -127,6 +127,18 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   a bez osady nie ma skąd wystawić nowego bohatera. Rozstrzyganie wygranej między
   wieloma księstwami (który gracz kończy grę zwycięsko) dochodzi w D6.3b nad
   modelem stanu gry; morale i kara sukcesji pozostają bez zmian.
+  **ROZSTRZYGNIĘTE (D6.3b, stan gry nad zbiorem księstw):** niemutowalny
+  `GameState(duchies)` trzyma krotkę wszystkich księstw partii (kopiowaną przy
+  tworzeniu) i wymaga **różnych** `duchy_id` (własność strategiczna jest po nich
+  identyfikowana, więc duplikat byłby niejednoznaczny). Trzy czyste zapytania,
+  bez mutacji i bez RNG: `contenders` = krotka księstw z `is_defeated == False`
+  (pretendenci wciąż w grze); `is_over: bool` = `len(contenders) <= 1`; `winner`
+  = jedyny pretendent gdy zostaje dokładnie jeden, w przeciwnym razie `None`. Stąd:
+  przy **≥2** niepokonanych księstwach gra trwa (`is_over is False`, brak
+  zwycięzcy); przy **dokładnie jednym** niepokonanym — koniec i to księstwo
+  wygrywa; przy **zera** niepokonanych — koniec bez zwycięzcy (remis/wygaśnięcie).
+  `GameState` nie prowadzi jeszcze tury ani AI (to K7) — jest tylko czystym
+  sygnałem końca partii nad predykatem `is_defeated`.
 - **Strony:** każde księstwo (gracza i AI) startuje z **1–3 osadami** w różnym
   stopniu rozwoju. Brak neutralnych band — przeciwnikami są księstwa AI.
 

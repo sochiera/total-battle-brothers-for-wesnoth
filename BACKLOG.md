@@ -189,16 +189,21 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     `SUCCESSION_MORALE_PENALTY` na morale, zachowanym `duchy_id`/osadami/party;
     stan wejściowy niemutowalny. Konstruktor odrzuca dziedzica przy `hero=None`.
     Warunek przegranej (brak osad ORAZ bohatera) rozstrzyga D6.3.
-- [~] **D6.3a** Predykat porażki księstwa (`Duchy.is_defeated`: brak osad ORAZ brak bohatera).
+- [x] **D6.3a** Predykat porażki księstwa (`Duchy.is_defeated`: brak osad ORAZ brak bohatera).
   - AC: `is_defeated` jest `True` dokładnie gdy księstwo nie ma bohatera
     (`has_hero is False`) **i** nie ma żadnej osady (`settlements == ()`); we
     wszystkich innych układach (jest bohater, jest osada, lub oba) jest `False`;
     party nie wpływają na predykat (bez bohatera i tak nie walczą); zapytanie
     nie mutuje stanu (DESIGN §3.1, §7).
-- [ ] **D6.3b** Rozstrzygnięcie wygranej/przegranej między księstwami (stan gry).
+- [~] **D6.3b** Rozstrzygnięcie wygranej/przegranej między księstwami (stan gry).
   - AC: nad zbiorem księstw gra sygnalizuje koniec dokładnie gdy pokonane są
     wszystkie księstwa poza jednym (`is_defeated`), a to jedno wygrywa; póki
     stoją co najmniej dwa niepokonane księstwa, gra trwa; determinizm.
+    Niemutowalny `GameState(duchies)` z czystymi zapytaniami `contenders` /
+    `is_over` / `winner`; wszyscy pretendenci = księstwa z `is_defeated == False`;
+    `is_over` gdy pretendentów ≤ 1; `winner` = jedyny pretendent albo `None`
+    (≥2 pretendentów: gra trwa; 0 pretendentów: koniec bez zwycięzcy). `duchy_id`
+    księstw muszą być różne. Zapytania nie mutują stanu.
 
 ## Kamień milowy 7 — AI i grywalna pętla MVP
 - [ ] **A7.1** Proste AI księstwa (rozwijaj osadę → zbierz party → atakuj).
