@@ -62,11 +62,15 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     niezmieniony; `reachable()` zwraca wolne heksy w budżecie; determinizm.
     Ruch po heksach źródło→cel; koszt = najtańsza ścieżka (`move_cost` wchodzonych
     heksów); inne jednostki blokują; budżet `move_points` jako parametr (DESIGN §7).
-- [~] **B4.3a** Walka wręcz: czyste wyliczenie szansy trafienia.
+- [x] **B4.3a** Walka wręcz: czyste wyliczenie szansy trafienia.
   - AC: wzór z DESIGN §3.2 uwzględnia celność atakującego, obronę celu, teren obu
     jednostek i morale; wynik jest całkowitym procentem ograniczonym do 5–95;
     funkcja nie używa RNG ani nie mutuje stanu.
-- [ ] **B4.3b** Walka wręcz: sąsiedztwo, rzut na trafienie i obrażenia/HP.
+- [~] **B4.3b1** Stan bieżącego HP jednostek w bitwie.
+  - AC: rozstawiona jednostka zaczyna z `current_hp == Unit.hp`; obrażenia zmniejszają
+    bieżące HP z podłogą na 0; ruch przenosi HP razem z jednostką; przejścia nie
+    mutują stanu wejściowego; błędna pozycja i ujemne obrażenia są odrzucane.
+- [ ] **B4.3b2** Walka wręcz: strony, sąsiedztwo, rzut na trafienie i obrażenia.
   - AC: atak tylko na sąsiedni zajęty heks wroga; ustalony seed daje ten sam wynik;
     pudło nie zmienia HP, trafienie odejmuje obrażenia; stan wejściowy jest niemutowalny.
 - [ ] **B4.4** Atak dystansowy (model Wesnoth/BB).

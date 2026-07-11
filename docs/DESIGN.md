@@ -161,6 +161,13 @@ Wstępne encje rdzenia (nazwy robocze, doprecyzowywane wraz z implementacją):
   **Punkty ruchu jako parametr:** wyprowadzenie `move_points` z filarów jednostki
   dochodzi później (kamień 4/5). **Poza B4.2b:** granice/kształt planszy,
   kolejka tur i rozstrzyganie walki (B4.3+).
+  **ROZSTRZYGNIĘTE (B4.3b1, bieżące HP):** rozstawienie jednostki inicjalizuje jej
+  bieżące HP wartością maksymalną `Unit.hp`. Obrażenia odejmuje się od bieżącego HP
+  z podłogą na `0`; wartość `0` oznacza jednostkę pokonaną, ale jej usunięcie oraz
+  rozstrzygnięcie śmierci/ogłuszenia pozostają w B4.5. Bieżące HP jest częścią
+  niemutowalnego stanu bitwy i podczas ruchu podąża razem z jednostką. Zadawanie
+  obrażeń jest na razie niskopoziomowym, czystym przejściem po pozycji; rzut na
+  trafienie, strony konfliktu i legalność ataku dochodzą w B4.3b2.
 - `Rng` — deterministyczny, seedowalny generator (dla powtarzalnych testów).
 
 ## 8. Zasady projektowe
