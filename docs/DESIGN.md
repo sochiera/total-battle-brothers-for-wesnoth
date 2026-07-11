@@ -129,8 +129,17 @@ ich dotykają, i notować wynik tutaj:
   na turę; głodująca (`storage.wheat == 0`) **nie** rośnie; wzrost nigdy nie przekracza
   `capacity`. Nowi mieszkańcy trafiają do puli **wolnej** (nie zmieniają `occupied`).
   Urodzenia **nie** konsumują dodatkowo pszenicy — nadwyżka jest **warunkiem**, nie
-  kosztem (uproszczenie do rewizji przy balansie). **NADAL OTWARTE:** skąd i jak szybko
-  **imigranci** (E2.4b), oraz tempo urodzeń > 1/turę przy dużej nadwyżce.
+  kosztem (uproszczenie do rewizji przy balansie).
+  **ROZSTRZYGNIĘTE (E2.4b, imigranci):** dobrobyt przyciąga osadników. Sygnałem jest
+  **złoto** (odrębnie od urodzeń, keyowanych na pszenicę). Reguła (minimalna,
+  deterministyczna): osada **zamożna** (`storage.gold > 0`) i **najedzona**
+  (`storage.wheat > 0`) i **poniżej sufitu** zyskuje **+1 populacji** na turę,
+  która trafia do puli **wolnej** (nie zmienia `occupied`). Imigracja **nie**
+  konsumuje złota (nadwyżka jest warunkiem, nie kosztem — jak przy urodzeniach)
+  i **nigdy** nie przekracza `capacity`. Imigracja to osobne przejście
+  `tick_immigration()` w fazie **wzrostu**, stosowane **po** `tick_growth()`
+  (urodzenia), na stanie po `tick_economy`. **NADAL OTWARTE:** tempo urodzeń
+  i imigracji > 1/turę przy dużej nadwyżce (skalowanie z zamożnością).
 - ~~**Ekonomia:** produkcja pszenicy/złota per budynek, konsumpcja, bilans.~~
   **ROZSTRZYGNIĘTE (E2.3, minimalny model):** każdy **aktywny** (obsadzony) budynek
   produkuje swój stały `output: Resources` na turę (miesiąc); budynek zamknięty nie
