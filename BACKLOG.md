@@ -21,11 +21,11 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     dwa RNG z tym samym seedem dają identyczne wyniki, z różnym — różne.
 - [x] **C1.2** `Resources` (pszenica, złoto) — dodawanie, odejmowanie, walidacja.
   - AC: nie da się zejść poniżej zera bez jawnej zgody; arytmetyka pokryta testami.
-- [~] **C1.3** Współrzędne heksów (`tbb/hex.py`, axial/cube).
+- [x] **C1.3** Współrzędne heksów (`tbb/hex.py`, axial/cube).
   - AC: dystans heksowy, sąsiedzi, konwersje axial↔cube; testy na znanych przypadkach.
 
 ## Kamień milowy 2 — osada i ekonomia
-- [ ] **E2.1** `Settlement` z pulą populacji (wolna vs zajęta).
+- [~] **E2.1** `Settlement` z pulą populacji (wolna vs zajęta).
   - AC: rekrutacja/obsada zajmuje populację; brak wolnej populacji blokuje akcję.
 - [ ] **E2.2** Budynki: uruchomienie wymaga wolnej populacji; zamknięcie ją zwalnia.
   - AC: za mała populacja → nie można uruchomić kowala; zamknięcie oddaje 1 pop.
