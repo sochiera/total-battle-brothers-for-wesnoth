@@ -4,9 +4,10 @@ Ten pakiet zawiera czystą, testowalną logikę gry (strategia + bitwa).
 Nie importuj tu bibliotek prezentacji/UI — patrz docs/ARCHITECTURE.md.
 """
 
+from tbb.hex import Hex
 from tbb.rng import Rng
 from tbb.resources import Resources
 
 __version__ = "0.0.1"
 
-__all__ = ["Resources", "Rng", "__version__"]
+__all__ = ["Hex", "Resources", "Rng", "__version__"]
