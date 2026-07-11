@@ -101,6 +101,9 @@ Uruchamiaj z katalogu `game/`.
 - **Rdzeń czysty:** `tbb` nie importuje bibliotek prezentacji/IO w ścieżkach
   logiki. Efekty uboczne (print/plik/sieć) tylko w warstwach zewnętrznych.
 - **Typy:** type hints w publicznym API; preferuj `@dataclass` dla encji stanu.
+- **Atak dystansowy:** `Unit.ranged_range` ma wartość `0` (brak profilu) albo
+  co najmniej `2`; `HexBattle.ranged_attack()` rozstrzyga strzał w tym zasięgu,
+  używając wspólnego wzoru trafienia i jednego rzutu wstrzykniętego `Rng`.
 - **Małe przejścia stanu:** funkcje przekształcające stan zamiast wielkich metod
   z ukrytymi efektami.
 - **Nazwy:** moduł ↔ test 1:1 (patrz wyżej).

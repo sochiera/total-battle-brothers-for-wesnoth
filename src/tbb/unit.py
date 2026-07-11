@@ -10,11 +10,14 @@ class Unit:
     training: int = 0
     equipment: int = 0
     experience: int = 0
+    ranged_range: int = 0
 
     def __post_init__(self) -> None:
         """Reject pillar values below zero."""
         if self.training < 0 or self.equipment < 0 or self.experience < 0:
             raise ValueError("unit quality pillars cannot be negative")
+        if self.ranged_range < 0 or self.ranged_range == 1:
+            raise ValueError("ranged range must be zero or at least two")
 
     @property
     def hp(self) -> int:

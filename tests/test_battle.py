@@ -304,3 +304,112 @@ def test_melee_attack_uses_exactly_one_rng_roll():
     battle.melee_attack(attacker, target, morale=0, rng=rng)
 
     assert rng.calls == 1
+
+
+def _ranged_battle(ranged_range=3, battlefield=None):
+    attacker, target = Hex(0, 0), Hex(ranged_range, 0)
+    battle = HexBattle(battlefield or Battlefield()).deploy(
+        Unit(equipment=3, ranged_range=ranged_range), attacker, BattleSide.ATTACKER
+    )
+    return battle.deploy(Unit(), target, BattleSide.DEFENDER), attacker, target
+
+
+@pytest.mark.parametrize("distance", [2, 4])
+def test_ranged_attack_accepts_minimum_and_maximum_range(distance):
+    battle, attacker, target = _ranged_battle(ranged_range=distance)
+
+    result = battle.ranged_attack(attacker, target, morale=50, rng=Rng(1))
+
+    assert result.current_hp_at(target) == battle.current_hp_at(target) - 3
+
+
+@pytest.mark.parametrize("distance", [1, 4])
+def test_ranged_attack_rejects_too_close_and_too_far_targets(distance):
+    attacker, target = Hex(0, 0), Hex(distance, 0)
+    battle = HexBattle(Battlefield()).deploy(
+        Unit(ranged_range=3), attacker, BattleSide.ATTACKER
+    ).deploy(Unit(), target, BattleSide.DEFENDER)
+
+    with pytest.raises(ValueError):
+        battle.ranged_attack(attacker, target, morale=0, rng=Rng(1))
+
+
+def test_ranged_attack_rejects_unit_without_ranged_profile():
+    attacker, target = Hex(0, 0), Hex(2, 0)
+    battle = HexBattle(Battlefield()).deploy(Unit(), attacker, BattleSide.ATTACKER)
+    battle = battle.deploy(Unit(), target, BattleSide.DEFENDER)
+
+    with pytest.raises(ValueError):
+        battle.ranged_attack(attacker, target, morale=0, rng=Rng(1))
+
+
+@pytest.mark.parametrize(
+    ("attacker", "target"),
+    [(Hex(5, 0), Hex(2, 0)), (Hex(0, 0), Hex(5, 0))],
+)
+def test_ranged_attack_rejects_empty_source_or_target(attacker, target):
+    battle, _, _ = _ranged_battle(ranged_range=2)
+
+    with pytest.raises(ValueError):
+        battle.ranged_attack(attacker, target, morale=0, rng=Rng(1))
+
+
+def test_ranged_attack_rejects_same_side():
+    attacker, target = Hex(0, 0), Hex(2, 0)
+    battle = HexBattle(Battlefield()).deploy(
+        Unit(ranged_range=2), attacker, BattleSide.ATTACKER
+    ).deploy(Unit(), target, BattleSide.ATTACKER)
+
+    with pytest.raises(ValueError):
+        battle.ranged_attack(attacker, target, morale=0, rng=Rng(1))
+
+
+def test_ranged_hit_changes_only_target_hp_in_new_state_without_counterattack():
+    battle, attacker, target = _ranged_battle()
+    attacker_hp = battle.current_hp_at(attacker)
+
+    result = battle.ranged_attack(attacker, target, morale=50, rng=Rng(1))
+
+    assert result is not battle
+    assert result.current_hp_at(attacker) == attacker_hp
+    assert battle.current_hp_at(target) == Unit().hp
+    assert result.unit_at(attacker) == battle.unit_at(attacker)
+    assert result.sides == battle.sides
+
+
+def test_ranged_miss_preserves_target_hp_and_uses_exactly_one_roll():
+    class CountingRng(Rng):
+        def __init__(self):
+            self.calls = 0
+
+        def chance(self, p):
+            self.calls += 1
+            return False
+
+    battle, attacker, target = _ranged_battle()
+    rng = CountingRng()
+
+    result = battle.ranged_attack(attacker, target, morale=0, rng=rng)
+
+    assert rng.calls == 1
+    assert result.current_hp_at(target) == battle.current_hp_at(target)
+
+
+def test_ranged_attack_applies_terrain_and_morale_to_hit_chance():
+    class RecordingRng(Rng):
+        def __init__(self):
+            self.probabilities = []
+
+        def chance(self, p):
+            self.probabilities.append(p)
+            return False
+
+    attacker, target = Hex(0, 0), Hex(2, 0)
+    battle, _, _ = _ranged_battle(
+        ranged_range=2, battlefield=Battlefield({attacker: FOREST, target: FOREST})
+    )
+    rng = RecordingRng()
+
+    battle.ranged_attack(attacker, target, morale=7, rng=rng)
+
+    assert rng.probabilities == [0.54]

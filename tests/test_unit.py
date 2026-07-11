@@ -55,3 +55,22 @@ def test_unit_is_immutable():
 
     with pytest.raises(FrozenInstanceError):
         unit.training = 1
+
+
+def test_ranged_range_defaults_to_zero_and_accepts_two_or_more():
+    assert Unit().ranged_range == 0
+    assert Unit(ranged_range=2).ranged_range == 2
+    assert Unit(ranged_range=5).ranged_range == 5
+
+
+@pytest.mark.parametrize("ranged_range", [-1, 1])
+def test_invalid_ranged_range_is_rejected(ranged_range):
+    with pytest.raises(ValueError):
+        Unit(ranged_range=ranged_range)
+
+
+def test_ranged_range_is_immutable():
+    unit = Unit(ranged_range=2)
+
+    with pytest.raises(FrozenInstanceError):
+        unit.ranged_range = 3

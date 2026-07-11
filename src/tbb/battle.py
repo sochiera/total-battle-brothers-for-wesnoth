@@ -112,6 +112,33 @@ class HexBattle:
             return self.damage(target, attacking_unit.damage)
         return self
 
+    def ranged_attack(
+        self, attacker: Hex, target: Hex, morale: int, rng: Rng
+    ) -> "HexBattle":
+        """Resolve one ranged attack and return the resulting immutable state."""
+        attacking_unit = self.unit_at(attacker)
+        target_unit = self.unit_at(target)
+        if attacking_unit is None:
+            raise ValueError("cannot attack from an empty hex")
+        if target_unit is None:
+            raise ValueError("cannot attack an empty hex")
+        distance = attacker.distance(target)
+        if not 2 <= distance <= attacking_unit.ranged_range:
+            raise ValueError("target is outside ranged attack range")
+        if self.side_at(attacker) is self.side_at(target):
+            raise ValueError("cannot attack a unit on the same side")
+
+        hit_chance = melee_hit_chance(
+            attacking_unit,
+            target_unit,
+            self.battlefield.terrain_at(attacker),
+            self.battlefield.terrain_at(target),
+            morale,
+        )
+        if rng.chance(hit_chance / 100):
+            return self.damage(target, attacking_unit.damage)
+        return self
+
     def reachable(self, source: Hex, move_points: int) -> set[Hex]:
         """Return unoccupied hexes reachable within ``move_points``."""
         best_cost = {source: 0}
