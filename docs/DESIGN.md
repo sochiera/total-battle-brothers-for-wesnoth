@@ -58,6 +58,12 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   Plains. To rozstawienie jest placeholderem integracyjnym. Kontakt z osadą,
   własność księstw, teren zależny od regionu oraz zapis wyniku z powrotem
   na mapę pozostają poza M5.3a.
+- **PLAN (M5.3b, rozbite na małe przyrosty):** najpierw M5.3b1 połączy istniejące
+  modele bez wprowadzania jeszcze własności: jawne wywołanie kontaktu party
+  z garnizonem osady oznacza starcie, party jest atakującym, a jednostki garnizonu
+  obrońcami. M5.3b2 doda przynależność strategiczną i dopiero wtedy odrzuci kontakt
+  z własną osadą/party. Rozbicie oddziela integrację rozstawienia od modelu księstwa;
+  do czasu M5.3b2 wrogość jest założeniem jawnego polecenia rozpoczęcia bitwy.
 - **Czas:** 1 tura = **1 miesiąc**. Rok = **13 miesięcy po 4 tygodnie**
   (52 tygodnie). Trening i wyposażenie mierzone są w miesiącach.
 - **Bohater:** dokładnie **jeden** na księstwo — król i dowódca w jednym. Armia
