@@ -56,6 +56,14 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
 - **Jednostki dystansowe** obecne (model jak w Wesnoth / Battle Brothers).
 - **Morale** wpływa **wyłącznie na celność** (bonus/kara do trafienia). Morale
   **nie** powoduje ucieczek.
+- **ROZSTRZYGNIĘTE (B4.3a, szansa trafienia w zwarciu):** szansa jest liczona jako
+  całkowity procent
+  `clamp(50 + accuracy_atakującego + accuracy_mod_terenu_atakującego + morale
+  - defense_obrońcy - defense_mod_terenu_obrońcy, 5, 95)`. Morale jest podpisanym
+  modyfikatorem celności (wartość dodatnia pomaga, ujemna przeszkadza). Modyfikator
+  `accuracy_mod` dotyczy jednostki stojącej na danym terenie, a `defense_mod` —
+  obrońcy stojącego na danym terenie. Na tym etapie wzór jest czystym wyliczeniem
+  bez RNG; rzut, wymóg sąsiedztwa, obrażenia i bieżące HP dochodzą w B4.3b.
 - **Śmierć permanentna.** Alternatywnie zamiast zginąć jednostka może zostać
   **ogłuszona** i odnieść **ranę** — trwałą lub czasową.
 
@@ -185,7 +193,9 @@ ich dotykają, i notować wynik tutaj:
   źródło** (tylko walka) — jego krzywa dochodzi przy warstwie bitwy (kamień 4).
   **NADAL OTWARTE:** różne parametry stromości per filar (trening vs uzbrojenie)
   oraz wpływ budynków/mnożników — strojenie przy balansie.
-- **Wzór na trafienie:** bazowa celność + teren + morale → prawdopodobieństwo.
+- ~~**Wzór na trafienie:** bazowa celność + teren + morale → prawdopodobieństwo.~~
+  **ROZSTRZYGNIĘTE (B4.3a):** całkowity procent z bazą 50 i limitem 5–95; pełny
+  wzór oraz semantyka modyfikatorów terenu są w §3.2.
 - **Model ran:** ile rodzajów, jak wpływają na statystyki, czasowe vs trwałe.
 - **Wzrost populacji:** ~~urodzenia~~ **CZĘŚCIOWO ROZSTRZYGNIĘTE (E2.4a, urodzenia):**
   każda osada ma **sufit** `capacity` (max populacji; `None` = brak limitu). Faza

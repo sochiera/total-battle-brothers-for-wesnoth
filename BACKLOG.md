@@ -56,14 +56,19 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 - [x] **B4.2a** Rozstawienie jednostek na planszy (deployment, bez ruchu).
   - AC: `HexBattle` trzyma teren + pozycje jednostek (`Hex→Unit`); rozstawienie na
     zajęty heks odrzucone; niemutowalne (deploy zwraca nowy stan); DESIGN §7.
-- [~] **B4.2b** Ruch jednostki po punktach ruchu z kosztem terenu.
+- [x] **B4.2b** Ruch jednostki po punktach ruchu z kosztem terenu.
   - AC: legalne ruchy respektują koszt (`move_cost` terenu) i zasięg; wejście na
     zajęty heks odrzucone; nielegalne ruchy odrzucone; stan wejściowy pozostaje
     niezmieniony; `reachable()` zwraca wolne heksy w budżecie; determinizm.
     Ruch po heksach źródło→cel; koszt = najtańsza ścieżka (`move_cost` wchodzonych
     heksów); inne jednostki blokują; budżet `move_points` jako parametr (DESIGN §7).
-- [ ] **B4.3** Walka wręcz: trafienie (celność+teren+morale) i obrażenia.
-  - AC: rozstrzyganie deterministyczne przy ustalonym seedzie; morale zmienia celność.
+- [~] **B4.3a** Walka wręcz: czyste wyliczenie szansy trafienia.
+  - AC: wzór z DESIGN §3.2 uwzględnia celność atakującego, obronę celu, teren obu
+    jednostek i morale; wynik jest całkowitym procentem ograniczonym do 5–95;
+    funkcja nie używa RNG ani nie mutuje stanu.
+- [ ] **B4.3b** Walka wręcz: sąsiedztwo, rzut na trafienie i obrażenia/HP.
+  - AC: atak tylko na sąsiedni zajęty heks wroga; ustalony seed daje ten sam wynik;
+    pudło nie zmienia HP, trafienie odejmuje obrażenia; stan wejściowy jest niemutowalny.
 - [ ] **B4.4** Atak dystansowy (model Wesnoth/BB).
   - AC: zasięg, brak kontrataku poza zasięgiem, trafienie wg wzoru.
 - [ ] **B4.5** Śmierć permanentna oraz ogłuszenie + rana (czasowa/trwała).
