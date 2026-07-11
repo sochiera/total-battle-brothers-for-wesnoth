@@ -6,7 +6,7 @@ Nie importuj tu bibliotek prezentacji/UI — patrz docs/ARCHITECTURE.md.
 
 from tbb.building import Building, FARM, MARKET, SMITH
 from tbb.battlefield import Battlefield
-from tbb.battle import BattleSide, HexBattle
+from tbb.battle import BattleResult, BattleSide, HexBattle
 from tbb.combat import melee_hit_chance
 from tbb.hex import Hex
 from tbb.progression import investment_for_level, pillar_level
@@ -22,6 +22,7 @@ __version__ = "0.0.1"
 __all__ = [
     "Building",
     "Battlefield",
+    "BattleResult",
     "BattleSide",
     "BRUISE",
     "FARM",

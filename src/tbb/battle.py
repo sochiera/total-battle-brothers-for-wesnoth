@@ -21,6 +21,14 @@ class BattleSide(Enum):
     DEFENDER = "defender"
 
 
+class BattleResult(Enum):
+    """A resolved battle's winning side, or a draw."""
+
+    ATTACKER_WIN = "attacker_win"
+    DEFENDER_WIN = "defender_win"
+    DRAW = "draw"
+
+
 @dataclass(frozen=True)
 class HexBattle:
     """Combine battlefield terrain with units deployed on hexes."""
@@ -62,6 +70,21 @@ class HexBattle:
         if not self.is_occupied(position):
             raise ValueError("cannot get side from an empty hex")
         return self.sides[position]
+
+    def result(self) -> BattleResult | None:
+        """Return the resolved result, or ``None`` while both sides are active."""
+        active_sides = {
+            self.sides[position]
+            for position, unit in self.units.items()
+            if self._current_hp[position] > 0 and not unit.stunned
+        }
+        if active_sides == {BattleSide.ATTACKER, BattleSide.DEFENDER}:
+            return None
+        if active_sides == {BattleSide.ATTACKER}:
+            return BattleResult.ATTACKER_WIN
+        if active_sides == {BattleSide.DEFENDER}:
+            return BattleResult.DEFENDER_WIN
+        return BattleResult.DRAW
 
     def deploy(self, unit: Unit, position: Hex, side: BattleSide) -> "HexBattle":
         """Return a new state with ``unit`` deployed at ``position``."""

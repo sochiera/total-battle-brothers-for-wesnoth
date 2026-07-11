@@ -2,7 +2,7 @@
 
 import pytest
 
-from tbb.battle import BattleSide, HexBattle
+from tbb.battle import BattleResult, BattleSide, HexBattle
 from tbb.battlefield import Battlefield
 from tbb.hex import Hex
 from tbb.terrain import FOREST
@@ -557,3 +557,69 @@ def test_stunned_unit_cannot_attack_before_rng(attack_kind):
         getattr(battle, f"{attack_kind}_attack")(attacker, target, morale=0, rng=rng)
 
     assert rng.probabilities == []
+
+
+def _battle_with_both_sides():
+    attacker, defender = Hex(0, 0), Hex(1, 0)
+    battle = HexBattle(Battlefield()).deploy(
+        Unit(), attacker, BattleSide.ATTACKER
+    )
+    return (
+        battle.deploy(Unit(), defender, BattleSide.DEFENDER),
+        attacker,
+        defender,
+    )
+
+
+def test_battle_with_active_units_on_both_sides_has_no_result():
+    battle, _, _ = _battle_with_both_sides()
+
+    assert battle.result() is None
+
+
+@pytest.mark.parametrize("defeat", ["death", "stun"])
+def test_defeating_the_last_active_unit_makes_the_other_side_win(defeat):
+    battle, _, defender = _battle_with_both_sides()
+    defeated = battle.damage(defender, battle.current_hp_at(defender))
+    if defeat == "death":
+        defeated = defeated.resolve_defeat(defender, ControlledRng(True))
+
+    assert defeated.result() is BattleResult.ATTACKER_WIN
+
+
+def test_stunned_unit_remaining_on_the_board_does_not_keep_battle_running():
+    attacker, defender = Hex(0, 0), Hex(1, 0)
+    battle = HexBattle(Battlefield()).deploy(
+        Unit(stunned=True), attacker, BattleSide.ATTACKER
+    ).deploy(Unit(), defender, BattleSide.DEFENDER)
+
+    assert battle.is_occupied(attacker)
+    assert battle.current_hp_at(attacker) > 0
+    assert battle.result() is BattleResult.DEFENDER_WIN
+
+
+def test_no_active_units_on_either_side_is_a_draw():
+    battle, attacker, defender = _battle_with_both_sides()
+    battle = battle.damage(attacker, battle.current_hp_at(attacker))
+    battle = battle.damage(defender, battle.current_hp_at(defender))
+
+    assert battle.result() is BattleResult.DRAW
+
+
+def test_reading_result_is_repeatable_and_does_not_mutate_battle_state():
+    battle, attacker, defender = _battle_with_both_sides()
+    units_before = dict(battle.units)
+    hp_before = {
+        attacker: battle.current_hp_at(attacker),
+        defender: battle.current_hp_at(defender),
+    }
+    sides_before = dict(battle.sides)
+
+    assert battle.result() is None
+    assert battle.result() is None
+    assert dict(battle.units) == units_before
+    assert {
+        attacker: battle.current_hp_at(attacker),
+        defender: battle.current_hp_at(defender),
+    } == hp_before
+    assert dict(battle.sides) == sides_before

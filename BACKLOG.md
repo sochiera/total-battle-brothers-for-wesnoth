@@ -96,7 +96,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     martwą jednostkę albo pozostawia ją ogłuszoną z `BRUISE`; rozstrzygać można
     tylko nierozstrzygniętą jednostkę z 0 HP; ogłuszona jednostka nie może działać;
     stan wejściowy pozostaje niemutowalny (DESIGN §3.2 i §7).
-- [~] **B4.6a** Warunek końca bitwy i zwycięska strona.
+- [x] **B4.6a** Warunek końca bitwy i zwycięska strona.
   - AC: aktywna jednostka ma HP > 0 i nie jest ogłuszona; przy aktywnych obu
     stron bitwa trwa, przy aktywnej jednej stronie wygrywa ta strona, a przy braku
     aktywnych jednostek wynik jest remisem; zapytanie nie mutuje stanu.
