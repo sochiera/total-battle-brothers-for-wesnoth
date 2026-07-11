@@ -6,6 +6,7 @@ Nie importuj tu bibliotek prezentacji/UI — patrz docs/ARCHITECTURE.md.
 
 from tbb.building import Building, FARM, MARKET, SMITH
 from tbb.battlefield import Battlefield
+from tbb.combat import melee_hit_chance
 from tbb.hex import Hex
 from tbb.progression import investment_for_level, pillar_level
 from tbb.rng import Rng
@@ -24,6 +25,7 @@ __all__ = [
     "Hex",
     "HILLS",
     "investment_for_level",
+    "melee_hit_chance",
     "Resources",
     "Rng",
     "Settlement",

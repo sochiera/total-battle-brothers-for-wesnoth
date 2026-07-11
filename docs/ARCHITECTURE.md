@@ -44,6 +44,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │       ├── battle.py     # niemutowalny stan bitwy: teren + rozstawienie jednostek
 │       ├── battlefield.py # rzadka plansza heksowa Hex→Terrain z domyślnym terenem
 │       ├── building.py   # niemutowalne typy budynków i katalog startowy
+│       ├── combat.py     # czyste, deterministyczne wyliczenia reguł walki
 │       ├── hex.py        # niemutowalne współrzędne heksów axial/cube
 │       ├── terrain.py    # niemutowalne typy terenu i katalog startowy
 │       ├── progression.py # krzywa skumulowany nakład → poziom filaru
@@ -56,6 +57,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │   ├── test_rng.py
 │   ├── test_battlefield.py
 │   ├── test_building.py
+│   ├── test_combat.py
 │   ├── test_hex.py
 │   ├── test_terrain.py
 │   ├── test_progression.py
