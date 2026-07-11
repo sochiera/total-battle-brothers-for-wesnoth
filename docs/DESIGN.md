@@ -82,7 +82,10 @@ Najmniejsza grywalna pętla, single-player vs **jedno** księstwo AI:
 
 ## 7. Model danych (szkic — do rozwijania)
 Wstępne encje rdzenia (nazwy robocze, doprecyzowywane wraz z implementacją):
-- `Resources` — { wheat, gold }.
+- `Resources` — { wheat, gold }. Wartości całkowite (jednostki surowca), nigdy
+  ujemne. Niemutowalna: operacje (`add`/`subtract`) zwracają **nowy** `Resources`
+  (§8, czyste przejścia stanu). Odjęcie ponad stan jest błędem, chyba że jawnie
+  dopuszczone (wtedy podłoga na zero).
 - `Unit` — filary { training, equipment, experience } → statystyki pochodne;
   stan { hp, wounds[], stunned }.
 - `Settlement` — populacja (pula + zajęte), budynki, garnizon, magazyn surowców.
