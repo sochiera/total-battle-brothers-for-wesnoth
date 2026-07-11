@@ -6,6 +6,7 @@ import pytest
 
 from tbb.duchy import Duchy
 from tbb.party import Party
+from tbb.settlement import Settlement
 from tbb.unit import Unit
 
 
@@ -97,3 +98,64 @@ def test_duchy_identifier_is_party_owner_identifier():
     party = Party(duchy.hero, owner_id=duchy.duchy_id)
 
     assert party.owner_id == duchy.duchy_id
+
+
+def test_duchy_settlements_and_parties_default_to_empty_tuples():
+    duchy = Duchy("north", Unit())
+
+    assert duchy.settlements == ()
+    assert duchy.parties == ()
+
+
+def test_duchy_preserves_owned_settlements_and_parties_as_tuples():
+    settlement = Settlement("Keep", population=10, owner_id="north")
+    party = Party(Unit(), owner_id="north")
+
+    duchy = Duchy("north", Unit(), settlements=[settlement], parties=[party])
+
+    assert duchy.settlements == (settlement,)
+    assert duchy.settlements[0] is settlement
+    assert duchy.parties == (party,)
+    assert duchy.parties[0] is party
+    assert isinstance(duchy.settlements, tuple)
+    assert isinstance(duchy.parties, tuple)
+
+
+def test_duchy_copies_settlement_and_party_collections():
+    settlement = Settlement("Keep", population=10, owner_id="north")
+    party = Party(Unit(), owner_id="north")
+    settlements = [settlement]
+    parties = [party]
+    duchy = Duchy("north", Unit(), settlements=settlements, parties=parties)
+
+    settlements.append(Settlement("Town", population=5, owner_id="north"))
+    parties.append(Party(Unit(), owner_id="north"))
+
+    assert duchy.settlements == (settlement,)
+    assert duchy.parties == (party,)
+
+
+def test_duchy_rejects_settlement_without_owner():
+    with pytest.raises(ValueError):
+        Duchy("north", Unit(), settlements=[Settlement("Keep", population=10)])
+
+
+def test_duchy_rejects_party_owned_by_another_duchy():
+    with pytest.raises(ValueError):
+        Duchy("north", Unit(), parties=[Party(Unit(), owner_id="south")])
+
+
+@pytest.mark.parametrize(
+    ("collection_name", "member"),
+    [("settlements", object()), ("parties", object())],
+)
+def test_duchy_rejects_invalid_collection_member_type(collection_name, member):
+    with pytest.raises(TypeError):
+        Duchy("north", Unit(), **{collection_name: [member]})
+
+
+def test_duchy_settlements_are_immutable():
+    duchy = Duchy("north", Unit())
+
+    with pytest.raises((FrozenInstanceError, AttributeError)):
+        duchy.settlements = ()

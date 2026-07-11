@@ -1,18 +1,40 @@
 """Minimal immutable duchy state."""
 
 from dataclasses import dataclass
+from typing import Iterable
 
+from tbb.party import Party
+from tbb.settlement import Settlement
 from tbb.unit import Unit
 
 
 @dataclass(frozen=True)
 class Duchy:
-    """Identify a duchy and hold its hero, morale, and optional heir."""
+    """Identify a duchy and hold its people and owned strategic entities."""
 
     duchy_id: str
     hero: Unit
     morale: int = 0
     heir: Unit | None = None
+    settlements: tuple[Settlement, ...] = ()
+    parties: tuple[Party, ...] = ()
+
+    def __init__(
+        self,
+        duchy_id: str,
+        hero: Unit,
+        morale: int = 0,
+        heir: Unit | None = None,
+        settlements: Iterable[Settlement] = (),
+        parties: Iterable[Party] = (),
+    ) -> None:
+        object.__setattr__(self, "duchy_id", duchy_id)
+        object.__setattr__(self, "hero", hero)
+        object.__setattr__(self, "morale", morale)
+        object.__setattr__(self, "heir", heir)
+        object.__setattr__(self, "settlements", tuple(settlements))
+        object.__setattr__(self, "parties", tuple(parties))
+        self.__post_init__()
 
     def __post_init__(self) -> None:
         if not isinstance(self.duchy_id, str):
@@ -27,3 +49,11 @@ class Duchy:
             raise TypeError("duchy heir must be a Unit or None")
         if self.heir is self.hero:
             raise ValueError("duchy heir cannot be its hero")
+        if any(not isinstance(item, Settlement) for item in self.settlements):
+            raise TypeError("duchy settlements must be Settlements")
+        if any(not isinstance(item, Party) for item in self.parties):
+            raise TypeError("duchy parties must be Parties")
+        if any(item.owner_id != self.duchy_id for item in self.settlements):
+            raise ValueError("duchy settlements must be owned by the duchy")
+        if any(item.owner_id != self.duchy_id for item in self.parties):
+            raise ValueError("duchy parties must be owned by the duchy")
