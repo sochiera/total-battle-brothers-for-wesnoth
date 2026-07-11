@@ -15,6 +15,7 @@ from tbb.resources import Resources
 from tbb.settlement import Settlement
 from tbb.terrain import FOREST, HILLS, PLAINS, Terrain
 from tbb.unit import Unit
+from tbb.wound import BRUISE, MAIMED, Wound
 
 __version__ = "0.0.1"
 
@@ -22,6 +23,7 @@ __all__ = [
     "Building",
     "Battlefield",
     "BattleSide",
+    "BRUISE",
     "FARM",
     "FOREST",
     "Hex",
@@ -34,9 +36,11 @@ __all__ = [
     "Settlement",
     "Unit",
     "MARKET",
+    "MAIMED",
     "pillar_level",
     "PLAINS",
     "SMITH",
     "Terrain",
+    "Wound",
     "__version__",
 ]

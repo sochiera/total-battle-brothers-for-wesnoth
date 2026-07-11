@@ -2,6 +2,8 @@
 
 from dataclasses import dataclass
 
+from tbb.wound import Wound
+
 
 @dataclass(frozen=True)
 class Unit:
@@ -11,6 +13,7 @@ class Unit:
     equipment: int = 0
     experience: int = 0
     ranged_range: int = 0
+    wounds: tuple[Wound, ...] = ()
 
     def __post_init__(self) -> None:
         """Reject pillar values below zero."""
@@ -18,6 +21,7 @@ class Unit:
             raise ValueError("unit quality pillars cannot be negative")
         if self.ranged_range < 0 or self.ranged_range == 1:
             raise ValueError("ranged range must be zero or at least two")
+        object.__setattr__(self, "wounds", tuple(self.wounds))
 
     @property
     def hp(self) -> int:
@@ -25,7 +29,9 @@ class Unit:
 
     @property
     def accuracy(self) -> int:
-        return self.training + self.experience
+        return max(0, self.training + self.experience + sum(
+            wound.accuracy_mod for wound in self.wounds
+        ))
 
     @property
     def damage(self) -> int:
@@ -33,4 +39,6 @@ class Unit:
 
     @property
     def defense(self) -> int:
-        return self.equipment + self.experience
+        return max(0, self.equipment + self.experience + sum(
+            wound.defense_mod for wound in self.wounds
+        ))

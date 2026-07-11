@@ -51,6 +51,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │       ├── resources.py  # niemutowalne wartości pszenicy i złota
 │       ├── settlement.py # niemutowalna osada z pulą populacji
 │       ├── unit.py       # niemutowalna jednostka i pochodne statystyki bojowe
+│       ├── wound.py      # niemutowalne rany czasowe/trwałe i katalog startowy
 │       └── rng.py        # seedowalny RNG izolowany od stanu globalnego
 ├── tests/                # testy pytest (mirror struktury src/tbb)
 │   ├── test_battle.py
@@ -64,6 +65,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │   ├── test_resources.py
 │   ├── test_settlement.py
 │   ├── test_unit.py
+│   ├── test_wound.py
 │   └── test_smoke.py
 ├── scripts/
 │   ├── test.sh           # uruchamia pełny pakiet testów
@@ -104,6 +106,9 @@ Uruchamiaj z katalogu `game/`.
 - **Atak dystansowy:** `Unit.ranged_range` ma wartość `0` (brak profilu) albo
   co najmniej `2`; `HexBattle.ranged_attack()` rozstrzyga strzał w tym zasięgu,
   używając wspólnego wzoru trafienia i jednego rzutu wstrzykniętego `Rng`.
+- **Rany:** `Wound` jest niemutowalnym modyfikatorem celności i obrony;
+  `Unit.wounds` przechowuje niemutowalną krotkę ran, których kary sumują się
+  w efektywnych statystykach z podłogą na zero.
 - **Małe przejścia stanu:** funkcje przekształcające stan zamiast wielkich metod
   z ukrytymi efektami.
 - **Nazwy:** moduł ↔ test 1:1 (patrz wyżej).

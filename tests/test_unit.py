@@ -4,7 +4,7 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
-from tbb import Unit
+from tbb import BRUISE, MAIMED, Unit
 
 
 def test_unit_defaults_to_zero_pillars_and_base_stats():
@@ -74,3 +74,32 @@ def test_ranged_range_is_immutable():
 
     with pytest.raises(FrozenInstanceError):
         unit.ranged_range = 3
+
+
+def test_unit_without_wounds_keeps_existing_stats():
+    unit = Unit(training=2, equipment=3, experience=4)
+
+    assert unit.wounds == ()
+    assert (unit.hp, unit.accuracy, unit.damage, unit.defense) == (12, 6, 3, 7)
+
+
+def test_one_wound_reduces_only_accuracy_and_defense():
+    unit = Unit(training=3, equipment=4, experience=2, wounds=(BRUISE,))
+
+    assert (unit.hp, unit.accuracy, unit.damage, unit.defense) == (13, 4, 4, 5)
+
+
+def test_multiple_wounds_stack_with_accuracy_and_defense_floored_at_zero():
+    unit = Unit(training=1, equipment=1, wounds=(BRUISE, MAIMED))
+
+    assert (unit.hp, unit.accuracy, unit.damage, unit.defense) == (11, 0, 1, 0)
+
+
+def test_unit_copies_input_wounds_to_an_immutable_tuple():
+    wounds = [BRUISE]
+    unit = Unit(wounds=wounds)
+
+    wounds.append(MAIMED)
+
+    assert unit.wounds == (BRUISE,)
+    assert isinstance(unit.wounds, tuple)
