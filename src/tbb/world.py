@@ -95,6 +95,23 @@ class WorldMap:
             raise ValueError("region is outside the world map")
         return self.parties.get(region)
 
+    def tick_settlements(self) -> "WorldMap":
+        """Return a new world after all settlements complete a monthly tick."""
+        settlements = {
+            region: self.settlements[region]
+            .tick_economy()
+            .tick_growth()
+            .tick_immigration()
+            for region in self.regions
+            if region in self.settlements
+        }
+        return WorldMap(
+            self.regions,
+            self.connections,
+            settlements,
+            self.parties,
+        )
+
     def place_party(self, party: Party, region: Region) -> "WorldMap":
         """Return a new world with a party placed in an empty region."""
         if region not in self._neighbors:

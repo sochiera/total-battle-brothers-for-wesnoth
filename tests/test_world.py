@@ -4,7 +4,19 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
-from tbb import BattleSide, Hex, Party, PLAINS, Region, Settlement, Unit, WorldMap
+from tbb import (
+    BattleSide,
+    FARM,
+    Hex,
+    MARKET,
+    Party,
+    PLAINS,
+    Region,
+    Resources,
+    Settlement,
+    Unit,
+    WorldMap,
+)
 
 
 def test_neighbors_are_bidirectional_and_follow_region_order():
@@ -30,6 +42,113 @@ def test_settlement_lookup_returns_settlement_or_none():
 
     assert world.settlement_at(town_region) == town
     assert world.settlement_at(empty_region) is None
+
+
+def test_tick_settlements_applies_economy_births_then_immigration():
+    farms = Region("Farms")
+    market = Region("Market")
+    farming_town = Settlement(
+        "Oakrest",
+        population=2,
+        active_buildings=(FARM, MARKET),
+        storage=Resources(wheat=1, gold=0),
+        capacity=4,
+    )
+    market_town = Settlement(
+        "Goldport",
+        population=2,
+        active_buildings=(MARKET,),
+        storage=Resources(wheat=2, gold=0),
+        capacity=5,
+    )
+    world = WorldMap(
+        [farms, market],
+        settlements={farms: farming_town, market: market_town},
+    )
+
+    ticked = world.tick_settlements()
+
+    assert ticked.settlement_at(farms).storage == Resources(wheat=2, gold=2)
+    assert ticked.settlement_at(farms).population == 4
+    assert ticked.settlement_at(market).storage == Resources(wheat=0, gold=2)
+    assert ticked.settlement_at(market).population == 2
+
+
+def test_tick_settlements_chains_phase_results_in_required_order(monkeypatch):
+    vale = Region("Vale")
+    initial = Settlement("Initial", population=1)
+    after_economy = Settlement("After economy", population=2)
+    after_growth = Settlement("After growth", population=3)
+    after_immigration = Settlement("After immigration", population=4)
+    calls = []
+
+    def tick_economy(settlement):
+        calls.append(("economy", settlement))
+        return after_economy
+
+    def tick_growth(settlement):
+        calls.append(("growth", settlement))
+        return after_growth
+
+    def tick_immigration(settlement):
+        calls.append(("immigration", settlement))
+        return after_immigration
+
+    monkeypatch.setattr(Settlement, "tick_economy", tick_economy)
+    monkeypatch.setattr(Settlement, "tick_growth", tick_growth)
+    monkeypatch.setattr(Settlement, "tick_immigration", tick_immigration)
+    world = WorldMap([vale], settlements={vale: initial})
+
+    ticked = world.tick_settlements()
+
+    assert [phase for phase, _ in calls] == [
+        "economy",
+        "growth",
+        "immigration",
+    ]
+    assert calls[0][1] is initial
+    assert calls[1][1] is after_economy
+    assert calls[2][1] is after_growth
+    assert ticked.settlement_at(vale) is after_immigration
+
+
+def test_tick_settlements_preserves_graph_empty_region_and_party_positions():
+    town = Region("Town")
+    empty = Region("Wilds")
+    party = Party(Unit(), owner_id="north")
+    world = WorldMap(
+        [town, empty],
+        [(town, empty)],
+        settlements={town: Settlement("Oakrest", population=1)},
+        parties={empty: party},
+    )
+
+    ticked = world.tick_settlements()
+
+    assert ticked.regions == world.regions
+    assert ticked.connections == world.connections
+    assert ticked.neighbors(town) == (empty,)
+    assert ticked.settlement_at(empty) is None
+    assert ticked.party_at(empty) is party
+
+
+def test_tick_settlements_does_not_mutate_input_and_returns_immutable_mapping():
+    vale = Region("Vale")
+    original_settlement = Settlement(
+        "Oakrest", population=1, storage=Resources(wheat=2, gold=1)
+    )
+    world = WorldMap([vale], settlements={vale: original_settlement})
+    settlements_before = dict(world.settlements)
+
+    ticked = world.tick_settlements()
+
+    assert dict(world.settlements) == settlements_before
+    assert world.settlement_at(vale) is original_settlement
+    assert original_settlement.population == 1
+    assert original_settlement.storage == Resources(wheat=2, gold=1)
+    assert ticked.settlement_at(vale) is not original_settlement
+    with pytest.raises(TypeError):
+        ticked.settlements[vale] = original_settlement
 
 
 @pytest.mark.parametrize(

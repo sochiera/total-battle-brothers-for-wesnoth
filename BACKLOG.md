@@ -145,7 +145,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
   - AC: niemutowalny kalendarz startuje w roku 1, miesiącu 1; przejście tury
     zwiększa miesiąc o 1, po miesiącu 13 przechodzi do miesiąca 1 następnego roku;
     liczba upływających tygodni wynosi zawsze 4; stan wejściowy pozostaje bez zmian.
-- [~] **M5.4b** Miesięczne przejście osad: produkcja → urodzenia → imigracja.
+- [x] **M5.4b** Miesięczne przejście osad: produkcja → urodzenia → imigracja.
   - AC: wszystkie osady mapy przechodzą fazy w tej kolejności; wynik fazy jest
     wejściem następnej; mapa i osady wejściowe pozostają niezmienione.
 - [ ] **M5.4c** Szkielet strategicznej tury: osady → ruch → bitwy → nowy miesiąc.
