@@ -76,6 +76,11 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   rozstawienia i niemutowalność z M5.3a–b1 pozostają bez zmian.
 - **Czas:** 1 tura = **1 miesiąc**. Rok = **13 miesięcy po 4 tygodnie**
   (52 tygodnie). Trening i wyposażenie mierzone są w miesiącach.
+  **ROZSTRZYGNIĘTE (M5.4a, minimalny kalendarz):** gra zaczyna się w roku 1,
+  miesiącu 1. Zakończenie tury przesuwa kalendarz dokładnie o jeden miesiąc
+  (4 tygodnie); po miesiącu 13 następuje miesiąc 1 kolejnego roku. Kalendarz
+  przechowuje wyłącznie rok i miesiąc — dni, nazwy miesięcy i akcje tygodniowe
+  pozostają poza MVP. Przejście czasu jest niemutowalne.
 - **Bohater:** dokładnie **jeden** na księstwo — król i dowódca w jednym. Armia
   rusza się **wyłącznie** razem z bohaterem. Bez bohatera jednostki stoją; mogą
   zostać w osadzie jako **garnizon** (obrona).

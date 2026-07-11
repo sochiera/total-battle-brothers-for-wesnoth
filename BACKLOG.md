@@ -141,8 +141,16 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     bitwy wymaga jawnego właściciela obu stron i różnych identyfikatorów;
     kontakt z własną osadą/party oraz brak właściciela nie tworzą bitwy, a kontakt
     z wrogim celem zachowuje reguły rozstawienia z M5.3a–b1 i niemutowalność.
-- [ ] **M5.4** Faza tury miesięcznej (produkcja → wzrost → ruch → bitwy), 13 mies./rok.
-  - AC: kolejność faz z DESIGN §10; kalendarz 13×4 tyg. liczony poprawnie.
+- [~] **M5.4a** Kalendarz strategiczny: 1 tura = 1 miesiąc, 13 miesięcy po 4 tygodnie.
+  - AC: niemutowalny kalendarz startuje w roku 1, miesiącu 1; przejście tury
+    zwiększa miesiąc o 1, po miesiącu 13 przechodzi do miesiąca 1 następnego roku;
+    liczba upływających tygodni wynosi zawsze 4; stan wejściowy pozostaje bez zmian.
+- [ ] **M5.4b** Miesięczne przejście osad: produkcja → urodzenia → imigracja.
+  - AC: wszystkie osady mapy przechodzą fazy w tej kolejności; wynik fazy jest
+    wejściem następnej; mapa i osady wejściowe pozostają niezmienione.
+- [ ] **M5.4c** Szkielet strategicznej tury: osady → ruch → bitwy → nowy miesiąc.
+  - AC: fazy są jawne i wymuszają kolejność z DESIGN §10; ruch i bitwy używają
+    istniejących przejść mapy, a kalendarz zmienia się dopiero po ich zakończeniu.
 
 ## Kamień milowy 6 — księstwa, następstwo, warunki gry
 - [ ] **D6.1** `Duchy`: bohater + dziedzic + osady + party + morale.
