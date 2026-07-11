@@ -31,6 +31,14 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   zadana przy tworzeniu mapy wyznacza deterministyczną kolejność zapytań o
   sąsiadów. Pozycje party, koszty ruchu i przejście ruchu dochodzą osobno w M5.1b
   i M5.2b, po utworzeniu modelu `Party` w M5.2a.
+- **ROZSTRZYGNIĘTE (M5.1b, minimalne pozycje party):** pozycją party jest region,
+  a `WorldMap` przechowuje niemutowalne odwzorowanie `Region → Party`. W regionie
+  może znajdować się najwyżej jedno party; osada nie zajmuje tego samego slotu,
+  więc party może wejść do regionu z osadą (kontakt zostanie rozstrzygnięty
+  w M5.3). `party_at(region)` jest podstawowym zapytaniem o pozycję/obsadę,
+  a `place_party()` to czyste przejście do nowej mapy, odrzucające region spoza
+  grafu i region zajęty. Ruch, punkty ruchu i rozstrzyganie próby wejścia do
+  regionu z wrogim party pozostają w M5.2b–M5.3.
 - **Bitwa** startuje przy kontakcie party z wrogą osadą lub wrogim party.
 - **Czas:** 1 tura = **1 miesiąc**. Rok = **13 miesięcy po 4 tygodnie**
   (52 tygodnie). Trening i wyposażenie mierzone są w miesiącach.
