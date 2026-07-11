@@ -15,6 +15,7 @@ from tbb.rng import Rng
 from tbb.resources import Resources
 from tbb.settlement import Settlement
 from tbb.terrain import FOREST, HILLS, PLAINS, Terrain
+from tbb.turn import Calendar
 from tbb.unit import Unit
 from tbb.wound import BRUISE, MAIMED, Wound
 from tbb.world import Region, WorldMap
@@ -29,6 +30,7 @@ __all__ = [
     "BattleSide",
     "BattleSideReport",
     "BRUISE",
+    "Calendar",
     "FARM",
     "FOREST",
     "Hex",
