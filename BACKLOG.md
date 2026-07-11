@@ -182,15 +182,23 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     `heir` wraca do `None`, a `morale` spada o stałą karę sukcesji (DESIGN §7);
     `duchy_id`, osady i party pozostają bez zmian; wywołanie bez dziedzica jest
     odrzucane (wariant bez dziedzica → D6.2b/D6.3); stan wejściowy niemutowalny.
-- [~] **D6.2b** Śmierć bohatera bez dziedzica → księstwo bez bohatera (sygnał).
+- [x] **D6.2b** Śmierć bohatera bez dziedzica → księstwo bez bohatera (sygnał).
   - AC: `hero` staje się `Unit | None`; księstwo bezhetmańskie (`hero=None`) to
     dozwolony stan przejściowy z jawnym sygnałem `has_hero`. `succeed()` bez
     dziedzica nie rzuca — zwraca nowe księstwo z `hero=None`, `heir=None`, karą
     `SUCCESSION_MORALE_PENALTY` na morale, zachowanym `duchy_id`/osadami/party;
     stan wejściowy niemutowalny. Konstruktor odrzuca dziedzica przy `hero=None`.
     Warunek przegranej (brak osad ORAZ bohatera) rozstrzyga D6.3.
-- [ ] **D6.3** Warunek przegranej/wygranej (brak osad ORAZ brak bohatera).
-  - AC: gra sygnalizuje koniec dokładnie w tym warunku, nie wcześniej.
+- [~] **D6.3a** Predykat porażki księstwa (`Duchy.is_defeated`: brak osad ORAZ brak bohatera).
+  - AC: `is_defeated` jest `True` dokładnie gdy księstwo nie ma bohatera
+    (`has_hero is False`) **i** nie ma żadnej osady (`settlements == ()`); we
+    wszystkich innych układach (jest bohater, jest osada, lub oba) jest `False`;
+    party nie wpływają na predykat (bez bohatera i tak nie walczą); zapytanie
+    nie mutuje stanu (DESIGN §3.1, §7).
+- [ ] **D6.3b** Rozstrzygnięcie wygranej/przegranej między księstwami (stan gry).
+  - AC: nad zbiorem księstw gra sygnalizuje koniec dokładnie gdy pokonane są
+    wszystkie księstwa poza jednym (`is_defeated`), a to jedno wygrywa; póki
+    stoją co najmniej dwa niepokonane księstwa, gra trwa; determinizm.
 
 ## Kamień milowy 7 — AI i grywalna pętla MVP
 - [ ] **A7.1** Proste AI księstwa (rozwijaj osadę → zbierz party → atakuj).

@@ -119,6 +119,14 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   wojownicy tracą wtedy **morale**, ale gra toczy się dalej.
 - **Przegrana:** utrata **wszystkich** osad **oraz** brak bohatera (zginął i nie
   ma dziedzica ani osady, z której dałoby się wystawić nowego).
+  **ROZSTRZYGNIĘTE (D6.3a, predykat porażki księstwa):** `Duchy.is_defeated`
+  to czyste zapytanie zwracające `True` **dokładnie** wtedy, gdy księstwo nie ma
+  bohatera (`has_hero is False`) **i** nie ma żadnej osady (`settlements == ()`).
+  Każdy inny układ (żyje bohater, stoi choć jedna osada, albo oba) daje `False`.
+  Party **nie** wpływają na predykat: bez bohatera i tak nie ruszają się z miejsca,
+  a bez osady nie ma skąd wystawić nowego bohatera. Rozstrzyganie wygranej między
+  wieloma księstwami (który gracz kończy grę zwycięsko) dochodzi w D6.3b nad
+  modelem stanu gry; morale i kara sukcesji pozostają bez zmian.
 - **Strony:** każde księstwo (gracza i AI) startuje z **1–3 osadami** w różnym
   stopniu rozwoju. Brak neutralnych band — przeciwnikami są księstwa AI.
 
@@ -309,6 +317,9 @@ Wstępne encje rdzenia (nazwy robocze, doprecyzowywane wraz z implementacją):
   osadami i party. Konstruktor odrzuca dziedzica przy `hero=None` (dziedzic bez
   bohatera byłby po prostu bohaterem). Spadek morale konkretnych osad/wojsk oraz
   warunek przegranej/wygranej (brak osad ORAZ bohatera) dochodzą w D6.3.
+  **ROZSTRZYGNIĘTE (D6.3a):** dochodzi czyste zapytanie `is_defeated: bool` —
+  `True` dokładnie gdy `has_hero is False` i `settlements == ()`; party nie
+  wpływają na predykat, a rozstrzyganie zwycięstwa między księstwami należy do D6.3b.
 - `Party` — bohater + ≤12 jednostek, pozycja na mapie, punkty ruchu.
 - `WorldMap` — regiony/prowincje, osady, pozycje party.
 - `HexBattle` — siatka heksów, teren, jednostki, kolejka tur, rozstrzyganie walki.
