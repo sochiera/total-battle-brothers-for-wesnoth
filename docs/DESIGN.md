@@ -392,4 +392,9 @@ ich dotykają, i notować wynik tutaj:
   bez akcji. Kalendarz pozostaje bez zmian przez pierwsze trzy fazy i przesuwa
   się o jeden miesiąc dopiero przy zakończeniu fazy bitew. Akcja wywołana
   poza właściwą fazą jest odrzucana. Rozstrzyganie bitew i zapisywanie ich
-  skutków na mapie pozostaje poza tym szkieletem.
+  skutków na mapie pozostaje poza tym szkieletem. **Podział implementacyjny:**
+  szkielet powstaje w dwóch przyrostach — **M5.4c1** buduje samą maszynę faz
+  (niemutowalny stan mapa+kalendarz+faza, `advance_phase()` w kolejności
+  osady→ruch→bitwy→zakończona, jedno `tick_settlements()` przy wejściu w ruch,
+  przesunięcie kalendarza dopiero przy zakończeniu fazy bitew), a **M5.4c2**
+  dokłada bramkowane fazą akcje ruchu i rozpoczęcia bitew.

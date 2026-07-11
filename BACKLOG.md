@@ -148,9 +148,16 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 - [x] **M5.4b** Miesięczne przejście osad: produkcja → urodzenia → imigracja.
   - AC: wszystkie osady mapy przechodzą fazy w tej kolejności; wynik fazy jest
     wejściem następnej; mapa i osady wejściowe pozostają niezmienione.
-- [~] **M5.4c** Szkielet strategicznej tury: osady → ruch → bitwy → nowy miesiąc.
-  - AC: fazy są jawne i wymuszają kolejność z DESIGN §10; ruch i bitwy używają
-    istniejących przejść mapy, a kalendarz zmienia się dopiero po ich zakończeniu.
+- [~] **M5.4c1** Maszyna faz strategicznej tury: osady → ruch → bitwy → zakończona.
+  - AC: niemutowalny stan tury trzyma mapę, kalendarz i jawną fazę; `advance_phase()`
+    przechodzi fazy w tej kolejności; wejście do fazy ruchu wykonuje dokładnie jedno
+    `WorldMap.tick_settlements()`; kalendarz przesuwa się o jeden miesiąc dopiero przy
+    zakończeniu fazy bitew; przejście poza fazę zakończoną jest odrzucane; stan
+    wejściowy pozostaje niezmieniony (DESIGN §10, plan M5.4c).
+- [ ] **M5.4c2** Bramkowanie akcji tury fazą (ruch i rozpoczęcie bitew).
+  - AC: ruch party dostępny tylko w fazie ruchu, a rozpoczęcie bitew party↔party
+    i party↔osada tylko w fazie bitew; akcje delegują do istniejących przejść mapy
+    i zwracają nowy stan tury; akcja poza właściwą fazą jest odrzucana.
 
 ## Kamień milowy 6 — księstwa, następstwo, warunki gry
 - [ ] **D6.1** `Duchy`: bohater + dziedzic + osady + party + morale.
