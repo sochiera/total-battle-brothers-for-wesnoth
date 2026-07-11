@@ -19,9 +19,9 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 - [x] **C1.1** Seedowalny RNG (`tbb/rng.py`).
   - AC: ten sam seed → ta sama sekwencja; `randint`, `chance(p)` deterministyczne;
     dwa RNG z tym samym seedem dają identyczne wyniki, z różnym — różne.
-- [~] **C1.2** `Resources` (pszenica, złoto) — dodawanie, odejmowanie, walidacja.
+- [x] **C1.2** `Resources` (pszenica, złoto) — dodawanie, odejmowanie, walidacja.
   - AC: nie da się zejść poniżej zera bez jawnej zgody; arytmetyka pokryta testami.
-- [ ] **C1.3** Współrzędne heksów (`tbb/hex.py`, axial/cube).
+- [~] **C1.3** Współrzędne heksów (`tbb/hex.py`, axial/cube).
   - AC: dystans heksowy, sąsiedzi, konwersje axial↔cube; testy na znanych przypadkach.
 
 ## Kamień milowy 2 — osada i ekonomia

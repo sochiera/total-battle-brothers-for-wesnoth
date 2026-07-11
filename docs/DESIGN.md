@@ -109,8 +109,10 @@ masowe (np. 60 ludzi w jednostce), zaawansowana grafika i dźwięk, edytor map.
 ## 10. Otwarte pytania (do rozstrzygnięcia w trakcie)
 Oznaczone, bo decyzja nie jest przesądzona — rozstrzygać przy okazji zadań, które
 ich dotykają, i notować wynik tutaj:
-- **Geometria heksów:** offset vs axial/cube coords? (rekomendacja: axial/cube w
-  rdzeniu, offset tylko do prezentacji).
+- ~~**Geometria heksów:** offset vs axial/cube coords?~~ **ROZSTRZYGNIĘTE (C1.3):**
+  rdzeń używa **współrzędnych axial** `(q, r)` z konwersją do **cube** `(x, y, z)`,
+  gdzie `x+y+z=0`, do liczenia dystansu i sąsiadów. Offset zostaje wyłącznie dla
+  przyszłej warstwy prezentacji.
 - **Krzywe malejącego zysku** dla treningu/uzbrojenia/doświadczenia — konkretny
   wzór i parametry.
 - **Wzór na trafienie:** bazowa celność + teren + morale → prawdopodobieństwo.
