@@ -23,6 +23,41 @@ def test_duchy_morale_defaults_to_zero():
     assert Duchy("north", Unit()).morale == 0
 
 
+def test_duchy_heir_defaults_to_none():
+    assert Duchy("north", Unit()).heir is None
+
+
+def test_duchy_preserves_heir_object():
+    heir = Unit(training=1)
+
+    duchy = Duchy("north", Unit(), heir=heir)
+
+    assert duchy.heir is heir
+
+
+@pytest.mark.parametrize("heir", ["x", 123])
+def test_duchy_rejects_non_unit_heir(heir):
+    with pytest.raises(TypeError):
+        Duchy("north", Unit(), heir=heir)
+
+
+def test_duchy_rejects_hero_as_own_heir():
+    hero = Unit(training=1)
+
+    with pytest.raises(ValueError):
+        Duchy("north", hero, heir=hero)
+
+
+def test_duchy_accepts_equal_but_distinct_heir():
+    hero = Unit(training=1)
+    heir = Unit(training=1)
+
+    duchy = Duchy("north", hero, heir=heir)
+
+    assert duchy.hero == duchy.heir
+    assert duchy.hero is not duchy.heir
+
+
 def test_duchy_rejects_empty_identifier():
     with pytest.raises(ValueError):
         Duchy("", Unit())
