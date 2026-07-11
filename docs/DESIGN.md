@@ -53,7 +53,8 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
 - Populacja to **pula ludzi**, którą zajmują:
   - **rekrutacja jednostek** — każda jednostka pochodzi z populacji osady;
   - **obsada budynków** — np. kowal jest mieszkańcem osady; zbyt mała populacja
-    **nie pozwala uruchomić** danego warsztatu.
+    **nie pozwala uruchomić** danego warsztatu. Każdy typ budynku ma **stałą
+    liczbę obsady** (`staff`) — tyle populacji zajmuje, gdy działa (E2.2).
 - **Zwolnienie populacji:** zamknięcie/opuszczenie budynku oddaje zajmowaną
   populację z powrotem do puli.
 - Gracz rozwija osady (budynki), zakłada nowe, może podbijać osady AI.
