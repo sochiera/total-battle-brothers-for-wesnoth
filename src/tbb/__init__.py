@@ -9,6 +9,7 @@ from tbb.hex import Hex
 from tbb.rng import Rng
 from tbb.resources import Resources
 from tbb.settlement import Settlement
+from tbb.unit import Unit
 
 __version__ = "0.0.1"
 
@@ -19,6 +20,7 @@ __all__ = [
     "Resources",
     "Rng",
     "Settlement",
+    "Unit",
     "MARKET",
     "SMITH",
     "__version__",
