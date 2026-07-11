@@ -80,8 +80,10 @@ niezależność filarów była testowalna:
 - `damage` (obrażenia) = `equipment` (uzbrojenie),
 - `defense` (obrona) = `equipment + experience`.
 
-Osłabiona waga doświadczenia (§5: „wpływ nieco słabszy") i krzywe malejącego zysku
-to zakres **U3.2** — w U3.1 wagi są jednostkowe. Stan bojowy jednostki
+Osłabiona waga doświadczenia (§5: „wpływ nieco słabszy") w mapowaniu filar→statystyka
+pozostaje refaktorem na później; **U3.2** dotyczy odrębnego mapowania **nakład→poziom
+filaru** z malejącym zyskiem (patrz §10) — samo mapowanie filar→statystyka zostaje
+liniowe. Stan bojowy jednostki
 { hp bieżące, wounds[], stunned } dochodzi przy warstwie bitwy (kamień milowy 4).
 
 ## 6. Pętla rozgrywki (MVP)
@@ -130,8 +132,18 @@ ich dotykają, i notować wynik tutaj:
   rdzeń używa **współrzędnych axial** `(q, r)` z konwersją do **cube** `(x, y, z)`,
   gdzie `x+y+z=0`, do liczenia dystansu i sąsiadów. Offset zostaje wyłącznie dla
   przyszłej warstwy prezentacji.
-- **Krzywe malejącego zysku** dla treningu/uzbrojenia/doświadczenia — konkretny
-  wzór i parametry.
+- ~~**Krzywe malejącego zysku** dla treningu/uzbrojenia/doświadczenia — konkretny
+  wzór i parametry.~~ **CZĘŚCIOWO ROZSTRZYGNIĘTE (U3.2, trening/uzbrojenie):**
+  poziom filaru **narasta z zainwestowanego nakładu** (miesiące treningu dla
+  `training`; jednostki „surowiec·miesiąc" dla `equipment`) z **malejącym zyskiem
+  krańcowym**. Model minimalny, całkowity, deterministyczny (bez RNG): osiągnięcie
+  poziomu `n` wymaga **skumulowanego** nakładu `T(n) = n·(n+1)/2` (liczby
+  trójkątne), więc koszt przejścia `n → n+1` to `n+1` (rośnie liniowo → przyrost
+  krańcowy maleje). Wzór odwrotny: `level(inv) = (isqrt(8·inv + 1) − 1) // 2`,
+  monotoniczny niemalejący w `inv`, `level(0) = 0`. Doświadczenie ma **inne
+  źródło** (tylko walka) — jego krzywa dochodzi przy warstwie bitwy (kamień 4).
+  **NADAL OTWARTE:** różne parametry stromości per filar (trening vs uzbrojenie)
+  oraz wpływ budynków/mnożników — strojenie przy balansie.
 - **Wzór na trafienie:** bazowa celność + teren + morale → prawdopodobieństwo.
 - **Model ran:** ile rodzajów, jak wpływają na statystyki, czasowe vs trwałe.
 - **Wzrost populacji:** ~~urodzenia~~ **CZĘŚCIOWO ROZSTRZYGNIĘTE (E2.4a, urodzenia):**
