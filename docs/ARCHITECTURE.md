@@ -48,7 +48,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │       ├── hex.py        # niemutowalne współrzędne heksów axial/cube
 │       ├── party.py      # niemutowalny bohater i skład armii strategicznej
 │       ├── terrain.py    # niemutowalne typy terenu i katalog startowy
-│       ├── turn.py       # niemutowalny kalendarz strategiczny i przejście tury
+│       ├── turn.py       # kalendarz i niemutowalna maszyna faz strategicznej tury
 │       ├── progression.py # krzywa skumulowany nakład → poziom filaru
 │       ├── resources.py  # niemutowalne wartości pszenicy i złota
 │       ├── settlement.py # niemutowalna osada z pulą populacji

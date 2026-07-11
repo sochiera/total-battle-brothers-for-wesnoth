@@ -382,7 +382,7 @@ ich dotykają, i notować wynik tutaj:
   nową `WorldMap`, zachowując graf, party i regiony bez osad; mapa oraz osady
   wejściowe pozostają niezmienione. Kalendarz nie jest częścią tego przejścia —
   jego przesunięcie i spięcie z ruchem oraz bitwami należą do M5.4c.
-  **ROZSTRZYGNIĘTE (plan M5.4c, szkielet strategicznej tury):** pojedynczą
+  **ROZSTRZYGNIĘTE (M5.4c1, szkielet strategicznej tury):** pojedynczą
   turę opisuje niemutowalny stan z mapą, kalendarzem i jawną fazą:
   **osady → ruch → bitwy → zakończona**. Wejście do fazy ruchu wykonuje
   dokładnie jedno `WorldMap.tick_settlements()`. W fazie ruchu można wykonać
@@ -392,9 +392,6 @@ ich dotykają, i notować wynik tutaj:
   bez akcji. Kalendarz pozostaje bez zmian przez pierwsze trzy fazy i przesuwa
   się o jeden miesiąc dopiero przy zakończeniu fazy bitew. Akcja wywołana
   poza właściwą fazą jest odrzucana. Rozstrzyganie bitew i zapisywanie ich
-  skutków na mapie pozostaje poza tym szkieletem. **Podział implementacyjny:**
-  szkielet powstaje w dwóch przyrostach — **M5.4c1** buduje samą maszynę faz
-  (niemutowalny stan mapa+kalendarz+faza, `advance_phase()` w kolejności
-  osady→ruch→bitwy→zakończona, jedno `tick_settlements()` przy wejściu w ruch,
-  przesunięcie kalendarza dopiero przy zakończeniu fazy bitew), a **M5.4c2**
-  dokłada bramkowane fazą akcje ruchu i rozpoczęcia bitew.
+  skutków na mapie pozostaje poza tym szkieletem. Maszynę faz implementuje
+  `StrategicTurn.advance_phase()`; **M5.4c2** dokłada bramkowane fazą akcje
+  ruchu i rozpoczęcia bitew.

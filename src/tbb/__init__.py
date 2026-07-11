@@ -15,7 +15,7 @@ from tbb.rng import Rng
 from tbb.resources import Resources
 from tbb.settlement import Settlement
 from tbb.terrain import FOREST, HILLS, PLAINS, Terrain
-from tbb.turn import Calendar
+from tbb.turn import Calendar, StrategicTurn, TurnPhase
 from tbb.unit import Unit
 from tbb.wound import BRUISE, MAIMED, Wound
 from tbb.world import Region, WorldMap
@@ -42,6 +42,7 @@ __all__ = [
     "Region",
     "Rng",
     "Settlement",
+    "StrategicTurn",
     "Unit",
     "MARKET",
     "MAIMED",
@@ -50,6 +51,7 @@ __all__ = [
     "PLAINS",
     "SMITH",
     "Terrain",
+    "TurnPhase",
     "Wound",
     "WorldMap",
     "__version__",
