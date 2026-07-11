@@ -255,3 +255,29 @@ def test_succeed_does_not_mutate_original_duchy():
     assert duchy.hero is hero
     assert duchy.heir is heir
     assert duchy.morale == 3
+
+
+def test_duchy_without_hero_or_settlements_is_defeated():
+    assert Duchy("north", None).is_defeated is True
+
+
+def test_duchy_with_hero_and_without_settlements_is_not_defeated():
+    assert Duchy("north", Unit()).is_defeated is False
+
+
+def test_duchy_without_hero_but_with_settlement_is_not_defeated():
+    settlement = Settlement("Keep", population=10, owner_id="north")
+
+    assert Duchy("north", None, settlements=[settlement]).is_defeated is False
+
+
+def test_duchy_with_hero_and_settlement_is_not_defeated():
+    settlement = Settlement("Keep", population=10, owner_id="north")
+
+    assert Duchy("north", Unit(), settlements=[settlement]).is_defeated is False
+
+
+def test_parties_do_not_prevent_defeat_without_hero_or_settlements():
+    party = Party(Unit(), owner_id="north")
+
+    assert Duchy("north", None, parties=[party]).is_defeated is True

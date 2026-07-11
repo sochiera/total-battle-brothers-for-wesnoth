@@ -68,6 +68,11 @@ class Duchy:
         """Report whether the duchy currently has a living hero."""
         return self.hero is not None
 
+    @property
+    def is_defeated(self) -> bool:
+        """Report whether the duchy has neither a hero nor settlements."""
+        return not self.has_hero and self.settlements == ()
+
     def succeed(self) -> "Duchy":
         """Resolve the hero's death by promoting an heir when available."""
         return Duchy(
