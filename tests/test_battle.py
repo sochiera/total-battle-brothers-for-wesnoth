@@ -8,6 +8,7 @@ from tbb.hex import Hex
 from tbb.terrain import FOREST
 from tbb.unit import Unit
 from tbb.rng import Rng
+from tbb.wound import BRUISE, MAIMED
 
 
 def test_empty_battle_has_no_units():
@@ -461,3 +462,98 @@ def test_minimum_range_shot_ignores_attacker_and_target_as_obstacles():
 
     assert attacker.line_to(target) == (attacker, Hex(1, 0), target)
     assert result.current_hp_at(target) == battle.current_hp_at(target) - 3
+
+
+class ControlledRng:
+    def __init__(self, result):
+        self.result = result
+        self.probabilities = []
+
+    def chance(self, probability):
+        self.probabilities.append(probability)
+        return self.result
+
+
+def test_resolve_defeat_death_removes_all_position_state_without_mutating_input():
+    position = Hex(0, 0)
+    unit = Unit(training=2)
+    battle = HexBattle(Battlefield()).deploy(unit, position, BattleSide.ATTACKER)
+    defeated = battle.damage(position, unit.hp)
+    rng = ControlledRng(True)
+
+    resolved = defeated.resolve_defeat(position, rng)
+
+    assert rng.probabilities == [0.5]
+    assert resolved.unit_at(position) is None
+    assert position not in resolved.units
+    assert position not in resolved.sides
+    with pytest.raises(ValueError):
+        resolved.current_hp_at(position)
+    assert defeated.unit_at(position) is unit
+    assert defeated.current_hp_at(position) == 0
+    assert defeated.side_at(position) is BattleSide.ATTACKER
+
+
+def test_resolve_defeat_survival_stuns_and_appends_bruise_without_mutation():
+    position = Hex(0, 0)
+    unit = Unit(training=2, wounds=(MAIMED,))
+    battle = HexBattle(Battlefield()).deploy(unit, position, BattleSide.DEFENDER)
+    defeated = battle.damage(position, unit.hp)
+    rng = ControlledRng(False)
+
+    resolved = defeated.resolve_defeat(position, rng)
+
+    survivor = resolved.unit_at(position)
+    assert rng.probabilities == [0.5]
+    assert survivor is not unit
+    assert survivor.stunned is True
+    assert survivor.wounds == (MAIMED, BRUISE)
+    assert resolved.current_hp_at(position) == 0
+    assert resolved.side_at(position) is BattleSide.DEFENDER
+    assert defeated.unit_at(position) is unit
+    assert unit.stunned is False
+    assert unit.wounds == (MAIMED,)
+
+
+@pytest.mark.parametrize("case", ["empty", "healthy", "stunned"])
+def test_resolve_defeat_rejects_invalid_target_before_rng(case):
+    position = Hex(0, 0)
+    if case == "empty":
+        battle = HexBattle(Battlefield())
+    else:
+        battle = HexBattle(Battlefield()).deploy(
+            Unit(stunned=case == "stunned"), position, BattleSide.ATTACKER
+        )
+        if case == "stunned":
+            battle = battle.damage(position, battle.current_hp_at(position))
+    rng = ControlledRng(True)
+
+    with pytest.raises(ValueError):
+        battle.resolve_defeat(position, rng)
+
+    assert rng.probabilities == []
+
+
+def test_stunned_unit_cannot_move():
+    source = Hex(0, 0)
+    battle = HexBattle(Battlefield()).deploy(
+        Unit(stunned=True), source, BattleSide.ATTACKER
+    )
+
+    with pytest.raises(ValueError):
+        battle.move(source, Hex(1, 0), move_points=1)
+
+
+@pytest.mark.parametrize("attack_kind", ["melee", "ranged"])
+def test_stunned_unit_cannot_attack_before_rng(attack_kind):
+    attacker = Hex(0, 0)
+    target = Hex(1, 0) if attack_kind == "melee" else Hex(2, 0)
+    unit = Unit(stunned=True, ranged_range=2)
+    battle = HexBattle(Battlefield()).deploy(unit, attacker, BattleSide.ATTACKER)
+    battle = battle.deploy(Unit(), target, BattleSide.DEFENDER)
+    rng = ControlledRng(True)
+
+    with pytest.raises(ValueError):
+        getattr(battle, f"{attack_kind}_attack")(attacker, target, morale=0, rng=rng)
+
+    assert rng.probabilities == []

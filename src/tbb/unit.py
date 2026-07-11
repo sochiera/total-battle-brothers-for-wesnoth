@@ -14,6 +14,7 @@ class Unit:
     experience: int = 0
     ranged_range: int = 0
     wounds: tuple[Wound, ...] = ()
+    stunned: bool = False
 
     def __post_init__(self) -> None:
         """Reject pillar values below zero."""

@@ -103,3 +103,11 @@ def test_unit_copies_input_wounds_to_an_immutable_tuple():
 
     assert unit.wounds == (BRUISE,)
     assert isinstance(unit.wounds, tuple)
+
+
+def test_stunned_defaults_to_false_and_is_immutable():
+    unit = Unit()
+
+    assert unit.stunned is False
+    with pytest.raises(FrozenInstanceError):
+        unit.stunned = True

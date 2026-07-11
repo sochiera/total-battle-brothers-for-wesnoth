@@ -1,7 +1,7 @@
 """Immutable deployment state for a hex battle."""
 
 from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import Enum
 import heapq
 from types import MappingProxyType
@@ -11,6 +11,7 @@ from tbb.combat import melee_hit_chance
 from tbb.hex import Hex
 from tbb.rng import Rng
 from tbb.unit import Unit
+from tbb.wound import BRUISE
 
 
 class BattleSide(Enum):
@@ -94,6 +95,8 @@ class HexBattle:
         target_unit = self.unit_at(target)
         if attacking_unit is None:
             raise ValueError("cannot attack from an empty hex")
+        if attacking_unit.stunned:
+            raise ValueError("a stunned unit cannot attack")
         if target_unit is None:
             raise ValueError("cannot attack an empty hex")
         if attacker.distance(target) != 1:
@@ -120,6 +123,8 @@ class HexBattle:
         target_unit = self.unit_at(target)
         if attacking_unit is None:
             raise ValueError("cannot attack from an empty hex")
+        if attacking_unit.stunned:
+            raise ValueError("a stunned unit cannot attack")
         if target_unit is None:
             raise ValueError("cannot attack an empty hex")
         distance = attacker.distance(target)
@@ -174,6 +179,8 @@ class HexBattle:
         unit = self.unit_at(source)
         if unit is None:
             raise ValueError("cannot move from an empty hex")
+        if unit.stunned:
+            raise ValueError("a stunned unit cannot move")
         if self.is_occupied(destination):
             raise ValueError("cannot move to an occupied hex")
         if destination not in self.reachable(source, move_points):
@@ -186,4 +193,27 @@ class HexBattle:
         current_hp[destination] = current_hp.pop(source)
         sides = dict(self.sides)
         sides[destination] = sides.pop(source)
+        return HexBattle(self.battlefield, units, current_hp, sides)
+
+    def resolve_defeat(self, position: Hex, rng: Rng) -> "HexBattle":
+        """Resolve death or stunned survival for a unit reduced to zero HP."""
+        unit = self.unit_at(position)
+        if unit is None:
+            raise ValueError("cannot resolve defeat on an empty hex")
+        if self.current_hp_at(position) != 0:
+            raise ValueError("cannot resolve a unit with HP remaining")
+        if unit.stunned:
+            raise ValueError("cannot resolve an already stunned unit")
+
+        units = dict(self.units)
+        current_hp = dict(self._current_hp)
+        sides = dict(self.sides)
+        if rng.chance(0.5):
+            del units[position]
+            del current_hp[position]
+            del sides[position]
+        else:
+            units[position] = replace(
+                unit, stunned=True, wounds=unit.wounds + (BRUISE,)
+            )
         return HexBattle(self.battlefield, units, current_hp, sides)
