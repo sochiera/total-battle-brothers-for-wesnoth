@@ -4,7 +4,7 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
-from tbb import Party, Region, Settlement, Unit, WorldMap
+from tbb import BattleSide, Hex, Party, PLAINS, Region, Settlement, Unit, WorldMap
 
 
 def test_neighbors_are_bidirectional_and_follow_region_order():
@@ -208,3 +208,97 @@ def test_move_party_rejects_region_outside_map(unknown_endpoint):
 
     with pytest.raises(ValueError):
         world.move_party(source, destination, move_points=1)
+
+
+def test_start_battle_deploys_adjacent_parties_in_deterministic_rows():
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(Unit(training=3), [Unit(equipment=1), Unit(experience=2)])
+    defender = Party(Unit(training=4), [Unit(equipment=2)])
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        parties={camp: attacker, vale: defender},
+    )
+
+    battle = world.start_battle(camp, vale)
+
+    expected = (
+        (Hex(0, 0), attacker.hero, BattleSide.ATTACKER),
+        (Hex(0, 1), attacker.units[0], BattleSide.ATTACKER),
+        (Hex(0, 2), attacker.units[1], BattleSide.ATTACKER),
+        (Hex(2, 0), defender.hero, BattleSide.DEFENDER),
+        (Hex(2, 1), defender.units[0], BattleSide.DEFENDER),
+    )
+    assert tuple(
+        (position, battle.unit_at(position), battle.side_at(position))
+        for position in battle.units
+    ) == expected
+    assert all(
+        battle.battlefield.terrain_at(position) == PLAINS
+        for position in battle.units
+    )
+    assert world.start_battle(camp, vale).units == battle.units
+
+
+def test_start_battle_does_not_change_world_or_party_composition():
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(Unit(training=1), [Unit(equipment=1)])
+    defender = Party(Unit(training=2), [Unit(equipment=2)])
+    world = WorldMap(
+        [camp, vale], [(camp, vale)], parties={camp: attacker, vale: defender}
+    )
+    parties_before = dict(world.parties)
+    attacker_before = (attacker.hero, attacker.units)
+    defender_before = (defender.hero, defender.units)
+
+    world.start_battle(camp, vale)
+
+    assert dict(world.parties) == parties_before
+    assert world.party_at(camp) is attacker
+    assert world.party_at(vale) is defender
+    assert (attacker.hero, attacker.units) == attacker_before
+    assert (defender.hero, defender.units) == defender_before
+
+
+@pytest.mark.parametrize(
+    "parties, source_name, destination_name",
+    [
+        ({"Vale"}, "Camp", "Vale"),
+        ({"Camp"}, "Camp", "Vale"),
+        ({"Camp", "Vale"}, "Camp", "Camp"),
+        ({"Camp", "Wilds"}, "Camp", "Wilds"),
+        ({"Camp", "Vale"}, "Camp", "Unknown"),
+    ],
+    ids=[
+        "no-attacker",
+        "no-defender",
+        "same-region",
+        "not-adjacent",
+        "outside-map",
+    ],
+)
+def test_start_battle_rejects_invalid_contact(
+    parties, source_name, destination_name
+):
+    camp = Region("Camp")
+    vale = Region("Vale")
+    wilds = Region("Wilds")
+    regions = {region.name: region for region in (camp, vale, wilds)}
+    world = WorldMap(
+        [camp, vale, wilds],
+        [(camp, vale)],
+        parties={regions[name]: Party(Unit()) for name in parties},
+    )
+
+    with pytest.raises(ValueError):
+        destination = (
+            Region("Unknown")
+            if destination_name == "Unknown"
+            else regions[destination_name]
+        )
+        world.start_battle(
+            regions[source_name],
+            destination,
+        )
