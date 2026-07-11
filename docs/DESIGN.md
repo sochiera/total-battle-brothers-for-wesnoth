@@ -118,6 +118,14 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   w każdej kategorii jest deterministyczna (kolejność rozstawienia/rozstrzygania).
   Raport można utworzyć dopiero po końcu bitwy; nie zmienia stanu i nie przyznaje
   doświadczenia — to osobny przyrost B4.6c.
+- **ROZSTRZYGNIĘTE (B4.6c, doświadczenie za udział):** po rozstrzygnięciu bitwy
+  każda ocalała jednostka — zarówno zdolna do działania, jak i ogłuszona — otrzymuje
+  **+1 doświadczenia**. Polegli nie otrzymują nagrody. Przyrost jest stały,
+  deterministyczny i zachowuje pozostały stan jednostki (w tym rany oraz
+  ogłuszenie); jest przyznawany przez osobne czyste przejście tworzące nagrodzony
+  raport, więc raport bazowy i stan bitwy pozostają niezmienione. To minimalny
+  placeholder za sam udział, bez premii za zwycięstwo, zabójstwa lub obrażenia;
+  tempo progresji doświadczenia pozostaje do późniejszego balansu.
 
 ## 4. Osady, populacja, ekonomia
 - **Surowce (dokładnie dwa, celowo prosto):** **pszenica** i **złoto**.
@@ -263,7 +271,9 @@ ich dotykają, i notować wynik tutaj:
   trójkątne), więc koszt przejścia `n → n+1` to `n+1` (rośnie liniowo → przyrost
   krańcowy maleje). Wzór odwrotny: `level(inv) = (isqrt(8·inv + 1) − 1) // 2`,
   monotoniczny niemalejący w `inv`, `level(0) = 0`. Doświadczenie ma **inne
-  źródło** (tylko walka) — jego krzywa dochodzi przy warstwie bitwy (kamień 4).
+  źródło** (tylko walka). **ROZSTRZYGNIĘTE (B4.6c, minimalny przyrost):** każda
+  bitwa przeżyta przez jednostkę daje +1 doświadczenia; odrębna krzywa lub premie
+  zależne od wyniku pozostają poza MVP.
   **NADAL OTWARTE:** różne parametry stromości per filar (trening vs uzbrojenie)
   oraz wpływ budynków/mnożników — strojenie przy balansie.
 - ~~**Wzór na trafienie:** bazowa celność + teren + morale → prawdopodobieństwo.~~
