@@ -92,8 +92,17 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   a efektywne statystyki nie spadają poniżej `0`. Startowy katalog placeholder:
   **Bruise** (czasowa, 2 miesiące, `accuracy=-1`, `defense=-1`) oraz **Maimed**
   (trwała, `accuracy=-2`, `defense=-2`). Rany należą do trwałego modelu
-  `Unit`, aby mogły przejść z bitwy na warstwę strategiczną. Upływ czasu ran,
-  rzut śmierć/ogłuszenie i sam stan ogłuszenia dochodzą w osobnych przyrostach.
+  `Unit`, aby mogły przejść z bitwy na warstwę strategiczną. Upływ czasu ran
+  dochodzi w osobnym przyroście.
+  **ROZSTRZYGNIĘTE (B4.5b, minimalne rozstrzygnięcie 0 HP):** jednostkę, której
+  bieżące HP spadło do `0`, rozstrzyga się dokładnie jednym rzutem RNG: **50%**
+  oznacza śmierć i usunięcie jej z rozstawienia, a pozostałe 50% — pozostawienie
+  jej na heksie jako `stunned=True` z dodaną raną **Bruise**. To celowo prosty
+  placeholder (bez wpływu rodzaju ciosu i bez losowania rodzaju rany). Rozstrzygać
+  można wyłącznie jeszcze nieogłuszoną jednostkę z `0 HP`; pusty heks, jednostka
+  mająca HP lub już ogłuszona są błędem. Ogłuszona jednostka nie może się ruszać
+  ani atakować. Usunięcie ogłuszonej jednostki z pola i przeniesienie ocalałej
+  wraz z ranami do warstwy strategicznej nastąpi przy wyniku bitwy (B4.6).
 
 ## 4. Osady, populacja, ekonomia
 - **Surowce (dokładnie dwa, celowo prosto):** **pszenica** i **złoto**.
@@ -204,6 +213,12 @@ Wstępne encje rdzenia (nazwy robocze, doprecyzowywane wraz z implementacją):
   a wstrzyknięty `Rng` wykonuje jeden rzut. Pudło nie zmienia HP, trafienie odejmuje
   `Unit.damage` od bieżącego HP celu. Kontratak, punkty akcji/kolejka tur, usuwanie
   jednostki przy 0 HP oraz raport zdarzenia dochodzą w kolejnych przyrostach.
+  **ROZSTRZYGNIĘTE (B4.5b, stan pokonanej jednostki):** `Unit.stunned` jest
+  niemutowalną flagą (domyślnie `False`). `HexBattle.resolve_defeat(position, rng)`
+  rozstrzyga jednostkę z `0 HP` zgodnie z regułą z §3.2 i zwraca nowy stan.
+  W wariancie śmierci usuwa spójnie jednostkę, HP i stronę z map bitwy; w wariancie
+  ogłuszenia zastępuje jednostkę kopią z `stunned=True` i dopisaną raną `BRUISE`,
+  zachowując pozycję, stronę i `0 HP`.
 - `Rng` — deterministyczny, seedowalny generator (dla powtarzalnych testów).
 
 ## 8. Zasady projektowe
