@@ -63,8 +63,17 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   `HexBattle`, nie mutując mapy, party, osady ani garnizonu. Bohater i podkomendni
   party są atakującymi, a jednostki garnizonu — obrońcami; obie strony zachowują
   kolejność wejściową i trafiają do deterministycznych, rozłącznych rzędów na
-  domyślnym terenie Plains. Własność strategiczna powstanie w M5.3b2; do tego
-  czasu wrogość jest założeniem jawnego polecenia rozpoczęcia bitwy.
+  domyślnym terenie Plains. Reguła własności z M5.3b2 zastępuje wcześniejsze
+  założenie, że samo jawne polecenie oznacza wrogość.
+- **ROZSTRZYGNIĘTE (M5.3b2, minimalna własność strategiczna):** `Party` i
+  `Settlement` mogą przechowywać niemutowalny `owner_id` — niepusty tekstowy
+  identyfikator księstwa. Pole jest opcjonalne jako pomost migracyjny dla stanów
+  tworzonych bez modelu `Duchy`, ale rozpoczęcie bitwy party↔party lub
+  party↔osada wymaga jawnego właściciela po obu stronach. Równe identyfikatory
+  oznaczają cel własny i blokują starcie; różne oznaczają wrogów. Brak
+  identyfikatora także blokuje rozpoczęcie bitwy, zamiast domyślnie zakładać
+  wrogość. Docelowy `Duchy` z D6.1 będzie źródłem tych identyfikatorów; reguły
+  rozstawienia i niemutowalność z M5.3a–b1 pozostają bez zmian.
 - **Czas:** 1 tura = **1 miesiąc**. Rok = **13 miesięcy po 4 tygodnie**
   (52 tygodnie). Trening i wyposażenie mierzone są w miesiącach.
 - **Bohater:** dokładnie **jeden** na księstwo — król i dowódca w jednym. Armia

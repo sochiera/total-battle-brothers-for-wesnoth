@@ -131,15 +131,16 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     bohater i podkomendni strony atakującej/broniącej trafiają na właściwe
     strony `HexBattle` w deterministycznym rozstawieniu; mapa świata pozostaje
     niezmieniona; brak party, ten sam/niesąsiedni region są odrzucane.
-- [~] **M5.3b1** Kontakt party z garnizonem osady tworzy minimalną bitwę.
+- [x] **M5.3b1** Kontakt party z garnizonem osady tworzy minimalną bitwę.
   - AC: jawne rozpoczęcie starcia wymaga party w regionie sąsiadującym z osadą;
     bohater i podkomendni party trafiają do `HexBattle` jako atakujący, a garnizon
     osady jako obrońcy, w deterministycznym rozstawieniu; mapa, party, osada
     i garnizon pozostają niezmienione; błędny kontakt jest odrzucany.
-- [ ] **M5.3b2** Własność strategiczna ogranicza kontakt do wrogich celów.
-  - AC: party i osada mają jawną przynależność do księstwa; kontakt z własną
-    osadą/party nie tworzy bitwy, a kontakt z wrogim celem zachowuje reguły
-    rozstawienia z M5.3a–b1.
+- [~] **M5.3b2** Własność strategiczna ogranicza kontakt do wrogich celów.
+  - AC: party i osada przechowują opcjonalny, niepusty `owner_id`; rozpoczęcie
+    bitwy wymaga jawnego właściciela obu stron i różnych identyfikatorów;
+    kontakt z własną osadą/party oraz brak właściciela nie tworzą bitwy, a kontakt
+    z wrogim celem zachowuje reguły rozstawienia z M5.3a–b1 i niemutowalność.
 - [ ] **M5.4** Faza tury miesięcznej (produkcja → wzrost → ruch → bitwy), 13 mies./rok.
   - AC: kolejność faz z DESIGN §10; kalendarz 13×4 tyg. liczony poprawnie.
 
