@@ -375,3 +375,10 @@ ich dotykają, i notować wynik tutaj:
   **Smith** nie produkuje surowców (`output` zerowy — to budynek uzbrojenia, M3).
 - **AI księstw:** poziom ambicji dla MVP (od skryptowego „rozwijaj i atakuj").
 - **Zakończenie tury na mapie:** kolejność faz (produkcja → wzrost → ruch → bitwy).
+  **ROZSTRZYGNIĘTE (plan M5.4b, miesięczne przejście osad):**
+  `WorldMap.tick_settlements()` aktualizuje wszystkie osady w deterministycznej
+  kolejności regionów mapy. Dla każdej osady wynik `tick_economy()` jest wejściem
+  `tick_growth()`, a jego wynik wejściem `tick_immigration()`. Przejście zwraca
+  nową `WorldMap`, zachowując graf, party i regiony bez osad; mapa oraz osady
+  wejściowe pozostają niezmienione. Kalendarz nie jest częścią tego przejścia —
+  jego przesunięcie i spięcie z ruchem oraz bitwami należą do M5.4c.
