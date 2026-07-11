@@ -120,7 +120,17 @@ ich dotykają, i notować wynik tutaj:
   wzór i parametry.
 - **Wzór na trafienie:** bazowa celność + teren + morale → prawdopodobieństwo.
 - **Model ran:** ile rodzajów, jak wpływają na statystyki, czasowe vs trwałe.
-- **Wzrost populacji:** tempo urodzeń, skąd imigranci, sufit populacji.
+- **Wzrost populacji:** ~~urodzenia~~ **CZĘŚCIOWO ROZSTRZYGNIĘTE (E2.4a, urodzenia):**
+  każda osada ma **sufit** `capacity` (max populacji; `None` = brak limitu). Faza
+  **wzrostu** następuje po produkcji (§10 kolejność faz) i jest osobnym przejściem
+  `tick_growth()` na stanie **po** `tick_economy`. Reguła urodzeń (minimalna,
+  deterministyczna): osada **najedzona** (po bilansie miesięcznym `storage.wheat > 0`,
+  czyli jest nadwyżka/zapas pszenicy) i **poniżej sufitu** rośnie o **+1 populacji**
+  na turę; głodująca (`storage.wheat == 0`) **nie** rośnie; wzrost nigdy nie przekracza
+  `capacity`. Nowi mieszkańcy trafiają do puli **wolnej** (nie zmieniają `occupied`).
+  Urodzenia **nie** konsumują dodatkowo pszenicy — nadwyżka jest **warunkiem**, nie
+  kosztem (uproszczenie do rewizji przy balansie). **NADAL OTWARTE:** skąd i jak szybko
+  **imigranci** (E2.4b), oraz tempo urodzeń > 1/turę przy dużej nadwyżce.
 - ~~**Ekonomia:** produkcja pszenicy/złota per budynek, konsumpcja, bilans.~~
   **ROZSTRZYGNIĘTE (E2.3, minimalny model):** każdy **aktywny** (obsadzony) budynek
   produkuje swój stały `output: Resources` na turę (miesiąc); budynek zamknięty nie

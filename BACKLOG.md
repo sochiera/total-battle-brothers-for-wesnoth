@@ -29,10 +29,13 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
   - AC: rekrutacja/obsada zajmuje populację; brak wolnej populacji blokuje akcję.
 - [x] **E2.2** Budynki: uruchomienie wymaga wolnej populacji; zamknięcie ją zwalnia.
   - AC: za mała populacja → nie można uruchomić kowala; zamknięcie oddaje 1 pop.
-- [~] **E2.3** Produkcja surowców per tura (pszenica/złoto z budynków) + konsumpcja.
+- [x] **E2.3** Produkcja surowców per tura (pszenica/złoto z budynków) + konsumpcja.
   - AC: bilans miesięczny liczony deterministycznie; testy na przykładowej osadzie.
-- [ ] **E2.4** Wzrost populacji (urodzenia + imigranci, z sufitem).
-  - AC: populacja rośnie wg reguły z DESIGN §10; sufit respektowany.
+- [~] **E2.4a** Wzrost populacji — urodzenia + sufit (`capacity`).
+  - AC: najedzona osada (nadwyżka pszenicy) rośnie o 1/turę; sufit blokuje wzrost;
+    głodująca nie rośnie; faza wzrostu osobna od `tick_economy` (DESIGN §10 kolejność).
+- [ ] **E2.4b** Wzrost populacji — imigranci (dopływ zależny od dobrobytu).
+  - AC: dobrobyt (nadwyżka/złoto) przyciąga imigrantów; sufit respektowany; determinizm.
 
 ## Kamień milowy 3 — jednostki i progresja
 - [ ] **U3.1** `Unit` z trzema filarami (trening/uzbrojenie/doświadczenie).
