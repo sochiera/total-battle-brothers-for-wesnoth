@@ -258,6 +258,14 @@ Wstępne encje rdzenia (nazwy robocze, doprecyzowywane wraz z implementacją):
   (filary 0). Brak wolnej populacji **blokuje** rekrutację (`ValueError`). Koszt
   surowców/miesięcy rekrutacji i przenoszenie jednostek do party dochodzą później.
 - `Duchy` (księstwo) — bohater, dziedzic, lista osad, party, morale.
+  **ROZSTRZYGNIĘTE (D6.1a, minimalne księstwo):** `Duchy` to niemutowalny stan
+  z niepustym tekstowym `duchy_id`, jednym wymaganym `hero: Unit` oraz podpisanym
+  `morale: int` (domyślnie `0`; wartość dodatnia to wysokie morale, ujemna niskie).
+  `duchy_id` jest **dokładnie** tym identyfikatorem, którego księstwo używa jako
+  `owner_id` swoich party i osad (M5.3b2) — to on rozstrzyga wrogość na mapie.
+  Pojedyncze pole `hero` realizuje inwariant „dokładnie jeden bohater na księstwo".
+  Wyznaczony dziedzic, lista osad oraz przypisane party dochodzą w D6.1b, a sukcesja
+  i kara morale po śmierci bohatera w D6.2.
 - `Party` — bohater + ≤12 jednostek, pozycja na mapie, punkty ruchu.
 - `WorldMap` — regiony/prowincje, osady, pozycje party.
 - `HexBattle` — siatka heksów, teren, jednostki, kolejka tur, rozstrzyganie walki.

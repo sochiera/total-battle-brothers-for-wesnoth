@@ -154,14 +154,20 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     `WorldMap.tick_settlements()`; kalendarz przesuwa się o jeden miesiąc dopiero przy
     zakończeniu fazy bitew; przejście poza fazę zakończoną jest odrzucane; stan
     wejściowy pozostaje niezmieniony (DESIGN §10, plan M5.4c).
-- [~] **M5.4c2** Bramkowanie akcji tury fazą (ruch i rozpoczęcie bitew).
+- [x] **M5.4c2** Bramkowanie akcji tury fazą (ruch i rozpoczęcie bitew).
   - AC: ruch party dostępny tylko w fazie ruchu, a rozpoczęcie bitew party↔party
     i party↔osada tylko w fazie bitew; akcje delegują do istniejących przejść mapy
     i zwracają nowy stan tury; akcja poza właściwą fazą jest odrzucana.
 
 ## Kamień milowy 6 — księstwa, następstwo, warunki gry
-- [ ] **D6.1** `Duchy`: bohater + dziedzic + osady + party + morale.
-  - AC: struktura księstwa; 1 bohater na księstwo (inwariant).
+- [~] **D6.1a** `Duchy` minimalny: identyfikator + jeden bohater + morale.
+  - AC: niemutowalny `Duchy` z niepustym `duchy_id` (= `owner_id` party/osad na
+    mapie), dokładnie jednym wymaganym `hero: Unit` (inwariant 1 bohatera) oraz
+    podpisanym `morale: int` (domyślnie 0); pusty/nietekstowy identyfikator i
+    nie-`Unit` bohater są odrzucane; dziedzic, osady i party dochodzą w D6.1b.
+- [ ] **D6.1b** `Duchy`: dziedzic, lista osad i party (spięcie z mapą).
+  - AC: księstwo trzyma opcjonalnego dziedzica oraz odwołania do swoich osad
+    i party; własność spójna z `duchy_id`; niemutowalne przejścia.
 - [ ] **D6.2** Śmierć bohatera → sukcesja dziedzica + kara morale.
   - AC: dziedzic przejmuje; morale osad/wojsk spada; brak dziedzica → patrz D6.3.
 - [ ] **D6.3** Warunek przegranej/wygranej (brak osad ORAZ brak bohatera).
