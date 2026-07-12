@@ -601,6 +601,14 @@ ich dotykają, i notować wynik tutaj:
   osobnego kroku szturmu). Brak party albo jego jawnego `owner_id` w regionie
   startowym jest błędem wejścia. Muster, szturm i pełna polityka tury AI pozostają
   rozdzielone na A7.1b3–b5.
+  **PLAN (A7.1b3, szturm istniejącego party):** osobne czyste przejście AI
+  wybiera najbliższą wrogą osadę przez A7.1a i rozstrzyga kontakt przez
+  `WorldMap.resolve_settlement_battle()` wyłącznie wtedy, gdy wybrany cel jest
+  bezpośrednim sąsiadem party. RNG jest jawnie wstrzykiwany, a placeholderowe
+  parametry bitwy pozostają zgodne z BM.2. Brak celu albo cel dalszy niż jedno
+  połączenie oznacza no-op; brak party lub jego jawnego `owner_id` w regionie
+  startowym pozostaje błędem wejścia. Marsz, muster i pełna polityka tury AI
+  nie są składane w tym kroku i pozostają w A7.1b2 oraz A7.1b4–b5.
 - **Zakończenie tury na mapie:** kolejność faz (produkcja → wzrost → ruch → bitwy).
   **ROZSTRZYGNIĘTE (plan M5.4b, miesięczne przejście osad):**
   `WorldMap.tick_settlements()` aktualizuje wszystkie osady w deterministycznej

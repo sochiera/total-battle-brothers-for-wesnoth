@@ -336,8 +336,12 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     brak party lub jawnego właściciela w regionie startowym jest odrzucany;
     determinizm i niemutowalność mapy wejściowej.
 - [ ] **A7.1b3** Szturm istniejącego party AI na sąsiednią wrogą osadę.
-  - AC: AI wybiera cel zgodnie z A7.1a i, gdy stoi obok niego, składa
-    `WorldMap.resolve_settlement_battle`; brak sąsiedniego celu nie zmienia mapy.
+  - AC: czyste przejście wybiera cel zgodnie z A7.1a i tylko gdy party stoi
+    bezpośrednio obok niego, składa `WorldMap.resolve_settlement_battle` ze
+    wstrzykniętym RNG; podbój, straty i niemutowalność dziedziczy z BM.2. Cel
+    dalszy niż jedno połączenie albo brak celu nie zmienia mapy; brak party lub
+    jawnego właściciela w regionie startowym jest odrzucany; ten sam stan i seed
+    dają ten sam wynik.
 - [ ] **A7.1b4** Wystawienie party AI z własnej osady.
   - AC: gdy AI nie ma party, deterministycznie wybiera własną osadę i składa
     muster z umieszczeniem party na mapie; nie duplikuje bohatera ani garnizonu.
