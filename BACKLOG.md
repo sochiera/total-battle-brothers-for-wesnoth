@@ -229,7 +229,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > zwycięzca nie zajmuje regionu, przegrany nie znika. Bez tego podbój jest niemożliwy
 > i partia nie może się rozstrzygnąć — to twardy warunek pętli MVP (A7.2). Dzielimy
 > zapis wyniku na małe kroki (party↔party, potem party↔osada).
-- [ ] **BW.1** Zapis wyniku bitwy party↔party na mapę (`WorldMap.apply_party_battle_result`).
+- [x] **BW.1** Zapis wyniku bitwy party↔party na mapę (`WorldMap.apply_party_battle_result`).
   - AC: czyste przejście przyjmuje regiony atakującego (`source`) i broniącego
     (`destination`) oraz `BattleResult` i zwraca nową `WorldMap`. `ATTACKER_WIN`:
     party broniące znika, party atakujące przechodzi z `source` do `destination`.
@@ -238,10 +238,16 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     sąsiednie, oba mają party); mapa i osady wejściowe pozostają niezmienione;
     determinizm. Rekonstrukcja ocalałych (straty/rany/doświadczenie) do party jest
     świadomie odłożona — party przenosi się jako placeholder bez zmian składu (BW.3).
-- [ ] **BW.2** Zapis wyniku bitwy party↔osada na mapę.
-  - AC: zwycięstwo atakującego → osada zmienia właściciela (lub zostaje zajęta przez
-    party); obrona garnizonu → party atakujące znika; szczegóły rozstrzygnie DESIGN
-    przy realizacji.
+- [~] **BW.2** Zapis wyniku bitwy party↔osada na mapę (`WorldMap.apply_settlement_battle_result`).
+  - AC: czyste przejście przyjmuje regiony party (`source`) i osady (`destination`)
+    oraz `BattleResult`, zwraca nową `WorldMap`; walidacja jak w
+    `start_settlement_battle` (regiony na mapie, różne, sąsiednie, `source` z party,
+    `destination` z osadą). `ATTACKER_WIN`: osada zmienia `owner_id` na `owner_id`
+    party atakującej, a party przechodzi z `source` do `destination` (zajęty przez
+    inne party `destination` jest odrzucany). `DEFENDER_WIN`: party atakujące znika
+    z `source`, osada bez zmian. `DRAW`: party atakujące znika z `source`, osada bez
+    zmian. Mapa, osady i garnizony wejściowe niezmienione; determinizm. Rekonstrukcja
+    ocalałych i strat garnizonu świadomie odłożona do BW.3.
 - [ ] **BW.3** Rekonstrukcja ocalałych z raportu bitwy do party na mapie.
   - AC: po bitwie party na mapie zawiera tylko ocalałych (aktywni + ogłuszeni)
     z zachowanymi ranami/doświadczeniem z raportu; polegli usunięci.

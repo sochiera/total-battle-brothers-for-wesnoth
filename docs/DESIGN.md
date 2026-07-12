@@ -70,6 +70,22 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   bez zmian składu** — rekonstrukcja ocalałych (usunięcie poległych, przeniesienie
   ran i doświadczenia z raportu) dochodzi w BW.3. Zapis wyniku party↔osada
   (zmiana właściciela/zajęcie osady) dochodzi w BW.2.
+- **ROZSTRZYGNIĘTE (BW.2, wynik bitwy party↔osada na mapie):** po rozstrzygnięciu
+  szturmu party na garnizon osady czyste przejście
+  `WorldMap.apply_settlement_battle_result(source, destination, result)` zapisuje
+  skutek na mapę. Walidacja jak w `start_settlement_battle` (regiony na mapie,
+  różne, sąsiednie, `source` z party, `destination` z osadą). `ATTACKER_WIN`
+  (**podbój**): osada w `destination` zmienia `owner_id` na `owner_id` party
+  atakującej, a samo party atakujące przechodzi z `source` do `destination`
+  (zajmuje zdobyty region); jeśli `destination` jest już zajęty przez inne party,
+  przejście jest odrzucane (nie da się wprowadzić zdobywcy na zajęty region).
+  `DEFENDER_WIN`: party atakujące znika z `source`, osada (właściciel i garnizon)
+  zostaje bez zmian. `DRAW`: party atakujące znika z `source`, osada zostaje bez
+  zmian — na tym etapie ślad na mapie jest **taki sam** jak przy `DEFENDER_WIN`,
+  bo straty wybitego garnizonu to domena BW.3. Mapa, osady i garnizony wejściowe
+  pozostają niezmienione. Skład garnizonu **nie** jest redukowany ani czyszczony —
+  rekonstrukcja ocalałych (usunięcie poległych, rany, doświadczenie zarówno dla
+  party, jak i dla garnizonu) dochodzi w BW.3.
 - **ROZSTRZYGNIĘTE (M5.3b1, minimalny kontakt party↔osada):** jawne rozpoczęcie
   starcia party z garnizonem osady w bezpośrednio sąsiednim regionie tworzy nowy
   `HexBattle`, nie mutując mapy, party, osady ani garnizonu. Bohater i podkomendni
