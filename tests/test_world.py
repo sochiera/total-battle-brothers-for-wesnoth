@@ -615,6 +615,91 @@ def test_apply_party_battle_result_rejects_invalid_contact(
         )
 
 
+def test_resolve_party_battle_moves_attacking_survivors_after_win():
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(
+        Unit(training=5, equipment=4),
+        [Unit(equipment=1), Unit(equipment=4)],
+        owner_id="north",
+    )
+    defender = Party(Unit(equipment=3), [Unit(equipment=3)], owner_id="south")
+    world = WorldMap(
+        [camp, vale], [(camp, vale)], parties={camp: attacker, vale: defender}
+    )
+
+    resolved = world.resolve_party_battle(
+        camp, vale, Rng(2), move_points=1, morale=100
+    )
+
+    survivors = resolved.party_at(vale)
+    assert resolved.party_at(camp) is None
+    assert survivors.owner_id == "north"
+    assert len((survivors.hero, *survivors.units)) < len(
+        (attacker.hero, *attacker.units)
+    )
+    assert all(
+        any(unit is original for original in (attacker.hero, *attacker.units))
+        for unit in (survivors.hero, *survivors.units)
+    )
+    assert all(unit is not attacker.units[0] for unit in survivors.units)
+
+
+def test_resolve_party_battle_leaves_defending_survivors_after_win():
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(Unit(equipment=1), owner_id="north")
+    defender = Party(Unit(training=5, equipment=12), owner_id="south")
+    world = WorldMap(
+        [camp, vale], [(camp, vale)], parties={camp: attacker, vale: defender}
+    )
+
+    resolved = world.resolve_party_battle(camp, vale, Rng(4))
+
+    assert resolved.party_at(camp) is None
+    assert resolved.party_at(vale).owner_id == "south"
+
+
+def test_resolve_party_battle_is_deterministic_and_does_not_mutate_world():
+    camp = Region("Camp")
+    vale = Region("Vale")
+    settlement = Settlement("Oakrest", 3, garrison=(Unit(),), owner_id="south")
+    attacker = Party(Unit(equipment=5), [Unit(equipment=2)], "north")
+    defender = Party(Unit(equipment=4), [Unit(equipment=3)], "south")
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        settlements={vale: settlement},
+        parties={camp: attacker, vale: defender},
+    )
+
+    first = world.resolve_party_battle(camp, vale, Rng(12))
+    second = world.resolve_party_battle(camp, vale, Rng(12))
+
+    assert first == second
+    assert world.party_at(camp) is attacker
+    assert world.party_at(vale) is defender
+    assert world.settlement_at(vale) is settlement
+    assert first.settlement_at(vale) is settlement
+    assert first.settlement_at(vale).garrison is settlement.garrison
+
+
+def test_resolve_party_battle_propagates_start_battle_validation():
+    camp = Region("Camp")
+    vale = Region("Vale")
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        parties={
+            camp: Party(Unit(), owner_id="north"),
+            vale: Party(Unit(), owner_id="north"),
+        },
+    )
+
+    with pytest.raises(ValueError, match="different owners"):
+        world.resolve_party_battle(camp, vale, Rng(1))
+
+
 def test_start_settlement_battle_deploys_party_and_garrison_in_deterministic_rows():
     camp = Region("Camp")
     vale = Region("Vale")

@@ -8,6 +8,7 @@ from tbb.battle import BattleResult, BattleSide, HexBattle
 from tbb.battlefield import Battlefield
 from tbb.hex import Hex
 from tbb.party import Party
+from tbb.rng import Rng
 from tbb.settlement import Settlement
 
 
@@ -224,6 +225,21 @@ class WorldMap:
             self.connections,
             self.settlements,
             parties,
+        )
+
+    def resolve_party_battle(
+        self,
+        source: Region,
+        destination: Region,
+        rng: Rng,
+        move_points: int = 1,
+        morale: int = 0,
+    ) -> "WorldMap":
+        """Play an adjacent party battle and apply its result to the world."""
+        battle = self.start_battle(source, destination)
+        resolved = battle.auto_resolve(move_points, morale, rng)
+        return self.apply_party_battle_result(
+            source, destination, resolved.result(), battle=resolved
         )
 
     def start_settlement_battle(

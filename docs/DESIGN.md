@@ -70,6 +70,14 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   bez zmian składu** — rekonstrukcja ocalałych (usunięcie poległych, przeniesienie
   ran i doświadczenia z raportu) dochodzi w BW.3. Zapis wyniku party↔osada
   (zmiana właściciela/zajęcie osady) dochodzi w BW.2.
+- **ROZSTRZYGNIĘTE (BM.1, rozstrzygnięcie kontaktu party↔party):** czyste
+  przejście `WorldMap.resolve_party_battle()` składa rozpoczęcie bitwy,
+  automatyczną rozgrywkę i zapis jej wyniku na mapie. Zwycięskie party zajmuje
+  lub utrzymuje region już ze składem ograniczonym do ocalałych; przy remisie oba
+  party znikają. Walidacja wrogiego, sąsiedniego kontaktu pozostaje wspólna ze
+  `start_battle`, a mapa wejściowa, osady i garnizony nie są mutowane.
+  `move_points` i `morale` są na tym etapie jednolitymi wartościami
+  placeholderowymi dla wszystkich jednostek (domyślnie odpowiednio `1` i `0`).
 - **ROZSTRZYGNIĘTE (BW.2, wynik bitwy party↔osada na mapie):** po rozstrzygnięciu
   szturmu party na garnizon osady czyste przejście
   `WorldMap.apply_settlement_battle_result(source, destination, result)` zapisuje

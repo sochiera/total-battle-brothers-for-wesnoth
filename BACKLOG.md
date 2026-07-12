@@ -273,7 +273,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > mapę (z rekonstrukcją ocalałych). Brakuje **jednego czystego przejścia, które je składa**
 > — bez niego strategiczna tura potrafi rozpocząć bitwę, ale nigdy jej nie rozstrzyga.
 > To twardy warunek AI (A7.1) i pętli MVP (A7.2). Dzielimy na party↔party i party↔osada.
-- [ ] **BM.1** Rozstrzygnięcie kontaktu party↔party na mapie (`WorldMap.resolve_party_battle`).
+- [x] **BM.1** Rozstrzygnięcie kontaktu party↔party na mapie (`WorldMap.resolve_party_battle`).
   - AC: czyste przejście `resolve_party_battle(source, destination, rng, move_points, morale)`
     składa `start_battle` → `auto_resolve` → `apply_party_battle_result(..., battle=resolved)`
     i zwraca nową `WorldMap`. Walidacja kontaktu delegowana do `start_battle` (regiony na
