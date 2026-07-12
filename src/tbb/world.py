@@ -10,6 +10,7 @@ from tbb.hex import Hex
 from tbb.party import Party
 from tbb.rng import Rng
 from tbb.settlement import Settlement
+from tbb.unit import Unit
 
 
 @dataclass(frozen=True)
@@ -111,6 +112,27 @@ class WorldMap:
             self.connections,
             settlements,
             self.parties,
+        )
+
+    def muster_party(self, region: Region, hero: Unit) -> "WorldMap":
+        """Muster a settlement's garrison and place it in the same region."""
+        if region not in self._neighbors:
+            raise ValueError("region is outside the world map")
+        if region not in self.settlements:
+            raise ValueError("region has no settlement")
+        if region in self.parties:
+            raise ValueError("region is already occupied by a party")
+
+        party, settlement = self.settlements[region].muster(hero)
+        settlements = dict(self.settlements)
+        settlements[region] = settlement
+        parties = dict(self.parties)
+        parties[region] = party
+        return WorldMap(
+            self.regions,
+            self.connections,
+            settlements,
+            parties,
         )
 
     def place_party(self, party: Party, region: Region) -> "WorldMap":

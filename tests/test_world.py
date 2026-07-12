@@ -277,6 +277,89 @@ def test_party_and_settlement_can_share_a_region():
     assert world.party_at(vale) == party
 
 
+def test_muster_party_atomically_replaces_settlement_and_places_garrison():
+    vale = Region("Vale")
+    hero = Unit(training=4)
+    garrison = (Unit(equipment=1), Unit(experience=2))
+    settlement = Settlement(
+        "Oakrest",
+        population=6,
+        occupied=3,
+        garrison=garrison,
+        owner_id="north",
+    )
+    world = WorldMap([vale], settlements={vale: settlement})
+
+    mustered = world.muster_party(vale, hero)
+
+    assert mustered.party_at(vale) == Party(hero, garrison, owner_id="north")
+    assert mustered.party_at(vale).units == garrison
+    assert mustered.settlement_at(vale) == Settlement(
+        "Oakrest",
+        population=4,
+        occupied=1,
+        garrison=(),
+        owner_id="north",
+    )
+
+
+def test_muster_party_does_not_mutate_or_duplicate_input_state():
+    vale = Region("Vale")
+    garrison = (Unit(training=1), Unit(training=2))
+    settlement = Settlement(
+        "Oakrest", population=4, occupied=2, garrison=garrison
+    )
+    world = WorldMap([vale], settlements={vale: settlement})
+
+    mustered = world.muster_party(vale, Unit(training=3))
+
+    assert world.settlement_at(vale) is settlement
+    assert world.settlement_at(vale).garrison == garrison
+    assert world.party_at(vale) is None
+    assert mustered.settlement_at(vale) is not settlement
+    assert mustered.settlement_at(vale).garrison == ()
+    assert mustered.party_at(vale).units == garrison
+    assert not set(mustered.settlement_at(vale).garrison) & set(
+        mustered.party_at(vale).units
+    )
+
+
+@pytest.mark.parametrize("case", ["unknown", "no-settlement", "occupied"])
+def test_muster_party_rejects_invalid_region_state(case):
+    vale = Region("Vale")
+    empty = Region("Empty")
+    settlement = Settlement("Oakrest", population=1)
+    parties = {vale: Party(Unit())} if case == "occupied" else {}
+    world = WorldMap(
+        [vale, empty], settlements={vale: settlement}, parties=parties
+    )
+    region = Region("Unknown") if case == "unknown" else (
+        empty if case == "no-settlement" else vale
+    )
+
+    with pytest.raises(ValueError):
+        world.muster_party(region, Unit())
+
+    assert world.settlement_at(vale) is settlement
+    assert world.settlement_at(vale).garrison == ()
+    assert dict(world.parties) == parties
+
+
+def test_muster_party_with_empty_garrison_only_places_hero():
+    vale = Region("Vale")
+    hero = Unit(training=2)
+    settlement = Settlement(
+        "Oakrest", population=5, occupied=2, owner_id="north"
+    )
+    world = WorldMap([vale], settlements={vale: settlement})
+
+    mustered = world.muster_party(vale, hero)
+
+    assert mustered.party_at(vale) == Party(hero, owner_id="north")
+    assert mustered.settlement_at(vale) == settlement
+    assert mustered.settlement_at(vale) is not settlement
+
+
 def test_move_party_to_adjacent_region_preserves_input_and_settlement():
     camp = Region("Camp")
     vale = Region("Vale")

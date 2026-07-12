@@ -296,8 +296,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > mechanicznego szwu**: przejścia z garnizonu osady do party na mapie. Rekrutacja
 > (`Settlement.recruit`) wkłada jednostki do garnizonu, a party (M5.2a) tworzy się
 > osobno — nic nie łączy tych dwóch. Muster domyka ten szew i jest prostym,
-> czystym prymitywem przed logiką AI. Osadzenie party na mapie to nadal osobny
-> `WorldMap.place_party`.
+> czystym prymitywem przed logiką AI.
 - [x] **MU.1** Wystawienie party z garnizonu osady (`Settlement.muster(hero)`).
   - AC: czyste przejście (bez RNG, bez mutacji wejścia) zwraca krotkę
     `(Party, Settlement)`. Nowe party ma podanego `hero`, `units` = jednostki
@@ -309,7 +308,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     niebędący `Unit` odrzucony (`TypeError`, delegowane do `Party`). Pusty garnizon
     → party z samym bohaterem, a osada bez zmian populacji. Stan wejściowy osady
     pozostaje niezmieniony; determinizm.
-- [~] **MU.2** Atomowe wystawienie party z osady na mapę (`WorldMap.muster_party`).
+- [x] **MU.2** Atomowe wystawienie party z osady na mapę (`WorldMap.muster_party`).
   - AC: czyste przejście przyjmuje region osady i bohatera, składa
     `Settlement.muster(hero)` z umieszczeniem party w tym samym regionie oraz zwraca
     nową `WorldMap`; osada na mapie ma opróżniony garnizon i skorygowaną populację,
