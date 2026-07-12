@@ -11,6 +11,7 @@ from tbb.ai import (
     muster_duchy_party,
     nearest_enemy_settlement,
     next_march_step,
+    take_duchy_military_action,
 )
 from tbb.battlefield import Battlefield
 from tbb.battle import BattleReport, BattleResult, BattleSide, BattleSideReport, HexBattle
@@ -52,6 +53,7 @@ __all__ = [
     "muster_duchy_party",
     "nearest_enemy_settlement",
     "next_march_step",
+    "take_duchy_military_action",
     "Resources",
     "Region",
     "Rng",

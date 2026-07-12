@@ -17,6 +17,7 @@ from tbb import (
     muster_duchy_party,
     nearest_enemy_settlement,
     next_march_step,
+    take_duchy_military_action,
 )
 
 
@@ -393,3 +394,103 @@ def test_muster_duchy_party_is_noop_without_eligible_source(case):
 
 def test_muster_duchy_party_transition_is_publicly_exported():
     assert tbb.muster_duchy_party is muster_duchy_party
+
+
+def test_duchy_military_action_musters_marches_once_and_assaults():
+    home, road, target = map(Region, ("Home", "Road", "Target"))
+    hero = Unit(training=5, equipment=6)
+    guard = Unit(equipment=2)
+    home_settlement = Settlement(
+        "Home", 2, occupied=1, garrison=(guard,), owner_id="ai"
+    )
+    enemy_settlement = Settlement(
+        "Target", 1, garrison=(Unit(),), owner_id="enemy"
+    )
+    world = WorldMap(
+        [home, road, target],
+        [(home, road), (road, target)],
+        {home: home_settlement, target: enemy_settlement},
+    )
+    duchy = Duchy("ai", hero, settlements=(home_settlement,))
+
+    result = take_duchy_military_action(world, duchy, tbb.Rng(4))
+    mustered = muster_duchy_party(world, duchy)
+    marched = march_toward_nearest_enemy(mustered, home)
+    expected = assault_nearest_enemy_settlement(marched, road, tbb.Rng(4))
+
+    assert result == expected
+    assert result != marched
+
+
+def test_duchy_military_action_reuses_party_and_assaults_from_marched_position():
+    start, road, target = map(Region, ("Start", "Road", "Target"))
+    party = Party(Unit(training=5, equipment=6), owner_id="ai")
+    world = WorldMap(
+        [start, road, target],
+        [(start, road), (road, target)],
+        {target: Settlement("Target", 1, garrison=(Unit(),), owner_id="enemy")},
+        {start: party},
+    )
+    duchy = Duchy("ai", party.hero, parties=(party,))
+
+    result = take_duchy_military_action(world, duchy, tbb.Rng(8))
+    marched = march_toward_nearest_enemy(world, start)
+
+    assert result == assault_nearest_enemy_settlement(marched, road, tbb.Rng(8))
+    assert world.party_at(start) is party
+
+
+@pytest.mark.parametrize("case", ["no_hero", "no_source", "no_enemy"])
+def test_duchy_military_action_noop_does_not_use_rng_without_battle(case):
+    home = Region("Home")
+    hero = None if case == "no_hero" else Unit()
+    settlements = (
+        {home: Settlement("Home", 1, owner_id="ai")}
+        if case != "no_source"
+        else {}
+    )
+    parties = {home: Party(hero, owner_id="ai")} if case == "no_enemy" else {}
+    world = WorldMap([home], settlements=settlements, parties=parties)
+
+    assert take_duchy_military_action(world, Duchy("ai", hero), _ForbiddenRng()) is world
+
+
+def test_duchy_military_action_discards_successful_muster_without_enemy_target():
+    home = Region("Home")
+    hero = Unit()
+    garrison = (Unit(),)
+    settlement = Settlement(
+        "Home", 2, occupied=1, garrison=garrison, owner_id="ai"
+    )
+    world = WorldMap([home], settlements={home: settlement})
+
+    result = take_duchy_military_action(world, Duchy("ai", hero), _ForbiddenRng())
+
+    assert result is world
+    assert world.party_at(home) is None
+    assert world.settlement_at(home) is settlement
+    assert settlement.garrison == garrison
+
+
+def test_duchy_military_action_is_deterministic_and_preserves_inputs():
+    start, target = Region("Start"), Region("Target")
+    party = Party(Unit(equipment=5), owner_id="ai")
+    settlement = Settlement(
+        "Target", 1, garrison=(Unit(equipment=4),), owner_id="enemy"
+    )
+    world = WorldMap(
+        [start, target], [(start, target)], {target: settlement}, {start: party}
+    )
+    duchy = Duchy("ai", party.hero, parties=(party,))
+
+    first = take_duchy_military_action(world, duchy, tbb.Rng(12))
+    second = take_duchy_military_action(world, duchy, tbb.Rng(12))
+
+    assert first == second
+    assert world.party_at(start) is party
+    assert world.settlement_at(target) is settlement
+    assert duchy.parties == (party,)
+
+
+def test_duchy_military_action_is_publicly_exported():
+    assert tbb.take_duchy_military_action is take_duchy_military_action

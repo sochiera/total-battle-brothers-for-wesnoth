@@ -121,3 +121,36 @@ def assault_nearest_enemy_settlement(
     if target is None or target not in world.neighbors(start):
         return world
     return world.resolve_settlement_battle(start, target, rng)
+
+
+def take_duchy_military_action(
+    world: WorldMap, duchy: Duchy, rng: Rng
+) -> WorldMap:
+    """Muster, march once, and assault for one duchy's military action."""
+    if duchy.hero is None:
+        return world
+
+    current = muster_duchy_party(world, duchy)
+    position = _duchy_party_position(current, duchy.duchy_id)
+    if position is None:
+        return current
+    if nearest_enemy_settlement(current, position, duchy.duchy_id) is None:
+        return world
+
+    current = march_toward_nearest_enemy(current, position)
+    position = _duchy_party_position(current, duchy.duchy_id)
+    if position is None:
+        return current
+    return assault_nearest_enemy_settlement(current, position, rng)
+
+
+def _duchy_party_position(world: WorldMap, duchy_id: str) -> Region | None:
+    return next(
+        (
+            region
+            for region in world.regions
+            if (party := world.party_at(region)) is not None
+            and party.owner_id == duchy_id
+        ),
+        None,
+    )
