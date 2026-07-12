@@ -300,9 +300,14 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
     obie kategorie ściśle wg kolejności rozstawienia. Dzięki temu ocalały w **slocie 0**
     strony to wciąż bohater (rozstawiany pierwszy), co domknie identyfikację bohatera
     przy odtwarzaniu składu. Brak ocalałych → pusta krotka.
-  - **BW.3b:** czyste odtworzenie `Party` z party sprzed bitwy i ocalałych jego
-    strony (bohater = ocalały ze slotu 0; reszta jako `units`); padnięcie bohatera
-    jest osobnym przypadkiem (party bezhetmańskie / eliminacja) do rozstrzygnięcia tam.
+  - **ROZSTRZYGNIĘTE (BW.3b, odtworzenie party):**
+    `Party.reconstruct(original, survivors)` tworzy nowe party z uporządkowanych
+    ocalałych jednej strony: slot 0 staje się bohaterem, a pozostałe sloty —
+    podkomendnymi w zachowanej kolejności. `owner_id` pochodzi z party sprzed
+    bitwy, natomiast ocalali są dokładnie tymi samymi obiektami `Unit`, więc
+    zachowują rany i doświadczenie. Pusta sekwencja (brak ocalałego bohatera)
+    jest odrzucana; party bezhetmańskie lub eliminacja pozostają domeną BW.3c/D6.2.
+    Przejście nie mutuje wejść i respektuje limit 12 podkomendnych `Party`.
   - **BW.3c:** wpięcie rekonstrukcji w `apply_party_battle_result`
     i `apply_settlement_battle_result`.
 

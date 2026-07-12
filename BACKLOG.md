@@ -258,7 +258,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     kolejności, nie grupowani; strona przeciwna pominięta; brak ocalałych → pusta krotka;
     stan bitwy pozostaje niezmieniony. Dzięki kolejności rozstawienia slot 0 strony to
     bohater, co domknie identyfikację bohatera w BW.3b.
-- [~] **BW.3b** Czyste odtworzenie składu party z ocalałych (`Party.reconstruct`/helper).
+- [x] **BW.3b** Czyste odtworzenie składu party z ocalałych (`Party.reconstruct`/helper).
   - AC: z party sprzed bitwy i uporządkowanych ocalałych jego strony powstaje nowe party
     tylko z ocalałych (bohater = ocalały ze slotu 0 rozstawienia, reszta jako `units`
     z zachowaną kolejnością); polegli usunięci; rany/doświadczenie z ocalałych zachowane;

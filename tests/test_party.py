@@ -4,7 +4,7 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
-from tbb import Party, Unit
+from tbb import Battlefield, BattleSide, Hex, HexBattle, MAIMED, Party, Unit
 
 
 def test_party_accepts_hero_with_zero_or_twelve_subordinates():
@@ -66,6 +66,86 @@ def test_party_copies_units_to_tuple_and_is_immutable():
         party.units = ()
     with pytest.raises(FrozenInstanceError):
         party.owner_id = "changed"
+
+
+def test_reconstruct_uses_ordered_survivors_and_preserves_owner():
+    original = Party(Unit(), [Unit(), Unit()], owner_id="north")
+    hero = Unit(training=2)
+    first = Unit(equipment=3)
+    second = Unit(experience=4)
+
+    reconstructed = Party.reconstruct(original, [hero, first, second])
+
+    assert reconstructed is not original
+    assert reconstructed.hero is hero
+    assert reconstructed.units == (first, second)
+    assert reconstructed.owner_id == "north"
+
+
+def test_reconstruct_preserves_survivor_objects_with_wounds_and_experience():
+    original = Party(Unit(), owner_id="north")
+    wounded_hero = Unit(experience=5, wounds=(MAIMED,))
+    wounded_unit = Unit(experience=7, wounds=(MAIMED,))
+
+    reconstructed = Party.reconstruct(original, (wounded_hero, wounded_unit))
+
+    assert reconstructed.hero is wounded_hero
+    assert reconstructed.units[0] is wounded_unit
+    assert reconstructed.hero.experience == 5
+    assert reconstructed.units[0].wounds == (MAIMED,)
+
+
+def test_reconstruct_removes_units_absent_from_survivors():
+    hero = Unit(training=1)
+    survivor = Unit(training=2)
+    fallen = Unit(training=3)
+    original = Party(hero, (survivor, fallen))
+
+    reconstructed = Party.reconstruct(original, (hero, survivor))
+
+    assert reconstructed.units == (survivor,)
+    assert fallen not in reconstructed.units
+
+
+def test_reconstruct_rejects_missing_hero_and_more_than_twelve_subordinates():
+    original = Party(Unit())
+
+    with pytest.raises(ValueError):
+        Party.reconstruct(original, ())
+    with pytest.raises(ValueError):
+        Party.reconstruct(original, [Unit() for _ in range(14)])
+
+
+def test_reconstruct_accepts_side_survivors_in_deployment_order():
+    original = Party(Unit(), [Unit()], owner_id="north")
+    hero = Unit(training=2)
+    subordinate = Unit(equipment=3)
+    defender = Unit()
+    battle = HexBattle(Battlefield()).deploy(
+        hero, Hex(0, 0), BattleSide.ATTACKER
+    ).deploy(subordinate, Hex(1, 0), BattleSide.ATTACKER)
+    battle = battle.deploy(defender, Hex(2, 0), BattleSide.DEFENDER)
+
+    reconstructed = Party.reconstruct(
+        original, battle.side_survivors(BattleSide.ATTACKER)
+    )
+
+    assert reconstructed.hero is hero
+    assert reconstructed.units == (subordinate,)
+
+
+def test_reconstruct_does_not_mutate_original_or_survivor_sequence():
+    original = Party(Unit(training=1), [Unit(training=2)], owner_id="north")
+    survivors = [Unit(training=3), Unit(training=4)]
+    original_state = (original.hero, original.units, original.owner_id)
+    survivors_before = list(survivors)
+
+    first = Party.reconstruct(original, survivors)
+    second = Party.reconstruct(original, survivors)
+
+    assert first == second
+    assert (original.hero, original.units, original.owner_id) == original_state
+    assert survivors == survivors_before
 
 
 def test_public_api_exports_party():
