@@ -215,7 +215,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     `Hex.distance`, remis rozstrzygany deterministycznie kolejnością rozstawienia;
     brak wrogów → `None`; pusty heks źródłowy odrzucony; zapytanie nie mutuje stanu
     i nie używa RNG.
-- [~] **BD.2** Tura pojedynczej jednostki: podejście do najbliższego wroga + atak wręcz.
+- [x] **BD.2** Tura pojedynczej jednostki: podejście do najbliższego wroga + atak wręcz.
   - AC: jednostka rusza się najtańszą ścieżką w budżecie ku sąsiedztwu celu z BD.1,
     a jeśli już sąsiaduje — wykonuje `melee_attack`; przy 0 HP celu rozstrzyga
     `resolve_defeat`; jeden rzut RNG na atak; determinizm; niemutowalność wejścia.

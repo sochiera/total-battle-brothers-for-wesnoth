@@ -843,3 +843,137 @@ def test_award_experience_is_repeatable_without_mutating_battle_or_base_report()
     assert first.attacker.active == (replace(survivor, experience=8),)
     assert battle.report() == base_report
     assert dict(battle.units) == units_before
+
+
+def test_take_unit_turn_attacks_adjacent_enemy_with_seeded_hit():
+    attacker, target = Hex(0, 0), Hex(1, 0)
+    unit = Unit(equipment=3)
+    battle = HexBattle(Battlefield()).deploy(unit, attacker, BattleSide.ATTACKER)
+    battle = battle.deploy(Unit(), target, BattleSide.DEFENDER)
+
+    result = battle.take_unit_turn(attacker, move_points=1, morale=0, rng=Rng(1))
+
+    assert result.current_hp_at(target) == battle.current_hp_at(target) - unit.damage
+
+
+@pytest.mark.parametrize(("seed", "dies"), [(4, True), (1, False)])
+def test_take_unit_turn_resolves_enemy_reduced_to_zero_hp(seed, dies):
+    attacker, target = Hex(0, 0), Hex(1, 0)
+    defeated = Unit()
+    battle = HexBattle(Battlefield()).deploy(
+        Unit(equipment=defeated.hp), attacker, BattleSide.ATTACKER
+    ).deploy(defeated, target, BattleSide.DEFENDER)
+
+    result = battle.take_unit_turn(attacker, move_points=0, morale=100, rng=Rng(seed))
+
+    if dies:
+        assert result.unit_at(target) is None
+        assert result._fallen == ((BattleSide.DEFENDER, defeated),)
+    else:
+        assert result.unit_at(target).stunned is True
+        assert result.unit_at(target).wounds == (BRUISE,)
+
+
+def test_take_unit_turn_moves_one_step_closer_within_budget():
+    source, enemy = Hex(0, 0), Hex(3, 0)
+    unit = Unit(training=2)
+    ally = Unit(equipment=1)
+    battle = HexBattle(Battlefield()).deploy(unit, source, BattleSide.ATTACKER)
+    battle = battle.deploy(ally, Hex(-1, 0), BattleSide.ATTACKER)
+    battle = battle.deploy(Unit(), enemy, BattleSide.DEFENDER)
+
+    result = battle.take_unit_turn(source, move_points=1, morale=0, rng=Rng(7))
+    moved_to = next(position for position, deployed in result.units.items() if deployed == unit)
+
+    assert moved_to.distance(enemy) == 2
+    assert moved_to in battle.reachable(source, 1)
+    assert result.unit_at(Hex(-1, 0)) == ally
+    assert result.unit_at(enemy) == battle.unit_at(enemy)
+
+
+def test_take_unit_turn_breaks_movement_tie_by_distance_then_coordinates():
+    source, enemy = Hex(0, 0), Hex(3, -1)
+    battle = HexBattle(Battlefield()).deploy(Unit(), source, BattleSide.ATTACKER)
+    battle = battle.deploy(Unit(), enemy, BattleSide.DEFENDER)
+
+    destinations = {
+        next(position for position in battle.take_unit_turn(
+            source, 1, 0, Rng(seed)
+        ).units if position != enemy)
+        for seed in range(5)
+    }
+
+    assert destinations == {Hex(1, -1)}
+
+
+def test_take_unit_turn_with_zero_budget_is_no_op():
+    source = Hex(0, 0)
+    battle = HexBattle(Battlefield()).deploy(Unit(), source, BattleSide.ATTACKER)
+    battle = battle.deploy(Unit(), Hex(3, 0), BattleSide.DEFENDER)
+
+    assert battle.take_unit_turn(source, 0, 0, Rng(1)) is battle
+
+
+def test_take_unit_turn_when_fully_blocked_is_no_op():
+    source = Hex(0, 0)
+    battle = HexBattle(Battlefield()).deploy(Unit(), source, BattleSide.ATTACKER)
+    for neighbor in source.neighbors():
+        battle = battle.deploy(Unit(), neighbor, BattleSide.ATTACKER)
+    battle = battle.deploy(Unit(), Hex(3, 0), BattleSide.DEFENDER)
+
+    assert battle.take_unit_turn(source, 3, 0, Rng(1)) is battle
+
+
+def test_take_unit_turn_when_reachable_hexes_do_not_get_closer_is_no_op():
+    source, enemy = Hex(0, 0), Hex(3, 0)
+    battle = HexBattle(Battlefield()).deploy(Unit(), source, BattleSide.ATTACKER)
+    battle = battle.deploy(Unit(), Hex(1, 0), BattleSide.ATTACKER)
+    battle = battle.deploy(Unit(), enemy, BattleSide.DEFENDER)
+
+    reachable = battle.reachable(source, move_points=1)
+
+    assert reachable
+    assert all(hex_.distance(enemy) >= source.distance(enemy) for hex_ in reachable)
+    assert battle.take_unit_turn(source, 1, 0, Rng(1)) is battle
+
+
+def test_take_unit_turn_without_enemy_is_no_op():
+    source = Hex(0, 0)
+    battle = HexBattle(Battlefield()).deploy(Unit(), source, BattleSide.ATTACKER)
+
+    assert battle.take_unit_turn(source, 2, 0, Rng(1)) is battle
+
+
+@pytest.mark.parametrize("inactive", [Unit(stunned=True), Unit()])
+def test_take_unit_turn_for_inactive_unit_is_no_op(inactive):
+    source = Hex(0, 0)
+    battle = HexBattle(Battlefield()).deploy(inactive, source, BattleSide.ATTACKER)
+    battle = battle.deploy(Unit(), Hex(1, 0), BattleSide.DEFENDER)
+    if not inactive.stunned:
+        battle = battle.damage(source, inactive.hp)
+
+    assert battle.take_unit_turn(source, 1, 0, Rng(1)) is battle
+
+
+def test_take_unit_turn_rejects_empty_source():
+    battle = HexBattle(Battlefield()).deploy(Unit(), Hex(0, 0), BattleSide.ATTACKER)
+
+    with pytest.raises(ValueError):
+        battle.take_unit_turn(Hex(1, 0), 1, 0, Rng(1))
+
+
+def test_take_unit_turn_is_deterministic_and_does_not_mutate_input():
+    source, target = Hex(0, 0), Hex(1, 0)
+    battle = HexBattle(Battlefield()).deploy(
+        Unit(equipment=3), source, BattleSide.ATTACKER
+    ).deploy(Unit(), target, BattleSide.DEFENDER)
+    before = HexBattle(
+        battle.battlefield, dict(battle.units), dict(battle._current_hp),
+        dict(battle.sides), battle._fallen, battle._deployment_order,
+    )
+
+    first = battle.take_unit_turn(source, 1, 0, Rng(1))
+    second = battle.take_unit_turn(source, 1, 0, Rng(1))
+
+    assert first == second
+    assert battle == before

@@ -240,6 +240,15 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   i niezależny od kolejności iteracji mapy. Brak wrogich celów zwraca `None`; pusty
   heks źródłowy jest błędem. To pierwszy klocek drivera bitwy (BD.2–BD.3): pojedyncza
   tura jednostki i pełna auto-rozgrywka do rozstrzygnięcia dochodzą osobno.
+- **ROZSTRZYGNIĘTE (BD.2, tura pojedynczej jednostki):** aktywna jednostka wybiera
+  najbliższego wroga według BD.1. Jeśli już z nim sąsiaduje, wykonuje dokładnie
+  jeden atak wręcz; trafienie sprowadzające cel do 0 HP natychmiast uruchamia
+  osobne rozstrzygnięcie śmierci albo ogłuszenia. W przeciwnym razie jednostka
+  wybiera spośród heksów osiągalnych w budżecie ruchu po najtańszej ścieżce ten
+  o minimalnym kluczu `(odległość od celu, q, r)` i przesuwa się tylko wtedy,
+  gdy ściśle zmniejsza to dystans. Jednostka w turze **albo atakuje, albo się
+  rusza**. Brak aktywności, wroga lub możliwości zbliżenia jest no-opem; przejście
+  jest niemutowalne i deterministyczne przy ustalonym RNG.
 
 ## 4. Osady, populacja, ekonomia
 - **Surowce (dokładnie dwa, celowo prosto):** **pszenica** i **złoto**.

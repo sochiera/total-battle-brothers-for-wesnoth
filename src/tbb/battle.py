@@ -112,6 +112,37 @@ class HexBattle:
         )
         return min(enemies, key=position.distance, default=None)
 
+    def take_unit_turn(
+        self, position: Hex, move_points: int, morale: int, rng: Rng
+    ) -> "HexBattle":
+        """Move toward the nearest enemy or attack it when already adjacent."""
+        unit = self.unit_at(position)
+        if unit is None:
+            raise ValueError("cannot take a turn from an empty hex")
+        if self.current_hp_at(position) == 0 or unit.stunned:
+            return self
+
+        enemy = self.nearest_enemy(position)
+        if enemy is None:
+            return self
+        if position.distance(enemy) == 1:
+            attacked = self.melee_attack(position, enemy, morale, rng)
+            if attacked.current_hp_at(enemy) == 0 and not attacked.units[enemy].stunned:
+                return attacked.resolve_defeat(enemy, rng)
+            return attacked
+
+        reachable = self.reachable(position, move_points)
+        if not reachable:
+            return self
+        destination = min(
+            reachable, key=lambda candidate: (
+                candidate.distance(enemy), candidate.q, candidate.r
+            )
+        )
+        if destination.distance(enemy) >= position.distance(enemy):
+            return self
+        return self.move(position, destination, move_points)
+
     def result(self) -> BattleResult | None:
         """Return the resolved result, or ``None`` while both sides are active."""
         active_sides = {
