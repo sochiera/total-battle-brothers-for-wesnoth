@@ -249,6 +249,16 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   gdy ściśle zmniejsza to dystans. Jednostka w turze **albo atakuje, albo się
   rusza**. Brak aktywności, wroga lub możliwości zbliżenia jest no-opem; przejście
   jest niemutowalne i deterministyczne przy ustalonym RNG.
+- **ROZSTRZYGNIĘTE (BD.3, pełna auto-rozgrywka):** `HexBattle.auto_resolve()`
+  wykonuje rundy aż do rozstrzygnięcia bitwy albo osiągnięcia bezpiecznika
+  `max_rounds` (domyślnie 1000); limit zwraca bieżący, także nierozstrzygnięty stan
+  bez wyjątku. Na początku każdej rundy utrwala snapshot bieżącej kolejności
+  rozstawienia i wywołuje `take_unit_turn()` kolejno dla nadal obecnych, aktywnych
+  jednostek spod tych pozycji; pozycje opuszczone wskutek ruchu, śmierci lub
+  ogłuszenia są pomijane. Jednolite `move_points` i `morale` dotyczą tymczasowo
+  wszystkich jednostek. Ustalony stan i seed RNG dają ten sam przebieg i wynik,
+  a każde przejście tworzy nowy stan, więc bitwa wejściowa pozostaje niezmieniona.
+  Bitwa już rozstrzygnięta jest natychmiastowym no-opem.
 
 ## 4. Osady, populacja, ekonomia
 - **Surowce (dokładnie dwa, celowo prosto):** **pszenica** i **złoto**.

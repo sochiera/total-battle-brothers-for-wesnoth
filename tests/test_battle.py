@@ -977,3 +977,67 @@ def test_take_unit_turn_is_deterministic_and_does_not_mutate_input():
 
     assert first == second
     assert battle == before
+
+
+def test_auto_resolve_finishes_seeded_duel_and_produces_report():
+    attacker, defender = Hex(0, 0), Hex(1, 0)
+    battle = HexBattle(Battlefield()).deploy(
+        Unit(equipment=10), attacker, BattleSide.ATTACKER
+    ).deploy(Unit(), defender, BattleSide.DEFENDER)
+
+    resolved = battle.auto_resolve(move_points=1, morale=100, rng=Rng(4))
+
+    assert resolved.result() is BattleResult.ATTACKER_WIN
+    assert resolved.report().result is BattleResult.ATTACKER_WIN
+
+
+def test_auto_resolve_is_deterministic_for_the_same_seed():
+    battle = HexBattle(Battlefield()).deploy(
+        Unit(equipment=3), Hex(0, 0), BattleSide.ATTACKER
+    ).deploy(Unit(equipment=2), Hex(3, 0), BattleSide.DEFENDER)
+
+    first = battle.auto_resolve(move_points=1, morale=0, rng=Rng(12))
+    second = battle.auto_resolve(move_points=1, morale=0, rng=Rng(12))
+
+    assert first == second
+    assert first.result() is not None
+
+
+def test_auto_resolve_stops_after_maximum_rounds_before_resolution():
+    battle = HexBattle(Battlefield()).deploy(
+        Unit(equipment=1), Hex(0, 0), BattleSide.ATTACKER
+    ).deploy(Unit(equipment=1), Hex(4, 0), BattleSide.DEFENDER)
+
+    partial = battle.auto_resolve(
+        move_points=1, morale=0, rng=Rng(1), max_rounds=1
+    )
+
+    assert partial.result() is None
+
+
+def test_auto_resolve_does_not_mutate_the_input_battle():
+    attacker, defender = Hex(0, 0), Hex(1, 0)
+    battle = HexBattle(Battlefield()).deploy(
+        Unit(equipment=10), attacker, BattleSide.ATTACKER
+    ).deploy(Unit(), defender, BattleSide.DEFENDER)
+    units_before = dict(battle.units)
+    hp_before = {position: battle.current_hp_at(position) for position in battle.units}
+
+    battle.auto_resolve(move_points=1, morale=100, rng=Rng(4))
+
+    assert dict(battle.units) == units_before
+    assert {
+        position: battle.current_hp_at(position) for position in battle.units
+    } == hp_before
+    assert battle.result() is None
+
+
+def test_auto_resolve_is_no_op_for_an_already_resolved_battle():
+    battle = HexBattle(Battlefield()).deploy(
+        Unit(), Hex(0, 0), BattleSide.ATTACKER
+    )
+
+    resolved = battle.auto_resolve(move_points=1, morale=0, rng=Rng(1))
+
+    assert resolved is battle
+    assert resolved.result() is BattleResult.ATTACKER_WIN

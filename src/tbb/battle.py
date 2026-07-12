@@ -143,6 +143,32 @@ class HexBattle:
             return self
         return self.move(position, destination, move_points)
 
+    def auto_resolve(
+        self,
+        move_points: int,
+        morale: int,
+        rng: Rng,
+        max_rounds: int = 1000,
+    ) -> "HexBattle":
+        """Play deployment-ordered rounds until resolution or the round limit."""
+        battle = self
+        rounds = 0
+        while battle.result() is None and rounds < max_rounds:
+            turn_positions = battle._deployment_order
+            for position in turn_positions:
+                if battle.result() is not None:
+                    break
+                unit = battle.unit_at(position)
+                if (
+                    unit is None
+                    or battle.current_hp_at(position) == 0
+                    or unit.stunned
+                ):
+                    continue
+                battle = battle.take_unit_turn(position, move_points, morale, rng)
+            rounds += 1
+        return battle
+
     def result(self) -> BattleResult | None:
         """Return the resolved result, or ``None`` while both sides are active."""
         active_sides = {
