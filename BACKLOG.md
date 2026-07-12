@@ -251,14 +251,14 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > **BW.3 — rekonstrukcja ocalałych.** Rozbite na małe kroki: najpierw uporządkowana
 > kwerenda ocalałych strony (klocek), potem czyste odtworzenie składu party z zachowaniem
 > bohatera, na końcu wpięcie w `apply_*_battle_result` na mapie.
-- [~] **BW.3a** Uporządkowana kwerenda ocalałych strony bitwy (`HexBattle.side_survivors`).
+- [x] **BW.3a** Uporządkowana kwerenda ocalałych strony bitwy (`HexBattle.side_survivors`).
   - AC: czyste zapytanie (bez RNG, bez mutacji) zwraca jednostki danej strony, które
     **pozostały na planszy** (aktywne + ogłuszone; polegli usunięci), w **kolejności
     rozstawienia** (`_deployment_order`) — aktywni i ogłuszeni **przeplatani** wg
     kolejności, nie grupowani; strona przeciwna pominięta; brak ocalałych → pusta krotka;
     stan bitwy pozostaje niezmieniony. Dzięki kolejności rozstawienia slot 0 strony to
     bohater, co domknie identyfikację bohatera w BW.3b.
-- [ ] **BW.3b** Czyste odtworzenie składu party z ocalałych (`Party.reconstruct`/helper).
+- [~] **BW.3b** Czyste odtworzenie składu party z ocalałych (`Party.reconstruct`/helper).
   - AC: z party sprzed bitwy i uporządkowanych ocalałych jego strony powstaje nowe party
     tylko z ocalałych (bohater = ocalały ze slotu 0 rozstawienia, reszta jako `units`
     z zachowaną kolejnością); polegli usunięci; rany/doświadczenie z ocalałych zachowane;
