@@ -6,6 +6,7 @@ import pytest
 import tbb
 
 from tbb import (
+    Duchy,
     Party,
     Region,
     Settlement,
@@ -13,6 +14,7 @@ from tbb import (
     WorldMap,
     assault_nearest_enemy_settlement,
     march_toward_nearest_enemy,
+    muster_duchy_party,
     nearest_enemy_settlement,
     next_march_step,
 )
@@ -324,3 +326,70 @@ def test_assault_is_deterministic_and_preserves_input_objects():
 
 def test_assault_transition_is_publicly_exported():
     assert tbb.assault_nearest_enemy_settlement is assault_nearest_enemy_settlement
+
+
+def test_muster_duchy_party_moves_hero_and_garrison_without_mutating_input():
+    home = Region("Home")
+    hero = Unit(training=4)
+    garrison = (Unit(equipment=1), Unit(experience=2))
+    settlement = Settlement(
+        "Home", population=3, occupied=2, garrison=garrison, owner_id="ai"
+    )
+    world = WorldMap([home], settlements={home: settlement})
+    duchy = Duchy("ai", hero, settlements=(settlement,))
+
+    mustered = muster_duchy_party(world, duchy)
+
+    assert mustered.party_at(home) == Party(hero, garrison, owner_id="ai")
+    assert mustered.party_at(home).units == garrison
+    assert mustered.settlement_at(home).garrison == ()
+    assert world.settlement_at(home) is settlement
+    assert world.party_at(home) is None
+    assert settlement.garrison == garrison
+    assert duchy.hero is hero
+    assert duchy.settlements == (settlement,)
+
+
+def test_muster_duchy_party_tie_uses_world_region_order():
+    first, second = Region("First"), Region("Second")
+    first_settlement = Settlement("First", 1, owner_id="ai")
+    second_settlement = Settlement("Second", 1, owner_id="ai")
+    world = WorldMap(
+        [first, second],
+        settlements={second: second_settlement, first: first_settlement},
+    )
+
+    mustered = muster_duchy_party(world, Duchy("ai", Unit()))
+
+    assert mustered.party_at(first) is not None
+    assert mustered.party_at(second) is None
+
+
+def test_muster_duchy_party_is_noop_when_party_already_exists():
+    home, camp = Region("Home"), Region("Camp")
+    hero = Unit(training=3)
+    garrison = (Unit(),)
+    settlement = Settlement("Home", 2, 1, garrison=garrison, owner_id="ai")
+    party = Party(hero, owner_id="ai")
+    world = WorldMap(
+        [home, camp], settlements={home: settlement}, parties={camp: party}
+    )
+
+    assert muster_duchy_party(world, Duchy("ai", hero)) is world
+    assert world.settlement_at(home).garrison == garrison
+
+
+@pytest.mark.parametrize("case", ["no_hero", "no_own_settlement", "all_occupied"])
+def test_muster_duchy_party_is_noop_without_eligible_source(case):
+    own, other = Region("Own"), Region("Other")
+    hero = None if case == "no_hero" else Unit()
+    owner = "enemy" if case == "no_own_settlement" else "ai"
+    settlement = Settlement("Seat", 1, owner_id=owner)
+    parties = {own: Party(Unit(), owner_id="enemy")} if case == "all_occupied" else {}
+    world = WorldMap([own, other], settlements={own: settlement}, parties=parties)
+
+    assert muster_duchy_party(world, Duchy("ai", hero)) is world
+
+
+def test_muster_duchy_party_transition_is_publicly_exported():
+    assert tbb.muster_duchy_party is muster_duchy_party

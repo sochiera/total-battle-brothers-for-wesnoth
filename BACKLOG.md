@@ -342,7 +342,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     dalszy niż jedno połączenie albo brak celu nie zmienia mapy; brak party lub
     jawnego właściciela w regionie startowym jest odrzucany; ten sam stan i seed
     dają ten sam wynik.
-- [~] **A7.1b4** Wystawienie party AI z własnej osady.
+- [x] **A7.1b4** Wystawienie party AI z własnej osady.
   - AC: czyste przejście przyjmuje `WorldMap` i `Duchy`; jeśli na mapie istnieje
     już party z `owner_id == duchy_id`, zwraca mapę bez zmian (bohater nie jest
     duplikowany). W przeciwnym razie wybiera pierwszą w kolejności regionów mapy

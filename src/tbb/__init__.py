@@ -8,6 +8,7 @@ from tbb.building import Building, FARM, MARKET, SMITH
 from tbb.ai import (
     assault_nearest_enemy_settlement,
     march_toward_nearest_enemy,
+    muster_duchy_party,
     nearest_enemy_settlement,
     next_march_step,
 )
@@ -48,6 +49,7 @@ __all__ = [
     "investment_for_level",
     "melee_hit_chance",
     "march_toward_nearest_enemy",
+    "muster_duchy_party",
     "nearest_enemy_settlement",
     "next_march_step",
     "Resources",

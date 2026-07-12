@@ -2,8 +2,27 @@
 
 from collections import deque
 
+from tbb.duchy import Duchy
 from tbb.rng import Rng
 from tbb.world import Region, WorldMap
+
+
+def muster_duchy_party(world: WorldMap, duchy: Duchy) -> WorldMap:
+    """Muster a duchy's hero and first available owned settlement garrison."""
+    if any(party.owner_id == duchy.duchy_id for party in world.parties.values()):
+        return world
+    if duchy.hero is None:
+        return world
+
+    for region in world.regions:
+        settlement = world.settlements.get(region)
+        if (
+            settlement is not None
+            and settlement.owner_id == duchy.duchy_id
+            and region not in world.parties
+        ):
+            return world.muster_party(region, duchy.hero)
+    return world
 
 
 def nearest_enemy_settlement(
