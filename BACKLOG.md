@@ -263,9 +263,33 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     tylko z ocalałych (bohater = ocalały ze slotu 0 rozstawienia, reszta jako `units`
     z zachowaną kolejnością); polegli usunięci; rany/doświadczenie z ocalałych zachowane;
     padnięcie bohatera (brak ocalałego w slocie 0) świadomie odłożone/odrzucone tu.
-- [~] **BW.3c** Wpięcie rekonstrukcji w `apply_party_battle_result` / `apply_settlement_battle_result`.
+- [x] **BW.3c** Wpięcie rekonstrukcji w `apply_party_battle_result` / `apply_settlement_battle_result`.
   - AC: przenoszone/pozostające party na mapie po bitwie zawiera tylko ocalałych
     z zachowanymi ranami/doświadczeniem; polegli usunięci (zastępuje placeholder z BW.1/BW.2).
+
+## Kamień milowy 6.7 — rozstrzyganie kontaktu na mapie (driver strategiczny)
+> Wszystkie klocki są gotowe: `start_battle`/`start_settlement_battle` tworzą bitwę,
+> `HexBattle.auto_resolve` gra ją do końca, a `apply_*_battle_result` zapisuje wynik na
+> mapę (z rekonstrukcją ocalałych). Brakuje **jednego czystego przejścia, które je składa**
+> — bez niego strategiczna tura potrafi rozpocząć bitwę, ale nigdy jej nie rozstrzyga.
+> To twardy warunek AI (A7.1) i pętli MVP (A7.2). Dzielimy na party↔party i party↔osada.
+- [ ] **BM.1** Rozstrzygnięcie kontaktu party↔party na mapie (`WorldMap.resolve_party_battle`).
+  - AC: czyste przejście `resolve_party_battle(source, destination, rng, move_points, morale)`
+    składa `start_battle` → `auto_resolve` → `apply_party_battle_result(..., battle=resolved)`
+    i zwraca nową `WorldMap`. Walidacja kontaktu delegowana do `start_battle` (regiony na
+    mapie, różne, sąsiednie, oba obsadzone party, różni właściciele). Wynik zgodny z
+    `BattleResult`: `ATTACKER_WIN` → zrekonstruowane party atakującego na `destination`,
+    źródło puste; `DEFENDER_WIN` → atakujący znika, broniący (zrekonstruowany) zostaje;
+    `DRAW` → oba party znikają. Party na mapie po bitwie zawiera **tylko ocalałych**
+    (polegli usunięci, rany/doświadczenie zachowane). Determinizm (ten sam seed → ta sama
+    mapa); mapa, osady i garnizony wejściowe niezmienione. `move_points`/`morale` to
+    parametry z placeholderowymi wartościami domyślnymi (jednolite dla wszystkich jednostek,
+    jak w BD.3).
+- [ ] **BM.2** Rozstrzygnięcie kontaktu party↔osada na mapie (`WorldMap.resolve_settlement_battle`).
+  - AC: analogiczne czyste przejście składa `start_settlement_battle` → `auto_resolve` →
+    `apply_settlement_battle_result(..., battle=resolved)`; `ATTACKER_WIN` = podbój (zmiana
+    `owner_id` osady + wejście zrekonstruowanego party na `destination`), pozostałe wyniki
+    jak w BW.2; determinizm i niemutowalność wejścia.
 
 ## Kamień milowy 7 — AI i grywalna pętla MVP
 - [ ] **A7.1** Proste AI księstwa (rozwijaj osadę → zbierz party → atakuj).
