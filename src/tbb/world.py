@@ -1,6 +1,6 @@
 """Immutable regions and the strategic world graph."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from types import MappingProxyType
 from typing import Mapping, Sequence
 
@@ -239,6 +239,47 @@ class WorldMap:
         for row, unit in enumerate(settlement.garrison):
             battle = battle.deploy(unit, Hex(2, row), BattleSide.DEFENDER)
         return battle
+
+    def apply_settlement_battle_result(
+        self,
+        source: Region,
+        destination: Region,
+        result: BattleResult,
+    ) -> "WorldMap":
+        """Return a new world with a settlement battle's result applied."""
+        if source not in self._neighbors or destination not in self._neighbors:
+            raise ValueError("region is outside the world map")
+        if source == destination:
+            raise ValueError("battle regions must be different")
+        if destination not in self._neighbors[source]:
+            raise ValueError("battle regions must be adjacent")
+        if source not in self.parties:
+            raise ValueError("source region has no party")
+        if destination not in self.settlements:
+            raise ValueError("destination region has no settlement")
+        if not isinstance(result, BattleResult):
+            raise ValueError("unknown battle result")
+        if (
+            result is BattleResult.ATTACKER_WIN
+            and destination in self.parties
+        ):
+            raise ValueError("destination is already occupied by a party")
+
+        parties = dict(self.parties)
+        settlements = dict(self.settlements)
+        attacker = parties.pop(source)
+        if result is BattleResult.ATTACKER_WIN:
+            parties[destination] = attacker
+            settlements[destination] = replace(
+                settlements[destination], owner_id=attacker.owner_id
+            )
+
+        return WorldMap(
+            self.regions,
+            self.connections,
+            settlements,
+            parties,
+        )
 
     @staticmethod
     def _require_enemy_owners(

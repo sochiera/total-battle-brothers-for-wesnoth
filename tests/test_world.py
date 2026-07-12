@@ -655,3 +655,148 @@ def test_start_settlement_battle_rejects_non_enemy_contact(
 
     with pytest.raises(ValueError):
         world.start_settlement_battle(camp, vale)
+
+
+@pytest.mark.parametrize(
+    "result, expected_party, expected_owner",
+    [
+        (BattleResult.ATTACKER_WIN, "attacker", "north"),
+        (BattleResult.DEFENDER_WIN, None, "south"),
+        (BattleResult.DRAW, None, "south"),
+    ],
+)
+def test_apply_settlement_battle_result_updates_world(
+    result, expected_party, expected_owner
+):
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(Unit(training=1), owner_id="north")
+    garrison = (Unit(training=2),)
+    settlement = Settlement(
+        "Oakrest", 3, garrison=garrison, owner_id="south"
+    )
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        settlements={vale: settlement},
+        parties={camp: attacker},
+    )
+
+    resolved = world.apply_settlement_battle_result(camp, vale, result)
+
+    assert resolved.party_at(camp) is None
+    assert resolved.party_at(vale) is (
+        attacker if expected_party == "attacker" else None
+    )
+    assert resolved.settlement_at(vale).owner_id == expected_owner
+    assert resolved.settlement_at(vale).garrison == garrison
+    if result is not BattleResult.ATTACKER_WIN:
+        assert resolved.settlement_at(vale) is settlement
+
+    assert world.party_at(camp) is attacker
+    assert world.party_at(vale) is None
+    assert world.settlement_at(vale) is settlement
+    assert world.settlement_at(vale).owner_id == "south"
+    assert resolved is not world
+
+
+def test_apply_settlement_attacker_win_rejects_occupied_destination():
+    camp = Region("Camp")
+    vale = Region("Vale")
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        settlements={vale: Settlement("Oakrest", 2, owner_id="south")},
+        parties={
+            camp: Party(Unit(), owner_id="north"),
+            vale: Party(Unit(), owner_id="third"),
+        },
+    )
+
+    with pytest.raises(ValueError):
+        world.apply_settlement_battle_result(
+            camp, vale, BattleResult.ATTACKER_WIN
+        )
+
+
+@pytest.mark.parametrize(
+    "party_region, settlement_region, source_name, destination_name",
+    [
+        ("Camp", "Vale", "Unknown", "Vale"),
+        ("Camp", "Vale", "Camp", "Unknown"),
+        ("Camp", "Vale", "Camp", "Camp"),
+        ("Camp", "Wilds", "Camp", "Wilds"),
+        (None, "Vale", "Camp", "Vale"),
+        ("Camp", None, "Camp", "Vale"),
+    ],
+    ids=[
+        "source-outside-map",
+        "destination-outside-map",
+        "same-region",
+        "not-adjacent",
+        "no-party",
+        "no-settlement",
+    ],
+)
+def test_apply_settlement_battle_result_rejects_invalid_contact(
+    party_region, settlement_region, source_name, destination_name
+):
+    camp = Region("Camp")
+    vale = Region("Vale")
+    wilds = Region("Wilds")
+    regions = {region.name: region for region in (camp, vale, wilds)}
+    parties = (
+        {regions[party_region]: Party(Unit(), owner_id="north")}
+        if party_region is not None
+        else {}
+    )
+    settlements = (
+        {
+            regions[settlement_region]: Settlement(
+                "Oakrest", 2, owner_id="south"
+            )
+        }
+        if settlement_region is not None
+        else {}
+    )
+    world = WorldMap(
+        [camp, vale, wilds],
+        [(camp, vale)],
+        settlements=settlements,
+        parties=parties,
+    )
+    source = Region("Unknown") if source_name == "Unknown" else regions[source_name]
+    destination = (
+        Region("Unknown")
+        if destination_name == "Unknown"
+        else regions[destination_name]
+    )
+
+    with pytest.raises(ValueError):
+        world.apply_settlement_battle_result(
+            source, destination, BattleResult.DRAW
+        )
+
+
+def test_apply_settlement_attacker_win_preserves_graph_and_garrison():
+    camp = Region("Camp")
+    vale = Region("Vale")
+    garrison = (Unit(training=2), Unit(equipment=1))
+    settlement = Settlement(
+        "Oakrest", 4, garrison=garrison, owner_id="south"
+    )
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        settlements={vale: settlement},
+        parties={camp: Party(Unit(), owner_id="north")},
+    )
+
+    resolved = world.apply_settlement_battle_result(
+        camp, vale, BattleResult.ATTACKER_WIN
+    )
+
+    assert resolved.regions == world.regions
+    assert resolved.connections == world.connections
+    assert resolved.neighbors(camp) == world.neighbors(camp)
+    assert resolved.settlement_at(vale).garrison is garrison
