@@ -421,6 +421,11 @@ Wstępne encje rdzenia (nazwy robocze, doprecyzowywane wraz z implementacją):
   właścicielem osady. Wymarsz opróżnia garnizon oraz zmniejsza `population`
   i `occupied` o liczbę żołnierzy; `free` pozostaje bez zmian. Pozostały stan
   osady nie zmienia się, a pusty garnizon tworzy party z samym bohaterem.
+  **PLAN (MU.2, wystawienie na mapę):** `WorldMap.muster_party(region, hero)`
+  atomowo zastąpi osadę wynikiem `Settlement.muster(hero)` i umieści utworzone
+  party w tym samym regionie. Przejście wymaga osady i wolnego slotu party
+  w regionie; nie mutuje mapy wejściowej. Atomowość zapobiega duplikacji tych
+  samych żołnierzy w garnizonie i w party podczas składania akcji przez AI.
 - `Duchy` (księstwo) — bohater, dziedzic, lista osad, party, morale.
   **ROZSTRZYGNIĘTE (D6.1a, minimalne księstwo):** `Duchy` to niemutowalny stan
   z niepustym tekstowym `duchy_id`, jednym wymaganym `hero: Unit` oraz podpisanym

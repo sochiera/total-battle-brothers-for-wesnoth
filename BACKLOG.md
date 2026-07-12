@@ -298,7 +298,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > osobno — nic nie łączy tych dwóch. Muster domyka ten szew i jest prostym,
 > czystym prymitywem przed logiką AI. Osadzenie party na mapie to nadal osobny
 > `WorldMap.place_party`.
-- [~] **MU.1** Wystawienie party z garnizonu osady (`Settlement.muster(hero)`).
+- [x] **MU.1** Wystawienie party z garnizonu osady (`Settlement.muster(hero)`).
   - AC: czyste przejście (bez RNG, bez mutacji wejścia) zwraca krotkę
     `(Party, Settlement)`. Nowe party ma podanego `hero`, `units` = jednostki
     garnizonu w zachowanej kolejności i `owner_id` = `owner_id` osady. Zwrócona
@@ -309,6 +309,14 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     niebędący `Unit` odrzucony (`TypeError`, delegowane do `Party`). Pusty garnizon
     → party z samym bohaterem, a osada bez zmian populacji. Stan wejściowy osady
     pozostaje niezmieniony; determinizm.
+- [~] **MU.2** Atomowe wystawienie party z osady na mapę (`WorldMap.muster_party`).
+  - AC: czyste przejście przyjmuje region osady i bohatera, składa
+    `Settlement.muster(hero)` z umieszczeniem party w tym samym regionie oraz zwraca
+    nową `WorldMap`; osada na mapie ma opróżniony garnizon i skorygowaną populację,
+    a party dziedziczy właściciela osady. Brak osady, region spoza mapy lub istniejące
+    party w regionie są odrzucane; mapa, osada i kolekcje wejściowe pozostają
+    niezmienione. Dzięki atomowości jednostki nie pozostają jednocześnie w garnizonie
+    i w party.
 
 ## Kamień milowy 7 — AI i grywalna pętla MVP
 - [ ] **A7.1** Proste AI księstwa (rozwijaj osadę → zbierz party → atakuj).
