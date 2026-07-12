@@ -219,7 +219,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
   - AC: jednostka rusza się najtańszą ścieżką w budżecie ku sąsiedztwu celu z BD.1,
     a jeśli już sąsiaduje — wykonuje `melee_attack`; przy 0 HP celu rozstrzyga
     `resolve_defeat`; jeden rzut RNG na atak; determinizm; niemutowalność wejścia.
-- [ ] **BD.3** Pełna auto-rozgrywka bitwy do rozstrzygnięcia (`HexBattle.auto_resolve`).
+- [~] **BD.3** Pełna auto-rozgrywka bitwy do rozstrzygnięcia (`HexBattle.auto_resolve`).
   - AC: deterministyczna pętla tur (kolejność rozstawienia) doprowadza bitwę do
     `result` innego niż `None` przy ustalonym seedzie; zwraca końcowy stan/raport;
     limit tur chroni przed zapętleniem; niemutowalność wejścia.
