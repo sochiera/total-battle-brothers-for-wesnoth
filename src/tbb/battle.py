@@ -98,6 +98,14 @@ class HexBattle:
             raise ValueError("cannot get side from an empty hex")
         return self.sides[position]
 
+    def side_survivors(self, side: BattleSide) -> tuple[Unit, ...]:
+        """Return one side's deployed survivors in deployment order."""
+        return tuple(
+            self.units[position]
+            for position in self._deployment_order
+            if self.sides[position] is side
+        )
+
     def nearest_enemy(self, position: Hex) -> Hex | None:
         """Return the nearest active enemy, breaking ties by deployment order."""
         if not self.is_occupied(position):

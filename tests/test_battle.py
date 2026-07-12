@@ -789,6 +789,82 @@ def test_report_keeps_deployment_order_after_a_unit_moves():
     assert battle.report().attacker.active == (first, second)
 
 
+def test_side_survivors_contains_surviving_units_but_not_fallen_units():
+    survivor = Unit(training=1)
+    fallen = Unit(training=2)
+    survivor_position = Hex(0, 0)
+    fallen_position = Hex(1, 0)
+    battle = HexBattle(Battlefield()).deploy(
+        survivor, survivor_position, BattleSide.ATTACKER
+    ).deploy(fallen, fallen_position, BattleSide.ATTACKER)
+    battle = battle.damage(fallen_position, fallen.hp).resolve_defeat(
+        fallen_position, ControlledRng(True)
+    )
+
+    assert battle.side_survivors(BattleSide.ATTACKER) == (survivor,)
+
+
+def test_side_survivors_interleaves_stunned_and_active_by_deployment_order():
+    stunned = Unit(training=1)
+    active = Unit(training=2)
+    stunned_position = Hex(0, 0)
+    active_position = Hex(1, 0)
+    battle = HexBattle(Battlefield()).deploy(
+        stunned, stunned_position, BattleSide.ATTACKER
+    ).deploy(active, active_position, BattleSide.ATTACKER)
+    battle = battle.damage(stunned_position, stunned.hp).resolve_defeat(
+        stunned_position, ControlledRng(False)
+    )
+
+    survivors = battle.side_survivors(BattleSide.ATTACKER)
+
+    assert survivors[0].stunned is True
+    assert survivors[1] is active
+
+
+def test_side_survivors_filters_the_requested_battle_side():
+    attacker = Unit(training=1)
+    defender = Unit(training=2)
+    battle = HexBattle(Battlefield()).deploy(
+        attacker, Hex(0, 0), BattleSide.ATTACKER
+    ).deploy(defender, Hex(1, 0), BattleSide.DEFENDER)
+
+    assert battle.side_survivors(BattleSide.ATTACKER) == (attacker,)
+    assert battle.side_survivors(BattleSide.DEFENDER) == (defender,)
+
+
+def test_side_survivors_returns_empty_tuple_when_the_whole_side_fell():
+    attacker = Unit()
+    position = Hex(0, 0)
+    battle = HexBattle(Battlefield()).deploy(
+        attacker, position, BattleSide.ATTACKER
+    )
+    battle = battle.damage(position, attacker.hp).resolve_defeat(
+        position, ControlledRng(True)
+    )
+
+    assert battle.side_survivors(BattleSide.ATTACKER) == ()
+
+
+def test_side_survivors_is_repeatable_and_does_not_mutate_battle_state():
+    attacker = Unit(training=1)
+    defender = Unit(training=2)
+    battle = HexBattle(Battlefield()).deploy(
+        attacker, Hex(0, 0), BattleSide.ATTACKER
+    ).deploy(defender, Hex(1, 0), BattleSide.DEFENDER)
+    units_before = dict(battle.units)
+    sides_before = dict(battle.sides)
+    hp_before = dict(battle._current_hp)
+
+    first = battle.side_survivors(BattleSide.ATTACKER)
+    second = battle.side_survivors(BattleSide.ATTACKER)
+
+    assert first == second
+    assert dict(battle.units) == units_before
+    assert dict(battle.sides) == sides_before
+    assert dict(battle._current_hp) == hp_before
+
+
 def test_award_experience_rewards_only_survivors_and_preserves_report():
     active = Unit(training=1, experience=2, wounds=(MAIMED,))
     stunned = Unit(equipment=2, experience=4, wounds=(MAIMED,))
