@@ -619,6 +619,15 @@ ich dotykają, i notować wynik tutaj:
   party. Brak żyjącego bohatera albo dostępnej własnej osady również oznacza no-op.
   Rekrutacja/rozwój przed wystawieniem oraz złożenie tej akcji z marszem i szturmem
   pozostają domeną A7.1b5.
+  **PLAN (A7.1b5a, wojskowa akcja tury AI):** pierwszy krok składania pełnej
+  polityki obejmuje wyłącznie gotowe prymitywy wojskowe. AI próbuje wystawić party,
+  następnie wykonuje najwyżej jeden krok marszu ku najbliższej wrogiej osadzie,
+  po czym — już z aktualnej pozycji — rozstrzyga szturm, jeśli cel jest sąsiedni.
+  Dzięki kolejności **muster → marsz → szturm** party może w tej samej turze dojść
+  pod osadę i ją zaatakować, zgodnie z fazami ruchu i bitew. Po każdym przejściu
+  pozycja party jest wyszukiwana ponownie na `WorldMap`, bo ruch i podbój zmieniają
+  region. Brak bohatera, party albo osiągalnego celu oznacza no-op. Rozwój osady
+  i rekrutacja pozostają osobnym, następnym krokiem A7.1b5b.
 - **Zakończenie tury na mapie:** kolejność faz (produkcja → wzrost → ruch → bitwy).
   **ROZSTRZYGNIĘTE (plan M5.4b, miesięczne przejście osad):**
   `WorldMap.tick_settlements()` aktualizuje wszystkie osady w deterministycznej
