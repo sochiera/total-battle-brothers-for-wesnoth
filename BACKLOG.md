@@ -363,7 +363,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     ma wolną populację i mniej niż 12 jednostek garnizonu. Osady obce, bez właściciela,
     bez wolnej populacji i z pełnym garnizonem są pomijane; brak kwalifikującej się
     osady daje no-op. Mapa i osady wejściowe pozostają niezmienione.
-- [~] **A7.1b5b2** Pełna polityka tury AI: rekrutacja → akcja wojskowa.
+- [x] **A7.1b5b2** Pełna polityka tury AI: rekrutacja → akcja wojskowa.
   - AC: AI najpierw wykonuje rekrutację A7.1b5b1, a następnie składa wynik z wojskową
     akcją A7.1b5a; ten sam stan i seed dają ten sam wynik, limity populacji i party
     są respektowane, a stan wejściowy nie jest mutowany.

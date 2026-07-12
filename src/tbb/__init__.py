@@ -13,6 +13,7 @@ from tbb.ai import (
     next_march_step,
     recruit_duchy_unit,
     take_duchy_military_action,
+    take_duchy_turn,
 )
 from tbb.battlefield import Battlefield
 from tbb.battle import BattleReport, BattleResult, BattleSide, BattleSideReport, HexBattle
@@ -56,6 +57,7 @@ __all__ = [
     "next_march_step",
     "recruit_duchy_unit",
     "take_duchy_military_action",
+    "take_duchy_turn",
     "Resources",
     "Region",
     "Rng",

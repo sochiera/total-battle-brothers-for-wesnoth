@@ -19,6 +19,7 @@ from tbb import (
     next_march_step,
     recruit_duchy_unit,
     take_duchy_military_action,
+    take_duchy_turn,
 )
 
 
@@ -569,3 +570,90 @@ def test_recruit_duchy_unit_is_noop_without_eligible_settlement():
 
 def test_recruit_duchy_unit_is_publicly_exported():
     assert tbb.recruit_duchy_unit is recruit_duchy_unit
+
+
+def test_duchy_turn_recruits_before_muster_march_and_adjacent_assault():
+    home, road, target = map(Region, ("Home", "Road", "Target"))
+    hero = Unit(training=8, equipment=8)
+    home_settlement = Settlement("Home", 1, owner_id="ai")
+    enemy_settlement = Settlement(
+        "Target", 1, garrison=(Unit(),), owner_id="enemy"
+    )
+    world = WorldMap(
+        [home, road, target],
+        [(home, road), (road, target)],
+        {home: home_settlement, target: enemy_settlement},
+    )
+    duchy = Duchy("ai", hero, settlements=(home_settlement,))
+
+    result = take_duchy_turn(world, duchy, tbb.Rng(17))
+    recruited = recruit_duchy_unit(world, duchy)
+    expected = take_duchy_military_action(recruited, duchy, tbb.Rng(17))
+
+    assert result == expected
+    assert result.settlement_at(home).garrison == ()
+    assert result.party_at(target).units == (Unit(),)
+
+
+def test_duchy_turn_leaves_recruit_in_garrison_when_party_already_exists():
+    home, start, road, target = map(Region, ("Home", "Start", "Road", "Target"))
+    hero = Unit(training=2)
+    veteran = Unit(equipment=2)
+    party = Party(hero, (veteran,), owner_id="ai")
+    home_settlement = Settlement("Home", 1, owner_id="ai")
+    world = WorldMap(
+        [home, start, road, target],
+        [(start, road), (road, target)],
+        {home: home_settlement, target: _settlement("Target", "enemy")},
+        {start: party},
+    )
+    duchy = Duchy("ai", hero, settlements=(home_settlement,), parties=(party,))
+
+    result = take_duchy_turn(world, duchy, _ForbiddenRng())
+
+    assert result.settlement_at(home).garrison == (Unit(),)
+    assert result.party_at(target).units == (veteran,)
+
+
+def test_duchy_turn_takes_military_action_when_recruitment_is_unavailable():
+    start, road, target = map(Region, ("Start", "Road", "Target"))
+    hero = Unit()
+    party = Party(hero, owner_id="ai")
+    world = WorldMap(
+        [start, road, target],
+        [(start, road), (road, target)],
+        {target: _settlement("Target", "enemy")},
+        {start: party},
+    )
+    duchy = Duchy("ai", hero, parties=(party,))
+
+    result = take_duchy_turn(world, duchy, _ForbiddenRng())
+
+    assert result.party_at(target) == party
+
+
+def test_duchy_turn_is_deterministic_and_preserves_all_inputs():
+    home, target = Region("Home"), Region("Target")
+    hero = Unit(training=7, equipment=7)
+    settlement = Settlement("Home", 2, owner_id="ai")
+    enemy = Settlement("Target", 1, garrison=(Unit(),), owner_id="enemy")
+    world = WorldMap(
+        [home, target], [(home, target)], {home: settlement, target: enemy}
+    )
+    duchy = Duchy("ai", hero, settlements=(settlement,))
+
+    first = take_duchy_turn(world, duchy, tbb.Rng(23))
+    second = take_duchy_turn(world, duchy, tbb.Rng(23))
+
+    assert first == second
+    assert world.settlement_at(home) is settlement
+    assert world.settlement_at(target) is enemy
+    assert world.party_at(home) is None
+    assert settlement.garrison == ()
+    assert settlement.occupied == 0
+    assert duchy.hero is hero
+    assert duchy.settlements == (settlement,)
+
+
+def test_duchy_turn_is_publicly_exported():
+    assert tbb.take_duchy_turn is take_duchy_turn
