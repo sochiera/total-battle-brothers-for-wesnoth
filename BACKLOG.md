@@ -263,7 +263,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     tylko z ocalałych (bohater = ocalały ze slotu 0 rozstawienia, reszta jako `units`
     z zachowaną kolejnością); polegli usunięci; rany/doświadczenie z ocalałych zachowane;
     padnięcie bohatera (brak ocalałego w slocie 0) świadomie odłożone/odrzucone tu.
-- [ ] **BW.3c** Wpięcie rekonstrukcji w `apply_party_battle_result` / `apply_settlement_battle_result`.
+- [~] **BW.3c** Wpięcie rekonstrukcji w `apply_party_battle_result` / `apply_settlement_battle_result`.
   - AC: przenoszone/pozostające party na mapie po bitwie zawiera tylko ocalałych
     z zachowanymi ranami/doświadczeniem; polegli usunięci (zastępuje placeholder z BW.1/BW.2).
 

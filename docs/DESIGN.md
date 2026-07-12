@@ -309,7 +309,22 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
     jest odrzucana; party bezhetmańskie lub eliminacja pozostają domeną BW.3c/D6.2.
     Przejście nie mutuje wejść i respektuje limit 12 podkomendnych `Party`.
   - **BW.3c:** wpięcie rekonstrukcji w `apply_party_battle_result`
-    i `apply_settlement_battle_result`.
+    i `apply_settlement_battle_result`. Obie metody dostają **opcjonalny**
+    parametr `battle: HexBattle | None = None`. Gdy `battle` jest podany, party
+    które **pozostaje na mapie** (przenoszące się lub broniące) jest odtwarzane
+    przez `Party.reconstruct(original, battle.side_survivors(side))` — strona
+    `ATTACKER` odpowiada party ze `source`, strona `DEFENDER` party z `destination`.
+    Gdy `battle is None`, zachowujemy placeholderowe przenoszenie składu z BW.1/BW.2
+    (zgodność wstecz). Rekonstruowane jest tylko party z zachowanego wyniku:
+    party↔party `ATTACKER_WIN` → atakujący (strona `ATTACKER`) ląduje na
+    `destination`; `DEFENDER_WIN` → broniący (strona `DEFENDER`) zostaje; `DRAW`
+    → oba znikają (brak rekonstrukcji). party↔osada `ATTACKER_WIN` → atakujący
+    (strona `ATTACKER`) ląduje na `destination`; przy pozostałych wynikach party
+    atakujące znika (brak rekonstrukcji). **Straty garnizonu osady** pozostają poza
+    zakresem BW.3c (osobny krok). Przypadek **śmierci bohatera zwycięskiej strony**
+    (brak ocalałego w slocie 0) jest świadomie poza zakresem — `Party.reconstruct`
+    go odrzuca, a party bezhetmańskie/eliminacja to domena D6.2. Metody pozostają
+    czyste i niemutowalne, walidacja kontaktu bez zmian.
 
 ## 4. Osady, populacja, ekonomia
 - **Surowce (dokładnie dwa, celowo prosto):** **pszenica** i **złoto**.
