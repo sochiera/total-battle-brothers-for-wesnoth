@@ -64,3 +64,22 @@ def next_march_step(
             visited.add(neighbor)
             pending.append((neighbor, neighbor if first_step is None else first_step))
     return None
+
+
+def march_toward_nearest_enemy(world: WorldMap, start: Region) -> WorldMap:
+    """Move the party at ``start`` one step toward its nearest enemy settlement."""
+    if start not in world.regions:
+        raise ValueError("start region is outside the world map")
+    party = world.party_at(start)
+    if party is None:
+        raise ValueError("start region has no party")
+    if party.owner_id is None:
+        raise ValueError("party must have an explicit owner_id")
+
+    target = nearest_enemy_settlement(world, start, party.owner_id)
+    if target is None:
+        return world
+    step = next_march_step(world, start, target)
+    if step is None:
+        return world
+    return world.move_party(start, step, 1)

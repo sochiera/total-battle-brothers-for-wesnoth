@@ -10,6 +10,7 @@ from tbb import (
     Settlement,
     Unit,
     WorldMap,
+    march_toward_nearest_enemy,
     nearest_enemy_settlement,
     next_march_step,
 )
@@ -21,6 +22,10 @@ def _settlement(name: str, owner_id: str | None) -> Settlement:
 
 def _party(name: str) -> Party:
     return Party(Unit(experience=len(name)))
+
+
+def _owned_party(name: str, owner_id: str = "ai") -> Party:
+    return Party(Unit(experience=len(name)), owner_id=owner_id)
 
 
 def test_nearest_enemy_wins_regardless_of_settlement_mapping_order():
@@ -169,3 +174,73 @@ def test_next_march_step_rejects_regions_outside_map_without_mutation(outside_ar
 
     assert dict(world.parties) == before
     assert world.party_at(start) is party
+
+
+def test_march_moves_exactly_one_step_and_preserves_input_and_party():
+    start, step, target = map(Region, ("Start", "Step", "Target"))
+    party = _owned_party("Hero")
+    world = WorldMap(
+        [start, step, target],
+        [(start, step), (step, target)],
+        settlements={target: _settlement("Target", "enemy")},
+        parties={start: party},
+    )
+
+    moved = march_toward_nearest_enemy(world, start)
+
+    assert moved.party_at(step) is party
+    assert moved.party_at(start) is None
+    assert world.party_at(start) is party
+    assert world.party_at(step) is None
+
+
+def test_march_target_and_route_ties_follow_world_region_order():
+    start, first, second, first_target, second_target = map(
+        Region, ("Start", "First", "Second", "First target", "Second target")
+    )
+    party = _owned_party("Hero")
+    world = WorldMap(
+        [start, first, second, first_target, second_target],
+        [
+            (start, second), (second, second_target),
+            (start, first), (first, first_target),
+        ],
+        settlements={
+            second_target: _settlement("Second target", "enemy"),
+            first_target: _settlement("First target", "enemy"),
+        },
+        parties={start: party},
+    )
+
+    moved = march_toward_nearest_enemy(world, start)
+
+    assert moved.party_at(first) is party
+
+
+@pytest.mark.parametrize("case", ["adjacent", "no_enemy", "blocked"])
+def test_march_stays_put_when_no_step_is_available(case):
+    start, step, target = map(Region, ("Start", "Step", "Target"))
+    party = _owned_party("Hero")
+    connections = [(start, target)] if case == "adjacent" else [(start, step), (step, target)]
+    settlements = {} if case == "no_enemy" else {target: _settlement("Target", "enemy")}
+    parties = {start: party}
+    if case == "blocked":
+        parties[step] = _owned_party("Blocker", "other")
+    world = WorldMap([start, step, target], connections, settlements, parties)
+
+    result = march_toward_nearest_enemy(world, start)
+
+    assert result is world
+    assert result.party_at(start) is party
+
+
+@pytest.mark.parametrize("case", ["outside", "empty", "ownerless"])
+def test_march_rejects_invalid_start_or_party(case):
+    start = Region("Start")
+    known = Region("Known")
+    parties = {known: _party("Hero")} if case == "ownerless" else {}
+    world = WorldMap([known], parties=parties)
+    selected = start if case == "outside" else known
+
+    with pytest.raises(ValueError):
+        march_toward_nearest_enemy(world, selected)

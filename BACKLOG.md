@@ -329,7 +329,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     rozstrzyga kolejność regionów `WorldMap`. Gdy party już sąsiaduje z celem
     (jest gotowe do szturmu) albo żadna droga nie istnieje, zwraca `None`; bez RNG
     i mutacji.
-- [ ] **A7.1b2** Wykonanie jednego kroku marszu istniejącego party AI.
+- [x] **A7.1b2** Wykonanie jednego kroku marszu istniejącego party AI.
   - AC: czyste przejście wybiera najbliższą wrogą osadę przez A7.1a, wyznacza
     krok przez A7.1b1 i wykonuje dokładnie jeden `WorldMap.move_party(..., 1)`;
     party już sąsiadujące z celem, bez celu albo bez drogi pozostaje w miejscu;

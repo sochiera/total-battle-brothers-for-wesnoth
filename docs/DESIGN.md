@@ -592,7 +592,8 @@ ich dotykają, i notować wynik tutaj:
   `None` oznacza także brak dostępnej drogi. Kwerenda odrzuca start i cel spoza
   mapy, nie używa RNG i nie mutuje świata. Wykonanie ruchu, muster i szturm
   pozostają w kolejnych krokach A7.1.
-  **PLAN (A7.1b2, wykonanie kroku marszu):** pierwsze przejście wykonawcze AI
+  **ROZSTRZYGNIĘTE (A7.1b2, wykonanie kroku marszu):** czyste przejście
+  `march_toward_nearest_enemy()`
   dotyczy wyłącznie istniejącego party. Wybiera ono cel przez A7.1a, krok przez
   A7.1b1 i zużywa placeholderowy budżet **1 punktu ruchu**, wykonując najwyżej
   jedno przejście między regionami na wywołanie. Brak celu, brak drogi oraz
