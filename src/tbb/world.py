@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Mapping, Sequence
 
-from tbb.battle import BattleSide, HexBattle
+from tbb.battle import BattleResult, BattleSide, HexBattle
 from tbb.battlefield import Battlefield
 from tbb.hex import Hex
 from tbb.party import Party
@@ -178,6 +178,42 @@ class WorldMap:
             for row, unit in enumerate((party.hero, *party.units)):
                 battle = battle.deploy(unit, Hex(column, row), side)
         return battle
+
+    def apply_party_battle_result(
+        self,
+        source: Region,
+        destination: Region,
+        result: BattleResult,
+    ) -> "WorldMap":
+        """Return a new world with a party battle's result applied."""
+        if source not in self._neighbors or destination not in self._neighbors:
+            raise ValueError("region is outside the world map")
+        if source == destination:
+            raise ValueError("battle regions must be different")
+        if destination not in self._neighbors[source]:
+            raise ValueError("battle regions must be adjacent")
+        if source not in self.parties:
+            raise ValueError("source region has no party")
+        if destination not in self.parties:
+            raise ValueError("destination region has no party")
+
+        parties = dict(self.parties)
+        attacker = parties.pop(source)
+        if result is BattleResult.ATTACKER_WIN:
+            parties[destination] = attacker
+        elif result is BattleResult.DEFENDER_WIN:
+            pass
+        elif result is BattleResult.DRAW:
+            parties.pop(destination)
+        else:
+            raise ValueError("unknown battle result")
+
+        return WorldMap(
+            self.regions,
+            self.connections,
+            self.settlements,
+            parties,
+        )
 
     def start_settlement_battle(
         self, source: Region, destination: Region

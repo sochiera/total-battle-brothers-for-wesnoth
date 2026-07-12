@@ -58,7 +58,7 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   Plains. To rozstawienie jest placeholderem integracyjnym. Kontakt z osadą,
   własność księstw, teren zależny od regionu oraz zapis wyniku z powrotem
   na mapę pozostają poza M5.3a.
-- **ROZSTRZYGNIĘTE (plan BW.1, wynik bitwy party↔party na mapie):** po
+- **ROZSTRZYGNIĘTE (BW.1, wynik bitwy party↔party na mapie):** po
   rozstrzygnięciu starcia dwóch party czyste przejście
   `WorldMap.apply_party_battle_result(source, destination, result)` zapisuje
   skutek na mapę. `ATTACKER_WIN`: party broniące znika z `destination`, a party

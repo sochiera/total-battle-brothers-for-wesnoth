@@ -5,6 +5,7 @@ from dataclasses import FrozenInstanceError
 import pytest
 
 from tbb import (
+    BattleResult,
     BattleSide,
     FARM,
     Hex,
@@ -442,6 +443,91 @@ def test_start_battle_rejects_non_enemy_contact(attacker_owner, defender_owner):
 
     with pytest.raises(ValueError):
         world.start_battle(camp, vale)
+
+
+@pytest.mark.parametrize(
+    "result, expected_source, expected_destination",
+    [
+        (BattleResult.ATTACKER_WIN, None, "attacker"),
+        (BattleResult.DEFENDER_WIN, None, "defender"),
+        (BattleResult.DRAW, None, None),
+    ],
+)
+def test_apply_party_battle_result_updates_occupancy(
+    result, expected_source, expected_destination
+):
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(Unit(training=1), owner_id="north")
+    defender = Party(Unit(training=2), owner_id="south")
+    parties = {"attacker": attacker, "defender": defender, None: None}
+    world = WorldMap(
+        [camp, vale], [(camp, vale)], parties={camp: attacker, vale: defender}
+    )
+
+    resolved = world.apply_party_battle_result(camp, vale, result)
+
+    assert resolved.party_at(camp) is parties[expected_source]
+    assert resolved.party_at(vale) is parties[expected_destination]
+    assert world.party_at(camp) is attacker
+    assert world.party_at(vale) is defender
+    assert resolved is not world
+
+
+def test_apply_party_battle_result_preserves_settlements_and_graph():
+    camp = Region("Camp")
+    vale = Region("Vale")
+    settlement = Settlement("Oakrest", 3, garrison=(Unit(),), owner_id="south")
+    attacker = Party(Unit(), owner_id="north")
+    defender = Party(Unit(), owner_id="south")
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        settlements={vale: settlement},
+        parties={camp: attacker, vale: defender},
+    )
+
+    resolved = world.apply_party_battle_result(
+        camp, vale, BattleResult.ATTACKER_WIN
+    )
+
+    assert resolved.regions == world.regions
+    assert resolved.connections == world.connections
+    assert resolved.settlement_at(vale) is settlement
+    assert resolved.settlement_at(vale).garrison == settlement.garrison
+
+
+@pytest.mark.parametrize(
+    "party_regions, source_name, destination_name",
+    [
+        ({"Camp", "Vale"}, "Unknown", "Vale"),
+        ({"Camp", "Vale"}, "Camp", "Camp"),
+        ({"Camp", "Wilds"}, "Camp", "Wilds"),
+        ({"Vale"}, "Camp", "Vale"),
+        ({"Camp"}, "Camp", "Vale"),
+    ],
+    ids=["outside-map", "same-region", "not-adjacent", "empty-source", "empty-destination"],
+)
+def test_apply_party_battle_result_rejects_invalid_contact(
+    party_regions, source_name, destination_name
+):
+    camp = Region("Camp")
+    vale = Region("Vale")
+    wilds = Region("Wilds")
+    regions = {region.name: region for region in (camp, vale, wilds)}
+    world = WorldMap(
+        [camp, vale, wilds],
+        [(camp, vale)],
+        parties={
+            regions[name]: Party(Unit(), owner_id=name) for name in party_regions
+        },
+    )
+    source = Region("Unknown") if source_name == "Unknown" else regions[source_name]
+
+    with pytest.raises(ValueError):
+        world.apply_party_battle_result(
+            source, regions[destination_name], BattleResult.DRAW
+        )
 
 
 def test_start_settlement_battle_deploys_party_and_garrison_in_deterministic_rows():
