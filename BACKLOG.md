@@ -367,8 +367,20 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
   - AC: AI najpierw wykonuje rekrutację A7.1b5b1, a następnie składa wynik z wojskową
     akcją A7.1b5a; ten sam stan i seed dają ten sam wynik, limity populacji i party
     są respektowane, a stan wejściowy nie jest mutowany.
-- [ ] **A7.2** Headless przebieg całej pętli MVP (setup → tury → bitwa → wynik).
-  - AC: `run.sh` symuluje partię do rozstrzygnięcia i wypisuje wynik; test smoke pętli.
+> **A7.2 — headless przebieg MVP.** Ostatni krok dzielimy na deterministyczny
+> setup, a dopiero potem driver tur i prezentację wyniku. Dzięki temu runner nie
+> będzie ukrywał danych startowych ani mieszał ich konstrukcji z efektami I/O.
+- [~] **A7.2a** Deterministyczny setup partii headless.
+  - AC: czysta fabryka zwraca `WorldMap` i `GameState` dla dokładnie dwóch
+    księstw (`player`, `ai`), po jednej własnej osadzie z populacją i dodatnimi
+    zapasami oraz po jednym zdolnym zadawać obrażenia bohaterze; osady leżą na
+    przeciwnych końcach połączonej mapy, na starcie nie ma party; osady w
+    `GameState` są tymi samymi obiektami co na mapie; kolejne wywołania dają
+    równy stan i nie używają RNG.
+- [ ] **A7.2b** Headless driver całej partii (tury → bitwy → wynik).
+  - AC: `run.sh` uruchamia deterministyczną symulację setupu A7.2a do
+    rozstrzygnięcia, ma bezpiecznik liczby tur, wypisuje zwycięzcę albo remis;
+    test smoke obejmuje pełną pętlę i kod wyjścia 0.
 
 ## Później (poza MVP)
 - [ ] Prezentacja/UI (pygame lub most do innego silnika) nad rdzeniem.

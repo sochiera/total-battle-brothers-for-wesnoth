@@ -646,6 +646,16 @@ ich dotykają, i notować wynik tutaj:
   składu. Brak możliwości rekrutacji nie blokuje marszu ani szturmu. Przejście
   używa wyłącznie RNG przekazanego do akcji wojskowej, jest deterministyczne przy
   ustalonym seedzie i nie mutuje mapy ani księstwa wejściowego.
+  **PLAN (A7.2a, deterministyczny setup headless):** ostatnią integrację MVP
+  zaczynamy od czystej fabryki stanu startowego, oddzielonej od pętli i I/O.
+  Fabryka zwraca `WorldMap` oraz `GameState` z dokładnie dwoma księstwami:
+  `player` i `ai`. Każde ma jednego bohatera zdolnego zadawać obrażenia oraz
+  jedną własną osadę z populacją i dodatnimi zapasami pszenicy i złota; osady
+  stoją na przeciwnych końcach połączonej mapy, a party są początkowo puste, by
+  polityka A7.1 wystawiła je z osad. Setup jest stały, nie używa RNG, a osady
+  przypisane księstwom są tymi samymi niemutowalnymi obiektami co osady na mapie.
+  Wykonywanie kolejnych tur, synchronizacja skutków podboju z warunkiem końca
+  gry i wypisanie wyniku pozostają w A7.2b.
 - **Zakończenie tury na mapie:** kolejność faz (produkcja → wzrost → ruch → bitwy).
   **ROZSTRZYGNIĘTE (plan M5.4b, miesięczne przejście osad):**
   `WorldMap.tick_settlements()` aktualizuje wszystkie osady w deterministycznej
