@@ -638,6 +638,14 @@ ich dotykają, i notować wynik tutaj:
   właściciela, bez wolnej populacji oraz z pełnym garnizonem są pomijane; brak
   kwalifikującej się osady jest no-opem. Złożenie rekrutacji z wojskową akcją
   A7.1b5a pozostaje osobnym krokiem A7.1b5b2.
+  **PLAN (A7.1b5b2, pełna polityka tury AI):** czyste przejście
+  `take_duchy_turn()` najpierw wywołuje `recruit_duchy_unit()`, a następnie
+  przekazuje uzyskaną mapę do `take_duchy_military_action()`. Dzięki temu świeży
+  rekrut może jeszcze w tej samej turze wejść do wystawianego party; jeśli party
+  już istnieje, rekrut pozostaje w garnizonie, a akcja wojskowa używa istniejącego
+  składu. Brak możliwości rekrutacji nie blokuje marszu ani szturmu. Przejście
+  używa wyłącznie RNG przekazanego do akcji wojskowej, jest deterministyczne przy
+  ustalonym seedzie i nie mutuje mapy ani księstwa wejściowego.
 - **Zakończenie tury na mapie:** kolejność faz (produkcja → wzrost → ruch → bitwy).
   **ROZSTRZYGNIĘTE (plan M5.4b, miesięczne przejście osad):**
   `WorldMap.tick_settlements()` aktualizuje wszystkie osady w deterministycznej
