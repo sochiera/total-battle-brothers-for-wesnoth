@@ -287,6 +287,24 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   wszystkich jednostek. Ustalony stan i seed RNG dają ten sam przebieg i wynik,
   a każde przejście tworzy nowy stan, więc bitwa wejściowa pozostaje niezmieniona.
   Bitwa już rozstrzygnięta jest natychmiastowym no-opem.
+- **PLAN (BW.3, rekonstrukcja ocalałych z bitwy do party na mapie):** po bitwie
+  party na mapie ma zawierać wyłącznie **ocalałych** (aktywnych + ogłuszonych)
+  z zachowanymi ranami i doświadczeniem, a polegli mają zniknąć — zastępując
+  placeholderowe przenoszenie składu z BW.1/BW.2. Dzielimy to na trzy klocki:
+  - **ROZSTRZYGNIĘTE (BW.3a, uporządkowana kwerenda ocalałych):**
+    `HexBattle.side_survivors(side)` to czyste zapytanie (bez RNG, bez mutacji)
+    zwracające jednostki danej strony, które **pozostały na planszy** (aktywne
+    i ogłuszone; polegli są już usunięci z rozstawienia), w **kolejności
+    rozstawienia** (`_deployment_order`). W przeciwieństwie do raportu bitwy
+    (§ B4.6b, który grupuje osobno ogłuszonych i aktywnych) ta kwerenda **przeplata**
+    obie kategorie ściśle wg kolejności rozstawienia. Dzięki temu ocalały w **slocie 0**
+    strony to wciąż bohater (rozstawiany pierwszy), co domknie identyfikację bohatera
+    przy odtwarzaniu składu. Brak ocalałych → pusta krotka.
+  - **BW.3b:** czyste odtworzenie `Party` z party sprzed bitwy i ocalałych jego
+    strony (bohater = ocalały ze slotu 0; reszta jako `units`); padnięcie bohatera
+    jest osobnym przypadkiem (party bezhetmańskie / eliminacja) do rozstrzygnięcia tam.
+  - **BW.3c:** wpięcie rekonstrukcji w `apply_party_battle_result`
+    i `apply_settlement_battle_result`.
 
 ## 4. Osady, populacja, ekonomia
 - **Surowce (dokładnie dwa, celowo prosto):** **pszenica** i **złoto**.

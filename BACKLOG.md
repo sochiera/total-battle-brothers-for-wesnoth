@@ -238,7 +238,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     sąsiednie, oba mają party); mapa i osady wejściowe pozostają niezmienione;
     determinizm. Rekonstrukcja ocalałych (straty/rany/doświadczenie) do party jest
     świadomie odłożona — party przenosi się jako placeholder bez zmian składu (BW.3).
-- [~] **BW.2** Zapis wyniku bitwy party↔osada na mapę (`WorldMap.apply_settlement_battle_result`).
+- [x] **BW.2** Zapis wyniku bitwy party↔osada na mapę (`WorldMap.apply_settlement_battle_result`).
   - AC: czyste przejście przyjmuje regiony party (`source`) i osady (`destination`)
     oraz `BattleResult`, zwraca nową `WorldMap`; walidacja jak w
     `start_settlement_battle` (regiony na mapie, różne, sąsiednie, `source` z party,
@@ -248,9 +248,24 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     z `source`, osada bez zmian. `DRAW`: party atakujące znika z `source`, osada bez
     zmian. Mapa, osady i garnizony wejściowe niezmienione; determinizm. Rekonstrukcja
     ocalałych i strat garnizonu świadomie odłożona do BW.3.
-- [ ] **BW.3** Rekonstrukcja ocalałych z raportu bitwy do party na mapie.
-  - AC: po bitwie party na mapie zawiera tylko ocalałych (aktywni + ogłuszeni)
-    z zachowanymi ranami/doświadczeniem z raportu; polegli usunięci.
+> **BW.3 — rekonstrukcja ocalałych.** Rozbite na małe kroki: najpierw uporządkowana
+> kwerenda ocalałych strony (klocek), potem czyste odtworzenie składu party z zachowaniem
+> bohatera, na końcu wpięcie w `apply_*_battle_result` na mapie.
+- [~] **BW.3a** Uporządkowana kwerenda ocalałych strony bitwy (`HexBattle.side_survivors`).
+  - AC: czyste zapytanie (bez RNG, bez mutacji) zwraca jednostki danej strony, które
+    **pozostały na planszy** (aktywne + ogłuszone; polegli usunięci), w **kolejności
+    rozstawienia** (`_deployment_order`) — aktywni i ogłuszeni **przeplatani** wg
+    kolejności, nie grupowani; strona przeciwna pominięta; brak ocalałych → pusta krotka;
+    stan bitwy pozostaje niezmieniony. Dzięki kolejności rozstawienia slot 0 strony to
+    bohater, co domknie identyfikację bohatera w BW.3b.
+- [ ] **BW.3b** Czyste odtworzenie składu party z ocalałych (`Party.reconstruct`/helper).
+  - AC: z party sprzed bitwy i uporządkowanych ocalałych jego strony powstaje nowe party
+    tylko z ocalałych (bohater = ocalały ze slotu 0 rozstawienia, reszta jako `units`
+    z zachowaną kolejnością); polegli usunięci; rany/doświadczenie z ocalałych zachowane;
+    padnięcie bohatera (brak ocalałego w slocie 0) świadomie odłożone/odrzucone tu.
+- [ ] **BW.3c** Wpięcie rekonstrukcji w `apply_party_battle_result` / `apply_settlement_battle_result`.
+  - AC: przenoszone/pozostające party na mapie po bitwie zawiera tylko ocalałych
+    z zachowanymi ranami/doświadczeniem; polegli usunięci (zastępuje placeholder z BW.1/BW.2).
 
 ## Kamień milowy 7 — AI i grywalna pętla MVP
 - [ ] **A7.1** Proste AI księstwa (rozwijaj osadę → zbierz party → atakuj).
