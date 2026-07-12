@@ -285,11 +285,30 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     mapa); mapa, osady i garnizony wejściowe niezmienione. `move_points`/`morale` to
     parametry z placeholderowymi wartościami domyślnymi (jednolite dla wszystkich jednostek,
     jak w BD.3).
-- [~] **BM.2** Rozstrzygnięcie kontaktu party↔osada na mapie (`WorldMap.resolve_settlement_battle`).
+- [x] **BM.2** Rozstrzygnięcie kontaktu party↔osada na mapie (`WorldMap.resolve_settlement_battle`).
   - AC: analogiczne czyste przejście składa `start_settlement_battle` → `auto_resolve` →
     `apply_settlement_battle_result(..., battle=resolved)`; `ATTACKER_WIN` = podbój (zmiana
     `owner_id` osady + wejście zrekonstruowanego party na `destination`), pozostałe wyniki
     jak w BW.2; determinizm i niemutowalność wejścia.
+
+## Kamień milowy 6.8 — wystawienie party z osady (muster)
+> AI ma „rozwinąć osadę → zebrać party → atakować" (A7.1), ale brakuje **jednego
+> mechanicznego szwu**: przejścia z garnizonu osady do party na mapie. Rekrutacja
+> (`Settlement.recruit`) wkłada jednostki do garnizonu, a party (M5.2a) tworzy się
+> osobno — nic nie łączy tych dwóch. Muster domyka ten szew i jest prostym,
+> czystym prymitywem przed logiką AI. Osadzenie party na mapie to nadal osobny
+> `WorldMap.place_party`.
+- [~] **MU.1** Wystawienie party z garnizonu osady (`Settlement.muster(hero)`).
+  - AC: czyste przejście (bez RNG, bez mutacji wejścia) zwraca krotkę
+    `(Party, Settlement)`. Nowe party ma podanego `hero`, `units` = jednostki
+    garnizonu w zachowanej kolejności i `owner_id` = `owner_id` osady. Zwrócona
+    osada ma **pusty garnizon**, a `population` i `occupied` zmniejszone o liczbę
+    wymaszerowanych jednostek (opuszczają osadę), więc `free` pozostaje bez zmian;
+    `storage`, `active_buildings`, `capacity`, `name`, `owner_id` bez zmian.
+    Garnizon > 12 jednostek jest odrzucany (limit party, `ValueError`); `hero`
+    niebędący `Unit` odrzucony (`TypeError`, delegowane do `Party`). Pusty garnizon
+    → party z samym bohaterem, a osada bez zmian populacji. Stan wejściowy osady
+    pozostaje niezmieniony; determinizm.
 
 ## Kamień milowy 7 — AI i grywalna pętla MVP
 - [ ] **A7.1** Proste AI księstwa (rozwijaj osadę → zbierz party → atakuj).
