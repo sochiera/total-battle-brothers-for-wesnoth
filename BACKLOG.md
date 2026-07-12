@@ -318,8 +318,14 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     i w party.
 
 ## Kamień milowy 7 — AI i grywalna pętla MVP
-- [ ] **A7.1** Proste AI księstwa (rozwijaj osadę → zbierz party → atakuj).
-  - AC: AI wykonuje sensowną turę deterministycznie przy ustalonym seedzie.
+- [~] **A7.1a** Wybór najbliższej wrogiej osady przez AI.
+  - AC: czysta kwerenda wybiera spośród osiągalnych osad z jawnym, innym
+    `owner_id` tę o najmniejszej liczbie połączeń od regionu party; remisy
+    rozstrzyga kolejność regionów `WorldMap`; osady własne, bez właściciela
+    i nieosiągalne są pomijane; brak celu daje `None`; bez RNG i mutacji.
+- [ ] **A7.1b** Proste AI księstwa (rozwijaj osadę → zbierz party → atakuj).
+  - AC: AI wykonuje sensowną turę deterministycznie przy ustalonym seedzie,
+    korzystając z wyboru celu z A7.1a.
 - [ ] **A7.2** Headless przebieg całej pętli MVP (setup → tury → bitwa → wynik).
   - AC: `run.sh` symuluje partię do rozstrzygnięcia i wypisuje wynik; test smoke pętli.
 

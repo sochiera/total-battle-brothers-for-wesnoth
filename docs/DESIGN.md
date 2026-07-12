@@ -575,6 +575,13 @@ ich dotykają, i notować wynik tutaj:
   Startowy katalog: **Farm** (`wheat=3`, `staff=1`), **Market** (`gold=2`, `staff=1`);
   **Smith** nie produkuje surowców (`output` zerowy — to budynek uzbrojenia, M3).
 - **AI księstw:** poziom ambicji dla MVP (od skryptowego „rozwijaj i atakuj").
+  **PLAN (A7.1a, wybór celu):** pierwszym czystym prymitywem AI będzie wybór
+  najbliższej osiągalnej wrogiej osady względem regionu party. Wrogi cel wymaga
+  jawnego `owner_id` różnego od właściciela AI; osady własne i bez właściciela
+  są pomijane. Odległość to liczba połączeń grafu `WorldMap`, a remis rozstrzyga
+  deklarowana kolejność regionów mapy. Brak osiągalnego celu daje `None`.
+  Kwerenda nie używa RNG i nie mutuje świata; marsz, muster i atak dochodzą
+  w kolejnych małych krokach A7.1.
 - **Zakończenie tury na mapie:** kolejność faz (produkcja → wzrost → ruch → bitwy).
   **ROZSTRZYGNIĘTE (plan M5.4b, miesięczne przejście osad):**
   `WorldMap.tick_settlements()` aktualizuje wszystkie osady w deterministycznej
