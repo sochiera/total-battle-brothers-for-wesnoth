@@ -5,7 +5,12 @@ Nie importuj tu bibliotek prezentacji/UI — patrz docs/ARCHITECTURE.md.
 """
 
 from tbb.building import Building, FARM, MARKET, SMITH
-from tbb.ai import march_toward_nearest_enemy, nearest_enemy_settlement, next_march_step
+from tbb.ai import (
+    assault_nearest_enemy_settlement,
+    march_toward_nearest_enemy,
+    nearest_enemy_settlement,
+    next_march_step,
+)
 from tbb.battlefield import Battlefield
 from tbb.battle import BattleReport, BattleResult, BattleSide, BattleSideReport, HexBattle
 from tbb.combat import melee_hit_chance
@@ -32,6 +37,7 @@ __all__ = [
     "BattleSide",
     "BattleSideReport",
     "BRUISE",
+    "assault_nearest_enemy_settlement",
     "Calendar",
     "Duchy",
     "FARM",

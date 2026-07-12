@@ -599,9 +599,9 @@ ich dotykają, i notować wynik tutaj:
   jedno przejście między regionami na wywołanie. Brak celu, brak drogi oraz
   sąsiedztwo celu oznaczają brak zmiany mapy (sąsiedztwo zostawia party do
   osobnego kroku szturmu). Brak party albo jego jawnego `owner_id` w regionie
-  startowym jest błędem wejścia. Muster, szturm i pełna polityka tury AI pozostają
-  rozdzielone na A7.1b3–b5.
-  **PLAN (A7.1b3, szturm istniejącego party):** osobne czyste przejście AI
+  startowym jest błędem wejścia. Muster i pełna polityka tury AI pozostają
+  rozdzielone na A7.1b4–b5.
+  **ROZSTRZYGNIĘTE (A7.1b3, szturm istniejącego party):** osobne czyste przejście AI
   wybiera najbliższą wrogą osadę przez A7.1a i rozstrzyga kontakt przez
   `WorldMap.resolve_settlement_battle()` wyłącznie wtedy, gdy wybrany cel jest
   bezpośrednim sąsiadem party. RNG jest jawnie wstrzykiwany, a placeholderowe

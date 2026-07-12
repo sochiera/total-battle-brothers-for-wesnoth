@@ -3,6 +3,7 @@
 from dataclasses import FrozenInstanceError
 
 import pytest
+import tbb
 
 from tbb import (
     Party,
@@ -10,6 +11,7 @@ from tbb import (
     Settlement,
     Unit,
     WorldMap,
+    assault_nearest_enemy_settlement,
     march_toward_nearest_enemy,
     nearest_enemy_settlement,
     next_march_step,
@@ -244,3 +246,81 @@ def test_march_rejects_invalid_start_or_party(case):
 
     with pytest.raises(ValueError):
         march_toward_nearest_enemy(world, selected)
+
+
+def test_assault_resolves_adjacent_enemy_settlement():
+    start, target = Region("Start"), Region("Target")
+    party = Party(Unit(training=5, equipment=6), owner_id="ai")
+    settlement = Settlement(
+        "Target", population=1, garrison=(Unit(equipment=1),), owner_id="enemy"
+    )
+    world = WorldMap(
+        [start, target],
+        [(start, target)],
+        settlements={target: settlement},
+        parties={start: party},
+    )
+
+    resolved = assault_nearest_enemy_settlement(world, start, tbb.Rng(2))
+
+    assert resolved == world.resolve_settlement_battle(start, target, tbb.Rng(2))
+    assert resolved != world
+
+
+class _ForbiddenRng:
+    def randint(self, *_args):
+        raise AssertionError("RNG must not be consumed")
+
+    def chance(self, *_args):
+        raise AssertionError("RNG must not be consumed")
+
+
+@pytest.mark.parametrize("case", ["distant", "no_enemy"])
+def test_assault_is_noop_without_adjacent_enemy_and_does_not_use_rng(case):
+    start, middle, target = map(Region, ("Start", "Middle", "Target"))
+    settlements = (
+        {target: _settlement("Target", "enemy")} if case == "distant" else {}
+    )
+    world = WorldMap(
+        [start, middle, target],
+        [(start, middle), (middle, target)],
+        settlements=settlements,
+        parties={start: _owned_party("Hero")},
+    )
+
+    assert assault_nearest_enemy_settlement(world, start, _ForbiddenRng()) is world
+
+
+@pytest.mark.parametrize("case", ["outside", "empty", "ownerless"])
+def test_assault_rejects_invalid_start_or_party(case):
+    known = Region("Known")
+    parties = {known: _party("Hero")} if case == "ownerless" else {}
+    world = WorldMap([known], parties=parties)
+    selected = Region("Outside") if case == "outside" else known
+
+    with pytest.raises(ValueError):
+        assault_nearest_enemy_settlement(world, selected, _ForbiddenRng())
+
+
+def test_assault_is_deterministic_and_preserves_input_objects():
+    start, target = Region("Start"), Region("Target")
+    party = Party(Unit(equipment=5), [Unit(equipment=2)], "ai")
+    settlement = Settlement(
+        "Target", population=2, garrison=(Unit(equipment=4),), owner_id="enemy"
+    )
+    world = WorldMap(
+        [start, target], [(start, target)], {target: settlement}, {start: party}
+    )
+
+    first = assault_nearest_enemy_settlement(world, start, tbb.Rng(12))
+    second = assault_nearest_enemy_settlement(world, start, tbb.Rng(12))
+
+    assert first == second
+    assert world.party_at(start) is party
+    assert world.settlement_at(target) is settlement
+    assert party.units == (Unit(equipment=2),)
+    assert settlement.owner_id == "enemy"
+
+
+def test_assault_transition_is_publicly_exported():
+    assert tbb.assault_nearest_enemy_settlement is assault_nearest_enemy_settlement

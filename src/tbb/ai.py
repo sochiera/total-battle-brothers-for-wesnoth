@@ -2,6 +2,7 @@
 
 from collections import deque
 
+from tbb.rng import Rng
 from tbb.world import Region, WorldMap
 
 
@@ -83,3 +84,21 @@ def march_toward_nearest_enemy(world: WorldMap, start: Region) -> WorldMap:
     if step is None:
         return world
     return world.move_party(start, step, 1)
+
+
+def assault_nearest_enemy_settlement(
+    world: WorldMap, start: Region, rng: Rng
+) -> WorldMap:
+    """Resolve an assault when the party's nearest enemy settlement is adjacent."""
+    if start not in world.regions:
+        raise ValueError("start region is outside the world map")
+    party = world.party_at(start)
+    if party is None:
+        raise ValueError("start region has no party")
+    if party.owner_id is None:
+        raise ValueError("party must have an explicit owner_id")
+
+    target = nearest_enemy_settlement(world, start, party.owner_id)
+    if target is None or target not in world.neighbors(start):
+        return world
+    return world.resolve_settlement_battle(start, target, rng)
