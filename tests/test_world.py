@@ -1038,3 +1038,127 @@ def test_apply_settlement_non_win_with_battle_removes_attacking_party(result):
     assert resolved.party_at(vale) is None
     assert resolved.settlement_at(vale) is settlement
     assert resolved.settlement_at(vale).garrison is garrison
+
+
+def test_resolve_settlement_battle_conquers_with_attacking_survivors():
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(
+        Unit(training=5, equipment=4),
+        [Unit(equipment=1), Unit(equipment=4)],
+        owner_id="north",
+    )
+    garrison = (Unit(equipment=3), Unit(equipment=3))
+    settlement = Settlement("Oakrest", 4, garrison=garrison, owner_id="south")
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        settlements={vale: settlement},
+        parties={camp: attacker},
+    )
+
+    resolved = world.resolve_settlement_battle(
+        camp, vale, Rng(2), move_points=1, morale=100
+    )
+
+    survivors = resolved.party_at(vale)
+    assert resolved.party_at(camp) is None
+    assert survivors.owner_id == "north"
+    assert resolved.settlement_at(vale).owner_id == "north"
+    assert len((survivors.hero, *survivors.units)) < len(
+        (attacker.hero, *attacker.units)
+    )
+    assert attacker.units[0] not in (survivors.hero, *survivors.units)
+
+
+def test_resolve_settlement_battle_defender_win_removes_attacker_only():
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(Unit(equipment=1), owner_id="north")
+    garrison = (Unit(training=5, equipment=12),)
+    settlement = Settlement("Oakrest", 4, garrison=garrison, owner_id="south")
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        settlements={vale: settlement},
+        parties={camp: attacker},
+    )
+
+    resolved = world.resolve_settlement_battle(camp, vale, Rng(4))
+
+    assert resolved.party_at(camp) is None
+    assert resolved.party_at(vale) is None
+    assert resolved.settlement_at(vale) is settlement
+    assert resolved.settlement_at(vale).owner_id == "south"
+    assert resolved.settlement_at(vale).garrison is garrison
+
+
+def test_resolve_settlement_battle_is_deterministic_and_immutable():
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(Unit(equipment=5), [Unit(equipment=2)], "north")
+    garrison = (Unit(equipment=4), Unit(equipment=3))
+    settlement = Settlement("Oakrest", 3, garrison=garrison, owner_id="south")
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        settlements={vale: settlement},
+        parties={camp: attacker},
+    )
+
+    first = world.resolve_settlement_battle(camp, vale, Rng(12))
+    second = world.resolve_settlement_battle(camp, vale, Rng(12))
+
+    assert first == second
+    assert world.party_at(camp) is attacker
+    assert world.party_at(vale) is None
+    assert world.settlement_at(vale) is settlement
+    assert world.settlement_at(vale).owner_id == "south"
+    assert world.settlement_at(vale).garrison is garrison
+
+
+@pytest.mark.parametrize(
+    "party_region, settlement_region, source_name, destination_name, same_owner",
+    [
+        ("Camp", "Vale", "Camp", "Wilds", False),
+        (None, "Vale", "Camp", "Vale", False),
+        ("Camp", None, "Camp", "Vale", False),
+        ("Camp", "Vale", "Camp", "Vale", True),
+    ],
+    ids=["not-adjacent", "no-party", "no-settlement", "same-owner"],
+)
+def test_resolve_settlement_battle_delegates_contact_validation(
+    party_region, settlement_region, source_name, destination_name, same_owner
+):
+    camp = Region("Camp")
+    vale = Region("Vale")
+    wilds = Region("Wilds")
+    regions = {region.name: region for region in (camp, vale, wilds)}
+    parties = (
+        {regions[party_region]: Party(Unit(), owner_id="north")}
+        if party_region is not None
+        else {}
+    )
+    settlements = (
+        {
+            regions[settlement_region]: Settlement(
+                "Oakrest",
+                2,
+                garrison=(Unit(),),
+                owner_id="north" if same_owner else "south",
+            )
+        }
+        if settlement_region is not None
+        else {}
+    )
+    world = WorldMap(
+        [camp, vale, wilds],
+        [(camp, vale)],
+        settlements=settlements,
+        parties=parties,
+    )
+
+    with pytest.raises(ValueError):
+        world.resolve_settlement_battle(
+            regions[source_name], regions[destination_name], Rng(1)
+        )

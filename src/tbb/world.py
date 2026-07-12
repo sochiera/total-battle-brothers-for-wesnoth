@@ -315,6 +315,21 @@ class WorldMap:
             parties,
         )
 
+    def resolve_settlement_battle(
+        self,
+        source: Region,
+        destination: Region,
+        rng: Rng,
+        move_points: int = 1,
+        morale: int = 0,
+    ) -> "WorldMap":
+        """Play an adjacent settlement battle and apply its result."""
+        battle = self.start_settlement_battle(source, destination)
+        resolved = battle.auto_resolve(move_points, morale, rng)
+        return self.apply_settlement_battle_result(
+            source, destination, resolved.result(), battle=resolved
+        )
+
     @staticmethod
     def _require_enemy_owners(
         attacker_owner_id: str | None, defender_owner_id: str | None
