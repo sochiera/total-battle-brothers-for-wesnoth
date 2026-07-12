@@ -377,10 +377,23 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     przeciwnych końcach połączonej mapy, na starcie nie ma party; osady w
     `GameState` są tymi samymi obiektami co na mapie; kolejne wywołania dają
     równy stan i nie używają RNG.
-- [ ] **A7.2b** Headless driver całej partii (tury → bitwy → wynik).
-  - AC: `run.sh` uruchamia deterministyczną symulację setupu A7.2a do
-    rozstrzygnięcia, ma bezpiecznik liczby tur, wypisuje zwycięzcę albo remis;
-    test smoke obejmuje pełną pętlę i kod wyjścia 0.
+- [~] **A7.2b1** Synchronizacja kolekcji księstw z mapą świata.
+  - AC: czyste przejście `GameState.sync_from_world(world)` zwraca nowy stan gry,
+    w którym `settlements` i `parties` każdego księstwa zawierają wyłącznie obiekty
+    z bieżącej mapy o zgodnym `owner_id`, w kolejności regionów mapy; podbój usuwa
+    osadę dawnemu właścicielowi i przypisuje ją zdobywcy. Identyfikator, bohater,
+    dziedzic i morale pozostają bez zmian; wejściowe stany nie są mutowane.
+- [ ] **A7.2b2** Aktualizacja życia bohatera po wojskowej akcji tury.
+  - AC: po utracie party prowadzonego przez bohatera stan księstwa przechodzi przez
+    istniejącą sukcesję albo jawny stan bez bohatera; brak poległego party nie
+    uśmierca bohatera pozostającego poza mapą; wynik jest spójny z `WorldMap`.
+- [ ] **A7.2b3** Czysty driver tur headless do rozstrzygnięcia.
+  - AC: deterministycznie wykonuje kolejne polityki księstw na setupie A7.2a,
+    synchronizuje stan gry po akcjach, kończy po `GameState.is_over` i ma
+    bezpiecznik liczby tur.
+- [ ] **A7.2b4** Headless CLI wypisuje wynik całej partii.
+  - AC: `run.sh` uruchamia driver A7.2b3, wypisuje zwycięzcę albo remis; test smoke
+    obejmuje pełną pętlę i kod wyjścia 0.
 
 ## Później (poza MVP)
 - [ ] Prezentacja/UI (pygame lub most do innego silnika) nad rdzeniem.
