@@ -318,7 +318,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     i w party.
 
 ## Kamień milowy 7 — AI i grywalna pętla MVP
-- [~] **A7.1a** Wybór najbliższej wrogiej osady przez AI.
+- [x] **A7.1a** Wybór najbliższej wrogiej osady przez AI.
   - AC: czysta kwerenda wybiera spośród osiągalnych osad z jawnym, innym
     `owner_id` tę o najmniejszej liczbie połączeń od regionu party; remisy
     rozstrzyga kolejność regionów `WorldMap`; osady własne, bez właściciela
