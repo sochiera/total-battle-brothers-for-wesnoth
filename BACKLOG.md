@@ -342,9 +342,13 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     dalszy niż jedno połączenie albo brak celu nie zmienia mapy; brak party lub
     jawnego właściciela w regionie startowym jest odrzucany; ten sam stan i seed
     dają ten sam wynik.
-- [ ] **A7.1b4** Wystawienie party AI z własnej osady.
-  - AC: gdy AI nie ma party, deterministycznie wybiera własną osadę i składa
-    muster z umieszczeniem party na mapie; nie duplikuje bohatera ani garnizonu.
+- [~] **A7.1b4** Wystawienie party AI z własnej osady.
+  - AC: czyste przejście przyjmuje `WorldMap` i `Duchy`; jeśli na mapie istnieje
+    już party z `owner_id == duchy_id`, zwraca mapę bez zmian (bohater nie jest
+    duplikowany). W przeciwnym razie wybiera pierwszą w kolejności regionów mapy
+    własną osadę z wolnym slotem party i deleguje do `WorldMap.muster_party()`
+    z bohaterem księstwa, atomowo opróżniając garnizon. Brak żywego bohatera albo
+    dostępnej własnej osady oznacza no-op; stan wejściowy pozostaje niezmieniony.
 - [ ] **A7.1b5** Proste AI księstwa (rozwijaj osadę → zbierz party → atakuj).
   - AC: AI wykonuje sensowną turę deterministycznie przy ustalonym seedzie,
     składając rozwój, muster, marsz i rozstrzygnięcie kontaktu z małych przejść.

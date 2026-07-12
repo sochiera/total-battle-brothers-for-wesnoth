@@ -609,6 +609,16 @@ ich dotykają, i notować wynik tutaj:
   połączenie oznacza no-op; brak party lub jego jawnego `owner_id` w regionie
   startowym pozostaje błędem wejścia. Marsz, muster i pełna polityka tury AI
   nie są składane w tym kroku i pozostają w A7.1b2 oraz A7.1b4–b5.
+  **PLAN (A7.1b4, wystawienie party AI):** AI może wystawić najwyżej jedno party
+  prowadzone przez swojego żyjącego bohatera. Źródłem bieżącego rozmieszczenia
+  party i osad jest `WorldMap`, natomiast `Duchy` dostarcza tożsamość właściciela
+  (`duchy_id`) i bohatera. Jeśli na mapie istnieje już party tego księstwa, akcja
+  jest no-opem, co zapobiega duplikacji bohatera. W przeciwnym razie wybierana jest
+  pierwsza według deklarowanej kolejności regionów własna osada z wolnym slotem
+  party, a istniejące atomowe `WorldMap.muster_party()` przenosi jej garnizon do
+  party. Brak żyjącego bohatera albo dostępnej własnej osady również oznacza no-op.
+  Rekrutacja/rozwój przed wystawieniem oraz złożenie tej akcji z marszem i szturmem
+  pozostają domeną A7.1b5.
 - **Zakończenie tury na mapie:** kolejność faz (produkcja → wzrost → ruch → bitwy).
   **ROZSTRZYGNIĘTE (plan M5.4b, miesięczne przejście osad):**
   `WorldMap.tick_settlements()` aktualizuje wszystkie osady w deterministycznej
