@@ -323,9 +323,15 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     `owner_id` tę o najmniejszej liczbie połączeń od regionu party; remisy
     rozstrzyga kolejność regionów `WorldMap`; osady własne, bez właściciela
     i nieosiągalne są pomijane; brak celu daje `None`; bez RNG i mutacji.
-- [ ] **A7.1b** Proste AI księstwa (rozwijaj osadę → zbierz party → atakuj).
+- [~] **A7.1b1** Wybór następnego kroku marszu ku wrogiej osadzie.
+  - AC: czysta kwerenda wybiera sąsiedni region rozpoczynający najkrótszą drogę
+    od party do celu z A7.1a, omijając regiony zajęte przez inne party; remisy
+    rozstrzyga kolejność regionów `WorldMap`. Gdy party już sąsiaduje z celem
+    (jest gotowe do szturmu) albo żadna droga nie istnieje, zwraca `None`; bez RNG
+    i mutacji.
+- [ ] **A7.1b2** Proste AI księstwa (rozwijaj osadę → zbierz party → atakuj).
   - AC: AI wykonuje sensowną turę deterministycznie przy ustalonym seedzie,
-    korzystając z wyboru celu z A7.1a.
+    składając wybór celu z A7.1a, marsz z A7.1b1, muster i rozstrzygnięcie kontaktu.
 - [ ] **A7.2** Headless przebieg całej pętli MVP (setup → tury → bitwa → wynik).
   - AC: `run.sh` symuluje partię do rozstrzygnięcia i wypisuje wynik; test smoke pętli.
 
