@@ -17,6 +17,7 @@ from tbb import (
     muster_duchy_party,
     nearest_enemy_settlement,
     next_march_step,
+    recruit_duchy_unit,
     take_duchy_military_action,
 )
 
@@ -494,3 +495,77 @@ def test_duchy_military_action_is_deterministic_and_preserves_inputs():
 
 def test_duchy_military_action_is_publicly_exported():
     assert tbb.take_duchy_military_action is take_duchy_military_action
+
+
+def test_recruit_duchy_unit_adds_exactly_one_fresh_unit_without_mutating_inputs():
+    home = Region("Home")
+    settlement = Settlement(
+        "Home", 3, occupied=1, garrison=(Unit(training=1),), owner_id="ai"
+    )
+    world = WorldMap([home], settlements={home: settlement})
+    duchy = Duchy("ai", Unit(), settlements=(settlement,))
+
+    recruited = recruit_duchy_unit(world, duchy)
+
+    updated = recruited.settlement_at(home)
+    assert updated.occupied == settlement.occupied + 1
+    assert updated.garrison == settlement.garrison + (Unit(),)
+    assert world.settlement_at(home) is settlement
+    assert settlement.occupied == 1
+    assert settlement.garrison == (Unit(training=1),)
+    assert duchy.settlements == (settlement,)
+
+
+def test_recruit_duchy_unit_uses_region_order_not_settlement_mapping_order():
+    first, second = Region("First"), Region("Second")
+    first_settlement = Settlement("First", 1, owner_id="ai")
+    second_settlement = Settlement("Second", 1, owner_id="ai")
+    world = WorldMap(
+        [first, second],
+        settlements={second: second_settlement, first: first_settlement},
+    )
+
+    recruited = recruit_duchy_unit(world, Duchy("ai", Unit()))
+
+    assert recruited.settlement_at(first).garrison == (Unit(),)
+    assert recruited.settlement_at(second) is second_settlement
+
+
+def test_recruit_duchy_unit_skips_every_ineligible_settlement():
+    foreign, unowned, no_free, full, eligible = map(
+        Region, ("Foreign", "Unowned", "No free", "Full", "Eligible")
+    )
+    full_garrison = tuple(Unit(experience=index) for index in range(12))
+    settlements = {
+        foreign: Settlement("Foreign", 1, owner_id="enemy"),
+        unowned: Settlement("Unowned", 1),
+        no_free: Settlement("No free", 1, occupied=1, owner_id="ai"),
+        full: Settlement(
+            "Full", 13, occupied=12, garrison=full_garrison, owner_id="ai"
+        ),
+        eligible: Settlement("Eligible", 1, owner_id="ai"),
+    }
+    world = WorldMap(
+        [foreign, unowned, no_free, full, eligible], settlements=settlements
+    )
+
+    recruited = recruit_duchy_unit(world, Duchy("ai", Unit()))
+
+    assert recruited.settlement_at(eligible).garrison == (Unit(),)
+    for region in (foreign, unowned, no_free, full):
+        assert recruited.settlement_at(region) is settlements[region]
+
+
+def test_recruit_duchy_unit_is_noop_without_eligible_settlement():
+    home = Region("Home")
+    settlement = Settlement("Home", 1, occupied=1, owner_id="ai")
+    world = WorldMap([home], settlements={home: settlement})
+    duchy = Duchy("ai", Unit(), settlements=(settlement,))
+
+    assert recruit_duchy_unit(world, duchy) is world
+    assert world.settlement_at(home) is settlement
+    assert duchy.settlements == (settlement,)
+
+
+def test_recruit_duchy_unit_is_publicly_exported():
+    assert tbb.recruit_duchy_unit is recruit_duchy_unit

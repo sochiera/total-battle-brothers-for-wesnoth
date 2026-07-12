@@ -629,8 +629,9 @@ ich dotykają, i notować wynik tutaj:
   region. Brak bohatera, party albo osiągalnego celu oznacza no-op względem mapy
   wejściowej — także wtedy, gdy próbny muster mógłby wystawić party z własnej
   osady. Rozwój osady i rekrutacja pozostają osobnym, następnym krokiem A7.1b5b.
-  **PLAN (A7.1b5b1, rekrutacja AI):** minimalny rozwój osady zostaje wydzielony
-  z pełnej polityki tury. AI rekrutuje dokładnie jednego świeżego `Unit` w pierwszej
+  **ROZSTRZYGNIĘTE (A7.1b5b1, rekrutacja AI):** czyste przejście
+  `recruit_duchy_unit()` wydziela minimalny rozwój osady z pełnej polityki tury.
+  AI rekrutuje dokładnie jednego świeżego `Unit` w pierwszej
   według kolejności regionów własnej osadzie, która ma co najmniej jednego wolnego
   mieszkańca i mniej niż **12** jednostek garnizonu. Limit gwarantuje, że garnizon
   da się później wystawić jako podkomendnych jednego `Party`. Osady obce, bez

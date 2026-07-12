@@ -357,7 +357,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     wyszukiwane po każdym przejściu; brak bohatera, party albo celu daje bezpieczny
     no-op względem mapy wejściowej, również po możliwym musterze. Ten sam stan
     i seed dają ten sam wynik, a mapa wejściowa nie jest mutowana.
-- [~] **A7.1b5b1** Rekrutacja jednego żołnierza przez AI.
+- [x] **A7.1b5b1** Rekrutacja jednego żołnierza przez AI.
   - AC: czyste przejście przyjmuje `WorldMap` i `Duchy`, po czym rekrutuje dokładnie
     jednego mieszkańca w pierwszej według kolejności regionów własnej osadzie, która
     ma wolną populację i mniej niż 12 jednostek garnizonu. Osady obce, bez właściciela,

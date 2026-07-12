@@ -7,6 +7,27 @@ from tbb.rng import Rng
 from tbb.world import Region, WorldMap
 
 
+def recruit_duchy_unit(world: WorldMap, duchy: Duchy) -> WorldMap:
+    """Recruit one fresh unit in the first eligible owned settlement."""
+    for region in world.regions:
+        settlement = world.settlements.get(region)
+        if (
+            settlement is not None
+            and settlement.owner_id == duchy.duchy_id
+            and settlement.free > 0
+            and len(settlement.garrison) < 12
+        ):
+            settlements = dict(world.settlements)
+            settlements[region] = settlement.recruit()
+            return WorldMap(
+                world.regions,
+                world.connections,
+                settlements,
+                world.parties,
+            )
+    return world
+
+
 def muster_duchy_party(world: WorldMap, duchy: Duchy) -> WorldMap:
     """Muster a duchy's hero and first available owned settlement garrison."""
     if any(party.owner_id == duchy.duchy_id for party in world.parties.values()):
