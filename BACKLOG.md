@@ -370,7 +370,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > **A7.2 — headless przebieg MVP.** Ostatni krok dzielimy na deterministyczny
 > setup, a dopiero potem driver tur i prezentację wyniku. Dzięki temu runner nie
 > będzie ukrywał danych startowych ani mieszał ich konstrukcji z efektami I/O.
-- [~] **A7.2a** Deterministyczny setup partii headless.
+- [x] **A7.2a** Deterministyczny setup partii headless.
   - AC: czysta fabryka zwraca `WorldMap` i `GameState` dla dokładnie dwóch
     księstw (`player`, `ai`), po jednej własnej osadzie z populacją i dodatnimi
     zapasami oraz po jednym zdolnym zadawać obrażenia bohaterze; osady leżą na

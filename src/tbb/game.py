@@ -4,6 +4,36 @@ from dataclasses import dataclass
 from typing import Iterable
 
 from tbb.duchy import Duchy
+from tbb.resources import Resources
+from tbb.settlement import Settlement
+from tbb.unit import Unit
+from tbb.world import Region, WorldMap
+
+
+def create_headless_game() -> tuple[WorldMap, "GameState"]:
+    """Create the fixed two-duchy starting state for the headless game."""
+    player_region = Region("player lands")
+    border_region = Region("border")
+    ai_region = Region("ai lands")
+
+    player_settlement = Settlement(
+        "Player Keep", 5, storage=Resources(10, 10), owner_id="player"
+    )
+    ai_settlement = Settlement(
+        "AI Keep", 5, storage=Resources(10, 10), owner_id="ai"
+    )
+    world = WorldMap(
+        (player_region, border_region, ai_region),
+        ((player_region, border_region), (border_region, ai_region)),
+        {player_region: player_settlement, ai_region: ai_settlement},
+    )
+    game = GameState(
+        (
+            Duchy("player", Unit(equipment=1), settlements=(player_settlement,)),
+            Duchy("ai", Unit(equipment=1), settlements=(ai_settlement,)),
+        )
+    )
+    return world, game
 
 
 @dataclass(frozen=True)

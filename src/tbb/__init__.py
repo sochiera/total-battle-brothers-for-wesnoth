@@ -19,6 +19,7 @@ from tbb.battlefield import Battlefield
 from tbb.battle import BattleReport, BattleResult, BattleSide, BattleSideReport, HexBattle
 from tbb.combat import melee_hit_chance
 from tbb.duchy import Duchy
+from tbb.game import GameState, create_headless_game
 from tbb.hex import Hex
 from tbb.party import Party
 from tbb.progression import investment_for_level, pillar_level
@@ -44,10 +45,12 @@ __all__ = [
     "assault_nearest_enemy_settlement",
     "Calendar",
     "Duchy",
+    "GameState",
     "FARM",
     "FOREST",
     "Hex",
     "HexBattle",
+    "create_headless_game",
     "HILLS",
     "investment_for_level",
     "melee_hit_chance",

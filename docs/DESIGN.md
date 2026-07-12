@@ -646,9 +646,9 @@ ich dotykają, i notować wynik tutaj:
   składu. Brak możliwości rekrutacji nie blokuje marszu ani szturmu. Przejście
   używa wyłącznie RNG przekazanego do akcji wojskowej, jest deterministyczne przy
   ustalonym seedzie i nie mutuje mapy ani księstwa wejściowego.
-  **PLAN (A7.2a, deterministyczny setup headless):** ostatnią integrację MVP
+  **ROZSTRZYGNIĘTE (A7.2a, deterministyczny setup headless):** ostatnią integrację MVP
   zaczynamy od czystej fabryki stanu startowego, oddzielonej od pętli i I/O.
-  Fabryka zwraca `WorldMap` oraz `GameState` z dokładnie dwoma księstwami:
+  Fabryka `create_headless_game()` zwraca `WorldMap` oraz `GameState` z dokładnie dwoma księstwami:
   `player` i `ai`. Każde ma jednego bohatera zdolnego zadawać obrażenia oraz
   jedną własną osadę z populacją i dodatnimi zapasami pszenicy i złota; osady
   stoją na przeciwnych końcach połączonej mapy, a party są początkowo puste, by
