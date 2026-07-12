@@ -3,6 +3,7 @@
 from dataclasses import dataclass, replace
 
 from tbb.building import Building
+from tbb.party import Party
 from tbb.resources import Resources
 from tbb.unit import Unit
 
@@ -95,6 +96,18 @@ class Settlement:
         staffed = self.occupy(1)
         recruit = Unit() if unit is None else unit
         return replace(staffed, garrison=staffed.garrison + (recruit,))
+
+    def muster(self, hero: Unit) -> tuple[Party, "Settlement"]:
+        """Move the whole garrison into a new party led by ``hero``."""
+        party = Party(hero=hero, units=self.garrison, owner_id=self.owner_id)
+        departing = len(self.garrison)
+        settlement = replace(
+            self,
+            population=self.population - departing,
+            occupied=self.occupied - departing,
+            garrison=(),
+        )
+        return party, settlement
 
     def open_building(self, building: Building) -> "Settlement":
         """Return a new state with ``building`` active and staffed."""

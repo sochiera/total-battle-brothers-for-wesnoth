@@ -343,3 +343,81 @@ def test_two_recruits_occupy_two_population_and_join_garrison():
     assert recruited.occupied == 2
     assert recruited.free == 0
     assert len(recruited.garrison) == 2
+
+
+def test_muster_moves_garrison_to_party_and_preserves_free_population():
+    units = (Unit(training=1), Unit(equipment=2), Unit(experience=3))
+    original = Settlement("A", population=8, occupied=4).recruit(units[0]).recruit(
+        units[1]
+    ).recruit(units[2])
+    hero = Unit(training=4)
+
+    party, mustered = original.muster(hero)
+
+    assert party.hero is hero
+    assert party.units == units
+    assert mustered.garrison == ()
+    assert mustered.population == original.population - 3
+    assert mustered.occupied == original.occupied - 3
+    assert mustered.free == original.free
+
+
+@pytest.mark.parametrize("owner_id", ["north", None])
+def test_muster_propagates_settlement_owner_to_party(owner_id):
+    hero = Unit()
+    settlement = Settlement("A", population=1, owner_id=owner_id).recruit()
+
+    party, _ = settlement.muster(hero)
+
+    assert party.owner_id == owner_id
+
+
+def test_muster_preserves_settlement_fields_and_does_not_mutate_original():
+    original = Settlement(
+        "A",
+        population=5,
+        occupied=2,
+        active_buildings=(SMITH,),
+        storage=Resources(7, 9),
+        capacity=10,
+        garrison=(Unit(),),
+        owner_id="north",
+    )
+
+    _, mustered = original.muster(Unit())
+
+    assert mustered.name == original.name
+    assert mustered.storage == original.storage
+    assert mustered.active_buildings == original.active_buildings
+    assert mustered.capacity == original.capacity
+    assert mustered.owner_id == original.owner_id
+    assert original.garrison == (Unit(),)
+    assert original.population == 5
+    assert original.occupied == 2
+
+
+def test_muster_rejects_garrison_over_party_limit():
+    settlement = Settlement(
+        "A", population=13, occupied=13, garrison=(Unit(),) * 13
+    )
+
+    with pytest.raises(ValueError):
+        settlement.muster(Unit())
+
+
+def test_muster_rejects_non_unit_hero():
+    with pytest.raises(TypeError):
+        Settlement("A", population=1).muster("not a hero")
+
+
+def test_muster_empty_garrison_creates_hero_only_party_without_population_change():
+    original = Settlement("A", population=4, occupied=1, owner_id="north")
+    hero = Unit()
+
+    party, mustered = original.muster(hero)
+
+    assert party.hero is hero
+    assert party.units == ()
+    assert mustered.garrison == ()
+    assert mustered.population == original.population
+    assert mustered.occupied == original.occupied

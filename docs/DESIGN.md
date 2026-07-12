@@ -415,7 +415,12 @@ Wstępne encje rdzenia (nazwy robocze, doprecyzowywane wraz z implementacją):
   żołnierz jest mieszkańcem osady, więc `population` bez zmian, rośnie `occupied`)
   i dokłada `Unit` do garnizonu. Bez argumentu tworzy **świeżego rekruta** `Unit()`
   (filary 0). Brak wolnej populacji **blokuje** rekrutację (`ValueError`). Koszt
-  surowców/miesięcy rekrutacji i przenoszenie jednostek do party dochodzą później.
+  surowców/miesięcy rekrutacji dochodzi później. **ROZSTRZYGNIĘTE (MU.1,
+  wystawienie party):** `Settlement.muster(hero)` to czyste przejście przenoszące
+  cały garnizon, w zachowanej kolejności, do nowego `Party` z bohaterem i
+  właścicielem osady. Wymarsz opróżnia garnizon oraz zmniejsza `population`
+  i `occupied` o liczbę żołnierzy; `free` pozostaje bez zmian. Pozostały stan
+  osady nie zmienia się, a pusty garnizon tworzy party z samym bohaterem.
 - `Duchy` (księstwo) — bohater, dziedzic, lista osad, party, morale.
   **ROZSTRZYGNIĘTE (D6.1a, minimalne księstwo):** `Duchy` to niemutowalny stan
   z niepustym tekstowym `duchy_id`, jednym wymaganym `hero: Unit` oraz podpisanym
