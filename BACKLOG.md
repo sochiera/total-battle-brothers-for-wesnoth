@@ -219,10 +219,32 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
   - AC: jednostka rusza się najtańszą ścieżką w budżecie ku sąsiedztwu celu z BD.1,
     a jeśli już sąsiaduje — wykonuje `melee_attack`; przy 0 HP celu rozstrzyga
     `resolve_defeat`; jeden rzut RNG na atak; determinizm; niemutowalność wejścia.
-- [~] **BD.3** Pełna auto-rozgrywka bitwy do rozstrzygnięcia (`HexBattle.auto_resolve`).
+- [x] **BD.3** Pełna auto-rozgrywka bitwy do rozstrzygnięcia (`HexBattle.auto_resolve`).
   - AC: deterministyczna pętla tur (kolejność rozstawienia) doprowadza bitwę do
     `result` innego niż `None` przy ustalonym seedzie; zwraca końcowy stan/raport;
     limit tur chroni przed zapętleniem; niemutowalność wejścia.
+
+## Kamień milowy 6.6 — skutki bitwy na mapie strategicznej
+> Bitwa rozgrywa się do końca (BD.3), ale jej wynik nie wraca na `WorldMap`:
+> zwycięzca nie zajmuje regionu, przegrany nie znika. Bez tego podbój jest niemożliwy
+> i partia nie może się rozstrzygnąć — to twardy warunek pętli MVP (A7.2). Dzielimy
+> zapis wyniku na małe kroki (party↔party, potem party↔osada).
+- [ ] **BW.1** Zapis wyniku bitwy party↔party na mapę (`WorldMap.apply_party_battle_result`).
+  - AC: czyste przejście przyjmuje regiony atakującego (`source`) i broniącego
+    (`destination`) oraz `BattleResult` i zwraca nową `WorldMap`. `ATTACKER_WIN`:
+    party broniące znika, party atakujące przechodzi z `source` do `destination`.
+    `DEFENDER_WIN`: party atakujące znika z `source`, broniące zostaje. `DRAW`:
+    znikają oba party. Walidacja jak w `start_battle` (regiony na mapie, różne,
+    sąsiednie, oba mają party); mapa i osady wejściowe pozostają niezmienione;
+    determinizm. Rekonstrukcja ocalałych (straty/rany/doświadczenie) do party jest
+    świadomie odłożona — party przenosi się jako placeholder bez zmian składu (BW.3).
+- [ ] **BW.2** Zapis wyniku bitwy party↔osada na mapę.
+  - AC: zwycięstwo atakującego → osada zmienia właściciela (lub zostaje zajęta przez
+    party); obrona garnizonu → party atakujące znika; szczegóły rozstrzygnie DESIGN
+    przy realizacji.
+- [ ] **BW.3** Rekonstrukcja ocalałych z raportu bitwy do party na mapie.
+  - AC: po bitwie party na mapie zawiera tylko ocalałych (aktywni + ogłuszeni)
+    z zachowanymi ranami/doświadczeniem z raportu; polegli usunięci.
 
 ## Kamień milowy 7 — AI i grywalna pętla MVP
 - [ ] **A7.1** Proste AI księstwa (rozwijaj osadę → zbierz party → atakuj).

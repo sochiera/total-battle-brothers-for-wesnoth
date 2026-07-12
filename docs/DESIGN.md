@@ -58,6 +58,18 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   Plains. To rozstawienie jest placeholderem integracyjnym. Kontakt z osadą,
   własność księstw, teren zależny od regionu oraz zapis wyniku z powrotem
   na mapę pozostają poza M5.3a.
+- **ROZSTRZYGNIĘTE (plan BW.1, wynik bitwy party↔party na mapie):** po
+  rozstrzygnięciu starcia dwóch party czyste przejście
+  `WorldMap.apply_party_battle_result(source, destination, result)` zapisuje
+  skutek na mapę. `ATTACKER_WIN`: party broniące znika z `destination`, a party
+  atakujące przechodzi z `source` do `destination` (zajmuje wywalczony region).
+  `DEFENDER_WIN`: party atakujące znika z `source`, broniące zostaje na miejscu.
+  `DRAW`: znikają oba party (obie strony wybite — B4.6a). Walidacja jak
+  w `start_battle` (regiony na mapie, różne, sąsiednie, oba obsadzone party); mapa
+  i osady wejściowe pozostają niezmienione. Party przenosi się jako **placeholder
+  bez zmian składu** — rekonstrukcja ocalałych (usunięcie poległych, przeniesienie
+  ran i doświadczenia z raportu) dochodzi w BW.3. Zapis wyniku party↔osada
+  (zmiana właściciela/zajęcie osady) dochodzi w BW.2.
 - **ROZSTRZYGNIĘTE (M5.3b1, minimalny kontakt party↔osada):** jawne rozpoczęcie
   starcia party z garnizonem osady w bezpośrednio sąsiednim regionie tworzy nowy
   `HexBattle`, nie mutując mapy, party, osady ani garnizonu. Bohater i podkomendni
