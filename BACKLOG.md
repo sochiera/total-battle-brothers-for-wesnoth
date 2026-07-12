@@ -329,9 +329,21 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     rozstrzyga kolejność regionów `WorldMap`. Gdy party już sąsiaduje z celem
     (jest gotowe do szturmu) albo żadna droga nie istnieje, zwraca `None`; bez RNG
     i mutacji.
-- [ ] **A7.1b2** Proste AI księstwa (rozwijaj osadę → zbierz party → atakuj).
+- [ ] **A7.1b2** Wykonanie jednego kroku marszu istniejącego party AI.
+  - AC: czyste przejście wybiera najbliższą wrogą osadę przez A7.1a, wyznacza
+    krok przez A7.1b1 i wykonuje dokładnie jeden `WorldMap.move_party(..., 1)`;
+    party już sąsiadujące z celem, bez celu albo bez drogi pozostaje w miejscu;
+    brak party lub jawnego właściciela w regionie startowym jest odrzucany;
+    determinizm i niemutowalność mapy wejściowej.
+- [ ] **A7.1b3** Szturm istniejącego party AI na sąsiednią wrogą osadę.
+  - AC: AI wybiera cel zgodnie z A7.1a i, gdy stoi obok niego, składa
+    `WorldMap.resolve_settlement_battle`; brak sąsiedniego celu nie zmienia mapy.
+- [ ] **A7.1b4** Wystawienie party AI z własnej osady.
+  - AC: gdy AI nie ma party, deterministycznie wybiera własną osadę i składa
+    muster z umieszczeniem party na mapie; nie duplikuje bohatera ani garnizonu.
+- [ ] **A7.1b5** Proste AI księstwa (rozwijaj osadę → zbierz party → atakuj).
   - AC: AI wykonuje sensowną turę deterministycznie przy ustalonym seedzie,
-    składając wybór celu z A7.1a, marsz z A7.1b1, muster i rozstrzygnięcie kontaktu.
+    składając rozwój, muster, marsz i rozstrzygnięcie kontaktu z małych przejść.
 - [ ] **A7.2** Headless przebieg całej pętli MVP (setup → tury → bitwa → wynik).
   - AC: `run.sh` symuluje partię do rozstrzygnięcia i wypisuje wynik; test smoke pętli.
 

@@ -592,6 +592,14 @@ ich dotykają, i notować wynik tutaj:
   `None` oznacza także brak dostępnej drogi. Kwerenda odrzuca start i cel spoza
   mapy, nie używa RNG i nie mutuje świata. Wykonanie ruchu, muster i szturm
   pozostają w kolejnych krokach A7.1.
+  **PLAN (A7.1b2, wykonanie kroku marszu):** pierwsze przejście wykonawcze AI
+  dotyczy wyłącznie istniejącego party. Wybiera ono cel przez A7.1a, krok przez
+  A7.1b1 i zużywa placeholderowy budżet **1 punktu ruchu**, wykonując najwyżej
+  jedno przejście między regionami na wywołanie. Brak celu, brak drogi oraz
+  sąsiedztwo celu oznaczają brak zmiany mapy (sąsiedztwo zostawia party do
+  osobnego kroku szturmu). Brak party albo jego jawnego `owner_id` w regionie
+  startowym jest błędem wejścia. Muster, szturm i pełna polityka tury AI pozostają
+  rozdzielone na A7.1b3–b5.
 - **Zakończenie tury na mapie:** kolejność faz (produkcja → wzrost → ruch → bitwy).
   **ROZSTRZYGNIĘTE (plan M5.4b, miesięczne przejście osad):**
   `WorldMap.tick_settlements()` aktualizuje wszystkie osady w deterministycznej
