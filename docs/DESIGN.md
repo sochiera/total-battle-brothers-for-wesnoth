@@ -287,7 +287,7 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   wszystkich jednostek. Ustalony stan i seed RNG dają ten sam przebieg i wynik,
   a każde przejście tworzy nowy stan, więc bitwa wejściowa pozostaje niezmieniona.
   Bitwa już rozstrzygnięta jest natychmiastowym no-opem.
-- **PLAN (BW.3, rekonstrukcja ocalałych z bitwy do party na mapie):** po bitwie
+- **ROZSTRZYGNIĘTE (BW.3, rekonstrukcja ocalałych z bitwy do party na mapie):** po bitwie
   party na mapie ma zawierać wyłącznie **ocalałych** (aktywnych + ogłuszonych)
   z zachowanymi ranami i doświadczeniem, a polegli mają zniknąć — zastępując
   placeholderowe przenoszenie składu z BW.1/BW.2. Dzielimy to na trzy klocki:
@@ -308,7 +308,7 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
     zachowują rany i doświadczenie. Pusta sekwencja (brak ocalałego bohatera)
     jest odrzucana; party bezhetmańskie lub eliminacja pozostają domeną BW.3c/D6.2.
     Przejście nie mutuje wejść i respektuje limit 12 podkomendnych `Party`.
-  - **BW.3c:** wpięcie rekonstrukcji w `apply_party_battle_result`
+  - **ROZSTRZYGNIĘTE (BW.3c, wpięcie rekonstrukcji na mapie):** wpięcie rekonstrukcji w `apply_party_battle_result`
     i `apply_settlement_battle_result`. Obie metody dostają **opcjonalny**
     parametr `battle: HexBattle | None = None`. Gdy `battle` jest podany, party
     które **pozostaje na mapie** (przenoszące się lub broniące) jest odtwarzane

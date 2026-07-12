@@ -184,6 +184,7 @@ class WorldMap:
         source: Region,
         destination: Region,
         result: BattleResult,
+        battle: HexBattle | None = None,
     ) -> "WorldMap":
         """Return a new world with a party battle's result applied."""
         if source not in self._neighbors or destination not in self._neighbors:
@@ -200,9 +201,19 @@ class WorldMap:
         parties = dict(self.parties)
         attacker = parties.pop(source)
         if result is BattleResult.ATTACKER_WIN:
-            parties[destination] = attacker
+            parties[destination] = (
+                attacker
+                if battle is None
+                else Party.reconstruct(
+                    attacker, battle.side_survivors(BattleSide.ATTACKER)
+                )
+            )
         elif result is BattleResult.DEFENDER_WIN:
-            pass
+            if battle is not None:
+                defender = parties[destination]
+                parties[destination] = Party.reconstruct(
+                    defender, battle.side_survivors(BattleSide.DEFENDER)
+                )
         elif result is BattleResult.DRAW:
             parties.pop(destination)
         else:
@@ -245,6 +256,7 @@ class WorldMap:
         source: Region,
         destination: Region,
         result: BattleResult,
+        battle: HexBattle | None = None,
     ) -> "WorldMap":
         """Return a new world with a settlement battle's result applied."""
         if source not in self._neighbors or destination not in self._neighbors:
@@ -269,7 +281,13 @@ class WorldMap:
         settlements = dict(self.settlements)
         attacker = parties.pop(source)
         if result is BattleResult.ATTACKER_WIN:
-            parties[destination] = attacker
+            parties[destination] = (
+                attacker
+                if battle is None
+                else Party.reconstruct(
+                    attacker, battle.side_survivors(BattleSide.ATTACKER)
+                )
+            )
             settlements[destination] = replace(
                 settlements[destination], owner_id=attacker.owner_id
             )

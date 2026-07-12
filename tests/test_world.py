@@ -7,6 +7,9 @@ import pytest
 from tbb import (
     BattleResult,
     BattleSide,
+    Battlefield,
+    BRUISE,
+    HexBattle,
     FARM,
     Hex,
     MARKET,
@@ -14,10 +17,23 @@ from tbb import (
     PLAINS,
     Region,
     Resources,
+    Rng,
     Settlement,
     Unit,
     WorldMap,
 )
+
+
+def _battle_with_fallen_subordinates(attacker, defender):
+    battle = HexBattle(Battlefield())
+    for row, unit in enumerate((attacker.hero, *attacker.units)):
+        battle = battle.deploy(unit, Hex(0, row), BattleSide.ATTACKER)
+    for row, unit in enumerate((defender.hero, *defender.units)):
+        battle = battle.deploy(unit, Hex(2, row), BattleSide.DEFENDER)
+    for position in (Hex(0, 2), Hex(2, 2)):
+        battle = battle.damage(position, battle.unit_at(position).hp)
+        battle = battle.resolve_defeat(position, Rng(1))
+    return battle
 
 
 def test_neighbors_are_bidirectional_and_follow_region_order():
@@ -498,6 +514,75 @@ def test_apply_party_battle_result_preserves_settlements_and_graph():
 
 
 @pytest.mark.parametrize(
+    "result, surviving_side",
+    [
+        (BattleResult.ATTACKER_WIN, BattleSide.ATTACKER),
+        (BattleResult.DEFENDER_WIN, BattleSide.DEFENDER),
+    ],
+)
+def test_apply_party_battle_result_reconstructs_winning_survivors(
+    result, surviving_side
+):
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(
+        Unit(experience=4),
+        [Unit(training=2, experience=7, wounds=(BRUISE,)), Unit(equipment=3)],
+        owner_id="north",
+    )
+    defender = Party(
+        Unit(experience=5),
+        [Unit(training=3), Unit(equipment=4)],
+        owner_id="south",
+    )
+    world = WorldMap(
+        [camp, vale], [(camp, vale)], parties={camp: attacker, vale: defender}
+    )
+    battle = _battle_with_fallen_subordinates(attacker, defender)
+    parties_before = dict(world.parties)
+    survivors = battle.side_survivors(surviving_side)
+    battle_units_before = dict(battle.units)
+
+    resolved = world.apply_party_battle_result(
+        camp, vale, result, battle=battle
+    )
+
+    reconstructed = resolved.party_at(vale)
+    original = attacker if surviving_side is BattleSide.ATTACKER else defender
+    assert resolved.party_at(camp) is None
+    assert reconstructed.hero is survivors[0]
+    assert reconstructed.units == survivors[1:]
+    assert all(actual is expected for actual, expected in zip(
+        (reconstructed.hero, *reconstructed.units), survivors
+    ))
+    assert reconstructed.owner_id == original.owner_id
+    if surviving_side is BattleSide.ATTACKER:
+        assert reconstructed.units[0].wounds == (BRUISE,)
+        assert reconstructed.units[0].experience == 7
+    assert original.units[1] not in (reconstructed.hero, *reconstructed.units)
+    assert dict(world.parties) == parties_before
+    assert dict(battle.units) == battle_units_before
+
+
+def test_apply_party_battle_result_draw_with_battle_removes_both_parties():
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(Unit(), [Unit(), Unit(equipment=1)], "north")
+    defender = Party(Unit(training=1), [Unit(), Unit(equipment=2)], "south")
+    world = WorldMap(
+        [camp, vale], [(camp, vale)], parties={camp: attacker, vale: defender}
+    )
+    battle = _battle_with_fallen_subordinates(attacker, defender)
+
+    resolved = world.apply_party_battle_result(
+        camp, vale, BattleResult.DRAW, battle=battle
+    )
+
+    assert resolved.party_at(camp) is None
+    assert resolved.party_at(vale) is None
+
+
+@pytest.mark.parametrize(
     "party_regions, source_name, destination_name",
     [
         ({"Camp", "Vale"}, "Unknown", "Vale"),
@@ -799,4 +884,72 @@ def test_apply_settlement_attacker_win_preserves_graph_and_garrison():
     assert resolved.regions == world.regions
     assert resolved.connections == world.connections
     assert resolved.neighbors(camp) == world.neighbors(camp)
+    assert resolved.settlement_at(vale).garrison is garrison
+
+
+def test_apply_settlement_attacker_win_reconstructs_party_survivors():
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(
+        Unit(experience=6),
+        [Unit(training=2), Unit(equipment=4)],
+        owner_id="north",
+    )
+    garrison = (Unit(training=3), Unit(equipment=2), Unit(experience=1))
+    settlement = Settlement(
+        "Oakrest", 5, garrison=garrison, owner_id="south"
+    )
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        settlements={vale: settlement},
+        parties={camp: attacker},
+    )
+    defender = Party(garrison[0], garrison[1:], owner_id="south")
+    battle = _battle_with_fallen_subordinates(attacker, defender)
+    survivors = battle.side_survivors(BattleSide.ATTACKER)
+    battle_units_before = dict(battle.units)
+
+    resolved = world.apply_settlement_battle_result(
+        camp, vale, BattleResult.ATTACKER_WIN, battle=battle
+    )
+
+    reconstructed = resolved.party_at(vale)
+    assert reconstructed.hero is survivors[0]
+    assert reconstructed.units == survivors[1:]
+    assert reconstructed.owner_id == "north"
+    assert attacker.units[1] not in (reconstructed.hero, *reconstructed.units)
+    assert resolved.settlement_at(vale).owner_id == "north"
+    assert resolved.settlement_at(vale).garrison is garrison
+    assert world.party_at(camp) is attacker
+    assert world.settlement_at(vale) is settlement
+    assert dict(battle.units) == battle_units_before
+
+
+@pytest.mark.parametrize(
+    "result", [BattleResult.DEFENDER_WIN, BattleResult.DRAW]
+)
+def test_apply_settlement_non_win_with_battle_removes_attacking_party(result):
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(Unit(), [Unit(), Unit(equipment=1)], "north")
+    garrison = (Unit(training=1), Unit(), Unit(equipment=2))
+    settlement = Settlement("Oakrest", 4, garrison=garrison, owner_id="south")
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        settlements={vale: settlement},
+        parties={camp: attacker},
+    )
+    battle = _battle_with_fallen_subordinates(
+        attacker, Party(garrison[0], garrison[1:], "south")
+    )
+
+    resolved = world.apply_settlement_battle_result(
+        camp, vale, result, battle=battle
+    )
+
+    assert resolved.party_at(camp) is None
+    assert resolved.party_at(vale) is None
+    assert resolved.settlement_at(vale) is settlement
     assert resolved.settlement_at(vale).garrison is garrison
