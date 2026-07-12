@@ -357,10 +357,16 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     wyszukiwane po każdym przejściu; brak bohatera, party albo celu daje bezpieczny
     no-op względem mapy wejściowej, również po możliwym musterze. Ten sam stan
     i seed dają ten sam wynik, a mapa wejściowa nie jest mutowana.
-- [ ] **A7.1b5b** Proste AI księstwa: rozwój osady i pełna polityka tury.
-  - AC: AI deterministycznie rozwija własną osadę (co najmniej rekrutuje dostępnego
-    mieszkańca do garnizonu), a następnie składa tę fazę z wojskową akcją A7.1b5a;
-    respektuje limity populacji i party oraz nie mutuje stanu wejściowego.
+- [~] **A7.1b5b1** Rekrutacja jednego żołnierza przez AI.
+  - AC: czyste przejście przyjmuje `WorldMap` i `Duchy`, po czym rekrutuje dokładnie
+    jednego mieszkańca w pierwszej według kolejności regionów własnej osadzie, która
+    ma wolną populację i mniej niż 12 jednostek garnizonu. Osady obce, bez właściciela,
+    bez wolnej populacji i z pełnym garnizonem są pomijane; brak kwalifikującej się
+    osady daje no-op. Mapa i osady wejściowe pozostają niezmienione.
+- [ ] **A7.1b5b2** Pełna polityka tury AI: rekrutacja → akcja wojskowa.
+  - AC: AI najpierw wykonuje rekrutację A7.1b5b1, a następnie składa wynik z wojskową
+    akcją A7.1b5a; ten sam stan i seed dają ten sam wynik, limity populacji i party
+    są respektowane, a stan wejściowy nie jest mutowany.
 - [ ] **A7.2** Headless przebieg całej pętli MVP (setup → tury → bitwa → wynik).
   - AC: `run.sh` symuluje partię do rozstrzygnięcia i wypisuje wynik; test smoke pętli.
 
