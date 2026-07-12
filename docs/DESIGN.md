@@ -78,6 +78,20 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   `start_battle`, a mapa wejściowa, osady i garnizony nie są mutowane.
   `move_points` i `morale` są na tym etapie jednolitymi wartościami
   placeholderowymi dla wszystkich jednostek (domyślnie odpowiednio `1` i `0`).
+- **ROZSTRZYGNIĘTE (BM.2, rozstrzygnięcie kontaktu party↔osada):** czyste
+  przejście `WorldMap.resolve_settlement_battle()` składa rozpoczęcie szturmu,
+  automatyczną rozgrywkę i zapis jej wyniku na mapie, analogicznie do BM.1.
+  Walidacja kontaktu (regiony na mapie, różne, sąsiednie, `source` z party,
+  `destination` z osadą, różni właściciele) pozostaje wspólna ze
+  `start_settlement_battle`. `ATTACKER_WIN` = **podbój**: osada zmienia
+  `owner_id` na właściciela party atakującej, a zrekonstruowane party (tylko
+  ocalali) wchodzi na `destination`; pozostałe wyniki jak w BW.2 (party
+  atakujące znika z `source`, osada bez zmian). Party na mapie po bitwie
+  zawiera **tylko ocalałych** (polegli usunięci, rany/doświadczenie zachowane).
+  Determinizm (ten sam seed → ta sama mapa); mapa, osady i garnizony wejściowe
+  nie są mutowane. `move_points` i `morale` to jednolite placeholdery (domyślnie
+  `1` i `0`), jak w BM.1. Straty garnizonu przy `DEFENDER_WIN`/`DRAW` pozostają
+  poza zakresem (domena osobnego kroku, jak w BW.3c).
 - **ROZSTRZYGNIĘTE (BW.2, wynik bitwy party↔osada na mapie):** po rozstrzygnięciu
   szturmu party na garnizon osady czyste przejście
   `WorldMap.apply_settlement_battle_result(source, destination, result)` zapisuje

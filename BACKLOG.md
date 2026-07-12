@@ -285,7 +285,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     mapa); mapa, osady i garnizony wejściowe niezmienione. `move_points`/`morale` to
     parametry z placeholderowymi wartościami domyślnymi (jednolite dla wszystkich jednostek,
     jak w BD.3).
-- [ ] **BM.2** Rozstrzygnięcie kontaktu party↔osada na mapie (`WorldMap.resolve_settlement_battle`).
+- [~] **BM.2** Rozstrzygnięcie kontaktu party↔osada na mapie (`WorldMap.resolve_settlement_battle`).
   - AC: analogiczne czyste przejście składa `start_settlement_battle` → `auto_resolve` →
     `apply_settlement_battle_result(..., battle=resolved)`; `ATTACKER_WIN` = podbój (zmiana
     `owner_id` osady + wejście zrekonstruowanego party na `destination`), pozostałe wyniki
