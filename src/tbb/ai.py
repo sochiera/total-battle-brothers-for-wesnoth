@@ -41,3 +41,26 @@ def nearest_enemy_settlement(
             best = region
             best_distance = distance
     return best
+
+
+def next_march_step(
+    world: WorldMap, start: Region, target: Region
+) -> Region | None:
+    """Return the first free step on a shortest route beside ``target``."""
+    if start not in world.regions or target not in world.regions:
+        raise ValueError("start and target regions must belong to the world map")
+    if start == target or target in world.neighbors(start):
+        return None
+
+    pending = deque([(start, None)])
+    visited = {start}
+    while pending:
+        current, first_step = pending.popleft()
+        for neighbor in world.neighbors(current):
+            if neighbor == target:
+                return first_step
+            if neighbor in visited or neighbor in world.parties:
+                continue
+            visited.add(neighbor)
+            pending.append((neighbor, neighbor if first_step is None else first_step))
+    return None

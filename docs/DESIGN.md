@@ -582,13 +582,15 @@ ich dotykają, i notować wynik tutaj:
   deklarowana kolejność regionów mapy. Brak osiągalnego celu daje `None`.
   Kwerenda nie używa RNG i nie mutuje świata; marsz, muster i atak dochodzą
   w kolejnych małych krokach A7.1.
-  **PLAN (A7.1b1, krok marszu):** osobna czysta kwerenda wyznaczy sąsiedni region
-  rozpoczynający najkrótszą drogę od party do wybranej osady. Droga omija regiony
+  **ROZSTRZYGNIĘTE (A7.1b1, krok marszu):** czysta kwerenda
+  `next_march_step()` wyznacza sąsiedni region rozpoczynający najkrótszą drogę
+  od party do wybranej osady. Droga omija regiony
   zajęte przez inne party, bo minimalny `move_party()` nie pozwala wejść w taki
   region. Remisy rozstrzyga kolejność regionów `WorldMap`. Gdy party jest już
   w regionie sąsiadującym z celem, kwerenda zwraca `None`: AI ma zatrzymać się
   przed osadą i rozstrzygnąć szturm w fazie bitew, zamiast wejść do jej regionu.
-  `None` oznacza także brak dostępnej drogi. Wykonanie ruchu, muster i szturm
+  `None` oznacza także brak dostępnej drogi. Kwerenda odrzuca start i cel spoza
+  mapy, nie używa RNG i nie mutuje świata. Wykonanie ruchu, muster i szturm
   pozostają w kolejnych krokach A7.1.
 - **Zakończenie tury na mapie:** kolejność faz (produkcja → wzrost → ruch → bitwy).
   **ROZSTRZYGNIĘTE (plan M5.4b, miesięczne przejście osad):**

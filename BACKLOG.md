@@ -323,7 +323,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     `owner_id` tę o najmniejszej liczbie połączeń od regionu party; remisy
     rozstrzyga kolejność regionów `WorldMap`; osady własne, bez właściciela
     i nieosiągalne są pomijane; brak celu daje `None`; bez RNG i mutacji.
-- [~] **A7.1b1** Wybór następnego kroku marszu ku wrogiej osadzie.
+- [x] **A7.1b1** Wybór następnego kroku marszu ku wrogiej osadzie.
   - AC: czysta kwerenda wybiera sąsiedni region rozpoczynający najkrótszą drogę
     od party do celu z A7.1a, omijając regiony zajęte przez inne party; remisy
     rozstrzyga kolejność regionów `WorldMap`. Gdy party już sąsiaduje z celem
