@@ -426,6 +426,15 @@ osady, jest niemutowalne,
 deterministyczne i nie używa RNG. Wpięcie go w miesięczny łańcuch mapy następuje
 osobno w U9.5.
 
+**ROZSTRZYGNIĘTE (U9.5, rozwój garnizonu w miesięcznej turze):**
+`WorldMap.tick_settlements()` stosuje do każdej osady deterministyczny łańcuch
+`tick_economy() → tick_growth() → tick_immigration() → tick_training()
+→ tick_equipment()`. Trening i uzbrajanie następują po wzroście, a uzbrojenie
+korzysta z magazynu po bieżącej miesięcznej produkcji. Driver headless reużywa
+to przejście na początku każdej tury, więc rozwój automatycznie trafia do pełnej
+pętli gry. Mapa, osady wejściowe, graf i party pozostają niemutowane; jednostki
+w maszerującym party nie rozwijają się w tym przejściu.
+
 ## 6. Pętla rozgrywki (MVP)
 Najmniejsza grywalna pętla, single-player vs **jedno** księstwo AI:
 1. Twoje księstwo: 1 osada z populacją, pszenicą i złotem; naprzeciw księstwo AI.
@@ -601,7 +610,9 @@ ich dotykają, i notować wynik tutaj:
   konsumuje złota (nadwyżka jest warunkiem, nie kosztem — jak przy urodzeniach)
   i **nigdy** nie przekracza `capacity`. Imigracja to osobne przejście
   `tick_immigration()` w fazie **wzrostu**, stosowane **po** `tick_growth()`
-  (urodzenia), na stanie po `tick_economy`. **NADAL OTWARTE:** tempo urodzeń
+  (urodzenia), na stanie po `tick_economy`. Po imigracji miesięczny łańcuch
+  przechodzi przez trening i uzbrojenie garnizonu zgodnie z U9.5. **NADAL
+  OTWARTE:** tempo urodzeń
   i imigracji > 1/turę przy dużej nadwyżce (skalowanie z zamożnością).
 - ~~**Ekonomia:** produkcja pszenicy/złota per budynek, konsumpcja, bilans.~~
   **ROZSTRZYGNIĘTE (E2.3, minimalny model):** każdy **aktywny** (obsadzony) budynek

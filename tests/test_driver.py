@@ -48,7 +48,7 @@ def test_monthly_tick_precedes_recruitment_and_syncs_the_grown_settlement():
     assert grown_keep.population == 2
     assert grown_keep.storage == Resources(wheat=1, gold=0)
     assert grown_keep.occupied == 2
-    assert grown_keep.garrison == (veteran, Unit())
+    assert grown_keep.garrison == (veteran.train(1), Unit())
     assert north_duchy.settlements == (grown_keep,)
     assert world.settlement_at(north) is north_keep
     assert game.duchies[0].settlements == (north_keep,)

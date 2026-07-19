@@ -19,6 +19,7 @@ from tbb import (
     Resources,
     Rng,
     Settlement,
+    SMITH,
     Unit,
     WorldMap,
 )
@@ -91,12 +92,35 @@ def test_tick_settlements_applies_economy_births_then_immigration():
     assert ticked.settlement_at(market).population == 2
 
 
+def test_tick_settlements_trains_and_equips_garrison_with_current_production():
+    vale = Region("Vale")
+    recruit = Unit()
+    settlement = Settlement(
+        "Oakrest",
+        population=3,
+        occupied=3,
+        active_buildings=(MARKET, SMITH),
+        storage=Resources(wheat=3, gold=0),
+        capacity=3,
+        garrison=(recruit,),
+    )
+    world = WorldMap([vale], settlements={vale: settlement})
+
+    ticked = world.tick_settlements()
+
+    developed = ticked.settlement_at(vale)
+    assert developed.garrison == (Unit(training=1, equipment=1),)
+    assert developed.storage == Resources(wheat=0, gold=1)
+
+
 def test_tick_settlements_chains_phase_results_in_required_order(monkeypatch):
     vale = Region("Vale")
     initial = Settlement("Initial", population=1)
     after_economy = Settlement("After economy", population=2)
     after_growth = Settlement("After growth", population=3)
     after_immigration = Settlement("After immigration", population=4)
+    after_training = Settlement("After training", population=5)
+    after_equipment = Settlement("After equipment", population=6)
     calls = []
 
     def tick_economy(settlement):
@@ -111,9 +135,19 @@ def test_tick_settlements_chains_phase_results_in_required_order(monkeypatch):
         calls.append(("immigration", settlement))
         return after_immigration
 
+    def tick_training(settlement):
+        calls.append(("training", settlement))
+        return after_training
+
+    def tick_equipment(settlement):
+        calls.append(("equipment", settlement))
+        return after_equipment
+
     monkeypatch.setattr(Settlement, "tick_economy", tick_economy)
     monkeypatch.setattr(Settlement, "tick_growth", tick_growth)
     monkeypatch.setattr(Settlement, "tick_immigration", tick_immigration)
+    monkeypatch.setattr(Settlement, "tick_training", tick_training)
+    monkeypatch.setattr(Settlement, "tick_equipment", tick_equipment)
     world = WorldMap([vale], settlements={vale: initial})
 
     ticked = world.tick_settlements()
@@ -122,11 +156,15 @@ def test_tick_settlements_chains_phase_results_in_required_order(monkeypatch):
         "economy",
         "growth",
         "immigration",
+        "training",
+        "equipment",
     ]
     assert calls[0][1] is initial
     assert calls[1][1] is after_economy
     assert calls[2][1] is after_growth
-    assert ticked.settlement_at(vale) is after_immigration
+    assert calls[3][1] is after_immigration
+    assert calls[4][1] is after_training
+    assert ticked.settlement_at(vale) is after_equipment
 
 
 def test_tick_settlements_preserves_graph_empty_region_and_party_positions():

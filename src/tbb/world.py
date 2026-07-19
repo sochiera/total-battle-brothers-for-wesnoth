@@ -104,6 +104,8 @@ class WorldMap:
             .tick_economy()
             .tick_growth()
             .tick_immigration()
+            .tick_training()
+            .tick_equipment()
             for region in self.regions
             if region in self.settlements
         }
