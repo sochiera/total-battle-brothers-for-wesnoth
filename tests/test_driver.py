@@ -7,10 +7,50 @@ from tbb.driver import resolve_hero_survival, run_headless_game
 from tbb.duchy import SUCCESSION_MORALE_PENALTY, Duchy
 from tbb.game import GameState, create_headless_game
 from tbb.party import Party
+from tbb.resources import Resources
 from tbb.rng import Rng
 from tbb.settlement import Settlement
 from tbb.unit import Unit
 from tbb.world import Region, WorldMap
+
+
+def test_monthly_tick_precedes_recruitment_and_syncs_the_grown_settlement():
+    north, south = map(Region, ("North", "South"))
+    veteran = Unit(training=1)
+    north_keep = Settlement(
+        "North Keep",
+        1,
+        occupied=1,
+        storage=Resources(wheat=2, gold=0),
+        garrison=(veteran,),
+        owner_id="north",
+    )
+    south_keep = Settlement("South Keep", 1, owner_id="south")
+    world = WorldMap(
+        (north, south), settlements={north: north_keep, south: south_keep}
+    )
+    game = GameState(
+        (
+            Duchy("north", Unit(), settlements=(north_keep,)),
+            Duchy("south", Unit(), settlements=(south_keep,)),
+        )
+    )
+
+    result_world, result_game = run_headless_game(
+        world, game, Rng(17), max_turns=1
+    )
+
+    grown_keep = result_world.settlement_at(north)
+    north_duchy = next(
+        duchy for duchy in result_game.duchies if duchy.duchy_id == "north"
+    )
+    assert grown_keep.population == 2
+    assert grown_keep.storage == Resources(wheat=1, gold=0)
+    assert grown_keep.occupied == 2
+    assert grown_keep.garrison == (veteran, Unit())
+    assert north_duchy.settlements == (grown_keep,)
+    assert world.settlement_at(north) is north_keep
+    assert game.duchies[0].settlements == (north_keep,)
 
 
 def test_one_turn_threads_real_ai_actions_through_duchies_immutably():
@@ -23,6 +63,8 @@ def test_one_turn_threads_real_ai_actions_through_duchies_immutably():
     )
     expected_world, expected_game = create_headless_game()
     expected_rng = Rng(17)
+    expected_world = expected_world.tick_settlements()
+    expected_game = expected_game.sync_from_world(expected_world)
     for duchy_id in tuple(duchy.duchy_id for duchy in expected_game.duchies):
         duchy = next(
             duchy
@@ -60,7 +102,7 @@ def test_one_turn_threads_real_ai_actions_through_duchies_immutably():
 def test_one_turn_delegates_to_live_ai_api_in_duchy_order(monkeypatch):
     north, fallen, south = map(Region, ("North", "Fallen", "South"))
     north_keep = Settlement("North Keep", 1, owner_id="north")
-    fallen_keep = Settlement("Fallen Keep", 1, owner_id="fallen")
+    fallen_keep = Settlement("Fallen Keep", 1)
     south_keep = Settlement("South Keep", 1, owner_id="south")
     world = WorldMap(
         (north, fallen, south),
@@ -98,7 +140,8 @@ def test_one_turn_delegates_to_live_ai_api_in_duchy_order(monkeypatch):
     )
 
     assert [call[1].duchy_id for call in calls] == ["north", "south"]
-    assert calls[0][0] is world
+    assert calls[0][0] == world.tick_settlements()
+    assert calls[0][0] is not world
     assert calls[1][0] is calls[0][2]
     assert result_world is calls[1][2]
     assert result_world.settlement_at(north).garrison == (Unit(),)
@@ -225,7 +268,8 @@ def test_positive_safety_limit_runs_every_active_duchy_each_turn(monkeypatch):
     )
 
     assert calls == ["north", "south"] * 3
-    assert result_world is world
+    assert result_world == world
+    assert result_world is not world
     assert result_game == game
     assert result_game.is_over is False
 
