@@ -663,6 +663,28 @@ ich dotykają, i notować wynik tutaj:
   dziedzica i morale: rozpoznanie śmierci party bohatera oraz sukcesja wymagają
   porównania stanu przed i po akcji i pozostają osobnym krokiem A7.2b2.
   Pętla tur, bezpiecznik i wypisanie wyniku pozostają w A7.2b3–b4.
+  **PLAN (A7.2b2, przeżycie bohatera po akcji):** czyste
+  `driver.resolve_hero_survival(duchy, world_before, world_after)` porównuje
+  obecność party księstwa (`owner_id == duchy_id`) na mapie przed i po akcji.
+  Gdy party było przed, a nie ma go po — bohater poległ i księstwo przechodzi
+  przez istniejącą `Duchy.succeed()` (awans dziedzica albo jawny stan bez
+  bohatera z karą morale). Bohater poza mapą (brak party przed akcją) nie ginie.
+  Detekcja jest minimalna (before/after); śmierć party wystawionego i utraconego
+  w tej samej turze pozostaje poza zakresem.
+  **PLAN (A7.2b3, driver tur headless):** czyste
+  `driver.run_headless_game(world, game, rng, max_turns)` wykonuje kolejne tury
+  na setupie A7.2a. W turze każde niepokonane księstwo składa `take_duchy_turn`,
+  po czym stan gry jest aktualizowany przez `resolve_hero_survival` i
+  `GameState.sync_from_world`. Pętla kończy się przy `GameState.is_over`, a
+  bezpiecznik `max_turns` chroni przed zapętleniem. Ten sam setup i seed dają ten
+  sam wynik; wejścia nie są mutowane. Driver headless używa bezpośrednio
+  `take_duchy_turn` (bez maszyny faz `StrategicTurn`) — kalendarz i fazy zostają
+  domeną strojenia po MVP.
+  **PLAN (A7.2b4, headless CLI):** `python -m tbb` (przez `run.sh`) buduje
+  `create_headless_game()`, uruchamia `run_headless_game` z deterministycznym
+  seedem i wypisuje wynik: zwycięzca (`GameState.winner.duchy_id`) albo remis
+  (`winner is None`). Cała logika pozostaje w rdzeniu; `__main__.py` odpowiada
+  tylko za I/O i kończy kodem 0. To domyka grywalną headless pętlę MVP (§6).
 - **Zakończenie tury na mapie:** kolejność faz (produkcja → wzrost → ruch → bitwy).
   **ROZSTRZYGNIĘTE (plan M5.4b, miesięczne przejście osad):**
   `WorldMap.tick_settlements()` aktualizuje wszystkie osady w deterministycznej
