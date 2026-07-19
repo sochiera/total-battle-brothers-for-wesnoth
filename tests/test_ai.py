@@ -681,6 +681,43 @@ def test_duchy_turn_develops_farm_before_recruiting_one_unit():
     assert settlement.garrison == ()
 
 
+def test_consecutive_duchy_turns_advance_from_farm_to_smith_without_enemy():
+    home = Region("Home")
+    hero = Unit(training=2)
+    settlement = Settlement(
+        "Home", population=5, storage=Resources(0, 2), owner_id="ai"
+    )
+    world = WorldMap([home], settlements={home: settlement})
+    duchy = Duchy("ai", hero, settlements=(settlement,))
+
+    def take_two_turns():
+        rng = tbb.Rng(37)
+        first = take_duchy_turn(world, duchy, rng)
+        second = take_duchy_turn(first, duchy, rng)
+        return first, second
+
+    first, second = take_two_turns()
+    repeated_first, repeated_second = take_two_turns()
+
+    assert first.settlement_at(home).active_buildings == (tbb.FARM,)
+    assert second.settlement_at(home).active_buildings == (tbb.FARM, tbb.SMITH)
+    assert len(first.settlement_at(home).garrison) == 1
+    assert len(second.settlement_at(home).garrison) == 2
+    assert dict(first.parties) == {}
+    assert dict(second.parties) == {}
+    assert (repeated_first, repeated_second) == (first, second)
+
+    assert world.settlement_at(home) is settlement
+    assert dict(world.parties) == {}
+    assert settlement.active_buildings == ()
+    assert settlement.garrison == ()
+    assert settlement.occupied == 0
+    assert settlement.storage == Resources(0, 2)
+    assert duchy.hero is hero
+    assert duchy.settlements == (settlement,)
+    assert duchy.parties == ()
+
+
 def test_duchy_turn_development_uses_last_free_resident_before_recruitment():
     home = Region("Home")
     settlement = Settlement(
