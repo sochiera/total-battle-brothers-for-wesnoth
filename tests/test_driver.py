@@ -309,12 +309,19 @@ def test_positive_safety_limit_runs_every_active_duchy_each_turn(monkeypatch):
         return current_world
 
     monkeypatch.setattr(ai, "take_duchy_turn", do_nothing)
+    starting_calendar = Calendar(year=4, month=11)
 
-    result_world, result_game, _ = run_headless_game(
-        world, game, Rng(17), max_turns=3
+    result_world, result_game, result_calendar = run_headless_game(
+        world,
+        game,
+        Rng(17),
+        max_turns=3,
+        calendar=starting_calendar,
     )
 
     assert calls == ["north", "south"] * 3
+    assert result_calendar == Calendar(year=5, month=1)
+    assert starting_calendar == Calendar(year=4, month=11)
     assert result_world == world
     assert result_world is not world
     assert result_game == game
@@ -425,6 +432,7 @@ def test_exit_conditions_return_typed_exact_unchanged_inputs():
     region = Region("Last Keep")
     finished_world = WorldMap((region,))
     finished_game = GameState((Duchy("north", Unit(training=2)),))
+    finished_calendar = Calendar(year=3, month=7)
     finished_snapshot = (
         finished_world.regions,
         dict(finished_world.settlements),
@@ -433,7 +441,10 @@ def test_exit_conditions_return_typed_exact_unchanged_inputs():
     )
 
     finished_result = run_headless_game(
-        finished_world, finished_game, Rng(7)
+        finished_world,
+        finished_game,
+        Rng(7),
+        calendar=finished_calendar,
     )
 
     assert isinstance(finished_result, tuple)
@@ -442,6 +453,8 @@ def test_exit_conditions_return_typed_exact_unchanged_inputs():
     assert isinstance(finished_result[2], Calendar)
     assert finished_result[0] is finished_world
     assert finished_result[1] is finished_game
+    assert finished_result[2] is finished_calendar
+    assert finished_calendar == Calendar(year=3, month=7)
     assert finished_snapshot == (
         finished_world.regions,
         dict(finished_world.settlements),
@@ -456,15 +469,22 @@ def test_exit_conditions_return_typed_exact_unchanged_inputs():
             Duchy("south", Unit(training=2)),
         )
     )
+    running_calendar = Calendar(year=6, month=13)
     running_snapshot = (running_world.regions, running_game.duchies)
 
     running_result = run_headless_game(
-        running_world, running_game, Rng(11), max_turns=0
+        running_world,
+        running_game,
+        Rng(11),
+        max_turns=0,
+        calendar=running_calendar,
     )
 
     assert running_game.is_over is False
     assert running_result[0] is running_world
     assert running_result[1] is running_game
+    assert running_result[2] is running_calendar
+    assert running_calendar == Calendar(year=6, month=13)
     assert running_snapshot == (running_world.regions, running_game.duchies)
 
 
