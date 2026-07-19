@@ -103,7 +103,7 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   przejście jest odrzucane (nie da się wprowadzić zdobywcy na zajęty region).
   `DEFENDER_WIN` i `DRAW`: party atakujące znika z `source`, a osada zachowuje
   właściciela. Bez przekazanego stanu bitwy garnizon zostaje bez zmian; z podanym
-  `battle` jest odtwarzany z ocalałych obrońców zgodnie z G10.2a. Mapa, osady,
+  `battle` jest odtwarzany z ocalałych obrońców zgodnie z G10.2a–b. Mapa, osady,
   garnizony i party wejściowe pozostają niezmienione.
 - **ROZSTRZYGNIĘTE (M5.3b1, minimalny kontakt party↔osada):** jawne rozpoczęcie
   starcia party z garnizonem osady w bezpośrednio sąsiednim regionie tworzy nowy
@@ -372,9 +372,20 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   `settlement.absorb_defenders(battle.side_survivors(BattleSide.DEFENDER))`.
   Osada zachowuje `owner_id`, polegli zmniejszają jej `population` i `occupied`,
   a atakujące party znika ze `source`. Bez `battle` garnizon pozostaje
-  nietknięty dla zgodności wstecznej. `ATTACKER_WIN` nie odtwarza jeszcze
-  garnizonu zdobytej osady (G10.2b). Przejście nie mutuje mapy, osady, party ani
+  nietknięty dla zgodności wstecznej. Przejście nie mutuje mapy, osady, party ani
   bitwy wejściowej; walidacja kontaktu pozostaje bez zmian.
+- **ROZSTRZYGNIĘTE (G10.2b, straty garnizonu po podboju):**
+  `WorldMap.apply_settlement_battle_result()` dla `ATTACKER_WIN` z podanym
+  `battle` odtwarza garnizon przez
+  `settlement.absorb_defenders(battle.side_survivors(BattleSide.DEFENDER))`,
+  a następnie zmienia `owner_id` osady na właściciela atakującego party.
+  Zrekonstruowane z ocalałych party atakujące zajmuje `destination` jak w BW.3c.
+  Bez `battle` garnizon pozostaje nietknięty, a właściciel nadal się zmienia dla
+  zgodności wstecznej. Dla starszych stanów, w których garnizon nie był jeszcze
+  wliczony do `occupied`, przejście najpierw uznaje co najmniej cały garnizon za
+  zajętą populację, aby rozliczenie poległych zachowało spójny stan osady. Mapa,
+  osada, party i bitwa wejściowa pozostają niezmienione; walidacja kontaktu nie
+  zmienia się.
 - **PLAN (Kamień 10 — realne straty i koszty):** trzy placeholdery pętli
   strategicznej zostają domknięte i **odwracają** wcześniejsze „poza zakresem":
   (a) **straty garnizonu** — po bitwie osady garnizon = ocalali obrońcy

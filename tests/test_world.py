@@ -1126,10 +1126,50 @@ def test_apply_settlement_attacker_win_reconstructs_party_survivors():
     assert reconstructed.owner_id == "north"
     assert attacker.units[1] not in (reconstructed.hero, *reconstructed.units)
     assert resolved.settlement_at(vale).owner_id == "north"
-    assert resolved.settlement_at(vale).garrison is garrison
     assert world.party_at(camp) is attacker
     assert world.settlement_at(vale) is settlement
     assert dict(battle.units) == battle_units_before
+
+
+def test_apply_settlement_attacker_win_rebuilds_conquered_garrison():
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(
+        Unit(training=3),
+        [Unit(equipment=1), Unit(experience=2)],
+        owner_id="north",
+    )
+    garrison = (Unit(training=1), Unit(equipment=2), Unit(experience=3))
+    settlement = Settlement(
+        "Oakrest",
+        population=5,
+        occupied=3,
+        garrison=garrison,
+        owner_id="south",
+    )
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        settlements={vale: settlement},
+        parties={camp: attacker},
+    )
+    battle = _battle_with_fallen_subordinates(
+        attacker, Party(garrison[0], garrison[1:], owner_id="south")
+    )
+
+    resolved = world.apply_settlement_battle_result(
+        camp, vale, BattleResult.ATTACKER_WIN, battle=battle
+    )
+
+    conquered = resolved.settlement_at(vale)
+    assert conquered.owner_id == "north"
+    assert conquered.garrison == battle.side_survivors(BattleSide.DEFENDER)
+    assert resolved.party_at(vale) == Party.reconstruct(
+        attacker, battle.side_survivors(BattleSide.ATTACKER)
+    )
+    assert world.settlement_at(vale) is settlement
+    assert settlement.garrison is garrison
+    assert world.party_at(camp) is attacker
 
 
 def test_apply_settlement_defender_win_rebuilds_garrison_from_survivors():

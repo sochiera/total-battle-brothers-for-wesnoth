@@ -328,8 +328,20 @@ class WorldMap:
                     attacker, battle.side_survivors(BattleSide.ATTACKER)
                 )
             )
+            conquered_settlement = settlements[destination]
+            if battle is not None:
+                if conquered_settlement.occupied < len(
+                    conquered_settlement.garrison
+                ):
+                    conquered_settlement = replace(
+                        conquered_settlement,
+                        occupied=len(conquered_settlement.garrison),
+                    )
+                conquered_settlement = conquered_settlement.absorb_defenders(
+                    battle.side_survivors(BattleSide.DEFENDER)
+                )
             settlements[destination] = replace(
-                settlements[destination], owner_id=attacker.owner_id
+                conquered_settlement, owner_id=attacker.owner_id
             )
         elif battle is not None:
             settlements[destination] = settlements[
