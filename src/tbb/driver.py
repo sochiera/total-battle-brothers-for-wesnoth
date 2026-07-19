@@ -11,13 +11,24 @@ def _has_owned_party(world: WorldMap, owner_id: str) -> bool:
     return any(party.owner_id == owner_id for party in world.parties.values())
 
 
+def _owned_population(world: WorldMap, owner_id: str) -> int:
+    return sum(
+        settlement.population
+        for settlement in world.settlements.values()
+        if settlement.owner_id == owner_id
+    )
+
+
 def resolve_hero_survival(
     duchy: Duchy, world_before: WorldMap, world_after: WorldMap
 ) -> Duchy:
     """Resolve succession when a duchy's deployed party disappears."""
-    if _has_owned_party(world_before, duchy.duchy_id) and not _has_owned_party(
+    had_party = _has_owned_party(world_before, duchy.duchy_id)
+    has_party = _has_owned_party(world_after, duchy.duchy_id)
+    mustered_during_action = _owned_population(
         world_after, duchy.duchy_id
-    ):
+    ) < _owned_population(world_before, duchy.duchy_id)
+    if not has_party and (had_party or mustered_during_action):
         return duchy.succeed()
     return duchy
 
@@ -30,21 +41,6 @@ def _replace_duchy(game: GameState, replacement: Duchy) -> GameState:
     )
 
 
-def _resolve_stranded_heroes(game: GameState) -> GameState:
-    """Resolve heroes left without either a settlement or a deployed party."""
-    replacements = tuple(
-        duchy.succeed()
-        if duchy.hero is not None
-        and not duchy.settlements
-        and not duchy.parties
-        else duchy
-        for duchy in game.duchies
-    )
-    if replacements == game.duchies:
-        return game
-    return GameState(replacements)
-
-
 def run_headless_game(
     world: WorldMap,
     game: GameState,
@@ -55,9 +51,6 @@ def run_headless_game(
     current_world = world
     current_game = game
     for _ in range(max_turns):
-        if current_game.is_over:
-            break
-        current_game = _resolve_stranded_heroes(current_game)
         if current_game.is_over:
             break
         duchy_ids = tuple(

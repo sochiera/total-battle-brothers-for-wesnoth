@@ -23,8 +23,23 @@ def test_one_turn_threads_real_ai_actions_through_duchies_immutably():
     )
     expected_world, expected_game = create_headless_game()
     expected_rng = Rng(17)
-    for duchy in expected_game.duchies:
-        expected_world = take_duchy_turn(expected_world, duchy, expected_rng)
+    for duchy_id in tuple(duchy.duchy_id for duchy in expected_game.duchies):
+        duchy = next(
+            duchy
+            for duchy in expected_game.duchies
+            if duchy.duchy_id == duchy_id
+        )
+        world_before = expected_world
+        expected_world = take_duchy_turn(
+            expected_world, duchy, expected_rng
+        )
+        resolved = resolve_hero_survival(
+            duchy, world_before, expected_world
+        )
+        expected_game = GameState(
+            resolved if current.duchy_id == duchy_id else current
+            for current in expected_game.duchies
+        ).sync_from_world(expected_world)
 
     result_world, result_game = run_headless_game(
         world, game, Rng(17), max_turns=1
@@ -33,7 +48,7 @@ def test_one_turn_threads_real_ai_actions_through_duchies_immutably():
     assert result_world == expected_world
     assert result_world != world
     assert result_game is not game
-    assert result_game == game.sync_from_world(result_world)
+    assert result_game == expected_game
     assert world_snapshot == (
         world.regions,
         dict(world.settlements),
@@ -184,6 +199,84 @@ def test_turn_loop_stops_immediately_after_a_later_turn_ends_game(monkeypatch):
     assert result_game.winner.duchy_id == "north"
 
 
+def test_positive_safety_limit_runs_every_active_duchy_each_turn(monkeypatch):
+    north, south = map(Region, ("North", "South"))
+    north_keep = Settlement("North Keep", 1, owner_id="north")
+    south_keep = Settlement("South Keep", 1, owner_id="south")
+    world = WorldMap(
+        (north, south), settlements={north: north_keep, south: south_keep}
+    )
+    game = GameState(
+        (
+            Duchy("north", Unit(), settlements=(north_keep,)),
+            Duchy("south", Unit(), settlements=(south_keep,)),
+        )
+    )
+    calls = []
+
+    def do_nothing(current_world, duchy, rng):
+        calls.append(duchy.duchy_id)
+        return current_world
+
+    monkeypatch.setattr(ai, "take_duchy_turn", do_nothing)
+
+    result_world, result_game = run_headless_game(
+        world, game, Rng(17), max_turns=3
+    )
+
+    assert calls == ["north", "south"] * 3
+    assert result_world is world
+    assert result_game == game
+    assert result_game.is_over is False
+
+
+def test_idle_hero_without_strategic_assets_does_not_succeed(monkeypatch):
+    region = Region("South")
+    south_keep = Settlement("South Keep", 1, owner_id="south")
+    world = WorldMap((region,), settlements={region: south_keep})
+    hero = Unit(training=2)
+    heir = Unit(training=1)
+    game = GameState(
+        (
+            Duchy("north", hero, morale=3, heir=heir),
+            Duchy("south", Unit(), settlements=(south_keep,)),
+        )
+    )
+    monkeypatch.setattr(ai, "take_duchy_turn", lambda world, duchy, rng: world)
+
+    _, result_game = run_headless_game(world, game, Rng(17), max_turns=3)
+
+    north = result_game.duchies[0]
+    assert north.hero is hero
+    assert north.heir is heir
+    assert north.morale == 3
+    assert result_game.is_over is False
+
+
+def test_default_game_finishes_deterministically_before_safety_limit():
+    first_world, first_game = create_headless_game()
+    second_world, second_game = create_headless_game()
+    bounded_world, bounded_game = create_headless_game()
+
+    first_result = run_headless_game(first_world, first_game, Rng(73))
+    second_result = run_headless_game(second_world, second_game, Rng(73))
+    bounded_result = run_headless_game(
+        bounded_world, bounded_game, Rng(73), max_turns=999
+    )
+
+    assert first_result == second_result
+    assert first_result == bounded_result
+    result_world, result_game = first_result
+    assert isinstance(result_world, WorldMap)
+    assert result_game.is_over is True
+    assert result_game.winner in result_game.duchies
+    defeated = tuple(
+        duchy for duchy in result_game.duchies if duchy.is_defeated
+    )
+    assert len(defeated) == 1
+    assert defeated[0] is not result_game.winner
+
+
 def test_lost_party_during_real_ai_turn_promotes_heir_before_world_sync():
     camp, keep = map(Region, ("North Camp", "South Keep"))
     hero = Unit(equipment=1)
@@ -331,6 +424,32 @@ def test_no_duchy_party_before_or_after_keeps_hero_alive():
     assert resolved is duchy
     assert resolved.hero is hero
     assert resolved.morale == 3
+
+
+def test_party_mustered_and_lost_in_one_action_triggers_succession():
+    region = Region("Keep")
+    hero = Unit(training=2)
+    heir = Unit(training=1)
+    recruit = Unit()
+    duchy = Duchy("north", hero, morale=3, heir=heir)
+    settlement_before = Settlement(
+        "Keep",
+        3,
+        occupied=1,
+        garrison=(recruit,),
+        owner_id="north",
+    )
+    settlement_after = Settlement("Keep", 2, owner_id="north")
+    world_before = WorldMap(
+        (region,), settlements={region: settlement_before}
+    )
+    world_after = WorldMap((region,), settlements={region: settlement_after})
+
+    resolved = resolve_hero_survival(duchy, world_before, world_after)
+
+    assert resolved.hero is heir
+    assert resolved.heir is None
+    assert resolved.morale == 3 - SUCCESSION_MORALE_PENALTY
 
 
 def test_moved_duchy_party_keeps_hero_alive():

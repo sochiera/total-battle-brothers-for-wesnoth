@@ -673,8 +673,8 @@ ich dotykają, i notować wynik tutaj:
   Jeśli co najmniej jedno party księstwa pozostaje na mapie po akcji, księstwo
   także pozostaje bez zmian. Obecność party jest wykrywana wyłącznie przez zgodny
   `owner_id`, niezależnie od zapisanej w `Duchy` kolekcji party.
-  Detekcja jest minimalna (before/after); śmierć party wystawionego i utraconego
-  w tej samej turze pozostaje poza zakresem.
+  Detekcja A7.2b2 była minimalna (before/after obecności party); A7.2b3c poniżej
+  rozszerza ją o party wystawione i utracone w tej samej akcji.
   **ROZSTRZYGNIĘTE (A7.2b3a, szkielet drivera):** czyste
   `driver.run_headless_game(world, game, rng, max_turns=1000)` ma ustalony kontrakt
   wejścia i zwraca parę `(WorldMap, GameState)`. Gra rozstrzygnięta już na wejściu
@@ -710,10 +710,11 @@ ich dotykają, i notować wynik tutaj:
   nową migawkę identyfikatorów niepokonanych księstw; ten sam setup i seed dają
   ten sam wynik, a wejścia nie są mutowane. Setup A7.2a ma jednego silnego
   obrońcę w garnizonie `ai`, dzięki czemu bazowa partia kończy się zwycięstwem
-  przed domyślnym bezpiecznikiem. Na granicy tury bohater bez osady i bez
-  wystawionego party przechodzi przez sukcesję; bez dziedzica oznacza to jego
-  śmierć i pozwala predykatowi porażki domknąć wynik po utracie ostatniej osady.
-  Driver nadal używa bezpośrednio
+  przed domyślnym bezpiecznikiem. Spadek populacji własnych osad podczas akcji
+  oznacza wystawienie garnizonu; jeśli po tej samej akcji nie ma party księstwa,
+  driver rozpoznaje jego utratę i uruchamia sukcesję. Sam brak osady i party nie
+  jest zdarzeniem śmierci: bezczynny bohater poza mapą pozostaje bez zmian,
+  zgodnie z A7.2b2. Driver nadal używa bezpośrednio
   `take_duchy_turn` (bez maszyny faz `StrategicTurn`) — kalendarz i fazy zostają
   domeną strojenia po MVP.
   **PLAN (A7.2b4, headless CLI):** `python -m tbb` (przez `run.sh`) buduje
