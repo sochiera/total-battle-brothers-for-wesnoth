@@ -2,9 +2,10 @@
 
 from collections import deque
 
+import tbb.settlement as settlement_module
+
 from tbb.duchy import Duchy
 from tbb.rng import Rng
-from tbb.settlement import RECRUIT_GOLD_COST
 from tbb.world import Region, WorldMap
 
 
@@ -15,7 +16,7 @@ def recruit_duchy_unit(world: WorldMap, duchy: Duchy) -> WorldMap:
         if (
             settlement is not None
             and settlement.owner_id == duchy.duchy_id
-            and settlement.storage.gold >= RECRUIT_GOLD_COST
+            and settlement.storage.gold >= settlement_module.RECRUIT_GOLD_COST
             and settlement.free > 0
             and len(settlement.garrison) < 12
         ):

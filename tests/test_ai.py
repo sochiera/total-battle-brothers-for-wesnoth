@@ -4,6 +4,7 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 import tbb
+import tbb.settlement as settlement_module
 
 from tbb import (
     Duchy,
@@ -540,6 +541,27 @@ def test_recruit_duchy_unit_uses_region_order_not_settlement_mapping_order():
 
     assert recruited.settlement_at(first).garrison == (Unit(),)
     assert recruited.settlement_at(second) is second_settlement
+
+
+def test_recruit_duchy_unit_uses_settlement_module_gold_cost(monkeypatch):
+    first, second = Region("First"), Region("Second")
+    first_settlement = Settlement(
+        "First", 1, storage=Resources(0, 1), owner_id="ai"
+    )
+    second_settlement = Settlement(
+        "Second", 1, storage=Resources(0, 2), owner_id="ai"
+    )
+    world = WorldMap(
+        [first, second],
+        settlements={first: first_settlement, second: second_settlement},
+    )
+    monkeypatch.setattr(settlement_module, "RECRUIT_GOLD_COST", 2)
+
+    recruited = recruit_duchy_unit(world, Duchy("ai", Unit()))
+
+    assert recruited.settlement_at(first) is first_settlement
+    assert recruited.settlement_at(second).garrison == (Unit(),)
+    assert recruited.settlement_at(second).storage == Resources(0, 0)
 
 
 def test_recruit_duchy_unit_skips_every_ineligible_settlement():
