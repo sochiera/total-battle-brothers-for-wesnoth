@@ -33,7 +33,21 @@ def run_headless_game(
         return world, game
 
     current_world = world
-    for duchy in game.duchies:
-        if not duchy.is_defeated:
-            current_world = ai.take_duchy_turn(current_world, duchy, rng)
-    return current_world, game
+    current_game = game
+    duchy_ids = tuple(
+        duchy.duchy_id for duchy in game.duchies if not duchy.is_defeated
+    )
+    for duchy_id in duchy_ids:
+        duchy = next(
+            (
+                candidate
+                for candidate in current_game.duchies
+                if candidate.duchy_id == duchy_id
+            ),
+            None,
+        )
+        if duchy is None or duchy.is_defeated:
+            continue
+        current_world = ai.take_duchy_turn(current_world, duchy, rng)
+        current_game = current_game.sync_from_world(current_world)
+    return current_world, current_game

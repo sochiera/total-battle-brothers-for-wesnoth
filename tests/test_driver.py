@@ -32,7 +32,8 @@ def test_one_turn_threads_real_ai_actions_through_duchies_immutably():
 
     assert result_world == expected_world
     assert result_world != world
-    assert result_game is game
+    assert result_game is not game
+    assert result_game == game.sync_from_world(result_world)
     assert world_snapshot == (
         world.regions,
         dict(world.settlements),
@@ -88,13 +89,60 @@ def test_one_turn_delegates_to_live_ai_api_in_duchy_order(monkeypatch):
     assert result_world.settlement_at(north).garrison == (Unit(),)
     assert result_world.settlement_at(fallen).garrison == ()
     assert result_world.settlement_at(south).garrison == (Unit(),)
-    assert result_game is game
+    assert result_game is not game
+    assert result_game == game.sync_from_world(result_world)
     assert snapshot == (
         world.regions,
         dict(world.settlements),
         dict(world.parties),
         game.duchies,
     )
+
+
+def test_conquest_syncs_game_and_skips_newly_defeated_duchy(monkeypatch):
+    north, south = map(Region, ("North", "South"))
+    north_keep = Settlement("North Keep", 1, owner_id="north")
+    south_keep = Settlement("South Keep", 1, owner_id="south")
+    world = WorldMap(
+        (north, south),
+        settlements={north: north_keep, south: south_keep},
+    )
+    game = GameState(
+        (
+            Duchy("north", Unit(), settlements=(north_keep,)),
+            Duchy("south", None, settlements=(south_keep,)),
+        )
+    )
+    calls = []
+
+    def conquer_south(current_world, duchy, rng):
+        calls.append(duchy.duchy_id)
+        if duchy.duchy_id != "north":
+            return current_world
+        conquered_keep = Settlement("South Keep", 1, owner_id="north")
+        return WorldMap(
+            current_world.regions,
+            current_world.connections,
+            settlements={north: north_keep, south: conquered_keep},
+            parties=current_world.parties,
+        )
+
+    monkeypatch.setattr(ai, "take_duchy_turn", conquer_south)
+
+    result_world, result_game = run_headless_game(
+        world, game, Rng(17), max_turns=1
+    )
+
+    result_by_id = {duchy.duchy_id: duchy for duchy in result_game.duchies}
+    assert calls == ["north"]
+    assert result_game is not game
+    assert result_by_id["north"].settlements == tuple(
+        result_world.settlements.values()
+    )
+    assert result_by_id["south"].settlements == ()
+    assert result_by_id["south"].is_defeated is True
+    assert dict(world.settlements) == {north: north_keep, south: south_keep}
+    assert game.duchies[1].settlements == (south_keep,)
 
 
 def test_exit_conditions_return_typed_exact_unchanged_inputs():

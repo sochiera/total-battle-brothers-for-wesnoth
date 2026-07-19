@@ -685,9 +685,18 @@ ich dotykają, i notować wynik tutaj:
   trwa i budżet pozwala na co najmniej jedną turę, driver wykonuje pojedynczy
   przebieg księstw w kolejności `game.duchies`. Każde niepokonane księstwo
   wywołuje `take_duchy_turn`, a wynikowa `WorldMap` jest wejściem akcji
-  następnego księstwa; pokonane księstwa są pomijane. Zwracany `GameState`
-  pozostaje tym samym obiektem — synchronizacja i przeżycie bohatera dochodzą
-  w A7.2b3b2–b3. Przejście nie mutuje mapy ani stanu gry wejściowego.
+  następnego księstwa; pokonane księstwa są pomijane. Na etapie tego przyrostu
+  zwracany `GameState` pozostawał tym samym obiektem; regułę tę zastępuje
+  synchronizacja A7.2b3b2 poniżej. Przejście nie mutuje mapy ani stanu gry
+  wejściowego.
+  **ROZSTRZYGNIĘTE (A7.2b3b2, synchronizacja po akcji księstwa):** przebieg
+  zachowuje migawkę identyfikatorów niepokonanych księstw z początku tury. Przed
+  każdą akcją pobiera bieżące księstwo po `duchy_id` z aktualnego `GameState`
+  i pomija je, jeśli po wcześniejszej akcji stało się pokonane. Po każdym
+  `take_duchy_turn` wywołuje `GameState.sync_from_world`, więc następne księstwo
+  i wynik tury widzą bieżące osady oraz party; utrata ostatniej osady eliminuje
+  księstwo jeszcze w tej samej turze. Wykonana tura zwraca nowy `GameState`, nie
+  mutując wejściowej mapy ani stanu gry. Przeżycie bohatera pozostaje w A7.2b3b3.
   **PLAN (A7.2b3b–c, tury drivera headless):** na setupie A7.2a w każdej turze
   każde niepokonane księstwo składa `take_duchy_turn`,
   po czym stan gry jest aktualizowany przez `resolve_hero_survival` i
