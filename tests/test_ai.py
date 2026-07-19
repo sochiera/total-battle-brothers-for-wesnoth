@@ -607,21 +607,60 @@ def test_recruit_duchy_unit_is_publicly_exported():
     assert tbb.recruit_duchy_unit is recruit_duchy_unit
 
 
-def test_develop_duchy_settlement_opens_farm_in_first_eligible_owned_region():
-    first, second = Region("First"), Region("Second")
-    first_settlement = Settlement("First", population=1, owner_id="ai")
-    second_settlement = Settlement("Second", population=1, owner_id="ai")
-    world = WorldMap(
-        [first, second],
-        settlements={second: second_settlement, first: first_settlement},
+def test_develop_duchy_settlement_fulfills_priority_selection_and_purity_contract():
+    foreign, unowned, full, first, second = map(
+        Region, ("Foreign", "Unowned", "Full", "First", "Second")
     )
+    party = Party(Unit(), owner_id="ai")
+    settlements = {
+        foreign: Settlement("Foreign", population=1, owner_id="enemy"),
+        unowned: Settlement("Unowned", population=1),
+        full: Settlement("Full", population=1, occupied=1, owner_id="ai"),
+        first: Settlement("First", population=3, owner_id="ai"),
+        second: Settlement("Second", population=3, owner_id="ai"),
+    }
+    world_regions = [foreign, unowned, full, first, second]
+    world = WorldMap(
+        world_regions,
+        settlements={
+            region: settlements[region] for region in reversed(world_regions)
+        },
+        parties={second: party},
+    )
+    duchy = Duchy("ai", Unit())
 
-    developed = develop_duchy_settlement(world, Duchy("ai", Unit()))
+    developed = develop_duchy_settlement(world, duchy)
+    repeated = develop_duchy_settlement(world, duchy)
 
     assert developed.settlement_at(first).active_buildings == (tbb.FARM,)
     assert developed.settlement_at(first).occupied == tbb.FARM.staff
-    assert developed.settlement_at(second) is second_settlement
-    assert world.settlement_at(first) is first_settlement
+    assert repeated == developed
+    assert developed.regions is world.regions
+    assert developed.connections is world.connections
+    assert developed.party_at(second) is party
+    for region in (foreign, unowned, full, second):
+        assert developed.settlement_at(region) is settlements[region]
+    for region in world_regions:
+        assert world.settlement_at(region) is settlements[region]
+
+    with_smith = develop_duchy_settlement(developed, duchy)
+    assert with_smith.settlement_at(first).active_buildings == (tbb.FARM, tbb.SMITH)
+    with_market = develop_duchy_settlement(with_smith, duchy)
+    assert with_market.settlement_at(first).active_buildings == (
+        tbb.FARM,
+        tbb.SMITH,
+        tbb.MARKET,
+    )
+
+    no_candidate = develop_duchy_settlement(with_market, duchy)
+    assert no_candidate.settlement_at(second).active_buildings == (tbb.FARM,)
+    exhausted_world = WorldMap(
+        [foreign, unowned, full],
+        settlements={
+            region: settlements[region] for region in (foreign, unowned, full)
+        },
+    )
+    assert develop_duchy_settlement(exhausted_world, duchy) is exhausted_world
 
 
 def test_duchy_turn_recruits_before_muster_march_and_adjacent_assault():
