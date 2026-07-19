@@ -19,23 +19,31 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > bohatera, pętla tur do rozstrzygnięcia i wypisanie wyniku. To domyka MVP z DESIGN §6.
 > **A7.2b1** i **A7.2b2** ukończone — przeniesione do `BACKLOG-ARCHIVE.md`.
 >
-> **A7.2b3** rozbite na trzy mniejsze przyrosty (`b3a`–`b3c`). Powód: w poprzednim
-> wsadzie cały `run_headless_game` dało się napisać w ~2 cyklach, przez co mikro-TDD
-> zapętlił się na cyklach `no_test` (brak czerwonego testu) i wsad porzucono bez
-> commita. Drobniejsze kroki dają każdemu cyklowi jeden, wyraźnie failujący test.
-- [x] **A7.2b3a** Szkielet drivera i bezpiecznik. *(task-005)*
-  - AC: `run_headless_game(world, game, rng, max_turns=1000) -> (WorldMap, GameState)`
-    istnieje; `game.is_over` na wejściu → zwraca dokładnie wejścia; `max_turns == 0`
-    → zwraca wejścia niezmienione; czyste (bez mutacji wejść).
-- [ ] **A7.2b3b** Jedna tura: polityki, przeżycie bohatera, synchronizacja. *(task-006)*
-  - AC: przy `max_turns >= 1` wykonuje dokładnie jedną turę — każde niepokonane
-    księstwo w kolejności `game.duchies` woła `take_duchy_turn`, a po jego akcji
-    `resolve_hero_survival` + `GameState.sync_from_world` aktualizują stan gry.
-- [ ] **A7.2b3c** Pętla do rozstrzygnięcia i determinizm. *(task-007)*
+> **A7.2b3a** ukończone — przeniesione do `BACKLOG-ARCHIVE.md`.
+>
+> **A7.2b3b** rozbite dalej na trzy mikro-klocki (`b3b1`–`b3b3`, task-009–011).
+> Powód: monolityczne `b3b` (iteracja księstw + akcja + sukcesja + sync w jednym
+> przyroście) dwukrotnie utknęło na limicie 12 cykli mikro-TDD (brak jednego,
+> wyraźnie czerwonego testu na krok). Każdy klocek dodaje teraz dokładnie jedną
+> obserwowalną warstwę: przewleczenie mapy → synchronizacja stanu gry → przeżycie
+> bohatera. `b3c`/`b4` przenumerowane na task-012/013 (treść bez zmian).
+- [ ] **A7.2b3b1** Jedna tura: akcje księstw na wspólnej mapie. *(task-009)*
+  - AC: przy `max_turns >= 1` niepokonane księstwa w kolejności `game.duchies`
+    wołają `take_duchy_turn`, karmiąc wynikiem następne; zwrócona `WorldMap`
+    odzwierciedla akcje AI; `game` zwracany bez zmian; pominięcie pokonanych; czyste.
+- [ ] **A7.2b3b2** Synchronizacja stanu gry po akcji księstwa. *(task-010)*
+  - AC: po `take_duchy_turn` każdego księstwa `game = game.sync_from_world(world)`;
+    iteracja bierze migawkę `duchy_id`, pobiera bieżące księstwo i pomija
+    `is_defeated`; księstwo bez ostatniej osady odpada w tej samej turze; czyste.
+- [ ] **A7.2b3b3** Przeżycie bohatera w akcji tury. *(task-011)*
+  - AC: `resolve_hero_survival` (before/after wokół akcji) wpięte przed sync; utrata
+    jedynego party w turze → sukcesja (dziedzic→bohater, `−SUCCESSION_MORALE_PENALTY`);
+    przetrwanie party → bohater/morale bez zmian; czyste.
+- [ ] **A7.2b3c** Pętla do rozstrzygnięcia i determinizm. *(task-012)*
   - AC: powtarza tury aż `GameState.is_over` albo do `max_turns`; ten sam seed →
     ten sam wynik; pełna pętla na `create_headless_game()` osiąga `is_over` przed
     bezpiecznikiem i wskazuje zwycięzcę.
-- [ ] **A7.2b4** Headless CLI wypisuje wynik całej partii. *(task-008)*
+- [ ] **A7.2b4** Headless CLI wypisuje wynik całej partii. *(task-013)*
   - AC: `run.sh` uruchamia driver A7.2b3, wypisuje zwycięzcę albo remis; test smoke
     obejmuje pełną pętlę i kod wyjścia 0.
 

@@ -96,3 +96,5 @@
       (`GameState.sync_from_world`).
 - [x] **A7.2b2** Aktualizacja życia bohatera po wojskowej akcji tury
       (`driver.resolve_hero_survival`).
+- [x] **A7.2b3a** Szkielet drivera headless i bezpiecznik
+      (`driver.run_headless_game`: wyjścia dla `is_over`/`max_turns == 0`).
