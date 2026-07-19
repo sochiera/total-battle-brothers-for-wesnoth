@@ -4,6 +4,7 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
+import tbb.settlement as settlement_module
 from tbb import Building, FARM, MARKET, Resources, Settlement, SMITH, Unit
 
 
@@ -421,3 +422,15 @@ def test_muster_empty_garrison_creates_hero_only_party_without_population_change
     assert mustered.garrison == ()
     assert mustered.population == original.population
     assert mustered.occupied == original.occupied
+
+
+def test_tick_training_uses_exported_months_for_every_garrison_unit(monkeypatch):
+    assert settlement_module.TRAINING_MONTHS_PER_TURN == 1
+    units = (Unit(), Unit(training=2, training_progress=1))
+    original = Settlement("A", population=2, occupied=2, garrison=units)
+    monkeypatch.setattr(settlement_module, "TRAINING_MONTHS_PER_TURN", 3)
+
+    trained = original.tick_training()
+
+    assert trained.garrison == tuple(unit.train(3) for unit in units)
+    assert original.garrison == units

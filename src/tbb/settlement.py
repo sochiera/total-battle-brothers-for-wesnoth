@@ -8,6 +8,9 @@ from tbb.resources import Resources
 from tbb.unit import Unit
 
 
+TRAINING_MONTHS_PER_TURN: int = 1
+
+
 @dataclass(frozen=True)
 class Settlement:
     """Represent a settlement with free and occupied population."""
@@ -74,6 +77,15 @@ class Settlement:
             else 0
         )
         return replace(self, population=self.population + immigration)
+
+    def tick_training(self) -> "Settlement":
+        """Return the settlement after one monthly garrison training tick."""
+        return replace(
+            self,
+            garrison=tuple(
+                unit.train(TRAINING_MONTHS_PER_TURN) for unit in self.garrison
+            ),
+        )
 
     def occupy(self, amount: int) -> "Settlement":
         """Return a new settlement with ``amount`` population assigned."""

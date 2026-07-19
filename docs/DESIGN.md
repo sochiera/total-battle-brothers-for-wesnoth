@@ -406,6 +406,15 @@ trójkątną krzywą U3.2 i zachowuje resztę postępu. Przejście jest niemutow
 deterministyczne i nie używa RNG; zerowy nakład jest no-op, a ujemny jest błędem.
 Nowy poziom nadal liniowo zasila `damage` i `defense` zgodnie z U3.1.
 
+**ROZSTRZYGNIĘTE (U9.3, miesięczny trening garnizonu):**
+`Settlement.tick_training()` daje każdej jednostce garnizonu
+`TRAINING_MONTHS_PER_TURN` miesięcy treningu na turę (placeholder, obecnie `1`),
+reużywając `Unit.train()`. Trening jest wyłącznie funkcją czasu: nie zużywa
+surowców i na tym etapie nie wymaga budynku treningowego. Przejście zachowuje
+kolejność garnizonu i cały pozostały stan osady, jest niemutowalne,
+deterministyczne i nie używa RNG; dla pustego garnizonu stan pozostaje równy
+wejściowemu.
+
 ## 6. Pętla rozgrywki (MVP)
 Najmniejsza grywalna pętla, single-player vs **jedno** księstwo AI:
 1. Twoje księstwo: 1 osada z populacją, pszenicą i złotem; naprzeciw księstwo AI.
