@@ -331,6 +331,12 @@ class WorldMap:
             settlements[destination] = replace(
                 settlements[destination], owner_id=attacker.owner_id
             )
+        elif battle is not None:
+            settlements[destination] = settlements[
+                destination
+            ].absorb_defenders(
+                battle.side_survivors(BattleSide.DEFENDER)
+            )
 
         return WorldMap(
             self.regions,

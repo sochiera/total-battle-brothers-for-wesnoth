@@ -85,13 +85,13 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   `destination` z osadą, różni właściciele) pozostaje wspólna ze
   `start_settlement_battle`. `ATTACKER_WIN` = **podbój**: osada zmienia
   `owner_id` na właściciela party atakującej, a zrekonstruowane party (tylko
-  ocalali) wchodzi na `destination`; pozostałe wyniki jak w BW.2 (party
-  atakujące znika z `source`, osada bez zmian). Party na mapie po bitwie
+  ocalali) wchodzi na `destination`; przy pozostałych wynikach party
+  atakujące znika z `source`, a osada zachowuje właściciela i wchłania ocalałych
+  obrońców zgodnie z G10.2a. Party na mapie po bitwie
   zawiera **tylko ocalałych** (polegli usunięci, rany/doświadczenie zachowane).
   Determinizm (ten sam seed → ta sama mapa); mapa, osady i garnizony wejściowe
   nie są mutowane. `move_points` i `morale` to jednolite placeholdery (domyślnie
-  `1` i `0`), jak w BM.1. Straty garnizonu przy `DEFENDER_WIN`/`DRAW` pozostają
-  poza zakresem (domena osobnego kroku, jak w BW.3c).
+  `1` i `0`), jak w BM.1.
 - **ROZSTRZYGNIĘTE (BW.2, wynik bitwy party↔osada na mapie):** po rozstrzygnięciu
   szturmu party na garnizon osady czyste przejście
   `WorldMap.apply_settlement_battle_result(source, destination, result)` zapisuje
@@ -101,13 +101,10 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   atakującej, a samo party atakujące przechodzi z `source` do `destination`
   (zajmuje zdobyty region); jeśli `destination` jest już zajęty przez inne party,
   przejście jest odrzucane (nie da się wprowadzić zdobywcy na zajęty region).
-  `DEFENDER_WIN`: party atakujące znika z `source`, osada (właściciel i garnizon)
-  zostaje bez zmian. `DRAW`: party atakujące znika z `source`, osada zostaje bez
-  zmian — na tym etapie ślad na mapie jest **taki sam** jak przy `DEFENDER_WIN`,
-  bo straty wybitego garnizonu to domena BW.3. Mapa, osady i garnizony wejściowe
-  pozostają niezmienione. Skład garnizonu **nie** jest redukowany ani czyszczony —
-  rekonstrukcja ocalałych (usunięcie poległych, rany, doświadczenie zarówno dla
-  party, jak i dla garnizonu) dochodzi w BW.3.
+  `DEFENDER_WIN` i `DRAW`: party atakujące znika z `source`, a osada zachowuje
+  właściciela. Bez przekazanego stanu bitwy garnizon zostaje bez zmian; z podanym
+  `battle` jest odtwarzany z ocalałych obrońców zgodnie z G10.2a. Mapa, osady,
+  garnizony i party wejściowe pozostają niezmienione.
 - **ROZSTRZYGNIĘTE (M5.3b1, minimalny kontakt party↔osada):** jawne rozpoczęcie
   starcia party z garnizonem osady w bezpośrednio sąsiednim regionie tworzy nowy
   `HexBattle`, nie mutując mapy, party, osady ani garnizonu. Bohater i podkomendni
@@ -368,7 +365,16 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   usuwa cały garnizon, a sekwencja liczniejsza od dotychczasowego garnizonu jest
   odrzucana. Ocalali zachowują swoje obiekty `Unit` (w tym rany i doświadczenie),
   pozostały stan osady nie zmienia się, a wejście nie jest mutowane ani nie jest
-  używany RNG. Wpięcie przejścia w wynik bitwy na mapie pozostaje w G10.2.
+  używany RNG.
+- **ROZSTRZYGNIĘTE (G10.2a, straty garnizonu po obronie):**
+  `WorldMap.apply_settlement_battle_result()` dla `DEFENDER_WIN` i `DRAW`
+  z podanym `battle` zastępuje garnizon osady wynikiem
+  `settlement.absorb_defenders(battle.side_survivors(BattleSide.DEFENDER))`.
+  Osada zachowuje `owner_id`, polegli zmniejszają jej `population` i `occupied`,
+  a atakujące party znika ze `source`. Bez `battle` garnizon pozostaje
+  nietknięty dla zgodności wstecznej. `ATTACKER_WIN` nie odtwarza jeszcze
+  garnizonu zdobytej osady (G10.2b). Przejście nie mutuje mapy, osady, party ani
+  bitwy wejściowej; walidacja kontaktu pozostaje bez zmian.
 - **PLAN (Kamień 10 — realne straty i koszty):** trzy placeholdery pętli
   strategicznej zostają domknięte i **odwracają** wcześniejsze „poza zakresem":
   (a) **straty garnizonu** — po bitwie osady garnizon = ocalali obrońcy

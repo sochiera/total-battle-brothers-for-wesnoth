@@ -1132,6 +1132,42 @@ def test_apply_settlement_attacker_win_reconstructs_party_survivors():
     assert dict(battle.units) == battle_units_before
 
 
+def test_apply_settlement_defender_win_rebuilds_garrison_from_survivors():
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(Unit(), [Unit(), Unit(equipment=1)], "north")
+    garrison = (Unit(training=1), Unit(), Unit(equipment=2))
+    settlement = Settlement(
+        "Oakrest",
+        population=5,
+        occupied=3,
+        garrison=garrison,
+        owner_id="south",
+    )
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        settlements={vale: settlement},
+        parties={camp: attacker},
+    )
+    battle = _battle_with_fallen_subordinates(
+        attacker, Party(garrison[0], garrison[1:], "south")
+    )
+
+    resolved = world.apply_settlement_battle_result(
+        camp, vale, BattleResult.DEFENDER_WIN, battle=battle
+    )
+
+    defended = resolved.settlement_at(vale)
+    assert defended.garrison == battle.side_survivors(BattleSide.DEFENDER)
+    assert defended.owner_id == "south"
+    assert (defended.population, defended.occupied, defended.free) == (4, 2, 2)
+    assert resolved.party_at(camp) is None
+    assert world.settlement_at(vale) is settlement
+    assert settlement.garrison is garrison
+    assert (settlement.population, settlement.occupied, settlement.free) == (5, 3, 2)
+
+
 @pytest.mark.parametrize(
     "result", [BattleResult.DEFENDER_WIN, BattleResult.DRAW]
 )
@@ -1140,7 +1176,9 @@ def test_apply_settlement_non_win_with_battle_removes_attacking_party(result):
     vale = Region("Vale")
     attacker = Party(Unit(), [Unit(), Unit(equipment=1)], "north")
     garrison = (Unit(training=1), Unit(), Unit(equipment=2))
-    settlement = Settlement("Oakrest", 4, garrison=garrison, owner_id="south")
+    settlement = Settlement(
+        "Oakrest", 4, occupied=3, garrison=garrison, owner_id="south"
+    )
     world = WorldMap(
         [camp, vale],
         [(camp, vale)],
@@ -1157,8 +1195,11 @@ def test_apply_settlement_non_win_with_battle_removes_attacking_party(result):
 
     assert resolved.party_at(camp) is None
     assert resolved.party_at(vale) is None
-    assert resolved.settlement_at(vale) is settlement
-    assert resolved.settlement_at(vale).garrison is garrison
+    defended = resolved.settlement_at(vale)
+    assert defended.garrison == battle.side_survivors(BattleSide.DEFENDER)
+    assert defended.owner_id == "south"
+    assert (defended.population, defended.occupied, defended.free) == (3, 2, 1)
+    assert world.settlement_at(vale) is settlement
 
 
 def test_resolve_settlement_battle_conquers_with_attacking_survivors():
@@ -1209,9 +1250,9 @@ def test_resolve_settlement_battle_defender_win_removes_attacker_only():
 
     assert resolved.party_at(camp) is None
     assert resolved.party_at(vale) is None
-    assert resolved.settlement_at(vale) is settlement
+    assert resolved.settlement_at(vale) == settlement
     assert resolved.settlement_at(vale).owner_id == "south"
-    assert resolved.settlement_at(vale).garrison is garrison
+    assert resolved.settlement_at(vale).garrison == garrison
 
 
 def test_resolve_settlement_battle_is_deterministic_and_immutable():
