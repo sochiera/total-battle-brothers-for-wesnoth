@@ -360,6 +360,15 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
 - **Zwolnienie populacji:** zamknięcie/opuszczenie budynku oddaje zajmowaną
   populację z powrotem do puli.
 - Gracz rozwija osady (budynki), zakłada nowe, może podbijać osady AI.
+- **ROZSTRZYGNIĘTE (G10.1, wchłonięcie ocalałych obrońców):**
+  `Settlement.absorb_defenders(survivors)` jest czystym przejściem zastępującym
+  garnizon przekazaną sekwencją ocalałych w jej kolejności. Polegli to różnica
+  między liczebnością starego garnizonu i ocalałych; o tę liczbę maleją razem
+  `population` i `occupied`, więc `free` pozostaje bez zmian. Pusta sekwencja
+  usuwa cały garnizon, a sekwencja liczniejsza od dotychczasowego garnizonu jest
+  odrzucana. Ocalali zachowują swoje obiekty `Unit` (w tym rany i doświadczenie),
+  pozostały stan osady nie zmienia się, a wejście nie jest mutowane ani nie jest
+  używany RNG. Wpięcie przejścia w wynik bitwy na mapie pozostaje w G10.2.
 - **PLAN (Kamień 10 — realne straty i koszty):** trzy placeholdery pętli
   strategicznej zostają domknięte i **odwracają** wcześniejsze „poza zakresem":
   (a) **straty garnizonu** — po bitwie osady garnizon = ocalali obrońcy
@@ -479,6 +488,10 @@ Wstępne encje rdzenia (nazwy robocze, doprecyzowywane wraz z implementacją):
   właścicielem osady. Wymarsz opróżnia garnizon oraz zmniejsza `population`
   i `occupied` o liczbę żołnierzy; `free` pozostaje bez zmian. Pozostały stan
   osady nie zmienia się, a pusty garnizon tworzy party z samym bohaterem.
+  **ROZSTRZYGNIĘTE (G10.1, straty obrońców):**
+  `Settlement.absorb_defenders(survivors)` zastępuje garnizon ocalałymi i odejmuje
+  liczbę poległych jednocześnie od `population` i `occupied`, zachowując `free`;
+  szczegółowy kontrakt przejścia opisuje §4.
   **ROZSTRZYGNIĘTE (MU.2, wystawienie na mapę):**
   `WorldMap.muster_party(region, hero)` atomowo zastępuje osadę wynikiem
   `Settlement.muster(hero)` i umieszcza utworzone

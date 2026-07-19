@@ -1,5 +1,6 @@
 """Immutable settlement state and its population pool."""
 
+from collections.abc import Sequence
 from dataclasses import dataclass, replace
 
 from tbb.building import Building, SMITH
@@ -140,6 +141,19 @@ class Settlement:
             garrison=(),
         )
         return party, settlement
+
+    def absorb_defenders(self, survivors: Sequence[Unit]) -> "Settlement":
+        """Replace the garrison with survivors and remove fallen residents."""
+        surviving_garrison = tuple(survivors)
+        fallen = len(self.garrison) - len(surviving_garrison)
+        if fallen < 0:
+            raise ValueError("cannot have more survivors than defenders")
+        return replace(
+            self,
+            population=self.population - fallen,
+            occupied=self.occupied - fallen,
+            garrison=surviving_garrison,
+        )
 
     def open_building(self, building: Building) -> "Settlement":
         """Return a new state with ``building`` active and staffed."""

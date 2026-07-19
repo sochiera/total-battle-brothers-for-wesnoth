@@ -425,6 +425,47 @@ def test_muster_empty_garrison_creates_hero_only_party_without_population_change
     assert mustered.occupied == original.occupied
 
 
+def test_absorb_defenders_replaces_garrison_and_accounts_for_fallen_purely():
+    defenders = (
+        Unit(training=1),
+        Unit(equipment=2),
+        Unit(experience=3),
+    )
+    original = Settlement(
+        "Keep",
+        population=8,
+        occupied=4,
+        active_buildings=(SMITH,),
+        storage=Resources(7, 9),
+        capacity=10,
+        garrison=defenders,
+        owner_id="north",
+    )
+    survivors = [defenders[2], defenders[0]]
+    rng_state = random.getstate()
+
+    absorbed = original.absorb_defenders(survivors)
+
+    assert absorbed is not original
+    assert absorbed.garrison == tuple(survivors)
+    assert absorbed.garrison[0] is defenders[2]
+    assert absorbed.garrison[1] is defenders[0]
+    assert absorbed.population == original.population - 1
+    assert absorbed.occupied == original.occupied - 1
+    assert absorbed.free == original.free
+    assert (
+        absorbed.name,
+        absorbed.storage,
+        absorbed.active_buildings,
+        absorbed.capacity,
+        absorbed.owner_id,
+    ) == ("Keep", Resources(7, 9), (SMITH,), 10, "north")
+    assert original.garrison == defenders
+    assert original.population == 8
+    assert original.occupied == 4
+    assert random.getstate() == rng_state
+
+
 def test_tick_training_gives_every_unit_the_exported_months_and_keeps_order(
     monkeypatch,
 ):
