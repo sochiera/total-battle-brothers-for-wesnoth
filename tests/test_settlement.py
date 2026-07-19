@@ -466,6 +466,29 @@ def test_absorb_defenders_replaces_garrison_and_accounts_for_fallen_purely():
     assert random.getstate() == rng_state
 
 
+def test_absorb_defenders_rejects_extra_survivors_and_accepts_none():
+    defenders = (Unit(), Unit(), Unit())
+    original = Settlement(
+        "Keep",
+        population=8,
+        occupied=4,
+        garrison=defenders,
+    )
+
+    with pytest.raises(ValueError):
+        original.absorb_defenders((*defenders, Unit()))
+
+    emptied = original.absorb_defenders(())
+
+    assert emptied.garrison == ()
+    assert emptied.population == original.population - len(defenders)
+    assert emptied.occupied == original.occupied - len(defenders)
+    assert emptied.free == original.free
+    assert original.garrison == defenders
+    assert original.population == 8
+    assert original.occupied == 4
+
+
 def test_tick_training_gives_every_unit_the_exported_months_and_keeps_order(
     monkeypatch,
 ):
