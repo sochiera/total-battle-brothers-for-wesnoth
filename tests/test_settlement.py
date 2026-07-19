@@ -491,8 +491,6 @@ def test_tick_equipment_uses_exported_cost_to_equip_earliest_least_equipped_unit
 ):
     assert settlement_module.EQUIP_GOLD_COST == 1
     assert settlement_module.EQUIP_INVESTMENT_PER_TURN == 1
-    monkeypatch.setattr(settlement_module, "EQUIP_GOLD_COST", 3)
-    monkeypatch.setattr(settlement_module, "EQUIP_INVESTMENT_PER_TURN", 2)
     units = (
         Unit(training=2, equipment=2),
         Unit(equipment=0),
@@ -518,7 +516,7 @@ def test_tick_equipment_uses_exported_cost_to_equip_earliest_least_equipped_unit
         units[1].equip(settlement_module.EQUIP_INVESTMENT_PER_TURN),
         units[2],
     )
-    assert equipped.storage == Resources(wheat=11, gold=4)
+    assert equipped.storage == Resources(wheat=11, gold=6)
     assert (
         equipped.name,
         equipped.population,
@@ -531,15 +529,50 @@ def test_tick_equipment_uses_exported_cost_to_equip_earliest_least_equipped_unit
     assert original.storage == Resources(wheat=11, gold=7)
     assert random.getstate() == rng_state
 
+    monkeypatch.setattr(settlement_module, "EQUIP_GOLD_COST", 3)
+    monkeypatch.setattr(settlement_module, "EQUIP_INVESTMENT_PER_TURN", 2)
+    configured = original.tick_equipment()
+    assert configured.garrison == (
+        units[0],
+        units[1].equip(2),
+        units[2],
+    )
+    assert configured.storage == Resources(wheat=11, gold=4)
+
+
+def test_tick_equipment_succeeds_when_gold_exactly_matches_cost():
+    unit = Unit()
+    original = Settlement(
+        "A",
+        population=2,
+        occupied=2,
+        active_buildings=(SMITH,),
+        storage=Resources(wheat=4, gold=settlement_module.EQUIP_GOLD_COST),
+        garrison=(unit,),
+    )
+
+    equipped = original.tick_equipment()
+
+    assert equipped.garrison == (
+        unit.equip(settlement_module.EQUIP_INVESTMENT_PER_TURN),
+    )
+    assert equipped.storage == Resources(wheat=4, gold=0)
+
 
 @pytest.mark.parametrize(
     "active_buildings, storage, garrison",
     [
         ((), Resources(2, 1), (Unit(),)),
+        ((MARKET,), Resources(2, 1), (Unit(),)),
         ((SMITH,), Resources(2, 0), (Unit(),)),
         ((SMITH,), Resources(2, 1), ()),
     ],
-    ids=("no-active-smith", "insufficient-gold", "empty-garrison"),
+    ids=(
+        "no-active-buildings",
+        "active-non-smith-building",
+        "insufficient-gold",
+        "empty-garrison",
+    ),
 )
 def test_tick_equipment_noop_returns_equal_new_settlement_when_requirement_missing(
     active_buildings, storage, garrison
@@ -555,7 +588,10 @@ def test_tick_equipment_noop_returns_equal_new_settlement_when_requirement_missi
         owner_id="north",
     )
 
+    rng_state = random.getstate()
     equipped = original.tick_equipment()
 
     assert equipped == original
     assert equipped is not original
+    assert original.tick_equipment() == equipped
+    assert random.getstate() == rng_state
