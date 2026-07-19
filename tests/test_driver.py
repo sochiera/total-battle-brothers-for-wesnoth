@@ -145,6 +145,45 @@ def test_conquest_syncs_game_and_skips_newly_defeated_duchy(monkeypatch):
     assert game.duchies[1].settlements == (south_keep,)
 
 
+def test_turn_loop_stops_immediately_after_a_later_turn_ends_game(monkeypatch):
+    north, south = map(Region, ("North", "South"))
+    north_keep = Settlement("North Keep", 1, owner_id="north")
+    south_keep = Settlement("South Keep", 1, owner_id="south")
+    world = WorldMap(
+        (north, south), settlements={north: north_keep, south: south_keep}
+    )
+    game = GameState(
+        (
+            Duchy("north", Unit(), settlements=(north_keep,)),
+            Duchy("south", None, settlements=(south_keep,)),
+        )
+    )
+    calls = []
+
+    def conquer_on_norths_second_turn(current_world, duchy, rng):
+        calls.append(duchy.duchy_id)
+        if calls.count("north") < 2:
+            return current_world
+        conquered_keep = Settlement("South Keep", 1, owner_id="north")
+        return WorldMap(
+            current_world.regions,
+            current_world.connections,
+            settlements={north: north_keep, south: conquered_keep},
+            parties=current_world.parties,
+        )
+
+    monkeypatch.setattr(ai, "take_duchy_turn", conquer_on_norths_second_turn)
+
+    result_world, result_game = run_headless_game(
+        world, game, Rng(17), max_turns=5
+    )
+
+    assert calls == ["north", "south", "north"]
+    assert result_world.settlement_at(south).owner_id == "north"
+    assert result_game.is_over is True
+    assert result_game.winner.duchy_id == "north"
+
+
 def test_lost_party_during_real_ai_turn_promotes_heir_before_world_sync():
     camp, keep = map(Region, ("North Camp", "South Keep"))
     hero = Unit(equipment=1)

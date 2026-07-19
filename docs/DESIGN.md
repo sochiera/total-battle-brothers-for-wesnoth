@@ -704,10 +704,16 @@ ich dotykają, i notować wynik tutaj:
   synchronizacja bieżących osad i party zachowuje awansowanego dziedzica oraz
   karę morale. Jeśli party księstwa pozostaje na mapie, bohater i morale nie
   zmieniają się. Całe przejście pozostaje czyste.
-  **PLAN (A7.2b3c, pętla drivera headless):** na setupie A7.2a pętla kończy się
-  przy `GameState.is_over`, a
-  bezpiecznik `max_turns` chroni przed zapętleniem. Ten sam setup i seed dają ten
-  sam wynik; wejścia nie są mutowane. Driver headless używa bezpośrednio
+  **ROZSTRZYGNIĘTE (A7.2b3c, pętla drivera headless):** driver powtarza pełne
+  tury w ramach `max_turns` i kończy natychmiast po osiągnięciu
+  `GameState.is_over`, także w środku tury po akcji księstwa. Każda tura pobiera
+  nową migawkę identyfikatorów niepokonanych księstw; ten sam setup i seed dają
+  ten sam wynik, a wejścia nie są mutowane. Setup A7.2a ma jednego silnego
+  obrońcę w garnizonie `ai`, dzięki czemu bazowa partia kończy się zwycięstwem
+  przed domyślnym bezpiecznikiem. Na granicy tury bohater bez osady i bez
+  wystawionego party przechodzi przez sukcesję; bez dziedzica oznacza to jego
+  śmierć i pozwala predykatowi porażki domknąć wynik po utracie ostatniej osady.
+  Driver nadal używa bezpośrednio
   `take_duchy_turn` (bez maszyny faz `StrategicTurn`) — kalendarz i fazy zostają
   domeną strojenia po MVP.
   **PLAN (A7.2b4, headless CLI):** `python -m tbb` (przez `run.sh`) buduje

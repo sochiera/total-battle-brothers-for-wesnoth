@@ -30,35 +30,57 @@ def _replace_duchy(game: GameState, replacement: Duchy) -> GameState:
     )
 
 
+def _resolve_stranded_heroes(game: GameState) -> GameState:
+    """Resolve heroes left without either a settlement or a deployed party."""
+    replacements = tuple(
+        duchy.succeed()
+        if duchy.hero is not None
+        and not duchy.settlements
+        and not duchy.parties
+        else duchy
+        for duchy in game.duchies
+    )
+    if replacements == game.duchies:
+        return game
+    return GameState(replacements)
+
+
 def run_headless_game(
     world: WorldMap,
     game: GameState,
     rng: Rng,
     max_turns: int = 1000,
 ) -> tuple[WorldMap, GameState]:
-    """Run one AI turn unless the game or configured turn budget is over."""
-    if game.is_over or max_turns == 0:
-        return world, game
-
+    """Run AI turns until the game ends or the turn budget is exhausted."""
     current_world = world
     current_game = game
-    duchy_ids = tuple(
-        duchy.duchy_id for duchy in game.duchies if not duchy.is_defeated
-    )
-    for duchy_id in duchy_ids:
-        duchy = next(
-            (
-                candidate
-                for candidate in current_game.duchies
-                if candidate.duchy_id == duchy_id
-            ),
-            None,
+    for _ in range(max_turns):
+        if current_game.is_over:
+            break
+        current_game = _resolve_stranded_heroes(current_game)
+        if current_game.is_over:
+            break
+        duchy_ids = tuple(
+            duchy.duchy_id
+            for duchy in current_game.duchies
+            if not duchy.is_defeated
         )
-        if duchy is None or duchy.is_defeated:
-            continue
-        world_before = current_world
-        current_world = ai.take_duchy_turn(world_before, duchy, rng)
-        resolved = resolve_hero_survival(duchy, world_before, current_world)
-        current_game = _replace_duchy(current_game, resolved)
-        current_game = current_game.sync_from_world(current_world)
+        for duchy_id in duchy_ids:
+            duchy = next(
+                (
+                    candidate
+                    for candidate in current_game.duchies
+                    if candidate.duchy_id == duchy_id
+                ),
+                None,
+            )
+            if duchy is None or duchy.is_defeated:
+                continue
+            world_before = current_world
+            current_world = ai.take_duchy_turn(world_before, duchy, rng)
+            resolved = resolve_hero_survival(duchy, world_before, current_world)
+            current_game = _replace_duchy(current_game, resolved)
+            current_game = current_game.sync_from_world(current_world)
+            if current_game.is_over:
+                break
     return current_world, current_game

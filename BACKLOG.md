@@ -39,7 +39,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
   - AC: `resolve_hero_survival` (before/after wokół akcji) wpięte przed sync; utrata
     jedynego party w turze → sukcesja (dziedzic→bohater, `−SUCCESSION_MORALE_PENALTY`);
     przetrwanie party → bohater/morale bez zmian; czyste.
-- [ ] **A7.2b3c** Pętla do rozstrzygnięcia i determinizm. *(task-012)*
+- [x] **A7.2b3c** Pętla do rozstrzygnięcia i determinizm. *(task-012)*
   - AC: powtarza tury aż `GameState.is_over` albo do `max_turns`; ten sam seed →
     ten sam wynik; pełna pętla na `create_headless_game()` osiąga `is_over` przed
     bezpiecznikiem i wskazuje zwycięzcę.
