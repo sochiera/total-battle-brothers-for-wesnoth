@@ -195,34 +195,28 @@ def test_headless_setup_has_two_supplied_duchies():
     world, game = create_headless_game()
 
     assert tuple(duchy.duchy_id for duchy in game.duchies) == ("player", "ai")
-    assert len(world.settlements) == 3
+    assert len(world.settlements) == 2
     for duchy in game.duchies:
-        assert duchy.settlements
-        assert all(
-            settlement.owner_id == duchy.duchy_id
-            and settlement.population > 0
-            for settlement in duchy.settlements
-        )
-        assert any(
-            settlement.storage.wheat > 0 and settlement.storage.gold > 0
-            for settlement in duchy.settlements
-        )
+        assert len(duchy.settlements) == 1
+        settlement = duchy.settlements[0]
+        assert settlement.owner_id == duchy.duchy_id
+        assert settlement.population > 0
+        assert settlement.storage.wheat > 0
+        assert settlement.storage.gold > 0
         assert duchy.hero is not None
         assert duchy.hero.damage > 0
 
 
 def test_headless_setup_connects_opposite_settlements_without_parties():
     world, _ = create_headless_game()
-    first, middle, enemy, reserve = world.regions
+    first, middle, last = world.regions
 
     assert world.settlement_at(first) is not None
     assert world.settlement_at(middle) is None
-    assert world.settlement_at(enemy) is not None
-    assert world.settlement_at(reserve) is not None
-    assert world.neighbors(first) == (middle, reserve)
-    assert world.neighbors(middle) == (first, enemy)
-    assert world.neighbors(enemy) == (middle,)
-    assert world.neighbors(reserve) == (first,)
+    assert world.settlement_at(last) is not None
+    assert world.neighbors(first) == (middle,)
+    assert world.neighbors(middle) == (first, last)
+    assert world.neighbors(last) == (middle,)
     assert dict(world.parties) == {}
 
 
@@ -230,8 +224,7 @@ def test_headless_setup_shares_settlement_objects_between_world_and_duchies():
     world, game = create_headless_game()
 
     assert world.settlement_at(world.regions[0]) is game.duchies[0].settlements[0]
-    assert world.settlement_at(world.regions[3]) is game.duchies[0].settlements[1]
-    assert world.settlement_at(world.regions[2]) is game.duchies[1].settlements[0]
+    assert world.settlement_at(world.regions[-1]) is game.duchies[1].settlements[0]
 
 
 def test_headless_setup_is_deterministic_and_independent():

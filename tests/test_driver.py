@@ -1,5 +1,7 @@
 """Tests for headless game driver transitions."""
 
+from dataclasses import replace
+
 import tbb.ai as ai
 
 from tbb.ai import take_duchy_turn
@@ -376,51 +378,73 @@ def test_default_game_finishes_deterministically_before_safety_limit():
     assert defeated[0] is not result_game.winner
 
 
-def test_default_headless_game_develops_a_unit_before_resolution():
-    first_world, first_game = create_headless_game()
-    second_world, second_game = create_headless_game()
-    initial_units = [
-        unit
-        for settlement in first_world.settlements.values()
-        for unit in settlement.garrison
-    ] + [
-        duchy.hero for duchy in first_game.duchies if duchy.hero is not None
-    ]
-    initial_qualities = {
-        (unit.training, unit.equipment) for unit in initial_units
-    }
+def _development_scenario():
+    north, south = map(Region, ("Development Keep", "Resolution Keep"))
+    north_keep = Settlement(
+        "Development Keep",
+        1,
+        occupied=1,
+        storage=Resources(wheat=4, gold=0),
+        capacity=1,
+        garrison=(Unit(),),
+        owner_id="north",
+    )
+    south_keep = Settlement(
+        "Resolution Keep", 1, capacity=1, owner_id="south"
+    )
+    world = WorldMap(
+        (north, south), settlements={north: north_keep, south: south_keep}
+    )
+    game = GameState(
+        (
+            Duchy("north", Unit(equipment=1), settlements=(north_keep,)),
+            Duchy("south", None, settlements=(south_keep,)),
+        )
+    )
+    return world, game
 
-    first_result = run_headless_game(first_world, first_game, Rng(73))
-    second_result = run_headless_game(second_world, second_game, Rng(73))
 
-    assert first_result == second_result
-    result_world, result_game, _ = first_result
-    assert result_game.is_over is True
-    result_units = [
-        unit
-        for settlement in result_world.settlements.values()
-        for unit in settlement.garrison
-    ] + [
-        unit
-        for party in result_world.parties.values()
-        for unit in (party.hero, *party.units)
-    ]
-    assert any(
-        (unit.training > 0 or unit.equipment > 0)
-        and (unit.training, unit.equipment) not in initial_qualities
-        for unit in result_units
+def _conquer_after_development(world, duchy, rng):
+    if duchy.duchy_id != "north":
+        return world
+    north, south = world.regions
+    developed_keep = world.settlement_at(north)
+    if developed_keep.garrison[0].training < 2:
+        return world
+
+    settlements = dict(world.settlements)
+    settlements[south] = replace(settlements[south], owner_id="north")
+    return WorldMap(
+        world.regions, world.connections, settlements, world.parties
     )
 
 
-def test_default_headless_development_spans_multiple_turns_before_resolution():
-    first_world, first_game = create_headless_game()
-    second_world, second_game = create_headless_game()
+def _run_deterministic_development_scenario():
+    first_world, first_game = _development_scenario()
+    second_world, second_game = _development_scenario()
 
     first_result = run_headless_game(first_world, first_game, Rng(73))
     second_result = run_headless_game(second_world, second_game, Rng(73))
 
     assert first_result == second_result
-    _, result_game, result_calendar = first_result
+    return first_result
+
+
+def test_headless_game_develops_a_unit_before_resolution(monkeypatch):
+    monkeypatch.setattr(ai, "take_duchy_turn", _conquer_after_development)
+
+    result_world, result_game, _ = _run_deterministic_development_scenario()
+
+    assert result_game.is_over is True
+    developed = result_world.settlement_at(result_world.regions[0]).garrison[0]
+    assert developed.training > Unit().training
+
+
+def test_headless_development_spans_multiple_turns_before_resolution(monkeypatch):
+    monkeypatch.setattr(ai, "take_duchy_turn", _conquer_after_development)
+
+    _, result_game, result_calendar = _run_deterministic_development_scenario()
+
     elapsed_turns = (result_calendar.year - 1) * 13 + result_calendar.month - 1
     assert elapsed_turns >= 2
     assert result_game.is_over is True

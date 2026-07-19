@@ -16,42 +16,26 @@ def create_headless_game() -> tuple[WorldMap, "GameState"]:
     player_region = Region("player lands")
     border_region = Region("border")
     ai_region = Region("ai lands")
-    player_reserve_region = Region("player reserve")
 
     player_settlement = Settlement(
         "Player Keep", 5, storage=Resources(10, 10), owner_id="player"
-    )
-    player_reserve_settlement = Settlement(
-        "Player Reserve", 1, owner_id="player"
     )
     ai_settlement = Settlement(
         "AI Keep",
         5,
         occupied=1,
         storage=Resources(10, 10),
-        garrison=(Unit(training=5, equipment=12, training_progress=5),),
+        garrison=(Unit(training=5, equipment=12),),
         owner_id="ai",
     )
     world = WorldMap(
-        (player_region, border_region, ai_region, player_reserve_region),
-        (
-            (player_region, border_region),
-            (border_region, ai_region),
-            (player_region, player_reserve_region),
-        ),
-        {
-            player_region: player_settlement,
-            ai_region: ai_settlement,
-            player_reserve_region: player_reserve_settlement,
-        },
+        (player_region, border_region, ai_region),
+        ((player_region, border_region), (border_region, ai_region)),
+        {player_region: player_settlement, ai_region: ai_settlement},
     )
     game = GameState(
         (
-            Duchy(
-                "player",
-                Unit(equipment=1),
-                settlements=(player_settlement, player_reserve_settlement),
-            ),
+            Duchy("player", Unit(equipment=1), settlements=(player_settlement,)),
             Duchy("ai", Unit(equipment=1), settlements=(ai_settlement,)),
         )
     )

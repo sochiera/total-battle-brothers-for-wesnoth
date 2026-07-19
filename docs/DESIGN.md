@@ -759,14 +759,12 @@ ich dotykają, i notować wynik tutaj:
   `GameState.is_over`, także w środku tury po akcji księstwa. Każda tura pobiera
   nową migawkę identyfikatorów niepokonanych księstw; ten sam setup i seed dają
   ten sam wynik, a wejścia nie są mutowane. Setup A7.2a ma jednego silnego
-  obrońcę w garnizonie `ai`, zaczynającego miesiąc przed kolejnym poziomem
-  treningu, oraz drugą małą osadę rezerwową gracza. Dzięki temu bazowa partia
-  obejmuje co najmniej dwie miesięczne tury, obserwowalnie rozwija jednostkę
-  i kończy się zwycięstwem przed domyślnym bezpiecznikiem. Spadek populacji
-  własnych osad podczas akcji oznacza wystawienie garnizonu; jeśli po tej samej
-  akcji nie ma party księstwa, driver rozpoznaje jego utratę i uruchamia sukcesję.
-  Sam brak osady i party nie jest zdarzeniem śmierci: bezczynny bohater poza mapą
-  pozostaje bez zmian, zgodnie z A7.2b2. Driver nadal używa bezpośrednio
+  obrońcę w garnizonie `ai`, dzięki czemu bazowa partia kończy się zwycięstwem
+  przed domyślnym bezpiecznikiem. Spadek populacji własnych osad podczas akcji
+  oznacza wystawienie garnizonu; jeśli po tej samej akcji nie ma party księstwa,
+  driver rozpoznaje jego utratę i uruchamia sukcesję. Sam brak osady i party nie
+  jest zdarzeniem śmierci: bezczynny bohater poza mapą pozostaje bez zmian,
+  zgodnie z A7.2b2. Driver nadal używa bezpośrednio
   `take_duchy_turn` (bez maszyny faz `StrategicTurn`) — kalendarz i fazy zostają
   domeną strojenia po MVP.
   **ROZSTRZYGNIĘTE (A7.2b4, headless CLI):** `python -m tbb` (przez `run.sh`) buduje
