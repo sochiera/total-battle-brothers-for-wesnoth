@@ -13,43 +13,47 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 
 ---
 
-## Kamień milowy 7 — grywalna pętla MVP (headless przebieg A7.2b)
-> Rdzeń, AI księstwa i deterministyczny setup (`A7.2a`) są gotowe. Zostaje spiąć je
-> w headless partię end-to-end: synchronizacja stanu gry z mapą, rozpoznanie śmierci
-> bohatera, pętla tur do rozstrzygnięcia i wypisanie wyniku. To domyka MVP z DESIGN §6.
-> **A7.2b1** i **A7.2b2** ukończone — przeniesione do `BACKLOG-ARCHIVE.md`.
->
-> **A7.2b3a** ukończone — przeniesione do `BACKLOG-ARCHIVE.md`.
->
-> **A7.2b3b** rozbite dalej na trzy mikro-klocki (`b3b1`–`b3b3`, task-009–011).
-> Powód: monolityczne `b3b` (iteracja księstw + akcja + sukcesja + sync w jednym
-> przyroście) dwukrotnie utknęło na limicie 12 cykli mikro-TDD (brak jednego,
-> wyraźnie czerwonego testu na krok). Każdy klocek dodaje teraz dokładnie jedną
-> obserwowalną warstwę: przewleczenie mapy → synchronizacja stanu gry → przeżycie
-> bohatera. `b3c`/`b4` przenumerowane na task-012/013 (treść bez zmian).
-- [x] **A7.2b3b1** Jedna tura: akcje księstw na wspólnej mapie. *(task-009)*
-  - AC: przy `max_turns >= 1` niepokonane księstwa w kolejności `game.duchies`
-    wołają `take_duchy_turn`, karmiąc wynikiem następne; zwrócona `WorldMap`
-    odzwierciedla akcje AI; `game` zwracany bez zmian; pominięcie pokonanych; czyste.
-- [ ] **A7.2b3b2** Synchronizacja stanu gry po akcji księstwa. *(task-010)*
-  - AC: po `take_duchy_turn` każdego księstwa `game = game.sync_from_world(world)`;
-    iteracja bierze migawkę `duchy_id`, pobiera bieżące księstwo i pomija
-    `is_defeated`; księstwo bez ostatniej osady odpada w tej samej turze; czyste.
-- [x] **A7.2b3b3** Przeżycie bohatera w akcji tury. *(task-011)*
-  - AC: `resolve_hero_survival` (before/after wokół akcji) wpięte przed sync; utrata
-    jedynego party w turze → sukcesja (dziedzic→bohater, `−SUCCESSION_MORALE_PENALTY`);
-    przetrwanie party → bohater/morale bez zmian; czyste.
-- [x] **A7.2b3c** Pętla do rozstrzygnięcia i determinizm. *(task-012)*
-  - AC: powtarza tury aż `GameState.is_over` albo do `max_turns`; ten sam seed →
-    ten sam wynik; pełna pętla na `create_headless_game()` osiąga `is_over` przed
-    bezpiecznikiem i wskazuje zwycięzcę.
-- [ ] **A7.2b4** Headless CLI wypisuje wynik całej partii. *(task-013)*
-  - AC: `run.sh` uruchamia driver A7.2b3, wypisuje zwycięzcę albo remis; test smoke
-    obejmuje pełną pętlę i kod wyjścia 0.
+## Kamień milowy 7 — grywalna pętla MVP (headless przebieg A7.2b) — UKOŃCZONY
+> Rdzeń, AI księstwa, deterministyczny setup (`A7.2a`) i cały headless driver
+> (`A7.2b1`–`A7.2b4`) są gotowe: `python -m tbb` uruchamia pełną, deterministyczną
+> partię end-to-end i wypisuje zwycięzcę albo remis (kod wyjścia 0). Wszystkie
+> pozycje przeniesione do `BACKLOG-ARCHIVE.md`. To domknęło **minimalną** pętlę
+> z DESIGN §6, ale headless partia nadal toczy się z **zamrożonymi osadami** —
+> driver nie uruchamia miesięcznej ekonomii ani nie przesuwa kalendarza. To
+> domyka Kamień milowy 8.
+
+## Kamień milowy 8 — pełna tura strategiczna w driverze (ekonomia + kalendarz)
+> Cała warstwa ekonomii/wzrostu (`WorldMap.tick_settlements`) i kalendarza
+> (`turn.end_turn`) istnieje i jest przetestowana, ale headless driver jej **nie
+> używa** — woła `take_duchy_turn` na gołej mapie. Skutek: podczas realnej partii
+> osady nie produkują surowców, nie rosną i nie przyciągają imigrantów, a czas nie
+> płynie. Ten kamień spina istniejące prymitywy z pętlą tury, w kolejności faz
+> DESIGN §10 (produkcja → wzrost → ruch → bitwy), **bez** wciągania pełnej maszyny
+> faz `StrategicTurn` (routing AI przez fazy zostaje po MVP — patrz „Później").
+- [ ] **M8.1** Miesięczna ekonomia w pętli tury headless. *(task-014)*
+  - AC: driver wykonuje `world.tick_settlements()` raz na początku każdej tury,
+    przed przebiegiem księstw, i synchronizuje `GameState`; osada obserwowalnie
+    produkuje/rośnie w trakcie headless partii; pełna pętla nadal kończy się
+    zwycięzcą przed bezpiecznikiem; determinizm (ten sam seed → ten sam wynik); czyste.
+- [ ] **M8.2** Kalendarz przesuwa się o miesiąc na ukończoną turę. *(task-015)*
+  - AC: `run_headless_game` przyjmuje `calendar: Calendar = Calendar()` i zwraca
+    trójkę `(WorldMap, GameState, Calendar)`; kalendarz przesuwa się dokładnie
+    o jeden miesiąc na każdą ukończoną turę przez `turn.end_turn`; ten sam seed →
+    ten sam kalendarz końcowy; wejścia niemutowane.
+- [ ] **M8.3** CLI raportuje datę zakończenia partii. *(task-016)*
+  - AC: `main()` wypisuje końcowy rok/miesiąc kalendarza obok wyniku (zwycięzca
+    albo remis); smoke sprawdza obecność daty w wyjściu i kod wyjścia 0; cała
+    logika w rdzeniu, `__main__.py` tylko I/O.
 
 ## Później (poza MVP)
 - [ ] Prezentacja/UI (pygame lub most do innego silnika) nad rdzeniem.
 - [ ] Bogatszy model ran, terenu, budynków; więcej typów jednostek.
+- [ ] **Rozwój jednostek w turze (§6 „trenuj i wyposażaj"):** model nakładu
+      miesiąc/surowiec na `Unit` (śledzenie skumulowanej inwestycji → poziom filaru
+      przez `progression.level`, zgodnie z U3.2) oraz przejście treningu/uzbrojenia
+      w polityce AI. Świadomie odłożone: wymaga zmiany modelu `Unit` (dziś filary są
+      wpisywane wprost), więc to osobny mini-kamień po M8.
 - [ ] Balans ekonomii i krzywych progresji; strojenie AI.
-- [ ] Kalendarz/fazy `StrategicTurn` w headless driverze (obecnie MVP używa
-      bezpośrednio `take_duchy_turn`); spięcie z ekonomią miesięczną per tura.
+- [ ] Pełna maszyna faz `StrategicTurn` w headless driverze (routing akcji AI przez
+      fazy ruch/bitwy zamiast bezpośredniego `take_duchy_turn`). M8 reużywa tylko
+      prymitywów `tick_settlements`/`end_turn`, bez wciągania phase-gatingu.

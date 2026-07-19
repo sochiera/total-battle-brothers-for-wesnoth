@@ -98,3 +98,13 @@
       (`driver.resolve_hero_survival`).
 - [x] **A7.2b3a** Szkielet drivera headless i bezpiecznik
       (`driver.run_headless_game`: wyjścia dla `is_over`/`max_turns == 0`).
+- [x] **A7.2b3b1** Jedna tura: akcje księstw na wspólnej mapie
+      (`take_duchy_turn` przewleczone przez kolejność `game.duchies`).
+- [x] **A7.2b3b2** Synchronizacja stanu gry po akcji księstwa
+      (`GameState.sync_from_world` po każdym `take_duchy_turn`).
+- [x] **A7.2b3b3** Przeżycie bohatera w akcji tury
+      (`resolve_hero_survival` wpięte przed sync, sukcesja w tej samej turze).
+- [x] **A7.2b3c** Pętla drivera do rozstrzygnięcia i determinizm
+      (powtarza tury aż `is_over` albo do `max_turns`; ten sam seed → ten sam wynik).
+- [x] **A7.2b4** Headless CLI wypisuje wynik całej partii
+      (`python -m tbb`/`run.sh`: zwycięzca albo remis, kod wyjścia 0).

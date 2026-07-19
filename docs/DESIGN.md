@@ -722,6 +722,20 @@ ich dotykają, i notować wynik tutaj:
   seedem i wypisuje wynik: zwycięzca (`GameState.winner.duchy_id`) albo remis
   (`winner is None`). Cała logika pozostaje w rdzeniu; `__main__.py` odpowiada
   tylko za I/O i kończy kodem 0. To domyka grywalną headless pętlę MVP (§6).
+  **PLAN (M8, pełna tura strategiczna w driverze):** headless partia z A7.2b toczy
+  się z **zamrożonymi osadami** — driver woła `take_duchy_turn` na gołej mapie i nie
+  uruchamia miesięcznej ekonomii ani nie przesuwa kalendarza. M8 spina istniejące
+  prymitywy z pętlą tury, reużywając `WorldMap.tick_settlements()` (M5.4b) i
+  `turn.end_turn()` (M5.4a), w kolejności faz §10 (produkcja → wzrost → ruch →
+  bitwy): **M8.1** — driver wykonuje `tick_settlements()` raz na początku każdej
+  tury, przed przebiegiem księstw, i synchronizuje `GameState`, więc osady realnie
+  produkują/rosną w trakcie partii; **M8.2** — driver przewleka `Calendar`
+  i przesuwa go o jeden miesiąc na każdą ukończoną turę (`run_headless_game` zwraca
+  `(WorldMap, GameState, Calendar)`); **M8.3** — CLI raportuje końcowy rok/miesiąc
+  obok wyniku. Pełna maszyna faz `StrategicTurn` (routing akcji AI przez fazy
+  ruch/bitwy) pozostaje poza M8 — driver nadal używa `take_duchy_turn`, a M8 reużywa
+  wyłącznie prymitywów ekonomii i kalendarza. Rozwój jednostek w turze (§6 „trenuj
+  i wyposażaj") wymaga modelu nakładu na `Unit` i jest osobnym mini-kamieniem po M8.
 - **Zakończenie tury na mapie:** kolejność faz (produkcja → wzrost → ruch → bitwy).
   **ROZSTRZYGNIĘTE (plan M5.4b, miesięczne przejście osad):**
   `WorldMap.tick_settlements()` aktualizuje wszystkie osady w deterministycznej
