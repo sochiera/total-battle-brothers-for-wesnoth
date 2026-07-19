@@ -9,15 +9,50 @@ from tbb.unit import Unit
 from tbb.world import Region, WorldMap
 
 
-def test_already_over_game_returns_exact_input_objects():
+def test_exit_conditions_return_typed_exact_unchanged_inputs():
     region = Region("Last Keep")
-    world = WorldMap((region,))
-    game = GameState((Duchy("north", Unit(training=2)),))
+    finished_world = WorldMap((region,))
+    finished_game = GameState((Duchy("north", Unit(training=2)),))
+    finished_snapshot = (
+        finished_world.regions,
+        dict(finished_world.settlements),
+        dict(finished_world.parties),
+        finished_game.duchies,
+    )
 
-    returned_world, returned_game = run_headless_game(world, game, Rng(7))
+    finished_result = run_headless_game(
+        finished_world, finished_game, Rng(7)
+    )
 
-    assert returned_world is world
-    assert returned_game is game
+    assert isinstance(finished_result, tuple)
+    assert isinstance(finished_result[0], WorldMap)
+    assert isinstance(finished_result[1], GameState)
+    assert finished_result[0] is finished_world
+    assert finished_result[1] is finished_game
+    assert finished_snapshot == (
+        finished_world.regions,
+        dict(finished_world.settlements),
+        dict(finished_world.parties),
+        finished_game.duchies,
+    )
+
+    running_world = WorldMap((Region("North"), Region("South")))
+    running_game = GameState(
+        (
+            Duchy("north", Unit(training=2)),
+            Duchy("south", Unit(training=2)),
+        )
+    )
+    running_snapshot = (running_world.regions, running_game.duchies)
+
+    running_result = run_headless_game(
+        running_world, running_game, Rng(11), max_turns=0
+    )
+
+    assert running_game.is_over is False
+    assert running_result[0] is running_world
+    assert running_result[1] is running_game
+    assert running_snapshot == (running_world.regions, running_game.duchies)
 
 
 def test_lost_duchy_party_triggers_immutable_succession():
