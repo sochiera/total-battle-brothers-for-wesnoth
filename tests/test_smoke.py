@@ -17,7 +17,7 @@ def test_headless_main_runs_full_game_and_reports_result(capsys):
     output = capsys.readouterr().out.strip().lower()
     assert "zwycięzca: ai" in output
     assert "rok: 1" in output
-    assert "miesiąc: 2" in output
+    assert "miesiąc: 3" in output
 
 
 def test_headless_main_reports_final_calendar_date(capsys):
@@ -27,7 +27,7 @@ def test_headless_main_reports_final_calendar_date(capsys):
     output = capsys.readouterr().out.lower()
     assert "zwycięzca: ai" in output
     assert "rok: 1" in output
-    assert "miesiąc: 2" in output
+    assert "miesiąc: 3" in output
 
 
 def test_headless_main_delegates_to_driver_and_prints_winner(monkeypatch, capsys):

@@ -412,6 +412,20 @@ def test_default_headless_game_develops_a_unit_before_resolution():
     )
 
 
+def test_default_headless_development_spans_multiple_turns_before_resolution():
+    first_world, first_game = create_headless_game()
+    second_world, second_game = create_headless_game()
+
+    first_result = run_headless_game(first_world, first_game, Rng(73))
+    second_result = run_headless_game(second_world, second_game, Rng(73))
+
+    assert first_result == second_result
+    _, result_game, result_calendar = first_result
+    elapsed_turns = (result_calendar.year - 1) * 13 + result_calendar.month - 1
+    assert elapsed_turns >= 2
+    assert result_game.is_over is True
+
+
 def test_lost_party_during_real_ai_turn_promotes_heir_before_world_sync():
     camp, keep = map(Region, ("North Camp", "South Keep"))
     hero = Unit(equipment=1)
