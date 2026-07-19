@@ -70,6 +70,9 @@ class GameState:
 
     def sync_from_world(self, world: WorldMap) -> "GameState":
         """Rebuild each duchy's strategic collections from the world map."""
+        if not isinstance(world, WorldMap):
+            raise TypeError("world must be a WorldMap")
+
         settlements_by_owner: dict[str, list[Settlement]] = {}
         parties_by_owner: dict[str, list[Party]] = {}
         for region in world.regions:

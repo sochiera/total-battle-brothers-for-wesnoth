@@ -659,7 +659,8 @@ ich dotykają, i notować wynik tutaj:
   księstwa odtwarza ono `settlements` i `parties` z bieżącej mapy, filtrując po
   `owner_id` i zachowując deterministyczną kolejność regionów. Dzięki temu podbój
   natychmiast odbiera osadę dawnemu właścicielowi i przypisuje ją zdobywcy bez
-  dublowania strategicznego stanu. To przejście zachowuje `duchy_id`, bohatera,
+  dublowania strategicznego stanu. Argument niebędący `WorldMap` jest odrzucany
+  błędem typu. To przejście zachowuje `duchy_id`, bohatera,
   dziedzica i morale: rozpoznanie śmierci party bohatera oraz sukcesja wymagają
   porównania stanu przed i po akcji i pozostają osobnym krokiem A7.2b2.
   Pętla tur, bezpiecznik i wypisanie wyniku pozostają w A7.2b3–b4.

@@ -98,6 +98,13 @@ def test_sync_from_world_rebuilds_settlements_in_region_order_by_owner():
     assert tuple(world.settlements) == (third, second, first)
 
 
+def test_sync_from_world_rejects_a_value_that_is_not_a_world_map():
+    game = GameState((Duchy("north", Unit()),))
+
+    with pytest.raises(TypeError, match="world must be a WorldMap"):
+        game.sync_from_world(object())
+
+
 def test_headless_setup_has_two_supplied_duchies():
     world, game = create_headless_game()
 
