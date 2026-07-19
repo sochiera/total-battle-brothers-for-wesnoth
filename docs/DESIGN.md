@@ -130,6 +130,13 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   mapę bez zmian. Przejście korzysta z `Settlement.open_building`, tworzy nową
   mapę i nie mutuje wejściowej mapy, grafu, osad ani party. Wywołanie tego
   przejścia w turze AI dochodzi osobno w G10.5.
+- **ROZSTRZYGNIĘTE (G10.5, rozwój w turze AI):** `take_duchy_turn()` składa
+  politykę księstwa w stałej kolejności **rozwój osady → rekrutacja → akcja
+  wojskowa**. Wynik każdego przejścia jest wejściem następnego, dzięki czemu
+  otwarcie budynku nie blokuje rekrutacji, a świeży rekrut może wejść do party
+  jeszcze w tej samej turze. Brak możliwości rozwoju lub rekrutacji nie blokuje
+  dalszych etapów. Przejście jest niemutowalne i deterministyczne dla ustalonego
+  ziarna RNG przekazanego akcji wojskowej.
 - **Czas:** 1 tura = **1 miesiąc**. Rok = **13 miesięcy po 4 tygodnie**
   (52 tygodnie). Trening i wyposażenie mierzone są w miesiącach.
   **ROZSTRZYGNIĘTE (M5.4a, minimalny kalendarz):** gra zaczyna się w roku 1,
@@ -750,12 +757,14 @@ ich dotykają, i notować wynik tutaj:
   garnizonem są pomijane; brak
   kwalifikującej się osady jest no-opem. Złożenie rekrutacji z wojskową akcją
   A7.1b5a pozostaje osobnym krokiem A7.1b5b2.
-  **ROZSTRZYGNIĘTE (A7.1b5b2, pełna polityka tury AI):** czyste przejście
-  `take_duchy_turn()` najpierw wywołuje `recruit_duchy_unit()`, a następnie
-  przekazuje uzyskaną mapę do `take_duchy_military_action()`. Dzięki temu świeży
+  **ROZSTRZYGNIĘTE (A7.1b5b2/G10.5, pełna polityka tury AI):** czyste przejście
+  `take_duchy_turn()` najpierw wywołuje `develop_duchy_settlement()`, potem
+  `recruit_duchy_unit()`, a następnie przekazuje uzyskaną mapę do
+  `take_duchy_military_action()`. Dzięki temu świeży
   rekrut może jeszcze w tej samej turze wejść do wystawianego party; jeśli party
   już istnieje, rekrut pozostaje w garnizonie, a akcja wojskowa używa istniejącego
-  składu. Brak możliwości rekrutacji nie blokuje marszu ani szturmu. Przejście
+  składu. Brak możliwości rozwoju lub rekrutacji nie blokuje kolejnych etapów,
+  w tym marszu ani szturmu. Przejście
   używa wyłącznie RNG przekazanego do akcji wojskowej, jest deterministyczne przy
   ustalonym seedzie i nie mutuje mapy ani księstwa wejściowego.
   **ROZSTRZYGNIĘTE (A7.2a, deterministyczny setup headless):** ostatnią integrację MVP

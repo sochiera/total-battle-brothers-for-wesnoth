@@ -22,10 +22,10 @@ def test_monthly_tick_precedes_recruitment_and_syncs_the_grown_settlement():
     veteran = Unit(training=1)
     north_keep = Settlement(
         "North Keep",
-        1,
+        2,
         occupied=1,
-        storage=Resources(wheat=2, gold=1),
-        capacity=2,
+        storage=Resources(wheat=3, gold=1),
+        capacity=3,
         garrison=(veteran,),
         owner_id="north",
     )
@@ -48,9 +48,9 @@ def test_monthly_tick_precedes_recruitment_and_syncs_the_grown_settlement():
     north_duchy = next(
         duchy for duchy in result_game.duchies if duchy.duchy_id == "north"
     )
-    assert grown_keep.population == 2
+    assert grown_keep.population == 3
     assert grown_keep.storage == Resources(wheat=1, gold=0)
-    assert grown_keep.occupied == 2
+    assert grown_keep.occupied == 3
     assert grown_keep.garrison == (veteran.train(1), Unit())
     assert north_duchy.settlements == (grown_keep,)
     assert world.settlement_at(north) is north_keep
@@ -106,11 +106,11 @@ def test_one_turn_threads_real_ai_actions_through_duchies_immutably():
 def test_one_turn_delegates_to_live_ai_api_in_duchy_order(monkeypatch):
     north, fallen, south = map(Region, ("North", "Fallen", "South"))
     north_keep = Settlement(
-        "North Keep", 1, storage=Resources(0, 1), owner_id="north"
+        "North Keep", 2, storage=Resources(0, 1), owner_id="north"
     )
     fallen_keep = Settlement("Fallen Keep", 1)
     south_keep = Settlement(
-        "South Keep", 1, storage=Resources(0, 1), owner_id="south"
+        "South Keep", 2, storage=Resources(0, 1), owner_id="south"
     )
     world = WorldMap(
         (north, fallen, south),

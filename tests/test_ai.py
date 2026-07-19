@@ -663,11 +663,29 @@ def test_develop_duchy_settlement_fulfills_priority_selection_and_purity_contrac
     assert develop_duchy_settlement(exhausted_world, duchy) is exhausted_world
 
 
+def test_duchy_turn_develops_farm_before_recruiting_one_unit():
+    home = Region("Home")
+    settlement = Settlement(
+        "Home", population=3, storage=Resources(0, 1), owner_id="ai"
+    )
+    world = WorldMap([home], settlements={home: settlement})
+    duchy = Duchy("ai", Unit(), settlements=(settlement,))
+
+    result = take_duchy_turn(world, duchy, tbb.Rng(31))
+
+    updated = result.settlement_at(home)
+    assert updated.active_buildings == (tbb.FARM,)
+    assert updated.garrison == (Unit(),)
+    assert world.settlement_at(home) is settlement
+    assert settlement.active_buildings == ()
+    assert settlement.garrison == ()
+
+
 def test_duchy_turn_recruits_before_muster_march_and_adjacent_assault():
     home, road, target = map(Region, ("Home", "Road", "Target"))
     hero = Unit(training=8, equipment=8)
     home_settlement = Settlement(
-        "Home", 1, storage=Resources(0, 1), owner_id="ai"
+        "Home", 2, storage=Resources(0, 1), owner_id="ai"
     )
     enemy_settlement = Settlement(
         "Target", 1, garrison=(Unit(),), owner_id="enemy"
@@ -680,7 +698,8 @@ def test_duchy_turn_recruits_before_muster_march_and_adjacent_assault():
     duchy = Duchy("ai", hero, settlements=(home_settlement,))
 
     result = take_duchy_turn(world, duchy, tbb.Rng(17))
-    recruited = recruit_duchy_unit(world, duchy)
+    developed = develop_duchy_settlement(world, duchy)
+    recruited = recruit_duchy_unit(developed, duchy)
     expected = take_duchy_military_action(recruited, duchy, tbb.Rng(17))
 
     assert result == expected
@@ -694,7 +713,7 @@ def test_duchy_turn_leaves_recruit_in_garrison_when_party_already_exists():
     veteran = Unit(equipment=2)
     party = Party(hero, (veteran,), owner_id="ai")
     home_settlement = Settlement(
-        "Home", 1, storage=Resources(0, 1), owner_id="ai"
+        "Home", 2, storage=Resources(0, 1), owner_id="ai"
     )
     world = WorldMap(
         [home, start, road, target],
