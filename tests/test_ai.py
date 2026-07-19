@@ -681,6 +681,49 @@ def test_duchy_turn_develops_farm_before_recruiting_one_unit():
     assert settlement.garrison == ()
 
 
+def test_duchy_turn_development_uses_last_free_resident_before_recruitment():
+    home = Region("Home")
+    settlement = Settlement(
+        "Home", population=1, storage=Resources(0, 1), owner_id="ai"
+    )
+    world = WorldMap([home], settlements={home: settlement})
+    duchy = Duchy("ai", Unit(), settlements=(settlement,))
+
+    result = take_duchy_turn(world, duchy, tbb.Rng(31))
+
+    updated = result.settlement_at(home)
+    assert updated.active_buildings == (tbb.FARM,)
+    assert updated.garrison == ()
+    assert updated.storage == Resources(0, 1)
+
+
+def test_duchy_turn_recruits_and_marches_when_all_buildings_are_already_open():
+    home, road, front, target = map(Region, ("Home", "Road", "Front", "Target"))
+    hero = Unit(training=2)
+    settlement = Settlement(
+        "Home",
+        population=4,
+        occupied=3,
+        active_buildings=(tbb.FARM, tbb.SMITH, tbb.MARKET),
+        storage=Resources(0, 1),
+        owner_id="ai",
+    )
+    world = WorldMap(
+        [home, road, front, target],
+        [(home, road), (road, front), (front, target)],
+        {home: settlement, target: _settlement("Target", "enemy")},
+    )
+    duchy = Duchy("ai", hero, settlements=(settlement,))
+
+    result = take_duchy_turn(world, duchy, _ForbiddenRng())
+
+    assert result.party_at(road) == Party(hero, (Unit(),), owner_id="ai")
+    assert result.settlement_at(home).active_buildings == settlement.active_buildings
+    assert result.settlement_at(home).storage == Resources(0, 0)
+    assert world.settlement_at(home) is settlement
+    assert world.party_at(road) is None
+
+
 def test_duchy_turn_recruits_before_muster_march_and_adjacent_assault():
     home, road, target = map(Region, ("Home", "Road", "Target"))
     hero = Unit(training=8, equipment=8)
