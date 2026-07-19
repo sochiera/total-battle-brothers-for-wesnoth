@@ -1259,18 +1259,31 @@ def test_resolve_settlement_battle_conquers_with_attacking_survivors():
         parties={camp: attacker},
     )
 
-    resolved = world.resolve_settlement_battle(
+    battle = world.start_settlement_battle(camp, vale).auto_resolve(
+        move_points=1, morale=100, rng=Rng(2)
+    )
+    first = world.resolve_settlement_battle(
+        camp, vale, Rng(2), move_points=1, morale=100
+    )
+    second = world.resolve_settlement_battle(
         camp, vale, Rng(2), move_points=1, morale=100
     )
 
-    survivors = resolved.party_at(vale)
-    assert resolved.party_at(camp) is None
+    assert battle.result() is BattleResult.ATTACKER_WIN
+    assert first == second
+    survivors = first.party_at(vale)
+    conquered = first.settlement_at(vale)
+    assert first.party_at(camp) is None
     assert survivors.owner_id == "north"
-    assert resolved.settlement_at(vale).owner_id == "north"
+    assert conquered.owner_id == "north"
+    assert conquered.garrison == battle.side_survivors(BattleSide.DEFENDER)
     assert len((survivors.hero, *survivors.units)) < len(
         (attacker.hero, *attacker.units)
     )
     assert attacker.units[0] not in (survivors.hero, *survivors.units)
+    assert world.party_at(camp) is attacker
+    assert world.settlement_at(vale) is settlement
+    assert settlement.garrison is garrison
 
 
 def test_resolve_settlement_battle_defender_win_removes_attacker_only():
