@@ -8,6 +8,19 @@
 - [x] **G10.1** Osada wchłania ocalałych obrońców po bitwie
       (`Settlement.absorb_defenders(survivors)` — garnizon = ocalali, polegli
       zmniejszają `population`/`occupied` po `free`; niemutowalne, bez RNG).
+- [x] **G10.2a** Straty garnizonu obrońcy przy `DEFENDER_WIN`/`DRAW`
+      (`apply_settlement_battle_result` z `battle` zastępuje garnizon
+      `side_survivors(DEFENDER)`; `battle is None` = zgodność wsteczna).
+- [x] **G10.2b** Garnizon zdobytej osady przy `ATTACKER_WIN`
+      (podbój: `owner_id`→atakujący i garnizon = `side_survivors(DEFENDER)`,
+      party wchodzi jak w BW.3c; stare stany wliczają garnizon do `occupied`).
+- [x] **G10.3** Koszt złota rekrutacji (`Settlement.recruit()` pobiera
+      `RECRUIT_GOLD_COST` ze `storage`; brak złota lub populacji → `ValueError`;
+      AI pomija osady bez dość złota; niemutowalne, deterministyczne).
+- [x] **G10.4** Polityka AI: otwieranie budynków ekonomii/kuźni
+      (`ai.develop_duchy_settlement` otwiera pierwszy brakujący budynek wg
+      priorytetu `Farm`→`Smith`→`Market` w pierwszej własnej osadzie z dość
+      wolną populacją; brak kandydata = no-op; niemutowalne, bez RNG).
 
 ## Kamień milowy 9 — rozwój jednostek w turze (§6 pkt 2: „trenuj i wyposażaj")
 - [x] **U9.1** Trening jednostki jako czyste przejście z malejącym zyskiem

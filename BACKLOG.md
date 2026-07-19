@@ -38,29 +38,33 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > Strojenie wartości (balans) pozostaje poza kamieniem.
 - [x] **G10.1** Osada wchłania ocalałych obrońców po bitwie. *(task-022)* →
       `BACKLOG-ARCHIVE.md`
-- [ ] **G10.2a** Straty garnizonu obrońcy przy `DEFENDER_WIN`/`DRAW`. *(task-027)*
-  - AC: przy podanym `battle` i wyniku obronnym garnizon `destination` =
-    `battle.side_survivors(DEFENDER)` (traci poległych), `owner_id` bez zmian;
-    `battle is None` zachowuje zgodność wsteczną; walidacja bez zmian; niemutowalne.
-  - Uwaga: rozbicie G10.2 po porażce 12-cyklowej (`.forge/failures.md`).
-- [ ] **G10.2b** Garnizon zdobytej osady przy `ATTACKER_WIN`. *(task-028)*
-  - AC: przy podanym `battle` i podboju `destination` zmienia `owner_id` na
-    atakującego **i** garnizon = `battle.side_survivors(DEFENDER)`; party wchodzi
-    jak w BW.3c; `battle is None` zachowuje zgodność wsteczną; niemutowalne.
-- [ ] **G10.3** Koszt złota rekrutacji. *(task-029)*
-  - AC: `Settlement.recruit()` pobiera `RECRUIT_GOLD_COST` ze `storage`; brak złota
-    → `ValueError` (blokada, jak przy braku populacji); AI `recruit_duchy_unit`
-    pomija osady bez dość złota; niemutowalne, deterministyczne.
-- [ ] **G10.4** Polityka AI: otwieranie budynków ekonomii/kuźni. *(task-030)*
-  - AC: czyste `ai.develop_duchy_settlement(world, duchy)` otwiera pierwszy brakujący
-    korzystny budynek (priorytet `Farm` → `Smith` → `Market`) w pierwszej wg
-    kolejności regionów własnej osadzie z dość wolną populacją; brak kandydata =
-    no-op; niemutowalne, bez RNG.
-- [ ] **G10.5** Wpięcie rozwoju budynków w turę AI + integracja. *(task-031)*
-  - AC: `take_duchy_turn` wywołuje `develop_duchy_settlement` przed rekrutacją;
-    test drivera pokazuje, że w realnej partii AI otwiera `Farm` (ekonomia
-    samowystarczalna) i `Smith` (uzbrojenie garnizonu postępuje); determinizm
-    end-to-end; cały pakiet testów zielony.
+- [x] **G10.2a** Straty garnizonu obrońcy przy `DEFENDER_WIN`/`DRAW`. *(task-027)*
+      → `BACKLOG-ARCHIVE.md`
+- [x] **G10.2b** Garnizon zdobytej osady przy `ATTACKER_WIN`. *(task-028)*
+      → `BACKLOG-ARCHIVE.md`
+- [x] **G10.3** Koszt złota rekrutacji. *(task-029)* → `BACKLOG-ARCHIVE.md`
+- [x] **G10.4** Polityka AI: otwieranie budynków ekonomii/kuźni. *(task-030)*
+      → `BACKLOG-ARCHIVE.md`
+- [ ] **G10.5a** `take_duchy_turn`: rozwój → rekrutacja → wojsko. *(task-032)*
+  - AC: `take_duchy_turn` wywołuje `develop_duchy_settlement` przed
+    `recruit_duchy_unit`; test AI: po turze osada AI ma `Farm` i +1 rekruta; brak
+    możliwości rozwoju nie przerywa rekrutacji/wojska; DESIGN §3.1 ROZSTRZYGNIĘTE
+    G10.5; niemutowalne, deterministyczne.
+  - Uwaga: rozbicie G10.5 po porażce (`.forge/failures.md`).
+- [ ] **G10.5b** Progresja priorytetu `Farm`→`Smith` w kolejnych turach. *(task-033)*
+  - AC: na mapie bez wrogiej osady (wojsko = no-op) dwa kolejne `take_duchy_turn`
+    otwierają najpierw `Farm`, potem `Smith`; rekrutacja działa; deterministyczne,
+    niemutowalne.
+- [ ] **G10.5c** Integracja rozwoju AI w realnej partii headless. *(task-034)*
+  - AC: `run_headless_game` z `create_headless_game` osiąga stan, gdzie osada AI
+    ma otwarty `Farm`; determinizm end-to-end (ten sam seed → ten sam wynik);
+    stany wejściowe nie mutowane. (Twarda asercja `Smith` w pełnej partii świadomie
+    pominięta — progresję dowodzi G10.5b.)
+- [ ] **R10.1** Refaktor: `WorldMap.with_settlement`, dedup rekonstrukcji mapy.
+      *(task-035)*
+  - AC: `WorldMap.with_settlement(region, settlement)` czyste przejście; `ai.py`
+    (`develop`/`recruit`) i wewnętrzne miejsca `world.py` reużywają go; zero zmian
+    zachowania, cały pakiet zielony.
 
 ## Później (poza MVP)
 - [ ] Prezentacja/UI (pygame lub most do innego silnika) nad rdzeniem.
