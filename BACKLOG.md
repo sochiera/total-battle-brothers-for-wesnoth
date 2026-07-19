@@ -51,7 +51,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     możliwości rozwoju nie przerywa rekrutacji/wojska; DESIGN §3.1 ROZSTRZYGNIĘTE
     G10.5; niemutowalne, deterministyczne.
   - Uwaga: rozbicie G10.5 po porażce (`.forge/failures.md`).
-- [ ] **G10.5b** Progresja priorytetu `Farm`→`Smith` w kolejnych turach. *(task-033)*
+- [x] **G10.5b** Progresja priorytetu `Farm`→`Smith` w kolejnych turach. *(task-033)*
   - AC: na mapie bez wrogiej osady (wojsko = no-op) dwa kolejne `take_duchy_turn`
     otwierają najpierw `Farm`, potem `Smith`; rekrutacja działa; deterministyczne,
     niemutowalne.

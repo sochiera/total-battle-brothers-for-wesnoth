@@ -10,9 +10,11 @@ from tbb.rng import Rng
 from tbb.world import Region, WorldMap
 
 
+_DEVELOPMENT_PRIORITIES = (FARM, SMITH, MARKET)
+
+
 def develop_duchy_settlement(world: WorldMap, duchy: Duchy) -> WorldMap:
     """Open one priority building in the first eligible owned settlement."""
-    priorities = (FARM, SMITH, MARKET)
     for region in world.regions:
         settlement = world.settlements.get(region)
         if settlement is None or settlement.owner_id != duchy.duchy_id:
@@ -21,7 +23,7 @@ def develop_duchy_settlement(world: WorldMap, duchy: Duchy) -> WorldMap:
         building = next(
             (
                 candidate
-                for candidate in priorities
+                for candidate in _DEVELOPMENT_PRIORITIES
                 if candidate not in settlement.active_buildings
             ),
             None,

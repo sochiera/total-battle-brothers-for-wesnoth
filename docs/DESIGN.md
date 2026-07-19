@@ -134,9 +134,11 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   politykę księstwa w stałej kolejności **rozwój osady → rekrutacja → akcja
   wojskowa**. Wynik każdego przejścia jest wejściem następnego, dzięki czemu
   otwarcie budynku nie blokuje rekrutacji, a świeży rekrut może wejść do party
-  jeszcze w tej samej turze. Brak możliwości rozwoju lub rekrutacji nie blokuje
-  dalszych etapów. Przejście jest niemutowalne i deterministyczne dla ustalonego
-  ziarna RNG przekazanego akcji wojskowej.
+  jeszcze w tej samej turze. Kolejne wywołania nad zwróconą mapą kontynuują
+  priorytet rozwoju: po otwarciu Farm następna tura otwiera Smith, jeśli osada ma
+  wolnego mieszkańca. Brak możliwości rozwoju lub rekrutacji nie blokuje dalszych
+  etapów. Przejście jest niemutowalne i deterministyczne dla ustalonego ziarna
+  RNG przekazanego akcji wojskowej.
 - **Czas:** 1 tura = **1 miesiąc**. Rok = **13 miesięcy po 4 tygodnie**
   (52 tygodnie). Trening i wyposażenie mierzone są w miesiącach.
   **ROZSTRZYGNIĘTE (M5.4a, minimalny kalendarz):** gra zaczyna się w roku 1,
