@@ -25,7 +25,7 @@ def create_headless_game() -> tuple[WorldMap, "GameState"]:
         5,
         occupied=1,
         storage=Resources(10, 10),
-        garrison=(Unit(training=5, equipment=12),),
+        garrison=(Unit(training=5, equipment=12, training_progress=5),),
         owner_id="ai",
     )
     world = WorldMap(

@@ -376,6 +376,42 @@ def test_default_game_finishes_deterministically_before_safety_limit():
     assert defeated[0] is not result_game.winner
 
 
+def test_default_headless_game_develops_a_unit_before_resolution():
+    first_world, first_game = create_headless_game()
+    second_world, second_game = create_headless_game()
+    initial_units = [
+        unit
+        for settlement in first_world.settlements.values()
+        for unit in settlement.garrison
+    ] + [
+        duchy.hero for duchy in first_game.duchies if duchy.hero is not None
+    ]
+    initial_qualities = {
+        (unit.training, unit.equipment) for unit in initial_units
+    }
+
+    first_result = run_headless_game(first_world, first_game, Rng(73))
+    second_result = run_headless_game(second_world, second_game, Rng(73))
+
+    assert first_result == second_result
+    result_world, result_game, _ = first_result
+    assert result_game.is_over is True
+    result_units = [
+        unit
+        for settlement in result_world.settlements.values()
+        for unit in settlement.garrison
+    ] + [
+        unit
+        for party in result_world.parties.values()
+        for unit in (party.hero, *party.units)
+    ]
+    assert any(
+        (unit.training > 0 or unit.equipment > 0)
+        and (unit.training, unit.equipment) not in initial_qualities
+        for unit in result_units
+    )
+
+
 def test_lost_party_during_real_ai_turn_promotes_heir_before_world_sync():
     camp, keep = map(Region, ("North Camp", "South Keep"))
     hero = Unit(equipment=1)
