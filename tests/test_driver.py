@@ -128,3 +128,22 @@ def test_other_owners_parties_do_not_hide_loss_of_duchy_party():
     assert resolved.morale == 3 - SUCCESSION_MORALE_PENALTY
     assert world_before.party_at(foreign_region) is foreign_party
     assert world_after.party_at(foreign_region) is foreign_party
+
+
+def test_world_before_drives_succession_when_duchy_parties_are_stale():
+    region = Region("March")
+    hero = Unit(training=2)
+    heir = Unit(training=1)
+    deployed_party = Party(hero, owner_id="north")
+    duchy = Duchy("north", hero, morale=3, heir=heir, parties=())
+    world_before = WorldMap((region,), parties={region: deployed_party})
+    world_after = WorldMap((region,))
+
+    resolved = resolve_hero_survival(duchy, world_before, world_after)
+
+    assert duchy.parties == ()
+    assert resolved.hero is heir
+    assert resolved.heir is None
+    assert resolved.morale == 3 - SUCCESSION_MORALE_PENALTY
+    assert world_before.party_at(region) is deployed_party
+    assert world_after.party_at(region) is None
