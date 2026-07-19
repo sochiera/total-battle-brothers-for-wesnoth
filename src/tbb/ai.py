@@ -201,9 +201,9 @@ def take_duchy_military_action(
 
 def take_duchy_turn(world: WorldMap, duchy: Duchy, rng: Rng) -> WorldMap:
     """Develop, recruit once, then perform one duchy's military action."""
-    developed = develop_duchy_settlement(world, duchy)
-    recruited = recruit_duchy_unit(developed, duchy)
-    return take_duchy_military_action(recruited, duchy, rng)
+    current = develop_duchy_settlement(world, duchy)
+    current = recruit_duchy_unit(current, duchy)
+    return take_duchy_military_action(current, duchy, rng)
 
 
 def _duchy_party_position(world: WorldMap, duchy_id: str) -> Region | None:
