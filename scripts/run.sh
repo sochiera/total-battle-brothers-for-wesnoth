@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Uruchamia headless runner rdzenia (placeholder na teraz).
+# Uruchamia pełną deterministyczną partię headless.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 export PYTHONPATH="src${PYTHONPATH:+:$PYTHONPATH}"
