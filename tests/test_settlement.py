@@ -484,3 +484,49 @@ def test_tick_training_empty_garrison_is_noop_and_other_state_is_pure_rng_free()
     ) == (5, 3, Resources(7, 9), (SMITH,), 8, "north")
     assert original.garrison == units
     assert random.getstate() == rng_state
+
+
+def test_tick_equipment_uses_exported_cost_to_equip_earliest_least_equipped_unit(
+    monkeypatch,
+):
+    assert settlement_module.EQUIP_GOLD_COST == 1
+    assert settlement_module.EQUIP_INVESTMENT_PER_TURN == 1
+    monkeypatch.setattr(settlement_module, "EQUIP_GOLD_COST", 3)
+    monkeypatch.setattr(settlement_module, "EQUIP_INVESTMENT_PER_TURN", 2)
+    units = (
+        Unit(training=2, equipment=2),
+        Unit(equipment=0),
+        Unit(equipment=0, experience=3),
+    )
+    original = Settlement(
+        "A",
+        population=5,
+        occupied=4,
+        active_buildings=(SMITH,),
+        storage=Resources(wheat=11, gold=7),
+        capacity=8,
+        garrison=units,
+        owner_id="north",
+    )
+    rng_state = random.getstate()
+
+    equipped = original.tick_equipment()
+
+    assert equipped is not original
+    assert equipped.garrison == (
+        units[0],
+        units[1].equip(settlement_module.EQUIP_INVESTMENT_PER_TURN),
+        units[2],
+    )
+    assert equipped.storage == Resources(wheat=11, gold=4)
+    assert (
+        equipped.name,
+        equipped.population,
+        equipped.occupied,
+        equipped.active_buildings,
+        equipped.capacity,
+        equipped.owner_id,
+    ) == ("A", 5, 4, (SMITH,), 8, "north")
+    assert original.garrison == units
+    assert original.storage == Resources(wheat=11, gold=7)
+    assert random.getstate() == rng_state

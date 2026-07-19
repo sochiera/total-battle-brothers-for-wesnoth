@@ -2,13 +2,15 @@
 
 from dataclasses import dataclass, replace
 
-from tbb.building import Building
+from tbb.building import Building, SMITH
 from tbb.party import Party
 from tbb.resources import Resources
 from tbb.unit import Unit
 
 
 TRAINING_MONTHS_PER_TURN: int = 1
+EQUIP_GOLD_COST: int = 1
+EQUIP_INVESTMENT_PER_TURN: int = 1
 
 
 @dataclass(frozen=True)
@@ -86,6 +88,24 @@ class Settlement:
                 unit.train(TRAINING_MONTHS_PER_TURN) for unit in self.garrison
             ),
         )
+
+    def tick_equipment(self) -> "Settlement":
+        """Equip one least-equipped soldier when an active smith can be paid."""
+        if (
+            SMITH not in self.active_buildings
+            or not self.garrison
+            or self.storage.gold < EQUIP_GOLD_COST
+        ):
+            return self
+
+        target = min(
+            range(len(self.garrison)),
+            key=lambda index: self.garrison[index].equipment,
+        )
+        garrison = list(self.garrison)
+        garrison[target] = garrison[target].equip(EQUIP_INVESTMENT_PER_TURN)
+        storage = self.storage.subtract(Resources(wheat=0, gold=EQUIP_GOLD_COST))
+        return replace(self, garrison=tuple(garrison), storage=storage)
 
     def occupy(self, amount: int) -> "Settlement":
         """Return a new settlement with ``amount`` population assigned."""

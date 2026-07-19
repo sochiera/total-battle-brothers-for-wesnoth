@@ -415,6 +415,16 @@ kolejność garnizonu i cały pozostały stan osady, jest niemutowalne,
 deterministyczne i nie używa RNG; dla pustego garnizonu stan pozostaje równy
 wejściowemu.
 
+**ROZSTRZYGNIĘTE (U9.4, miesięczne uzbrajanie garnizonu):**
+`Settlement.tick_equipment()` przy czynnym budynku `Smith`, niepustym garnizonie
+i co najmniej `EQUIP_GOLD_COST` złota uzbraja dokładnie jednego żołnierza przez
+`Unit.equip(EQUIP_INVESTMENT_PER_TURN)` i odejmuje koszt z magazynu. Celem jest
+jednostka o najniższym `equipment`, a remis rozstrzyga najwcześniejsza pozycja
+w garnizonie. Oba placeholdery wynoszą obecnie `1`. Brak któregokolwiek warunku
+daje no-op. Przejście zachowuje pozostały stan osady, jest niemutowalne,
+deterministyczne i nie używa RNG. Wpięcie go w miesięczny łańcuch mapy następuje
+osobno w U9.5.
+
 ## 6. Pętla rozgrywki (MVP)
 Najmniejsza grywalna pętla, single-player vs **jedno** księstwo AI:
 1. Twoje księstwo: 1 osada z populacją, pszenicą i złotem; naprzeciw księstwo AI.
