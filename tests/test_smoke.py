@@ -10,10 +10,11 @@ def test_package_imports_and_has_version():
     assert tbb.__version__  # niepusta wersja
 
 
-def test_headless_main_returns_zero():
+def test_headless_main_runs_full_game_and_reports_result(capsys):
     from tbb.__main__ import main
 
     assert main() == 0
+    assert capsys.readouterr().out.strip().lower() == "zwycięzca: ai"
 
 
 def test_headless_main_delegates_to_driver_and_prints_winner(monkeypatch, capsys):
