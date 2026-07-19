@@ -370,6 +370,27 @@ def test_recruit_rejects_settlement_without_free_population():
     )
 
 
+def test_recruit_rejects_insufficient_gold_without_mutating_settlement():
+    settlement = Settlement(
+        "A",
+        population=2,
+        occupied=1,
+        storage=Resources(3, settlement_module.RECRUIT_GOLD_COST - 1),
+        garrison=(Unit(training=1),),
+    )
+
+    with pytest.raises(ValueError):
+        settlement.recruit()
+
+    assert settlement == Settlement(
+        "A",
+        population=2,
+        occupied=1,
+        storage=Resources(3, settlement_module.RECRUIT_GOLD_COST - 1),
+        garrison=(Unit(training=1),),
+    )
+
+
 def test_two_recruits_occupy_two_population_and_join_garrison():
     recruited = Settlement(
         "A", population=2, storage=Resources(0, 2)
