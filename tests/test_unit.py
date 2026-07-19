@@ -130,6 +130,72 @@ def test_train_uses_triangular_progress_and_is_a_pure_rng_free_transition():
     assert Unit().train(3) == Unit(training=2)
 
 
+def test_equip_uses_triangular_progress_and_is_a_pure_rng_free_transition():
+    default_unit = Unit()
+    assert default_unit.equipment_progress == 0
+    with pytest.raises(FrozenInstanceError):
+        default_unit.equipment_progress = 1
+    with pytest.raises(ValueError):
+        Unit(equipment=2, equipment_progress=-1)
+    with pytest.raises(ValueError):
+        Unit(equipment=2, equipment_progress=3)
+
+    original = Unit(
+        training=4,
+        training_progress=2,
+        equipment=2,
+        equipment_progress=1,
+        experience=5,
+        ranged_range=3,
+        wounds=(BRUISE,),
+        stunned=True,
+    )
+
+    assert original.equip(0) == original
+    with pytest.raises(ValueError):
+        original.equip(-1)
+
+    rng_state = random.getstate()
+    investment = 2
+    total = (
+        investment_for_level(original.equipment)
+        + original.equipment_progress
+        + investment
+    )
+
+    equipped = original.equip(investment)
+
+    expected_equipment = pillar_level(total)
+    assert equipped.equipment == expected_equipment
+    assert (
+        equipped.equipment_progress
+        == total - investment_for_level(expected_equipment)
+    )
+    assert (
+        equipped.training,
+        equipped.training_progress,
+        equipped.experience,
+        equipped.ranged_range,
+        equipped.wounds,
+        equipped.stunned,
+    ) == (4, 2, 5, 3, (BRUISE,), True)
+    assert (equipped.damage, equipped.defense) == (3, 7)
+    assert original == Unit(
+        training=4,
+        training_progress=2,
+        equipment=2,
+        equipment_progress=1,
+        experience=5,
+        ranged_range=3,
+        wounds=(BRUISE,),
+        stunned=True,
+    )
+    assert random.getstate() == rng_state
+    assert original.equip(investment) == equipped
+    assert Unit().equip(2) == Unit(equipment=1, equipment_progress=1)
+    assert Unit().equip(3) == Unit(equipment=2)
+
+
 def test_ranged_range_defaults_to_zero_and_accepts_two_or_more():
     assert Unit().ranged_range == 0
     assert Unit(ranged_range=2).ranged_range == 2

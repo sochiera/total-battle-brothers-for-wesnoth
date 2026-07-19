@@ -128,6 +128,9 @@ Uruchamiaj z katalogu `game/`.
 - **Postęp treningu:** `Unit.train()` reużywa trójkątną krzywą z `progression`;
   autorytatywny poziom pozostaje w `training`, a reszta nakładu przed następnym
   poziomem w `training_progress`.
+- **Postęp uzbrojenia:** `Unit.equip()` reużywa tę samą trójkątną krzywą;
+  autorytatywny poziom pozostaje w `equipment`, a reszta nakładu przed następnym
+  poziomem w `equipment_progress`.
 - **Własność strategiczna:** `Party` i `Settlement` mają opcjonalny, niemutowalny
   `owner_id`; kontakt bojowy wymaga niepustych, różnych identyfikatorów obu stron.
 - **Kolejność raportu bitwy:** `HexBattle` przechowuje osobny, niemutowalny

@@ -398,6 +398,14 @@ niż `training`). `Unit.train(months)` dodaje miesiące do skumulowanego nakład
 U3.2 i zachowuje pozostały postęp. Przejście jest niemutowalne, deterministyczne
 i nie używa RNG; zero miesięcy jest no-op, a wartość ujemna jest błędem.
 
+**ROZSTRZYGNIĘTE (U9.2, uzbrojenie jako czyste przejście):**
+`equipment_progress` przechowuje nieujemną resztę nakładu ponad próg bieżącego
+`equipment` i jest zawsze nie większe niż bieżący poziom. `Unit.equip(investment)`
+dodaje nakład do `T(equipment) + equipment_progress`, wyznacza nowy poziom przez
+trójkątną krzywą U3.2 i zachowuje resztę postępu. Przejście jest niemutowalne,
+deterministyczne i nie używa RNG; zerowy nakład jest no-op, a ujemny jest błędem.
+Nowy poziom nadal liniowo zasila `damage` i `defense` zgodnie z U3.1.
+
 ## 6. Pętla rozgrywki (MVP)
 Najmniejsza grywalna pętla, single-player vs **jedno** księstwo AI:
 1. Twoje księstwo: 1 osada z populacją, pszenicą i złotem; naprzeciw księstwo AI.

@@ -17,6 +17,7 @@ class Unit:
     wounds: tuple[Wound, ...] = ()
     stunned: bool = False
     training_progress: int = 0
+    equipment_progress: int = 0
 
     def __post_init__(self) -> None:
         """Reject pillar values below zero."""
@@ -24,6 +25,8 @@ class Unit:
             raise ValueError("unit quality pillars cannot be negative")
         if not 0 <= self.training_progress <= self.training:
             raise ValueError("training progress must be between zero and training")
+        if not 0 <= self.equipment_progress <= self.equipment:
+            raise ValueError("equipment progress must be between zero and equipment")
         if self.ranged_range < 0 or self.ranged_range == 1:
             raise ValueError("ranged range must be zero or at least two")
         object.__setattr__(self, "wounds", tuple(self.wounds))
@@ -45,6 +48,25 @@ class Unit:
             self,
             training=training,
             training_progress=total - investment_for_level(training),
+        )
+
+    def equip(self, investment: int) -> "Unit":
+        """Return this unit after a non-negative equipment investment."""
+        if investment < 0:
+            raise ValueError("equipment investment cannot be negative")
+        if investment == 0:
+            return self
+
+        total = (
+            investment_for_level(self.equipment)
+            + self.equipment_progress
+            + investment
+        )
+        equipment = pillar_level(total)
+        return replace(
+            self,
+            equipment=equipment,
+            equipment_progress=total - investment_for_level(equipment),
         )
 
     @property
