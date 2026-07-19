@@ -530,3 +530,32 @@ def test_tick_equipment_uses_exported_cost_to_equip_earliest_least_equipped_unit
     assert original.garrison == units
     assert original.storage == Resources(wheat=11, gold=7)
     assert random.getstate() == rng_state
+
+
+@pytest.mark.parametrize(
+    "active_buildings, storage, garrison",
+    [
+        ((), Resources(2, 1), (Unit(),)),
+        ((SMITH,), Resources(2, 0), (Unit(),)),
+        ((SMITH,), Resources(2, 1), ()),
+    ],
+    ids=("no-active-smith", "insufficient-gold", "empty-garrison"),
+)
+def test_tick_equipment_noop_returns_equal_new_settlement_when_requirement_missing(
+    active_buildings, storage, garrison
+):
+    original = Settlement(
+        "A",
+        population=3,
+        occupied=1,
+        active_buildings=active_buildings,
+        storage=storage,
+        capacity=5,
+        garrison=garrison,
+        owner_id="north",
+    )
+
+    equipped = original.tick_equipment()
+
+    assert equipped == original
+    assert equipped is not original

@@ -96,7 +96,7 @@ class Settlement:
             or not self.garrison
             or self.storage.gold < EQUIP_GOLD_COST
         ):
-            return self
+            return replace(self)
 
         target = min(
             range(len(self.garrison)),

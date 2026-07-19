@@ -421,7 +421,8 @@ i co najmniej `EQUIP_GOLD_COST` złota uzbraja dokładnie jednego żołnierza pr
 `Unit.equip(EQUIP_INVESTMENT_PER_TURN)` i odejmuje koszt z magazynu. Celem jest
 jednostka o najniższym `equipment`, a remis rozstrzyga najwcześniejsza pozycja
 w garnizonie. Oba placeholdery wynoszą obecnie `1`. Brak któregokolwiek warunku
-daje no-op. Przejście zachowuje pozostały stan osady, jest niemutowalne,
+zwraca nową osadę równą wejściowej (no-op). Przejście zachowuje pozostały stan
+osady, jest niemutowalne,
 deterministyczne i nie używa RNG. Wpięcie go w miesięczny łańcuch mapy następuje
 osobno w U9.5.
 
