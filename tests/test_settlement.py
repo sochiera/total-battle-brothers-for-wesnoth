@@ -1,5 +1,6 @@
 """Tests for an immutable settlement population pool."""
 
+import random
 from dataclasses import FrozenInstanceError
 
 import pytest
@@ -424,13 +425,62 @@ def test_muster_empty_garrison_creates_hero_only_party_without_population_change
     assert mustered.occupied == original.occupied
 
 
-def test_tick_training_uses_exported_months_for_every_garrison_unit(monkeypatch):
+def test_tick_training_gives_every_unit_the_exported_months_and_keeps_order(
+    monkeypatch,
+):
     assert settlement_module.TRAINING_MONTHS_PER_TURN == 1
-    units = (Unit(), Unit(training=2, training_progress=1))
+    units = (Unit(), Unit(training=2, training_progress=1, equipment=3))
     original = Settlement("A", population=2, occupied=2, garrison=units)
-    monkeypatch.setattr(settlement_module, "TRAINING_MONTHS_PER_TURN", 3)
 
     trained = original.tick_training()
 
-    assert trained.garrison == tuple(unit.train(3) for unit in units)
+    assert trained is not original
+    assert trained.garrison == tuple(
+        unit.train(settlement_module.TRAINING_MONTHS_PER_TURN) for unit in units
+    )
     assert original.garrison == units
+
+    after_three_turns = Settlement(
+        "B", population=1, occupied=1, garrison=(Unit(),)
+    )
+    for _ in range(3):
+        after_three_turns = after_three_turns.tick_training()
+    assert after_three_turns.garrison[0].training == 2
+
+    monkeypatch.setattr(settlement_module, "TRAINING_MONTHS_PER_TURN", 3)
+    assert original.tick_training().garrison == tuple(unit.train(3) for unit in units)
+
+
+def test_tick_training_empty_garrison_is_noop_and_other_state_is_pure_rng_free():
+    empty = Settlement(
+        "Empty", population=2, storage=Resources(1, 2), owner_id="south"
+    )
+    empty_ticked = empty.tick_training()
+    assert empty_ticked == empty
+    assert empty_ticked is not empty
+
+    units = (Unit(training=1), Unit(equipment=2))
+    original = Settlement(
+        "A",
+        population=5,
+        occupied=3,
+        active_buildings=(SMITH,),
+        storage=Resources(7, 9),
+        capacity=8,
+        garrison=units,
+        owner_id="north",
+    )
+    rng_state = random.getstate()
+
+    trained = original.tick_training()
+
+    assert (
+        trained.population,
+        trained.occupied,
+        trained.storage,
+        trained.active_buildings,
+        trained.capacity,
+        trained.owner_id,
+    ) == (5, 3, Resources(7, 9), (SMITH,), 8, "north")
+    assert original.garrison == units
+    assert random.getstate() == rng_state
