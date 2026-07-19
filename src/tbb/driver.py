@@ -1,6 +1,7 @@
 """Pure transitions used by the headless game driver."""
 
 import tbb.ai as ai
+import tbb.turn as turn
 from tbb.duchy import Duchy
 from tbb.game import GameState
 from tbb.rng import Rng
@@ -46,10 +47,12 @@ def run_headless_game(
     game: GameState,
     rng: Rng,
     max_turns: int = 1000,
-) -> tuple[WorldMap, GameState]:
+    calendar: turn.Calendar = turn.Calendar(),
+) -> tuple[WorldMap, GameState, turn.Calendar]:
     """Run AI turns until the game ends or the turn budget is exhausted."""
     current_world = world
     current_game = game
+    current_calendar = calendar
     for _ in range(max_turns):
         if current_game.is_over:
             break
@@ -78,4 +81,5 @@ def run_headless_game(
             current_game = current_game.sync_from_world(current_world)
             if current_game.is_over:
                 break
-    return current_world, current_game
+        current_calendar = turn.end_turn(current_calendar)
+    return current_world, current_game, current_calendar

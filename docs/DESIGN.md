@@ -676,8 +676,9 @@ ich dotykają, i notować wynik tutaj:
   Detekcja A7.2b2 była minimalna (before/after obecności party); A7.2b3c poniżej
   rozszerza ją o party wystawione i utracone w tej samej akcji.
   **ROZSTRZYGNIĘTE (A7.2b3a, szkielet drivera):** czyste
-  `driver.run_headless_game(world, game, rng, max_turns=1000)` ma ustalony kontrakt
-  wejścia i zwraca parę `(WorldMap, GameState)`. Gra rozstrzygnięta już na wejściu
+  `driver.run_headless_game(world, game, rng, max_turns=1000, calendar=Calendar())`
+  zwraca trójkę `(WorldMap, GameState, Calendar)` (kontrakt rozszerzony w M8.2).
+  Gra rozstrzygnięta już na wejściu
   oraz nierozstrzygnięta gra z `max_turns == 0` zwracają dokładnie wejściowe
   obiekty, bez synchronizacji, wykonywania tury ani mutacji. Wykonywanie tur
   pozostaje w A7.2b3b–c.
@@ -729,10 +730,14 @@ ich dotykają, i notować wynik tutaj:
   i imigracji. Gra rozstrzygnięta na wejściu oraz `max_turns == 0` nadal zwracają
   dokładnie wejściowe obiekty bez ticka i synchronizacji. Przejście pozostaje
   czyste i deterministyczne.
-  **PLAN (M8.2–M8.3, dokończenie pełnej tury strategicznej):** driver przewleka `Calendar`
-  i przesuwa go o jeden miesiąc na każdą ukończoną turę (`run_headless_game` zwraca
-  `(WorldMap, GameState, Calendar)`); **M8.3** — CLI raportuje końcowy rok/miesiąc
-  obok wyniku. Pełna maszyna faz `StrategicTurn` (routing akcji AI przez fazy
+  **ROZSTRZYGNIĘTE (M8.2, kalendarz w driverze headless):** driver przewleka
+  wejściowy `Calendar` i po każdej rozpoczętej oraz ukończonej turze przesuwa go
+  dokładnie o miesiąc przez `turn.end_turn`. Tura zakończona zwycięstwem w środku
+  przebiegu księstw także jest ukończona; gra rozstrzygnięta na wejściu oraz zerowy
+  budżet tur zwracają kalendarz wejściowy bez przesunięcia. Przejście zwraca
+  `(WorldMap, GameState, Calendar)`, pozostaje niemutowalne i deterministyczne.
+  **PLAN (M8.3):** CLI raportuje końcowy rok/miesiąc obok wyniku. Pełna maszyna
+  faz `StrategicTurn` (routing akcji AI przez fazy
   ruch/bitwy) pozostaje poza M8 — driver nadal używa `take_duchy_turn`, a M8 reużywa
   wyłącznie prymitywów ekonomii i kalendarza. Rozwój jednostek w turze (§6 „trenuj
   i wyposażaj") wymaga modelu nakładu na `Unit` i jest osobnym mini-kamieniem po M8.

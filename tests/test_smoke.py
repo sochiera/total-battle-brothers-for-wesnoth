@@ -26,6 +26,7 @@ def test_headless_main_delegates_to_driver_and_prints_winner(monkeypatch, capsys
     result_game = SimpleNamespace(
         winner=SimpleNamespace(duchy_id="review-winner")
     )
+    result_calendar = object()
     calls = []
 
     monkeypatch.setattr(
@@ -36,7 +37,7 @@ def test_headless_main_delegates_to_driver_and_prints_winner(monkeypatch, capsys
 
     def fake_run(world, game, rng):
         calls.append((world, game, rng))
-        return result_world, result_game
+        return result_world, result_game, result_calendar
 
     monkeypatch.setattr(headless.driver, "run_headless_game", fake_run)
 
@@ -65,7 +66,7 @@ def test_headless_main_prints_draw_when_driver_has_no_winner(monkeypatch, capsys
     monkeypatch.setattr(
         headless.driver,
         "run_headless_game",
-        lambda world, game, rng: (object(), result_game),
+        lambda world, game, rng: (object(), result_game, object()),
     )
 
     exit_code = headless.main()

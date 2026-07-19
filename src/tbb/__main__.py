@@ -10,7 +10,7 @@ HEADLESS_SEED = 73
 
 def main() -> int:
     world, initial_game = game.create_headless_game()
-    _, result = driver.run_headless_game(
+    _, result, _ = driver.run_headless_game(
         world, initial_game, Rng(HEADLESS_SEED)
     )
 

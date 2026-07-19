@@ -132,6 +132,9 @@ Uruchamiaj z katalogu `game/`.
   pozycję bez zmiany kolejności, więc kolejność mapy `units` nie wpływa na raport.
 - **Małe przejścia stanu:** funkcje przekształcające stan zamiast wielkich metod
   z ukrytymi efektami.
+- **Headless driver:** `run_headless_game` przewleka niemutowalny `Calendar`,
+  kończy każdą wykonaną turę przez `turn.end_turn` i zwraca mapę, stan gry oraz
+  kalendarz; CLI odbiera całą trójkę, a raportowanie daty pozostaje osobnym krokiem.
 - **Nazwy:** moduł ↔ test 1:1 (patrz wyżej).
 
 ## 5. Uruchamianie lokalnie (dla człowieka)

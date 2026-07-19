@@ -10,6 +10,7 @@ from tbb.party import Party
 from tbb.resources import Resources
 from tbb.rng import Rng
 from tbb.settlement import Settlement
+from tbb.turn import Calendar
 from tbb.unit import Unit
 from tbb.world import Region, WorldMap
 
@@ -36,7 +37,7 @@ def test_monthly_tick_precedes_recruitment_and_syncs_the_grown_settlement():
         )
     )
 
-    result_world, result_game = run_headless_game(
+    result_world, result_game, _ = run_headless_game(
         world, game, Rng(17), max_turns=1
     )
 
@@ -83,7 +84,7 @@ def test_one_turn_threads_real_ai_actions_through_duchies_immutably():
             for current in expected_game.duchies
         ).sync_from_world(expected_world)
 
-    result_world, result_game = run_headless_game(
+    result_world, result_game, _ = run_headless_game(
         world, game, Rng(17), max_turns=1
     )
 
@@ -135,7 +136,7 @@ def test_one_turn_delegates_to_live_ai_api_in_duchy_order(monkeypatch):
 
     monkeypatch.setattr(ai, "take_duchy_turn", recording_take_duchy_turn)
 
-    result_world, result_game = run_headless_game(
+    result_world, result_game, _ = run_headless_game(
         world, game, Rng(17), max_turns=1
     )
 
@@ -187,7 +188,7 @@ def test_conquest_syncs_game_and_skips_newly_defeated_duchy(monkeypatch):
 
     monkeypatch.setattr(ai, "take_duchy_turn", conquer_south)
 
-    result_world, result_game = run_headless_game(
+    result_world, result_game, _ = run_headless_game(
         world, game, Rng(17), max_turns=1
     )
 
@@ -232,7 +233,7 @@ def test_turn_loop_stops_immediately_after_a_later_turn_ends_game(monkeypatch):
 
     monkeypatch.setattr(ai, "take_duchy_turn", conquer_on_norths_second_turn)
 
-    result_world, result_game = run_headless_game(
+    result_world, result_game, _ = run_headless_game(
         world, game, Rng(17), max_turns=5
     )
 
@@ -240,6 +241,52 @@ def test_turn_loop_stops_immediately_after_a_later_turn_ends_game(monkeypatch):
     assert result_world.settlement_at(south).owner_id == "north"
     assert result_game.is_over is True
     assert result_game.winner.duchy_id == "north"
+
+
+def test_turn_ending_during_first_duchy_action_advances_calendar_once(monkeypatch):
+    north, south = map(Region, ("North", "South"))
+    north_keep = Settlement("North Keep", 1, owner_id="north")
+    south_keep = Settlement("South Keep", 1, owner_id="south")
+    world = WorldMap(
+        (north, south), settlements={north: north_keep, south: south_keep}
+    )
+    game = GameState(
+        (
+            Duchy("north", Unit(), settlements=(north_keep,)),
+            Duchy("south", None, settlements=(south_keep,)),
+        )
+    )
+    starting_calendar = Calendar(year=7, month=13)
+    calls = []
+
+    def conquer_south(current_world, duchy, rng):
+        calls.append(duchy.duchy_id)
+        conquered_keep = Settlement("South Keep", 1, owner_id="north")
+        return WorldMap(
+            current_world.regions,
+            current_world.connections,
+            settlements={
+                north: current_world.settlement_at(north),
+                south: conquered_keep,
+            },
+            parties=current_world.parties,
+        )
+
+    monkeypatch.setattr(ai, "take_duchy_turn", conquer_south)
+
+    _, result_game, result_calendar = run_headless_game(
+        world,
+        game,
+        Rng(17),
+        max_turns=5,
+        calendar=starting_calendar,
+    )
+
+    # A turn is complete even when the game ends before every duchy acts.
+    assert calls == ["north"]
+    assert result_game.is_over is True
+    assert result_calendar == Calendar(year=8, month=1)
+    assert starting_calendar == Calendar(year=7, month=13)
 
 
 def test_positive_safety_limit_runs_every_active_duchy_each_turn(monkeypatch):
@@ -263,7 +310,7 @@ def test_positive_safety_limit_runs_every_active_duchy_each_turn(monkeypatch):
 
     monkeypatch.setattr(ai, "take_duchy_turn", do_nothing)
 
-    result_world, result_game = run_headless_game(
+    result_world, result_game, _ = run_headless_game(
         world, game, Rng(17), max_turns=3
     )
 
@@ -288,7 +335,7 @@ def test_idle_hero_without_strategic_assets_does_not_succeed(monkeypatch):
     )
     monkeypatch.setattr(ai, "take_duchy_turn", lambda world, duchy, rng: world)
 
-    _, result_game = run_headless_game(world, game, Rng(17), max_turns=3)
+    _, result_game, _ = run_headless_game(world, game, Rng(17), max_turns=3)
 
     north = result_game.duchies[0]
     assert north.hero is hero
@@ -310,9 +357,10 @@ def test_default_game_finishes_deterministically_before_safety_limit():
 
     assert first_result == second_result
     assert first_result == bounded_result
-    result_world, result_game = first_result
+    result_world, result_game, result_calendar = first_result
     assert isinstance(result_world, WorldMap)
     assert result_game.is_over is True
+    assert isinstance(result_calendar, Calendar)
     assert result_game.winner in result_game.duchies
     defeated = tuple(
         duchy for duchy in result_game.duchies if duchy.is_defeated
@@ -353,7 +401,7 @@ def test_lost_party_during_real_ai_turn_promotes_heir_before_world_sync():
     )
     snapshot = (dict(world.settlements), dict(world.parties), game.duchies)
 
-    result_world, result_game = run_headless_game(
+    result_world, result_game, _ = run_headless_game(
         world, game, Rng(4), max_turns=1
     )
 
@@ -391,6 +439,7 @@ def test_exit_conditions_return_typed_exact_unchanged_inputs():
     assert isinstance(finished_result, tuple)
     assert isinstance(finished_result[0], WorldMap)
     assert isinstance(finished_result[1], GameState)
+    assert isinstance(finished_result[2], Calendar)
     assert finished_result[0] is finished_world
     assert finished_result[1] is finished_game
     assert finished_snapshot == (
