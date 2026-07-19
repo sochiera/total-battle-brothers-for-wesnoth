@@ -24,7 +24,8 @@ def test_monthly_tick_precedes_recruitment_and_syncs_the_grown_settlement():
         "North Keep",
         1,
         occupied=1,
-        storage=Resources(wheat=2, gold=0),
+        storage=Resources(wheat=2, gold=1),
+        capacity=2,
         garrison=(veteran,),
         owner_id="north",
     )
@@ -104,9 +105,13 @@ def test_one_turn_threads_real_ai_actions_through_duchies_immutably():
 
 def test_one_turn_delegates_to_live_ai_api_in_duchy_order(monkeypatch):
     north, fallen, south = map(Region, ("North", "Fallen", "South"))
-    north_keep = Settlement("North Keep", 1, owner_id="north")
+    north_keep = Settlement(
+        "North Keep", 1, storage=Resources(0, 1), owner_id="north"
+    )
     fallen_keep = Settlement("Fallen Keep", 1)
-    south_keep = Settlement("South Keep", 1, owner_id="south")
+    south_keep = Settlement(
+        "South Keep", 1, storage=Resources(0, 1), owner_id="south"
+    )
     world = WorldMap(
         (north, fallen, south),
         settlements={

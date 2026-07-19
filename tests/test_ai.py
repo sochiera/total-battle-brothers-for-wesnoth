@@ -9,6 +9,7 @@ from tbb import (
     Duchy,
     Party,
     Region,
+    Resources,
     Settlement,
     Unit,
     WorldMap,
@@ -501,7 +502,12 @@ def test_duchy_military_action_is_publicly_exported():
 def test_recruit_duchy_unit_adds_exactly_one_fresh_unit_without_mutating_inputs():
     home = Region("Home")
     settlement = Settlement(
-        "Home", 3, occupied=1, garrison=(Unit(training=1),), owner_id="ai"
+        "Home",
+        3,
+        occupied=1,
+        storage=Resources(0, 1),
+        garrison=(Unit(training=1),),
+        owner_id="ai",
     )
     world = WorldMap([home], settlements={home: settlement})
     duchy = Duchy("ai", Unit(), settlements=(settlement,))
@@ -519,8 +525,12 @@ def test_recruit_duchy_unit_adds_exactly_one_fresh_unit_without_mutating_inputs(
 
 def test_recruit_duchy_unit_uses_region_order_not_settlement_mapping_order():
     first, second = Region("First"), Region("Second")
-    first_settlement = Settlement("First", 1, owner_id="ai")
-    second_settlement = Settlement("Second", 1, owner_id="ai")
+    first_settlement = Settlement(
+        "First", 1, storage=Resources(0, 1), owner_id="ai"
+    )
+    second_settlement = Settlement(
+        "Second", 1, storage=Resources(0, 1), owner_id="ai"
+    )
     world = WorldMap(
         [first, second],
         settlements={second: second_settlement, first: first_settlement},
@@ -544,7 +554,9 @@ def test_recruit_duchy_unit_skips_every_ineligible_settlement():
         full: Settlement(
             "Full", 13, occupied=12, garrison=full_garrison, owner_id="ai"
         ),
-        eligible: Settlement("Eligible", 1, owner_id="ai"),
+        eligible: Settlement(
+            "Eligible", 1, storage=Resources(0, 1), owner_id="ai"
+        ),
     }
     world = WorldMap(
         [foreign, unowned, no_free, full, eligible], settlements=settlements
@@ -575,7 +587,9 @@ def test_recruit_duchy_unit_is_publicly_exported():
 def test_duchy_turn_recruits_before_muster_march_and_adjacent_assault():
     home, road, target = map(Region, ("Home", "Road", "Target"))
     hero = Unit(training=8, equipment=8)
-    home_settlement = Settlement("Home", 1, owner_id="ai")
+    home_settlement = Settlement(
+        "Home", 1, storage=Resources(0, 1), owner_id="ai"
+    )
     enemy_settlement = Settlement(
         "Target", 1, garrison=(Unit(),), owner_id="enemy"
     )
@@ -600,7 +614,9 @@ def test_duchy_turn_leaves_recruit_in_garrison_when_party_already_exists():
     hero = Unit(training=2)
     veteran = Unit(equipment=2)
     party = Party(hero, (veteran,), owner_id="ai")
-    home_settlement = Settlement("Home", 1, owner_id="ai")
+    home_settlement = Settlement(
+        "Home", 1, storage=Resources(0, 1), owner_id="ai"
+    )
     world = WorldMap(
         [home, start, road, target],
         [(start, road), (road, target)],

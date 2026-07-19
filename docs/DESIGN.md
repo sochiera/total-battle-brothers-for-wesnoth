@@ -386,6 +386,14 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   zajętą populację, aby rozliczenie poległych zachowało spójny stan osady. Mapa,
   osada, party i bitwa wejściowa pozostają niezmienione; walidacja kontaktu nie
   zmienia się.
+- **ROZSTRZYGNIĘTE (G10.3, koszt złota rekrutacji):**
+  `Settlement.recruit()` wymaga i pobiera z magazynu stały
+  `RECRUIT_GOLD_COST` złota (placeholder, obecnie `1`). Najpierw sprawdza
+  dostępność złota i wolnej populacji, a następnie w jednym czystym przejściu
+  zajmuje mieszkańca, odejmuje koszt i dodaje `Unit` do garnizonu. Niedobór
+  złota lub populacji rzuca `ValueError` bez zmiany osady wejściowej. Pszenica
+  i czas rekrutacji nie są jeszcze kosztem. AI pomija osady bez wystarczającej
+  ilości złota, zachowując deterministyczny wybór według kolejności regionów.
 - **PLAN (Kamień 10 — realne straty i koszty):** trzy placeholdery pętli
   strategicznej zostają domknięte i **odwracają** wcześniejsze „poza zakresem":
   (a) **straty garnizonu** — po bitwie osady garnizon = ocalali obrońcy
@@ -498,8 +506,11 @@ Wstępne encje rdzenia (nazwy robocze, doprecyzowywane wraz z implementacją):
   to czyste przejście: **zajmuje 1 populację** z puli wolnej (przez `occupy(1)` —
   żołnierz jest mieszkańcem osady, więc `population` bez zmian, rośnie `occupied`)
   i dokłada `Unit` do garnizonu. Bez argumentu tworzy **świeżego rekruta** `Unit()`
-  (filary 0). Brak wolnej populacji **blokuje** rekrutację (`ValueError`). Koszt
-  surowców/miesięcy rekrutacji dochodzi później. **ROZSTRZYGNIĘTE (MU.1,
+  (filary 0). Brak wolnej populacji **blokuje** rekrutację (`ValueError`).
+  **ROZSTRZYGNIĘTE (G10.3, koszt rekrutacji):** to samo przejście wymaga
+  `RECRUIT_GOLD_COST` złota (obecnie `1`) i odejmuje je od `storage`; niedobór
+  także blokuje rekrutację bez mutacji. Koszt pszenicy i miesięcy pozostaje poza
+  zakresem. **ROZSTRZYGNIĘTE (MU.1,
   wystawienie party):** `Settlement.muster(hero)` to czyste przejście przenoszące
   cały garnizon, w zachowanej kolejności, do nowego `Party` z bohaterem i
   właścicielem osady. Wymarsz opróżnia garnizon oraz zmniejsza `population`
@@ -723,9 +734,11 @@ ich dotykają, i notować wynik tutaj:
   `recruit_duchy_unit()` wydziela minimalny rozwój osady z pełnej polityki tury.
   AI rekrutuje dokładnie jednego świeżego `Unit` w pierwszej
   według kolejności regionów własnej osadzie, która ma co najmniej jednego wolnego
-  mieszkańca i mniej niż **12** jednostek garnizonu. Limit gwarantuje, że garnizon
+  mieszkańca, co najmniej `RECRUIT_GOLD_COST` złota i mniej niż **12** jednostek
+  garnizonu. Limit gwarantuje, że garnizon
   da się później wystawić jako podkomendnych jednego `Party`. Osady obce, bez
-  właściciela, bez wolnej populacji oraz z pełnym garnizonem są pomijane; brak
+  właściciela, bez wolnej populacji, bez wystarczającego złota oraz z pełnym
+  garnizonem są pomijane; brak
   kwalifikującej się osady jest no-opem. Złożenie rekrutacji z wojskową akcją
   A7.1b5a pozostaje osobnym krokiem A7.1b5b2.
   **ROZSTRZYGNIĘTE (A7.1b5b2, pełna polityka tury AI):** czyste przejście

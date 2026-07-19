@@ -301,7 +301,7 @@ def test_tick_immigration_returns_new_state_without_mutating_original():
 
 
 def test_recruit_creates_fresh_recruit_and_occupies_population():
-    settlement = Settlement("A", population=2)
+    settlement = Settlement("A", population=2, storage=Resources(0, 1))
 
     recruited = settlement.recruit()
 
@@ -311,17 +311,44 @@ def test_recruit_creates_fresh_recruit_and_occupies_population():
     assert recruited.garrison == (Unit(),)
 
 
+def test_recruit_pays_exported_gold_cost_without_mutating_input_or_using_rng():
+    assert settlement_module.RECRUIT_GOLD_COST == 1
+    original = Settlement(
+        "A",
+        population=2,
+        storage=Resources(wheat=4, gold=settlement_module.RECRUIT_GOLD_COST + 2),
+    )
+    rng_state = random.getstate()
+
+    first = original.recruit()
+    second = original.recruit()
+
+    assert first == second
+    assert first.storage == Resources(wheat=4, gold=2)
+    assert first.population == original.population
+    assert first.occupied == original.occupied + 1
+    assert first.garrison == (Unit(),)
+    assert original.storage == Resources(
+        wheat=4, gold=settlement_module.RECRUIT_GOLD_COST + 2
+    )
+    assert original.occupied == 0
+    assert original.garrison == ()
+    assert random.getstate() == rng_state
+
+
 def test_recruit_adds_custom_unit_to_garrison():
     unit = Unit(training=2, equipment=1, experience=3)
 
-    recruited = Settlement("A", population=1).recruit(unit)
+    recruited = Settlement(
+        "A", population=1, storage=Resources(0, 1)
+    ).recruit(unit)
 
     assert recruited.garrison == (unit,)
     assert recruited.garrison[0] is unit
 
 
 def test_recruit_returns_new_state_without_mutating_original():
-    original = Settlement("A", population=1)
+    original = Settlement("A", population=1, storage=Resources(0, 1))
 
     recruited = original.recruit()
 
@@ -331,16 +358,22 @@ def test_recruit_returns_new_state_without_mutating_original():
 
 
 def test_recruit_rejects_settlement_without_free_population():
-    settlement = Settlement("A", population=2, occupied=2)
+    settlement = Settlement(
+        "A", population=2, occupied=2, storage=Resources(0, 1)
+    )
 
     with pytest.raises(ValueError):
         settlement.recruit()
 
-    assert settlement == Settlement("A", population=2, occupied=2)
+    assert settlement == Settlement(
+        "A", population=2, occupied=2, storage=Resources(0, 1)
+    )
 
 
 def test_two_recruits_occupy_two_population_and_join_garrison():
-    recruited = Settlement("A", population=2).recruit().recruit()
+    recruited = Settlement(
+        "A", population=2, storage=Resources(0, 2)
+    ).recruit().recruit()
 
     assert recruited.occupied == 2
     assert recruited.free == 0
@@ -349,9 +382,9 @@ def test_two_recruits_occupy_two_population_and_join_garrison():
 
 def test_muster_moves_garrison_to_party_and_preserves_free_population():
     units = (Unit(training=1), Unit(equipment=2), Unit(experience=3))
-    original = Settlement("A", population=8, occupied=4).recruit(units[0]).recruit(
-        units[1]
-    ).recruit(units[2])
+    original = Settlement(
+        "A", population=8, occupied=4, storage=Resources(0, 3)
+    ).recruit(units[0]).recruit(units[1]).recruit(units[2])
     hero = Unit(training=4)
 
     party, mustered = original.muster(hero)
@@ -367,7 +400,9 @@ def test_muster_moves_garrison_to_party_and_preserves_free_population():
 @pytest.mark.parametrize("owner_id", ["north", None])
 def test_muster_propagates_settlement_owner_to_party(owner_id):
     hero = Unit()
-    settlement = Settlement("A", population=1, owner_id=owner_id).recruit()
+    settlement = Settlement(
+        "A", population=1, storage=Resources(0, 1), owner_id=owner_id
+    ).recruit()
 
     party, _ = settlement.muster(hero)
 

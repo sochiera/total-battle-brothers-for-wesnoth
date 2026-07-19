@@ -10,6 +10,7 @@ from tbb.unit import Unit
 
 
 TRAINING_MONTHS_PER_TURN: int = 1
+RECRUIT_GOLD_COST: int = 1
 EQUIP_GOLD_COST: int = 1
 EQUIP_INVESTMENT_PER_TURN: int = 1
 
@@ -126,9 +127,18 @@ class Settlement:
 
     def recruit(self, unit: Unit | None = None) -> "Settlement":
         """Return a new state with one resident recruited into the garrison."""
+        if self.storage.gold < RECRUIT_GOLD_COST:
+            raise ValueError("not enough gold to recruit")
         staffed = self.occupy(1)
+        storage = staffed.storage.subtract(
+            Resources(wheat=0, gold=RECRUIT_GOLD_COST)
+        )
         recruit = Unit() if unit is None else unit
-        return replace(staffed, garrison=staffed.garrison + (recruit,))
+        return replace(
+            staffed,
+            storage=storage,
+            garrison=staffed.garrison + (recruit,),
+        )
 
     def muster(self, hero: Unit) -> tuple[Party, "Settlement"]:
         """Move the whole garrison into a new party led by ``hero``."""
