@@ -1258,9 +1258,15 @@ def test_resolve_settlement_battle_defender_win_removes_attacker_only():
 def test_resolve_settlement_battle_is_deterministic_and_immutable():
     camp = Region("Camp")
     vale = Region("Vale")
-    attacker = Party(Unit(equipment=5), [Unit(equipment=2)], "north")
-    garrison = (Unit(equipment=4), Unit(equipment=3))
-    settlement = Settlement("Oakrest", 3, garrison=garrison, owner_id="south")
+    attacker = Party(Unit(equipment=4), owner_id="north")
+    garrison = (Unit(equipment=3), Unit(equipment=3))
+    settlement = Settlement(
+        "Oakrest",
+        population=4,
+        occupied=2,
+        garrison=garrison,
+        owner_id="south",
+    )
     world = WorldMap(
         [camp, vale],
         [(camp, vale)],
@@ -1268,10 +1274,16 @@ def test_resolve_settlement_battle_is_deterministic_and_immutable():
         parties={camp: attacker},
     )
 
-    first = world.resolve_settlement_battle(camp, vale, Rng(12))
-    second = world.resolve_settlement_battle(camp, vale, Rng(12))
+    first = world.resolve_settlement_battle(camp, vale, Rng(15))
+    second = world.resolve_settlement_battle(camp, vale, Rng(15))
 
     assert first == second
+    defended = first.settlement_at(vale)
+    assert defended.owner_id == "south"
+    assert len(defended.garrison) == 1
+    assert (defended.population, defended.occupied, defended.free) == (3, 1, 2)
+    assert first.party_at(camp) is None
+    assert first.party_at(vale) is None
     assert world.party_at(camp) is attacker
     assert world.party_at(vale) is None
     assert world.settlement_at(vale) is settlement
