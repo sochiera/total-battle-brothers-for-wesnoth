@@ -5,6 +5,7 @@ from dataclasses import FrozenInstanceError
 import pytest
 import tbb
 import tbb.settlement as settlement_module
+from tbb.ai import develop_duchy_settlement
 
 from tbb import (
     Duchy,
@@ -604,6 +605,23 @@ def test_recruit_duchy_unit_is_noop_without_eligible_settlement():
 
 def test_recruit_duchy_unit_is_publicly_exported():
     assert tbb.recruit_duchy_unit is recruit_duchy_unit
+
+
+def test_develop_duchy_settlement_opens_farm_in_first_eligible_owned_region():
+    first, second = Region("First"), Region("Second")
+    first_settlement = Settlement("First", population=1, owner_id="ai")
+    second_settlement = Settlement("Second", population=1, owner_id="ai")
+    world = WorldMap(
+        [first, second],
+        settlements={second: second_settlement, first: first_settlement},
+    )
+
+    developed = develop_duchy_settlement(world, Duchy("ai", Unit()))
+
+    assert developed.settlement_at(first).active_buildings == (tbb.FARM,)
+    assert developed.settlement_at(first).occupied == tbb.FARM.staff
+    assert developed.settlement_at(second) is second_settlement
+    assert world.settlement_at(first) is first_settlement
 
 
 def test_duchy_turn_recruits_before_muster_march_and_adjacent_assault():

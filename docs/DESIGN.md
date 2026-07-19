@@ -121,6 +121,15 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   identyfikatora także blokuje rozpoczęcie bitwy, zamiast domyślnie zakładać
   wrogość. Docelowy `Duchy` z D6.1 będzie źródłem tych identyfikatorów; reguły
   rozstawienia i niemutowalność z M5.3a–b1 pozostają bez zmian.
+- **ROZSTRZYGNIĘTE (G10.4, rozwój osad przez AI):** czyste, deterministyczne
+  przejście `develop_duchy_settlement(world, duchy)` otwiera najwyżej jeden
+  budynek bez użycia RNG. Przegląda regiony w kolejności mapy, pomija osady obce
+  i bez właściciela, a w pierwszej kwalifikującej się własnej osadzie otwiera
+  pierwszy nieobecny budynek według priorytetu **Farm → Smith → Market**, o ile
+  wystarcza na niego wolnej populacji. Gdy nie ma kandydata, zwraca wejściową
+  mapę bez zmian. Przejście korzysta z `Settlement.open_building`, tworzy nową
+  mapę i nie mutuje wejściowej mapy, grafu, osad ani party. Wywołanie tego
+  przejścia w turze AI dochodzi osobno w G10.5.
 - **Czas:** 1 tura = **1 miesiąc**. Rok = **13 miesięcy po 4 tygodnie**
   (52 tygodnie). Trening i wyposażenie mierzone są w miesiącach.
   **ROZSTRZYGNIĘTE (M5.4a, minimalny kalendarz):** gra zaczyna się w roku 1,

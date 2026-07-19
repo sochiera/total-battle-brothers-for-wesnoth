@@ -4,9 +4,40 @@ from collections import deque
 
 import tbb.settlement as settlement_module
 
+from tbb.building import FARM, MARKET, SMITH
 from tbb.duchy import Duchy
 from tbb.rng import Rng
 from tbb.world import Region, WorldMap
+
+
+def develop_duchy_settlement(world: WorldMap, duchy: Duchy) -> WorldMap:
+    """Open one priority building in the first eligible owned settlement."""
+    priorities = (FARM, SMITH, MARKET)
+    for region in world.regions:
+        settlement = world.settlements.get(region)
+        if settlement is None or settlement.owner_id != duchy.duchy_id:
+            continue
+
+        building = next(
+            (
+                candidate
+                for candidate in priorities
+                if candidate not in settlement.active_buildings
+            ),
+            None,
+        )
+        if building is None or settlement.free < building.staff:
+            continue
+
+        settlements = dict(world.settlements)
+        settlements[region] = settlement.open_building(building)
+        return WorldMap(
+            world.regions,
+            world.connections,
+            settlements,
+            world.parties,
+        )
+    return world
 
 
 def recruit_duchy_unit(world: WorldMap, duchy: Duchy) -> WorldMap:
