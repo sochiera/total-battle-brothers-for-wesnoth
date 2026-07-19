@@ -4,6 +4,11 @@
 > Szczegóły decyzji mechaniki/architektury żyją w `docs/DESIGN.md` i
 > `docs/ARCHITECTURE.md`. Tu zostaje jedynie ślad, co i kiedy zamknięto.
 
+## Kamień milowy 10 — realne straty i koszty w pętli strategicznej (w toku)
+- [x] **G10.1** Osada wchłania ocalałych obrońców po bitwie
+      (`Settlement.absorb_defenders(survivors)` — garnizon = ocalali, polegli
+      zmniejszają `population`/`occupied` po `free`; niemutowalne, bez RNG).
+
 ## Kamień milowy 9 — rozwój jednostek w turze (§6 pkt 2: „trenuj i wyposażaj")
 - [x] **U9.1** Trening jednostki jako czyste przejście z malejącym zyskiem
       (`Unit.train(months)` + `training_progress`, krzywa trójkątna U3.2).

@@ -36,27 +36,27 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > garnizonu (wymaga kuźni) w realnej partii nie postępuje. Ten kamień domyka te
 > trzy luki, spinając straty, koszt rekrutacji i rozwój ekonomii AI z pętlą.
 > Strojenie wartości (balans) pozostaje poza kamieniem.
-- [ ] **G10.1** Osada wchłania ocalałych obrońców po bitwie. *(task-022)*
-  - AC: `Settlement.absorb_defenders(survivors)` — czyste przejście zastępujące
-    garnizon ocalałymi (w kolejności), a polegli (różnica liczności) zmniejszają
-    `population` i `occupied`; ocalali muszą być podzbiorem liczności garnizonu;
-    pusta sekwencja czyści garnizon; niemutowalne, bez RNG.
-- [ ] **G10.2** Straty garnizonu w `apply_settlement_battle_result`. *(task-023)*
-  - AC: przy podanym `battle` garnizon `destination` jest odtwarzany z
-    `battle.side_survivors(DEFENDER)` dla **każdego** wyniku; `ATTACKER_WIN` →
-    zdobyta osada ma ocalałych obrońców pod nowym `owner_id`; `DEFENDER_WIN`/`DRAW`
-    → osada traci poległych obrońców; `battle is None` zachowuje zgodność wsteczną;
-    walidacja bez zmian; niemutowalne.
-- [ ] **G10.3** Koszt złota rekrutacji. *(task-024)*
+- [x] **G10.1** Osada wchłania ocalałych obrońców po bitwie. *(task-022)* →
+      `BACKLOG-ARCHIVE.md`
+- [ ] **G10.2a** Straty garnizonu obrońcy przy `DEFENDER_WIN`/`DRAW`. *(task-027)*
+  - AC: przy podanym `battle` i wyniku obronnym garnizon `destination` =
+    `battle.side_survivors(DEFENDER)` (traci poległych), `owner_id` bez zmian;
+    `battle is None` zachowuje zgodność wsteczną; walidacja bez zmian; niemutowalne.
+  - Uwaga: rozbicie G10.2 po porażce 12-cyklowej (`.forge/failures.md`).
+- [ ] **G10.2b** Garnizon zdobytej osady przy `ATTACKER_WIN`. *(task-028)*
+  - AC: przy podanym `battle` i podboju `destination` zmienia `owner_id` na
+    atakującego **i** garnizon = `battle.side_survivors(DEFENDER)`; party wchodzi
+    jak w BW.3c; `battle is None` zachowuje zgodność wsteczną; niemutowalne.
+- [ ] **G10.3** Koszt złota rekrutacji. *(task-029)*
   - AC: `Settlement.recruit()` pobiera `RECRUIT_GOLD_COST` ze `storage`; brak złota
     → `ValueError` (blokada, jak przy braku populacji); AI `recruit_duchy_unit`
     pomija osady bez dość złota; niemutowalne, deterministyczne.
-- [ ] **G10.4** Polityka AI: otwieranie budynków ekonomii/kuźni. *(task-025)*
+- [ ] **G10.4** Polityka AI: otwieranie budynków ekonomii/kuźni. *(task-030)*
   - AC: czyste `ai.develop_duchy_settlement(world, duchy)` otwiera pierwszy brakujący
     korzystny budynek (priorytet `Farm` → `Smith` → `Market`) w pierwszej wg
     kolejności regionów własnej osadzie z dość wolną populacją; brak kandydata =
     no-op; niemutowalne, bez RNG.
-- [ ] **G10.5** Wpięcie rozwoju budynków w turę AI + integracja. *(task-026)*
+- [ ] **G10.5** Wpięcie rozwoju budynków w turę AI + integracja. *(task-031)*
   - AC: `take_duchy_turn` wywołuje `develop_duchy_settlement` przed rekrutacją;
     test drivera pokazuje, że w realnej partii AI otwiera `Farm` (ekonomia
     samowystarczalna) i `Smith` (uzbrojenie garnizonu postępuje); determinizm
