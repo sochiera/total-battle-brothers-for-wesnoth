@@ -21,32 +21,46 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > jednostki są rekrutowane z filarami 0 i nigdy się nie „trenują ani wyposażają"
 > — to domyka Kamień milowy 9.
 
-## Kamień milowy 9 — rozwój jednostek w turze (§6 pkt 2: „trenuj i wyposażaj")
-> Krzywa malejącego zysku `progression.pillar_level`/`investment_for_level` (U3.2)
-> jest zbudowana, ale **nigdzie nie wpięta** w rozgrywkę. Ten kamień spina ją z
-> `Unit` i z miesięcznym przejściem osady, tak by garnizon obserwowalnie mocniał
-> (trening = czas; uzbrojenie = złoto + czynna kuźnia), zanim AI wystawi party.
-> `training`/`equipment` pozostają autorytatywnymi poziomami (zgodność wsteczna),
-> a reszta nakładu żyje w nowych polach `*_progress`. Bramkowanie treningu budynkiem
-> i strojenie tempa/kosztów są świadomie poza tym kamieniem (balans).
-- [ ] **U9.1** Trening jednostki jako czyste przejście z malejącym zyskiem. *(task-017)*
-  - AC: `Unit.train(months)` + pole `training_progress`; poziom rośnie po krzywej
-    trójkątnej U3.2; `months==0` no-op, `<0` błąd; wejście niemutowane; bez RNG.
-- [ ] **U9.2** Uzbrojenie jednostki jako czyste przejście z malejącym zyskiem. *(task-018)*
-  - AC: `Unit.equip(investment)` + pole `equipment_progress`; symetryczne do U9.1;
-    `damage`/`defense` odzwierciedlają nowy `equipment`; wejście niemutowane.
-- [ ] **U9.3** Miesięczny trening garnizonu w osadzie. *(task-019)*
-  - AC: `Settlement.tick_training()` daje każdemu żołnierzowi
-    `TRAINING_MONTHS_PER_TURN` miesięcy; pusty garnizon no-op; reszta osady bez
-    zmian; niemutowalne; bez RNG.
-- [ ] **U9.4** Miesięczne uzbrajanie garnizonu przez kuźnię. *(task-020)*
-  - AC: `Settlement.tick_equipment()` — czynny `Smith` + `gold≥EQUIP_GOLD_COST`
-    uzbraja jednego żołnierza (najniższy `equipment`, remis → najwcześniejszy)
-    i pobiera złoto; brak kuźni/złota/garnizonu = no-op; deterministyczne.
-- [ ] **U9.5** Rozwój garnizonu w `tick_settlements` i driverze. *(task-021)*
-  - AC: łańcuch `economy→growth→immigration→training→equipment`; headless partia
-    obserwowalnie rozwija jednostki i nadal kończy się rozstrzygnięciem;
-    determinizm end-to-end; cały pakiet testów zielony.
+## Kamień milowy 9 — rozwój jednostek w turze — UKOŃCZONE
+> Krzywa malejącego zysku (U3.2) wpięta w `Unit` i miesięczne przejście osady:
+> garnizon obserwowalnie mocnieje (trening = czas; uzbrojenie = złoto + kuźnia)
+> w realnej headless partii. Wszystkie pozycje w `BACKLOG-ARCHIVE.md`.
+
+## Kamień milowy 10 — realne straty i koszty w pętli strategicznej
+> Headless pętla MVP działa end-to-end, ale trzy placeholdery czynią warstwę
+> strategiczną płytką: (a) garnizon osady **nigdy nie ponosi strat** — po obronie
+> zostaje pełny, a po podboju obrońcy zostają garnizonem zdobywcy (BW.3c/BM.2
+> świadomie odłożone); (b) rekrutacja jest **darmowa** poza 1 populacją, więc AI
+> spamuje żołnierzy bez związku z ekonomią (§7 „koszt … dochodzi później");
+> (c) AI **nigdy nie otwiera budynków**, więc ekonomia jest statyczna, a uzbrojenie
+> garnizonu (wymaga kuźni) w realnej partii nie postępuje. Ten kamień domyka te
+> trzy luki, spinając straty, koszt rekrutacji i rozwój ekonomii AI z pętlą.
+> Strojenie wartości (balans) pozostaje poza kamieniem.
+- [ ] **G10.1** Osada wchłania ocalałych obrońców po bitwie. *(task-022)*
+  - AC: `Settlement.absorb_defenders(survivors)` — czyste przejście zastępujące
+    garnizon ocalałymi (w kolejności), a polegli (różnica liczności) zmniejszają
+    `population` i `occupied`; ocalali muszą być podzbiorem liczności garnizonu;
+    pusta sekwencja czyści garnizon; niemutowalne, bez RNG.
+- [ ] **G10.2** Straty garnizonu w `apply_settlement_battle_result`. *(task-023)*
+  - AC: przy podanym `battle` garnizon `destination` jest odtwarzany z
+    `battle.side_survivors(DEFENDER)` dla **każdego** wyniku; `ATTACKER_WIN` →
+    zdobyta osada ma ocalałych obrońców pod nowym `owner_id`; `DEFENDER_WIN`/`DRAW`
+    → osada traci poległych obrońców; `battle is None` zachowuje zgodność wsteczną;
+    walidacja bez zmian; niemutowalne.
+- [ ] **G10.3** Koszt złota rekrutacji. *(task-024)*
+  - AC: `Settlement.recruit()` pobiera `RECRUIT_GOLD_COST` ze `storage`; brak złota
+    → `ValueError` (blokada, jak przy braku populacji); AI `recruit_duchy_unit`
+    pomija osady bez dość złota; niemutowalne, deterministyczne.
+- [ ] **G10.4** Polityka AI: otwieranie budynków ekonomii/kuźni. *(task-025)*
+  - AC: czyste `ai.develop_duchy_settlement(world, duchy)` otwiera pierwszy brakujący
+    korzystny budynek (priorytet `Farm` → `Smith` → `Market`) w pierwszej wg
+    kolejności regionów własnej osadzie z dość wolną populacją; brak kandydata =
+    no-op; niemutowalne, bez RNG.
+- [ ] **G10.5** Wpięcie rozwoju budynków w turę AI + integracja. *(task-026)*
+  - AC: `take_duchy_turn` wywołuje `develop_duchy_settlement` przed rekrutacją;
+    test drivera pokazuje, że w realnej partii AI otwiera `Farm` (ekonomia
+    samowystarczalna) i `Smith` (uzbrojenie garnizonu postępuje); determinizm
+    end-to-end; cały pakiet testów zielony.
 
 ## Później (poza MVP)
 - [ ] Prezentacja/UI (pygame lub most do innego silnika) nad rdzeniem.

@@ -360,6 +360,17 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
 - **Zwolnienie populacji:** zamknięcie/opuszczenie budynku oddaje zajmowaną
   populację z powrotem do puli.
 - Gracz rozwija osady (budynki), zakłada nowe, może podbijać osady AI.
+- **PLAN (Kamień 10 — realne straty i koszty):** trzy placeholdery pętli
+  strategicznej zostają domknięte i **odwracają** wcześniejsze „poza zakresem":
+  (a) **straty garnizonu** — po bitwie osady garnizon = ocalali obrońcy
+  (`Settlement.absorb_defenders` wpięte w `apply_settlement_battle_result`),
+  a polegli zmniejszają populację (G10.1–G10.2, zastępuje odłożenie z BW.3c/BM.2);
+  (b) **koszt rekrutacji** — `Settlement.recruit()` pobiera `RECRUIT_GOLD_COST`
+  złota, brak środków blokuje jak brak populacji (G10.3, domyka §7 „koszt …
+  dochodzi później"); (c) **rozwój ekonomii AI** — `develop_duchy_settlement`
+  otwiera brakujący budynek wg priorytetu `FARM`→`SMITH`→`MARKET`, wpięte w
+  `take_duchy_turn`, dzięki czemu ekonomia jest dynamiczna, a uzbrojenie garnizonu
+  postępuje w realnej partii (G10.4–G10.5). Strojenie wartości pozostaje balansem.
 
 ## 5. Jednostki i progresja
 Jakość jednostki wynika z **trzech niezależnych filarów** (każdy z osobnym

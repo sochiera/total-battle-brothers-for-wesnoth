@@ -4,6 +4,16 @@
 > Szczegóły decyzji mechaniki/architektury żyją w `docs/DESIGN.md` i
 > `docs/ARCHITECTURE.md`. Tu zostaje jedynie ślad, co i kiedy zamknięto.
 
+## Kamień milowy 9 — rozwój jednostek w turze (§6 pkt 2: „trenuj i wyposażaj")
+- [x] **U9.1** Trening jednostki jako czyste przejście z malejącym zyskiem
+      (`Unit.train(months)` + `training_progress`, krzywa trójkątna U3.2).
+- [x] **U9.2** Uzbrojenie jednostki jako czyste przejście z malejącym zyskiem
+      (`Unit.equip(investment)` + `equipment_progress`; `damage`/`defense` z `equipment`).
+- [x] **U9.3** Miesięczny trening garnizonu (`Settlement.tick_training()`).
+- [x] **U9.4** Miesięczne uzbrajanie garnizonu przez kuźnię (`Settlement.tick_equipment()`).
+- [x] **U9.5** Rozwój garnizonu w `tick_settlements` i driverze
+      (łańcuch `economy→growth→immigration→training→equipment`, determinizm end-to-end).
+
 ## Kamień milowy 8 — pełna tura strategiczna w driverze (ekonomia + kalendarz)
 - [x] **M8.1** Miesięczna ekonomia w pętli tury headless
       (`tick_settlements()` na początku tury + sync `GameState`).
