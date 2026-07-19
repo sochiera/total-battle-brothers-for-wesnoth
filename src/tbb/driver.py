@@ -22,6 +22,14 @@ def resolve_hero_survival(
     return duchy
 
 
+def _replace_duchy(game: GameState, replacement: Duchy) -> GameState:
+    """Return a game with the matching duchy replaced in place."""
+    return GameState(
+        replacement if duchy.duchy_id == replacement.duchy_id else duchy
+        for duchy in game.duchies
+    )
+
+
 def run_headless_game(
     world: WorldMap,
     game: GameState,
@@ -48,6 +56,9 @@ def run_headless_game(
         )
         if duchy is None or duchy.is_defeated:
             continue
-        current_world = ai.take_duchy_turn(current_world, duchy, rng)
+        world_before = current_world
+        current_world = ai.take_duchy_turn(world_before, duchy, rng)
+        resolved = resolve_hero_survival(duchy, world_before, current_world)
+        current_game = _replace_duchy(current_game, resolved)
         current_game = current_game.sync_from_world(current_world)
     return current_world, current_game

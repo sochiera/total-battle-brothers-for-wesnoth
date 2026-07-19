@@ -145,6 +145,58 @@ def test_conquest_syncs_game_and_skips_newly_defeated_duchy(monkeypatch):
     assert game.duchies[1].settlements == (south_keep,)
 
 
+def test_lost_party_during_real_ai_turn_promotes_heir_before_world_sync():
+    camp, keep = map(Region, ("North Camp", "South Keep"))
+    hero = Unit(equipment=1)
+    heir = Unit(training=1)
+    attacking_party = Party(hero, owner_id="north")
+    south_keep = Settlement(
+        "South Keep",
+        4,
+        occupied=1,
+        garrison=(Unit(training=5, equipment=12),),
+        owner_id="south",
+    )
+    world = WorldMap(
+        (camp, keep),
+        ((camp, keep),),
+        settlements={keep: south_keep},
+        parties={camp: attacking_party},
+    )
+    game = GameState(
+        (
+            Duchy(
+                "north",
+                hero,
+                morale=3,
+                heir=heir,
+                parties=(attacking_party,),
+            ),
+            Duchy("south", Unit(), settlements=(south_keep,)),
+        )
+    )
+    snapshot = (dict(world.settlements), dict(world.parties), game.duchies)
+
+    result_world, result_game = run_headless_game(
+        world, game, Rng(4), max_turns=1
+    )
+
+    north = next(
+        duchy for duchy in result_game.duchies if duchy.duchy_id == "north"
+    )
+    assert result_world.party_at(camp) is None
+    assert north.hero is heir
+    assert north.heir is None
+    assert north.morale == 3 - SUCCESSION_MORALE_PENALTY
+    assert north.parties == ()
+    assert north.settlements == ()
+    assert snapshot == (
+        dict(world.settlements),
+        dict(world.parties),
+        game.duchies,
+    )
+
+
 def test_exit_conditions_return_typed_exact_unchanged_inputs():
     region = Region("Last Keep")
     finished_world = WorldMap((region,))

@@ -35,7 +35,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
   - AC: po `take_duchy_turn` każdego księstwa `game = game.sync_from_world(world)`;
     iteracja bierze migawkę `duchy_id`, pobiera bieżące księstwo i pomija
     `is_defeated`; księstwo bez ostatniej osady odpada w tej samej turze; czyste.
-- [ ] **A7.2b3b3** Przeżycie bohatera w akcji tury. *(task-011)*
+- [x] **A7.2b3b3** Przeżycie bohatera w akcji tury. *(task-011)*
   - AC: `resolve_hero_survival` (before/after wokół akcji) wpięte przed sync; utrata
     jedynego party w turze → sukcesja (dziedzic→bohater, `−SUCCESSION_MORALE_PENALTY`);
     przetrwanie party → bohater/morale bez zmian; czyste.

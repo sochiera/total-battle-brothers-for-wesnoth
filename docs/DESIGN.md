@@ -696,11 +696,16 @@ ich dotykają, i notować wynik tutaj:
   `take_duchy_turn` wywołuje `GameState.sync_from_world`, więc następne księstwo
   i wynik tury widzą bieżące osady oraz party; utrata ostatniej osady eliminuje
   księstwo jeszcze w tej samej turze. Wykonana tura zwraca nowy `GameState`, nie
-  mutując wejściowej mapy ani stanu gry. Przeżycie bohatera pozostaje w A7.2b3b3.
-  **PLAN (A7.2b3b–c, tury drivera headless):** na setupie A7.2a w każdej turze
-  każde niepokonane księstwo składa `take_duchy_turn`,
-  po czym stan gry jest aktualizowany przez `resolve_hero_survival` i
-  `GameState.sync_from_world`. Pętla kończy się przy `GameState.is_over`, a
+  mutując wejściowej mapy ani stanu gry.
+  **ROZSTRZYGNIĘTE (A7.2b3b3, przeżycie bohatera w akcji tury):** driver
+  zapamiętuje mapę sprzed akcji każdego księstwa, a po `take_duchy_turn`
+  wywołuje `resolve_hero_survival`. Wynik sukcesji podmienia księstwo po
+  `duchy_id` w nowym `GameState` jeszcze przed `sync_from_world`, dzięki czemu
+  synchronizacja bieżących osad i party zachowuje awansowanego dziedzica oraz
+  karę morale. Jeśli party księstwa pozostaje na mapie, bohater i morale nie
+  zmieniają się. Całe przejście pozostaje czyste.
+  **PLAN (A7.2b3c, pętla drivera headless):** na setupie A7.2a pętla kończy się
+  przy `GameState.is_over`, a
   bezpiecznik `max_turns` chroni przed zapętleniem. Ten sam setup i seed dają ten
   sam wynik; wejścia nie są mutowane. Driver headless używa bezpośrednio
   `take_duchy_turn` (bez maszyny faz `StrategicTurn`) — kalendarz i fazy zostają
