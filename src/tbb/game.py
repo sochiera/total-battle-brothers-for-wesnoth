@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Iterable
 
 from tbb.duchy import Duchy
+from tbb.party import Party
 from tbb.resources import Resources
 from tbb.settlement import Settlement
 from tbb.unit import Unit
@@ -66,3 +67,29 @@ class GameState:
         """Return the sole undefeated duchy, if there is exactly one."""
         contenders = self.contenders
         return contenders[0] if len(contenders) == 1 else None
+
+    def sync_from_world(self, world: WorldMap) -> "GameState":
+        """Rebuild each duchy's strategic collections from the world map."""
+        settlements_by_owner: dict[str, list[Settlement]] = {}
+        parties_by_owner: dict[str, list[Party]] = {}
+        for region in world.regions:
+            settlement = world.settlements.get(region)
+            if settlement is not None and settlement.owner_id is not None:
+                settlements_by_owner.setdefault(settlement.owner_id, []).append(
+                    settlement
+                )
+            party = world.parties.get(region)
+            if party is not None and party.owner_id is not None:
+                parties_by_owner.setdefault(party.owner_id, []).append(party)
+
+        return GameState(
+            Duchy(
+                duchy_id=duchy.duchy_id,
+                hero=duchy.hero,
+                morale=duchy.morale,
+                heir=duchy.heir,
+                settlements=settlements_by_owner.get(duchy.duchy_id, ()),
+                parties=parties_by_owner.get(duchy.duchy_id, ()),
+            )
+            for duchy in self.duchies
+        )

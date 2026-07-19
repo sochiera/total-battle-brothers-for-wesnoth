@@ -17,7 +17,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > Rdzeń, AI księstwa i deterministyczny setup (`A7.2a`) są gotowe. Zostaje spiąć je
 > w headless partię end-to-end: synchronizacja stanu gry z mapą, rozpoznanie śmierci
 > bohatera, pętla tur do rozstrzygnięcia i wypisanie wyniku. To domyka MVP z DESIGN §6.
-- [~] **A7.2b1** Synchronizacja kolekcji księstw z mapą świata.
+- [x] **A7.2b1** Synchronizacja kolekcji księstw z mapą świata.
   - AC: czyste przejście `GameState.sync_from_world(world)` zwraca nowy stan gry,
     w którym `settlements` i `parties` każdego księstwa zawierają wyłącznie obiekty
     z bieżącej mapy o zgodnym `owner_id`, w kolejności regionów mapy; podbój usuwa

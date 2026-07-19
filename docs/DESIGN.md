@@ -654,7 +654,7 @@ ich dotykają, i notować wynik tutaj:
   stoją na przeciwnych końcach połączonej mapy, a party są początkowo puste, by
   polityka A7.1 wystawiła je z osad. Setup jest stały, nie używa RNG, a osady
   przypisane księstwom są tymi samymi niemutowalnymi obiektami co osady na mapie.
-  **PLAN (A7.2b1, synchronizacja kolekcji księstw):** pierwszym krokiem drivera
+  **ROZSTRZYGNIĘTE (A7.2b1, synchronizacja kolekcji księstw):** pierwszym krokiem drivera
   jest czyste `GameState.sync_from_world(world)`. Dla każdego istniejącego
   księstwa odtwarza ono `settlements` i `parties` z bieżącej mapy, filtrując po
   `owner_id` i zachowując deterministyczną kolejność regionów. Dzięki temu podbój

@@ -6,7 +6,9 @@ import pytest
 
 from tbb.duchy import Duchy
 from tbb.game import GameState, create_headless_game
+from tbb.settlement import Settlement
 from tbb.unit import Unit
+from tbb.world import Region, WorldMap
 
 
 def test_two_contenders_keep_game_running_in_input_order():
@@ -69,6 +71,31 @@ def test_equal_inputs_produce_deterministic_queries():
     assert first.contenders == second.contenders
     assert first.is_over == second.is_over
     assert first.winner == second.winner
+
+
+def test_sync_from_world_rebuilds_settlements_in_region_order_by_owner():
+    first = Region("first")
+    second = Region("second")
+    third = Region("third")
+    north_first = Settlement("North First", 1, owner_id="north")
+    south = Settlement("South", 1, owner_id="south")
+    north_third = Settlement("North Third", 1, owner_id="north")
+    world = WorldMap(
+        (first, second, third),
+        settlements={third: north_third, second: south, first: north_first},
+    )
+    stale = Settlement("Stale", 1, owner_id="north")
+    north = Duchy("north", Unit(), settlements=(stale,))
+    game = GameState((north, Duchy("south", Unit(), settlements=(south,))))
+
+    synced = game.sync_from_world(world)
+
+    assert synced is not game
+    assert synced.duchies[0].settlements == (north_first, north_third)
+    assert synced.duchies[0].settlements[0] is north_first
+    assert synced.duchies[0].settlements[1] is north_third
+    assert game.duchies[0].settlements == (stale,)
+    assert tuple(world.settlements) == (third, second, first)
 
 
 def test_headless_setup_has_two_supplied_duchies():
