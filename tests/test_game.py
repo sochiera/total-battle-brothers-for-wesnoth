@@ -6,6 +6,7 @@ import pytest
 
 from tbb.duchy import Duchy
 from tbb.game import GameState, create_headless_game
+from tbb.party import Party
 from tbb.settlement import Settlement
 from tbb.unit import Unit
 from tbb.world import Region, WorldMap
@@ -96,6 +97,91 @@ def test_sync_from_world_rebuilds_settlements_in_region_order_by_owner():
     assert synced.duchies[0].settlements[1] is north_third
     assert game.duchies[0].settlements == (stale,)
     assert tuple(world.settlements) == (third, second, first)
+
+
+def test_sync_from_world_rebuilds_parties_in_region_order_and_ignores_unknown_owner():
+    first = Region("first")
+    second = Region("second")
+    third = Region("third")
+    fourth = Region("fourth")
+    north_first = Party(Unit(), owner_id="north")
+    unknown = Party(Unit(), owner_id="unknown")
+    north_third = Party(Unit(), owner_id="north")
+    south = Party(Unit(), owner_id="south")
+    world = WorldMap(
+        (first, second, third, fourth),
+        parties={
+            fourth: south,
+            third: north_third,
+            second: unknown,
+            first: north_first,
+        },
+    )
+    original_parties = dict(world.parties)
+    game = GameState((Duchy("north", Unit()), Duchy("south", Unit())))
+
+    first_sync = game.sync_from_world(world)
+    second_sync = game.sync_from_world(world)
+
+    assert first_sync == second_sync
+    assert first_sync.duchies[0].parties == (north_first, north_third)
+    assert first_sync.duchies[0].parties[0] is north_first
+    assert first_sync.duchies[0].parties[1] is north_third
+    assert first_sync.duchies[1].parties == (south,)
+    assert all(unknown not in duchy.parties for duchy in first_sync.duchies)
+    assert dict(world.parties) == original_parties
+    assert world.party_at(second) is unknown
+
+
+def test_sync_from_world_transfers_conquered_settlement_and_preserves_duchy_state():
+    north_region = Region("north")
+    conquered_region = Region("conquered")
+    unknown_region = Region("unknown")
+    north_settlement = Settlement("North", 1, owner_id="north")
+    conquered = Settlement("Conquered", 1, owner_id="south")
+    unknown = Settlement("Unknown", 1, owner_id="unknown")
+    world = WorldMap(
+        (north_region, conquered_region, unknown_region),
+        settlements={
+            unknown_region: unknown,
+            conquered_region: conquered,
+            north_region: north_settlement,
+        },
+    )
+    north_hero = Unit(equipment=1)
+    north_heir = Unit(equipment=2)
+    south_hero = Unit(equipment=3)
+    formerly_north = Settlement("Conquered", 1, owner_id="north")
+    north = Duchy(
+        "north",
+        north_hero,
+        morale=-3,
+        heir=north_heir,
+        settlements=(north_settlement, formerly_north),
+    )
+    stale_south = Settlement("Former South", 1, owner_id="south")
+    south = Duchy("south", south_hero, morale=4, settlements=(stale_south,))
+    game = GameState((south, north))
+    original_settlements = dict(world.settlements)
+
+    synced = game.sync_from_world(world)
+
+    synced_south, synced_north = synced.duchies
+    assert tuple(duchy.duchy_id for duchy in synced.duchies) == ("south", "north")
+    assert synced_south.settlements == (conquered,)
+    assert synced_south.settlements[0] is conquered
+    assert synced_north.settlements == (north_settlement,)
+    assert formerly_north not in synced_north.settlements
+    assert all(unknown not in duchy.settlements for duchy in synced.duchies)
+    assert synced_south.hero is south_hero
+    assert synced_south.heir is None
+    assert synced_south.morale == 4
+    assert synced_north.hero is north_hero
+    assert synced_north.heir is north_heir
+    assert synced_north.morale == -3
+    assert game.duchies == (south, north)
+    assert dict(world.settlements) == original_settlements
+    assert world.settlement_at(conquered_region) is conquered
 
 
 def test_sync_from_world_rejects_a_value_that_is_not_a_world_map():
