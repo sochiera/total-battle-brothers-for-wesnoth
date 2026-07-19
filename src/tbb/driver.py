@@ -27,5 +27,9 @@ def run_headless_game(
     rng: Rng,
     max_turns: int = 1000,
 ) -> tuple[WorldMap, GameState]:
-    """Return the initial state until headless turn execution is added."""
+    """Return immediately when the game or configured turn budget is over."""
+    if game.is_over or max_turns == 0:
+        return world, game
+
+    # Executing a turn belongs to A7.2b3b; this increment only fixes the API.
     return world, game
