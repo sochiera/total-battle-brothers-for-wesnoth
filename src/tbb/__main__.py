@@ -1,14 +1,21 @@
-"""Headless entry point (placeholder).
+"""Headless entry point for a complete deterministic game."""
 
-Na teraz tylko wypisuje banner i kończy się kodem 0, żeby komenda `run`
-działała od zera. Docelowo uruchomi headless przebieg pętli MVP (BACKLOG A7.2).
-"""
+from tbb.driver import run_headless_game
+from tbb.game import create_headless_game
+from tbb.rng import Rng
 
-from tbb import __version__
+
+HEADLESS_SEED = 73
 
 
 def main() -> int:
-    print(f"Total Battle Brothers — rdzeń v{__version__} (headless placeholder)")
+    world, game = create_headless_game()
+    _, result = run_headless_game(world, game, Rng(HEADLESS_SEED))
+
+    if result.winner is None:
+        print("Wynik: remis — brak zwycięzcy.")
+    else:
+        print(f"Zwycięzca: {result.winner.duchy_id}")
     return 0
 
 

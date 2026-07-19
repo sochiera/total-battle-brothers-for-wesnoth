@@ -27,9 +27,9 @@ całego silnika. Decyzja jest odwracalna: rdzeń jest czysty, więc prezentację
 
 ### Prezentacja (odłożona)
 Warstwa render/UI jest **poza rdzeniem** i na start minimalna. `python -m tbb`
-uruchamia headless placeholder (banner + smoke). Docelowo osobny pakiet/moduł
-prezentacji konsumujący rdzeń przez publiczne API — rdzeń **nigdy** nie importuje
-prezentacji.
+uruchamia deterministyczną pełną partię headless i wypisuje jej wynik. Docelowo
+osobny pakiet/moduł prezentacji konsumujący rdzeń przez publiczne API — rdzeń
+**nigdy** nie importuje prezentacji.
 
 ## 2. Struktura katalogów
 ```
@@ -106,7 +106,7 @@ w skryptach `scripts/`.
 - **test.sh** → `python3 -m pytest -q` z katalogu projektu. `pyproject.toml`
   ustawia `pythonpath = ["src"]`, więc `import tbb` działa bez instalacji.
 - **build.sh** → brak kompilacji (Python); istnieje dla spójności kontraktu.
-- **run.sh** → `python3 -m tbb` (headless placeholder na teraz).
+- **run.sh** → `python3 -m tbb` (pełna deterministyczna partia headless).
 
 Uruchamiaj z katalogu `game/`.
 

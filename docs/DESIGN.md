@@ -717,7 +717,7 @@ ich dotykają, i notować wynik tutaj:
   zgodnie z A7.2b2. Driver nadal używa bezpośrednio
   `take_duchy_turn` (bez maszyny faz `StrategicTurn`) — kalendarz i fazy zostają
   domeną strojenia po MVP.
-  **PLAN (A7.2b4, headless CLI):** `python -m tbb` (przez `run.sh`) buduje
+  **ROZSTRZYGNIĘTE (A7.2b4, headless CLI):** `python -m tbb` (przez `run.sh`) buduje
   `create_headless_game()`, uruchamia `run_headless_game` z deterministycznym
   seedem i wypisuje wynik: zwycięzca (`GameState.winner.duchy_id`) albo remis
   (`winner is None`). Cała logika pozostaje w rdzeniu; `__main__.py` odpowiada
