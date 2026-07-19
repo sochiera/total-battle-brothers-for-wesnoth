@@ -1,10 +1,11 @@
 """Tests for units built from three independent quality pillars."""
 
+import random
 from dataclasses import FrozenInstanceError
 
 import pytest
 
-from tbb import BRUISE, MAIMED, Unit
+from tbb import BRUISE, MAIMED, Unit, investment_for_level, pillar_level
 
 
 def test_unit_defaults_to_zero_pillars_and_base_stats():
@@ -63,6 +64,70 @@ def test_training_progress_defaults_to_zero_and_is_immutable():
     assert unit.training_progress == 0
     with pytest.raises(FrozenInstanceError):
         unit.training_progress = 1
+
+
+def test_train_uses_triangular_progress_and_is_a_pure_rng_free_transition():
+    default_unit = Unit()
+    assert default_unit.training_progress == 0
+    with pytest.raises(FrozenInstanceError):
+        default_unit.training_progress = 1
+    with pytest.raises(ValueError):
+        Unit(training=2, training_progress=-1)
+    with pytest.raises(ValueError):
+        Unit(training=2, training_progress=3)
+
+    original = Unit(
+        training=2,
+        training_progress=1,
+        equipment=4,
+        experience=5,
+        ranged_range=3,
+        wounds=(BRUISE,),
+        stunned=True,
+    )
+
+    assert original.train(0) == original
+    with pytest.raises(ValueError):
+        original.train(-1)
+
+    rng_state = random.getstate()
+    months = 2
+    total = (
+        investment_for_level(original.training)
+        + original.training_progress
+        + months
+    )
+
+    trained = original.train(months)
+
+    expected_training = pillar_level(total)
+    assert trained.training == expected_training
+    assert (
+        trained.training_progress
+        == total - investment_for_level(expected_training)
+    )
+    assert (
+        trained.equipment,
+        trained.experience,
+        trained.ranged_range,
+        trained.wounds,
+        trained.stunned,
+    ) == (4, 5, 3, (BRUISE,), True)
+    assert (trained.hp, trained.accuracy) == (13, 7)
+    assert original == Unit(
+        training=2,
+        training_progress=1,
+        equipment=4,
+        experience=5,
+        ranged_range=3,
+        wounds=(BRUISE,),
+        stunned=True,
+    )
+    assert random.getstate() == rng_state
+    assert original.train(months) == trained
+    assert Unit().train(1) == Unit(training=1)
+    assert Unit().train(2) == Unit(training=1, training_progress=1)
+    assert Unit().train(3) == Unit(training=2)
 
 
 def test_ranged_range_defaults_to_zero_and_accepts_two_or_more():
