@@ -49,7 +49,12 @@ def run_headless_game(
     max_turns: int = 1000,
     calendar: turn.Calendar = turn.Calendar(),
 ) -> tuple[WorldMap, GameState, turn.Calendar]:
-    """Run AI turns until the game ends or the turn budget is exhausted."""
+    """Run complete AI policies until the game ends or the budget is exhausted.
+
+    Each duchy policy includes settlement development before recruitment and
+    military action, so the returned world exposes buildings opened during the
+    headless game.
+    """
     current_world = world
     current_game = game
     current_calendar = calendar

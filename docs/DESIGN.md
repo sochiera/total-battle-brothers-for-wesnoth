@@ -412,7 +412,7 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   złota lub populacji rzuca `ValueError` bez zmiany osady wejściowej. Pszenica
   i czas rekrutacji nie są jeszcze kosztem. AI pomija osady bez wystarczającej
   ilości złota, zachowując deterministyczny wybór według kolejności regionów.
-- **PLAN (Kamień 10 — realne straty i koszty):** trzy placeholdery pętli
+- **ROZSTRZYGNIĘTE (Kamień 10 — realne straty i koszty):** trzy placeholdery pętli
   strategicznej zostają domknięte i **odwracają** wcześniejsze „poza zakresem":
   (a) **straty garnizonu** — po bitwie osady garnizon = ocalali obrońcy
   (`Settlement.absorb_defenders` wpięte w `apply_settlement_battle_result`),
@@ -422,7 +422,9 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   dochodzi później"); (c) **rozwój ekonomii AI** — `develop_duchy_settlement`
   otwiera brakujący budynek wg priorytetu `FARM`→`SMITH`→`MARKET`, wpięte w
   `take_duchy_turn`, dzięki czemu ekonomia jest dynamiczna, a uzbrojenie garnizonu
-  postępuje w realnej partii (G10.4–G10.5). Strojenie wartości pozostaje balansem.
+  postępuje w realnej partii (G10.4–G10.5). W domyślnym setupie headless polityka
+  AI otwiera `Farm` już w pierwszej wykonywanej turze, a zwrócona mapa zachowuje
+  ten rozwój. Strojenie wartości pozostaje balansem.
 
 ## 5. Jednostki i progresja
 Jakość jednostki wynika z **trzech niezależnych filarów** (każdy z osobnym

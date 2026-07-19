@@ -55,7 +55,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
   - AC: na mapie bez wrogiej osady (wojsko = no-op) dwa kolejne `take_duchy_turn`
     otwierają najpierw `Farm`, potem `Smith`; rekrutacja działa; deterministyczne,
     niemutowalne.
-- [ ] **G10.5c** Integracja rozwoju AI w realnej partii headless. *(task-034)*
+- [x] **G10.5c** Integracja rozwoju AI w realnej partii headless. *(task-034)*
   - AC: `run_headless_game` z `create_headless_game` osiąga stan, gdzie osada AI
     ma otwarty `Farm`; determinizm end-to-end (ten sam seed → ten sam wynik);
     stany wejściowe nie mutowane. (Twarda asercja `Smith` w pełnej partii świadomie
