@@ -31,14 +31,7 @@ def develop_duchy_settlement(world: WorldMap, duchy: Duchy) -> WorldMap:
         if building is None or settlement.free < building.staff:
             continue
 
-        settlements = dict(world.settlements)
-        settlements[region] = settlement.open_building(building)
-        return WorldMap(
-            world.regions,
-            world.connections,
-            settlements,
-            world.parties,
-        )
+        return world.with_settlement(region, settlement.open_building(building))
     return world
 
 
@@ -53,14 +46,7 @@ def recruit_duchy_unit(world: WorldMap, duchy: Duchy) -> WorldMap:
             and settlement.free > 0
             and len(settlement.garrison) < 12
         ):
-            settlements = dict(world.settlements)
-            settlements[region] = settlement.recruit()
-            return WorldMap(
-                world.regions,
-                world.connections,
-                settlements,
-                world.parties,
-            )
+            return world.with_settlement(region, settlement.recruit())
     return world
 
 

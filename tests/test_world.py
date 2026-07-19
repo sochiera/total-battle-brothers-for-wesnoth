@@ -62,6 +62,32 @@ def test_settlement_lookup_returns_settlement_or_none():
     assert world.settlement_at(empty_region) is None
 
 
+def test_with_settlement_replaces_one_settlement_without_mutating_world():
+    town = Region("Town")
+    border = Region("Border")
+    original = Settlement("Old Town", population=2)
+    unchanged = Settlement("Border Keep", population=3)
+    replacement = Settlement("New Town", population=4)
+    party = Party(Unit(), owner_id="north")
+    world = WorldMap(
+        [town, border],
+        [(town, border)],
+        settlements={town: original, border: unchanged},
+        parties={border: party},
+    )
+
+    updated = world.with_settlement(town, replacement)
+
+    assert updated is not world
+    assert updated.settlement_at(town) is replacement
+    assert updated.settlement_at(border) is unchanged
+    assert updated.regions == world.regions
+    assert updated.connections == world.connections
+    assert updated.neighbors(town) == (border,)
+    assert updated.party_at(border) is party
+    assert world.settlement_at(town) is original
+
+
 def test_tick_settlements_applies_economy_births_then_immigration():
     farms = Region("Farms")
     market = Region("Market")

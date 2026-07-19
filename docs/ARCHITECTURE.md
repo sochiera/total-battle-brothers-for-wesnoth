@@ -137,7 +137,9 @@ Uruchamiaj z katalogu `game/`.
   rejestr kolejności rozstawienia aktywnych jednostek. Ruch aktualizuje w nim
   pozycję bez zmiany kolejności, więc kolejność mapy `units` nie wpływa na raport.
 - **Małe przejścia stanu:** funkcje przekształcające stan zamiast wielkich metod
-  z ukrytymi efektami.
+  z ukrytymi efektami. `WorldMap.with_settlement` jest wspólnym czystym
+  przejściem do wstawiania lub podmiany pojedynczej osady z zachowaniem grafu
+  i rozmieszczenia party.
 - **Headless driver:** `run_headless_game` przewleka niemutowalny `Calendar`,
   kończy każdą wykonaną turę przez `turn.end_turn` i zwraca mapę, stan gry oraz
   kalendarz; CLI odbiera całą trójkę i wypisuje wynik wraz z końcowym rokiem

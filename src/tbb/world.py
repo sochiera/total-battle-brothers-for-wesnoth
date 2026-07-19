@@ -91,6 +91,19 @@ class WorldMap:
             raise ValueError("region is outside the world map")
         return self.settlements.get(region)
 
+    def with_settlement(
+        self, region: Region, settlement: Settlement
+    ) -> "WorldMap":
+        """Return a new world with one settlement inserted or replaced."""
+        settlements = dict(self.settlements)
+        settlements[region] = settlement
+        return WorldMap(
+            self.regions,
+            self.connections,
+            settlements,
+            self.parties,
+        )
+
     def party_at(self, region: Region) -> Party | None:
         """Return the party occupying the region, if present."""
         if region not in self._neighbors:
@@ -126,16 +139,7 @@ class WorldMap:
             raise ValueError("region is already occupied by a party")
 
         party, settlement = self.settlements[region].muster(hero)
-        settlements = dict(self.settlements)
-        settlements[region] = settlement
-        parties = dict(self.parties)
-        parties[region] = party
-        return WorldMap(
-            self.regions,
-            self.connections,
-            settlements,
-            parties,
-        )
+        return self.with_settlement(region, settlement).place_party(party, region)
 
     def place_party(self, party: Party, region: Region) -> "WorldMap":
         """Return a new world with a party placed in an empty region."""
