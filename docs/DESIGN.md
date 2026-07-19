@@ -736,7 +736,10 @@ ich dotykają, i notować wynik tutaj:
   przebiegu księstw także jest ukończona; gra rozstrzygnięta na wejściu oraz zerowy
   budżet tur zwracają kalendarz wejściowy bez przesunięcia. Przejście zwraca
   `(WorldMap, GameState, Calendar)`, pozostaje niemutowalne i deterministyczne.
-  **PLAN (M8.3):** CLI raportuje końcowy rok/miesiąc obok wyniku. Pełna maszyna
+  **ROZSTRZYGNIĘTE (M8.3, data w headless CLI):** CLI odbiera końcowy kalendarz
+  z drivera i raportuje rok oraz miesiąc obok zwycięzcy albo remisu. Wyliczenie
+  daty pozostaje w rdzeniu, a `__main__.py` odpowiada wyłącznie za I/O.
+  Pełna maszyna
   faz `StrategicTurn` (routing akcji AI przez fazy
   ruch/bitwy) pozostaje poza M8 — driver nadal używa `take_duchy_turn`, a M8 reużywa
   wyłącznie prymitywów ekonomii i kalendarza. Rozwój jednostek w turze (§6 „trenuj

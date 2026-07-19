@@ -10,14 +10,18 @@ HEADLESS_SEED = 73
 
 def main() -> int:
     world, initial_game = game.create_headless_game()
-    _, result, _ = driver.run_headless_game(
+    _, result, final_calendar = driver.run_headless_game(
         world, initial_game, Rng(HEADLESS_SEED)
     )
 
     if result.winner is None:
-        print("Wynik: remis — brak zwycięzcy.")
+        outcome = "Wynik: remis — brak zwycięzcy."
     else:
-        print(f"Zwycięzca: {result.winner.duchy_id}")
+        outcome = f"Zwycięzca: {result.winner.duchy_id}"
+    print(
+        f"{outcome} Rok: {final_calendar.year}, "
+        f"miesiąc: {final_calendar.month}."
+    )
     return 0
 
 
