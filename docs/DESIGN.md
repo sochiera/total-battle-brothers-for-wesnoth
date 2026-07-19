@@ -675,9 +675,14 @@ ich dotykają, i notować wynik tutaj:
   `owner_id`, niezależnie od zapisanej w `Duchy` kolekcji party.
   Detekcja jest minimalna (before/after); śmierć party wystawionego i utraconego
   w tej samej turze pozostaje poza zakresem.
-  **PLAN (A7.2b3, driver tur headless):** czyste
-  `driver.run_headless_game(world, game, rng, max_turns)` wykonuje kolejne tury
-  na setupie A7.2a. W turze każde niepokonane księstwo składa `take_duchy_turn`,
+  **ROZSTRZYGNIĘTE (A7.2b3a, szkielet drivera):** czyste
+  `driver.run_headless_game(world, game, rng, max_turns=1000)` ma ustalony kontrakt
+  wejścia i zwraca parę `(WorldMap, GameState)`. Gra rozstrzygnięta już na wejściu
+  oraz nierozstrzygnięta gra z `max_turns == 0` zwracają dokładnie wejściowe
+  obiekty, bez synchronizacji, wykonywania tury ani mutacji. Wykonywanie tur
+  pozostaje w A7.2b3b–c.
+  **PLAN (A7.2b3b–c, tury drivera headless):** na setupie A7.2a w każdej turze
+  każde niepokonane księstwo składa `take_duchy_turn`,
   po czym stan gry jest aktualizowany przez `resolve_hero_survival` i
   `GameState.sync_from_world`. Pętla kończy się przy `GameState.is_over`, a
   bezpiecznik `max_turns` chroni przed zapętleniem. Ten sam setup i seed dają ten

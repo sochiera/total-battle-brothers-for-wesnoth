@@ -1,10 +1,23 @@
 """Tests for headless game driver transitions."""
 
-from tbb.driver import resolve_hero_survival
+from tbb.driver import resolve_hero_survival, run_headless_game
 from tbb.duchy import SUCCESSION_MORALE_PENALTY, Duchy
+from tbb.game import GameState
 from tbb.party import Party
+from tbb.rng import Rng
 from tbb.unit import Unit
 from tbb.world import Region, WorldMap
+
+
+def test_already_over_game_returns_exact_input_objects():
+    region = Region("Last Keep")
+    world = WorldMap((region,))
+    game = GameState((Duchy("north", Unit(training=2)),))
+
+    returned_world, returned_game = run_headless_game(world, game, Rng(7))
+
+    assert returned_world is world
+    assert returned_game is game
 
 
 def test_lost_duchy_party_triggers_immutable_succession():

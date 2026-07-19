@@ -1,6 +1,8 @@
 """Pure transitions used by the headless game driver."""
 
 from tbb.duchy import Duchy
+from tbb.game import GameState
+from tbb.rng import Rng
 from tbb.world import WorldMap
 
 
@@ -17,3 +19,13 @@ def resolve_hero_survival(
     ):
         return duchy.succeed()
     return duchy
+
+
+def run_headless_game(
+    world: WorldMap,
+    game: GameState,
+    rng: Rng,
+    max_turns: int = 1000,
+) -> tuple[WorldMap, GameState]:
+    """Return the initial state until headless turn execution is added."""
+    return world, game

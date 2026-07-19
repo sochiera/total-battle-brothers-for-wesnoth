@@ -23,7 +23,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > wsadzie cały `run_headless_game` dało się napisać w ~2 cyklach, przez co mikro-TDD
 > zapętlił się na cyklach `no_test` (brak czerwonego testu) i wsad porzucono bez
 > commita. Drobniejsze kroki dają każdemu cyklowi jeden, wyraźnie failujący test.
-- [ ] **A7.2b3a** Szkielet drivera i bezpiecznik. *(task-005)*
+- [x] **A7.2b3a** Szkielet drivera i bezpiecznik. *(task-005)*
   - AC: `run_headless_game(world, game, rng, max_turns=1000) -> (WorldMap, GameState)`
     istnieje; `game.is_over` na wejściu → zwraca dokładnie wejścia; `max_turns == 0`
     → zwraca wejścia niezmienione; czyste (bez mutacji wejść).
