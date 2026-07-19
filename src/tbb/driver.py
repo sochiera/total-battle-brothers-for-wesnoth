@@ -1,5 +1,6 @@
 """Pure transitions used by the headless game driver."""
 
+from tbb.ai import take_duchy_turn
 from tbb.duchy import Duchy
 from tbb.game import GameState
 from tbb.rng import Rng
@@ -27,9 +28,12 @@ def run_headless_game(
     rng: Rng,
     max_turns: int = 1000,
 ) -> tuple[WorldMap, GameState]:
-    """Return immediately when the game or configured turn budget is over."""
+    """Run one AI turn unless the game or configured turn budget is over."""
     if game.is_over or max_turns == 0:
         return world, game
 
-    # Executing a turn belongs to A7.2b3b; this increment only fixes the API.
-    return world, game
+    current_world = world
+    for duchy in game.duchies:
+        if not duchy.is_defeated:
+            current_world = take_duchy_turn(current_world, duchy, rng)
+    return current_world, game

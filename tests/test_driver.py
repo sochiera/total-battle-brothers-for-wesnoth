@@ -1,12 +1,41 @@
 """Tests for headless game driver transitions."""
 
+from tbb.ai import take_duchy_turn
 from tbb.driver import resolve_hero_survival, run_headless_game
 from tbb.duchy import SUCCESSION_MORALE_PENALTY, Duchy
-from tbb.game import GameState
+from tbb.game import GameState, create_headless_game
 from tbb.party import Party
 from tbb.rng import Rng
 from tbb.unit import Unit
 from tbb.world import Region, WorldMap
+
+
+def test_one_turn_threads_real_ai_actions_through_duchies_immutably():
+    world, game = create_headless_game()
+    world_snapshot = (
+        world.regions,
+        dict(world.settlements),
+        dict(world.parties),
+        game.duchies,
+    )
+    expected_world, expected_game = create_headless_game()
+    expected_rng = Rng(17)
+    for duchy in expected_game.duchies:
+        expected_world = take_duchy_turn(expected_world, duchy, expected_rng)
+
+    result_world, result_game = run_headless_game(
+        world, game, Rng(17), max_turns=1
+    )
+
+    assert result_world == expected_world
+    assert result_world != world
+    assert result_game is game
+    assert world_snapshot == (
+        world.regions,
+        dict(world.settlements),
+        dict(world.parties),
+        game.duchies,
+    )
 
 
 def test_exit_conditions_return_typed_exact_unchanged_inputs():

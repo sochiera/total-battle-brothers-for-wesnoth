@@ -27,7 +27,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > wyraźnie czerwonego testu na krok). Każdy klocek dodaje teraz dokładnie jedną
 > obserwowalną warstwę: przewleczenie mapy → synchronizacja stanu gry → przeżycie
 > bohatera. `b3c`/`b4` przenumerowane na task-012/013 (treść bez zmian).
-- [ ] **A7.2b3b1** Jedna tura: akcje księstw na wspólnej mapie. *(task-009)*
+- [x] **A7.2b3b1** Jedna tura: akcje księstw na wspólnej mapie. *(task-009)*
   - AC: przy `max_turns >= 1` niepokonane księstwa w kolejności `game.duchies`
     wołają `take_duchy_turn`, karmiąc wynikiem następne; zwrócona `WorldMap`
     odzwierciedla akcje AI; `game` zwracany bez zmian; pominięcie pokonanych; czyste.

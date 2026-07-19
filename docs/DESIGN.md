@@ -681,6 +681,13 @@ ich dotykają, i notować wynik tutaj:
   oraz nierozstrzygnięta gra z `max_turns == 0` zwracają dokładnie wejściowe
   obiekty, bez synchronizacji, wykonywania tury ani mutacji. Wykonywanie tur
   pozostaje w A7.2b3b–c.
+  **ROZSTRZYGNIĘTE (A7.2b3b1, akcje księstw na wspólnej mapie):** gdy gra
+  trwa i budżet pozwala na co najmniej jedną turę, driver wykonuje pojedynczy
+  przebieg księstw w kolejności `game.duchies`. Każde niepokonane księstwo
+  wywołuje `take_duchy_turn`, a wynikowa `WorldMap` jest wejściem akcji
+  następnego księstwa; pokonane księstwa są pomijane. Zwracany `GameState`
+  pozostaje tym samym obiektem — synchronizacja i przeżycie bohatera dochodzą
+  w A7.2b3b2–b3. Przejście nie mutuje mapy ani stanu gry wejściowego.
   **PLAN (A7.2b3b–c, tury drivera headless):** na setupie A7.2a w każdej turze
   każde niepokonane księstwo składa `take_duchy_turn`,
   po czym stan gry jest aktualizowany przez `resolve_hero_survival` i
