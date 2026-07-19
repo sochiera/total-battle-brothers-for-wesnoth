@@ -92,3 +92,7 @@
 - [x] **A7.1b5b1** Rekrutacja jednego żołnierza przez AI.
 - [x] **A7.1b5b2** Pełna polityka tury AI: rekrutacja → akcja wojskowa.
 - [x] **A7.2a** Deterministyczny setup partii headless.
+- [x] **A7.2b1** Synchronizacja kolekcji księstw z mapą świata
+      (`GameState.sync_from_world`).
+- [x] **A7.2b2** Aktualizacja życia bohatera po wojskowej akcji tury
+      (`driver.resolve_hero_survival`).

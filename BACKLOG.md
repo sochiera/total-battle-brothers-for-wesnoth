@@ -17,22 +17,25 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > Rdzeń, AI księstwa i deterministyczny setup (`A7.2a`) są gotowe. Zostaje spiąć je
 > w headless partię end-to-end: synchronizacja stanu gry z mapą, rozpoznanie śmierci
 > bohatera, pętla tur do rozstrzygnięcia i wypisanie wyniku. To domyka MVP z DESIGN §6.
-- [x] **A7.2b1** Synchronizacja kolekcji księstw z mapą świata.
-  - AC: czyste przejście `GameState.sync_from_world(world)` zwraca nowy stan gry,
-    w którym `settlements` i `parties` każdego księstwa zawierają wyłącznie obiekty
-    z bieżącej mapy o zgodnym `owner_id`, w kolejności regionów mapy; podbój usuwa
-    osadę dawnemu właścicielowi i przypisuje ją zdobywcy. Identyfikator, bohater,
-    dziedzic i morale pozostają bez zmian; wejściowe stany nie są mutowane.
-- [x] **A7.2b2** Aktualizacja życia bohatera po wojskowej akcji tury.
-  - AC: po utracie party prowadzonego przez bohatera stan księstwa przechodzi przez
-    istniejącą sukcesję albo jawny stan bez bohatera; brak poległego party nie
-    uśmierca bohatera pozostającego poza mapą; wynik jest spójny z `WorldMap`.
-    Czyste `driver.resolve_hero_survival(duchy, world_before, world_after)`.
-- [ ] **A7.2b3** Czysty driver tur headless do rozstrzygnięcia.
-  - AC: deterministycznie wykonuje kolejne polityki księstw na setupie A7.2a,
-    synchronizuje stan gry po akcjach (`sync_from_world` + `resolve_hero_survival`),
-    kończy po `GameState.is_over` i ma bezpiecznik liczby tur. `driver.run_headless_game`.
-- [ ] **A7.2b4** Headless CLI wypisuje wynik całej partii.
+> **A7.2b1** i **A7.2b2** ukończone — przeniesione do `BACKLOG-ARCHIVE.md`.
+>
+> **A7.2b3** rozbite na trzy mniejsze przyrosty (`b3a`–`b3c`). Powód: w poprzednim
+> wsadzie cały `run_headless_game` dało się napisać w ~2 cyklach, przez co mikro-TDD
+> zapętlił się na cyklach `no_test` (brak czerwonego testu) i wsad porzucono bez
+> commita. Drobniejsze kroki dają każdemu cyklowi jeden, wyraźnie failujący test.
+- [ ] **A7.2b3a** Szkielet drivera i bezpiecznik. *(task-005)*
+  - AC: `run_headless_game(world, game, rng, max_turns=1000) -> (WorldMap, GameState)`
+    istnieje; `game.is_over` na wejściu → zwraca dokładnie wejścia; `max_turns == 0`
+    → zwraca wejścia niezmienione; czyste (bez mutacji wejść).
+- [ ] **A7.2b3b** Jedna tura: polityki, przeżycie bohatera, synchronizacja. *(task-006)*
+  - AC: przy `max_turns >= 1` wykonuje dokładnie jedną turę — każde niepokonane
+    księstwo w kolejności `game.duchies` woła `take_duchy_turn`, a po jego akcji
+    `resolve_hero_survival` + `GameState.sync_from_world` aktualizują stan gry.
+- [ ] **A7.2b3c** Pętla do rozstrzygnięcia i determinizm. *(task-007)*
+  - AC: powtarza tury aż `GameState.is_over` albo do `max_turns`; ten sam seed →
+    ten sam wynik; pełna pętla na `create_headless_game()` osiąga `is_over` przed
+    bezpiecznikiem i wskazuje zwycięzcę.
+- [ ] **A7.2b4** Headless CLI wypisuje wynik całej partii. *(task-008)*
   - AC: `run.sh` uruchamia driver A7.2b3, wypisuje zwycięzcę albo remis; test smoke
     obejmuje pełną pętlę i kod wyjścia 0.
 
