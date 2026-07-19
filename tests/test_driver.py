@@ -106,32 +106,20 @@ def test_one_turn_threads_real_ai_actions_through_duchies_immutably():
 
 def test_real_headless_game_opens_farm_in_starting_ai_settlement_immutably():
     world, game = create_headless_game()
+    pristine_world, pristine_game = create_headless_game()
     ai_region = next(
         region
         for region in world.regions
         if world.settlement_at(region) is not None
         and world.settlement_at(region).owner_id == "ai"
     )
-    world_snapshot = (
-        world.regions,
-        world.connections,
-        dict(world.settlements),
-        dict(world.parties),
-    )
-    game_snapshot = game.duchies
 
     result_world, _, _ = run_headless_game(
         world, game, Rng(17), max_turns=3
     )
 
     assert FARM in result_world.settlement_at(ai_region).active_buildings
-    assert world_snapshot == (
-        world.regions,
-        world.connections,
-        dict(world.settlements),
-        dict(world.parties),
-    )
-    assert game.duchies == game_snapshot
+    assert (world, game) == (pristine_world, pristine_game)
 
 
 def test_one_turn_delegates_to_live_ai_api_in_duchy_order(monkeypatch):

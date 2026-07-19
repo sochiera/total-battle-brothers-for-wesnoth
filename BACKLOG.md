@@ -45,7 +45,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 - [x] **G10.3** Koszt złota rekrutacji. *(task-029)* → `BACKLOG-ARCHIVE.md`
 - [x] **G10.4** Polityka AI: otwieranie budynków ekonomii/kuźni. *(task-030)*
       → `BACKLOG-ARCHIVE.md`
-- [ ] **G10.5a** `take_duchy_turn`: rozwój → rekrutacja → wojsko. *(task-032)*
+- [x] **G10.5a** `take_duchy_turn`: rozwój → rekrutacja → wojsko. *(task-032)*
   - AC: `take_duchy_turn` wywołuje `develop_duchy_settlement` przed
     `recruit_duchy_unit`; test AI: po turze osada AI ma `Farm` i +1 rekruta; brak
     możliwości rozwoju nie przerywa rekrutacji/wojska; DESIGN §3.1 ROZSTRZYGNIĘTE
