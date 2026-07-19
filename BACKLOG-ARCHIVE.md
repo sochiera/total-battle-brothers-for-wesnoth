@@ -4,6 +4,13 @@
 > Szczegóły decyzji mechaniki/architektury żyją w `docs/DESIGN.md` i
 > `docs/ARCHITECTURE.md`. Tu zostaje jedynie ślad, co i kiedy zamknięto.
 
+## Kamień milowy 8 — pełna tura strategiczna w driverze (ekonomia + kalendarz)
+- [x] **M8.1** Miesięczna ekonomia w pętli tury headless
+      (`tick_settlements()` na początku tury + sync `GameState`).
+- [x] **M8.2** Kalendarz przesuwa się o miesiąc na ukończoną turę
+      (`run_headless_game` przewleka `Calendar`, zwraca trójkę).
+- [x] **M8.3** CLI raportuje datę zakończenia partii (rok/miesiąc obok wyniku).
+
 ## Kamień milowy 0 — szkielet (bootstrap)
 - [x] **B0.1** Szkielet projektu + pytest + jeden trywialny zielony test.
 

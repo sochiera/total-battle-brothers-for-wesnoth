@@ -4,8 +4,8 @@
 > Statusy: `[ ]` do zrobienia, `[~]` w toku, `[x]` zrobione.
 > Bierz zadania z góry. Nie łącz wielu przyrostów w jeden. Aktualizuj status i
 > dopisuj nowe zadania, gdy wizja się doprecyzowuje. Detale mechaniki → `docs/DESIGN.md`.
-> Ukończone milestony przeniesione do `BACKLOG-ARCHIVE.md` (kamienie 0–6.8 oraz
-> A7.1*/A7.2a) — tu zostaje wyłącznie żywy tail w stronę grywalnego MVP.
+> Ukończone milestony przeniesione do `BACKLOG-ARCHIVE.md` (kamienie 0–8 oraz
+> A7.1*/A7.2*) — tu zostaje wyłącznie żywy tail w stronę grywalnego MVP.
 
 ## Legenda
 Każde zadanie ma **kryteria akceptacji** (co musi przejść jako test). Rdzeń przed
@@ -13,47 +13,49 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 
 ---
 
-## Kamień milowy 7 — grywalna pętla MVP (headless przebieg A7.2b) — UKOŃCZONY
-> Rdzeń, AI księstwa, deterministyczny setup (`A7.2a`) i cały headless driver
-> (`A7.2b1`–`A7.2b4`) są gotowe: `python -m tbb` uruchamia pełną, deterministyczną
-> partię end-to-end i wypisuje zwycięzcę albo remis (kod wyjścia 0). Wszystkie
-> pozycje przeniesione do `BACKLOG-ARCHIVE.md`. To domknęło **minimalną** pętlę
-> z DESIGN §6, ale headless partia nadal toczy się z **zamrożonymi osadami** —
-> driver nie uruchamia miesięcznej ekonomii ani nie przesuwa kalendarza. To
-> domyka Kamień milowy 8.
+## Kamienie 7–8 — UKOŃCZONE (headless pętla MVP + ekonomia/kalendarz w driverze)
+> `python -m tbb` uruchamia pełną, deterministyczną partię end-to-end: żywa
+> miesięczna ekonomia i wzrost osad, płynący kalendarz, wypisany zwycięzca/remis
+> wraz z końcową datą (kod wyjścia 0). Wszystkie pozycje w `BACKLOG-ARCHIVE.md`.
+> To domyka **minimalną** pętlę z DESIGN §6 pkt 1,3,4,5. Otwarty zostaje pkt 2:
+> jednostki są rekrutowane z filarami 0 i nigdy się nie „trenują ani wyposażają"
+> — to domyka Kamień milowy 9.
 
-## Kamień milowy 8 — pełna tura strategiczna w driverze (ekonomia + kalendarz)
-> Cała warstwa ekonomii/wzrostu (`WorldMap.tick_settlements`) i kalendarza
-> (`turn.end_turn`) istnieje i jest przetestowana, ale headless driver jej **nie
-> używa** — woła `take_duchy_turn` na gołej mapie. Skutek: podczas realnej partii
-> osady nie produkują surowców, nie rosną i nie przyciągają imigrantów, a czas nie
-> płynie. Ten kamień spina istniejące prymitywy z pętlą tury, w kolejności faz
-> DESIGN §10 (produkcja → wzrost → ruch → bitwy), **bez** wciągania pełnej maszyny
-> faz `StrategicTurn` (routing AI przez fazy zostaje po MVP — patrz „Później").
-- [ ] **M8.1** Miesięczna ekonomia w pętli tury headless. *(task-014)*
-  - AC: driver wykonuje `world.tick_settlements()` raz na początku każdej tury,
-    przed przebiegiem księstw, i synchronizuje `GameState`; osada obserwowalnie
-    produkuje/rośnie w trakcie headless partii; pełna pętla nadal kończy się
-    zwycięzcą przed bezpiecznikiem; determinizm (ten sam seed → ten sam wynik); czyste.
-- [ ] **M8.2** Kalendarz przesuwa się o miesiąc na ukończoną turę. *(task-015)*
-  - AC: `run_headless_game` przyjmuje `calendar: Calendar = Calendar()` i zwraca
-    trójkę `(WorldMap, GameState, Calendar)`; kalendarz przesuwa się dokładnie
-    o jeden miesiąc na każdą ukończoną turę przez `turn.end_turn`; ten sam seed →
-    ten sam kalendarz końcowy; wejścia niemutowane.
-- [ ] **M8.3** CLI raportuje datę zakończenia partii. *(task-016)*
-  - AC: `main()` wypisuje końcowy rok/miesiąc kalendarza obok wyniku (zwycięzca
-    albo remis); smoke sprawdza obecność daty w wyjściu i kod wyjścia 0; cała
-    logika w rdzeniu, `__main__.py` tylko I/O.
+## Kamień milowy 9 — rozwój jednostek w turze (§6 pkt 2: „trenuj i wyposażaj")
+> Krzywa malejącego zysku `progression.pillar_level`/`investment_for_level` (U3.2)
+> jest zbudowana, ale **nigdzie nie wpięta** w rozgrywkę. Ten kamień spina ją z
+> `Unit` i z miesięcznym przejściem osady, tak by garnizon obserwowalnie mocniał
+> (trening = czas; uzbrojenie = złoto + czynna kuźnia), zanim AI wystawi party.
+> `training`/`equipment` pozostają autorytatywnymi poziomami (zgodność wsteczna),
+> a reszta nakładu żyje w nowych polach `*_progress`. Bramkowanie treningu budynkiem
+> i strojenie tempa/kosztów są świadomie poza tym kamieniem (balans).
+- [ ] **U9.1** Trening jednostki jako czyste przejście z malejącym zyskiem. *(task-017)*
+  - AC: `Unit.train(months)` + pole `training_progress`; poziom rośnie po krzywej
+    trójkątnej U3.2; `months==0` no-op, `<0` błąd; wejście niemutowane; bez RNG.
+- [ ] **U9.2** Uzbrojenie jednostki jako czyste przejście z malejącym zyskiem. *(task-018)*
+  - AC: `Unit.equip(investment)` + pole `equipment_progress`; symetryczne do U9.1;
+    `damage`/`defense` odzwierciedlają nowy `equipment`; wejście niemutowane.
+- [ ] **U9.3** Miesięczny trening garnizonu w osadzie. *(task-019)*
+  - AC: `Settlement.tick_training()` daje każdemu żołnierzowi
+    `TRAINING_MONTHS_PER_TURN` miesięcy; pusty garnizon no-op; reszta osady bez
+    zmian; niemutowalne; bez RNG.
+- [ ] **U9.4** Miesięczne uzbrajanie garnizonu przez kuźnię. *(task-020)*
+  - AC: `Settlement.tick_equipment()` — czynny `Smith` + `gold≥EQUIP_GOLD_COST`
+    uzbraja jednego żołnierza (najniższy `equipment`, remis → najwcześniejszy)
+    i pobiera złoto; brak kuźni/złota/garnizonu = no-op; deterministyczne.
+- [ ] **U9.5** Rozwój garnizonu w `tick_settlements` i driverze. *(task-021)*
+  - AC: łańcuch `economy→growth→immigration→training→equipment`; headless partia
+    obserwowalnie rozwija jednostki i nadal kończy się rozstrzygnięciem;
+    determinizm end-to-end; cały pakiet testów zielony.
 
 ## Później (poza MVP)
 - [ ] Prezentacja/UI (pygame lub most do innego silnika) nad rdzeniem.
 - [ ] Bogatszy model ran, terenu, budynków; więcej typów jednostek.
-- [ ] **Rozwój jednostek w turze (§6 „trenuj i wyposażaj"):** model nakładu
-      miesiąc/surowiec na `Unit` (śledzenie skumulowanej inwestycji → poziom filaru
-      przez `progression.level`, zgodnie z U3.2) oraz przejście treningu/uzbrojenia
-      w polityce AI. Świadomie odłożone: wymaga zmiany modelu `Unit` (dziś filary są
-      wpisywane wprost), więc to osobny mini-kamień po M8.
-- [ ] Balans ekonomii i krzywych progresji; strojenie AI.
+- [ ] **Bramkowanie treningu budynkiem (§5 „odpowiednie budynki"):** katalog
+      budynku treningowego i wymóg jego czynności w `tick_training` (dziś trening
+      jest bezwarunkową funkcją czasu). Analogicznie polityka AI otwierania
+      kuźni/budynków treningowych.
+- [ ] Balans ekonomii, tempa rozwoju jednostek i krzywych progresji; strojenie AI.
 - [ ] Pełna maszyna faz `StrategicTurn` w headless driverze (routing akcji AI przez
       fazy ruch/bitwy zamiast bezpośredniego `take_duchy_turn`). M8 reużywa tylko
       prymitywów `tick_settlements`/`end_turn`, bez wciągania phase-gatingu.
