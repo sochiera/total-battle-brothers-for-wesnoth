@@ -776,9 +776,10 @@ ich dotykają, i notować wynik tutaj:
   wykonywanej tury, przed przebiegiem księstw, driver wywołuje dokładnie jedno
   `WorldMap.tick_settlements()`, a następnie `GameState.sync_from_world()`. Dzięki
   temu rekrutacja, ruch i bitwy widzą osady po miesięcznej produkcji, wzroście
-  i imigracji. Gra rozstrzygnięta na wejściu oraz `max_turns == 0` nadal zwracają
-  dokładnie wejściowe obiekty bez ticka i synchronizacji. Przejście pozostaje
-  czyste i deterministyczne.
+  i imigracji, a od U9.5 także po treningu i uzbrojeniu garnizonu. Gra
+  rozstrzygnięta na wejściu oraz `max_turns == 0` nadal zwracają dokładnie
+  wejściowe obiekty bez ticka i synchronizacji. Przejście pozostaje czyste
+  i deterministyczne.
   **ROZSTRZYGNIĘTE (M8.2, kalendarz w driverze headless):** driver przewleka
   wejściowy `Calendar` i po każdej rozpoczętej oraz ukończonej turze przesuwa go
   dokładnie o miesiąc przez `turn.end_turn`. Tura zakończona zwycięstwem w środku
@@ -797,10 +798,11 @@ ich dotykają, i notować wynik tutaj:
   **ROZSTRZYGNIĘTE (plan M5.4b, miesięczne przejście osad):**
   `WorldMap.tick_settlements()` aktualizuje wszystkie osady w deterministycznej
   kolejności regionów mapy. Dla każdej osady wynik `tick_economy()` jest wejściem
-  `tick_growth()`, a jego wynik wejściem `tick_immigration()`. Przejście zwraca
-  nową `WorldMap`, zachowując graf, party i regiony bez osad; mapa oraz osady
-  wejściowe pozostają niezmienione. Kalendarz nie jest częścią tego przejścia —
-  jego przesunięcie i spięcie z ruchem oraz bitwami należą do M5.4c.
+  `tick_growth()`, jego wynik wejściem `tick_immigration()`, a następnie U9.5
+  stosuje `tick_training()` i `tick_equipment()`. Przejście zwraca nową
+  `WorldMap`, zachowując graf, party i regiony bez osad; mapa oraz osady wejściowe
+  pozostają niezmienione. Kalendarz nie jest częścią tego przejścia — jego
+  przesunięcie i spięcie z ruchem oraz bitwami należą do M5.4c.
   **ROZSTRZYGNIĘTE (M5.4c1, szkielet strategicznej tury):** pojedynczą
   turę opisuje niemutowalny stan z mapą, kalendarzem i jawną fazą:
   **osady → ruch → bitwy → zakończona**. Wejście do fazy ruchu wykonuje
