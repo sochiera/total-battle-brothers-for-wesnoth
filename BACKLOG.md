@@ -23,7 +23,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     z bieżącej mapy o zgodnym `owner_id`, w kolejności regionów mapy; podbój usuwa
     osadę dawnemu właścicielowi i przypisuje ją zdobywcy. Identyfikator, bohater,
     dziedzic i morale pozostają bez zmian; wejściowe stany nie są mutowane.
-- [ ] **A7.2b2** Aktualizacja życia bohatera po wojskowej akcji tury.
+- [x] **A7.2b2** Aktualizacja życia bohatera po wojskowej akcji tury.
   - AC: po utracie party prowadzonego przez bohatera stan księstwa przechodzi przez
     istniejącą sukcesję albo jawny stan bez bohatera; brak poległego party nie
     uśmierca bohatera pozostającego poza mapą; wynik jest spójny z `WorldMap`.

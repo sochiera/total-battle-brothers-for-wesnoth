@@ -664,12 +664,15 @@ ich dotykają, i notować wynik tutaj:
   dziedzica i morale: rozpoznanie śmierci party bohatera oraz sukcesja wymagają
   porównania stanu przed i po akcji i pozostają osobnym krokiem A7.2b2.
   Pętla tur, bezpiecznik i wypisanie wyniku pozostają w A7.2b3–b4.
-  **PLAN (A7.2b2, przeżycie bohatera po akcji):** czyste
+  **ROZSTRZYGNIĘTE (A7.2b2, przeżycie bohatera po akcji):** czyste
   `driver.resolve_hero_survival(duchy, world_before, world_after)` porównuje
   obecność party księstwa (`owner_id == duchy_id`) na mapie przed i po akcji.
   Gdy party było przed, a nie ma go po — bohater poległ i księstwo przechodzi
   przez istniejącą `Duchy.succeed()` (awans dziedzica albo jawny stan bez
   bohatera z karą morale). Bohater poza mapą (brak party przed akcją) nie ginie.
+  Jeśli co najmniej jedno party księstwa pozostaje na mapie po akcji, księstwo
+  także pozostaje bez zmian. Obecność party jest wykrywana wyłącznie przez zgodny
+  `owner_id`, niezależnie od zapisanej w `Duchy` kolekcji party.
   Detekcja jest minimalna (before/after); śmierć party wystawionego i utraconego
   w tej samej turze pozostaje poza zakresem.
   **PLAN (A7.2b3, driver tur headless):** czyste
