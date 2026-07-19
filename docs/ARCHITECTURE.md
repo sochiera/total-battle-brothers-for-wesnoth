@@ -125,6 +125,9 @@ Uruchamiaj z katalogu `game/`.
   w efektywnych statystykach z podłogą na zero.
 - **Skład party:** `Party` wymaga bohatera `Unit` i kopiuje do krotki maksymalnie
   12 podkomendnych `Unit`; bohater jest osobnym polem i nie wlicza się do limitu.
+- **Postęp treningu:** `Unit.train()` reużywa trójkątną krzywą z `progression`;
+  autorytatywny poziom pozostaje w `training`, a reszta nakładu przed następnym
+  poziomem w `training_progress`.
 - **Własność strategiczna:** `Party` i `Settlement` mają opcjonalny, niemutowalny
   `owner_id`; kontakt bojowy wymaga niepustych, różnych identyfikatorów obu stron.
 - **Kolejność raportu bitwy:** `HexBattle` przechowuje osobny, niemutowalny

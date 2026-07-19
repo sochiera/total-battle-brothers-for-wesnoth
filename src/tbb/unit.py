@@ -1,7 +1,8 @@
 """Immutable unit quality pillars and their derived combat statistics."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
+from tbb.progression import investment_for_level, pillar_level
 from tbb.wound import Wound
 
 
@@ -15,14 +16,36 @@ class Unit:
     ranged_range: int = 0
     wounds: tuple[Wound, ...] = ()
     stunned: bool = False
+    training_progress: int = 0
 
     def __post_init__(self) -> None:
         """Reject pillar values below zero."""
         if self.training < 0 or self.equipment < 0 or self.experience < 0:
             raise ValueError("unit quality pillars cannot be negative")
+        if not 0 <= self.training_progress <= self.training:
+            raise ValueError("training progress must be between zero and training")
         if self.ranged_range < 0 or self.ranged_range == 1:
             raise ValueError("ranged range must be zero or at least two")
         object.__setattr__(self, "wounds", tuple(self.wounds))
+
+    def train(self, months: int) -> "Unit":
+        """Return this unit after investing non-negative months in training."""
+        if months < 0:
+            raise ValueError("training months cannot be negative")
+        if months == 0:
+            return self
+
+        total = (
+            investment_for_level(self.training)
+            + self.training_progress
+            + months
+        )
+        training = pillar_level(total)
+        return replace(
+            self,
+            training=training,
+            training_progress=total - investment_for_level(training),
+        )
 
     @property
     def hp(self) -> int:

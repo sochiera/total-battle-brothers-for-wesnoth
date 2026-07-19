@@ -57,6 +57,14 @@ def test_unit_is_immutable():
         unit.training = 1
 
 
+def test_training_progress_defaults_to_zero_and_is_immutable():
+    unit = Unit()
+
+    assert unit.training_progress == 0
+    with pytest.raises(FrozenInstanceError):
+        unit.training_progress = 1
+
+
 def test_ranged_range_defaults_to_zero_and_accepts_two_or_more():
     assert Unit().ranged_range == 0
     assert Unit(ranged_range=2).ranged_range == 2

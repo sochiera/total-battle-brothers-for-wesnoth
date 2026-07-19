@@ -388,6 +388,16 @@ filaru** z malejącym zyskiem (patrz §10) — samo mapowanie filar→statystyka
 liniowe. Stan bojowy jednostki
 { hp bieżące, wounds[], stunned } dochodzi przy warstwie bitwy (kamień milowy 4).
 
+**ROZSTRZYGNIĘTE (U9.1, trening jako czyste przejście):** poziomy filarów
+`training`/`equipment`/`experience` pozostają autorytatywne, więc bezpośrednie
+utworzenie `Unit(training=n)` zachowuje dotychczasowe znaczenie statystyk.
+`training_progress` przechowuje nieujemną resztę miesięcy ponad próg bieżącego
+poziomu i jest zawsze mniejsze od kosztu następnego poziomu (czyli nie większe
+niż `training`). `Unit.train(months)` dodaje miesiące do skumulowanego nakładu
+`T(training) + training_progress`, wyznacza nowy poziom przez trójkątną krzywą
+U3.2 i zachowuje pozostały postęp. Przejście jest niemutowalne, deterministyczne
+i nie używa RNG; zero miesięcy jest no-op, a wartość ujemna jest błędem.
+
 ## 6. Pętla rozgrywki (MVP)
 Najmniejsza grywalna pętla, single-player vs **jedno** księstwo AI:
 1. Twoje księstwo: 1 osada z populacją, pszenicą i złotem; naprzeciw księstwo AI.
