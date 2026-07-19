@@ -1,6 +1,6 @@
 """Pure transitions used by the headless game driver."""
 
-from tbb.ai import take_duchy_turn
+import tbb.ai as ai
 from tbb.duchy import Duchy
 from tbb.game import GameState
 from tbb.rng import Rng
@@ -35,5 +35,5 @@ def run_headless_game(
     current_world = world
     for duchy in game.duchies:
         if not duchy.is_defeated:
-            current_world = take_duchy_turn(current_world, duchy, rng)
+            current_world = ai.take_duchy_turn(current_world, duchy, rng)
     return current_world, game

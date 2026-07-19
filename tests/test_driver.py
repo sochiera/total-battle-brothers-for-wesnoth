@@ -1,11 +1,14 @@
 """Tests for headless game driver transitions."""
 
+import tbb.ai as ai
+
 from tbb.ai import take_duchy_turn
 from tbb.driver import resolve_hero_survival, run_headless_game
 from tbb.duchy import SUCCESSION_MORALE_PENALTY, Duchy
 from tbb.game import GameState, create_headless_game
 from tbb.party import Party
 from tbb.rng import Rng
+from tbb.settlement import Settlement
 from tbb.unit import Unit
 from tbb.world import Region, WorldMap
 
@@ -31,6 +34,62 @@ def test_one_turn_threads_real_ai_actions_through_duchies_immutably():
     assert result_world != world
     assert result_game is game
     assert world_snapshot == (
+        world.regions,
+        dict(world.settlements),
+        dict(world.parties),
+        game.duchies,
+    )
+
+
+def test_one_turn_delegates_to_live_ai_api_in_duchy_order(monkeypatch):
+    north, fallen, south = map(Region, ("North", "Fallen", "South"))
+    north_keep = Settlement("North Keep", 1, owner_id="north")
+    fallen_keep = Settlement("Fallen Keep", 1, owner_id="fallen")
+    south_keep = Settlement("South Keep", 1, owner_id="south")
+    world = WorldMap(
+        (north, fallen, south),
+        settlements={
+            north: north_keep,
+            fallen: fallen_keep,
+            south: south_keep,
+        },
+    )
+    game = GameState(
+        (
+            Duchy("north", Unit(), settlements=(north_keep,)),
+            Duchy("fallen", None),
+            Duchy("south", Unit(), settlements=(south_keep,)),
+        )
+    )
+    snapshot = (
+        world.regions,
+        dict(world.settlements),
+        dict(world.parties),
+        game.duchies,
+    )
+    real_take_duchy_turn = ai.take_duchy_turn
+    calls = []
+
+    def recording_take_duchy_turn(current_world, duchy, rng):
+        next_world = real_take_duchy_turn(current_world, duchy, rng)
+        calls.append((current_world, duchy, next_world))
+        return next_world
+
+    monkeypatch.setattr(ai, "take_duchy_turn", recording_take_duchy_turn)
+
+    result_world, result_game = run_headless_game(
+        world, game, Rng(17), max_turns=1
+    )
+
+    assert [call[1].duchy_id for call in calls] == ["north", "south"]
+    assert calls[0][0] is world
+    assert calls[1][0] is calls[0][2]
+    assert result_world is calls[1][2]
+    assert result_world.settlement_at(north).garrison == (Unit(),)
+    assert result_world.settlement_at(fallen).garrison == ()
+    assert result_world.settlement_at(south).garrison == (Unit(),)
+    assert result_game is game
+    assert snapshot == (
         world.regions,
         dict(world.settlements),
         dict(world.parties),
