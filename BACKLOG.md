@@ -112,22 +112,31 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > w `BACKLOG-ARCHIVE.md`. Rdzeń bez zmian.
 
 ## Kamień milowy 23 — orientacja gracza w podglądzie (legenda + tożsamość)
-> DESIGN §11 (PLAN K23): K22 dał gospodarkę i siłę, ale mapa koloruje właścicieli
-> bez legendy (człowiek nie odczyta kolorów), a strona listuje księstwa i osady
-> jednakowo (gracz nie wie, które są jego). K23 dokłada czystą legendę właścicieli
-> oraz oznaczenie księstwa/osad gracza — wszystko jako opcjonalne, wsteczne
-> przyrosty prezentacji. Rdzeń `tbb` bez zmian.
-- [ ] **K23.1a** Legenda właścicieli (`render_owner_legend`, `data-owner-legend`/`data-owner-legend-row`/`data-color`). *(task-119)*
-  - AC: fragment `data-owner-legend`; wiersz na właściciela w kolejności `owner_palette`; tekst `<owner>: <kolor>`.
-- [ ] **K23.1b** Osadzenie legendy w `render_game_page`. *(task-120)*
-  - AC: dokładnie jeden `data-owner-legend` na stronie; reszta strony bez zmian poza dodaniem legendy.
-- [ ] **K23.2a** Oznaczenie księstwa gracza w stronie (`render_game_page(..., player_duchy_id=None)`, `data-player-duchy`). *(task-121)*
-  - AC: `None` → bajt-w-bajt jak dziś; dopasowane księstwo dostaje `data-player-duchy=""` + prefiks `» `.
-- [ ] **K23.2b** Przewleczenie `player_duchy_id` z `GameApp._render`. *(task-122)*
-  - AC: `GET /` z ustawionym graczem ma dokładnie jeden `data-player-duchy`; `None` → brak; `data-player`/routing bez zmian.
-- [ ] **K23.3a** Panel osad wyróżnia osady gracza (`render_settlement_panel(..., player_duchy_id=None)`, `data-player-owned`). *(task-123)*
-  - AC: `None` → bajt-w-bajt jak dziś; wiersze z `owner_id == player_duchy_id` dostają `data-player-owned=""`; atrybuty/tekst K22.1 bez zmian.
-- [ ] **K23.3b** Przewleczenie `player_duchy_id` do panelu osad w `render_game_page` (przyszły przyrost).
+> DESIGN §11 (PLAN K23): K22 dał gospodarkę i siłę, ale mapa kolorowała właścicieli
+> bez legendy, a strona listowała księstwa i osady jednakowo. K23 dokłada czystą
+> legendę właścicieli (K23.1a–b), oznaczenie księstwa gracza (K23.2a–b) i osad
+> gracza w panelu (K23.3a–b) — opcjonalne, wsteczne przyrosty prezentacji.
+> Rdzeń `tbb` bez zmian. Ukończone (K23.1a…K23.3a, task-119…123) w
+> `BACKLOG-ARCHIVE.md`; otwarty ostatni przyrost:
+- [ ] **K23.3b** Przewleczenie `player_duchy_id` do panelu osad w `render_game_page` (`render_settlement_panel(world, player_duchy_id)`). *(task-124)*
+  - AC: `None` → bajt-w-bajt jak dziś; wiersze `data-settlement-row` gracza mają `data-player-owned=""`; reszta strony bez zmian.
+
+## Kamień milowy 24 — dokończenie orientacji gracza (własna party + kolor na mapie)
+> DESIGN §11 (PLAN K24): K23 oznaczył księstwo i osady gracza, ale panel party i
+> legenda kolorów wciąż nie wskazują, który oddział/kolor jest gracza. K24
+> domyka orientację symetrycznie: opcjonalny `player_duchy_id` znakuje własne
+> party (`data-player-owned`, K24.1) i wiersz gracza w legendzie
+> (`data-player-owner` + prefiks `» `, K24.2), przewleczony przez
+> `render_game_page`. Nowe argumenty domyślnie `None` → bajt-w-bajt jak dziś.
+> Rdzeń `tbb` bez zmian.
+- [ ] **K24.1a** Panel party wyróżnia party gracza (`render_party_panel(..., player_duchy_id=None)`, `data-player-owned`). *(task-125)*
+  - AC: `None` → bajt-w-bajt jak dziś; wiersze `data-party-row` z `owner_id == player_duchy_id` dostają `data-player-owned=""`; atrybuty/tekst K22.2 bez zmian.
+- [ ] **K24.1b** Przewleczenie `player_duchy_id` do panelu party w `render_game_page`. *(task-126)*
+  - AC: `None` → bajt-w-bajt jak dziś; wiersze `data-party-row` gracza mają `data-player-owned=""`; reszta strony bez zmian.
+- [ ] **K24.2a** Legenda wyróżnia kolor gracza (`render_owner_legend(..., player_duchy_id=None)`, `data-player-owner` + prefiks `» `). *(task-127)*
+  - AC: `None` → bajt-w-bajt jak dziś; wiersz z `owner_id == player_duchy_id` dostaje `data-player-owner=""` + prefiks `» `; atrybuty/kolejność K23.1a bez zmian.
+- [ ] **K24.2b** Przewleczenie `player_duchy_id` do legendy w `render_game_page`. *(task-128)*
+  - AC: `None` → bajt-w-bajt jak dziś; wiersz legendy gracza ma `data-player-owner=""` + prefiks `» `; reszta strony bez zmian.
 
 ## Dług/refaktor
 - [x] **R21.1 (refaktor)** Wspólny emiter formularzy celu marsz/szturm/starcie w `serve.py`. *(task-113)*

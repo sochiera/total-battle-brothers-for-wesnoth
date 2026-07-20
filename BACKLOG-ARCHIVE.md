@@ -250,3 +250,13 @@
 - [x] **K22.1c** Osadzenie panelu osad w `render_game_page`. *(task-116)*
 - [x] **K22.2a** Panel party z siłą oddziału (`render_party_panel`, `data-party-row`/`data-size`). *(task-117)*
 - [x] **K22.2b** Osadzenie panelu party w `render_game_page`. *(task-118)*
+
+## Kamień milowy 23 — orientacja gracza w podglądzie (legenda + tożsamość) — ukończone przyrosty
+> Czysta legenda właścicieli oraz maszynowe oznaczenie księstwa i osad gracza —
+> opcjonalne, wsteczne przyrosty prezentacji. Rdzeń bez zmian. (K23.3b/task-124
+> otwarte w BACKLOG.)
+- [x] **K23.1a** Legenda właścicieli (`render_owner_legend`, `data-owner-legend`/`data-owner-legend-row`/`data-color`). *(task-119)*
+- [x] **K23.1b** Osadzenie legendy w `render_game_page`. *(task-120)*
+- [x] **K23.2a** Oznaczenie księstwa gracza w stronie (`render_game_page(..., player_duchy_id=None)`, `data-player-duchy` + prefiks `» `). *(task-121)*
+- [x] **K23.2b** Przewleczenie `player_duchy_id` z `GameApp._render`. *(task-122)*
+- [x] **K23.3a** Panel osad wyróżnia osady gracza (`render_settlement_panel(..., player_duchy_id=None)`, `data-player-owned`). *(task-123)*

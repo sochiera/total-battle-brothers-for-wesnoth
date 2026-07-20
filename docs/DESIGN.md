@@ -472,10 +472,21 @@ czysty prymityw `tbbui.ownerlegend.render_owner_legend(world)` (fragment
 `render_game_page` (K23.1b); opcjonalny `player_duchy_id` w `render_game_page`
 oznaczający wiersz `data-duchy` gracza (`data-player-duchy` + prefiks `» `,
 K23.2a) przewleczony z `GameApp._render` (K23.2b); opcjonalny `player_duchy_id`
-w `render_settlement_panel` znakujący własne osady (`data-player-owned`, K23.3a;
-osadzenie w stronie — przyszły przyrost). Nowe argumenty domyślnie `None` →
-wyniki bajt-w-bajt jak dotąd. Rdzeń `tbb` bez zmian; dane z istniejących
-`owner_palette`/`Settlement`/`GameState`.
+w `render_settlement_panel` znakujący własne osady (`data-player-owned`, K23.3a);
+osadzenie panelu osad z `player_duchy_id` w `render_game_page` (K23.3b). Nowe
+argumenty domyślnie `None` → wyniki bajt-w-bajt jak dotąd. Rdzeń `tbb` bez zmian;
+dane z istniejących `owner_palette`/`Settlement`/`GameState`.
+
+**PLAN K24 (dokończenie orientacji gracza):** K23 oznaczył księstwo i osady
+gracza, ale panel party i legenda kolorów wciąż nie wskazują, który oddział
+i który kolor mapy należy do gracza. K24 domyka orientację symetrycznie:
+opcjonalny `player_duchy_id` w `render_party_panel` znakuje własne party
+(`data-player-owned`, K24.1a) przewleczony przez `render_game_page` (K24.1b);
+opcjonalny `player_duchy_id` w `render_owner_legend` oznacza wiersz gracza
+(`data-player-owner` + prefiks `» `, K24.2a) przewleczony przez
+`render_game_page` (K24.2b). Nowe argumenty domyślnie `None` → wyniki
+bajt-w-bajt jak dotąd. Rdzeń `tbb` bez zmian; dane z istniejących
+`Party`/`owner_palette`.
 
 ## 12. Otwarte pytania (nadal)
 - **Krzywe filarów:** różne parametry stromości per filar oraz wpływ budynków/
