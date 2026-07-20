@@ -378,6 +378,22 @@ prymitywy; formularze per region-cel. Bez zmiany rozstrzygania bitwy ani morale.
 trzyma ostatnią bitwę ze szturmu i przekazuje do strony (K16.1d). Nagranie nie
 zmienia rozstrzygania ani morale.
 
+**PLAN K17 (czytelny wynik bitwy):** K16 pokazał SVG bitwy, ale nie jej wynik.
+K17 dokłada czysty prymityw `tbbui.battlereport.render_battle_report(battle)`
+(fragment `data-battle-report` z `data-battle-result` i per-stroną
+`data-battle-side`/`data-fallen`/`data-stunned`/`data-active` z
+`HexBattle.report()`), a `render_game_page(..., battle=…)` osadza go obok SVG
+bitwy. Bez zmian w rdzeniu `tbb.battle`; `GameApp` dostaje raport przez istniejące
+przekazanie `last_battle`.
+
+**PLAN K18 (starcie party↔party gracza):** gracz szturmuje tylko osady, więc
+bezosadowy, wędrujący bohater AI kończy bazową partię remisem. K18 wystawia
+graczowi bitwę party↔party: rdzeń dokłada `WorldMap.resolve_party_battle_recorded`
+(nagrana wersja `resolve_party_battle`), `ai.engage_duchy_party_recorded` atakuje
+pierwsze sąsiednie wrogie party (auto-cel, no-op bez RNG), a `GameApp` udostępnia
+rozkaz `POST /order/engage` reużywający `_apply_player_assault_order` +
+`last_battle`. Jawny wybór celu party — późniejszy przyrost.
+
 ## 12. Otwarte pytania (nadal)
 - **Krzywe filarów:** różne parametry stromości per filar oraz wpływ budynków/
   mnożników — strojenie przy balansie (bazowa trójkątna krzywa: U3.2 w DECISIONS).

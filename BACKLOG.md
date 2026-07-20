@@ -66,30 +66,48 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > szturmuje (K15.1a–c, K15.2a–c; task-085…090). Wszystkie pozycje w
 > `BACKLOG-ARCHIVE.md`. Wybór celu nie zmienił rozstrzygania bitwy ani morale.
 
-## Kamień milowy 16 — obserwowalna bitwa gracza w podglądzie
-> DESIGN §9a (PLAN K16): `render_battle_svg` istnieje (V13.3b), ale gracz nigdy
-> nie *widzi* bitwy — rozkaz szturmu zmienia tylko mapę/panel. K16 wpina
-> rozstrzygniętą bitwę w stronę partii: rdzeń nagrywa `HexBattle` obok mapy,
-> prymityw AI szturmu go zwraca, a `GameApp` renderuje ostatnią bitwę.
-> Prymitywy-pierwsze, każdy krok mały i testowalny.
+## Kamień milowy 16 — obserwowalna bitwa gracza w podglądzie — UKOŃCZONY
+> DESIGN §9a (PLAN K16): rozkaz szturmu nagrywa rozstrzygniętą `HexBattle`, a
+> `GameApp` renderuje ostatnią bitwę (SVG) w stronie partii; inne rozkazy i tura
+> ją zerują. Wszystkie pozycje (task-091…098, w tym refaktor R16.1) ukończone.
 - [x] **K16.1a** Strona partii z opcjonalnym slotem SVG bitwy (`render_game_page(..., battle=None)`). *(task-091)*
 - [x] **K16.1b** Rdzeń: nagrana wersja szturmu osady (`resolve_settlement_battle_recorded → (WorldMap, HexBattle)`). *(task-092)*
 - [x] **K16.1c** Prymityw AI szturmu na wskazaną osadę zwraca bitwę (`ai.assault_duchy_party_to_recorded`). *(task-093)*
-- [ ] **K16.1d-1** Prymityw AI auto-szturmu z nagraniem (`ai.assault_duchy_party_recorded`). *(task-095)*
-  - AC: sąsiednia najbliższa wroga osada → `(mapa, bitwa)` przez recorded; no-op →
-    `(world, None)` bez RNG; mapa identyczna z `assault_duchy_party`.
-- [ ] **K16.1d-2** `GameApp` nagrywa i renderuje ostatnią bitwę po szturmie (`last_battle`). *(task-096)*
-  - AC: `assault`/`assault?target=` przez recorded ustawia `last_battle`; `_render`
-    przekazuje `battle=self.last_battle` do `render_game_page`; guardy bez zmian.
-- [ ] **K16.1d-3** Inne rozkazy i `POST /turn` czyszczą `last_battle`. *(task-097)*
-  - AC: recruit/muster/develop/march oraz `/turn` zerują `last_battle`; szturm
-    nadal ją ustawia; strona po nich nie zawiera SVG bitwy.
+- [x] **K16.1d-1** Prymityw AI auto-szturmu z nagraniem (`ai.assault_duchy_party_recorded`). *(task-095)*
+- [x] **K16.1d-2** `GameApp` nagrywa i renderuje ostatnią bitwę po szturmie (`last_battle`). *(task-096)*
+- [x] **K16.1d-3** Inne rozkazy i `POST /turn` czyszczą `last_battle`. *(task-097)*
+
+## Kamień milowy 17 — czytelny wynik bitwy gracza w podglądzie
+> DESIGN §11 (PLAN K17): K16 pokazał *rysunek* bitwy, ale nie jej *wynik* — gracz
+> nie wie, kto wygrał i jakie były straty. Rdzeń ma już `HexBattle.report()`.
+> K17 dokłada czytelny raport HTML (wynik + polegli/ogłuszeni/zdolni per strona)
+> i osadza go w stronie partii. Prymityw-pierwszy, bez zmian w rdzeniu bitwy.
+- [ ] **K17.1a** Prymityw HTML raportu bitwy (`tbbui.battlereport.render_battle_report(battle)`). *(task-099)*
+  - AC: `<div data-battle-report>` z `data-battle-result` i per-stroną
+    `data-battle-side`/`data-fallen`/`data-stunned`/`data-active`; czysty.
+- [ ] **K17.1b** Strona partii osadza raport bitwy (`render_game_page(..., battle=…)`). *(task-100)*
+  - AC: osadza `render_battle_report` gdy `battle`; bajt-w-bajt bez zmian gdy `None`.
+
+## Kamień milowy 18 — starcie party↔party gracza (dobicie wędrującego bohatera)
+> DESIGN §11 (PLAN K18): gracz szturmuje tylko osady, więc bezosadowy, wędrujący
+> bohater AI kończy bazową partię remisem. Warstwa bitwy party↔party istnieje w
+> rdzeniu (`resolve_party_battle`), ale nie jest ani nagrywana, ani wystawiona
+> graczowi. K18 domyka to prymitywami-pierwszymi: nagrana bitwa party↔party →
+> prymityw AI auto-starcia → rozkaz gracza `POST /order/engage`. Auto-cel;
+> jawny wybór celu party — późniejszy przyrost.
+- [ ] **K18.1a** Rdzeń: nagrana wersja bitwy party↔party (`WorldMap.resolve_party_battle_recorded → (WorldMap, HexBattle)`). *(task-101)*
+  - AC: składa start→auto_resolve→apply; mapa identyczna z `resolve_party_battle`
+    bez extra RNG; `resolve_party_battle` deleguje.
+- [ ] **K18.1b** Prymityw AI auto-starcia party↔party z nagraniem (`ai.engage_duchy_party_recorded`). *(task-102)*
+  - AC: pierwsze sąsiednie wrogie party → `(mapa, bitwa)`; no-op → `(world, None)`
+    bez RNG; morale per strona z `morale_by_owner`.
+- [ ] **K18.1c** Rozkaz gracza `POST /order/engage` ustawia i renderuje `last_battle`. *(task-103)*
+  - AC: guardy jak `/order/assault`; bare form `/order/engage`; inne rozkazy/tura
+    nadal zerują `last_battle`, engage nie.
 
 ## Dług/refaktor
 - [x] **R15.1 (refaktor)** Kompaktacja DESIGN.md do stanu obecnego; historia → DECISIONS.md. *(task-094)*
-- [ ] **R16.1 (refaktor)** Wspólny generator formularzy celu marsz/szturm w `serve.py`. *(task-098)*
-  - AC: bez nowych testów; `_march_forms`/`_assault_forms` → jeden helper
-    `_target_forms(order_path, bare_form)`; HTML bajt-w-bajt bez zmian.
+- [x] **R16.1 (refaktor)** Wspólny generator formularzy celu marsz/szturm w `serve.py`. *(task-098)*
 
 ## Później (poza MVP)
 - [ ] **R12.1 (opcjonalny dług)** Wspólna kwerenda własnych osad w `ai.py`:
