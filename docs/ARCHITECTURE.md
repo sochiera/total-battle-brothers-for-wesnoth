@@ -111,11 +111,13 @@ po jednym `<div data-owner-legend-row="<owner_id>">` na wpis
 wiersza: `data-owner` (= `owner_id`), `data-color` (kolor z palety); widoczny
 tekst `<owner_id>: <kolor>` zgodny z atrybutami. Brak właścicieli → sam pusty
 korzeń (bez wierszy). Czyste, deterministyczne, bez mutacji `world`; rdzeń bez
-zmian. Osadzenie w `render_game_page` — K23.1b.
+zmian.
 
-**Strona HTML partii (V13.4a / K16.1a / K17.1b / K20.1a / K20.1b / K21.1a / K22.1c / K22.2b):** `tbbui.gamepage.render_game_page(world,
+**Strona HTML partii (V13.4a / K16.1a / K17.1b / K20.1a / K20.1b / K21.1a / K22.1c / K22.2b / K23.1b):** `tbbui.gamepage.render_game_page(world,
 game, calendar, battle=None) -> str` — parsowalny HTML z korzeniem `<html>`;
-osadza kanoniczny string z `render_world_svg(world)`; opcjonalny
+osadza kanoniczny string z `render_world_svg(world)`; zawsze osadza też
+kanoniczny string z `render_owner_legend(world)` (K23.1b, dokładnie jeden
+`data-owner-legend` w `<body>`); opcjonalny
 `battle: HexBattle | None = None` — gdy podany, osadza w `<body>` kanoniczne
 stringi z `render_battle_svg(battle)` (`tbbui.battlesvg`) oraz
 `render_battle_report(battle)` (`tbbui.battlereport`); zawsze osadza też

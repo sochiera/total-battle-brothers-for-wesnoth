@@ -18,6 +18,8 @@ from tbb.world import Region, WorldMap
 from tbbui.battlereport import render_battle_report
 from tbbui.battlesvg import render_battle_svg
 from tbbui.gamepage import render_game_page
+from tbbui.ownerlegend import render_owner_legend
+from tbbui.palette import owner_palette
 from tbbui.partypanel import render_party_panel
 from tbbui.settlementpanel import render_settlement_panel
 from tbbui.worldsvg import render_world_svg
@@ -314,6 +316,26 @@ def test_render_game_page_embeds_canonical_party_panel_with_matching_rows():
     root = ET.fromstring(html)
     panels = _find_by_attr(root, "data-party-panel")
     assert len(panels) == 1
+
+
+def test_render_game_page_embeds_canonical_owner_legend_with_matching_rows():
+    """Page embeds ``render_owner_legend(world)`` verbatim; rows match owner_palette."""
+    world, game, calendar = _ongoing_fixture()
+    expected_legend = render_owner_legend(world)
+
+    html = render_game_page(world, game, calendar)
+    assert expected_legend in html, (
+        "page must embed render_owner_legend(world) output"
+    )
+
+    root = ET.fromstring(html)
+    legends = _find_by_attr(root, "data-owner-legend")
+    assert len(legends) == 1
+
+    row_els = _find_by_attr(root, "data-owner-legend-row")
+    assert [el.get("data-owner-legend-row") for el in row_els] == list(
+        owner_palette(world)
+    )
 
     party_regions = [
         region for region in world.regions if world.party_at(region) is not None
