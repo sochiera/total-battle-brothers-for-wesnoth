@@ -12,6 +12,11 @@ class Battlefield:
     def __init__(self, terrain: Mapping[Hex, Terrain] | None = None) -> None:
         self._terrain = dict(terrain or {})
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Battlefield):
+            return NotImplemented
+        return self._terrain == other._terrain
+
     def terrain_at(self, position: Hex) -> Terrain:
         """Return terrain at ``position`` or Plains when it is not overridden."""
         return self._terrain.get(position, PLAINS)

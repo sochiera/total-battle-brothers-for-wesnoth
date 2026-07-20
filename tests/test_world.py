@@ -1660,6 +1660,36 @@ def test_resolve_settlement_battle_recorded_matches_plain_and_returns_resolved_b
     assert world.settlement_at(vale) is settlement
 
 
+def test_resolve_settlement_battle_recorded_is_deterministic():
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(Unit(equipment=4), owner_id="north")
+    garrison = (Unit(equipment=3), Unit(equipment=3))
+    settlement = Settlement(
+        "Oakrest",
+        population=4,
+        occupied=2,
+        garrison=garrison,
+        owner_id="south",
+    )
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        settlements={vale: settlement},
+        parties={camp: attacker},
+    )
+
+    first_world, first_battle = world.resolve_settlement_battle_recorded(
+        camp, vale, Rng(15)
+    )
+    second_world, second_battle = world.resolve_settlement_battle_recorded(
+        camp, vale, Rng(15)
+    )
+
+    assert first_world == second_world
+    assert first_battle == second_battle
+
+
 @pytest.mark.parametrize(
     "party_region, settlement_region, source_name, destination_name, same_owner",
     [

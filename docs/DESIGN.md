@@ -223,7 +223,8 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   `defense_mod=+1`, `accuracy_mod=+1` — wysoka pozycja). Pole bitwy (`Battlefield`)
   to rzadkie odwzorowanie `Hex → Terrain` z **domyślnym terenem Plains** dla heksów
   bez nadpisania; zwraca modyfikatory przez zapytania (`terrain_at`, `move_cost_at`,
-  `defense_at`, `accuracy_at`). **NADAL OTWARTE:** dokładna semantyka aplikowania
+  `defense_at`, `accuracy_at`); równość strukturalna po mapie nadpisań terenu
+  (wspiera `HexBattle` / determinizm nagranych rozstrzygnięć). **NADAL OTWARTE:** dokładna semantyka aplikowania
   modyfikatorów w walce (czy `accuracy_mod` obrońcy obniża celność atakującego, czy
   własną) dochodzi w **B4.3**; granice/kształt planszy oraz strojenie wartości —
   później.
