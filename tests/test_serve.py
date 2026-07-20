@@ -48,6 +48,11 @@ def _has_post_muster_form(html: str) -> bool:
     return _has_post_form(html, "/order/muster")
 
 
+def _has_post_develop_form(html: str) -> bool:
+    """True when body contains a form that POSTs to /order/develop (K14.2c)."""
+    return _has_post_form(html, "/order/develop")
+
+
 def _has_post_form(html: str, action_path: str) -> bool:
     """True when body contains a form that POSTs to ``action_path``."""
     root = ET.fromstring(html)
@@ -728,4 +733,116 @@ def test_game_app_post_order_develop_applies_develop_and_resyncs():
     assert world_before.settlement_at(north) is north_before
     assert north_before.active_buildings == ()
     assert north_before.occupied == 0
+
+
+def test_game_app_order_develop_form_noop_and_determinism():
+    """GET form /order/develop; no-op guards; develop sequence determinism.
+
+    Contract (task-080 / K14.2c):
+    - GET / contains <form method="post" action="/order/develop"> with a submit
+    - when player_duchy_id is None, game is is_over, or player duchy is absent
+      from game.duchies: POST /order/develop is a no-op (state unchanged), still
+      (200, page)
+    - fixed GameApp seed + same handle sequence → identical bodies and state
+    """
+    from tbb.building import FARM, SMITH
+
+    def _develop_ready_world_game() -> tuple[WorldMap, GameState, Region]:
+        """World where north can develop (free slots, no buildings yet)."""
+        n, s = map(Region, ("North", "South"))
+        nk = Settlement("North Keep", 3, owner_id="north")
+        sk = Settlement("South Keep", 2, owner_id="south")
+        w = WorldMap((n, s), settlements={n: nk, s: sk})
+        g = GameState(
+            (
+                Duchy("north", Unit(), settlements=(nk,)),
+                Duchy("south", Unit(), settlements=(sk,)),
+            )
+        )
+        return w, g, n
+
+    world, game, north = _develop_ready_world_game()
+    calendar = Calendar(year=2, month=3)
+
+    # GET / embeds the develop form (and a button).
+    app = GameApp(world, game, calendar, Rng(11), player_duchy_id="north")
+    code_get, body_get = app.handle("GET", "/")
+    assert code_get == 200
+    assert _has_post_develop_form(body_get)
+    assert re.search(
+        r"<button\b[^>]*>\s*Develop settlement\s*</button>",
+        body_get,
+        flags=re.IGNORECASE,
+    )
+
+    # No-op: player_duchy_id is None — state frozen, still 200 + page.
+    none_app = GameApp(world, game, calendar, Rng(11), player_duchy_id=None)
+    world_n, game_n = none_app.world, none_app.game
+    code_n, body_n = none_app.handle("POST", "/order/develop")
+    assert code_n == 200
+    assert isinstance(body_n, str)
+    assert none_app.world is world_n
+    assert none_app.game is game_n
+    assert none_app.calendar == calendar
+    assert _calendar_stamp(body_n) == (2, 3)
+    assert _has_post_develop_form(body_n)
+    # Would-be develop target unchanged (still no buildings).
+    assert none_app.world.settlement_at(north).active_buildings == ()
+    assert none_app.world.settlement_at(north).occupied == 0
+
+    # No-op: game is_over — finished sole-duchy world.
+    fin_world, fin_game = _finished_world_game()
+    fin_cal = Calendar(year=5, month=1)
+    fin_app = GameApp(
+        fin_world, fin_game, fin_cal, Rng(3), player_duchy_id="north"
+    )
+    w_f, g_f = fin_app.world, fin_app.game
+    code_f, body_f = fin_app.handle("POST", "/order/develop")
+    assert code_f == 200
+    assert fin_app.world is w_f
+    assert fin_app.game is g_f
+    assert fin_app.calendar == fin_cal
+    assert _calendar_stamp(body_f) == (5, 1)
+
+    # No-op: player duchy id not present in game.duchies.
+    missing = GameApp(
+        world, game, calendar, Rng(11), player_duchy_id="ghost"
+    )
+    w_m, g_m = missing.world, missing.game
+    code_m, _body_m = missing.handle("POST", "/order/develop")
+    assert code_m == 200
+    assert missing.world is w_m
+    assert missing.game is g_m
+    assert missing.calendar == calendar
+    assert missing.world.settlement_at(north).active_buildings == ()
+    assert missing.world.settlement_at(north).occupied == 0
+
+    # Determinism: two apps, same seed, same develop sequence → same bodies/state.
+    wa, ga, _ = _develop_ready_world_game()
+    wb, gb, _ = _develop_ready_world_game()
+    a = GameApp(wa, ga, Calendar(year=2, month=3), Rng(11), player_duchy_id="north")
+    b = GameApp(wb, gb, Calendar(year=2, month=3), Rng(11), player_duchy_id="north")
+    seq = (
+        ("GET", "/"),
+        ("POST", "/order/develop"),
+        ("GET", "/"),
+        ("POST", "/order/develop"),
+    )
+    bodies_a: list[str] = []
+    bodies_b: list[str] = []
+    for method, path in seq:
+        ca, ba = a.handle(method, path)
+        cb, bb = b.handle(method, path)
+        assert ca == cb == 200
+        assert ba == bb
+        bodies_a.append(ba)
+        bodies_b.append(bb)
+    assert bodies_a == bodies_b
+    north_a = a.world.settlement_at(a.world.regions[0])
+    north_b = b.world.settlement_at(b.world.regions[0])
+    assert north_a.active_buildings == north_b.active_buildings
+    assert north_a.occupied == north_b.occupied
+    # Two successful develops: Farm then Smith (priority order).
+    assert north_a.active_buildings == (FARM, SMITH)
+    assert north_a.occupied == FARM.staff + SMITH.staff
 
