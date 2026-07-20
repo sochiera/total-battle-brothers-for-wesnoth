@@ -72,6 +72,15 @@ pointy-top: `hex_to_pixel(hex, size) -> (x, y)` (axial → piksel środka) oraz
 (`data-side`/`data-hp`/`data-stunned`) w środku z `hex_to_pixel`. Czyste,
 deterministyczne, bez mutacji `battle`.
 
+**Strona HTML partii (V13.4a):** `tbbui.gamepage.render_game_page(world, game,
+calendar) -> str` — parsowalny HTML z korzeniem `<html>`; osadza kanoniczny
+string z `render_world_svg(world)`; element `data-calendar` z `data-year` /
+`data-month` z podanego `Calendar`; po jednym elemencie `data-duchy` (=
+`duchy_id`) na każde `game.duchies` z `data-morale`, `data-settlements` i
+`data-parties` (liczby); element `data-result` = `duchy_id` zwycięzcy /
+`draw` / `ongoing` wg `game.is_over` i `game.winner`. Czyste, deterministyczne,
+bez mutacji wejść. Zapis pliku/CLI i serwer — osobne przyrosty (V13.4b/V13.5).
+
 ## 2. Struktura katalogów
 ```
 game/                     # katalog projektu (repo root dla tej gry)
@@ -107,7 +116,8 @@ game/                     # katalog projektu (repo root dla tej gry)
 │       ├── battlesvg.py  # SVG pola bitwy heksowej (heksy + znaczniki jednostek)
 │       ├── layout.py     # deterministyczny layout regionów WorldMap → (col, row)
 │       ├── palette.py    # paleta kolorów właścicieli (owner_id → fill)
-│       └── worldsvg.py   # SVG mapy strategicznej (węzły + linie + znaczniki)
+│       ├── worldsvg.py   # SVG mapy strategicznej (węzły + linie + znaczniki)
+│       └── gamepage.py   # HTML strony partii (mapa + kalendarz + księstwa + wynik)
 ├── tests/                # testy pytest (mirror struktury src/)
 │   ├── test_battle.py
 │   ├── test_ai.py
@@ -132,6 +142,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │   ├── test_palette.py   # paleta kolorów właścicieli (tbbui)
 │   ├── test_worldsvg.py  # SVG mapy: węzły + linie + znaczniki (tbbui)
 │   ├── test_battlesvg.py # SVG pola bitwy heksowej (tbbui)
+│   ├── test_gamepage.py  # HTML strony partii (tbbui)
 │   └── test_smoke.py
 ├── scripts/
 │   ├── test.sh           # uruchamia pełny pakiet testów

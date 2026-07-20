@@ -1,0 +1,146 @@
+"""Tests for game-page HTML (observer party view, tbbui presentation layer)."""
+
+from __future__ import annotations
+
+import xml.etree.ElementTree as ET
+
+from tbb.duchy import Duchy
+from tbb.game import GameState
+from tbb.party import Party
+from tbb.settlement import Settlement
+from tbb.turn import Calendar
+from tbb.unit import Unit
+from tbb.world import Region, WorldMap
+from tbbui.gamepage import render_game_page
+from tbbui.worldsvg import render_world_svg
+
+
+def _local(tag: str) -> str:
+    return tag.rsplit("}", 1)[-1]
+
+
+def _find_by_attr(root: ET.Element, attr: str) -> list[ET.Element]:
+    return [el for el in root.iter() if el.get(attr) is not None]
+
+
+def _ongoing_fixture() -> tuple[WorldMap, GameState, Calendar]:
+    """Two contending duchies with known morale / settlement / party counts."""
+    north_r = Region("north")
+    south_r = Region("south")
+    mid_r = Region("mid")
+    n_keep = Settlement("North Keep", 3, owner_id="north")
+    n_outpost = Settlement("North Outpost", 2, owner_id="north")
+    s_keep = Settlement("South Keep", 4, owner_id="south")
+    n_party = Party(Unit(), owner_id="north")
+    world = WorldMap(
+        (north_r, mid_r, south_r),
+        ((north_r, mid_r), (mid_r, south_r)),
+        settlements={north_r: n_keep, mid_r: n_outpost, south_r: s_keep},
+        parties={mid_r: n_party},
+    )
+    game = GameState(
+        (
+            Duchy(
+                "north",
+                Unit(),
+                morale=7,
+                settlements=(n_keep, n_outpost),
+                parties=(n_party,),
+            ),
+            Duchy(
+                "south",
+                Unit(),
+                morale=3,
+                settlements=(s_keep,),
+                parties=(),
+            ),
+        )
+    )
+    calendar = Calendar(year=4, month=9)
+    return world, game, calendar
+
+
+def test_render_game_page_html_map_calendar_duchies_result_and_purity():
+    """Parsable HTML: embedded map SVG, calendar, duchy panel, result; pure/det.
+
+    Covers ongoing game plus winner and draw result modes from the contract.
+    """
+    world, game, calendar = _ongoing_fixture()
+    regions_before = world.regions
+    connections_before = world.connections
+    duchies_before = game.duchies
+    year_before = calendar.year
+    month_before = calendar.month
+    expected_svg = render_world_svg(world)
+
+    html = render_game_page(world, game, calendar)
+
+    root = ET.fromstring(html)
+    assert _local(root.tag) == "html"
+
+    svgs = [el for el in root.iter() if _local(el.tag) == "svg"]
+    assert len(svgs) >= 1, "page must embed at least one map <svg>"
+    # Canonical reuse: full string from render_world_svg must appear in the page.
+    assert expected_svg in html, "page must embed render_world_svg(world) output"
+
+    calendars = _find_by_attr(root, "data-calendar")
+    assert len(calendars) == 1
+    cal_el = calendars[0]
+    assert cal_el.get("data-year") == str(calendar.year)
+    assert cal_el.get("data-month") == str(calendar.month)
+
+    duchy_els = _find_by_attr(root, "data-duchy")
+    by_id = {el.get("data-duchy"): el for el in duchy_els}
+    assert set(by_id) == {d.duchy_id for d in game.duchies}
+    assert len(duchy_els) == len(game.duchies)
+    for duchy in game.duchies:
+        el = by_id[duchy.duchy_id]
+        assert el.get("data-morale") == str(duchy.morale)
+        assert el.get("data-settlements") == str(len(duchy.settlements))
+        assert el.get("data-parties") == str(len(duchy.parties))
+
+    results = _find_by_attr(root, "data-result")
+    assert len(results) == 1
+    assert results[0].get("data-result") == "ongoing"
+
+    # Winner: sole undefeated duchy.
+    won = GameState(
+        (
+            Duchy("north", Unit(), morale=7, settlements=(
+                Settlement("North Keep", 3, owner_id="north"),
+            )),
+            Duchy("south", None, morale=0, settlements=()),
+        )
+    )
+    assert won.is_over and won.winner is not None
+    won_html = render_game_page(world, won, calendar)
+    won_root = ET.fromstring(won_html)
+    won_results = _find_by_attr(won_root, "data-result")
+    assert len(won_results) == 1
+    assert won_results[0].get("data-result") == won.winner.duchy_id
+
+    # Draw: over without a winner.
+    draw = GameState(
+        (
+            Duchy("north", None, morale=0, settlements=()),
+            Duchy("south", None, morale=0, settlements=()),
+        )
+    )
+    assert draw.is_over and draw.winner is None
+    draw_html = render_game_page(world, draw, calendar)
+    draw_root = ET.fromstring(draw_html)
+    draw_results = _find_by_attr(draw_root, "data-result")
+    assert len(draw_results) == 1
+    assert draw_results[0].get("data-result") == "draw"
+
+    # Pure and deterministic: same inputs → same string; no mutation.
+    again = render_game_page(world, game, calendar)
+    assert again == html
+    assert world.regions is regions_before
+    assert world.connections is connections_before
+    assert world.regions == regions_before
+    assert world.connections == connections_before
+    assert game.duchies is duchies_before
+    assert game.duchies == duchies_before
+    assert calendar.year == year_before
+    assert calendar.month == month_before

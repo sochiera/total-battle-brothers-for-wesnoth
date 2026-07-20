@@ -804,8 +804,14 @@ i sześć narożników). Fundament pod render pola bitwy.
 `tbbui.battlesvg` zwraca parsowalny string SVG: heksy obwiedni zajętych pozycji
 rozszerzonej o ±1 (`data-q`/`data-r`, `fill` z terenu), plus znaczniki jednostek
 (`data-side`/`data-hp`/`data-stunned`) w środkach heksów. Czyste i
-deterministyczne; bez mutacji stanu bitwy. Strona HTML partii i CLI/serwer
-dochodzą w V13.4–V13.5.
+deterministyczne; bez mutacji stanu bitwy.
+
+**ROZSTRZYGNIĘTE (V13.4a, strona HTML partii):** `render_game_page(world, game,
+calendar)` w `tbbui.gamepage` zwraca parsowalny HTML (`<html>`): osadza
+kanoniczny SVG mapy z `render_world_svg`, znacznik kalendarza (`data-calendar`
++ rok/miesiąc), panel księstw (`data-duchy` z morale i liczbami osad/party)
+oraz wynik partii (`data-result`: `duchy_id` / `draw` / `ongoing`). Czyste i
+deterministyczne; bez mutacji wejść. Snapshot CLI i serwer — V13.4b/V13.5.
 
 ## 10. Otwarte pytania (do rozstrzygnięcia w trakcie)
 Oznaczone, bo decyzja nie jest przesądzona — rozstrzygać przy okazji zadań, które
