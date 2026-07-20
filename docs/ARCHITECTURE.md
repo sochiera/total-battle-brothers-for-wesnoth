@@ -110,12 +110,16 @@ zgodny z `data-size`. Gdy `player_duchy_id` nie jest `None`, wiersze z
 → wynik bajt-w-bajt jak bez argumentu. Czyste, deterministyczne, bez mutacji
 `world`; rdzeń bez zmian.
 
-**Legenda właścicieli HTML (K23.1a):** `tbbui.ownerlegend.render_owner_legend(world)
--> str` — parsowalny fragment XML z korzeniem `<div data-owner-legend="">`;
-po jednym `<div data-owner-legend-row="<owner_id>">` na wpis
-`owner_palette(world)` w tej samej kolejności (pierwsze wystąpienie). Atrybuty
-wiersza: `data-owner` (= `owner_id`), `data-color` (kolor z palety); widoczny
-tekst `<owner_id>: <kolor>` zgodny z atrybutami. Brak właścicieli → sam pusty
+**Legenda właścicieli HTML (K23.1a / K24.2a):**
+`tbbui.ownerlegend.render_owner_legend(world, player_duchy_id=None) -> str` —
+parsowalny fragment XML z korzeniem `<div data-owner-legend="">`; po jednym
+`<div data-owner-legend-row="<owner_id>">` na wpis `owner_palette(world)` w tej
+samej kolejności (pierwsze wystąpienie). Atrybuty wiersza: `data-owner`
+(= `owner_id`), `data-color` (kolor z palety); widoczny tekst
+`<owner_id>: <kolor>` zgodny z atrybutami. Opcjonalny `player_duchy_id` (K24.2a)
+— gdy równa się `owner_id` wiersza, ten wiersz dostaje `data-player-owner=""` i
+prefiks `» ` przed tekstem; id spoza palety → żaden wiersz nieoznaczony; `None`
+(domyślnie) → wynik bajt-w-bajt jak bez argumentu. Brak właścicieli → sam pusty
 korzeń (bez wierszy). Czyste, deterministyczne, bez mutacji `world`; rdzeń bez
 zmian.
 

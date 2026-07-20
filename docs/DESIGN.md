@@ -484,9 +484,9 @@ dane z istniejących `owner_palette`/`Settlement`/`GameState`.
 **PLAN K24 (dokończenie orientacji gracza):** K23 oznaczył księstwo i osady
 gracza; K24.1a dodaje `player_duchy_id` w `render_party_panel` (`data-player-owned`
 na własnych party); K24.1b przewleka `player_duchy_id` z `render_game_page` do
-panelu party. Pozostaje legenda: opcjonalny `player_duchy_id` w
-`render_owner_legend` oznacza wiersz gracza (`data-player-owner` + prefiks `» `,
-K24.2a) przewleczony przez `render_game_page` (K24.2b). Nowe argumenty
+panelu party; K24.2a dodaje `player_duchy_id` w `render_owner_legend`
+(`data-player-owner` + prefiks `» ` na wierszu gracza). Pozostaje przewleczenie
+`player_duchy_id` do legendy przez `render_game_page` (K24.2b). Nowe argumenty
 domyślnie `None` → wyniki bajt-w-bajt jak dotąd. Rdzeń `tbb` bez zmian; dane z
 istniejących `Party`/`owner_palette`.
 

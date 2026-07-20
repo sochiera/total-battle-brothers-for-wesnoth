@@ -56,6 +56,36 @@ def test_render_owner_legend_rows_match_owner_palette_order_and_colors():
     assert world.parties == parties_before
 
 
+def test_render_owner_legend_marks_player_row_when_duchy_id_given():
+    """When ``player_duchy_id`` is given, the row whose ``owner_id`` matches
+    it gets ``data-player-owner=""`` and a visible ``» `` prefix; other rows
+    are unaffected.
+    """
+    a = Region("A")
+    b = Region("B")
+    world = WorldMap(
+        [a, b],
+        [(a, b)],
+        settlements={
+            a: Settlement("Keep A", population=1, owner_id="north"),
+            b: Settlement("Keep B", population=1, owner_id="south"),
+        },
+    )
+
+    xml = render_owner_legend(world, player_duchy_id="south")
+    root = ET.fromstring(xml)
+
+    rows = root.findall("div")
+    row_north = next(r for r in rows if r.attrib["data-owner"] == "north")
+    row_south = next(r for r in rows if r.attrib["data-owner"] == "south")
+
+    assert "data-player-owner" not in row_north.attrib
+    assert "".join(row_north.itertext()) == "north: " + row_north.attrib["data-color"]
+
+    assert row_south.attrib["data-player-owner"] == ""
+    assert "".join(row_south.itertext()) == "» south: " + row_south.attrib["data-color"]
+
+
 def test_render_owner_legend_empty_root_when_no_owners():
     """A world with no owned settlements/parties yields a bare, childless
     ``<div data-owner-legend="">`` root (no rows).
