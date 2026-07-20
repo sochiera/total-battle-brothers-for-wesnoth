@@ -8,6 +8,7 @@ from tbb.turn import Calendar
 from tbb.world import WorldMap
 from tbbui.battlereport import render_battle_report
 from tbbui.battlesvg import render_battle_svg
+from tbbui.settlementpanel import render_settlement_panel
 from tbbui.worldsvg import render_world_svg
 
 
@@ -37,7 +38,8 @@ def render_game_page(
 ) -> str:
     """Return a parsable HTML string for one party snapshot.
 
-    Embeds the strategic map SVG from ``render_world_svg``, a calendar stamp
+    Embeds the strategic map SVG from ``render_world_svg``, the settlement
+    panel from ``render_settlement_panel(world)``, a calendar stamp
     (``data-year`` / ``data-month`` plus visible text ``Rok N, miesiąc M``),
     one duchy panel row per ``game.duchies`` (machine ``data-*`` attributes
     plus human-readable status text), a machine-readable result marker
@@ -48,6 +50,7 @@ def render_game_page(
     RNG/IO; inputs (including ``battle``) are not mutated.
     """
     map_svg = render_world_svg(world)
+    settlement_panel = render_settlement_panel(world)
     result = _result_value(game)
     result_text = _result_text(game)
 
@@ -78,6 +81,7 @@ def render_game_page(
         f"{map_svg}"
         f"{battle_svg}"
         f"{battle_report}"
+        f"{settlement_panel}"
         f'<div data-calendar="" data-year="{calendar.year}"'
         f' data-month="{calendar.month}">'
         f"Rok {calendar.year}, miesiąc {calendar.month}</div>"
