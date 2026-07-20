@@ -79,6 +79,9 @@ def run_headless_game(
             )
             if duchy is None or duchy.is_defeated:
                 continue
+            current_world, duchy = ai.raise_duchy_hero(current_world, duchy)
+            current_game = _replace_duchy(current_game, duchy)
+            current_game = current_game.sync_from_world(current_world)
             world_before = current_world
             current_world = ai.take_duchy_turn(world_before, duchy, rng)
             resolved = resolve_hero_survival(duchy, world_before, current_world)

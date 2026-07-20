@@ -5,7 +5,7 @@ from dataclasses import FrozenInstanceError
 import pytest
 import tbb
 import tbb.settlement as settlement_module
-from tbb.ai import develop_duchy_settlement
+from tbb.ai import develop_duchy_settlement, raise_duchy_hero
 
 from tbb import (
     Duchy,
@@ -851,3 +851,90 @@ def test_duchy_turn_is_deterministic_and_preserves_all_inputs():
 
 def test_duchy_turn_is_publicly_exported():
     assert tbb.take_duchy_turn is take_duchy_turn
+
+
+def test_raise_duchy_hero_raises_from_first_owned_settlement_by_region_order():
+    """Without a hero, raise from the first eligible owned settlement (region order)."""
+    foreign, unowned, poor, first, second = map(
+        Region, ("Foreign", "Unowned", "Poor", "First", "Second")
+    )
+    garrison = (Unit(training=1),)
+    settlements = {
+        foreign: Settlement(
+            "Foreign",
+            3,
+            storage=Resources(0, settlement_module.HERO_GOLD_COST),
+            owner_id="enemy",
+        ),
+        unowned: Settlement(
+            "Unowned",
+            3,
+            storage=Resources(0, settlement_module.HERO_GOLD_COST),
+        ),
+        poor: Settlement(
+            "Poor",
+            3,
+            storage=Resources(0, settlement_module.HERO_GOLD_COST - 1),
+            owner_id="ai",
+        ),
+        first: Settlement(
+            "First",
+            population=4,
+            occupied=1,
+            storage=Resources(wheat=2, gold=settlement_module.HERO_GOLD_COST + 1),
+            garrison=garrison,
+            owner_id="ai",
+        ),
+        second: Settlement(
+            "Second",
+            3,
+            storage=Resources(0, settlement_module.HERO_GOLD_COST + 5),
+            owner_id="ai",
+        ),
+    }
+    world_regions = [foreign, unowned, poor, first, second]
+    world = WorldMap(
+        world_regions,
+        settlements={
+            region: settlements[region] for region in reversed(world_regions)
+        },
+    )
+    duchy = Duchy(
+        "ai",
+        None,
+        morale=5,
+        settlements=(settlements[poor], settlements[first], settlements[second]),
+    )
+
+    result = raise_duchy_hero(world, duchy)
+    repeated = raise_duchy_hero(world, duchy)
+
+    assert isinstance(result, tuple)
+    assert len(result) == 2
+    result_world, result_duchy = result
+    assert repeated == result
+    assert isinstance(result_world, WorldMap)
+    assert isinstance(result_duchy, Duchy)
+
+    expected_settlement, expected_hero = settlements[first].raise_hero()
+    assert result_world.settlement_at(first) == expected_settlement
+    assert result_duchy.hero == expected_hero
+    assert result_duchy.hero == Unit()
+    assert result_duchy.has_hero is True
+    assert result_duchy.duchy_id == "ai"
+    assert result_duchy.morale == 5
+    assert result_duchy.heir is None
+    assert result_duchy.parties == ()
+    assert result_duchy.settlements == duchy.settlements
+    assert result_world.settlement_at(second) is settlements[second]
+    for region in (foreign, unowned, poor):
+        assert result_world.settlement_at(region) is settlements[region]
+    assert world.settlement_at(first) is settlements[first]
+    assert duchy.hero is None
+    assert duchy.morale == 5
+    assert duchy.has_hero is False
+    assert settlements[first].population == 4
+    assert settlements[first].storage == Resources(
+        wheat=2, gold=settlement_module.HERO_GOLD_COST + 1
+    )
+    assert settlements[first].garrison == garrison
