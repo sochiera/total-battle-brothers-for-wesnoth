@@ -60,6 +60,7 @@
 | BM.1 | resolve_party_battle | Składa start→auto_resolve→apply; ocalali w składzie; MP placeholder 1; morale per strona. |
 | BM.2 | resolve_settlement_battle | Składa szturm→auto_resolve→apply; podbój przy ATTACKER_WIN; ocalali; morale per strona. |
 | K16.1b | Nagrana wersja szturmu | `resolve_settlement_battle_recorded(...) -> (WorldMap, HexBattle)`; `resolve_settlement_battle` deleguje i zwraca tylko mapę. |
+| K18.1a | Nagrana bitwa party↔party | `resolve_party_battle_recorded(...) -> (WorldMap, HexBattle)`; `resolve_party_battle` deleguje i zwraca tylko mapę. |
 | G10.1 | absorb_defenders | `Settlement.absorb_defenders(survivors)` zastępuje garnizon; polegli −population i −occupied; sekwencja > garnizon odrzucona. |
 | G10.2a | Garnizon po obronie | apply_settlement DEF/DRAW + battle → absorb_defenders(DEFENDER); bez battle garnizon nietknięty. |
 | G10.2b | Garnizon po podboju | ATTACKER_WIN + battle → absorb_defenders potem zmiana owner; bez battle owner się zmienia, garnizon nietknięty. |

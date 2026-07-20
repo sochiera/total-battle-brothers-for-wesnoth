@@ -270,6 +270,28 @@ class WorldMap:
             parties,
         )
 
+    def resolve_party_battle_recorded(
+        self,
+        source: Region,
+        destination: Region,
+        rng: Rng,
+        move_points: int = 1,
+        attacker_morale: int = 0,
+        defender_morale: int = 0,
+    ) -> tuple["WorldMap", HexBattle]:
+        """Play an adjacent party battle; return map and resolved battle."""
+        battle = self.start_battle(source, destination)
+        resolved = battle.auto_resolve(
+            move_points,
+            rng,
+            attacker_morale=attacker_morale,
+            defender_morale=defender_morale,
+        )
+        new_world = self.apply_party_battle_result(
+            source, destination, resolved.result(), battle=resolved
+        )
+        return new_world, resolved
+
     def resolve_party_battle(
         self,
         source: Region,
@@ -280,16 +302,15 @@ class WorldMap:
         defender_morale: int = 0,
     ) -> "WorldMap":
         """Play an adjacent party battle and apply its result to the world."""
-        battle = self.start_battle(source, destination)
-        resolved = battle.auto_resolve(
-            move_points,
+        new_world, _ = self.resolve_party_battle_recorded(
+            source,
+            destination,
             rng,
+            move_points=move_points,
             attacker_morale=attacker_morale,
             defender_morale=defender_morale,
         )
-        return self.apply_party_battle_result(
-            source, destination, resolved.result(), battle=resolved
-        )
+        return new_world
 
     def start_settlement_battle(
         self, source: Region, destination: Region

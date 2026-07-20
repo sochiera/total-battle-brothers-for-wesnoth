@@ -44,8 +44,10 @@ jest odrzucane. Mapa wejściowa, osady i garnizony nie są mutowane.
 - `apply_party_battle_result(source, destination, result, battle=None)` —
   `ATTACKER_WIN`: broniący znika, atakujący przechodzi na `destination`;
   `DEFENDER_WIN`: atakujący znika; `DRAW`: znikają oba. Walidacja jak `start_battle`.
-- `resolve_party_battle(...)` składa start → `auto_resolve` → apply; zwycięskie
-  party ma skład z ocalałych; remis → oba znikają. `move_points` placeholder
+- `resolve_party_battle_recorded(...) -> (WorldMap, HexBattle)` składa start →
+  `auto_resolve` → apply i zwraca mapę + rozstrzygniętą bitwę (bez dodatkowego
+  RNG). Zwycięskie party ma skład z ocalałych; remis → oba znikają.
+  `resolve_party_battle` deleguje i zwraca tylko mapę. `move_points` placeholder
   (domyślnie `1`); `attacker_morale` / `defender_morale` (domyślnie `0`/`0`).
 
 **Bitwa party↔osada (szturm).**

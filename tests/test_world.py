@@ -934,6 +934,35 @@ def test_resolve_party_battle_clears_stun_but_keeps_bruise_on_survivor():
     assert all(not unit.stunned for unit in strategic_units)
 
 
+def test_resolve_party_battle_recorded_matches_plain_and_returns_resolved_battle():
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(
+        Unit(training=5, equipment=4),
+        [Unit(equipment=1), Unit(equipment=4)],
+        owner_id="north",
+    )
+    defender = Party(Unit(equipment=3), [Unit(equipment=3)], owner_id="south")
+    world = WorldMap(
+        [camp, vale], [(camp, vale)], parties={camp: attacker, vale: defender}
+    )
+
+    plain_world = world.resolve_party_battle(camp, vale, Rng(2))
+    recorded_world, recorded_battle = world.resolve_party_battle_recorded(
+        camp, vale, Rng(2)
+    )
+
+    assert recorded_world == plain_world
+    assert isinstance(recorded_battle, HexBattle)
+    assert recorded_battle.result() in (
+        BattleResult.ATTACKER_WIN,
+        BattleResult.DEFENDER_WIN,
+        BattleResult.DRAW,
+    )
+    assert world.party_at(camp) is attacker
+    assert world.party_at(vale) is defender
+
+
 def test_resolve_party_battle_is_deterministic_and_does_not_mutate_world():
     camp = Region("Camp")
     vale = Region("Vale")
