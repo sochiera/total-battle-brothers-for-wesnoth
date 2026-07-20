@@ -230,6 +230,27 @@ def test_march_duchy_party_applies_march_toward_nearest_enemy_from_party_positio
     assert world.party_at(step) is None
 
 
+def test_march_duchy_party_is_noop_without_party_on_map():
+    """When the duchy has no party on the map, march_duchy_party returns the input world."""
+    home, camp = Region("Home"), Region("Camp")
+    settlement = Settlement("Home", 1, owner_id="ai")
+    foreign_party = _owned_party("Enemy", "enemy")
+    world = WorldMap(
+        [home, camp],
+        settlements={home: settlement},
+        parties={camp: foreign_party},
+    )
+    duchy = Duchy("ai", Unit())
+    before = dict(world.parties)
+
+    result = march_duchy_party(world, duchy)
+
+    assert result is world
+    assert dict(world.parties) == before
+    assert world.settlement_at(home) is settlement
+    assert world.party_at(camp) is foreign_party
+
+
 def test_march_target_and_route_ties_follow_world_region_order():
     start, first, second, first_target, second_target = map(
         Region, ("Start", "First", "Second", "First target", "Second target")
