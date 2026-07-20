@@ -327,6 +327,51 @@ def engage_duchy_party_recorded(
     )
 
 
+def engage_duchy_party_to_recorded(
+    world: WorldMap,
+    duchy: Duchy,
+    target: Region,
+    rng: Rng,
+    morale_by_owner: dict[str, int] | None = None,
+) -> tuple[WorldMap, HexBattle | None]:
+    """Engage an explicit adjacent enemy party; return map and battle.
+
+    No-op paths return ``(world, None)`` without consuming RNG. On a hit the
+    map matches ``engage_duchy_party_recorded`` when that auto-target is the
+    same ``target``.
+    """
+    position = _duchy_party_position(world, duchy.duchy_id)
+    if position is None:
+        return world, None
+    party = world.party_at(position)
+    if party is None:
+        return world, None
+    if party.owner_id is None:
+        raise ValueError("party must have an explicit owner_id")
+    if target not in world.neighbors(position):
+        return world, None
+    other = world.party_at(target)
+    if (
+        other is None
+        or other.owner_id is None
+        or other.owner_id == party.owner_id
+    ):
+        return world, None
+
+    attacker_morale = 0
+    defender_morale = 0
+    if morale_by_owner is not None:
+        attacker_morale = morale_by_owner.get(party.owner_id, 0)
+        defender_morale = morale_by_owner.get(other.owner_id, 0)
+    return world.resolve_party_battle_recorded(
+        position,
+        target,
+        rng,
+        attacker_morale=attacker_morale,
+        defender_morale=defender_morale,
+    )
+
+
 def assault_duchy_party_to(
     world: WorldMap,
     duchy: Duchy,

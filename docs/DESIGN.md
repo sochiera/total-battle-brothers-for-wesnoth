@@ -284,11 +284,14 @@ w regionie (wymaga osady i wolnego slotu party).
   analogicznie dla szturmu (auto = najbliższa wroga osada); no-op bez
   party/sąsiedztwa/wrogiej osady **bez** RNG; recorded →
   `(WorldMap, HexBattle | None)`.
-- `engage_duchy_party_recorded(world, duchy, rng, morale_by_owner=None)` —
-  starcie party↔party: pierwsze sąsiednie party z **różnym, jawnym** `owner_id`
-  (kolejność `world.neighbors`) → `resolve_party_battle_recorded`; morale z
-  `morale_by_owner` (brak wpisu → `0`); no-op bez party gracza / bez wrogiego
-  sąsiada → `(world, None)` **bez** RNG.
+- `engage_duchy_party_recorded(world, duchy, rng, morale_by_owner=None)` /
+  `engage_duchy_party_to_recorded(world, duchy, target, rng, morale_by_owner=None)` —
+  starcie party↔party: auto = pierwsze sąsiednie party z **różnym, jawnym**
+  `owner_id` (kolejność `world.neighbors`); jawny `target` = ten sam warunek na
+  wskazanym sąsiedzie → `resolve_party_battle_recorded`; morale z
+  `morale_by_owner` (brak wpisu → `0`); party gracza bez `owner_id` →
+  `ValueError`; no-op bez party / target spoza sąsiadów / brak wrogiego party na
+  celu → `(world, None)` **bez** RNG.
 
 **Setup i pętla:**
 - `create_headless_game()` → `WorldMap` + `GameState` z księstwami `player` i `ai`;
