@@ -158,14 +158,26 @@ class GameApp:
             return 200, self._render()
         if method == "POST" and route == "/order/engage":
             morale_by_owner = {d.duchy_id: d.morale for d in self.game.duchies}
-            self._apply_player_assault_order(
-                lambda world, duchy: ai.engage_duchy_party_recorded(
-                    world,
-                    duchy,
-                    self.rng,
-                    morale_by_owner=morale_by_owner,
+            target_region = self._order_target_region(query)
+            if target_region is not None:
+                self._apply_player_assault_order(
+                    lambda world, duchy: ai.engage_duchy_party_to_recorded(
+                        world,
+                        duchy,
+                        target_region,
+                        self.rng,
+                        morale_by_owner=morale_by_owner,
+                    )
                 )
-            )
+            else:
+                self._apply_player_assault_order(
+                    lambda world, duchy: ai.engage_duchy_party_recorded(
+                        world,
+                        duchy,
+                        self.rng,
+                        morale_by_owner=morale_by_owner,
+                    )
+                )
             return 200, self._render()
         return 404, "Not Found"
 

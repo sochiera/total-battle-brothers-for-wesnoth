@@ -1885,6 +1885,98 @@ def test_game_app_post_order_engage_noop_when_no_player_duchy_id():
     assert none_app.rng.randint(0, 10**9) == Rng(11).randint(0, 10**9)
 
 
+def test_game_app_post_order_engage_with_target_applies_explicit_target():
+    """POST /order/engage?target=<region> applies engage_duchy_party_to_recorded (task-105 / K19.1b).
+
+    Contract (task-105 / K19.1b):
+    - handle routes ``?target=`` through ``_order_target_region``, matching
+      the ``/order/assault?target=`` pattern (task-089 / K15.2b)
+    - non-empty, known target applies via ``_apply_player_assault_order`` the
+      transition ``ai.engage_duchy_party_to_recorded(world, duchy, target,
+      self.rng, morale_by_owner=...)`` with morale_by_owner built from
+      self.game.duchies
+    - target is *not* the auto-picked neighbor (first enemy party in
+      ``world.neighbors`` order), so the resolved battle cannot come from the
+      automatic ``engage_duchy_party_recorded`` fallback
+    """
+    start, enemy_a, enemy_b = map(Region, ("Start", "EnemyA", "EnemyB"))
+    north_party = Party(Unit(training=5, equipment=6), owner_id="north")
+    south_party_a = Party(Unit(training=1, equipment=1), owner_id="south")
+    south_party_b = Party(Unit(training=1, equipment=1), owner_id="south")
+    world = WorldMap(
+        (start, enemy_a, enemy_b),
+        ((start, enemy_a), (start, enemy_b)),
+        parties={start: north_party, enemy_a: south_party_a, enemy_b: south_party_b},
+    )
+    game = GameState(
+        (
+            Duchy("north", north_party.hero, parties=(north_party,), morale=10),
+            Duchy(
+                "south",
+                south_party_a.hero,
+                parties=(south_party_a, south_party_b),
+                morale=-5,
+            ),
+        )
+    )
+    assert not game.is_over
+    calendar = Calendar(year=2, month=3)
+    seed = 11
+    app = GameApp(world, game, calendar, Rng(seed), player_duchy_id="north")
+
+    world_before = app.world
+    game_before = app.game
+    player_duchy = next(d for d in game_before.duchies if d.duchy_id == "north")
+
+    # Automatic engage picks the first neighbor with an enemy party: EnemyA.
+    # (Battle outcomes are symmetric between EnemyA/EnemyB here, so only the
+    # *map* distinguishes the auto pick from the explicit target below.)
+    auto_world, auto_battle = ai.engage_duchy_party_recorded(
+        world_before,
+        player_duchy,
+        Rng(seed),
+        morale_by_owner={d.duchy_id: d.morale for d in game_before.duchies},
+    )
+    assert auto_battle is not None
+    assert auto_world.party_at(enemy_a).owner_id == "north"
+    assert auto_world.party_at(enemy_b).owner_id == "south"
+
+    expected_world, expected_battle = ai.engage_duchy_party_to_recorded(
+        world_before,
+        player_duchy,
+        enemy_b,
+        Rng(seed),
+        morale_by_owner={d.duchy_id: d.morale for d in game_before.duchies},
+    )
+    expected_game = game_before.sync_from_world(expected_world)
+    assert expected_battle is not None
+
+    code, body = app.handle("POST", "/order/engage?target=EnemyB")
+    assert code == 200
+    assert isinstance(body, str)
+    assert body.strip() != ""
+    root = ET.fromstring(body)
+    assert _local(root.tag) == "html"
+    assert _calendar_stamp(body) == (2, 3)
+
+    assert app.world is not world_before
+    assert app.last_battle == expected_battle
+    # Explicit target EnemyB was engaged, not the auto-picked EnemyA: the
+    # winning party moved onto EnemyB while EnemyA is untouched.
+    assert app.world.party_at(enemy_a).owner_id == "south"
+    assert app.world.party_at(enemy_b).owner_id == "north"
+    assert app.game is not game_before
+    player = next(d for d in app.game.duchies if d.duchy_id == "north")
+    expected_player = next(
+        d for d in expected_game.duchies if d.duchy_id == "north"
+    )
+    assert player.parties == expected_player.parties
+    assert app.calendar == calendar
+    # Inputs to the call must not have been mutated in place.
+    assert world_before.party_at(enemy_a) is south_party_a
+    assert world_before.party_at(enemy_b) is south_party_b
+
+
 def test_game_app_post_order_assault_empty_or_unknown_target_falls_back():
     """POST /order/assault?target=<empty|unknown> falls back to assault_duchy_party.
 

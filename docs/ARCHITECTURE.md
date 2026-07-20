@@ -146,11 +146,14 @@ K16.1d-2) ma te same guardy przez `_apply_player_assault_order`: jawny
 `morale_by_owner={d.duchy_id: d.morale for d in game.duchies}`); wynik
 `(world, battle)` podmienia `world`, sync `game`, a gdy `battle is not None`
 ustawia `self.last_battle` (init `None`; no-op/guardy nie ustawiają bitwy).
-`POST /order/engage` (K18.1c) — te same guardy przez
-`_apply_player_assault_order` z `ai.engage_duchy_party_recorded` (auto-cel:
-pierwsze sąsiednie wrogie party; `self.rng` + `morale_by_owner` jak szturm);
-na trafieniu ustawia `last_battle`, no-op/guardy nie ruszają bitwy. GET `/`
-osadza bare `<form method="post" action="/order/engage">`. `POST /turn` oraz
+`POST /order/engage` (K18.1c / K19.1b) — te same guardy przez
+`_apply_player_assault_order`; routing `?target=` jak szturm
+(`_order_target_region`): jawny znany region →
+`ai.engage_duchy_party_to_recorded`, brak/pusty/nieznany `target` →
+`ai.engage_duchy_party_recorded` (auto-cel: pierwsze sąsiednie wrogie party);
+oba z `self.rng` + `morale_by_owner` jak szturm; na trafieniu ustawia
+`last_battle`, no-op/guardy nie ruszają bitwy. GET `/` osadza bare
+`<form method="post" action="/order/engage">`. `POST /turn` oraz
 `/order/recruit|muster|develop|march` zerują `self.last_battle` (K16.1d-3);
 `assault`/`engage` nie zerują przed wykonaniem. `_render` woła
 `render_game_page(..., battle=self.last_battle)`. Inna ścieżka lub metoda →
