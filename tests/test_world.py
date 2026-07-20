@@ -818,6 +818,35 @@ def test_resolve_party_battle_leaves_defending_survivors_after_win():
     assert resolved.party_at(vale).owner_id == "south"
 
 
+def test_resolve_party_battle_clears_stun_but_keeps_bruise_on_survivor():
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(
+        Unit(training=5, equipment=4),
+        [Unit(equipment=1), Unit(equipment=4)],
+        owner_id="north",
+    )
+    defender = Party(Unit(equipment=3), [Unit(equipment=3)], owner_id="south")
+    world = WorldMap(
+        [camp, vale], [(camp, vale)], parties={camp: attacker, vale: defender}
+    )
+
+    battle = world.start_battle(camp, vale).auto_resolve(1, 100, Rng(11))
+    stunned_survivor = battle.report().attacker.stunned[0]
+    resolved = world.resolve_party_battle(
+        camp, vale, Rng(11), move_points=1, morale=100
+    )
+
+    assert stunned_survivor.stunned is True
+    assert stunned_survivor.wounds == (BRUISE,)
+    strategic_units = (
+        resolved.party_at(vale).hero,
+        *resolved.party_at(vale).units,
+    )
+    assert replace(stunned_survivor, stunned=False) in strategic_units
+    assert all(not unit.stunned for unit in strategic_units)
+
+
 def test_resolve_party_battle_is_deterministic_and_does_not_mutate_world():
     camp = Region("Camp")
     vale = Region("Vale")
@@ -1353,6 +1382,35 @@ def test_resolve_settlement_battle_defender_win_removes_attacker_only():
     assert resolved.settlement_at(vale) == settlement
     assert resolved.settlement_at(vale).owner_id == "south"
     assert resolved.settlement_at(vale).garrison == garrison
+
+
+def test_resolve_settlement_battle_clears_stun_but_keeps_bruise_in_garrison():
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(Unit(equipment=1), owner_id="north")
+    settlement = Settlement(
+        "Oakrest",
+        population=4,
+        occupied=2,
+        garrison=(Unit(equipment=1), Unit(equipment=1)),
+        owner_id="south",
+    )
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        settlements={vale: settlement},
+        parties={camp: attacker},
+    )
+
+    battle = world.start_settlement_battle(camp, vale).auto_resolve(1, 0, Rng(10))
+    stunned_survivor = battle.report().defender.stunned[0]
+    resolved = world.resolve_settlement_battle(camp, vale, Rng(10))
+
+    assert stunned_survivor.stunned is True
+    assert stunned_survivor.wounds == (BRUISE,)
+    strategic_garrison = resolved.settlement_at(vale).garrison
+    assert replace(stunned_survivor, stunned=False) in strategic_garrison
+    assert all(not unit.stunned for unit in strategic_garrison)
 
 
 def test_resolve_settlement_battle_is_deterministic_and_immutable():
