@@ -88,6 +88,16 @@ bez mutacji wejść. Serwer podglądu — osobny przyrost (V13.5).
 wyjścia (domyślnie `out/game.html`); katalog nadrzędny jest tworzony, gdy nie
 istnieje. Zwraca `0`. Dwa uruchomienia z tym samym seedem dają identyczną treść.
 
+**Routing podglądu (V13.5a):** `tbbui.serve.GameApp(world, game, calendar, rng)`
+trzyma stan partii w pamięci i udostępnia czystą metodę
+`handle(method, path) -> (kod_http, treść)` — bez gniazda HTTP (serwer w V13.5b).
+`GET /` → `(200, strona)` z `render_game_page` plus formularz
+`<form method="post" action="/turn">`. `POST /turn` → jedna tura przez
+`run_headless_game(..., max_turns=1, calendar=...)` i aktualizacja wewnętrznego
+stanu; gdy `game.is_over` przed żądaniem, no-op (stan bez zmian, wciąż `200`).
+Inna ścieżka lub metoda → `(404, treść)`. Determinizm: ten sam seed i sekwencja
+`handle` → te same treści i stan.
+
 ## 2. Struktura katalogów
 ```
 game/                     # katalog projektu (repo root dla tej gry)
@@ -125,7 +135,8 @@ game/                     # katalog projektu (repo root dla tej gry)
 │       ├── layout.py     # deterministyczny layout regionów WorldMap → (col, row)
 │       ├── palette.py    # paleta kolorów właścicieli (owner_id → fill)
 │       ├── worldsvg.py   # SVG mapy strategicznej (węzły + linie + znaczniki)
-│       └── gamepage.py   # HTML strony partii (mapa + kalendarz + księstwa + wynik)
+│       ├── gamepage.py   # HTML strony partii (mapa + kalendarz + księstwa + wynik)
+│       └── serve.py      # GameApp.handle: routing podglądu bez gniazda (V13.5a)
 ├── tests/                # testy pytest (mirror struktury src/)
 │   ├── test_battle.py
 │   ├── test_ai.py
@@ -152,6 +163,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │   ├── test_battlesvg.py # SVG pola bitwy heksowej (tbbui)
 │   ├── test_gamepage.py  # HTML strony partii (tbbui)
 │   ├── test_ui_main.py   # CLI snapshot partii (python -m tbbui)
+│   ├── test_serve.py     # GameApp.handle routing podglądu (tbbui, V13.5a)
 │   └── test_smoke.py
 ├── scripts/
 │   ├── test.sh           # uruchamia pełny pakiet testów
