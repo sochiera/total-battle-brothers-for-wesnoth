@@ -69,6 +69,25 @@ class Unit:
             equipment_progress=total - investment_for_level(equipment),
         )
 
+    def tick_wounds(self, months: int = 1) -> "Unit":
+        """Return this unit after temporary wounds heal for ``months``."""
+        if months < 0:
+            raise ValueError("healing months cannot be negative")
+        if months == 0:
+            return self
+
+        wounds = []
+        for wound in self.wounds:
+            if wound.duration_months is None:
+                wounds.append(wound)
+                continue
+
+            duration_months = wound.duration_months - months
+            if duration_months > 0:
+                wounds.append(replace(wound, duration_months=duration_months))
+
+        return replace(self, wounds=tuple(wounds))
+
     @property
     def hp(self) -> int:
         return 10 + self.training

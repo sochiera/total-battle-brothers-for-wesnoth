@@ -250,3 +250,53 @@ def test_stunned_defaults_to_false_and_is_immutable():
     assert unit.stunned is False
     with pytest.raises(FrozenInstanceError):
         unit.stunned = True
+
+
+def test_tick_wounds_heals_temporary_wounds_and_preserves_permanent_state():
+    original = Unit(
+        training=3,
+        training_progress=2,
+        equipment=2,
+        equipment_progress=1,
+        experience=4,
+        ranged_range=3,
+        wounds=(BRUISE, MAIMED, BRUISE),
+        stunned=True,
+    )
+    original_wounds = original.wounds
+    rng_state = random.getstate()
+
+    assert original.tick_wounds(0) == original
+    with pytest.raises(ValueError):
+        original.tick_wounds(-1)
+
+    after_one_month = original.tick_wounds()
+
+    assert tuple(wound.name for wound in after_one_month.wounds) == (
+        "Bruise",
+        "Maimed",
+        "Bruise",
+    )
+    assert tuple(wound.duration_months for wound in after_one_month.wounds) == (
+        1,
+        None,
+        1,
+    )
+    assert (after_one_month.accuracy, after_one_month.defense) == (3, 2)
+    assert (
+        after_one_month.training,
+        after_one_month.training_progress,
+        after_one_month.equipment,
+        after_one_month.equipment_progress,
+        after_one_month.experience,
+        after_one_month.ranged_range,
+        after_one_month.stunned,
+    ) == (3, 2, 2, 1, 4, 3, True)
+
+    after_two_months = after_one_month.tick_wounds()
+
+    assert after_two_months.wounds == (MAIMED,)
+    assert original.wounds is original_wounds
+    assert original.wounds == (BRUISE, MAIMED, BRUISE)
+    assert random.getstate() == rng_state
+    assert original.tick_wounds() == after_one_month

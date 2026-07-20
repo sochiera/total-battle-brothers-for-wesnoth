@@ -262,8 +262,13 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   a efektywne statystyki nie spadają poniżej `0`. Startowy katalog placeholder:
   **Bruise** (czasowa, 2 miesiące, `accuracy=-1`, `defense=-1`) oraz **Maimed**
   (trwała, `accuracy=-2`, `defense=-2`). Rany należą do trwałego modelu
-  `Unit`, aby mogły przejść z bitwy na warstwę strategiczną. Upływ czasu ran
-  dochodzi w osobnym przyroście.
+  `Unit`, aby mogły przejść z bitwy na warstwę strategiczną.
+  **ROZSTRZYGNIĘTE (W11.1, upływ czasu ran):** czyste przejście
+  `Unit.tick_wounds(months=1)` zmniejsza czas każdej rany czasowej o podaną
+  nieujemną liczbę miesięcy i usuwa ranę po wygaśnięciu; rany trwałe, kolejność
+  pozostałych ran oraz reszta stanu jednostki pozostają bez zmian. Częściowo
+  wyleczona rana zachowuje pełne kary aż do wygaśnięcia. Miesięczne wywołanie
+  leczenia w warstwie strategicznej dochodzi osobno w W11.3.
   **ROZSTRZYGNIĘTE (B4.5b, minimalne rozstrzygnięcie 0 HP):** jednostkę, której
   bieżące HP spadło do `0`, rozstrzyga się dokładnie jednym rzutem RNG: **50%**
   oznacza śmierć i usunięcie jej z rozstawienia, a pozostałe 50% — pozostawienie
@@ -662,8 +667,9 @@ ich dotykają, i notować wynik tutaj:
   **ROZSTRZYGNIĘTE (B4.3a):** całkowity procent z bazą 50 i limitem 5–95; pełny
   wzór oraz semantyka modyfikatorów terenu są w §3.2.
 - ~~**Model ran:** ile rodzajów, jak wpływają na statystyki, czasowe vs trwałe.~~
-  **CZĘŚCIOWO ROZSTRZYGNIĘTE (B4.5a):** minimalny katalog i wpływ na statystyki
-  opisano w §3.2. **NADAL OTWARTE:** bogatszy katalog, leczenie i balans kar.
+  **CZĘŚCIOWO ROZSTRZYGNIĘTE (B4.5a, W11.1):** minimalny katalog, wpływ na
+  statystyki i upływ czasu ran opisano w §3.2. **NADAL OTWARTE:** bogatszy
+  katalog, strategiczne wywołanie leczenia i balans kar.
 - **Wzrost populacji:** ~~urodzenia~~ **CZĘŚCIOWO ROZSTRZYGNIĘTE (E2.4a, urodzenia):**
   każda osada ma **sufit** `capacity` (max populacji; `None` = brak limitu). Faza
   **wzrostu** następuje po produkcji (§10 kolejność faz) i jest osobnym przejściem
