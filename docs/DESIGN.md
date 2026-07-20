@@ -350,10 +350,11 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   `<nazwa> (<owner|„—">): pszenica W, złoto G · populacja P (wolne F), garnizon N`
   zgodny z atrybutami; przy `player_duchy_id` wiersze z `owner_id` gracza mają
   `data-player-owned=""`. Czysty, deterministyczny.
-- `render_party_panel(world)` — fragment `data-party-panel` z wierszem
-  `data-party-row` (= nazwa regionu) na party w kolejności `world.regions`;
-  `data-owner`/`data-size` (liczba podkomendnych) i tekst `<region> (<owner|„—">):
-  bohater + N podkomendnych`. Czysty, deterministyczny.
+- `render_party_panel(world, player_duchy_id=None)` — fragment `data-party-panel`
+  z wierszem `data-party-row` (= nazwa regionu) na party w kolejności
+  `world.regions`; `data-owner`/`data-size` (liczba podkomendnych) i tekst
+  `<region> (<owner|„—">): bohater + N podkomendnych`; przy `player_duchy_id`
+  wiersze z `owner_id` gracza mają `data-player-owned=""`. Czysty, deterministyczny.
 - `render_game_page(world, game, calendar, battle=None, player_duchy_id=None)` —
   SVG mapy, kalendarz (`data-calendar` + widoczny tekst `Rok N, miesiąc M`),
   panel księstw (`data-duchy` + tekst statusu; przy `player_duchy_id` dopasowany
@@ -481,12 +482,10 @@ argumenty domyślnie `None` → wyniki bajt-w-bajt jak dotąd. Rdzeń `tbb` bez 
 dane z istniejących `owner_palette`/`Settlement`/`GameState`.
 
 **PLAN K24 (dokończenie orientacji gracza):** K23 oznaczył księstwo i osady
-gracza, ale panel party i legenda kolorów wciąż nie wskazują, który oddział
-i który kolor mapy należy do gracza. K24 domyka orientację symetrycznie:
-opcjonalny `player_duchy_id` w `render_party_panel` znakuje własne party
-(`data-player-owned`, K24.1a) przewleczony przez `render_game_page` (K24.1b);
-opcjonalny `player_duchy_id` w `render_owner_legend` oznacza wiersz gracza
-(`data-player-owner` + prefiks `» `, K24.2a) przewleczony przez
+gracza; K24.1a dodaje `player_duchy_id` w `render_party_panel` (`data-player-owned`
+na własnych party). Pozostaje przewleczenie przez `render_game_page` (K24.1b)
+oraz legenda: opcjonalny `player_duchy_id` w `render_owner_legend` oznacza
+wiersz gracza (`data-player-owner` + prefiks `» `, K24.2a) przewleczony przez
 `render_game_page` (K24.2b). Nowe argumenty domyślnie `None` → wyniki
 bajt-w-bajt jak dotąd. Rdzeń `tbb` bez zmian; dane z istniejących
 `Party`/`owner_palette`.

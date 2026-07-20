@@ -99,13 +99,16 @@ kolejności `world.regions` (region bez osady → brak wiersza). Atrybuty wiersz
 (wolne F), garnizon N` zgodny z atrybutami. Czyste, deterministyczne, bez
 mutacji `world`; rdzeń bez zmian.
 
-**Panel party HTML (K22.2a):** `tbbui.partypanel.render_party_panel(world) -> str`
-— parsowalny fragment XML z korzeniem `<div data-party-panel="">`; po jednym
-`<div data-party-row="<region.name>">` na region z party w kolejności
-`world.regions` (region bez party → brak wiersza). Atrybuty: `data-owner`
-(`owner_id` lub `""`), `data-size` (`len(party.units)`); widoczny tekst
-`<region.name> (<owner_id lub „—">): bohater + N podkomendnych` zgodny z
-`data-size`. Czyste, deterministyczne, bez mutacji `world`; rdzeń bez zmian.
+**Panel party HTML (K22.2a / K24.1a):** `tbbui.partypanel.render_party_panel(world,
+player_duchy_id=None) -> str` — parsowalny fragment XML z korzeniem
+`<div data-party-panel="">`; po jednym `<div data-party-row="<region.name>">`
+na region z party w kolejności `world.regions` (region bez party → brak wiersza).
+Atrybuty: `data-owner` (`owner_id` lub `""`), `data-size` (`len(party.units)`);
+widoczny tekst `<region.name> (<owner_id lub „—">): bohater + N podkomendnych`
+zgodny z `data-size`. Gdy `player_duchy_id` nie jest `None`, wiersze z
+`owner_id == player_duchy_id` dostają `data-player-owned=""`; `None` (domyślnie)
+→ wynik bajt-w-bajt jak bez argumentu. Czyste, deterministyczne, bez mutacji
+`world`; rdzeń bez zmian.
 
 **Legenda właścicieli HTML (K23.1a):** `tbbui.ownerlegend.render_owner_legend(world)
 -> str` — parsowalny fragment XML z korzeniem `<div data-owner-legend="">`;

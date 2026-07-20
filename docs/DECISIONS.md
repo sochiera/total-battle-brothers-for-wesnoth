@@ -153,3 +153,4 @@
 | K23.2b | Przewleczenie gracza z GameApp | `GameApp._render` woła `render_game_page(..., player_duchy_id=self.player_duchy_id)`; `data-player`/routing bez zmian. |
 | K23.3a | Panel osad — osady gracza | `render_settlement_panel(world, player_duchy_id=None)`: wiersze z `owner_id == player_duchy_id` dostają `data-player-owned=""`; `None` → bajt-w-bajt jak wcześniej; atrybuty/tekst K22.1 bez zmian. |
 | K23.3b | Panel osad w stronie z graczem | `render_game_page` woła `render_settlement_panel(world, player_duchy_id)`; `None` → bajt-w-bajt jak wcześniej. |
+| K24.1a | Panel party — party gracza | `render_party_panel(world, player_duchy_id=None)`: wiersze z `owner_id == player_duchy_id` dostają `data-player-owned=""`; `None` → bajt-w-bajt jak wcześniej; atrybuty/tekst K22.2 bez zmian. |
