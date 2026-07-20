@@ -518,6 +518,29 @@ def test_assault_duchy_party_to_recorded_returns_battle_and_matches_assault_duch
     assert world.settlement_at(far) is far_settlement
 
 
+def test_assault_duchy_party_to_recorded_is_noop_for_own_settlement_and_does_not_use_rng():
+    """assault_duchy_party_to_recorded must not assault the duchy's own settlement."""
+    start, target = Region("Start"), Region("Target")
+    party = Party(Unit(training=5, equipment=6), owner_id="ai")
+    own_settlement = Settlement("Target", population=1, owner_id="ai")
+    world = WorldMap(
+        [start, target],
+        [(start, target)],
+        settlements={target: own_settlement},
+        parties={start: party},
+    )
+    duchy = Duchy("ai", party.hero, parties=(party,))
+
+    result_world, battle = ai.assault_duchy_party_to_recorded(
+        world, duchy, target, _ForbiddenRng()
+    )
+
+    assert result_world is world
+    assert battle is None
+    assert world.party_at(start) is party
+    assert world.settlement_at(target) is own_settlement
+
+
 def test_assault_duchy_party_to_is_noop_for_own_settlement_and_does_not_use_rng():
     """assault_duchy_party_to must not assault an adjacent settlement owned by the duchy itself."""
     start, target = Region("Start"), Region("Target")
