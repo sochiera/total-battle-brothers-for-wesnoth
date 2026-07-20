@@ -1065,6 +1065,15 @@ ich dotykają, i notować wynik tutaj:
   morale_by_owner=morale_by_owner)`. Brak party na mapie → no-op (zwraca
   wejściową mapę, bez rzutu RNG). Bez mutacji wejścia; reużywa istniejące
   prymitywy szturmu (cel i bitwa bez duplikacji).
+  **ROZSTRZYGNIĘTE (K14.2e2, rozkaz szturmu osady gracza):**
+  `POST /order/assault` na `GameApp` — ten sam warunek i re-sync, wspólnym
+  helperem `_apply_player_order`, z zamknięciem
+  `(world, duchy) -> ai.assault_duchy_party(world, duchy, self.rng,
+  morale_by_owner={d.duchy_id: d.morale for d in self.game.duchies})` (szturm
+  potrzebuje `rng` i morale, więc nie da się podać samego prymitywu). No-op
+  gdy brak gracza, gra skończona lub brak księstwa. Zawsze `(200, strona)`.
+  `GET /` zawiera formularz `<form method="post" action="/order/assault">`.
+  Cel szturmu automatyczny (prymityw AI).
   **ROZSTRZYGNIĘTE (A7.2b3b1, akcje księstw na wspólnej mapie):** gdy gra
   trwa i budżet pozwala na co najmniej jedną turę, driver wykonuje pojedynczy
   przebieg księstw w kolejności `game.duchies`. Każde niepokonane księstwo

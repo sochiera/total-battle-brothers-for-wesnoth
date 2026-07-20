@@ -1046,3 +1046,87 @@ def test_game_app_order_march_form_noop_and_determinism():
     assert b.world.party_at(approach_r) is not None
     assert a.world.party_at(approach_r) == b.world.party_at(approach_r)
 
+
+def test_game_app_post_order_assault_applies_assault_and_resyncs():
+    """POST /order/assault applies ai.assault_duchy_party + re-syncs game.
+
+    Contract (task-084 / K14.2e2):
+    - when player_duchy_id is set, game is not is_over, and the player duchy
+      exists in game.duchies: applies ai.assault_duchy_party(self.world,
+      player_duchy, self.rng, morale_by_owner={d.duchy_id: d.morale for d
+      in self.game.duchies}), replaces self.world, re-syncs
+      self.game = self.game.sync_from_world(self.world); returns (200, page)
+    - player duchy looked up by duchy_id == player_duchy_id
+    - party adjacent to enemy settlement resolves assault with duchy morale
+    """
+    start, target = map(Region, ("Start", "Target"))
+    party = Party(Unit(training=5, equipment=6), owner_id="north")
+    enemy_keep = Settlement(
+        "Enemy Keep", population=1, garrison=(Unit(equipment=1),), owner_id="south"
+    )
+    world = WorldMap(
+        (start, target),
+        ((start, target),),
+        settlements={target: enemy_keep},
+        parties={start: party},
+    )
+    game = GameState(
+        (
+            Duchy("north", party.hero, parties=(party,), morale=10),
+            Duchy("south", Unit(), settlements=(enemy_keep,), morale=-5),
+        )
+    )
+    assert not game.is_over
+    calendar = Calendar(year=2, month=3)
+    seed = 11
+    app = GameApp(world, game, calendar, Rng(seed), player_duchy_id="north")
+
+    world_before = app.world
+    game_before = app.game
+    assert world_before.party_at(start) is party
+    assert world_before.settlement_at(target) is enemy_keep
+
+    morale_by_owner = {d.duchy_id: d.morale for d in game_before.duchies}
+    assert morale_by_owner == {"north": 10, "south": -5}
+    player_duchy = next(
+        d for d in game_before.duchies if d.duchy_id == "north"
+    )
+    expected_world = ai.assault_duchy_party(
+        world_before,
+        player_duchy,
+        Rng(seed),
+        morale_by_owner=morale_by_owner,
+    )
+    expected_game = game_before.sync_from_world(expected_world)
+    assert expected_world is not world_before
+    assert expected_world != world_before
+
+    code, body = app.handle("POST", "/order/assault")
+    assert code == 200
+    assert isinstance(body, str)
+    assert body.strip() != ""
+    root = ET.fromstring(body)
+    assert _local(root.tag) == "html"
+    assert _calendar_stamp(body) == (2, 3)
+
+    # World replaced with assault result; game re-synced from that world.
+    assert app.world is not world_before
+    assert app.world == expected_world
+    assert app.game is not game_before
+    player = next(d for d in app.game.duchies if d.duchy_id == "north")
+    expected_player = next(
+        d for d in expected_game.duchies if d.duchy_id == "north"
+    )
+    assert player.parties == expected_player.parties
+    assert player.settlements == expected_player.settlements
+    south = next(d for d in app.game.duchies if d.duchy_id == "south")
+    expected_south = next(
+        d for d in expected_game.duchies if d.duchy_id == "south"
+    )
+    assert south.settlements == expected_south.settlements
+    assert app.calendar == calendar
+    # Inputs to the call must not have been mutated in place.
+    assert world_before.party_at(start) is party
+    assert world_before.settlement_at(target) is enemy_keep
+    assert enemy_keep.owner_id == "south"
+

@@ -42,6 +42,12 @@ _MARCH_FORM = (
     "</form>"
 )
 
+_ASSAULT_FORM = (
+    '<form method="post" action="/order/assault">'
+    '<button type="submit">Assault</button>'
+    "</form>"
+)
+
 
 class GameApp:
     """In-memory request router over one party snapshot (GET page / POST turn)."""
@@ -87,6 +93,19 @@ class GameApp:
         if method == "POST" and path == "/order/march":
             self._apply_player_order(ai.march_duchy_party)
             return 200, self._render()
+        if method == "POST" and path == "/order/assault":
+            morale_by_owner = {d.duchy_id: d.morale for d in self.game.duchies}
+
+            def _assault(world, duchy):
+                return ai.assault_duchy_party(
+                    world,
+                    duchy,
+                    self.rng,
+                    morale_by_owner=morale_by_owner,
+                )
+
+            self._apply_player_order(_assault)
+            return 200, self._render()
         return 404, "Not Found"
 
     def _apply_player_order(self, transition) -> None:
@@ -112,7 +131,8 @@ class GameApp:
         player_value = self.player_duchy_id if self.player_duchy_id is not None else ""
         extras = (
             f'<span data-player="{player_value}"></span>'
-            f"{_TURN_FORM}{_RECRUIT_FORM}{_MUSTER_FORM}{_DEVELOP_FORM}{_MARCH_FORM}"
+            f"{_TURN_FORM}{_RECRUIT_FORM}{_MUSTER_FORM}"
+            f"{_DEVELOP_FORM}{_MARCH_FORM}{_ASSAULT_FORM}"
         )
         if "</body>" in html:
             return html.replace("</body>", f"{extras}</body>", 1)
