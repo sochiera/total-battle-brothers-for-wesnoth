@@ -4,6 +4,7 @@ from xml.etree import ElementTree as ET
 
 from tbb.resources import Resources
 from tbb.settlement import Settlement
+from tbb.unit import Unit
 from tbb.world import Region, WorldMap
 from tbbui.settlementpanel import render_settlement_panel
 
@@ -59,6 +60,45 @@ def test_render_settlement_panel_rows_match_settlements_in_region_order():
     assert "Keep C (—): pszenica 0, złoto 0" in "".join(row_c.itertext())
 
     assert world.settlements == settlements_before
+
+
+def test_render_settlement_panel_rows_carry_population_and_garrison():
+    """Each row also carries data-population/-free/-garrison, and the visible
+    text appends ``· populacja P (wolne F), garnizon N`` after the K22.1a
+    resource text, leaving owner/wheat/gold attributes and text unchanged.
+    """
+    a = Region("A")
+    world = WorldMap(
+        [a],
+        [],
+        settlements={
+            a: Settlement(
+                "Keep A",
+                population=5,
+                occupied=2,
+                owner_id="north",
+                storage=Resources(wheat=5, gold=3),
+                garrison=(Unit(), Unit()),
+            ),
+        },
+    )
+
+    xml = render_settlement_panel(world)
+    root = ET.fromstring(xml)
+
+    row_a = root.findall("div")[0]
+    assert row_a.attrib["data-owner"] == "north"
+    assert row_a.attrib["data-wheat"] == "5"
+    assert row_a.attrib["data-gold"] == "3"
+    assert row_a.attrib["data-population"] == "5"
+    assert row_a.attrib["data-free"] == "3"
+    assert row_a.attrib["data-garrison"] == "2"
+
+    text = "".join(row_a.itertext())
+    assert (
+        text
+        == "Keep A (north): pszenica 5, złoto 3 · populacja 5 (wolne 3), garnizon 2"
+    )
 
 
 def test_render_settlement_panel_empty_root_when_no_settlements():

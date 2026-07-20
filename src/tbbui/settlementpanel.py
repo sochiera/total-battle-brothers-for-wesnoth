@@ -11,8 +11,9 @@ def render_settlement_panel(world: WorldMap) -> str:
     Root is ``<div data-settlement-panel="">`` with one
     ``data-settlement-row`` child per region that has a settlement, in
     ``world.regions`` order. Each row carries ``data-owner`` / ``data-wheat`` /
-    ``data-gold`` and visible text matching those attributes. Pure and
-    deterministic: no RNG/IO; ``world`` is not mutated.
+    ``data-gold`` / ``data-population`` / ``data-free`` / ``data-garrison`` and
+    visible text matching those attributes. Pure and deterministic: no RNG/IO;
+    ``world`` is not mutated.
     """
     rows: list[str] = []
     for region in world.regions:
@@ -23,12 +24,21 @@ def render_settlement_panel(world: WorldMap) -> str:
         owner_text = settlement.owner_id if settlement.owner_id is not None else "—"
         wheat = settlement.storage.wheat
         gold = settlement.storage.gold
-        text = f"{settlement.name} ({owner_text}): pszenica {wheat}, złoto {gold}"
+        population = settlement.population
+        free = settlement.free
+        garrison = len(settlement.garrison)
+        text = (
+            f"{settlement.name} ({owner_text}): pszenica {wheat}, złoto {gold}"
+            f" · populacja {population} (wolne {free}), garnizon {garrison}"
+        )
         rows.append(
             f'<div data-settlement-row="{region.name}"'
             f' data-owner="{owner}"'
             f' data-wheat="{wheat}"'
             f' data-gold="{gold}"'
+            f' data-population="{population}"'
+            f' data-free="{free}"'
+            f' data-garrison="{garrison}"'
             f">{text}</div>"
         )
     return f'<div data-settlement-panel="">{"".join(rows)}</div>'
