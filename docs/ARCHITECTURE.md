@@ -25,11 +25,24 @@ to przeciwieństwo szybkiego, izolowanego rdzenia w TDD. Możemy później
 całego silnika. Decyzja jest odwracalna: rdzeń jest czysty, więc prezentację
 (pygame/tekst/most do innego silnika) można dołożyć nad nim.
 
-### Prezentacja (odłożona)
-Warstwa render/UI jest **poza rdzeniem** i na start minimalna. `python -m tbb`
-uruchamia deterministyczną pełną partię headless i wypisuje jej wynik. Docelowo
-osobny pakiet/moduł prezentacji konsumujący rdzeń przez publiczne API — rdzeń
-**nigdy** nie importuje prezentacji.
+### Prezentacja (pakiet `tbbui`, Kamień 13)
+Warstwa render/UI jest **poza rdzeniem**. `python -m tbb` nadal uruchamia
+deterministyczną partię headless. Obserwowalny UI buduje **osobny pakiet**
+`src/tbbui/` konsumujący rdzeń przez publiczne API — rdzeń `tbb` **nigdy** nie
+importuje `tbbui`.
+
+**Decyzja stacku (stdlib only):** w środowisku orkiestratora **nie ma** pygame
+ani tkinter. Prezentacja jest więc w **czystym stdlib**: deterministyczne
+stringi **SVG/HTML** (testowalne pytestem) oraz lokalny podgląd na
+`http.server`. Wyświetlaczem jest przeglądarka. Pierwszy przyrost (K13) to tryb
+obserwatora; rozkazy gracza z UI to kolejny kamień.
+
+**Layout mapy strategicznej:** `tbbui.layout.layout_world(world) ->
+dict[Region, tuple[int, int]]` — czysta, deterministyczna funkcja (bez RNG/IO).
+Komponenty grafu w kolejności `world.regions`; w komponencie BFS od pierwszego
+regionu; **kolumna** = dystans od korzenia; w warstwie BFS kolejność =
+`world.regions`; **wiersz** = pierwszy wolny indeks w kolumnie (liczniki
+kolumn globalne między komponentami).
 
 ## 2. Struktura katalogów
 ```
@@ -38,29 +51,32 @@ game/                     # katalog projektu (repo root dla tej gry)
 │   ├── DESIGN.md         # żywy projekt gry (mechanika, wizja)
 │   └── ARCHITECTURE.md   # ten plik
 ├── src/
-│   └── tbb/              # pakiet rdzenia ("Total Battle Brothers")
-│       ├── __init__.py   # wersja + publiczne API
-│       ├── __main__.py   # headless entry point (python -m tbb)
-│       ├── ai.py         # czyste, deterministyczne kwerendy AI strategicznego
-│       ├── battle.py     # niemutowalny stan bitwy: teren + rozstawienie jednostek
-│       ├── battlefield.py # rzadka plansza heksowa Hex→Terrain z domyślnym terenem
-│       ├── building.py   # niemutowalne typy budynków i katalog startowy
-│       ├── combat.py     # czyste, deterministyczne wyliczenia reguł walki
-│       ├── driver.py     # headless driver partii: przeżycie bohatera + pętla tur
-│       ├── duchy.py      # niemutowalne księstwo: identyfikator, bohater i morale
-│       ├── game.py       # niemutowalny stan końca gry nad zbiorem księstw
-│       ├── hex.py        # niemutowalne współrzędne heksów axial/cube
-│       ├── party.py      # niemutowalny bohater i skład armii strategicznej
-│       ├── terrain.py    # niemutowalne typy terenu i katalog startowy
-│       ├── turn.py       # kalendarz i niemutowalna maszyna faz strategicznej tury
-│       ├── progression.py # krzywa skumulowany nakład → poziom filaru
-│       ├── resources.py  # niemutowalne wartości pszenicy i złota
-│       ├── settlement.py # niemutowalna osada z pulą populacji
-│       ├── unit.py       # niemutowalna jednostka i pochodne statystyki bojowe
-│       ├── wound.py      # niemutowalne rany czasowe/trwałe i katalog startowy
-│       ├── world.py      # niemutowalny graf regionów i rozmieszczenie osad
-│       └── rng.py        # seedowalny RNG izolowany od stanu globalnego
-├── tests/                # testy pytest (mirror struktury src/tbb)
+│   ├── tbb/              # pakiet rdzenia ("Total Battle Brothers")
+│   │   ├── __init__.py   # wersja + publiczne API
+│   │   ├── __main__.py   # headless entry point (python -m tbb)
+│   │   ├── ai.py         # czyste, deterministyczne kwerendy AI strategicznego
+│   │   ├── battle.py     # niemutowalny stan bitwy: teren + rozstawienie jednostek
+│   │   ├── battlefield.py # rzadka plansza heksowa Hex→Terrain z domyślnym terenem
+│   │   ├── building.py   # niemutowalne typy budynków i katalog startowy
+│   │   ├── combat.py     # czyste, deterministyczne wyliczenia reguł walki
+│   │   ├── driver.py     # headless driver partii: przeżycie bohatera + pętla tur
+│   │   ├── duchy.py      # niemutowalne księstwo: identyfikator, bohater i morale
+│   │   ├── game.py       # niemutowalny stan końca gry nad zbiorem księstw
+│   │   ├── hex.py        # niemutowalne współrzędne heksów axial/cube
+│   │   ├── party.py      # niemutowalny bohater i skład armii strategicznej
+│   │   ├── terrain.py    # niemutowalne typy terenu i katalog startowy
+│   │   ├── turn.py       # kalendarz i niemutowalna maszyna faz strategicznej tury
+│   │   ├── progression.py # krzywa skumulowany nakład → poziom filaru
+│   │   ├── resources.py  # niemutowalne wartości pszenicy i złota
+│   │   ├── settlement.py # niemutowalna osada z pulą populacji
+│   │   ├── unit.py       # niemutowalna jednostka i pochodne statystyki bojowe
+│   │   ├── wound.py      # niemutowalne rany czasowe/trwałe i katalog startowy
+│   │   ├── world.py      # niemutowalny graf regionów i rozmieszczenie osad
+│   │   └── rng.py        # seedowalny RNG izolowany od stanu globalnego
+│   └── tbbui/            # pakiet prezentacji (stdlib SVG/HTML); tbb go nie importuje
+│       ├── __init__.py
+│       └── layout.py     # deterministyczny layout regionów WorldMap → (col, row)
+├── tests/                # testy pytest (mirror struktury src/)
 │   ├── test_battle.py
 │   ├── test_ai.py
 │   ├── test_rng.py
@@ -80,6 +96,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │   ├── test_unit.py
 │   ├── test_wound.py
 │   ├── test_world.py
+│   ├── test_layout.py    # layout mapy strategicznej (tbbui)
 │   └── test_smoke.py
 ├── scripts/
 │   ├── test.sh           # uruchamia pełny pakiet testów
@@ -92,6 +109,8 @@ game/                     # katalog projektu (repo root dla tej gry)
 ```
 
 Konwencja: **każdy moduł w `src/tbb/foo.py` ma test `tests/test_foo.py`.**
+Moduły prezentacji: **`src/tbbui/foo.py` → `tests/test_foo.py` albo `tests/test_ui_foo.py`**
+(prefiks `test_ui_` opcjonalnie, by sygnalizować warstwę).
 
 ## 3. Komendy (kontrakt dla orkiestratora)
 Wszystkie to **pojedyncze** komendy bez operatorów powłoki; złożone kroki są
@@ -114,8 +133,9 @@ Uruchamiaj z katalogu `game/`.
 - **TDD:** najpierw czerwony test, potem minimalny kod do zieleni, potem refaktor.
 - **Determinizm:** żadnego `random` globalnego w rdzeniu — RNG wstrzykiwany
   (`tbb`-owy wrapper z seedem). Testy z ustalonym seedem.
-- **Rdzeń czysty:** `tbb` nie importuje bibliotek prezentacji/IO w ścieżkach
-  logiki. Efekty uboczne (print/plik/sieć) tylko w warstwach zewnętrznych.
+- **Rdzeń czysty:** `tbb` nie importuje `tbbui` ani bibliotek prezentacji/IO w
+  ścieżkach logiki. Efekty uboczne (print/plik/sieć) tylko w warstwach
+  zewnętrznych (`tbb.__main__`, `tbbui`, skrypty).
 - **Typy:** type hints w publicznym API; preferuj `@dataclass` dla encji stanu.
 - **Atak dystansowy:** `Unit.ranged_range` ma wartość `0` (brak profilu) albo
   co najmniej `2`; `HexBattle.ranged_attack()` rozstrzyga strzał w tym zasięgu,
