@@ -82,18 +82,18 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > seedzie 0". Rozbite na a/b/c z testami **równoważnościowymi** (assault ≡
 > `resolve_settlement_battle` z tym samym morale; przechwycenie argumentu w
 > driverze), które nie wymagają szczęśliwego seeda.
-- [~] **B12.1b-2a** `assault_nearest_enemy_settlement` z `morale_by_owner`. *(task-061)*
+- [x] **B12.1b-2a** `assault_nearest_enemy_settlement` z `morale_by_owner`. *(task-061)*
   - AC: opcjonalny `morale_by_owner`; szturm ustala `attacker`/`defender_morale`
     z mapy `owner_id → morale` (brak = 0) i przekazuje do
     `resolve_settlement_battle`; test równoważności; zgodność wstecz.
-- [~] **B12.1b-2b** `morale_by_owner` przez `take_duchy_military_action`/`take_duchy_turn`. *(task-062)*
+- [x] **B12.1b-2b** `morale_by_owner` przez `take_duchy_military_action`/`take_duchy_turn`. *(task-062)*
   - AC: obie funkcje z opcjonalnym `morale_by_owner` wątkowanym do `assault…`;
     `None` = dotychczasowe zachowanie; testy threadingu równoważnościowe.
-- [~] **B12.1b-2c** Driver buduje mapę morale z `GameState` + DESIGN. *(task-063)*
+- [x] **B12.1b-2c** Driver buduje mapę morale z `GameState` + DESIGN. *(task-063)*
   - AC: `run_headless_game` buduje `{duchy_id: morale}` i podaje do
     `take_duchy_turn` (sygnatura bez zmian); test przez przechwycenie argumentu;
     determinizm; DESIGN ROZSTRZYGNIĘTE (B12.1b-2).
-- [~] **D12.3** Księstwo wyznacza dziedzica w turze. *(task-064; bez zależności od R12.1)*
+- [x] **D12.3** Księstwo wyznacza dziedzica w turze. *(task-064; bez zależności od R12.1)*
   - AC: `ai.designate_duchy_heir(world, duchy) -> (WorldMap, Duchy)` — no-op
     gdy brak bohatera/jest heir/brak kandydata; inaczej pierwsza własna osada
     z ≥1 wolnym i `HERO_GOLD_COST` złota daje świeżego `Unit` jako `heir`
@@ -116,21 +116,39 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > wycofał commit (`git reset` do `forge/task-046-start`; implementacja
 > referencyjna w reflogu: `8770d8f`). Zadania 046–050 są martwe — pozycje V13.*
 > zostaną wystawione z nowymi numerami w kolejnym wsadzie (po K12).
-- [~] **V13.1** Pakiet `tbbui` + deterministyczny layout mapy. *(task-065; ref. 8770d8f)*
+- [x] **V13.1** Pakiet `tbbui` + deterministyczny layout mapy. *(task-065; ref. 8770d8f)*
   - AC: `tbbui.layout.layout_world(world) -> dict[Region, (kolumna, wiersz)]` —
     BFS po komponentach w kolejności regionów, kolumna = dystans, wiersz =
     pierwszy wolny w kolumnie; pozycje unikalne; determinizm, bez RNG;
     ARCHITECTURE dostaje sekcję prezentacji (decyzja stdlib SVG/HTML).
-- [ ] **V13.2** SVG mapy strategicznej. *(kolejny wsad)*
-  - AC: `render_world_svg(world)` → parsowalny SVG; linia na połączenie,
-    element `data-region` + nazwa na region, znaczniki `data-settlement`/
-    `data-party` z `data-owner`; stała paleta kolorów właścicieli wg pierwszego
-    wystąpienia; identyczny string dla tego samego świata.
-- [ ] **V13.3** Geometria heksów i SVG bitwy. *(kolejny wsad)*
-  - AC: `hex_to_pixel`/`hex_corners` (pointy-top, sąsiedzi równoodlegli);
-    `render_battle_svg(battle)` → SVG z heksami obwiedni rozstawienia ±1,
-    wypełnienie z terenu, znaczniki jednostek z `data-side`/`data-hp`/
-    `data-stunned`; czyste i deterministyczne.
+> **V13.2 pocięte drobniej (wsad 066–069):** monolityczne SVG mapy (parse +
+> linie + znaczniki + paleta) to zbyt duża powierzchnia dla jednej pętli
+> (jak martwe V13.* z 046–050). Rozbite na cztery przyrosty, każdy z
+> deterministycznym testem stringu/parsu, bez zależności od seeda. V13.3
+> zaczyna się od czystej geometrii (070) przed `render_battle_svg`.
+- [~] **V13.2a** Szkielet SVG mapy + węzły regionów. *(task-066)*
+  - AC: `render_world_svg(world)` → parsowalny `<svg>`; po jednym `data-region`
+    (=nazwa) na region z nazwą w tekście; pozycje z `layout_world`; unikalne
+    środki; determinizm; `tbb` nie importuje `tbbui`.
+- [~] **V13.2b** Linie połączeń mapy SVG. *(task-067)*
+  - AC: jeden `<line>` na `world.connections` z `data-from`/`data-to` i końcami
+    w środkach węzłów; węzły z 066 bez zmian; determinizm.
+- [~] **V13.2c** Znaczniki osad i party na mapie SVG. *(task-068)*
+  - AC: `data-settlement`/`data-party` (=nazwa regionu) z `data-owner`
+    (`owner_id` lub pusty) przy węźle; brak znacznika dla pustego regionu;
+    determinizm.
+- [~] **V13.2d** Paleta kolorów właścicieli. *(task-069)*
+  - AC: `tbbui.palette.owner_palette(world)` — odrębni właściciele wg pierwszego
+    wystąpienia, cykliczna lista kolorów; `render_world_svg` nadaje `fill`
+    znacznikom wg właściciela (neutralny dla `None`); determinizm.
+- [~] **V13.3a** Geometria heksów pointy-top. *(task-070)*
+  - AC: `tbbui.hexgeom.hex_to_pixel`/`hex_corners` (pointy-top); 6 narożników
+    w odległości ~`size`; sześciu sąsiadów równoodległych w pikselach; czyste,
+    deterministyczne, bez RNG.
+- [ ] **V13.3b** `render_battle_svg` — pole bitwy heksowej. *(kolejny wsad)*
+  - AC: `render_battle_svg(battle)` → parsowalny SVG z heksami obwiedni
+    rozstawienia ±1 (wypełnienie z terenu), znaczniki jednostek z
+    `data-side`/`data-hp`/`data-stunned`; czyste i deterministyczne.
 - [ ] **V13.4** Strona HTML partii + snapshot z CLI. *(kolejny wsad)*
   - AC: `render_game_page(world, game, calendar)` → HTML z SVG mapy,
     kalendarzem, panelem księstw (`data-duchy`, morale, osady, party) i
