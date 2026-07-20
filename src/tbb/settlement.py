@@ -154,7 +154,10 @@ class Settlement:
 
     def absorb_defenders(self, survivors: Sequence[Unit]) -> "Settlement":
         """Replace the garrison with survivors and remove fallen residents."""
-        surviving_garrison = tuple(survivors)
+        surviving_garrison = tuple(
+            replace(unit, stunned=False) if unit.stunned else unit
+            for unit in survivors
+        )
         fallen = len(self.garrison) - len(surviving_garrison)
         if fallen < 0:
             raise ValueError("cannot have more survivors than defenders")

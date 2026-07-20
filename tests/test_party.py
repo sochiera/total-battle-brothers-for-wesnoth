@@ -4,7 +4,7 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
-from tbb import Battlefield, BattleSide, Hex, HexBattle, MAIMED, Party, Unit
+from tbb import BRUISE, Battlefield, BattleSide, Hex, HexBattle, MAIMED, Party, Unit
 
 
 def test_party_accepts_hero_with_zero_or_twelve_subordinates():
@@ -93,6 +93,39 @@ def test_reconstruct_preserves_survivor_objects_with_wounds_and_experience():
     assert reconstructed.units[0] is wounded_unit
     assert reconstructed.hero.experience == 5
     assert reconstructed.units[0].wounds == (MAIMED,)
+
+
+def test_reconstruct_clears_stun_without_losing_survivor_state():
+    original = Party(Unit(), owner_id="north")
+    stunned_hero = Unit(
+        training=2, equipment=3, experience=5, wounds=(BRUISE,), stunned=True
+    )
+    ready_unit = Unit(experience=7, wounds=(MAIMED,))
+    stunned_unit = Unit(
+        training=1, equipment=4, experience=6, wounds=(BRUISE, MAIMED),
+        stunned=True,
+    )
+    survivors = (stunned_hero, ready_unit, stunned_unit)
+
+    reconstructed = Party.reconstruct(original, survivors)
+
+    assert reconstructed.hero == Unit(
+        training=2, equipment=3, experience=5, wounds=(BRUISE,), stunned=False
+    )
+    assert reconstructed.units == (
+        ready_unit,
+        Unit(
+            training=1,
+            equipment=4,
+            experience=6,
+            wounds=(BRUISE, MAIMED),
+            stunned=False,
+        ),
+    )
+    assert reconstructed.units[0] is ready_unit
+    assert survivors == (stunned_hero, ready_unit, stunned_unit)
+    assert stunned_hero.stunned is True
+    assert stunned_unit.stunned is True
 
 
 def test_reconstruct_removes_units_absent_from_survivors():

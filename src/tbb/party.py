@@ -1,6 +1,6 @@
 """Immutable strategic party composition."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Iterable
 
 from tbb.unit import Unit
@@ -45,8 +45,12 @@ class Party:
         ordered_survivors = tuple(survivors)
         if not ordered_survivors:
             raise ValueError("cannot reconstruct a party without a surviving hero")
+        strategic_survivors = tuple(
+            replace(unit, stunned=False) if unit.stunned else unit
+            for unit in ordered_survivors
+        )
         return cls(
-            hero=ordered_survivors[0],
-            units=ordered_survivors[1:],
+            hero=strategic_survivors[0],
+            units=strategic_survivors[1:],
             owner_id=original.owner_id,
         )

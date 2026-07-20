@@ -1,6 +1,6 @@
 """Tests for the immutable strategic world graph."""
 
-from dataclasses import FrozenInstanceError
+from dataclasses import FrozenInstanceError, replace
 
 import pytest
 
@@ -1200,7 +1200,12 @@ def test_apply_settlement_attacker_win_rebuilds_conquered_garrison():
 
     conquered = resolved.settlement_at(vale)
     assert conquered.owner_id == "north"
-    assert conquered.garrison == battle.side_survivors(BattleSide.DEFENDER)
+    battle_defenders = battle.side_survivors(BattleSide.DEFENDER)
+    assert conquered.garrison == tuple(
+        replace(unit, stunned=False) if unit.stunned else unit
+        for unit in battle_defenders
+    )
+    assert all(not unit.stunned for unit in conquered.garrison)
     assert resolved.party_at(vale) == Party.reconstruct(
         attacker, battle.side_survivors(BattleSide.ATTACKER)
     )
@@ -1313,7 +1318,12 @@ def test_resolve_settlement_battle_conquers_with_attacking_survivors():
     assert first.party_at(camp) is None
     assert survivors.owner_id == "north"
     assert conquered.owner_id == "north"
-    assert conquered.garrison == battle.side_survivors(BattleSide.DEFENDER)
+    battle_defenders = battle.side_survivors(BattleSide.DEFENDER)
+    assert conquered.garrison == tuple(
+        replace(unit, stunned=False) if unit.stunned else unit
+        for unit in battle_defenders
+    )
+    assert all(not unit.stunned for unit in conquered.garrison)
     assert len((survivors.hero, *survivors.units)) < len(
         (attacker.hero, *attacker.units)
     )

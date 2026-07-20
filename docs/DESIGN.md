@@ -346,9 +346,11 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
     `Party.reconstruct(original, survivors)` tworzy nowe party z uporządkowanych
     ocalałych jednej strony: slot 0 staje się bohaterem, a pozostałe sloty —
     podkomendnymi w zachowanej kolejności. `owner_id` pochodzi z party sprzed
-    bitwy, natomiast ocalali są dokładnie tymi samymi obiektami `Unit`, więc
-    zachowują rany i doświadczenie. Pusta sekwencja (brak ocalałego bohatera)
-    jest odrzucana; party bezhetmańskie lub eliminacja pozostają domeną BW.3c/D6.2.
+    bitwy. **ROZSTRZYGNIĘTE (W11.2):** ocalali zachowują rany, doświadczenie
+    i pozostałe pola, ale wracają na mapę z `stunned=False`; jednostki ogłuszone
+    są kopiowane, a nieogłuszone mogą zachować tożsamość obiektu. Pusta sekwencja
+    (brak ocalałego bohatera) jest odrzucana; party bezhetmańskie lub eliminacja
+    pozostają domeną BW.3c/D6.2.
     Przejście nie mutuje wejść i respektuje limit 12 podkomendnych `Party`.
   - **ROZSTRZYGNIĘTE (BW.3c, wpięcie rekonstrukcji na mapie):** wpięcie rekonstrukcji w `apply_party_battle_result`
     i `apply_settlement_battle_result`. Obie metody dostają **opcjonalny**
@@ -386,8 +388,10 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   między liczebnością starego garnizonu i ocalałych; o tę liczbę maleją razem
   `population` i `occupied`, więc `free` pozostaje bez zmian. Pusta sekwencja
   usuwa cały garnizon, a sekwencja liczniejsza od dotychczasowego garnizonu jest
-  odrzucana. Ocalali zachowują swoje obiekty `Unit` (w tym rany i doświadczenie),
-  pozostały stan osady nie zmienia się, a wejście nie jest mutowane ani nie jest
+  odrzucana. **ROZSTRZYGNIĘTE (W11.2):** ocalali zachowują rany, doświadczenie
+  i pozostałe pola, ale wracają do garnizonu z `stunned=False`; jednostki
+  ogłuszone są kopiowane, a nieogłuszone mogą zachować tożsamość obiektu.
+  Pozostały stan osady nie zmienia się, a wejście nie jest mutowane ani nie jest
   używany RNG.
 - **ROZSTRZYGNIĘTE (G10.2a, straty garnizonu po obronie):**
   `WorldMap.apply_settlement_battle_result()` dla `DEFENDER_WIN` i `DRAW`
