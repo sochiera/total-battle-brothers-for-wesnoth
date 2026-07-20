@@ -362,7 +362,7 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   wyniku (`<p data-result-text>`: `Gra w toku` / `Remis` / `Zwycięstwo: <id>`),
   opcjonalnie SVG bitwy i raport bitwy gdy `battle` podane; osadza też panel osad
   (`render_settlement_panel(world, player_duchy_id)`) i panel party
-  (`render_party_panel`).
+  (`render_party_panel(world, player_duchy_id)`).
 
 **GameApp / rozkazy gracza:**
 - `GameApp(..., player_duchy_id=None)` — w `POST /turn` woła `run_headless_game`
@@ -483,12 +483,12 @@ dane z istniejących `owner_palette`/`Settlement`/`GameState`.
 
 **PLAN K24 (dokończenie orientacji gracza):** K23 oznaczył księstwo i osady
 gracza; K24.1a dodaje `player_duchy_id` w `render_party_panel` (`data-player-owned`
-na własnych party). Pozostaje przewleczenie przez `render_game_page` (K24.1b)
-oraz legenda: opcjonalny `player_duchy_id` w `render_owner_legend` oznacza
-wiersz gracza (`data-player-owner` + prefiks `» `, K24.2a) przewleczony przez
-`render_game_page` (K24.2b). Nowe argumenty domyślnie `None` → wyniki
-bajt-w-bajt jak dotąd. Rdzeń `tbb` bez zmian; dane z istniejących
-`Party`/`owner_palette`.
+na własnych party); K24.1b przewleka `player_duchy_id` z `render_game_page` do
+panelu party. Pozostaje legenda: opcjonalny `player_duchy_id` w
+`render_owner_legend` oznacza wiersz gracza (`data-player-owner` + prefiks `» `,
+K24.2a) przewleczony przez `render_game_page` (K24.2b). Nowe argumenty
+domyślnie `None` → wyniki bajt-w-bajt jak dotąd. Rdzeń `tbb` bez zmian; dane z
+istniejących `Party`/`owner_palette`.
 
 ## 12. Otwarte pytania (nadal)
 - **Krzywe filarów:** różne parametry stromości per filar oraz wpływ budynków/

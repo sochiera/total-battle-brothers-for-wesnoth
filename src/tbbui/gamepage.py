@@ -44,25 +44,26 @@ def render_game_page(
     Embeds the strategic map SVG from ``render_world_svg``, the owner-color
     legend from ``render_owner_legend(world)``, the settlement panel from
     ``render_settlement_panel(world, player_duchy_id)``, the party panel from
-    ``render_party_panel(world)``, a calendar stamp (``data-year`` /
-    ``data-month`` plus visible text ``Rok N, miesiąc M``), one duchy panel
-    row per ``game.duchies`` (machine ``data-*`` attributes plus
-    human-readable status text), a machine-readable result marker
+    ``render_party_panel(world, player_duchy_id)``, a calendar stamp
+    (``data-year`` / ``data-month`` plus visible text ``Rok N, miesiąc M``),
+    one duchy panel row per ``game.duchies`` (machine ``data-*`` attributes
+    plus human-readable status text), a machine-readable result marker
     (``data-result``), and a human-readable result banner
     (``data-result-text``). When ``battle`` is a ``HexBattle``, also embeds the
     canonical strings from ``render_battle_svg(battle)`` and
     ``render_battle_report(battle)`` in ``<body>``. Optional
     ``player_duchy_id`` marks the matching ``data-duchy`` row with
     ``data-player-duchy=""`` and a visible ``» `` text prefix, and is
-    forwarded to the settlement panel so matching ``data-settlement-row``
-    entries get ``data-player-owned=""``; ``None`` (default) leaves the page
+    forwarded to the settlement and party panels so matching
+    ``data-settlement-row`` / ``data-party-row`` entries get
+    ``data-player-owned=""``; ``None`` (default) leaves the page
     byte-for-byte unchanged. Pure and deterministic: no RNG/IO; inputs
     (including ``battle``) are not mutated.
     """
     map_svg = render_world_svg(world)
     owner_legend = render_owner_legend(world)
     settlement_panel = render_settlement_panel(world, player_duchy_id)
-    party_panel = render_party_panel(world)
+    party_panel = render_party_panel(world, player_duchy_id)
     result = _result_value(game)
     result_text = _result_text(game)
 
