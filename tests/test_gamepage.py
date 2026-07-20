@@ -18,6 +18,7 @@ from tbb.world import Region, WorldMap
 from tbbui.battlereport import render_battle_report
 from tbbui.battlesvg import render_battle_svg
 from tbbui.gamepage import render_game_page
+from tbbui.partypanel import render_party_panel
 from tbbui.settlementpanel import render_settlement_panel
 from tbbui.worldsvg import render_world_svg
 
@@ -297,6 +298,29 @@ def test_render_game_page_embeds_canonical_settlement_panel_with_matching_rows()
     row_els = _find_by_attr(root, "data-settlement-row")
     assert [el.get("data-settlement-row") for el in row_els] == [
         region.name for region in settlement_regions
+    ]
+
+
+def test_render_game_page_embeds_canonical_party_panel_with_matching_rows():
+    """Page embeds ``render_party_panel(world)`` verbatim; rows match parties."""
+    world, game, calendar = _ongoing_fixture()
+    expected_panel = render_party_panel(world)
+
+    html = render_game_page(world, game, calendar)
+    assert expected_panel in html, (
+        "page must embed render_party_panel(world) output"
+    )
+
+    root = ET.fromstring(html)
+    panels = _find_by_attr(root, "data-party-panel")
+    assert len(panels) == 1
+
+    party_regions = [
+        region for region in world.regions if world.party_at(region) is not None
+    ]
+    row_els = _find_by_attr(root, "data-party-row")
+    assert [el.get("data-party-row") for el in row_els] == [
+        region.name for region in party_regions
     ]
 
 
