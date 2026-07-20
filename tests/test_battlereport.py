@@ -127,6 +127,26 @@ def test_render_battle_report_shows_human_readable_result_text_for_defender_win(
     assert result_div.text == "Zwycięstwo broniącego"
 
 
+def test_render_battle_report_shows_human_readable_casualty_text_per_side():
+    battle = _finished_attacker_win_battle()
+    report = battle.report()
+
+    html = render_battle_report(battle)
+
+    root = ET.fromstring(html)
+    attacker_div, defender_div = root.findall(".//div[@data-battle-side]")
+    assert attacker_div.text == (
+        f"Atakujący: polegli {len(report.attacker.fallen)}, "
+        f"ogłuszeni {len(report.attacker.stunned)}, "
+        f"zdolni {len(report.attacker.active)}"
+    )
+    assert defender_div.text == (
+        f"Broniący: polegli {len(report.defender.fallen)}, "
+        f"ogłuszeni {len(report.defender.stunned)}, "
+        f"zdolni {len(report.defender.active)}"
+    )
+
+
 def test_render_battle_report_shows_human_readable_result_text_for_draw():
     battle = _finished_draw_battle()
 

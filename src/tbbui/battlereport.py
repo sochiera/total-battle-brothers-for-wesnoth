@@ -10,14 +10,24 @@ _RESULT_TEXT = {
     BattleResult.DRAW: "Remis",
 }
 
+_SIDE_LABEL = {
+    "attacker": "Atakujący",
+    "defender": "Broniący",
+}
+
 
 def _side_div(side: str, report: BattleSideReport) -> str:
+    fallen = len(report.fallen)
+    stunned = len(report.stunned)
+    active = len(report.active)
+    label = _SIDE_LABEL[side]
+    text = f"{label}: polegli {fallen}, ogłuszeni {stunned}, zdolni {active}"
     return (
         f'<div data-battle-side="{side}"'
-        f' data-fallen="{len(report.fallen)}"'
-        f' data-stunned="{len(report.stunned)}"'
-        f' data-active="{len(report.active)}"'
-        "></div>"
+        f' data-fallen="{fallen}"'
+        f' data-stunned="{stunned}"'
+        f' data-active="{active}"'
+        f">{text}</div>"
     )
 
 
@@ -27,7 +37,8 @@ def render_battle_report(battle: HexBattle) -> str:
     Root is ``<div data-battle-report="">`` with a ``data-battle-result`` child
     (value = ``report.result.value`` plus visible text matching that result)
     and one ``data-battle-side`` child per side (attacker then defender)
-    carrying ``data-fallen`` / ``data-stunned`` / ``data-active`` counts.
+    carrying ``data-fallen`` / ``data-stunned`` / ``data-active`` counts plus
+    a human-readable casualty line matching those counts.
     Pure and deterministic: no RNG/IO; ``battle`` is not mutated.
     """
     report = battle.report()
