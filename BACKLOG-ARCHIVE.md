@@ -154,3 +154,16 @@
       (powtarza tury aż `is_over` albo do `max_turns`; ten sam seed → ten sam wynik).
 - [x] **A7.2b4** Headless CLI wypisuje wynik całej partii
       (`python -m tbb`/`run.sh`: zwycięzca albo remis, kod wyjścia 0).
+
+## Kamień milowy 12 — morale w walce i ciągłość dynastii — UKOŃCZONE
+> Morale księstw (w tym kara sukcesji) realnie steruje celnością stron bitwy
+> w headless, party leczą rany w turze mapy, a bezhetmańskie księstwo wyznacza
+> dziedzica prowadzącego do sukcesji.
+- [x] **W12.2a** Leczenie ran party — `Party.tick_wounds`. *(task-056)*
+- [x] **W12.2b** Leczenie party w turze mapy i driverze — `WorldMap.tick_parties`. *(task-057)*
+- [x] **B12.1a** Morale per strona w auto-rozgrywce bitwy. *(task-058)*
+- [x] **B12.1b-1** Per-strona morale w sygnaturach `WorldMap.resolve_*`. *(task-059)*
+- [x] **B12.1b-2a** `assault_nearest_enemy_settlement` z `morale_by_owner`. *(task-061)*
+- [x] **B12.1b-2b** `morale_by_owner` przez `take_duchy_military_action`/`take_duchy_turn`. *(task-062)*
+- [x] **B12.1b-2c** Driver buduje mapę morale z `GameState` + DESIGN. *(task-063)*
+- [x] **D12.3** Księstwo wyznacza dziedzica w turze — `ai.designate_duchy_heir`. *(task-064)*

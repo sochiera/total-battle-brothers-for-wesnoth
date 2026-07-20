@@ -39,68 +39,11 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > nowego bohatera w turze (W11.1–W11.3, D11.4a–b; task-036…040). Wszystkie
 > pozycje w `BACKLOG-ARCHIVE.md`. Balans kosztów/czasów pozostaje poza kamieniem.
 
-## Kamień milowy 12 — morale w walce i ciągłość dynastii
-> Dwa mechanizmy DESIGN są zaimplementowane, ale martwe w pętli: (a)
-> `Duchy.morale` (w tym kara sukcesji `SUCCESSION_MORALE_PENALTY`) nigdy nie
-> wpływa na bitwę — `auto_resolve` dostaje jednolite `morale=0` dla OBU stron,
-> choć §3.2 mówi „morale wpływa wyłącznie na celność"; (b) `heir`/`succeed()`
-> nigdy nie awansuje dziedzica, bo nikt go nie wyznacza. Do tego jednostki
-> w party nigdy nie leczą ran (W11.3 leczy tylko garnizon). Kamień 12 wpina
-> morale księstw w celność stron bitwy, leczy party w turze i domyka linię
-> sukcesji.
->
-> **Nota po wsadzie 051–055 (micro-cap):** poprzedni wsad otwierał refaktor
-> **R12.1** (`_owned_settlements`), który dobił do limitu 12 cykli mikro-TDD
-> (jak wcześniej R10.1, 7 cykli — refaktory są kruche w tej pętli). Porażka
-> pierwszego zadania wsadu wycofała cały pakiet 052–055, choć nigdy nie zostały
-> uruchomione. **Decyzja:** R12.1 zdjęty z kamienia (duplikacja ~4 linii × 4
-> funkcje jest drobna i NIE blokuje MVP → przeniesiony do „Później"). Zadania
-> morale/leczenia przecięte drobniej i przenumerowane od 056; najbezpieczniejsze,
-> niezależne najpierw (leczenie party przed łańcuchem morale), by wartość
-> „bankowała się" nawet jeśli późniejsze zadanie padnie. Dziedzic (D12.3)
-> wypada do kolejnego wsadu i traci zależność od `_owned_settlements`.
-- [x] **W12.2a** Leczenie ran party — `Party.tick_wounds`. *(task-056)*
-  - AC: `Party.tick_wounds(months=1)` (bohater + podkomendni, `0` no-op,
-    ujemne błąd); czyste, bez RNG; `Bruise` znika po `tick_wounds(2)`,
-    `Maimed` zostaje; pakiet zielony.
-- [x] **W12.2b** Leczenie party w turze mapy i driverze. *(task-057)*
-  - AC: `WorldMap.tick_parties()` po kolejności regionów; driver woła je zaraz
-    po `tick_settlements()`; `Bruise` w party znika po 2 turach, `Maimed`
-    zostaje; determinizm; DESIGN (W12.2) + ARCHITECTURE.
-- [x] **B12.1a** Morale per strona w auto-rozgrywce bitwy. *(task-058)*
-  - AC: `HexBattle.auto_resolve(move_points, rng, attacker_morale=0,
-    defender_morale=0)`; tura jednostki dostaje morale JEJ strony; strona
-    `+45` vs `-45` wygrywa przy ustalonym seedzie, zamiana odwraca zwycięzcę;
-    równe morale obu stron = dotychczasowy przebieg; `WorldMap.resolve_*`
-    pomostowo podaje wspólne `morale` obu stronom; DESIGN (B12.1a).
-- [x] **B12.1b-1** Per-strona morale w sygnaturach `WorldMap.resolve_*`. *(task-059)*
-  - AC: `resolve_party_battle`/`resolve_settlement_battle` z
-    `attacker_morale`/`defender_morale` (domyślnie 0/0, zgodność wstecz);
-    morale `+45` po jednej stronie zmienia wynik na mapie; determinizm.
-> **Nota po porażce task-060 (coder_red):** monolityczne B12.1b-2 (3 funkcje AI
-> + driver + DESIGN) dobiło do bramki na kruchym teście „flip wyniku przy
-> seedzie 0". Rozbite na a/b/c z testami **równoważnościowymi** (assault ≡
-> `resolve_settlement_battle` z tym samym morale; przechwycenie argumentu w
-> driverze), które nie wymagają szczęśliwego seeda.
-- [x] **B12.1b-2a** `assault_nearest_enemy_settlement` z `morale_by_owner`. *(task-061)*
-  - AC: opcjonalny `morale_by_owner`; szturm ustala `attacker`/`defender_morale`
-    z mapy `owner_id → morale` (brak = 0) i przekazuje do
-    `resolve_settlement_battle`; test równoważności; zgodność wstecz.
-- [x] **B12.1b-2b** `morale_by_owner` przez `take_duchy_military_action`/`take_duchy_turn`. *(task-062)*
-  - AC: obie funkcje z opcjonalnym `morale_by_owner` wątkowanym do `assault…`;
-    `None` = dotychczasowe zachowanie; testy threadingu równoważnościowe.
-- [x] **B12.1b-2c** Driver buduje mapę morale z `GameState` + DESIGN. *(task-063)*
-  - AC: `run_headless_game` buduje `{duchy_id: morale}` i podaje do
-    `take_duchy_turn` (sygnatura bez zmian); test przez przechwycenie argumentu;
-    determinizm; DESIGN ROZSTRZYGNIĘTE (B12.1b-2).
-- [x] **D12.3** Księstwo wyznacza dziedzica w turze. *(task-064; bez zależności od R12.1)*
-  - AC: `ai.designate_duchy_heir(world, duchy) -> (WorldMap, Duchy)` — no-op
-    gdy brak bohatera/jest heir/brak kandydata; inaczej pierwsza własna osada
-    z ≥1 wolnym i `HERO_GOLD_COST` złota daje świeżego `Unit` jako `heir`
-    (skan osad inline, jak w `raise_duchy_hero` — bez `_owned_settlements`);
-    driver wpina po `raise_duchy_hero`, przed `take_duchy_turn`; test: śmierć
-    bohatera z dziedzicem → sukcesja w turze, morale −`SUCCESSION_MORALE_PENALTY`;
-    determinizm; DESIGN (D12.3).
+## Kamień milowy 12 — morale w walce i ciągłość dynastii — UKOŃCZONE
+> Morale księstw (w tym kara sukcesji) realnie steruje celnością stron bitwy
+> w headless, party leczą rany w turze mapy, a bezhetmańskie księstwo wyznacza
+> dziedzica prowadzącego do sukcesji. Wszystkie pozycje (task-056…064)
+> w `BACKLOG-ARCHIVE.md`.
 
 ## Kamień milowy 13 — minimalna warstwa wizualna (obserwator)
 > DESIGN §9a: rdzeń dojrzał (kamienie 7–11), a prezentacja nigdy nie powstała.
@@ -126,39 +69,39 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > (jak martwe V13.* z 046–050). Rozbite na cztery przyrosty, każdy z
 > deterministycznym testem stringu/parsu, bez zależności od seeda. V13.3
 > zaczyna się od czystej geometrii (070) przed `render_battle_svg`.
-- [~] **V13.2a** Szkielet SVG mapy + węzły regionów. *(task-066)*
-  - AC: `render_world_svg(world)` → parsowalny `<svg>`; po jednym `data-region`
-    (=nazwa) na region z nazwą w tekście; pozycje z `layout_world`; unikalne
-    środki; determinizm; `tbb` nie importuje `tbbui`.
-- [~] **V13.2b** Linie połączeń mapy SVG. *(task-067)*
-  - AC: jeden `<line>` na `world.connections` z `data-from`/`data-to` i końcami
-    w środkach węzłów; węzły z 066 bez zmian; determinizm.
-- [~] **V13.2c** Znaczniki osad i party na mapie SVG. *(task-068)*
-  - AC: `data-settlement`/`data-party` (=nazwa regionu) z `data-owner`
-    (`owner_id` lub pusty) przy węźle; brak znacznika dla pustego regionu;
-    determinizm.
-- [~] **V13.2d** Paleta kolorów właścicieli. *(task-069)*
-  - AC: `tbbui.palette.owner_palette(world)` — odrębni właściciele wg pierwszego
-    wystąpienia, cykliczna lista kolorów; `render_world_svg` nadaje `fill`
-    znacznikom wg właściciela (neutralny dla `None`); determinizm.
-- [~] **V13.3a** Geometria heksów pointy-top. *(task-070)*
-  - AC: `tbbui.hexgeom.hex_to_pixel`/`hex_corners` (pointy-top); 6 narożników
-    w odległości ~`size`; sześciu sąsiadów równoodległych w pikselach; czyste,
-    deterministyczne, bez RNG.
-- [ ] **V13.3b** `render_battle_svg` — pole bitwy heksowej. *(kolejny wsad)*
-  - AC: `render_battle_svg(battle)` → parsowalny SVG z heksami obwiedni
-    rozstawienia ±1 (wypełnienie z terenu), znaczniki jednostek z
-    `data-side`/`data-hp`/`data-stunned`; czyste i deterministyczne.
-- [ ] **V13.4** Strona HTML partii + snapshot z CLI. *(kolejny wsad)*
-  - AC: `render_game_page(world, game, calendar)` → HTML z SVG mapy,
-    kalendarzem, panelem księstw (`data-duchy`, morale, osady, party) i
-    `data-result` po rozstrzygnięciu; `python -m tbbui [ścieżka]` zapisuje
-    stronę rozegranej partii (domyślnie `out/game.html`), exit 0.
-- [ ] **V13.5** Przeglądarkowy podgląd partii z przyciskiem tury. *(kolejny wsad)*
-  - AC: `GameApp.handle(method, path)`: `GET /` → strona bieżącego stanu
-    z formularzem `POST /turn`; `POST /turn` → dokładnie jedna tura
-    (`run_headless_game` z `max_turns=1`), po `is_over` no-op; 404 dla innych
-    ścieżek; determinizm dla seeda i sekwencji żądań; `python -m tbbui serve`.
+- [x] **V13.2a** Szkielet SVG mapy + węzły regionów. *(task-066)*
+- [x] **V13.2b** Linie połączeń mapy SVG. *(task-067)*
+- [x] **V13.2c** Znaczniki osad i party na mapie SVG. *(task-068)*
+- [x] **V13.2d** Paleta kolorów właścicieli. *(task-069)*
+- [x] **V13.3a** Geometria heksów pointy-top. *(task-070)*
+> **Wsad 071–075 (domknięcie K13):** monolityczne V13.4 (strona + snapshot CLI)
+> i V13.5 (routing + serwer) rozbite na a/b — nowa powierzchnia API oddzielona
+> od CLI/serwera, każdy przyrost z deterministycznym testem stringu/parsu bez
+> zależności od gniazda. Kolejność: render bitwy → strona → snapshot CLI →
+> routing `GameApp.handle` → serwer `http.server`.
+- [ ] **V13.3b** `render_battle_svg` — pole bitwy heksowej. *(task-071)*
+  - AC: `tbbui.battlesvg.render_battle_svg(battle)` → parsowalny SVG z heksami
+    obwiedni rozstawienia ±1 (`<polygon>` z `hex_corners`, wypełnienie z terenu),
+    znaczniki jednostek z `data-side`/`data-hp`/`data-stunned`; czyste i det.
+- [ ] **V13.4a** `render_game_page` — strona HTML partii. *(task-072)*
+  - AC: `tbbui.gamepage.render_game_page(world, game, calendar)` → parsowalny
+    HTML z osadzonym SVG mapy, `data-calendar` (rok/miesiąc), panelem księstw
+    (`data-duchy`, `data-morale`, `data-settlements`, `data-parties`) i
+    `data-result` (zwycięzca/`draw`/`ongoing`); czyste i deterministyczne.
+- [ ] **V13.4b** Snapshot partii z CLI. *(task-073)*
+  - AC: `tbbui.__main__.main(argv)` rozgrywa deterministyczną partię headless
+    i zapisuje `render_game_page` do HTML (domyślnie `out/game.html`, katalog
+    tworzony); exit 0; plik parsowalny z `data-result`; determinizm dwóch uruchomień.
+- [ ] **V13.5a** `GameApp.handle` — routing podglądu (bez gniazda). *(task-074)*
+  - AC: `tbbui.serve.GameApp(world, game, calendar, rng).handle(method, path)`:
+    `GET /` → `(200, strona)` z formularzem `POST /turn`; `POST /turn` → jedna
+    tura (`run_headless_game` `max_turns=1`), po `is_over` no-op; inne → `404`;
+    determinizm seeda i sekwencji żądań.
+- [ ] **V13.5b** Serwer podglądu `http.server` + `python -m tbbui serve`. *(task-075)*
+  - AC: `make_server(app, host, port=0)` → `HTTPServer` (bez `serve_forever`),
+    handler deleguje GET/POST do `app.handle` przez wspólny
+    `handle_request(app, method, path)`; `python -m tbbui serve [port]` startuje
+    serwer; test wiązania portu i delegacji bez realnego ruchu w pętli.
 
 ## Później (poza MVP)
 - [ ] **R12.1 (opcjonalny dług)** Wspólna kwerenda własnych osad w `ai.py`:
