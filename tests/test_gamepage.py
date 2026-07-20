@@ -4,13 +4,18 @@ from __future__ import annotations
 
 import xml.etree.ElementTree as ET
 
+from tbb.battle import BattleSide, HexBattle
+from tbb.battlefield import Battlefield
 from tbb.duchy import Duchy
 from tbb.game import GameState
+from tbb.hex import Hex
 from tbb.party import Party
 from tbb.settlement import Settlement
+from tbb.terrain import PLAINS
 from tbb.turn import Calendar
 from tbb.unit import Unit
 from tbb.world import Region, WorldMap
+from tbbui.battlesvg import render_battle_svg
 from tbbui.gamepage import render_game_page
 from tbbui.worldsvg import render_world_svg
 
@@ -144,3 +149,29 @@ def test_render_game_page_html_map_calendar_duchies_result_and_purity():
     assert game.duchies == duchies_before
     assert calendar.year == year_before
     assert calendar.month == month_before
+
+
+def test_render_game_page_optional_battle_slot_embeds_svg_and_defaults_unchanged():
+    """``battle`` param embeds ``render_battle_svg(battle)``; default output is unchanged."""
+    world, game, calendar = _ongoing_fixture()
+    baseline_html = render_game_page(world, game, calendar)
+
+    battle_hex = Hex(0, 0)
+    battlefield = Battlefield({battle_hex: PLAINS})
+    battle = HexBattle(battlefield).deploy(Unit(), battle_hex, BattleSide.ATTACKER)
+    expected_battle_svg = render_battle_svg(battle)
+
+    # Default (no battle arg) must be byte-for-byte identical to before.
+    assert render_game_page(world, game, calendar) == baseline_html
+
+    html_with_battle = render_game_page(world, game, calendar, battle=battle)
+    assert html_with_battle != baseline_html
+    assert expected_battle_svg in html_with_battle, (
+        "page must embed render_battle_svg(battle) output when battle is given"
+    )
+
+    root = ET.fromstring(html_with_battle)
+    assert _local(root.tag) == "html"
+
+    # Explicit battle=None must equal the default (byte-for-byte).
+    assert render_game_page(world, game, calendar, battle=None) == baseline_html

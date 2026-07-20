@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from tbb.battle import HexBattle
 from tbb.game import GameState
 from tbb.turn import Calendar
 from tbb.world import WorldMap
+from tbbui.battlesvg import render_battle_svg
 from tbbui.worldsvg import render_world_svg
 
 
@@ -17,12 +19,19 @@ def _result_value(game: GameState) -> str:
     return "draw"
 
 
-def render_game_page(world: WorldMap, game: GameState, calendar: Calendar) -> str:
+def render_game_page(
+    world: WorldMap,
+    game: GameState,
+    calendar: Calendar,
+    battle: HexBattle | None = None,
+) -> str:
     """Return a parsable HTML string for one party snapshot.
 
     Embeds the strategic map SVG from ``render_world_svg``, a calendar stamp,
-    one duchy panel row per ``game.duchies``, and a result marker. Pure and
-    deterministic: no RNG/IO; inputs are not mutated.
+    one duchy panel row per ``game.duchies``, and a result marker. When
+    ``battle`` is a ``HexBattle``, also embeds the canonical string from
+    ``render_battle_svg(battle)`` in ``<body>``. Pure and deterministic: no
+    RNG/IO; inputs (including ``battle``) are not mutated.
     """
     map_svg = render_world_svg(world)
     result = _result_value(game)
@@ -38,9 +47,12 @@ def render_game_page(world: WorldMap, game: GameState, calendar: Calendar) -> st
             "></div>"
         )
 
+    battle_svg = render_battle_svg(battle) if battle is not None else ""
+
     return (
         "<html><body>"
         f"{map_svg}"
+        f"{battle_svg}"
         f'<div data-calendar="" data-year="{calendar.year}"'
         f' data-month="{calendar.month}"></div>'
         f"{''.join(duchy_parts)}"

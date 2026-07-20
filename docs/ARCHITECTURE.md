@@ -72,14 +72,19 @@ pointy-top: `hex_to_pixel(hex, size) -> (x, y)` (axial → piksel środka) oraz
 (`data-side`/`data-hp`/`data-stunned`) w środku z `hex_to_pixel`. Czyste,
 deterministyczne, bez mutacji `battle`.
 
-**Strona HTML partii (V13.4a):** `tbbui.gamepage.render_game_page(world, game,
-calendar) -> str` — parsowalny HTML z korzeniem `<html>`; osadza kanoniczny
-string z `render_world_svg(world)`; element `data-calendar` z `data-year` /
-`data-month` z podanego `Calendar`; po jednym elemencie `data-duchy` (=
-`duchy_id`) na każde `game.duchies` z `data-morale`, `data-settlements` i
-`data-parties` (liczby); element `data-result` = `duchy_id` zwycięzcy /
-`draw` / `ongoing` wg `game.is_over` i `game.winner`. Czyste, deterministyczne,
-bez mutacji wejść. Serwer podglądu — osobny przyrost (V13.5).
+**Strona HTML partii (V13.4a / K16.1a):** `tbbui.gamepage.render_game_page(world,
+game, calendar, battle=None) -> str` — parsowalny HTML z korzeniem `<html>`;
+osadza kanoniczny string z `render_world_svg(world)`; opcjonalny
+`battle: HexBattle | None = None` — gdy podany, osadza w `<body>` kanoniczny
+string z `render_battle_svg(battle)` (`tbbui.battlesvg`); gdy `None` (domyślnie)
+wynik jest identyczny bajt-w-bajt jak bez argumentu; element `data-calendar` z
+`data-year` / `data-month` z podanego `Calendar`; po jednym elemencie
+`data-duchy` (= `duchy_id`) na każde `game.duchies` z `data-morale`,
+`data-settlements` i `data-parties` (liczby); element `data-result` =
+`duchy_id` zwycięzcy / `draw` / `ongoing` wg `game.is_over` i `game.winner`.
+Czyste, deterministyczne, bez mutacji wejść (w tym `battle`). Serwer podglądu
+— osobny przyrost (V13.5); wstrzyknięcie realnej bitwy z rozkazu gracza —
+K16.1d.
 
 **Snapshot CLI (V13.4b):** `python -m tbbui [ścieżka]` → `tbbui.__main__.main(argv)
 -> int`. Rozgrywa deterministyczną partię headless (`create_headless_game` +
