@@ -407,7 +407,22 @@ graczowi bitwę party↔party: rdzeń dokłada `WorldMap.resolve_party_battle_re
 (nagrana wersja `resolve_party_battle`), `ai.engage_duchy_party_recorded` atakuje
 pierwsze sąsiednie wrogie party (auto-cel, no-op bez RNG), a `GameApp` udostępnia
 rozkaz `POST /order/engage` reużywający `_apply_player_assault_order` +
-`last_battle`. Jawny wybór celu party — późniejszy przyrost.
+`last_battle`. Jawny wybór celu party — Kamień 19.
+
+**PLAN K19 (jawny wybór celu starcia party↔party):** jak K15 dla szturmu, K19
+odwraca placeholder auto-celu: prymityw `ai.engage_duchy_party_to_recorded(world,
+duchy, target, rng, morale_by_owner=None)` (jawny sąsiedni wrogi `target`, no-op
+`(world, None)` bez RNG); routing `POST /order/engage?target=` (znany target →
+`_to_recorded`, brak/nieznany → auto `engage_duchy_party_recorded`); GET `/`
+pokazuje po jednym formularzu na sąsiednią wrogą party (helper
+`_engage_targets`; inaczej bare form). Bez zmian w rozstrzyganiu bitwy ani morale.
+
+**PLAN K20 (czytelna dla człowieka strona partii):** strona komunikuje stan
+atrybutami `data-*` (kontrakt testów), lecz w przeglądarce nie ma widocznego
+tekstu. K20 dokłada widoczny banner wyniku (`<p data-result-text>`:
+`Gra w toku` / `Remis` / `Zwycięstwo: <duchy_id>`) i czytelny wiersz statusu w
+każdym panelu `data-duchy` (nazwa + osady/party/morale); istniejące markery
+`data-result`/`data-duchy`/`data-*` bez zmian. Bez zmian w rdzeniu.
 
 ## 12. Otwarte pytania (nadal)
 - **Krzywe filarów:** różne parametry stromości per filar oraz wpływ budynków/

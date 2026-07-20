@@ -77,33 +77,38 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 - [x] **K16.1d-2** `GameApp` nagrywa i renderuje ostatnią bitwę po szturmie (`last_battle`). *(task-096)*
 - [x] **K16.1d-3** Inne rozkazy i `POST /turn` czyszczą `last_battle`. *(task-097)*
 
-## Kamień milowy 17 — czytelny wynik bitwy gracza w podglądzie
-> DESIGN §11 (PLAN K17): K16 pokazał *rysunek* bitwy, ale nie jej *wynik* — gracz
-> nie wie, kto wygrał i jakie były straty. Rdzeń ma już `HexBattle.report()`.
-> K17 dokłada czytelny raport HTML (wynik + polegli/ogłuszeni/zdolni per strona)
-> i osadza go w stronie partii. Prymityw-pierwszy, bez zmian w rdzeniu bitwy.
-- [ ] **K17.1a** Prymityw HTML raportu bitwy (`tbbui.battlereport.render_battle_report(battle)`). *(task-099)*
-  - AC: `<div data-battle-report>` z `data-battle-result` i per-stroną
-    `data-battle-side`/`data-fallen`/`data-stunned`/`data-active`; czysty.
-- [ ] **K17.1b** Strona partii osadza raport bitwy (`render_game_page(..., battle=…)`). *(task-100)*
-  - AC: osadza `render_battle_report` gdy `battle`; bajt-w-bajt bez zmian gdy `None`.
+## Kamień milowy 17 — czytelny wynik bitwy gracza w podglądzie — UKOŃCZONY
+> DESIGN §11 (PLAN K17): raport HTML bitwy (wynik + polegli/ogłuszeni/zdolni per
+> strona) osadzony w stronie partii. Pozycje w `BACKLOG-ARCHIVE.md`.
 
-## Kamień milowy 18 — starcie party↔party gracza (dobicie wędrującego bohatera)
-> DESIGN §11 (PLAN K18): gracz szturmuje tylko osady, więc bezosadowy, wędrujący
-> bohater AI kończy bazową partię remisem. Warstwa bitwy party↔party istnieje w
-> rdzeniu (`resolve_party_battle`), ale nie jest ani nagrywana, ani wystawiona
-> graczowi. K18 domyka to prymitywami-pierwszymi: nagrana bitwa party↔party →
-> prymityw AI auto-starcia → rozkaz gracza `POST /order/engage`. Auto-cel;
-> jawny wybór celu party — późniejszy przyrost.
-- [ ] **K18.1a** Rdzeń: nagrana wersja bitwy party↔party (`WorldMap.resolve_party_battle_recorded → (WorldMap, HexBattle)`). *(task-101)*
-  - AC: składa start→auto_resolve→apply; mapa identyczna z `resolve_party_battle`
-    bez extra RNG; `resolve_party_battle` deleguje.
-- [ ] **K18.1b** Prymityw AI auto-starcia party↔party z nagraniem (`ai.engage_duchy_party_recorded`). *(task-102)*
-  - AC: pierwsze sąsiednie wrogie party → `(mapa, bitwa)`; no-op → `(world, None)`
-    bez RNG; morale per strona z `morale_by_owner`.
-- [ ] **K18.1c** Rozkaz gracza `POST /order/engage` ustawia i renderuje `last_battle`. *(task-103)*
-  - AC: guardy jak `/order/assault`; bare form `/order/engage`; inne rozkazy/tura
-    nadal zerują `last_battle`, engage nie.
+## Kamień milowy 18 — starcie party↔party gracza (dobicie wędrującego bohatera) — UKOŃCZONY
+> DESIGN §11 (PLAN K18): nagrana bitwa party↔party → prymityw AI auto-starcia →
+> rozkaz gracza `POST /order/engage` (auto-cel). Pozycje (task-101…103) w
+> `BACKLOG-ARCHIVE.md`. Jawny wybór celu party → Kamień 19.
+
+## Kamień milowy 19 — jawny wybór celu starcia party↔party
+> DESIGN §11 (PLAN K19): K18 dał starcie z auto-celem (pierwszy sąsiad). K19
+> odwraca placeholder jak K15 dla szturmu: gracz wskazuje *którą* sąsiednią
+> wrogą party zaatakować. Prymityw-pierwszy → routing `?target=` → formularze
+> celu; bez zmian w rozstrzyganiu bitwy ani morale.
+- [ ] **K19.1a** Prymityw AI starcia na wskazany cel (`ai.engage_duchy_party_to_recorded`). *(task-104)*
+  - AC: jawny sąsiedni wrogi `target` → `resolve_party_battle_recorded`; no-op →
+    `(world, None)` bez RNG; morale per strona z `morale_by_owner`.
+- [ ] **K19.1b** Routing `POST /order/engage?target=` (fallback auto). *(task-105)*
+  - AC: znany target → `engage_duchy_party_to_recorded`; brak/nieznany → auto
+    `engage_duchy_party_recorded`; `last_battle`/guardy jak K18.1c.
+- [ ] **K19.1c** Formularze celu starcia w GET `/` (sąsiednie wrogie party). *(task-106)*
+  - AC: przy party gracza — form per sąsiednia wroga party `?target=`; inaczej
+    bare `/order/engage`.
+
+## Kamień milowy 20 — czytelna dla człowieka strona partii (grywalność w przeglądarce)
+> DESIGN §11 (PLAN K20): strona komunikuje stan atrybutami `data-*` (kontrakt
+> testów), ale człowiek w przeglądarce nie widzi tekstu. K20 dokłada widoczny,
+> czytelny banner wyniku i wiersze statusu księstw obok istniejących markerów.
+- [ ] **K20.1a** Czytelny banner wyniku (`<p data-result-text>`). *(task-107)*
+  - AC: `Gra w toku`/`Remis`/`Zwycięstwo: <duchy_id>`; `data-result` bez zmian.
+- [ ] **K20.1b** Czytelny wiersz statusu księstwa w panelu `data-duchy`. *(task-108)*
+  - AC: widoczny tekst z `duchy_id`/osady/party/morale; atrybuty `data-*` bez zmian.
 
 ## Dług/refaktor
 - [x] **R15.1 (refaktor)** Kompaktacja DESIGN.md do stanu obecnego; historia → DECISIONS.md. *(task-094)*
