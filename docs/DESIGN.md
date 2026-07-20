@@ -1082,8 +1082,10 @@ ich dotykają, i notować wynik tutaj:
   helperem `_apply_player_order`, stosuje `ai.march_duchy_party` (jeden krok
   party gracza ku najbliższej wrogiej osadzie). No-op gdy brak gracza, gra
   skończona lub brak księstwa. Zawsze `(200, strona)`. `GET /` zawiera
-  formularz `<form method="post" action="/order/march">`. Cel marszu
-  automatyczny (prymityw AI) — jawny cel przez query: K15.1b.
+  formularz `<form method="post" action="/order/march">` (gdy brak party
+  gracza / brak `player_duchy_id` / gra skończona; przy party na mapie —
+  formularze per region-cel, K15.1c). Cel marszu automatyczny (prymityw AI)
+  — jawny cel przez query: K15.1b.
   **ROZSTRZYGNIĘTE (K15.1b, rozkaz marszu na wskazany region):**
   `GameApp.handle` rozdziela ścieżkę od query (`path.partition("?")`) i
   parsuje `target` przez `urllib.parse.parse_qs`. `POST /order/march?target=<nazwa>`
@@ -1094,6 +1096,16 @@ ich dotykają, i notować wynik tutaj:
   Brak / pusty / nieznany `target` → fallback `ai.march_duchy_party` (jak
   K14.2d2). Handler `make_server` przekazuje pełne `self.path` (z query) do
   `handle_request`/`handle`. UI wyboru celu (formularze per region) — K15.1c.
+  **ROZSTRZYGNIĘTE (K15.1c, UI wyboru celu marszu):** gdy `player_duchy_id`
+  jest ustawiony, gra nie jest `is_over` i księstwo gracza ma party na mapie
+  (`owner_id == player_duchy_id`), `GameApp._render` emituje po jednym
+  `<form method="post" action="/order/march?target=<nazwa>">` (nazwa
+  URL-enkodowana przez `urllib.parse.quote`) dla każdego regionu z osadą o
+  `owner_id != player_duchy_id` (kolejność `world.regions`); przycisk zawiera
+  nazwę regionu-celu; bare `action="/order/march"` jest wtedy nieobecny.
+  Brak party na mapie albo `player_duchy_id is None` (lub gra skończona) →
+  pojedynczy fallbackowy formularz `action="/order/march"` jak w K14.2d2.
+  Pozostałe formularze i `data-player` bez zmian.
   **ROZSTRZYGNIĘTE (K14.2e1, prymityw AI szturmu party księstwa):**
   czyste, deterministyczne
   `ai.assault_duchy_party(world, duchy, rng, morale_by_owner=None) -> WorldMap`

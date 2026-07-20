@@ -88,7 +88,7 @@ bez mutacji wejść. Serwer podglądu — osobny przyrost (V13.5).
 wyjścia (domyślnie `out/game.html`); katalog nadrzędny jest tworzony, gdy nie
 istnieje. Zwraca `0`. Dwa uruchomienia z tym samym seedem dają identyczną treść.
 
-**Routing podglądu (V13.5a / K14.1b / K14.2a–e2 / K15.1b):** `tbbui.serve.GameApp(world, game,
+**Routing podglądu (V13.5a / K14.1b / K14.2a–e2 / K15.1b–c):** `tbbui.serve.GameApp(world, game,
 calendar, rng, player_duchy_id=None)` trzyma stan partii w pamięci i udostępnia
 czystą metodę `handle(method, path) -> (kod_http, treść)` — bez gniazda HTTP.
 `handle` rozdziela ścieżkę od query (`path.partition("?")`) na początku routingu.
@@ -98,7 +98,10 @@ czystą metodę `handle(method, path) -> (kod_http, treść)` — bez gniazda HT
 `<form method="post" action="/order/recruit">`,
 `<form method="post" action="/order/muster">`,
 `<form method="post" action="/order/develop">`,
-`<form method="post" action="/order/march">` i
+sekcję marszu (K15.1c: gdy gracz ma party — po jednym
+`<form method="post" action="/order/march?target=<nazwa>">` na region z obcą
+osadą, `quote` na nazwie, przycisk = nazwa; inaczej bare
+`<form method="post" action="/order/march">`) i
 `<form method="post" action="/order/assault">`. `POST /turn` → jedna tura przez
 `run_headless_game(..., max_turns=1, calendar=..., player_duchy_id=...)` i
 aktualizacja wewnętrznego stanu (gdy podany `player_duchy_id`, driver pomija
@@ -119,7 +122,7 @@ razie no-op; zawsze `(200, strona)`. Inna ścieżka lub metoda → `(404, treś�
 Determinizm: ten sam seed i sekwencja `handle` → te same treści i stan.
 `player_duchy_id=None` zachowuje zachowanie obserwatora AI-vs-AI.
 
-**Serwer podglądu (V13.5b / K14.1b / K15.1b):** cienki adapter nad `GameApp.handle`:
+**Serwer podglądu (V13.5b / K14.1b / K15.1b–c):** cienki adapter nad `GameApp.handle`:
 `handle_request(app, method, path) -> (kod, bajty UTF-8)` oraz
 `make_server(app, host="127.0.0.1", port=0) -> http.server.HTTPServer`.
 Handler GET/POST deleguje do `handle_request` z pełnym `self.path` (query

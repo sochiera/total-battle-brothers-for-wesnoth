@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import http.server
-from urllib.parse import parse_qs, unquote_plus
+from urllib.parse import parse_qs, quote, unquote_plus
 
 from tbb import ai
 from tbb.driver import run_headless_game
 from tbb.game import GameState
 from tbb.rng import Rng
 from tbb.turn import Calendar
-from tbb.world import WorldMap
+from tbb.world import Region, WorldMap
 from tbbui.gamepage import render_game_page
 
 _TURN_FORM = (
@@ -48,6 +48,24 @@ _ASSAULT_FORM = (
     '<button type="submit">Assault</button>'
     "</form>"
 )
+
+
+def _march_targets(world: WorldMap, player_duchy_id: str) -> tuple[Region, ...]:
+    """Regions with a foreign-owned settlement, in ``world.regions`` order."""
+    return tuple(
+        region
+        for region in world.regions
+        if (settlement := world.settlement_at(region)) is not None
+        and settlement.owner_id != player_duchy_id
+    )
+
+
+def _duchy_has_party(world: WorldMap, duchy_id: str) -> bool:
+    """True when a party with ``owner_id == duchy_id`` is on the map."""
+    return any(
+        (party := world.party_at(region)) is not None and party.owner_id == duchy_id
+        for region in world.regions
+    )
 
 
 class GameApp:
@@ -151,13 +169,31 @@ class GameApp:
         self.world = transition(self.world, player_duchy)
         self.game = self.game.sync_from_world(self.world)
 
+    def _march_forms(self) -> str:
+        """Per-target march forms when the player has a party; bare fallback otherwise."""
+        if (
+            self.player_duchy_id is not None
+            and not self.game.is_over
+            and _duchy_has_party(self.world, self.player_duchy_id)
+        ):
+            forms: list[str] = []
+            for region in _march_targets(self.world, self.player_duchy_id):
+                action = f"/order/march?target={quote(region.name)}"
+                forms.append(
+                    f'<form method="post" action="{action}">'
+                    f'<button type="submit">{region.name}</button>'
+                    "</form>"
+                )
+            return "".join(forms)
+        return _MARCH_FORM
+
     def _render(self) -> str:
         html = render_game_page(self.world, self.game, self.calendar)
         player_value = self.player_duchy_id if self.player_duchy_id is not None else ""
         extras = (
             f'<span data-player="{player_value}"></span>'
             f"{_TURN_FORM}{_RECRUIT_FORM}{_MUSTER_FORM}"
-            f"{_DEVELOP_FORM}{_MARCH_FORM}{_ASSAULT_FORM}"
+            f"{_DEVELOP_FORM}{self._march_forms()}{_ASSAULT_FORM}"
         )
         if "</body>" in html:
             return html.replace("</body>", f"{extras}</body>", 1)

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import xml.etree.ElementTree as ET
+from urllib.parse import quote
 
 import tbb.ai as ai
 from tbb.duchy import Duchy
@@ -968,13 +969,15 @@ def test_game_app_order_march_form_noop_and_determinism():
     calendar = Calendar(year=2, month=3)
     party = world.party_at(start)
 
-    # GET / embeds the march form (and a button).
+    # GET / embeds per-target march forms when the player has a party (K15.1c).
     app = GameApp(world, game, calendar, Rng(11), player_duchy_id="north")
     code_get, body_get = app.handle("GET", "/")
     assert code_get == 200
-    assert _has_post_march_form(body_get)
+    expected_target_action = f"/order/march?target={quote('Target')}"
+    assert _has_post_form(body_get, expected_target_action)
+    assert not _has_post_march_form(body_get)
     assert re.search(
-        r"<button\b[^>]*>\s*March\s*</button>", body_get, flags=re.IGNORECASE
+        r"<button\b[^>]*>\s*Target\s*</button>", body_get, flags=re.IGNORECASE
     )
 
     # No-op: player_duchy_id is None — state frozen, still 200 + page.
@@ -1051,6 +1054,57 @@ def test_game_app_order_march_form_noop_and_determinism():
     assert b.world.party_at(approach_r) is not None
     assert a.world.party_at(approach_r) == b.world.party_at(approach_r)
 
+
+
+def test_game_app_render_march_forms_one_per_foreign_settlement_region():
+    """GET / renders one march form per foreign-owned region when player has a party.
+
+    Contract (task-087 / K15.1c):
+    - when player_duchy_id is set, game is not over, and the player duchy has
+      a party on the map, _render emits one
+      ``<form method="post" action="/order/march?target=<name>">`` per region
+      in world.regions whose settlement has ``owner_id != player_duchy_id``
+      (name URL-encoded via urllib.parse.quote); the bare fallback
+      ``/order/march`` form is absent
+    - a region with no settlement, or with a settlement owned by the player,
+      is not a march target
+    - the submit button carries the target region's name
+    """
+    start, near, far, home = map(
+        Region, ("Start", "Near Region", "Far", "Home")
+    )
+    party = Party(Unit(training=4), (Unit(equipment=1),), owner_id="north")
+    near_keep = Settlement("Near Keep", 2, owner_id="south")
+    far_keep = Settlement("Far Keep", 2, owner_id="south")
+    home_keep = Settlement("Home Keep", 2, owner_id="north")
+    world = WorldMap(
+        (start, near, far, home),
+        settlements={near: near_keep, far: far_keep, home: home_keep},
+        parties={start: party},
+    )
+    game = GameState(
+        (
+            Duchy("north", party.hero, parties=(party,), settlements=(home_keep,)),
+            Duchy("south", Unit(), settlements=(near_keep, far_keep)),
+        )
+    )
+    calendar = Calendar(year=1, month=1)
+    app = GameApp(world, game, calendar, Rng(3), player_duchy_id="north")
+
+    code, body = app.handle("GET", "/")
+    assert code == 200
+
+    expected_near_action = f"/order/march?target={quote('Near Region')}"
+    expected_far_action = f"/order/march?target={quote('Far')}"
+    assert _has_post_form(body, expected_near_action)
+    assert _has_post_form(body, expected_far_action)
+    # Own-owned or settlement-less regions are not march targets.
+    assert not _has_post_form(body, "/order/march?target=Home")
+    assert not _has_post_form(body, "/order/march?target=Start")
+    # Bare fallback form absent: the player has a party on the map.
+    assert not _has_post_march_form(body)
+    assert "Near Region" in body
+    assert "Far" in body
 
 
 def test_game_app_post_order_march_with_target_applies_march_to():
