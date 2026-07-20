@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import http.server
+from urllib.parse import parse_qs, unquote_plus
 
 from tbb import ai
 from tbb.driver import run_headless_game
@@ -68,9 +69,10 @@ class GameApp:
 
     def handle(self, method: str, path: str) -> tuple[int, str]:
         """Route one request; return ``(http_status, body)`` without sockets."""
-        if method == "GET" and path == "/":
+        route, _, query = path.partition("?")
+        if method == "GET" and route == "/":
             return 200, self._render()
-        if method == "POST" and path == "/turn":
+        if method == "POST" and route == "/turn":
             if not self.game.is_over:
                 self.world, self.game, self.calendar = run_headless_game(
                     self.world,
@@ -81,19 +83,27 @@ class GameApp:
                     player_duchy_id=self.player_duchy_id,
                 )
             return 200, self._render()
-        if method == "POST" and path == "/order/recruit":
+        if method == "POST" and route == "/order/recruit":
             self._apply_player_order(ai.recruit_duchy_unit)
             return 200, self._render()
-        if method == "POST" and path == "/order/muster":
+        if method == "POST" and route == "/order/muster":
             self._apply_player_order(ai.muster_duchy_party)
             return 200, self._render()
-        if method == "POST" and path == "/order/develop":
+        if method == "POST" and route == "/order/develop":
             self._apply_player_order(ai.develop_duchy_settlement)
             return 200, self._render()
-        if method == "POST" and path == "/order/march":
-            self._apply_player_order(ai.march_duchy_party)
+        if method == "POST" and route == "/order/march":
+            target_region = self._march_target_region(query)
+            if target_region is not None:
+                self._apply_player_order(
+                    lambda world, duchy: ai.march_duchy_party_to(
+                        world, duchy, target_region
+                    )
+                )
+            else:
+                self._apply_player_order(ai.march_duchy_party)
             return 200, self._render()
-        if method == "POST" and path == "/order/assault":
+        if method == "POST" and route == "/order/assault":
             morale_by_owner = {d.duchy_id: d.morale for d in self.game.duchies}
 
             def _assault(world, duchy):
@@ -107,6 +117,21 @@ class GameApp:
             self._apply_player_order(_assault)
             return 200, self._render()
         return 404, "Not Found"
+
+    def _march_target_region(self, query: str):
+        """Resolve non-empty ``target`` query to a known ``Region``, else ``None``."""
+        if not query:
+            return None
+        values = parse_qs(query, keep_blank_values=True).get("target", [])
+        if not values:
+            return None
+        name = unquote_plus(values[0]).strip()
+        if not name:
+            return None
+        for region in self.world.regions:
+            if region.name == name:
+                return region
+        return None
 
     def _apply_player_order(self, transition) -> None:
         """Apply ``transition(world, player_duchy)`` when a player order is legal.
@@ -164,8 +189,7 @@ def make_server(
             self._dispatch("POST")
 
         def _dispatch(self, method: str) -> None:
-            path = self.path.split("?", 1)[0]
-            code, body = handle_request(app, method, path)
+            code, body = handle_request(app, method, self.path)
             self.send_response(code)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))

@@ -1052,6 +1052,90 @@ def test_game_app_order_march_form_noop_and_determinism():
     assert a.world.party_at(approach_r) == b.world.party_at(approach_r)
 
 
+
+def test_game_app_post_order_march_with_target_applies_march_to():
+    """POST /order/march?target=<region> applies march_duchy_party_to + re-syncs.
+
+    Contract (task-086 / K15.1b):
+    - handle splits path from query so POST /order/march?target=… routes as march
+    - non-empty URL-decoded target matching a name in world.regions applies
+      via _apply_player_order the transition
+      ``lambda world, duchy: ai.march_duchy_party_to(world, duchy, region)``;
+      replaces self.world, re-syncs game from the new map; returns (200, page)
+    - target is *not* the nearest enemy settlement, so the step cannot come
+      from the automatic march_duchy_party fallback
+    """
+    start, step_near, near, step_far, far = map(
+        Region, ("Start", "StepNear", "Near", "StepFar", "Far")
+    )
+    party = Party(Unit(training=4), (Unit(equipment=1),), owner_id="north")
+    near_keep = Settlement("Near Keep", 2, owner_id="south")
+    far_keep = Settlement("Far Keep", 2, owner_id="south")
+    world = WorldMap(
+        (start, step_near, near, step_far, far),
+        (
+            (start, step_near),
+            (step_near, near),
+            (start, step_far),
+            (step_far, far),
+        ),
+        settlements={near: near_keep, far: far_keep},
+        parties={start: party},
+    )
+    game = GameState(
+        (
+            Duchy("north", party.hero, parties=(party,)),
+            Duchy("south", Unit(), settlements=(near_keep, far_keep)),
+        )
+    )
+    assert not game.is_over
+    calendar = Calendar(year=2, month=3)
+    app = GameApp(world, game, calendar, Rng(11), player_duchy_id="north")
+
+    world_before = app.world
+    game_before = app.game
+    # Automatic nearest-enemy march would step toward Near, not Far.
+    auto = ai.march_duchy_party(world_before, game_before.duchies[0])
+    assert auto.party_at(step_near) is party
+    assert auto.party_at(step_far) is None
+
+    expected_world = ai.march_duchy_party_to(
+        world_before, game_before.duchies[0], far
+    )
+    expected_game = game_before.sync_from_world(expected_world)
+    assert expected_world.party_at(step_far) is party
+    assert expected_world.party_at(start) is None
+    assert expected_world.party_at(step_near) is None
+    assert expected_world is not world_before
+
+    code, body = app.handle("POST", "/order/march?target=Far")
+    assert code == 200
+    assert isinstance(body, str)
+    assert body.strip() != ""
+    root = ET.fromstring(body)
+    assert _local(root.tag) == "html"
+    assert _calendar_stamp(body) == (2, 3)
+
+    # World replaced with explicit-target march; game re-synced.
+    assert app.world is not world_before
+    assert app.world.party_at(step_far) is party
+    assert app.world.party_at(start) is None
+    assert app.world.party_at(step_near) is None
+    assert app.world.party_at(step_far) == expected_world.party_at(step_far)
+    assert app.game is not game_before
+    player = next(d for d in app.game.duchies if d.duchy_id == "north")
+    expected_player = next(
+        d for d in expected_game.duchies if d.duchy_id == "north"
+    )
+    assert player.parties == expected_player.parties
+    assert app.world.settlement_at(near) is near_keep
+    assert app.world.settlement_at(far) is far_keep
+    assert app.calendar == calendar
+    # Inputs must not have been mutated in place.
+    assert world_before.party_at(start) is party
+    assert world_before.party_at(step_far) is None
+
+
 def test_game_app_post_order_assault_applies_assault_and_resyncs():
     """POST /order/assault applies ai.assault_duchy_party + re-syncs game.
 

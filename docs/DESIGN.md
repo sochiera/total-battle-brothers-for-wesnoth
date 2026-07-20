@@ -1083,7 +1083,17 @@ ich dotykają, i notować wynik tutaj:
   party gracza ku najbliższej wrogiej osadzie). No-op gdy brak gracza, gra
   skończona lub brak księstwa. Zawsze `(200, strona)`. `GET /` zawiera
   formularz `<form method="post" action="/order/march">`. Cel marszu
-  automatyczny (prymityw AI).
+  automatyczny (prymityw AI) — jawny cel przez query: K15.1b.
+  **ROZSTRZYGNIĘTE (K15.1b, rozkaz marszu na wskazany region):**
+  `GameApp.handle` rozdziela ścieżkę od query (`path.partition("?")`) i
+  parsuje `target` przez `urllib.parse.parse_qs`. `POST /order/march?target=<nazwa>`
+  z niepustym, URL-dekodowanym `target` odpowiadającym regionowi w
+  `world.regions` (dopasowanie po `Region.name`) stosuje przez
+  `_apply_player_order` przejście
+  `lambda world, duchy: ai.march_duchy_party_to(world, duchy, region)`.
+  Brak / pusty / nieznany `target` → fallback `ai.march_duchy_party` (jak
+  K14.2d2). Handler `make_server` przekazuje pełne `self.path` (z query) do
+  `handle_request`/`handle`. UI wyboru celu (formularze per region) — K15.1c.
   **ROZSTRZYGNIĘTE (K14.2e1, prymityw AI szturmu party księstwa):**
   czyste, deterministyczne
   `ai.assault_duchy_party(world, duchy, rng, morale_by_owner=None) -> WorldMap`

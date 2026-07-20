@@ -88,9 +88,10 @@ bez mutacji wejść. Serwer podglądu — osobny przyrost (V13.5).
 wyjścia (domyślnie `out/game.html`); katalog nadrzędny jest tworzony, gdy nie
 istnieje. Zwraca `0`. Dwa uruchomienia z tym samym seedem dają identyczną treść.
 
-**Routing podglądu (V13.5a / K14.1b / K14.2a–e2):** `tbbui.serve.GameApp(world, game,
+**Routing podglądu (V13.5a / K14.1b / K14.2a–e2 / K15.1b):** `tbbui.serve.GameApp(world, game,
 calendar, rng, player_duchy_id=None)` trzyma stan partii w pamięci i udostępnia
 czystą metodę `handle(method, path) -> (kod_http, treść)` — bez gniazda HTTP.
+`handle` rozdziela ścieżkę od query (`path.partition("?")`) na początku routingu.
 `GET /` → `(200, strona)` z `render_game_page` plus znacznik
 `data-player` (wartość `player_duchy_id` lub `""` gdy `None`) oraz formularze
 `<form method="post" action="/turn">`,
@@ -104,22 +105,25 @@ aktualizacja wewnętrznego stanu (gdy podany `player_duchy_id`, driver pomija
 AI tego księstwa — K14.1a); gdy `game.is_over` przed żądaniem, no-op (stan bez
 zmian, wciąż `200`). Rozkazy gracza `POST /order/recruit` (K14.2a),
 `POST /order/muster` (K14.2b), `POST /order/develop` (K14.2c),
-`POST /order/march` (K14.2d2) i `POST /order/assault` (K14.2e2) idą wspólnym
-helperem `_apply_player_order(transition)`: gdy `player_duchy_id` ustawiony, gra
-nie jest `is_over` i księstwo gracza istnieje w `game.duchies`, stosuje
-`transition(world, player_duchy)` (`ai.recruit_duchy_unit` /
-`ai.muster_duchy_party` / `ai.develop_duchy_settlement` / `ai.march_duchy_party`
-/ zamknięcie `ai.assault_duchy_party` z `self.rng` i
+`POST /order/march` (K14.2d2 / K15.1b) i `POST /order/assault` (K14.2e2) idą
+wspólnym helperem `_apply_player_order(transition)`: gdy `player_duchy_id`
+ustawiony, gra nie jest `is_over` i księstwo gracza istnieje w `game.duchies`,
+stosuje `transition(world, player_duchy)` (`ai.recruit_duchy_unit` /
+`ai.muster_duchy_party` / `ai.develop_duchy_settlement` / dla marszu:
+`ai.march_duchy_party_to` gdy query ma niepusty, URL-dekodowany `target`
+dopasowany do `world.regions` po nazwie, inaczej fallback
+`ai.march_duchy_party` / zamknięcie `ai.assault_duchy_party` z `self.rng` i
 `morale_by_owner={d.duchy_id: d.morale for d in game.duchies}`), podmienia
 `world` i re-synchronizuje `game = game.sync_from_world(world)`; w przeciwnym
 razie no-op; zawsze `(200, strona)`. Inna ścieżka lub metoda → `(404, treść)`.
 Determinizm: ten sam seed i sekwencja `handle` → te same treści i stan.
 `player_duchy_id=None` zachowuje zachowanie obserwatora AI-vs-AI.
 
-**Serwer podglądu (V13.5b / K14.1b):** cienki adapter nad `GameApp.handle`:
+**Serwer podglądu (V13.5b / K14.1b / K15.1b):** cienki adapter nad `GameApp.handle`:
 `handle_request(app, method, path) -> (kod, bajty UTF-8)` oraz
 `make_server(app, host="127.0.0.1", port=0) -> http.server.HTTPServer`.
-Handler GET/POST deleguje do `handle_request`, ustawia status i
+Handler GET/POST deleguje do `handle_request` z pełnym `self.path` (query
+zachowane; routing query w `GameApp.handle`), ustawia status i
 `Content-Type: text/html; charset=utf-8`. `make_server` tylko wiąże gniazdo
 (port `0` = efemeryczny); nie woła `serve_forever`. CLI:
 `python -m tbbui serve [port]` tworzy świeżą deterministyczną partię
