@@ -86,6 +86,52 @@ def test_render_owner_legend_marks_player_row_when_duchy_id_given():
     assert "".join(row_south.itertext()) == "» south: " + row_south.attrib["data-color"]
 
 
+def test_render_owner_legend_none_duchy_id_matches_call_without_argument():
+    """``player_duchy_id=None`` (default) yields output byte-for-byte
+    identical to calling ``render_owner_legend`` without the argument.
+    """
+    a = Region("A")
+    b = Region("B")
+    world = WorldMap(
+        [a, b],
+        [(a, b)],
+        settlements={
+            a: Settlement("Keep A", population=1, owner_id="north"),
+            b: Settlement("Keep B", population=1, owner_id="south"),
+        },
+    )
+
+    assert render_owner_legend(world) == render_owner_legend(
+        world, player_duchy_id=None
+    )
+
+
+def test_render_owner_legend_marks_no_row_when_duchy_id_absent_from_palette():
+    """When ``player_duchy_id`` does not occur in ``owner_palette(world)``, no
+    row is marked: no ``data-player-owner`` attribute anywhere and no ``» ``
+    prefix in any row's visible text.
+    """
+    a = Region("A")
+    b = Region("B")
+    world = WorldMap(
+        [a, b],
+        [(a, b)],
+        settlements={
+            a: Settlement("Keep A", population=1, owner_id="north"),
+            b: Settlement("Keep B", population=1, owner_id="south"),
+        },
+    )
+
+    xml = render_owner_legend(world, player_duchy_id="nonexistent")
+    root = ET.fromstring(xml)
+
+    rows = root.findall("div")
+    assert len(rows) == 2
+    for row in rows:
+        assert "data-player-owner" not in row.attrib
+        assert not "".join(row.itertext()).startswith("» ")
+
+
 def test_render_owner_legend_empty_root_when_no_owners():
     """A world with no owned settlements/parties yields a bare, childless
     ``<div data-owner-legend="">`` root (no rows).
