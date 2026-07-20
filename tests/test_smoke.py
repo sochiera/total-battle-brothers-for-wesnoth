@@ -15,9 +15,11 @@ def test_headless_main_runs_full_game_and_reports_result(capsys):
 
     assert main() == 0
     output = capsys.readouterr().out.strip().lower()
-    assert "zwycięzca: ai" in output
-    assert "rok: 1" in output
-    assert "miesiąc: 2" in output
+    # D12.3 seats heirs in the default setup; landless survivors exhaust the
+    # safety limit → remis (see DESIGN A7.2b3c / create_headless_game).
+    assert "wynik: remis — brak zwycięzcy" in output
+    assert "rok: 77" in output
+    assert "miesiąc: 13" in output
 
 
 def test_headless_main_reports_final_calendar_date(capsys):
@@ -25,9 +27,9 @@ def test_headless_main_reports_final_calendar_date(capsys):
 
     assert main() == 0
     output = capsys.readouterr().out.lower()
-    assert "zwycięzca: ai" in output
-    assert "rok: 1" in output
-    assert "miesiąc: 2" in output
+    assert "wynik: remis — brak zwycięzcy" in output
+    assert "rok: 77" in output
+    assert "miesiąc: 13" in output
 
 
 def test_headless_main_delegates_to_driver_and_prints_winner(monkeypatch, capsys):

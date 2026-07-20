@@ -1122,6 +1122,79 @@ def test_raise_duchy_hero_is_noop_when_has_hero_or_no_candidate(case):
     )
 
 
+@pytest.mark.parametrize("case", ["has_heir", "no_hero", "no_candidate"])
+def test_designate_duchy_heir_is_noop_when_has_heir_no_hero_or_no_candidate(case):
+    """No-op returns the exact input world and duchy (identity) without designating."""
+    home, foreign = Region("Home"), Region("Foreign")
+    if case == "has_heir":
+        settlement = Settlement(
+            "Home",
+            population=3,
+            storage=Resources(0, settlement_module.HERO_GOLD_COST),
+            owner_id="ai",
+        )
+        hero = Unit(training=2)
+        heir = Unit(training=1)
+        duchy = Duchy("ai", hero, morale=4, heir=heir, settlements=(settlement,))
+    elif case == "no_hero":
+        settlement = Settlement(
+            "Home",
+            population=3,
+            storage=Resources(0, settlement_module.HERO_GOLD_COST),
+            owner_id="ai",
+        )
+        duchy = Duchy("ai", None, morale=4, settlements=(settlement,))
+    else:
+        # Own seat cannot pay (no free pop, gold below cost); foreign seat is ignored.
+        settlement = Settlement(
+            "Home",
+            population=3,
+            occupied=3,
+            storage=Resources(0, settlement_module.HERO_GOLD_COST - 1),
+            owner_id="ai",
+        )
+        hero = Unit(training=2)
+        duchy = Duchy("ai", hero, morale=4, settlements=(settlement,))
+    foreign_settlement = Settlement(
+        "Foreign",
+        population=5,
+        storage=Resources(0, settlement_module.HERO_GOLD_COST + 10),
+        owner_id="enemy",
+    )
+    world = WorldMap(
+        [home, foreign],
+        settlements={home: settlement, foreign: foreign_settlement},
+    )
+    snapshot = (
+        duchy.hero,
+        duchy.heir,
+        duchy.morale,
+        duchy.has_hero,
+        world.settlement_at(home).population,
+        world.settlement_at(home).storage,
+        world.settlement_at(foreign).storage,
+    )
+
+    result = designate_duchy_heir(world, duchy)
+    repeated = designate_duchy_heir(world, duchy)
+
+    assert isinstance(result, tuple)
+    assert len(result) == 2
+    result_world, result_duchy = result
+    assert result_world is world
+    assert result_duchy is duchy
+    assert repeated == result
+    assert snapshot == (
+        duchy.hero,
+        duchy.heir,
+        duchy.morale,
+        duchy.has_hero,
+        world.settlement_at(home).population,
+        world.settlement_at(home).storage,
+        world.settlement_at(foreign).storage,
+    )
+
+
 def test_designate_duchy_heir_raises_from_first_owned_settlement_by_region_order():
     """With a hero and no heir, designate from the first eligible owned settlement."""
     foreign, unowned, poor, first, second = map(

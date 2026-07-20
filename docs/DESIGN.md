@@ -626,9 +626,12 @@ Wstępne encje rdzenia (nazwy robocze, doprecyzowywane wraz z implementacją):
   Driver w `run_headless_game` woła to **po** `raise_duchy_hero` i **przed**
   `take_duchy_turn` każdego niepokonanego księstwa, podmienia księstwo przez
   `_replace_duchy` i synchronizuje stan — tak śmierć bohatera w akcji może
-  awansować dziedzica przez istniejące `succeed()` z karą morale. Kara morale
-  za samo wystawienie dziedzica, inny wybór osady i dziedziczenie statystyk —
-  poza zakresem. **ROZSTRZYGNIĘTE (MU.1,
+  awansować dziedzica przez istniejące `succeed()` z karą morale. W bazowym
+  setupie headless (A7.2a) oba księstwa stać na koszt, więc otwierający szturm
+  po wyznaczeniu dziedzica kończy się sukcesją i landless-bohaterem po stronie
+  napastnika — stąd remis na bezpieczniku w A7.2b3c, a nie wczesne wyeliminowanie
+  gracza. Kara morale za samo wystawienie dziedzica, inny wybór osady i
+  dziedziczenie statystyk — poza zakresem. **ROZSTRZYGNIĘTE (MU.1,
   wystawienie party):** `Settlement.muster(hero)` to czyste przejście przenoszące
   cały garnizon, w zachowanej kolejności, do nowego `Party` z bohaterem i
   właścicielem osady. Wymarsz opróżnia garnizon oraz zmniejsza `population`
@@ -974,9 +977,15 @@ ich dotykają, i notować wynik tutaj:
   tury w ramach `max_turns` i kończy natychmiast po osiągnięciu
   `GameState.is_over`, także w środku tury po akcji księstwa. Każda tura pobiera
   nową migawkę identyfikatorów niepokonanych księstw; ten sam setup i seed dają
-  ten sam wynik, a wejścia nie są mutowane. Setup A7.2a ma jednego silnego
-  obrońcę w garnizonie `ai`, dzięki czemu bazowa partia kończy się zwycięstwem
-  przed domyślnym bezpiecznikiem. Spadek populacji własnych osad podczas akcji
+  ten sam wynik, a wejścia nie są mutowane. Setup A7.2a ma silnego obrońcę w
+  garnizonie `ai` oraz równe zapasy złota po obu stronach, więc D12.3 wyznacza
+  dziedziców przed otwierającym szturmem: poległy napastnik awansuje dziedzica
+  przez `succeed()`, a po utracie osad pozostaje **landless** z żywym bohaterem
+  (`is_defeated` pozostaje `False`). Bazowa partia (seed `73`, domyślny
+  `max_turns`) kończy się więc **remisem na bezpieczniku** (`winner is None`,
+  kalendarz po 1000 turach: rok 77, miesiąc 13) — to zamierzone, obserwowalne
+  następstwo linii sukcesji, nie regresja; wczesne zwycięstwo AI bez dziedzica
+  było artefaktem sprzed D12.3. Spadek populacji własnych osad podczas akcji
   oznacza wystawienie garnizonu; jeśli po tej samej akcji nie ma party księstwa,
   driver rozpoznaje jego utratę i uruchamia sukcesję. Sam brak osady i party nie
   jest zdarzeniem śmierci: bezczynny bohater poza mapą pozostaje bez zmian,

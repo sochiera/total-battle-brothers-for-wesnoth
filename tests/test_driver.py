@@ -479,29 +479,29 @@ def test_idle_hero_without_strategic_assets_does_not_succeed(monkeypatch):
     assert result_game.is_over is False
 
 
-def test_default_game_finishes_deterministically_before_safety_limit():
+def test_default_game_is_deterministic_safety_limit_draw_after_succession():
+    """Default setup + D12.3: landless survivors hit the safety-limit draw.
+
+    With equal starting gold both duchies can seat heirs. After the opening
+    assault the losing side keeps a landless hero (is_defeated stays False), so
+    the fixed seed no longer yields an early AI win — it exhausts max_turns
+    deterministically with winner is None.
+    """
     first_world, first_game = create_headless_game()
     second_world, second_game = create_headless_game()
-    bounded_world, bounded_game = create_headless_game()
 
     first_result = run_headless_game(first_world, first_game, Rng(73))
     second_result = run_headless_game(second_world, second_game, Rng(73))
-    bounded_result = run_headless_game(
-        bounded_world, bounded_game, Rng(73), max_turns=999
-    )
 
     assert first_result == second_result
-    assert first_result == bounded_result
     result_world, result_game, result_calendar = first_result
     assert isinstance(result_world, WorldMap)
-    assert result_game.is_over is True
     assert isinstance(result_calendar, Calendar)
-    assert result_game.winner in result_game.duchies
-    defeated = tuple(
-        duchy for duchy in result_game.duchies if duchy.is_defeated
-    )
-    assert len(defeated) == 1
-    assert defeated[0] is not result_game.winner
+    assert result_game.is_over is False
+    assert result_game.winner is None
+    assert result_calendar == Calendar(year=77, month=13)
+    assert all(not duchy.is_defeated for duchy in result_game.duchies)
+    assert any(duchy.has_hero for duchy in result_game.duchies)
 
 
 def _development_scenario():
@@ -629,10 +629,12 @@ def test_lost_party_during_real_ai_turn_promotes_heir_before_world_sync():
 
 
 def test_lost_hero_without_heir_regains_hero_from_settlement_next_turn(monkeypatch):
-    """Heroless after succession without heir; next turn raises from owned settlement.
+    """Heroless after death without heir; next turn raises from owned settlement.
 
-    Disables automatic heir designation so this case still exercises the
-    raise_duchy_hero recovery path (D11.4b) rather than same-turn succession.
+    Isolates the raise_duchy_hero recovery path (D11.4b) by disabling automatic
+    heir designation. The complementary D12.3 path (real designate → succession
+    in the death turn) is covered by
+    test_real_designate_heir_then_hero_death_promotes_heir_with_penalty.
     """
     monkeypatch.setattr(ai, "designate_duchy_heir", lambda w, d: (w, d))
     camp, keep, home = map(Region, ("North Camp", "South Keep", "North Home"))
@@ -701,6 +703,76 @@ def test_lost_hero_without_heir_regains_hero_from_settlement_next_turn(monkeypat
     assert north.heir is None
     assert result_world.settlement_at(home) is not None
     assert result_world.settlement_at(home).owner_id == "north"
+    assert snapshot == (
+        dict(world.settlements),
+        dict(world.parties),
+        game.duchies,
+    )
+
+
+def test_real_designate_heir_then_hero_death_promotes_heir_with_penalty():
+    """D12.3 integration: real designate via driver, then death → succeed.
+
+    Same geometry as the raise-recovery case, but without monkeypatching
+    designate_duchy_heir. Driver seats an heir from the owned settlement, the
+    assault kills the party, and resolve_hero_survival promotes heir → hero
+    with SUCCESSION_MORALE_PENALTY. Two runs with the same Rng match.
+    """
+    camp, keep, home = map(Region, ("North Camp", "South Keep", "North Home"))
+    hero = Unit(equipment=1)
+    attacking_party = Party(hero, owner_id="north")
+    home_keep = Settlement(
+        "North Home",
+        population=5,
+        storage=Resources(wheat=20, gold=10),
+        owner_id="north",
+    )
+    south_keep = Settlement(
+        "South Keep",
+        4,
+        occupied=1,
+        garrison=(Unit(training=5, equipment=12),),
+        owner_id="south",
+    )
+    world = WorldMap(
+        (camp, keep, home),
+        ((camp, keep),),
+        settlements={home: home_keep, keep: south_keep},
+        parties={camp: attacking_party},
+    )
+    start_morale = 3
+    game = GameState(
+        (
+            Duchy(
+                "north",
+                hero,
+                morale=start_morale,
+                parties=(attacking_party,),
+                settlements=(home_keep,),
+            ),
+            Duchy("south", Unit(), settlements=(south_keep,)),
+        )
+    )
+    snapshot = (dict(world.settlements), dict(world.parties), game.duchies)
+
+    first = run_headless_game(world, game, Rng(4), max_turns=1)
+    second = run_headless_game(world, game, Rng(4), max_turns=1)
+    result_world, result_game, _ = first
+    north = next(
+        duchy for duchy in result_game.duchies if duchy.duchy_id == "north"
+    )
+    home_after = result_world.settlement_at(home)
+
+    assert first == second
+    assert result_world.party_at(camp) is None
+    assert north.has_hero is True
+    assert north.hero == Unit()
+    assert north.heir is None
+    assert north.morale == start_morale - SUCCESSION_MORALE_PENALTY
+    assert home_after is not None
+    assert home_after.owner_id == "north"
+    # Tick leaves gold at 10; designate spends HERO_GOLD_COST (recruit may spend more).
+    assert home_after.storage.gold <= 10 - HERO_GOLD_COST
     assert snapshot == (
         dict(world.settlements),
         dict(world.parties),
