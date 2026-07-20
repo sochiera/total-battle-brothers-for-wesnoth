@@ -59,30 +59,41 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > niezależne najpierw (leczenie party przed łańcuchem morale), by wartość
 > „bankowała się" nawet jeśli późniejsze zadanie padnie. Dziedzic (D12.3)
 > wypada do kolejnego wsadu i traci zależność od `_owned_settlements`.
-- [~] **W12.2a** Leczenie ran party — `Party.tick_wounds`. *(task-056)*
+- [x] **W12.2a** Leczenie ran party — `Party.tick_wounds`. *(task-056)*
   - AC: `Party.tick_wounds(months=1)` (bohater + podkomendni, `0` no-op,
     ujemne błąd); czyste, bez RNG; `Bruise` znika po `tick_wounds(2)`,
     `Maimed` zostaje; pakiet zielony.
-- [~] **W12.2b** Leczenie party w turze mapy i driverze. *(task-057)*
+- [x] **W12.2b** Leczenie party w turze mapy i driverze. *(task-057)*
   - AC: `WorldMap.tick_parties()` po kolejności regionów; driver woła je zaraz
     po `tick_settlements()`; `Bruise` w party znika po 2 turach, `Maimed`
     zostaje; determinizm; DESIGN (W12.2) + ARCHITECTURE.
-- [~] **B12.1a** Morale per strona w auto-rozgrywce bitwy. *(task-058)*
+- [x] **B12.1a** Morale per strona w auto-rozgrywce bitwy. *(task-058)*
   - AC: `HexBattle.auto_resolve(move_points, rng, attacker_morale=0,
     defender_morale=0)`; tura jednostki dostaje morale JEJ strony; strona
     `+45` vs `-45` wygrywa przy ustalonym seedzie, zamiana odwraca zwycięzcę;
     równe morale obu stron = dotychczasowy przebieg; `WorldMap.resolve_*`
     pomostowo podaje wspólne `morale` obu stronom; DESIGN (B12.1a).
-- [~] **B12.1b-1** Per-strona morale w sygnaturach `WorldMap.resolve_*`. *(task-059)*
+- [x] **B12.1b-1** Per-strona morale w sygnaturach `WorldMap.resolve_*`. *(task-059)*
   - AC: `resolve_party_battle`/`resolve_settlement_battle` z
     `attacker_morale`/`defender_morale` (domyślnie 0/0, zgodność wstecz);
     morale `+45` po jednej stronie zmienia wynik na mapie; determinizm.
-- [~] **B12.1b-2** Morale księstw wpięte w AI i driver. *(task-060)*
-  - AC: `assault…`/`take_duchy_military_action`/`take_duchy_turn` z opcjonalnym
-    `morale_by_owner`; driver buduje mapę morale z `GameState` przed akcją;
-    test: morale księstwa obserwowalnie zmienia wynik szturmu; determinizm;
-    DESIGN (B12.1b).
-- [ ] **D12.3** Księstwo wyznacza dziedzica w turze. *(kolejny wsad; bez zależności od R12.1)*
+> **Nota po porażce task-060 (coder_red):** monolityczne B12.1b-2 (3 funkcje AI
+> + driver + DESIGN) dobiło do bramki na kruchym teście „flip wyniku przy
+> seedzie 0". Rozbite na a/b/c z testami **równoważnościowymi** (assault ≡
+> `resolve_settlement_battle` z tym samym morale; przechwycenie argumentu w
+> driverze), które nie wymagają szczęśliwego seeda.
+- [~] **B12.1b-2a** `assault_nearest_enemy_settlement` z `morale_by_owner`. *(task-061)*
+  - AC: opcjonalny `morale_by_owner`; szturm ustala `attacker`/`defender_morale`
+    z mapy `owner_id → morale` (brak = 0) i przekazuje do
+    `resolve_settlement_battle`; test równoważności; zgodność wstecz.
+- [~] **B12.1b-2b** `morale_by_owner` przez `take_duchy_military_action`/`take_duchy_turn`. *(task-062)*
+  - AC: obie funkcje z opcjonalnym `morale_by_owner` wątkowanym do `assault…`;
+    `None` = dotychczasowe zachowanie; testy threadingu równoważnościowe.
+- [~] **B12.1b-2c** Driver buduje mapę morale z `GameState` + DESIGN. *(task-063)*
+  - AC: `run_headless_game` buduje `{duchy_id: morale}` i podaje do
+    `take_duchy_turn` (sygnatura bez zmian); test przez przechwycenie argumentu;
+    determinizm; DESIGN ROZSTRZYGNIĘTE (B12.1b-2).
+- [~] **D12.3** Księstwo wyznacza dziedzica w turze. *(task-064; bez zależności od R12.1)*
   - AC: `ai.designate_duchy_heir(world, duchy) -> (WorldMap, Duchy)` — no-op
     gdy brak bohatera/jest heir/brak kandydata; inaczej pierwsza własna osada
     z ≥1 wolnym i `HERO_GOLD_COST` złota daje świeżego `Unit` jako `heir`
@@ -105,7 +116,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > wycofał commit (`git reset` do `forge/task-046-start`; implementacja
 > referencyjna w reflogu: `8770d8f`). Zadania 046–050 są martwe — pozycje V13.*
 > zostaną wystawione z nowymi numerami w kolejnym wsadzie (po K12).
-- [ ] **V13.1** Pakiet `tbbui` + deterministyczny layout mapy. *(kolejny wsad; ref. 8770d8f)*
+- [~] **V13.1** Pakiet `tbbui` + deterministyczny layout mapy. *(task-065; ref. 8770d8f)*
   - AC: `tbbui.layout.layout_world(world) -> dict[Region, (kolumna, wiersz)]` —
     BFS po komponentach w kolejności regionów, kolumna = dystans, wiersz =
     pierwszy wolny w kolumnie; pozycje unikalne; determinizm, bez RNG;
