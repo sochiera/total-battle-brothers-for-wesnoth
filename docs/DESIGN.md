@@ -673,7 +673,26 @@ Wstępne encje rdzenia (nazwy robocze, doprecyzowywane wraz z implementacją):
 
 ## 9. Poza zakresem (na start)
 Scenariuszowa kampania/fabuła, multiplayer sieciowy, magia/fantastyka, oddziały
-masowe (np. 60 ludzi w jednostce), zaawansowana grafika i dźwięk, edytor map.
+masowe (np. 60 ludzi w jednostce), grafika AAA/dźwięk, edytor map.
+
+## 9a. Warstwa wizualna — zmiana zakresu (dopisana po iteracji 34, rdzeń dojrzały)
+> Wcześniejsza wersja DESIGN w ogóle nie planowała prezentacji poza rdzeniem
+> logiki, więc kolejne iteracje nigdy jej nie budowały. To jest świadome
+> rozszerzenie zakresu, nie sprzeczność z §8 „Rdzeń bez prezentacji" do
+> zignorowania — rdzeń zostaje bez importów UI, ale warstwa prezentacji ma
+> teraz realnie powstać jako osobny moduł na tym rdzeniu.
+
+Rdzeń (strategia + bitwa) jest w większości gotowy (kamienie 7–11 ukończone).
+Następny priorytet, obok domykania kamienia 12, to **minimalna ale realna
+warstwa wizualna**, nie tylko `python -m tbb` w konsoli:
+- Mapa strategiczna: widok regionów/osad/party w 2D (prosty, schematyczny —
+  nie AAA, ale grywalny wzrokiem, nie tylko logiem).
+- Bitwa: siatka heksów renderowana wizualnie z jednostkami i terenem,
+  sterowanie myszą/klawiaturą zamiast tylko wywołań funkcji w testach.
+- Silnik do wyboru przez agenta realizującego zadanie (np. pygame/arcade,
+  albo web/canvas) — uzasadnienie dopisać do `docs/ARCHITECTURE.md`.
+- Ma trafić do `BACKLOG.md` jako zadania z kryteriami akceptacji jak każde
+  inne, nie zostać odłożone bezterminowo.
 
 ## 10. Otwarte pytania (do rozstrzygnięcia w trakcie)
 Oznaczone, bo decyzja nie jest przesądzona — rozstrzygać przy okazji zadań, które

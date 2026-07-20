@@ -65,7 +65,6 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     bohatera bez dziedzica księstwo z osadą odzyskuje `has_hero`; determinizm.
 
 ## Później (poza MVP)
-- [ ] Prezentacja/UI (pygame lub most do innego silnika) nad rdzeniem.
 - [ ] Bogatszy model ran, terenu, budynków; więcej typów jednostek.
 - [ ] **Bramkowanie treningu budynkiem (§5 „odpowiednie budynki"):** katalog
       budynku treningowego i wymóg jego czynności w `tick_training` (dziś trening
