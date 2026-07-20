@@ -1136,6 +1136,49 @@ def test_game_app_post_order_march_with_target_applies_march_to():
     assert world_before.party_at(step_far) is None
 
 
+def test_game_app_post_order_march_empty_or_unknown_target_falls_back():
+    """POST /order/march?target=<empty|unknown> falls back to march_duchy_party.
+
+    Contract (task-086 / K15.1b): an empty ``target`` value or one that does
+    not match any region name in ``world.regions`` is treated the same as no
+    ``target`` at all — the nearest-enemy fallback (``ai.march_duchy_party``)
+    applies, not ``march_duchy_party_to``.
+    """
+    start, step_near, near, step_far, far = map(
+        Region, ("Start", "StepNear", "Near", "StepFar", "Far")
+    )
+    party = Party(Unit(training=4), (Unit(equipment=1),), owner_id="north")
+    near_keep = Settlement("Near Keep", 2, owner_id="south")
+    far_keep = Settlement("Far Keep", 2, owner_id="south")
+    world = WorldMap(
+        (start, step_near, near, step_far, far),
+        (
+            (start, step_near),
+            (step_near, near),
+            (start, step_far),
+            (step_far, far),
+        ),
+        settlements={near: near_keep, far: far_keep},
+        parties={start: party},
+    )
+    game = GameState(
+        (
+            Duchy("north", party.hero, parties=(party,)),
+            Duchy("south", Unit(), settlements=(near_keep, far_keep)),
+        )
+    )
+    calendar = Calendar(year=2, month=3)
+
+    for query in ("/order/march?target=", "/order/march?target=Nonexistent"):
+        app = GameApp(world, game, calendar, Rng(11), player_duchy_id="north")
+        code, body = app.handle("POST", query)
+        assert code == 200
+        assert body.strip() != ""
+        # Fallback nearest-enemy march steps toward Near, not Far.
+        assert app.world.party_at(step_near) is party
+        assert app.world.party_at(step_far) is None
+
+
 def test_game_app_post_order_assault_applies_assault_and_resyncs():
     """POST /order/assault applies ai.assault_duchy_party + re-syncs game.
 

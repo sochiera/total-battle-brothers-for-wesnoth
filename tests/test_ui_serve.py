@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import http.client
 import http.server
+import threading
 
 from tbb.duchy import Duchy
 from tbb.game import GameState
+from tbb.party import Party
 from tbb.rng import Rng
 from tbb.settlement import Settlement
 from tbb.turn import Calendar
@@ -85,3 +88,59 @@ def test_make_server_binds_port_and_handle_request_delegates_to_app_handle():
     assert code_r == code_h == 404
     assert isinstance(body_r, bytes)
     assert body_r == body_h.encode("utf-8")
+
+
+def test_dispatch_passes_full_path_with_query_over_real_socket():
+    """_Handler._dispatch forwards self.path (incl. ``?query``) unstripped (K15.1b).
+
+    Contract (task-086): a real POST over the bound socket to
+    ``/order/march?target=Far`` must reach ``GameApp.handle`` with the query
+    string intact, so the targeted march (``march_duchy_party_to``) applies —
+    not the nearest-enemy fallback that a stripped path would trigger.
+    """
+    from tbbui.serve import make_server
+
+    start, step_near, near, step_far, far = map(
+        Region, ("Start", "StepNear", "Near", "StepFar", "Far")
+    )
+    party = Party(Unit(training=4), (Unit(equipment=1),), owner_id="north")
+    near_keep = Settlement("Near Keep", 2, owner_id="south")
+    far_keep = Settlement("Far Keep", 2, owner_id="south")
+    world = WorldMap(
+        (start, step_near, near, step_far, far),
+        (
+            (start, step_near),
+            (step_near, near),
+            (start, step_far),
+            (step_far, far),
+        ),
+        settlements={near: near_keep, far: far_keep},
+        parties={start: party},
+    )
+    game = GameState(
+        (
+            Duchy("north", party.hero, parties=(party,)),
+            Duchy("south", Unit(), settlements=(near_keep, far_keep)),
+        )
+    )
+    app = GameApp(
+        world, game, Calendar(year=2, month=3), Rng(11), player_duchy_id="north"
+    )
+
+    server = make_server(app, host="127.0.0.1", port=0)
+    thread = threading.Thread(target=server.handle_request)
+    thread.start()
+    try:
+        conn = http.client.HTTPConnection(*server.server_address[:2])
+        conn.request("POST", "/order/march?target=Far")
+        response = conn.getresponse()
+        response.read()
+        conn.close()
+    finally:
+        thread.join()
+        server.server_close()
+
+    # Nearest-enemy fallback would have stepped toward Near, not Far — the
+    # query only takes effect if _dispatch handed the full path to handle.
+    assert app.world.party_at(step_far) is party
+    assert app.world.party_at(step_near) is None
