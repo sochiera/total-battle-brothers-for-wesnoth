@@ -280,6 +280,80 @@ def test_run_headless_game_passes_morale_by_owner_from_game_state(monkeypatch):
     assert expected_morale == {"north": 17, "south": -9}
 
 
+def test_player_duchy_skips_take_duchy_turn_keeps_raise_and_heir(monkeypatch):
+    """player_duchy_id skips take_duchy_turn for that duchy; AI others still act.
+
+    Tick/sync/raise_duchy_hero/designate_duchy_heir still run for every duchy;
+    only automatic develop/recruit/military policy is withheld from the player.
+    Inputs stay immutable.
+    """
+    north, south = map(Region, ("North", "South"))
+    north_keep = Settlement(
+        "North Keep", 2, storage=Resources(0, 1), owner_id="north"
+    )
+    south_keep = Settlement(
+        "South Keep", 2, storage=Resources(0, 1), owner_id="south"
+    )
+    world = WorldMap(
+        (north, south),
+        settlements={north: north_keep, south: south_keep},
+    )
+    game = GameState(
+        (
+            Duchy("north", Unit(), settlements=(north_keep,)),
+            Duchy("south", Unit(), settlements=(south_keep,)),
+        )
+    )
+    snapshot = (
+        world.regions,
+        dict(world.settlements),
+        dict(world.parties),
+        game.duchies,
+    )
+    take_calls = []
+    raise_calls = []
+    designate_calls = []
+    real_take = ai.take_duchy_turn
+    real_raise = ai.raise_duchy_hero
+    real_designate = ai.designate_duchy_heir
+
+    def recording_take(current_world, duchy, rng, morale_by_owner=None):
+        take_calls.append(duchy.duchy_id)
+        return real_take(
+            current_world, duchy, rng, morale_by_owner=morale_by_owner
+        )
+
+    def recording_raise(current_world, duchy):
+        raise_calls.append(duchy.duchy_id)
+        return real_raise(current_world, duchy)
+
+    def recording_designate(current_world, duchy):
+        designate_calls.append(duchy.duchy_id)
+        return real_designate(current_world, duchy)
+
+    monkeypatch.setattr(ai, "take_duchy_turn", recording_take)
+    monkeypatch.setattr(ai, "raise_duchy_hero", recording_raise)
+    monkeypatch.setattr(ai, "designate_duchy_heir", recording_designate)
+
+    result_world, result_game, _ = run_headless_game(
+        world, game, Rng(17), max_turns=1, player_duchy_id="north"
+    )
+
+    assert take_calls == ["south"]
+    assert raise_calls == ["north", "south"]
+    assert designate_calls == ["north", "south"]
+    assert result_world.settlement_at(north).garrison == ()
+    assert result_world.settlement_at(south).garrison == (Unit(),)
+    assert result_world is not world
+    assert result_game is not game
+    assert snapshot == (
+        world.regions,
+        dict(world.settlements),
+        dict(world.parties),
+        game.duchies,
+    )
+
+
 def test_conquest_syncs_game_and_skips_newly_defeated_duchy(monkeypatch):
     north, south = map(Region, ("North", "South"))
     north_keep = Settlement("North Keep", 1, owner_id="north")

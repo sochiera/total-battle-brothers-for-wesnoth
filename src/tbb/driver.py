@@ -48,12 +48,17 @@ def run_headless_game(
     rng: Rng,
     max_turns: int = 1000,
     calendar: turn.Calendar = turn.Calendar(),
+    player_duchy_id: str | None = None,
 ) -> tuple[WorldMap, GameState, turn.Calendar]:
     """Run complete AI policies until the game ends or the budget is exhausted.
 
     Each duchy policy includes settlement development before recruitment and
     military action, so the returned world exposes buildings opened during the
     headless game.
+
+    When ``player_duchy_id`` is set, that duchy still receives economy ticks,
+    ``raise_duchy_hero`` and ``designate_duchy_heir``, but skips automatic
+    ``take_duchy_turn`` so develop/recruit/military stay for player orders.
     """
     current_world = world
     current_game = game
@@ -86,6 +91,8 @@ def run_headless_game(
             current_world, duchy = ai.designate_duchy_heir(current_world, duchy)
             current_game = _replace_duchy(current_game, duchy)
             current_game = current_game.sync_from_world(current_world)
+            if duchy.duchy_id == player_duchy_id:
+                continue
             world_before = current_world
             morale_by_owner = {
                 candidate.duchy_id: candidate.morale

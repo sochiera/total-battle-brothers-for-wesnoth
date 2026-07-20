@@ -1000,12 +1000,20 @@ ich dotykają, i notować wynik tutaj:
   Detekcja A7.2b2 była minimalna (before/after obecności party); A7.2b3c poniżej
   rozszerza ją o party wystawione i utracone w tej samej akcji.
   **ROZSTRZYGNIĘTE (A7.2b3a, szkielet drivera):** czyste
-  `driver.run_headless_game(world, game, rng, max_turns=1000, calendar=Calendar())`
-  zwraca trójkę `(WorldMap, GameState, Calendar)` (kontrakt rozszerzony w M8.2).
+  `driver.run_headless_game(world, game, rng, max_turns=1000, calendar=Calendar(), player_duchy_id=None)`
+  zwraca trójkę `(WorldMap, GameState, Calendar)` (kontrakt rozszerzony w M8.2;
+  `player_duchy_id` — K14.1a).
   Gra rozstrzygnięta już na wejściu
   oraz nierozstrzygnięta gra z `max_turns == 0` zwracają dokładnie wejściowe
   obiekty, bez synchronizacji, wykonywania tury ani mutacji. Wykonywanie tur
   pozostaje w A7.2b3b–c.
+  **ROZSTRZYGNIĘTE (K14.1a, pominięcie tury AI księstwa gracza):** opcjonalny
+  `player_duchy_id: str | None = None` na końcu sygnatury. Gdy podany, w przebiegu
+  tury dla księstwa o tym `duchy_id` **nie** jest wołane `take_duchy_turn`
+  (rozwój/rekrutacja/akcja wojskowa zostają rozkazom gracza); tick ekonomii,
+  `sync_from_world`, `raise_duchy_hero` i `designate_duchy_heir` nadal działają
+  dla wszystkich księstw. `None` = zgodność wsteczna (wszystkie księstwa AI).
+  Przejście czyste i deterministyczne.
   **ROZSTRZYGNIĘTE (A7.2b3b1, akcje księstw na wspólnej mapie):** gdy gra
   trwa i budżet pozwala na co najmniej jedną turę, driver wykonuje pojedynczy
   przebieg księstw w kolejności `game.duchies`. Każde niepokonane księstwo

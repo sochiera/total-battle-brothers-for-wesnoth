@@ -247,10 +247,14 @@ Uruchamiaj z katalogu `game/`.
   woła `tick_settlements()`, zaraz potem `tick_parties()`, a następnie
   `sync_from_world` — zanim rozpocznie przebieg księstw. Przed każdym
   `take_duchy_turn` buduje `morale_by_owner` z bieżącego `GameState`
-  (`{duchy_id: morale}`) i przekazuje do polityki AI. Driver przewleka
-  niemutowalny `Calendar`, kończy każdą wykonaną turę przez `turn.end_turn` i
-  zwraca mapę, stan gry oraz kalendarz; CLI odbiera całą trójkę i wypisuje
-  wynik wraz z końcowym rokiem i miesiącem, nie wyliczając czasu samodzielnie.
+  (`{duchy_id: morale}`) i przekazuje do polityki AI. Opcjonalny
+  `player_duchy_id` pomija `take_duchy_turn` (oraz następującą sukcesję
+  bohatera z akcji) dla wskazanego księstwa; tick ekonomii, `raise_duchy_hero`
+  i `designate_duchy_heir` nadal obejmują wszystkie księstwa (K14.1a). Driver
+  przewleka niemutowalny `Calendar`, kończy każdą wykonaną turę przez
+  `turn.end_turn` i zwraca mapę, stan gry oraz kalendarz; CLI odbiera całą
+  trójkę i wypisuje wynik wraz z końcowym rokiem i miesiącem, nie wyliczając
+  czasu samodzielnie.
 - **Nazwy:** moduł ↔ test 1:1 (patrz wyżej).
 
 ## 5. Uruchamianie lokalnie (dla człowieka)
