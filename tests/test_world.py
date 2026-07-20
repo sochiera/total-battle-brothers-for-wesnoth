@@ -1435,6 +1435,51 @@ def test_apply_settlement_non_win_with_battle_removes_attacking_party(result):
     assert world.settlement_at(vale) is settlement
 
 
+def test_resolve_settlement_battle_attacker_morale_advantage_changes_map_outcome():
+    """Per-side morale on resolve_settlement_battle: +45 attacker vs 0/0 flips the map.
+
+    Symmetric 1v1 (equipment=2), seed 0: defaults leave the settlement under
+    defender ownership; attacker_morale=45 / defender_morale=0 conquers it.
+    Input party, settlement, and the world graph stay immutable.
+    """
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(Unit(equipment=2), owner_id="north")
+    garrison = (Unit(equipment=2),)
+    settlement = Settlement(
+        "Oakrest", population=4, garrison=garrison, owner_id="south"
+    )
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        settlements={vale: settlement},
+        parties={camp: attacker},
+    )
+    seed = 0
+
+    baseline = world.resolve_settlement_battle(
+        camp, vale, Rng(seed), move_points=1, attacker_morale=0, defender_morale=0
+    )
+    boosted = world.resolve_settlement_battle(
+        camp, vale, Rng(seed), move_points=1, attacker_morale=45, defender_morale=0
+    )
+    boosted_again = world.resolve_settlement_battle(
+        camp, vale, Rng(seed), move_points=1, attacker_morale=45, defender_morale=0
+    )
+
+    assert baseline.party_at(camp) is None
+    assert baseline.party_at(vale) is None
+    assert baseline.settlement_at(vale).owner_id == "south"
+    assert boosted.party_at(camp) is None
+    assert boosted.party_at(vale).owner_id == "north"
+    assert boosted.settlement_at(vale).owner_id == "north"
+    assert boosted == boosted_again
+    assert world.party_at(camp) is attacker
+    assert world.settlement_at(vale) is settlement
+    assert settlement.garrison is garrison
+    assert settlement.owner_id == "south"
+
+
 def test_resolve_settlement_battle_conquers_with_attacking_survivors():
     camp = Region("Camp")
     vale = Region("Vale")
