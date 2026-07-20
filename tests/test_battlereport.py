@@ -74,3 +74,14 @@ def test_render_battle_report_is_deterministic():
     battle = _finished_attacker_win_battle()
 
     assert render_battle_report(battle) == render_battle_report(battle)
+
+
+def test_render_battle_report_shows_human_readable_result_text_for_attacker_win():
+    battle = _finished_attacker_win_battle()
+
+    html = render_battle_report(battle)
+
+    root = ET.fromstring(html)
+    result_div = root.find(".//div[@data-battle-result]")
+    assert result_div.attrib["data-battle-result"] == BattleResult.ATTACKER_WIN.value
+    assert result_div.text == "Zwycięstwo atakującego"
