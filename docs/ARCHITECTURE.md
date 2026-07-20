@@ -88,25 +88,29 @@ bez mutacji wejść. Serwer podglądu — osobny przyrost (V13.5).
 wyjścia (domyślnie `out/game.html`); katalog nadrzędny jest tworzony, gdy nie
 istnieje. Zwraca `0`. Dwa uruchomienia z tym samym seedem dają identyczną treść.
 
-**Routing podglądu (V13.5a):** `tbbui.serve.GameApp(world, game, calendar, rng)`
-trzyma stan partii w pamięci i udostępnia czystą metodę
-`handle(method, path) -> (kod_http, treść)` — bez gniazda HTTP.
-`GET /` → `(200, strona)` z `render_game_page` plus formularz
+**Routing podglądu (V13.5a / K14.1b):** `tbbui.serve.GameApp(world, game,
+calendar, rng, player_duchy_id=None)` trzyma stan partii w pamięci i udostępnia
+czystą metodę `handle(method, path) -> (kod_http, treść)` — bez gniazda HTTP.
+`GET /` → `(200, strona)` z `render_game_page` plus znacznik
+`data-player` (wartość `player_duchy_id` lub `""` gdy `None`) oraz formularz
 `<form method="post" action="/turn">`. `POST /turn` → jedna tura przez
-`run_headless_game(..., max_turns=1, calendar=...)` i aktualizacja wewnętrznego
-stanu; gdy `game.is_over` przed żądaniem, no-op (stan bez zmian, wciąż `200`).
-Inna ścieżka lub metoda → `(404, treść)`. Determinizm: ten sam seed i sekwencja
-`handle` → te same treści i stan.
+`run_headless_game(..., max_turns=1, calendar=..., player_duchy_id=...)` i
+aktualizacja wewnętrznego stanu (gdy podany `player_duchy_id`, driver pomija
+AI tego księstwa — K14.1a); gdy `game.is_over` przed żądaniem, no-op (stan bez
+zmian, wciąż `200`). Inna ścieżka lub metoda → `(404, treść)`. Determinizm: ten
+sam seed i sekwencja `handle` → te same treści i stan. `player_duchy_id=None`
+zachowuje zachowanie obserwatora AI-vs-AI.
 
-**Serwer podglądu (V13.5b):** cienki adapter nad `GameApp.handle`:
+**Serwer podglądu (V13.5b / K14.1b):** cienki adapter nad `GameApp.handle`:
 `handle_request(app, method, path) -> (kod, bajty UTF-8)` oraz
 `make_server(app, host="127.0.0.1", port=0) -> http.server.HTTPServer`.
 Handler GET/POST deleguje do `handle_request`, ustawia status i
 `Content-Type: text/html; charset=utf-8`. `make_server` tylko wiąże gniazdo
 (port `0` = efemeryczny); nie woła `serve_forever`. CLI:
 `python -m tbbui serve [port]` tworzy świeżą deterministyczną partię
-(`create_headless_game` + `Rng(73)` + `Calendar()`), `GameApp` i `make_server`,
-potem `serve_forever()`.
+(`create_headless_game` + `Rng(73)` + `Calendar()`), `GameApp` z
+`player_duchy_id="player"` (single-player) i `make_server`, potem
+`serve_forever()`.
 
 ## 2. Struktura katalogów
 ```

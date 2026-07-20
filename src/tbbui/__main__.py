@@ -50,7 +50,9 @@ def _run_serve(args: list[str]) -> int:
     """Start the local preview HTTP server for a fresh deterministic party."""
     port = int(args[0]) if args else 0
     world, initial_game = game.create_headless_game()
-    app = GameApp(world, initial_game, Calendar(), Rng(HEADLESS_SEED))
+    app = GameApp(
+        world, initial_game, Calendar(), Rng(HEADLESS_SEED), player_duchy_id="player"
+    )
     server = make_server(app, host=DEFAULT_SERVE_HOST, port=port)
     host, bound_port = server.server_address[:2]
     print(f"Serving preview at http://{host}:{bound_port}/", flush=True)

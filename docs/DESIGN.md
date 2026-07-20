@@ -1014,6 +1014,11 @@ ich dotykają, i notować wynik tutaj:
   `sync_from_world`, `raise_duchy_hero` i `designate_duchy_heir` nadal działają
   dla wszystkich księstw. `None` = zgodność wsteczna (wszystkie księstwa AI).
   Przejście czyste i deterministyczne.
+  **ROZSTRZYGNIĘTE (K14.1b, GameApp zna księstwo gracza):**
+  `GameApp(..., player_duchy_id=None)` przechowuje id i w `POST /turn` przekazuje
+  je do `run_headless_game` (`max_turns=1`). `GET /` osadza element `data-player`
+  (wartość id lub `""` gdy `None`). CLI `python -m tbbui serve` buduje
+  `GameApp` z `player_duchy_id="player"`. `None` = obserwator AI-vs-AI jak K13.
   **ROZSTRZYGNIĘTE (A7.2b3b1, akcje księstw na wspólnej mapie):** gdy gra
   trwa i budżet pozwala na co najmniej jedną turę, driver wykonuje pojedynczy
   przebieg księstw w kolejności `game.duchies`. Każde niepokonane księstwo

@@ -27,11 +27,13 @@ class GameApp:
         game: GameState,
         calendar: Calendar,
         rng: Rng,
+        player_duchy_id: str | None = None,
     ) -> None:
         self.world = world
         self.game = game
         self.calendar = calendar
         self.rng = rng
+        self.player_duchy_id = player_duchy_id
 
     def handle(self, method: str, path: str) -> tuple[int, str]:
         """Route one request; return ``(http_status, body)`` without sockets."""
@@ -45,15 +47,18 @@ class GameApp:
                     self.rng,
                     max_turns=1,
                     calendar=self.calendar,
+                    player_duchy_id=self.player_duchy_id,
                 )
             return 200, self._render()
         return 404, "Not Found"
 
     def _render(self) -> str:
         html = render_game_page(self.world, self.game, self.calendar)
+        player_value = self.player_duchy_id if self.player_duchy_id is not None else ""
+        extras = f'<span data-player="{player_value}"></span>{_TURN_FORM}'
         if "</body>" in html:
-            return html.replace("</body>", f"{_TURN_FORM}</body>", 1)
-        return f"{html}{_TURN_FORM}"
+            return html.replace("</body>", f"{extras}</body>", 1)
+        return f"{html}{extras}"
 
 
 def handle_request(app: GameApp, method: str, path: str) -> tuple[int, bytes]:

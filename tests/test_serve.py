@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import xml.etree.ElementTree as ET
 
+import tbb.ai as ai
 from tbb.duchy import Duchy
 from tbb.game import GameState
 from tbb.rng import Rng
@@ -156,3 +157,60 @@ def test_game_app_handle_get_turn_404_noop_and_determinism():
         bodies_b.append(bb)
     assert bodies_a == bodies_b
     assert _calendar_stamp(bodies_a[-1]) == (1, 3)
+
+
+def test_game_app_player_duchy_id_data_player_and_turn_skips_player_ai(monkeypatch):
+    """GameApp stores player_duchy_id; GET embeds data-player; POST /turn skips player AI.
+
+    Contract (task-077 / K14.1b):
+    - GameApp(..., player_duchy_id=None) accepts optional id at end of signature
+      and stores it as self.player_duchy_id
+    - GET / includes an element with data-player equal to that id (or "" when None)
+    - POST /turn forwards player_duchy_id into run_headless_game so take_duchy_turn
+      is not called for the player duchy (other duchies still act); still one
+      strategic month (max_turns=1), returns 200 with updated page
+    - player_duchy_id=None keeps previous behaviour: both duchies under AI
+    """
+    world, game = _ongoing_world_game()
+    calendar = Calendar(year=4, month=9)
+    app = GameApp(world, game, calendar, Rng(17), player_duchy_id="north")
+    assert app.player_duchy_id == "north"
+
+    code, body = app.handle("GET", "/")
+    assert code == 200
+    root = ET.fromstring(body)
+    markers = _find_by_attr(root, "data-player")
+    assert len(markers) >= 1
+    assert markers[0].get("data-player") == "north"
+
+    take_calls: list[str] = []
+    real_take = ai.take_duchy_turn
+
+    def recording_take(current_world, duchy, rng, morale_by_owner=None):
+        take_calls.append(duchy.duchy_id)
+        return real_take(
+            current_world, duchy, rng, morale_by_owner=morale_by_owner
+        )
+
+    monkeypatch.setattr(ai, "take_duchy_turn", recording_take)
+
+    code_turn, body_after = app.handle("POST", "/turn")
+    assert code_turn == 200
+    assert _calendar_stamp(body_after) == (4, 10)
+    assert take_calls == ["south"]
+
+    # Default / explicit None: no player, data-player empty, both sides AI.
+    take_calls.clear()
+    w2, g2 = _ongoing_world_game()
+    none_app = GameApp(w2, g2, Calendar(year=1, month=1), Rng(5))
+    assert none_app.player_duchy_id is None
+    code_n, body_n = none_app.handle("GET", "/")
+    assert code_n == 200
+    root_n = ET.fromstring(body_n)
+    markers_n = _find_by_attr(root_n, "data-player")
+    assert len(markers_n) >= 1
+    assert markers_n[0].get("data-player") == ""
+    code_tn, _ = none_app.handle("POST", "/turn")
+    assert code_tn == 200
+    assert set(take_calls) == {"north", "south"}
+
