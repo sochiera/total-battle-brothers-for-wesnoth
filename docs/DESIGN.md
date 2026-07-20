@@ -822,16 +822,15 @@ jako ciągłość dynastii; K14.1a). `GameApp` przechowuje `player_duchy_id`
 i przewleka go do drivera (K14.1b). Rozkazy gracza to `POST /order/*`
 reużywające istniejące czyste prymitywy: `recruit` → `ai.recruit_duchy_unit`,
 `muster` → `ai.muster_duchy_party`, `develop` → `ai.develop_duchy_settlement`
-(K14.2a–c); po każdym rozkazie mapa jest podmieniana, a gra
-re-synchronizowana `sync_from_world`. **Wybór celu/osady pozostaje automatyczny**
-(pierwsza kwalifikująca się) — to placeholder, gracz decyduje jedynie *czy*
-wykonać akcję w tej turze. Marsz i szturm gracza domykają agency single-player:
-`march` → `ai.march_duchy_party` (K14.2d), `assault` → `ai.assault_duchy_party`
-z `rng`/morale księstw (K14.2e); oba prymitywy AI znajdują party gracza przez
-`_duchy_party_position` i delegują do istniejących `march_toward_nearest_enemy` /
-`assault_nearest_enemy_settlement`. **Wybór konkretnej osady/celu i marsz na
-zadany region pozostają poza K14** (placeholder automatyczny). Rdzeń `tbb` nadal
-nie importuje `tbbui` (§8 bez zmian).
+(K14.2a–c), `march` → `ai.march_duchy_party` (K14.2d2); po każdym rozkazie mapa
+jest podmieniana, a gra re-synchronizowana `sync_from_world`. **Wybór celu/osady
+pozostaje automatyczny** (pierwsza kwalifikująca się) — to placeholder, gracz
+decyduje jedynie *czy* wykonać akcję w tej turze. Szturm gracza domyka agency
+single-player: `assault` → `ai.assault_duchy_party` z `rng`/morale księstw
+(K14.2e); prymityw AI znajduje party gracza przez `_duchy_party_position` i
+deleguje do `assault_nearest_enemy_settlement`. **Wybór konkretnej osady/celu i
+marsz na zadany region pozostają poza K14** (placeholder automatyczny). Rdzeń
+`tbb` nadal nie importuje `tbbui` (§8 bez zmian).
 
 ## 10. Otwarte pytania (do rozstrzygnięcia w trakcie)
 Oznaczone, bo decyzja nie jest przesądzona — rozstrzygać przy okazji zadań, które
@@ -1050,8 +1049,14 @@ ich dotykają, i notować wynik tutaj:
   znajduje pozycję party księstwa przez `_duchy_party_position` i stosuje
   `march_toward_nearest_enemy(world, position)` (jeden krok ku najbliższej
   wrogiej osadzie). Brak party na mapie → no-op (zwraca wejściową mapę).
-  Bez mutacji wejścia, bez RNG; reużywa istniejące prymitywy marszu. Wiązanie
-  z `POST /order/march` — K14.2d2.
+  Bez mutacji wejścia, bez RNG; reużywa istniejące prymitywy marszu.
+  **ROZSTRZYGNIĘTE (K14.2d2, rozkaz marszu party gracza):**
+  `POST /order/march` na `GameApp` — ten sam warunek i re-sync, wspólnym
+  helperem `_apply_player_order`, stosuje `ai.march_duchy_party` (jeden krok
+  party gracza ku najbliższej wrogiej osadzie). No-op gdy brak gracza, gra
+  skończona lub brak księstwa. Zawsze `(200, strona)`. `GET /` zawiera
+  formularz `<form method="post" action="/order/march">`. Cel marszu
+  automatyczny (prymityw AI).
   **ROZSTRZYGNIĘTE (A7.2b3b1, akcje księstw na wspólnej mapie):** gdy gra
   trwa i budżet pozwala na co najmniej jedną turę, driver wykonuje pojedynczy
   przebieg księstw w kolejności `game.duchies`. Każde niepokonane księstwo

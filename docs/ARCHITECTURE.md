@@ -88,28 +88,29 @@ bez mutacji wejść. Serwer podglądu — osobny przyrost (V13.5).
 wyjścia (domyślnie `out/game.html`); katalog nadrzędny jest tworzony, gdy nie
 istnieje. Zwraca `0`. Dwa uruchomienia z tym samym seedem dają identyczną treść.
 
-**Routing podglądu (V13.5a / K14.1b / K14.2a–c):** `tbbui.serve.GameApp(world, game,
+**Routing podglądu (V13.5a / K14.1b / K14.2a–d2):** `tbbui.serve.GameApp(world, game,
 calendar, rng, player_duchy_id=None)` trzyma stan partii w pamięci i udostępnia
 czystą metodę `handle(method, path) -> (kod_http, treść)` — bez gniazda HTTP.
 `GET /` → `(200, strona)` z `render_game_page` plus znacznik
 `data-player` (wartość `player_duchy_id` lub `""` gdy `None`) oraz formularze
 `<form method="post" action="/turn">`,
 `<form method="post" action="/order/recruit">`,
-`<form method="post" action="/order/muster">` i
-`<form method="post" action="/order/develop">`. `POST /turn` → jedna tura przez
+`<form method="post" action="/order/muster">`,
+`<form method="post" action="/order/develop">` i
+`<form method="post" action="/order/march">`. `POST /turn` → jedna tura przez
 `run_headless_game(..., max_turns=1, calendar=..., player_duchy_id=...)` i
 aktualizacja wewnętrznego stanu (gdy podany `player_duchy_id`, driver pomija
 AI tego księstwa — K14.1a); gdy `game.is_over` przed żądaniem, no-op (stan bez
 zmian, wciąż `200`). Rozkazy gracza `POST /order/recruit` (K14.2a),
-`POST /order/muster` (K14.2b) i `POST /order/develop` (K14.2c) idą wspólnym
-helperem `_apply_player_order(transition)`: gdy `player_duchy_id` ustawiony, gra
-nie jest `is_over` i księstwo gracza istnieje w `game.duchies`, stosuje
-`transition(world, player_duchy)` (`ai.recruit_duchy_unit` /
-`ai.muster_duchy_party` / `ai.develop_duchy_settlement`), podmienia `world` i
-re-synchronizuje `game = game.sync_from_world(world)`; w przeciwnym razie no-op;
-zawsze `(200, strona)`. Inna ścieżka lub metoda → `(404, treść)`. Determinizm: ten
-sam seed i sekwencja `handle` → te same treści i stan. `player_duchy_id=None`
-zachowuje zachowanie obserwatora AI-vs-AI.
+`POST /order/muster` (K14.2b), `POST /order/develop` (K14.2c) i
+`POST /order/march` (K14.2d2) idą wspólnym helperem `_apply_player_order(transition)`:
+gdy `player_duchy_id` ustawiony, gra nie jest `is_over` i księstwo gracza istnieje
+w `game.duchies`, stosuje `transition(world, player_duchy)` (`ai.recruit_duchy_unit`
+/ `ai.muster_duchy_party` / `ai.develop_duchy_settlement` / `ai.march_duchy_party`),
+podmienia `world` i re-synchronizuje `game = game.sync_from_world(world)`;
+w przeciwnym razie no-op; zawsze `(200, strona)`. Inna ścieżka lub metoda →
+`(404, treść)`. Determinizm: ten sam seed i sekwencja `handle` → te same treści
+i stan. `player_duchy_id=None` zachowuje zachowanie obserwatora AI-vs-AI.
 
 **Serwer podglądu (V13.5b / K14.1b):** cienki adapter nad `GameApp.handle`:
 `handle_request(app, method, path) -> (kod, bajty UTF-8)` oraz

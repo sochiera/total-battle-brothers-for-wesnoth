@@ -846,3 +846,72 @@ def test_game_app_order_develop_form_noop_and_determinism():
     assert north_a.active_buildings == (FARM, SMITH)
     assert north_a.occupied == FARM.staff + SMITH.staff
 
+
+def test_game_app_post_order_march_applies_march_and_resyncs():
+    """POST /order/march applies ai.march_duchy_party + re-syncs game.
+
+    Contract (task-082 / K14.2d2):
+    - when player_duchy_id is set, game is not is_over, and the player duchy
+      exists in game.duchies: applies ai.march_duchy_party(self.world,
+      player_duchy) via shared _apply_player_order, replaces self.world,
+      re-syncs self.game = self.game.sync_from_world(self.world);
+      returns (200, page)
+    - player duchy looked up by duchy_id == player_duchy_id
+    - party moves one step toward the nearest enemy settlement
+    """
+    start, step, target = map(Region, ("Start", "Step", "Target"))
+    party = Party(Unit(training=4), (Unit(equipment=1),), owner_id="north")
+    enemy_keep = Settlement("Enemy Keep", 2, owner_id="south")
+    world = WorldMap(
+        (start, step, target),
+        ((start, step), (step, target)),
+        settlements={target: enemy_keep},
+        parties={start: party},
+    )
+    game = GameState(
+        (
+            Duchy("north", party.hero, parties=(party,)),
+            Duchy("south", Unit(), settlements=(enemy_keep,)),
+        )
+    )
+    assert not game.is_over
+    calendar = Calendar(year=2, month=3)
+    app = GameApp(world, game, calendar, Rng(11), player_duchy_id="north")
+
+    world_before = app.world
+    game_before = app.game
+    assert world_before.party_at(start) is party
+    assert world_before.party_at(step) is None
+
+    expected_world = ai.march_duchy_party(world_before, game_before.duchies[0])
+    expected_game = game_before.sync_from_world(expected_world)
+    assert expected_world.party_at(step) is party
+    assert expected_world.party_at(start) is None
+    assert expected_world is not world_before
+
+    code, body = app.handle("POST", "/order/march")
+    assert code == 200
+    assert isinstance(body, str)
+    assert body.strip() != ""
+    root = ET.fromstring(body)
+    assert _local(root.tag) == "html"
+    assert _calendar_stamp(body) == (2, 3)
+
+    # World replaced with march result; game re-synced from that world.
+    assert app.world is not world_before
+    assert app.world.party_at(step) is party
+    assert app.world.party_at(start) is None
+    assert app.world.party_at(step) == expected_world.party_at(step)
+    assert app.game is not game_before
+    player = next(d for d in app.game.duchies if d.duchy_id == "north")
+    expected_player = next(
+        d for d in expected_game.duchies if d.duchy_id == "north"
+    )
+    assert player.parties == expected_player.parties
+    # Enemy settlement and calendar untouched.
+    assert app.world.settlement_at(target) is enemy_keep
+    assert app.calendar == calendar
+    # Inputs to the call must not have been mutated in place.
+    assert world_before.party_at(start) is party
+    assert world_before.party_at(step) is None
+
