@@ -81,7 +81,7 @@ z atrybutami `data-fallen` / `data-stunned` / `data-active` = liczności krotek
 `BattleSideReport` (kolejność: attacker, potem defender). Czyste, deterministyczne,
 bez mutacji `battle`.
 
-**Strona HTML partii (V13.4a / K16.1a / K17.1b):** `tbbui.gamepage.render_game_page(world,
+**Strona HTML partii (V13.4a / K16.1a / K17.1b / K20.1a):** `tbbui.gamepage.render_game_page(world,
 game, calendar, battle=None) -> str` — parsowalny HTML z korzeniem `<html>`;
 osadza kanoniczny string z `render_world_svg(world)`; opcjonalny
 `battle: HexBattle | None = None` — gdy podany, osadza w `<body>` kanoniczne
@@ -91,10 +91,12 @@ wynik jest identyczny bajt-w-bajt jak bez argumentu; element `data-calendar` z
 `data-year` / `data-month` z podanego `Calendar`; po jednym elemencie
 `data-duchy` (= `duchy_id`) na każde `game.duchies` z `data-morale`,
 `data-settlements` i `data-parties` (liczby); element `data-result` =
-`duchy_id` zwycięzcy / `draw` / `ongoing` wg `game.is_over` i `game.winner`.
-Czyste, deterministyczne, bez mutacji wejść (w tym `battle`). Serwer podglądu
-— osobny przyrost (V13.5); wstrzyknięcie realnej bitwy z rozkazu gracza —
-K16.1d.
+`duchy_id` zwycięzcy / `draw` / `ongoing` wg `game.is_over` i `game.winner`;
+zawsze `<p data-result-text="…">` z czytelnym tekstem z `_result_text`
+(`Gra w toku` / `Remis` / `Zwycięstwo: <duchy_id>`) — ten sam stan co
+`data-result`. Czyste, deterministyczne, bez mutacji wejść (w tym `battle`).
+Serwer podglądu — osobny przyrost (V13.5); wstrzyknięcie realnej bitwy z
+rozkazu gracza — K16.1d.
 
 **Snapshot CLI (V13.4b):** `python -m tbbui [ścieżka]` → `tbbui.__main__.main(argv)
 -> int`. Rozgrywa deterministyczną partię headless (`create_headless_game` +

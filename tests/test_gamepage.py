@@ -171,6 +171,43 @@ def test_render_game_page_html_map_calendar_duchies_result_and_purity():
     assert calendar.month == month_before
 
 
+def test_render_game_page_embeds_human_readable_result_text_matching_data_result():
+    """``data-result-text`` mirrors ``data-result`` with a human-readable string."""
+    world, game, calendar = _ongoing_fixture()
+
+    html = render_game_page(world, game, calendar)
+    root = ET.fromstring(html)
+    texts = _find_by_attr(root, "data-result-text")
+    assert len(texts) == 1
+    assert texts[0].get("data-result-text") == "Gra w toku"
+
+    won = GameState(
+        (
+            Duchy("north", Unit(), morale=7, settlements=(
+                Settlement("North Keep", 3, owner_id="north"),
+            )),
+            Duchy("south", None, morale=0, settlements=()),
+        )
+    )
+    won_html = render_game_page(world, won, calendar)
+    won_root = ET.fromstring(won_html)
+    won_texts = _find_by_attr(won_root, "data-result-text")
+    assert len(won_texts) == 1
+    assert won_texts[0].get("data-result-text") == f"Zwycięstwo: {won.winner.duchy_id}"
+
+    draw = GameState(
+        (
+            Duchy("north", None, morale=0, settlements=()),
+            Duchy("south", None, morale=0, settlements=()),
+        )
+    )
+    draw_html = render_game_page(world, draw, calendar)
+    draw_root = ET.fromstring(draw_html)
+    draw_texts = _find_by_attr(draw_root, "data-result-text")
+    assert len(draw_texts) == 1
+    assert draw_texts[0].get("data-result-text") == "Remis"
+
+
 def test_render_game_page_optional_battle_slot_embeds_svg_and_defaults_unchanged():
     """``battle`` param embeds ``render_battle_svg(battle)``; default output is unchanged."""
     world, game, calendar = _ongoing_fixture()

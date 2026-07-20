@@ -20,6 +20,15 @@ def _result_value(game: GameState) -> str:
     return "draw"
 
 
+def _result_text(game: GameState) -> str:
+    """Human-readable result banner mirroring ``_result_value``."""
+    if not game.is_over:
+        return "Gra w toku"
+    if game.winner is not None:
+        return f"Zwycięstwo: {game.winner.duchy_id}"
+    return "Remis"
+
+
 def render_game_page(
     world: WorldMap,
     game: GameState,
@@ -29,14 +38,16 @@ def render_game_page(
     """Return a parsable HTML string for one party snapshot.
 
     Embeds the strategic map SVG from ``render_world_svg``, a calendar stamp,
-    one duchy panel row per ``game.duchies``, and a result marker. When
-    ``battle`` is a ``HexBattle``, also embeds the canonical strings from
-    ``render_battle_svg(battle)`` and ``render_battle_report(battle)`` in
-    ``<body>``. Pure and deterministic: no RNG/IO; inputs (including
-    ``battle``) are not mutated.
+    one duchy panel row per ``game.duchies``, a machine-readable result marker
+    (``data-result``), and a human-readable result banner
+    (``data-result-text``). When ``battle`` is a ``HexBattle``, also embeds the
+    canonical strings from ``render_battle_svg(battle)`` and
+    ``render_battle_report(battle)`` in ``<body>``. Pure and deterministic: no
+    RNG/IO; inputs (including ``battle``) are not mutated.
     """
     map_svg = render_world_svg(world)
     result = _result_value(game)
+    result_text = _result_text(game)
 
     duchy_parts: list[str] = []
     for duchy in game.duchies:
@@ -65,5 +76,6 @@ def render_game_page(
         f' data-month="{calendar.month}"></div>'
         f"{''.join(duchy_parts)}"
         f'<div data-result="{result}"></div>'
+        f'<p data-result-text="{result_text}">{result_text}</p>'
         "</body></html>"
     )

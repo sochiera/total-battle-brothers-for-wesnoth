@@ -135,3 +135,4 @@
 | K15.2c | UI celów szturmu | Jak K15.1c dla /order/assault; cele z `_march_targets`. |
 | K17.1a | HTML raport bitwy | `tbbui.battlereport.render_battle_report(battle) -> str`: fragment `data-battle-report` z `data-battle-result` i per-stroną `data-battle-side`/`data-fallen`/`data-stunned`/`data-active` z `HexBattle.report()`. |
 | K17.1b | Raport w stronie partii | `render_game_page(..., battle=…)` osadza kanoniczny `render_battle_report(battle)` w `<body>` obok SVG bitwy; bez `battle` wynik bajt-w-bajt jak wcześniej. |
+| K20.1a | Banner wyniku | `render_game_page` zawsze osadza `<p data-result-text>` (`Gra w toku` / `Remis` / `Zwycięstwo: <duchy_id>`) z `_result_text`; `data-result` bez zmian. |
