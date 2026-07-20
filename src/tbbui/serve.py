@@ -1,6 +1,8 @@
-"""Interactive preview request routing without a real HTTP socket (V13.5a)."""
+"""Interactive preview: request routing + thin http.server adapter (V13.5)."""
 
 from __future__ import annotations
+
+import http.server
 
 from tbb.driver import run_headless_game
 from tbb.game import GameState
@@ -52,3 +54,43 @@ class GameApp:
         if "</body>" in html:
             return html.replace("</body>", f"{_TURN_FORM}</body>", 1)
         return f"{html}{_TURN_FORM}"
+
+
+def handle_request(app: GameApp, method: str, path: str) -> tuple[int, bytes]:
+    """Thin adapter: ``app.handle`` → ``(status, UTF-8 body bytes)`` (no socket)."""
+    code, body = app.handle(method, path)
+    return code, body.encode("utf-8")
+
+
+def make_server(
+    app: GameApp,
+    host: str = "127.0.0.1",
+    port: int = 0,
+) -> http.server.HTTPServer:
+    """Bind ``HTTPServer`` whose GET/POST handlers delegate to ``handle_request``.
+
+    Does not call ``serve_forever``; the caller owns the lifecycle
+    (``serve_forever`` / ``server_close``).
+    """
+
+    class _Handler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self) -> None:
+            self._dispatch("GET")
+
+        def do_POST(self) -> None:
+            self._dispatch("POST")
+
+        def _dispatch(self, method: str) -> None:
+            path = self.path.split("?", 1)[0]
+            code, body = handle_request(app, method, path)
+            self.send_response(code)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, format: str, *args: object) -> None:
+            # Quiet by default — preview is local and tests bind real ports.
+            return
+
+    return http.server.HTTPServer((host, port), _Handler)
