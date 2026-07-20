@@ -101,6 +101,39 @@ def test_render_settlement_panel_rows_carry_population_and_garrison():
     )
 
 
+def test_render_settlement_panel_marks_player_owned_row_when_duchy_id_given():
+    """When ``player_duchy_id`` is given, rows whose ``owner_id`` matches it get
+    ``data-player-owned=""``; other rows do not carry the attribute at all.
+    """
+    a = Region("A")
+    b = Region("B")
+    world = WorldMap(
+        [a, b],
+        [(a, b)],
+        settlements={
+            a: Settlement(
+                "Keep A",
+                population=1,
+                owner_id="north",
+                storage=Resources(wheat=5, gold=3),
+            ),
+            b: Settlement(
+                "Keep B",
+                population=1,
+                owner_id="south",
+                storage=Resources(wheat=0, gold=0),
+            ),
+        },
+    )
+
+    xml = render_settlement_panel(world, player_duchy_id="north")
+    root = ET.fromstring(xml)
+
+    row_a, row_b = root.findall("div")
+    assert row_a.attrib["data-player-owned"] == ""
+    assert "data-player-owned" not in row_b.attrib
+
+
 def test_render_settlement_panel_empty_root_when_no_settlements():
     """A world with regions but no settlements at all yields a bare, childless
     ``<div data-settlement-panel="">`` root (no rows).
