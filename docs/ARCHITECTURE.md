@@ -113,8 +113,8 @@ tekst `<owner_id>: <kolor>` zgodny z atrybutami. Brak właścicieli → sam pust
 korzeń (bez wierszy). Czyste, deterministyczne, bez mutacji `world`; rdzeń bez
 zmian.
 
-**Strona HTML partii (V13.4a / K16.1a / K17.1b / K20.1a / K20.1b / K21.1a / K22.1c / K22.2b / K23.1b):** `tbbui.gamepage.render_game_page(world,
-game, calendar, battle=None) -> str` — parsowalny HTML z korzeniem `<html>`;
+**Strona HTML partii (V13.4a / K16.1a / K17.1b / K20.1a / K20.1b / K21.1a / K22.1c / K22.2b / K23.1b / K23.2a):** `tbbui.gamepage.render_game_page(world,
+game, calendar, battle=None, player_duchy_id=None) -> str` — parsowalny HTML z korzeniem `<html>`;
 osadza kanoniczny string z `render_world_svg(world)`; zawsze osadza też
 kanoniczny string z `render_owner_legend(world)` (K23.1b, dokładnie jeden
 `data-owner-legend` w `<body>`); opcjonalny
@@ -128,7 +128,10 @@ wynik jest identyczny bajt-w-bajt jak bez argumentu; element `data-calendar` z
 `Rok N, miesiąc M` (K21.1a, zgodnym z atrybutami); po jednym elemencie
 `data-duchy` (= `duchy_id`) na każde `game.duchies` z `data-morale`,
 `data-settlements` i `data-parties` (liczby) oraz widocznym tekstem
-`<duchy_id>: osady N, party M, morale K` (zgodnym z atrybutami); element
+`<duchy_id>: osady N, party M, morale K` (zgodnym z atrybutami); opcjonalny
+`player_duchy_id` (K23.2a) — gdy równa się `duchy_id` wiersza, ten element
+dostaje `data-player-duchy=""` i prefiks `» ` przed tekstem statusu; `None`
+(domyślnie) → bajt-w-bajt jak bez argumentu; element
 `data-result` = `duchy_id` zwycięzcy / `draw` / `ongoing` wg `game.is_over` i
 `game.winner`; zawsze `<p data-result-text="…">` z czytelnym tekstem z
 `_result_text` (`Gra w toku` / `Remis` / `Zwycięstwo: <duchy_id>`) — ten sam

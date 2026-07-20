@@ -37,6 +37,7 @@ def render_game_page(
     game: GameState,
     calendar: Calendar,
     battle: HexBattle | None = None,
+    player_duchy_id: str | None = None,
 ) -> str:
     """Return a parsable HTML string for one party snapshot.
 
@@ -50,8 +51,11 @@ def render_game_page(
     (``data-result``), and a human-readable result banner
     (``data-result-text``). When ``battle`` is a ``HexBattle``, also embeds the
     canonical strings from ``render_battle_svg(battle)`` and
-    ``render_battle_report(battle)`` in ``<body>``. Pure and deterministic: no
-    RNG/IO; inputs (including ``battle``) are not mutated.
+    ``render_battle_report(battle)`` in ``<body>``. Optional
+    ``player_duchy_id`` marks the matching ``data-duchy`` row with
+    ``data-player-duchy=""`` and a visible ``» `` text prefix; ``None``
+    (default) leaves the page byte-for-byte unchanged. Pure and deterministic:
+    no RNG/IO; inputs (including ``battle``) are not mutated.
     """
     map_svg = render_world_svg(world)
     owner_legend = render_owner_legend(world)
@@ -62,16 +66,21 @@ def render_game_page(
 
     duchy_parts: list[str] = []
     for duchy in game.duchies:
+        is_player = player_duchy_id is not None and duchy.duchy_id == player_duchy_id
         status_text = (
             f"{duchy.duchy_id}: osady {len(duchy.settlements)}, "
             f"party {len(duchy.parties)}, morale {duchy.morale}"
         )
+        if is_player:
+            status_text = f"» {status_text}"
+        player_attr = ' data-player-duchy=""' if is_player else ""
         duchy_parts.append(
             "<div"
             f' data-duchy="{duchy.duchy_id}"'
             f' data-morale="{duchy.morale}"'
             f' data-settlements="{len(duchy.settlements)}"'
             f' data-parties="{len(duchy.parties)}"'
+            f"{player_attr}"
             f">{status_text}</div>"
         )
 

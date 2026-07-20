@@ -346,6 +346,30 @@ def test_render_game_page_embeds_canonical_owner_legend_with_matching_rows():
     )
 
 
+def test_render_game_page_marks_player_duchy_with_attribute_and_prefix():
+    """``player_duchy_id`` flags the matching ``data-duchy`` element only."""
+    world, game, calendar = _ongoing_fixture()
+    baseline_html = render_game_page(world, game, calendar)
+
+    # Default (no player_duchy_id) and explicit None must be byte-for-byte identical.
+    assert render_game_page(world, game, calendar, player_duchy_id=None) == baseline_html
+
+    html = render_game_page(world, game, calendar, player_duchy_id="north")
+    root = ET.fromstring(html)
+
+    duchy_els = _find_by_attr(root, "data-duchy")
+    by_id = {el.get("data-duchy"): el for el in duchy_els}
+    assert len(duchy_els) == len(game.duchies)
+
+    north_el = by_id["north"]
+    assert north_el.get("data-player-duchy") == ""
+    assert (north_el.text or "").strip().startswith("» ")
+
+    south_el = by_id["south"]
+    assert south_el.get("data-player-duchy") is None
+    assert not (south_el.text or "").strip().startswith("» ")
+
+
 def test_render_game_page_embeds_battle_report_matching_battle_report_counts():
     """``data-battle-report`` is present with battle, absent without; counts match."""
     world, game, calendar = _ongoing_fixture()

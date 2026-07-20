@@ -352,10 +352,11 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   `data-party-row` (= nazwa regionu) na party w kolejności `world.regions`;
   `data-owner`/`data-size` (liczba podkomendnych) i tekst `<region> (<owner|„—">):
   bohater + N podkomendnych`. Czysty, deterministyczny.
-- `render_game_page(world, game, calendar, battle=None)` — SVG mapy, kalendarz
-  (`data-calendar` + widoczny tekst `Rok N, miesiąc M`), panel księstw
-  (`data-duchy` + tekst statusu), wynik (`data-result`), banner wyniku
-  (`<p data-result-text>`: `Gra w toku` / `Remis` / `Zwycięstwo: <id>`),
+- `render_game_page(world, game, calendar, battle=None, player_duchy_id=None)` —
+  SVG mapy, kalendarz (`data-calendar` + widoczny tekst `Rok N, miesiąc M`),
+  panel księstw (`data-duchy` + tekst statusu; przy `player_duchy_id` dopasowany
+  wiersz ma `data-player-duchy=""` i prefiks `» `), wynik (`data-result`), banner
+  wyniku (`<p data-result-text>`: `Gra w toku` / `Remis` / `Zwycięstwo: <id>`),
   opcjonalnie SVG bitwy i raport bitwy gdy `battle` podane; osadza też panel osad
   (`render_settlement_panel`) i panel party (`render_party_panel`).
 
