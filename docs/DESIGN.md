@@ -846,8 +846,22 @@ brak/nieznany `target` **zachowuje** dotychczasowe automatyczne prymitywy
 (`march_duchy_party` / `assault_duchy_party`) dla zgodności wstecz (K15.1b,
 K15.2b). Strona partii renderuje po jednym formularzu na region-cel, więc gracz
 klika konkretny cel zamiast jednego przycisku z celem automatycznym (K15.1c dla
-marszu; UI wyboru celu szturmu — kolejny wsad). Rdzeń `tbb` nadal nie importuje
+marszu; UI wyboru celu szturmu — K15.2c). Rdzeń `tbb` nadal nie importuje
 `tbbui`; wybór celu nie zmienia rozstrzygania bitwy ani morale.
+
+**PLAN K16 (obserwowalna bitwa gracza w podglądzie):** `render_battle_svg`
+istnieje od V13.3b, ale gracz nigdy nie *widzi* bitwy — rozkaz szturmu zmienia
+tylko mapę i panel księstw. K16 wpina rozstrzygniętą bitwę w stronę partii,
+prymitywami-pierwsze: `render_game_page(world, game, calendar, battle=None)`
+zyskuje opcjonalny slot na `render_battle_svg` (K16.1a); rdzeń dostaje nagraną
+wersję rozstrzygnięcia `WorldMap.resolve_settlement_battle_recorded(...) ->
+(WorldMap, HexBattle)` (a `resolve_settlement_battle` deleguje do niej, zwracając
+tylko mapę; bez dodatkowego RNG — K16.1b); prymityw AI
+`ai.assault_duchy_party_to_recorded(...) -> (WorldMap, HexBattle | None)` zwraca
+rozstrzygniętą bitwę na ścieżce trafienia i `(world, None)` bez rzutu RNG na
+ścieżkach no-op (K16.1c); wreszcie `GameApp` przechowuje ostatnią bitwę z rozkazu
+szturmu i przekazuje ją do `render_game_page` (K16.1d). Rdzeń `tbb` nadal nie
+importuje `tbbui`; nagranie bitwy nie zmienia rozstrzygania ani morale.
 
 ## 10. Otwarte pytania (do rozstrzygnięcia w trakcie)
 Oznaczone, bo decyzja nie jest przesądzona — rozstrzygać przy okazji zadań, które
