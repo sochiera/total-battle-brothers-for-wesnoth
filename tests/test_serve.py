@@ -214,3 +214,44 @@ def test_game_app_player_duchy_id_data_player_and_turn_skips_player_ai(monkeypat
     assert code_tn == 200
     assert set(take_calls) == {"north", "south"}
 
+
+def test_tbbui_serve_builds_game_app_with_player_duchy_id(monkeypatch):
+    """python -m tbbui serve creates GameApp with player_duchy_id='player'.
+
+    Contract (task-077 / K14.1b): serve branch builds GameApp with
+    player_duchy_id='player' (duchy id from create_headless_game); remaining
+    server construction unchanged (make_server + serve_forever lifecycle).
+    """
+    from tbb.game import create_headless_game
+    from tbbui.__main__ import main
+
+    captured: dict = {}
+
+    class _FakeServer:
+        server_address = ("127.0.0.1", 8765)
+
+        def serve_forever(self) -> None:
+            raise KeyboardInterrupt
+
+        def server_close(self) -> None:
+            captured["closed"] = True
+
+    def fake_make_server(app, host="127.0.0.1", port=0):
+        captured["app"] = app
+        captured["host"] = host
+        captured["port"] = port
+        return _FakeServer()
+
+    monkeypatch.setattr("tbbui.__main__.make_server", fake_make_server)
+
+    code = main(["serve"])
+    assert code == 0
+    app = captured["app"]
+    assert isinstance(app, GameApp)
+    assert app.player_duchy_id == "player"
+    # player id matches the headless starting duchy from create_headless_game
+    _, headless_game = create_headless_game()
+    assert "player" in {d.duchy_id for d in headless_game.duchies}
+    assert captured["closed"] is True
+    assert captured["host"] == "127.0.0.1"
+
