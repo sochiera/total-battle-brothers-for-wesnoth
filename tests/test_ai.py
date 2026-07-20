@@ -480,6 +480,44 @@ def test_assault_duchy_party_to_assaults_explicit_target_not_nearest():
     assert world.settlement_at(far) is far_settlement
 
 
+def test_assault_duchy_party_to_recorded_returns_battle_and_matches_assault_duchy_party_to():
+    """assault_duchy_party_to_recorded mirrors assault_duchy_party_to's map, plus the battle."""
+    start, near, far = map(Region, ("Start", "Near", "Far"))
+    party = Party(Unit(training=5, equipment=6), owner_id="ai")
+    near_settlement = Settlement(
+        "Near", population=1, garrison=(Unit(equipment=1),), owner_id="enemy"
+    )
+    far_settlement = Settlement(
+        "Far", population=1, garrison=(Unit(equipment=1),), owner_id="enemy"
+    )
+    world = WorldMap(
+        [start, near, far],
+        [(start, near), (start, far)],
+        settlements={near: near_settlement, far: far_settlement},
+        parties={start: party},
+    )
+    duchy = Duchy("ai", party.hero, parties=(party,))
+    seed = 2
+    morale_by_owner = {"ai": 10, "enemy": -5}
+
+    resolved_world, battle = ai.assault_duchy_party_to_recorded(
+        world, duchy, far, tbb.Rng(seed), morale_by_owner=morale_by_owner
+    )
+
+    expected_world, expected_battle = world.resolve_settlement_battle_recorded(
+        start, far, tbb.Rng(seed), attacker_morale=10, defender_morale=-5
+    )
+    assert resolved_world == expected_world
+    assert battle == expected_battle
+    assert resolved_world == ai.assault_duchy_party_to(
+        world, duchy, far, tbb.Rng(seed), morale_by_owner=morale_by_owner
+    )
+    assert resolved_world != world
+    assert world.party_at(start) is party
+    assert world.settlement_at(near) is near_settlement
+    assert world.settlement_at(far) is far_settlement
+
+
 def test_assault_duchy_party_to_is_noop_for_own_settlement_and_does_not_use_rng():
     """assault_duchy_party_to must not assault an adjacent settlement owned by the duchy itself."""
     start, target = Region("Start"), Region("Target")

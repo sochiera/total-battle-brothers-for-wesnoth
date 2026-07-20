@@ -4,6 +4,7 @@ from collections import deque
 
 import tbb.settlement as settlement_module
 
+from tbb.battle import HexBattle
 from tbb.building import FARM, MARKET, SMITH
 from tbb.duchy import Duchy
 from tbb.rng import Rng
@@ -266,6 +267,46 @@ def assault_duchy_party_to(
         attacker_morale = morale_by_owner.get(party.owner_id, 0)
         defender_morale = morale_by_owner.get(settlement.owner_id, 0)
     return world.resolve_settlement_battle(
+        position,
+        target,
+        rng,
+        attacker_morale=attacker_morale,
+        defender_morale=defender_morale,
+    )
+
+
+def assault_duchy_party_to_recorded(
+    world: WorldMap,
+    duchy: Duchy,
+    target: Region,
+    rng: Rng,
+    morale_by_owner: dict[str, int] | None = None,
+) -> tuple[WorldMap, HexBattle | None]:
+    """Assault an explicit adjacent enemy settlement; return map and battle.
+
+    No-op paths return ``(world, None)`` without consuming RNG. On a hit the
+    map matches ``assault_duchy_party_to`` for the same inputs.
+    """
+    position = _duchy_party_position(world, duchy.duchy_id)
+    if position is None:
+        return world, None
+    if target not in world.neighbors(position):
+        return world, None
+    settlement = world.settlement_at(target)
+    if (
+        settlement is None
+        or settlement.owner_id is None
+        or settlement.owner_id == duchy.duchy_id
+    ):
+        return world, None
+
+    party = world.party_at(position)
+    attacker_morale = 0
+    defender_morale = 0
+    if morale_by_owner is not None:
+        attacker_morale = morale_by_owner.get(party.owner_id, 0)
+        defender_morale = morale_by_owner.get(settlement.owner_id, 0)
+    return world.resolve_settlement_battle_recorded(
         position,
         target,
         rng,
