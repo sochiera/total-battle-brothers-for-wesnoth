@@ -1045,6 +1045,13 @@ ich dotykają, i notować wynik tutaj:
   gra skończona lub brak księstwa. Zawsze `(200, strona)`. `GET /` zawiera
   formularz `<form method="post" action="/order/develop">`. Wybór osady i
   budynku automatyczny (prymityw AI).
+  **ROZSTRZYGNIĘTE (K14.2d1, prymityw AI marszu party księstwa):**
+  czyste, deterministyczne `ai.march_duchy_party(world, duchy) -> WorldMap`
+  znajduje pozycję party księstwa przez `_duchy_party_position` i stosuje
+  `march_toward_nearest_enemy(world, position)` (jeden krok ku najbliższej
+  wrogiej osadzie). Brak party na mapie → no-op (zwraca wejściową mapę).
+  Bez mutacji wejścia, bez RNG; reużywa istniejące prymitywy marszu. Wiązanie
+  z `POST /order/march` — K14.2d2.
   **ROZSTRZYGNIĘTE (A7.2b3b1, akcje księstw na wspólnej mapie):** gdy gra
   trwa i budżet pozwala na co najmniej jedną turę, driver wykonuje pojedynczy
   przebieg księstw w kolejności `game.duchies`. Każde niepokonane księstwo

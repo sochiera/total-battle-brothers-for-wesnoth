@@ -202,6 +202,14 @@ def march_toward_nearest_enemy(world: WorldMap, start: Region) -> WorldMap:
     return world.move_party(start, step, 1)
 
 
+def march_duchy_party(world: WorldMap, duchy: Duchy) -> WorldMap:
+    """March the duchy's party one step toward its nearest enemy settlement."""
+    position = _duchy_party_position(world, duchy.duchy_id)
+    if position is None:
+        return world
+    return march_toward_nearest_enemy(world, position)
+
+
 def assault_nearest_enemy_settlement(
     world: WorldMap,
     start: Region,

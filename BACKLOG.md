@@ -64,7 +64,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 - [x] **K14.2a** Rozkaz gracza: rekrutacja (`POST /order/recruit`). *(task-078)*
 - [x] **K14.2b** Rozkaz gracza: wystawienie party (`POST /order/muster`). *(task-079)*
 - [x] **K14.2c** Rozkaz gracza: rozwój osady (`POST /order/develop`). *(task-080)*
-- [ ] **K14.2d1** Prymityw AI marszu party księstwa (`ai.march_duchy_party`). *(task-081)*
+- [x] **K14.2d1** Prymityw AI marszu party księstwa (`ai.march_duchy_party`). *(task-081)*
   - AC: znajduje pozycję party księstwa i stosuje `march_toward_nearest_enemy`;
     brak party = no-op; czyste, deterministyczne; reużywa `_duchy_party_position`.
 - [ ] **K14.2d2** Rozkaz gracza: marsz party (`POST /order/march`). *(task-082)*

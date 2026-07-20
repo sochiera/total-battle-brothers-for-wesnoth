@@ -8,6 +8,7 @@ import tbb.settlement as settlement_module
 from tbb.ai import (
     designate_duchy_heir,
     develop_duchy_settlement,
+    march_duchy_party,
     raise_duchy_hero,
 )
 
@@ -202,6 +203,27 @@ def test_march_moves_exactly_one_step_and_preserves_input_and_party():
 
     moved = march_toward_nearest_enemy(world, start)
 
+    assert moved.party_at(step) is party
+    assert moved.party_at(start) is None
+    assert world.party_at(start) is party
+    assert world.party_at(step) is None
+
+
+def test_march_duchy_party_applies_march_toward_nearest_enemy_from_party_position():
+    """march_duchy_party finds the duchy party and applies one march step."""
+    start, step, target = map(Region, ("Start", "Step", "Target"))
+    party = _owned_party("Hero", "ai")
+    world = WorldMap(
+        [start, step, target],
+        [(start, step), (step, target)],
+        settlements={target: _settlement("Target", "enemy")},
+        parties={start: party},
+    )
+    duchy = Duchy("ai", party.hero, parties=(party,))
+
+    moved = march_duchy_party(world, duchy)
+
+    assert moved == march_toward_nearest_enemy(world, start)
     assert moved.party_at(step) is party
     assert moved.party_at(start) is None
     assert world.party_at(start) is party
