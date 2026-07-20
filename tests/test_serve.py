@@ -34,23 +34,34 @@ def _calendar_stamp(html: str) -> tuple[int, int]:
 
 def _has_post_turn_form(html: str) -> bool:
     """True when body contains a form that POSTs to /turn (contract V13.5a)."""
+    return _has_post_form(html, "/turn")
+
+
+def _has_post_recruit_form(html: str) -> bool:
+    """True when body contains a form that POSTs to /order/recruit (K14.2a)."""
+    return _has_post_form(html, "/order/recruit")
+
+
+def _has_post_form(html: str, action_path: str) -> bool:
+    """True when body contains a form that POSTs to ``action_path``."""
     root = ET.fromstring(html)
     for el in root.iter():
         if _local(el.tag) != "form":
             continue
         method = (el.get("method") or "").lower()
         action = el.get("action") or ""
-        if method == "post" and action == "/turn":
+        if method == "post" and action == action_path:
             return True
     # Fallback: tolerate attribute order / spacing in raw HTML.
+    escaped = re.escape(action_path)
     return bool(
         re.search(
-            r'<form\b[^>]*\bmethod=["\']post["\'][^>]*\baction=["\']/turn["\']',
+            rf'<form\b[^>]*\bmethod=["\']post["\'][^>]*\baction=["\']{escaped}["\']',
             html,
             flags=re.IGNORECASE,
         )
         or re.search(
-            r'<form\b[^>]*\baction=["\']/turn["\'][^>]*\bmethod=["\']post["\']',
+            rf'<form\b[^>]*\baction=["\']{escaped}["\'][^>]*\bmethod=["\']post["\']',
             html,
             flags=re.IGNORECASE,
         )
@@ -331,4 +342,119 @@ def test_game_app_post_order_recruit_applies_recruit_and_resyncs():
     assert world_before.settlement_at(north) is north_before
     assert north_before.garrison == (Unit(training=1),)
     assert north_before.storage.gold == 2
+
+
+def test_game_app_order_recruit_form_noop_and_determinism():
+    """GET form /order/recruit; no-op guards; recruit sequence determinism.
+
+    Contract (task-078 / K14.2a):
+    - GET / contains <form method="post" action="/order/recruit"> with a submit
+    - when player_duchy_id is None, game is is_over, or player duchy is absent
+      from game.duchies: POST /order/recruit is a no-op (state unchanged), still
+      (200, page)
+    - fixed GameApp seed + same handle sequence → identical bodies and state
+    """
+    def _recruit_ready_world_game() -> tuple[WorldMap, GameState, Region]:
+        """World where north can actually recruit (gold + free slots)."""
+        n, s = map(Region, ("North", "South"))
+        nk = Settlement(
+            "North Keep",
+            3,
+            storage=Resources(0, 2),
+            garrison=(Unit(training=1),),
+            occupied=1,
+            owner_id="north",
+        )
+        sk = Settlement("South Keep", 2, owner_id="south")
+        w = WorldMap((n, s), settlements={n: nk, s: sk})
+        g = GameState(
+            (
+                Duchy("north", Unit(), settlements=(nk,)),
+                Duchy("south", Unit(), settlements=(sk,)),
+            )
+        )
+        return w, g, n
+
+    world, game, north = _recruit_ready_world_game()
+    calendar = Calendar(year=2, month=3)
+
+    # GET / embeds the recruit form (and a button).
+    app = GameApp(world, game, calendar, Rng(11), player_duchy_id="north")
+    code_get, body_get = app.handle("GET", "/")
+    assert code_get == 200
+    assert _has_post_recruit_form(body_get)
+    assert re.search(
+        r"<button\b[^>]*>\s*Recruit\s*</button>", body_get, flags=re.IGNORECASE
+    )
+
+    # No-op: player_duchy_id is None — state frozen, still 200 + page.
+    none_app = GameApp(world, game, calendar, Rng(11), player_duchy_id=None)
+    world_n, game_n = none_app.world, none_app.game
+    code_n, body_n = none_app.handle("POST", "/order/recruit")
+    assert code_n == 200
+    assert isinstance(body_n, str)
+    assert none_app.world is world_n
+    assert none_app.game is game_n
+    assert none_app.calendar == calendar
+    assert _calendar_stamp(body_n) == (2, 3)
+    assert _has_post_recruit_form(body_n)
+    # Would-be recruit target unchanged (gold still 2, garrison still 1).
+    assert none_app.world.settlement_at(north).storage.gold == 2
+    assert len(none_app.world.settlement_at(north).garrison) == 1
+
+    # No-op: game is_over — finished sole-duchy world.
+    fin_world, fin_game = _finished_world_game()
+    fin_cal = Calendar(year=5, month=1)
+    fin_app = GameApp(
+        fin_world, fin_game, fin_cal, Rng(3), player_duchy_id="north"
+    )
+    w_f, g_f = fin_app.world, fin_app.game
+    code_f, body_f = fin_app.handle("POST", "/order/recruit")
+    assert code_f == 200
+    assert fin_app.world is w_f
+    assert fin_app.game is g_f
+    assert fin_app.calendar == fin_cal
+    assert _calendar_stamp(body_f) == (5, 1)
+
+    # No-op: player duchy id not present in game.duchies.
+    missing = GameApp(
+        world, game, calendar, Rng(11), player_duchy_id="ghost"
+    )
+    w_m, g_m = missing.world, missing.game
+    code_m, _body_m = missing.handle("POST", "/order/recruit")
+    assert code_m == 200
+    assert missing.world is w_m
+    assert missing.game is g_m
+    assert missing.calendar == calendar
+    assert missing.world.settlement_at(north).storage.gold == 2
+    assert len(missing.world.settlement_at(north).garrison) == 1
+
+    # Determinism: two apps, same seed, same recruit sequence → same bodies/state.
+    wa, ga, _ = _recruit_ready_world_game()
+    wb, gb, _ = _recruit_ready_world_game()
+    a = GameApp(wa, ga, Calendar(year=2, month=3), Rng(11), player_duchy_id="north")
+    b = GameApp(wb, gb, Calendar(year=2, month=3), Rng(11), player_duchy_id="north")
+    seq = (
+        ("GET", "/"),
+        ("POST", "/order/recruit"),
+        ("GET", "/"),
+        ("POST", "/order/recruit"),
+    )
+    bodies_a: list[str] = []
+    bodies_b: list[str] = []
+    for method, path in seq:
+        ca, ba = a.handle(method, path)
+        cb, bb = b.handle(method, path)
+        assert ca == cb == 200
+        assert ba == bb
+        bodies_a.append(ba)
+        bodies_b.append(bb)
+    assert bodies_a == bodies_b
+    north_a = a.world.settlement_at(a.world.regions[0])
+    north_b = b.world.settlement_at(b.world.regions[0])
+    assert north_a.garrison == north_b.garrison
+    assert north_a.storage == north_b.storage
+    # Two successful recruits on north: garrison grew, gold spent.
+    assert len(north_a.garrison) == 3
+    assert north_a.storage.gold == 0
 
