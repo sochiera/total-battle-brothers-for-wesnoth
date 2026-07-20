@@ -1,4 +1,4 @@
-"""Deterministic SVG skeleton of the strategic WorldMap (region nodes)."""
+"""Deterministic SVG skeleton of the strategic WorldMap (nodes + edges)."""
 
 from __future__ import annotations
 
@@ -16,9 +16,16 @@ ORIGIN_Y = 50
 NODE_RADIUS = 12
 
 
-def render_world_svg(world: WorldMap) -> str:
-    """Return a parsable SVG string with one labelled node per region.
+def _node_center(col: int, row: int) -> tuple[int, int]:
+    """Pixel center of a layout cell (same basis as region node groups)."""
+    return ORIGIN_X + col * PITCH_X, ORIGIN_Y + row * PITCH_Y
 
+
+def render_world_svg(world: WorldMap) -> str:
+    """Return a parsable SVG string with connection lines and labelled nodes.
+
+    One ``<line>`` per ``world.connections`` entry (same order), with
+    ``data-from`` / ``data-to`` and endpoints at the region node centers.
     Node centers are an affine map of ``layout_world`` cells:
     ``x = ORIGIN_X + col * PITCH_X``, ``y = ORIGIN_Y + row * PITCH_Y``.
     Pure and deterministic: no RNG, input map is not mutated.
@@ -51,10 +58,28 @@ def render_world_svg(world: WorldMap) -> str:
         },
     )
 
+    # Edges under nodes so region markers paint on top.
+    for from_region, to_region in world.connections:
+        x1, y1 = _node_center(*positions[from_region])
+        x2, y2 = _node_center(*positions[to_region])
+        ET.SubElement(
+            svg,
+            "line",
+            {
+                "x1": str(x1),
+                "y1": str(y1),
+                "x2": str(x2),
+                "y2": str(y2),
+                "data-from": from_region.name,
+                "data-to": to_region.name,
+                "stroke": "#666666",
+                "stroke-width": "2",
+            },
+        )
+
     for region in world.regions:
         col, row = positions[region]
-        x = ORIGIN_X + col * PITCH_X
-        y = ORIGIN_Y + row * PITCH_Y
+        x, y = _node_center(col, row)
         group = ET.SubElement(
             svg,
             "g",

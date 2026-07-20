@@ -771,8 +771,13 @@ kamieniu. Rdzeń `tbb` nigdy nie importuje `tbbui` (§8 bez zmian).
 `tbbui.worldsvg` zwraca parsowalny string SVG z jednym węzłem (`g[data-region]`)
 i etykietą tekstową na każdy region. Pozycje środków wynikają ze stałego pitcha
 nad `layout_world` (kolumna→x, wiersz→y); przejście jest czyste i
-deterministyczne. Linie połączeń, znaczniki osad/party i paleta właścicieli —
-kolejne przyrosty V13.2b–d.
+deterministyczne.
+
+**ROZSTRZYGNIĘTE (V13.2b, linie połączeń mapy):** ten sam `render_world_svg`
+emituje dokładnie jeden element `<line>` na wpis w `world.connections` (kolejność
+zachowana), z atrybutami `data-from` / `data-to` (nazwy regionów) i końcami
+`(x1,y1)` / `(x2,y2)` w środkach węzłów tych regionów. Węzły z V13.2a bez
+zmiany kontraktu. Znaczniki osad/party i paleta właścicieli — V13.2c–d.
 
 ## 10. Otwarte pytania (do rozstrzygnięcia w trakcie)
 Oznaczone, bo decyzja nie jest przesądzona — rozstrzygać przy okazji zadań, które
