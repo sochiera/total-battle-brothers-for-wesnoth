@@ -79,13 +79,14 @@ konsumuje `battle.report()` (rdzeń bez zmian). Dziecko
 `defender_win` / `draw`); po jednym `<div data-battle-side="attacker|defender">`
 z atrybutami `data-fallen` / `data-stunned` / `data-active` = liczności krotek
 `BattleSideReport` (kolejność: attacker, potem defender). Czyste, deterministyczne,
-bez mutacji `battle`. Osadzenie w `render_game_page` — K17.1b.
+bez mutacji `battle`.
 
-**Strona HTML partii (V13.4a / K16.1a):** `tbbui.gamepage.render_game_page(world,
+**Strona HTML partii (V13.4a / K16.1a / K17.1b):** `tbbui.gamepage.render_game_page(world,
 game, calendar, battle=None) -> str` — parsowalny HTML z korzeniem `<html>`;
 osadza kanoniczny string z `render_world_svg(world)`; opcjonalny
-`battle: HexBattle | None = None` — gdy podany, osadza w `<body>` kanoniczny
-string z `render_battle_svg(battle)` (`tbbui.battlesvg`); gdy `None` (domyślnie)
+`battle: HexBattle | None = None` — gdy podany, osadza w `<body>` kanoniczne
+stringi z `render_battle_svg(battle)` (`tbbui.battlesvg`) oraz
+`render_battle_report(battle)` (`tbbui.battlereport`); gdy `None` (domyślnie)
 wynik jest identyczny bajt-w-bajt jak bez argumentu; element `data-calendar` z
 `data-year` / `data-month` z podanego `Calendar`; po jednym elemencie
 `data-duchy` (= `duchy_id`) na każde `game.duchies` z `data-morale`,

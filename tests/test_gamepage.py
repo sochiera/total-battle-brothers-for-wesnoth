@@ -15,9 +15,29 @@ from tbb.terrain import PLAINS
 from tbb.turn import Calendar
 from tbb.unit import Unit
 from tbb.world import Region, WorldMap
+from tbbui.battlereport import render_battle_report
 from tbbui.battlesvg import render_battle_svg
 from tbbui.gamepage import render_game_page
 from tbbui.worldsvg import render_world_svg
+
+
+class ControlledRng:
+    def __init__(self, result):
+        self.result = result
+
+    def chance(self, probability):
+        return self.result
+
+
+def _finished_battle_fixture() -> HexBattle:
+    dead = Unit(training=3)
+    dead_position = Hex(1, 0)
+    battle = HexBattle(Battlefield()).deploy(
+        Unit(), Hex(0, 0), BattleSide.ATTACKER
+    ).deploy(dead, dead_position, BattleSide.DEFENDER)
+    return battle.damage(dead_position, dead.hp).resolve_defeat(
+        dead_position, ControlledRng(True)
+    )
 
 
 def _local(tag: str) -> str:
@@ -175,3 +195,23 @@ def test_render_game_page_optional_battle_slot_embeds_svg_and_defaults_unchanged
 
     # Explicit battle=None must equal the default (byte-for-byte).
     assert render_game_page(world, game, calendar, battle=None) == baseline_html
+
+
+def test_render_game_page_embeds_battle_report_matching_battle_report_counts():
+    """``data-battle-report`` is present with battle, absent without; counts match."""
+    world, game, calendar = _ongoing_fixture()
+    battle = _finished_battle_fixture()
+    expected_report_html = render_battle_report(battle)
+
+    html_with_battle = render_game_page(world, game, calendar, battle=battle)
+    assert expected_report_html in html_with_battle, (
+        "page must embed render_battle_report(battle) output when battle is given"
+    )
+
+    root = ET.fromstring(html_with_battle)
+    report_els = _find_by_attr(root, "data-battle-report")
+    assert len(report_els) == 1
+
+    html_without_battle = render_game_page(world, game, calendar)
+    without_root = ET.fromstring(html_without_battle)
+    assert _find_by_attr(without_root, "data-battle-report") == []

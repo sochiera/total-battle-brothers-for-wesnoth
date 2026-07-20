@@ -328,9 +328,11 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
 - `tbbui.hexgeom` — pointy-top `hex_to_pixel` / `hex_corners`.
 - `render_battle_svg(battle)` — heksy obwiedni zajętych ±1, znaczniki
   `data-side`/`data-hp`/`data-stunned`.
+- `render_battle_report(battle)` — fragment `data-battle-report` z wynikiem i
+  stratami per strona z `HexBattle.report()`.
 - `render_game_page(world, game, calendar, battle=None)` — SVG mapy, kalendarz
   (`data-calendar`), panel księstw (`data-duchy`), wynik (`data-result`), opcjonalnie
-  SVG bitwy gdy `battle` podane.
+  SVG bitwy i raport bitwy gdy `battle` podane.
 
 **GameApp / rozkazy gracza:**
 - `GameApp(..., player_duchy_id=None)` — w `POST /turn` woła `run_headless_game`
@@ -349,9 +351,10 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   `self.rng`; wynikowa `HexBattle` trafia do `last_battle` (no-op / guardy
   zostawiają `last_battle` bez bitwy).
 - `GameApp.last_battle: HexBattle | None` — init `None`; `_render` przekazuje
-  `battle=self.last_battle` do `render_game_page` (SVG bitwy w stronie po szturmie).
-  `POST /turn` oraz rozkazy nie-szturmowe (`/order/recruit|muster|develop|march`)
-  zerują `last_battle` (stara bitwa nie wisi po innym działaniu gracza).
+  `battle=self.last_battle` do `render_game_page` (SVG + raport bitwy w stronie
+  po szturmie). `POST /turn` oraz rozkazy nie-szturmowe
+  (`/order/recruit|muster|develop|march`) zerują `last_battle` (stara bitwa nie
+  wisi po innym działaniu gracza).
 - UI celów: gdy gracz ma party na mapie — po jednym formularzu
   `?target=<quote(nazwa)>` na obcą osadę (kolejność `world.regions`, helper
   `_march_targets`); bare action nieobecny. Brak party / brak id / gra skończona →
