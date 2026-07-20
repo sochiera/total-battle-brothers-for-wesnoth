@@ -467,6 +467,55 @@ def test_raise_hero_spends_free_population_and_exported_gold_without_garrison_or
     assert random.getstate() == rng_state
 
 
+def test_raise_hero_rejects_no_free_population_or_insufficient_gold_without_mutation():
+    no_free = Settlement(
+        "Keep",
+        population=2,
+        occupied=2,
+        storage=Resources(wheat=1, gold=settlement_module.HERO_GOLD_COST),
+        garrison=(Unit(training=1),),
+        owner_id="north",
+    )
+    low_gold = Settlement(
+        "Keep",
+        population=3,
+        occupied=1,
+        active_buildings=(SMITH,),
+        storage=Resources(
+            wheat=4, gold=settlement_module.HERO_GOLD_COST - 1
+        ),
+        capacity=8,
+        garrison=(Unit(equipment=1),),
+        owner_id="south",
+    )
+
+    with pytest.raises(ValueError):
+        no_free.raise_hero()
+    with pytest.raises(ValueError):
+        low_gold.raise_hero()
+
+    assert no_free == Settlement(
+        "Keep",
+        population=2,
+        occupied=2,
+        storage=Resources(wheat=1, gold=settlement_module.HERO_GOLD_COST),
+        garrison=(Unit(training=1),),
+        owner_id="north",
+    )
+    assert low_gold == Settlement(
+        "Keep",
+        population=3,
+        occupied=1,
+        active_buildings=(SMITH,),
+        storage=Resources(
+            wheat=4, gold=settlement_module.HERO_GOLD_COST - 1
+        ),
+        capacity=8,
+        garrison=(Unit(equipment=1),),
+        owner_id="south",
+    )
+
+
 def test_muster_moves_garrison_to_party_and_preserves_free_population():
     units = (Unit(training=1), Unit(equipment=2), Unit(experience=3))
     original = Settlement(
