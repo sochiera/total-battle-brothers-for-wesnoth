@@ -862,7 +862,12 @@ def test_resolve_party_battle_moves_attacking_survivors_after_win():
     )
 
     resolved = world.resolve_party_battle(
-        camp, vale, Rng(2), move_points=1, morale=100
+        camp,
+        vale,
+        Rng(2),
+        move_points=1,
+        attacker_morale=100,
+        defender_morale=100,
     )
 
     survivors = resolved.party_at(vale)
@@ -911,7 +916,12 @@ def test_resolve_party_battle_clears_stun_but_keeps_bruise_on_survivor():
     )
     stunned_survivor = battle.report().attacker.stunned[0]
     resolved = world.resolve_party_battle(
-        camp, vale, Rng(11), move_points=1, morale=100
+        camp,
+        vale,
+        Rng(11),
+        move_points=1,
+        attacker_morale=100,
+        defender_morale=100,
     )
 
     assert stunned_survivor.stunned is True
@@ -962,6 +972,41 @@ def test_resolve_party_battle_propagates_start_battle_validation():
 
     with pytest.raises(ValueError, match="different owners"):
         world.resolve_party_battle(camp, vale, Rng(1))
+
+
+def test_resolve_party_battle_attacker_morale_advantage_changes_map_outcome():
+    """Per-side morale on resolve_party_battle: +45 attacker vs 0/0 flips the map.
+
+    Symmetric 1v1 (equipment=2), seed 0: defaults leave the defender's party
+    owning destination; attacker_morale=45 / defender_morale=0 conquers it.
+    Input parties and the world graph stay immutable.
+    """
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(Unit(equipment=2), owner_id="north")
+    defender = Party(Unit(equipment=2), owner_id="south")
+    world = WorldMap(
+        [camp, vale], [(camp, vale)], parties={camp: attacker, vale: defender}
+    )
+    seed = 0
+
+    baseline = world.resolve_party_battle(
+        camp, vale, Rng(seed), move_points=1, attacker_morale=0, defender_morale=0
+    )
+    boosted = world.resolve_party_battle(
+        camp, vale, Rng(seed), move_points=1, attacker_morale=45, defender_morale=0
+    )
+    boosted_again = world.resolve_party_battle(
+        camp, vale, Rng(seed), move_points=1, attacker_morale=45, defender_morale=0
+    )
+
+    assert baseline.party_at(camp) is None
+    assert baseline.party_at(vale).owner_id == "south"
+    assert boosted.party_at(camp) is None
+    assert boosted.party_at(vale).owner_id == "north"
+    assert boosted == boosted_again
+    assert world.party_at(camp) is attacker
+    assert world.party_at(vale) is defender
 
 
 def test_start_settlement_battle_deploys_party_and_garrison_in_deterministic_rows():
@@ -1411,10 +1456,20 @@ def test_resolve_settlement_battle_conquers_with_attacking_survivors():
         move_points=1, rng=Rng(2), attacker_morale=100, defender_morale=100
     )
     first = world.resolve_settlement_battle(
-        camp, vale, Rng(2), move_points=1, morale=100
+        camp,
+        vale,
+        Rng(2),
+        move_points=1,
+        attacker_morale=100,
+        defender_morale=100,
     )
     second = world.resolve_settlement_battle(
-        camp, vale, Rng(2), move_points=1, morale=100
+        camp,
+        vale,
+        Rng(2),
+        move_points=1,
+        attacker_morale=100,
+        defender_morale=100,
     )
 
     assert battle.result() is BattleResult.ATTACKER_WIN

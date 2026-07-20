@@ -76,8 +76,9 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   lub utrzymuje region już ze składem ograniczonym do ocalałych; przy remisie oba
   party znikają. Walidacja wrogiego, sąsiedniego kontaktu pozostaje wspólna ze
   `start_battle`, a mapa wejściowa, osady i garnizony nie są mutowane.
-  `move_points` i `morale` są na tym etapie jednolitymi wartościami
-  placeholderowymi dla wszystkich jednostek (domyślnie odpowiednio `1` i `0`).
+  `move_points` jest jednolitym placeholderm (domyślnie `1`); morale jest
+  **per strona** (`attacker_morale` / `defender_morale`, domyślnie `0`/`0`;
+  B12.1b-1).
 - **ROZSTRZYGNIĘTE (BM.2, rozstrzygnięcie kontaktu party↔osada):** czyste
   przejście `WorldMap.resolve_settlement_battle()` składa rozpoczęcie szturmu,
   automatyczną rozgrywkę i zapis jej wyniku na mapie, analogicznie do BM.1.
@@ -90,8 +91,9 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   obrońców zgodnie z G10.2a. Party na mapie po bitwie
   zawiera **tylko ocalałych** (polegli usunięci, rany/doświadczenie zachowane).
   Determinizm (ten sam seed → ta sama mapa); mapa, osady i garnizony wejściowe
-  nie są mutowane. `move_points` i `morale` to jednolite placeholdery (domyślnie
-  `1` i `0`), jak w BM.1.
+  nie są mutowane. `move_points` jest jednolitym placeholderm (domyślnie `1`);
+  morale jest **per strona** (`attacker_morale` / `defender_morale`, domyślnie
+  `0`/`0`; B12.1b-1), jak w BM.1.
 - **ROZSTRZYGNIĘTE (BW.2, wynik bitwy party↔osada na mapie):** po rozstrzygnięciu
   szturmu party na garnizon osady czyste przejście
   `WorldMap.apply_settlement_battle_result(source, destination, result)` zapisuje
@@ -347,9 +349,13 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   strony (`BattleSide.ATTACKER` → `attacker_morale`, `DEFENDER` →
   `defender_morale`); semantyka ciosu (B4.3a: morale uderzającego → celność)
   bez zmian. Równe `attacker_morale=X` i `defender_morale=X` dają przebieg
-  identyczny z dawnym jednolitym `morale=X`. `WorldMap.resolve_party_battle` /
-  `resolve_settlement_battle` zachowują publiczny parametr `morale` i pomostowo
-  podają go obu stronom (per-strona na mapie: B12.1b).
+  identyczny z dawnym jednolitym `morale=X`.
+- **ROZSTRZYGNIĘTE (B12.1b-1, per-strona morale w sygnaturach mapy):**
+  `WorldMap.resolve_party_battle` / `resolve_settlement_battle` przyjmują
+  `attacker_morale=0` i `defender_morale=0` (zamiast wspólnego `morale`) i
+  przekazują je do `auto_resolve` odpowiednio stronie atakującej i broniącej.
+  Domyślne `0`/`0` zachowują dotychczasowe wywołania bez morale. Wpięcie
+  morale księstw w AI/driver: B12.1b-2.
 - **ROZSTRZYGNIĘTE (BW.3, rekonstrukcja ocalałych z bitwy do party na mapie):** po bitwie
   party na mapie ma zawierać wyłącznie **ocalałych** (aktywnych + ogłuszonych)
   z zachowanymi ranami i doświadczeniem, a polegli mają zniknąć — zastępując

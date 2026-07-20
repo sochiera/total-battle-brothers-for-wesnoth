@@ -276,12 +276,16 @@ class WorldMap:
         destination: Region,
         rng: Rng,
         move_points: int = 1,
-        morale: int = 0,
+        attacker_morale: int = 0,
+        defender_morale: int = 0,
     ) -> "WorldMap":
         """Play an adjacent party battle and apply its result to the world."""
         battle = self.start_battle(source, destination)
         resolved = battle.auto_resolve(
-            move_points, rng, attacker_morale=morale, defender_morale=morale
+            move_points,
+            rng,
+            attacker_morale=attacker_morale,
+            defender_morale=defender_morale,
         )
         return self.apply_party_battle_result(
             source, destination, resolved.result(), battle=resolved
@@ -380,12 +384,16 @@ class WorldMap:
         destination: Region,
         rng: Rng,
         move_points: int = 1,
-        morale: int = 0,
+        attacker_morale: int = 0,
+        defender_morale: int = 0,
     ) -> "WorldMap":
         """Play an adjacent settlement battle and apply its result."""
         battle = self.start_settlement_battle(source, destination)
         resolved = battle.auto_resolve(
-            move_points, rng, attacker_morale=morale, defender_morale=morale
+            move_points,
+            rng,
+            attacker_morale=attacker_morale,
+            defender_morale=defender_morale,
         )
         return self.apply_settlement_battle_result(
             source, destination, resolved.result(), battle=resolved
