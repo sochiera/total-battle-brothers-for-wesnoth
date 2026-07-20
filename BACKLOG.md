@@ -60,43 +60,36 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > (placeholder), gracz decyduje *czy* wykonać akcję. Wszystkie pozycje
 > (task-076…084) w `BACKLOG-ARCHIVE.md`. Wybór konkretnej osady/celu → Kamień 15.
 
-## Kamień milowy 15 — wybór celu przez gracza (realna sprawczość)
+## Kamień milowy 15 — wybór celu przez gracza (realna sprawczość) — UKOŃCZONY
 > DESIGN §9a (PLAN K15): K14 dał decyzję *czy*, cel wybierał automat. K15
-> **odwraca** ten placeholder: gracz wskazuje *dokąd* maszeruje i *którą* obcą
-> osadę szturmuje. Nowe prymitywy AI biorą **jawny region docelowy**; podgląd
-> czyta `?target=…`, brak/nieznany target zachowuje automatyczne prymitywy
-> (zgodność wstecz). Wybór celu nie zmienia rozstrzygania bitwy ani morale.
-- [x] **K15.1a** Prymityw AI marszu na wskazany region (`ai.march_duchy_party_to`). *(task-085)*
-- [x] **K15.1b** Rozkaz gracza: marsz na wskazany region (`POST /order/march?target=`). *(task-086)*
-- [x] **K15.1c** UI wyboru celu marszu (formularze per region-cel). *(task-087)*
-- [x] **K15.2a** Prymityw AI szturmu na wskazaną osadę (`ai.assault_duchy_party_to`). *(task-088)*
-- [x] **K15.2b** Rozkaz gracza: szturm na wskazaną osadę (`POST /order/assault?target=`). *(task-089)*
-- [ ] **K15.2c** UI wyboru celu szturmu (formularze per obca osada). *(task-090)*
-  - AC: gdy gracz ma party — po jednym `<form action="/order/assault?target=…">`
-    na obcą osadę; brak party = pojedynczy fallbackowy formularz; reszta bez zmian.
+> **odwrócił** placeholder: gracz wskazuje *dokąd* maszeruje i *którą* obcą osadę
+> szturmuje (K15.1a–c, K15.2a–c; task-085…090). Wszystkie pozycje w
+> `BACKLOG-ARCHIVE.md`. Wybór celu nie zmienił rozstrzygania bitwy ani morale.
 
 ## Kamień milowy 16 — obserwowalna bitwa gracza w podglądzie
 > DESIGN §9a (PLAN K16): `render_battle_svg` istnieje (V13.3b), ale gracz nigdy
 > nie *widzi* bitwy — rozkaz szturmu zmienia tylko mapę/panel. K16 wpina
 > rozstrzygniętą bitwę w stronę partii: rdzeń nagrywa `HexBattle` obok mapy,
-> prymityw AI szturmu na jawny cel go zwraca, a `GameApp` renderuje ostatnią
-> bitwę. Prymitywy-pierwsze, każdy krok mały i testowalny.
-- [ ] **K16.1a** Strona partii z opcjonalnym slotem SVG bitwy (`render_game_page(..., battle=None)`). *(task-091)*
-  - AC: `battle: HexBattle` → osadza `render_battle_svg`; `None` = wynik bez zmian; czyste.
-- [ ] **K16.1b** Rdzeń: nagrana wersja szturmu osady (`resolve_settlement_battle_recorded → (WorldMap, HexBattle)`). *(task-092)*
-  - AC: składa start→auto_resolve→apply, zwraca mapę i bitwę; `resolve_settlement_battle`
-    deleguje (tylko mapa); bez dodatkowego RNG; deterministyczne.
-- [ ] **K16.1c** Prymityw AI szturmu na wskazaną osadę zwraca bitwę (`ai.assault_duchy_party_to_recorded`). *(task-093)*
-  - AC: cel sąsiedni z obcą osadą → `(mapa, bitwa)` przez recorded; ścieżki no-op →
-    `(world, None)` bez RNG; mapa identyczna z `assault_duchy_party_to`.
-- [ ] **K16.1d** `GameApp` przechwytuje i renderuje ostatnią bitwę po rozkazie szturmu. *(następny wsad)*
-  - AC: rozkaz `assault?target=` przez recorded ustawia `last_battle`; `_render`
-    przekazuje ją do `render_game_page`; inne rozkazy / tura czyszczą `last_battle`.
+> prymityw AI szturmu go zwraca, a `GameApp` renderuje ostatnią bitwę.
+> Prymitywy-pierwsze, każdy krok mały i testowalny.
+- [x] **K16.1a** Strona partii z opcjonalnym slotem SVG bitwy (`render_game_page(..., battle=None)`). *(task-091)*
+- [x] **K16.1b** Rdzeń: nagrana wersja szturmu osady (`resolve_settlement_battle_recorded → (WorldMap, HexBattle)`). *(task-092)*
+- [x] **K16.1c** Prymityw AI szturmu na wskazaną osadę zwraca bitwę (`ai.assault_duchy_party_to_recorded`). *(task-093)*
+- [ ] **K16.1d-1** Prymityw AI auto-szturmu z nagraniem (`ai.assault_duchy_party_recorded`). *(task-095)*
+  - AC: sąsiednia najbliższa wroga osada → `(mapa, bitwa)` przez recorded; no-op →
+    `(world, None)` bez RNG; mapa identyczna z `assault_duchy_party`.
+- [ ] **K16.1d-2** `GameApp` nagrywa i renderuje ostatnią bitwę po szturmie (`last_battle`). *(task-096)*
+  - AC: `assault`/`assault?target=` przez recorded ustawia `last_battle`; `_render`
+    przekazuje `battle=self.last_battle` do `render_game_page`; guardy bez zmian.
+- [ ] **K16.1d-3** Inne rozkazy i `POST /turn` czyszczą `last_battle`. *(task-097)*
+  - AC: recruit/muster/develop/march oraz `/turn` zerują `last_battle`; szturm
+    nadal ją ustawia; strona po nich nie zawiera SVG bitwy.
 
 ## Dług/refaktor
-- [ ] **R15.1 (refaktor)** Kompaktacja DESIGN.md do stanu obecnego; historia → DECISIONS.md. *(task-094)*
-  - AC: bez nowych testów; bloki „ROZSTRZYGNIĘTE" → jednoliniowe wpisy DECISIONS
-    lub proza stanu obecnego; anty-osłabianie reguł; DESIGN krótszy o ≥30%.
+- [x] **R15.1 (refaktor)** Kompaktacja DESIGN.md do stanu obecnego; historia → DECISIONS.md. *(task-094)*
+- [ ] **R16.1 (refaktor)** Wspólny generator formularzy celu marsz/szturm w `serve.py`. *(task-098)*
+  - AC: bez nowych testów; `_march_forms`/`_assault_forms` → jeden helper
+    `_target_forms(order_path, bare_form)`; HTML bajt-w-bajt bez zmian.
 
 ## Później (poza MVP)
 - [ ] **R12.1 (opcjonalny dług)** Wspólna kwerenda własnych osad w `ai.py`:
