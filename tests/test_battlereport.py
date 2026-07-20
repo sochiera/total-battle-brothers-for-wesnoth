@@ -32,6 +32,35 @@ def _finished_attacker_win_battle() -> HexBattle:
     )
 
 
+def _finished_defender_win_battle() -> HexBattle:
+    dead = Unit(training=3)
+    dead_position = Hex(0, 0)
+    battle = HexBattle(Battlefield()).deploy(
+        dead, dead_position, BattleSide.ATTACKER
+    ).deploy(Unit(), Hex(1, 0), BattleSide.DEFENDER)
+    return battle.damage(dead_position, dead.hp).resolve_defeat(
+        dead_position, ControlledRng(True)
+    )
+
+
+def _finished_draw_battle() -> HexBattle:
+    attacker = Unit(training=3)
+    defender = Unit(training=2)
+    attacker_pos = Hex(0, 0)
+    defender_pos = Hex(1, 0)
+    battle = (
+        HexBattle(Battlefield())
+        .deploy(attacker, attacker_pos, BattleSide.ATTACKER)
+        .deploy(defender, defender_pos, BattleSide.DEFENDER)
+    )
+    battle = battle.damage(attacker_pos, attacker.hp).resolve_defeat(
+        attacker_pos, ControlledRng(True)
+    )
+    return battle.damage(defender_pos, defender.hp).resolve_defeat(
+        defender_pos, ControlledRng(True)
+    )
+
+
 def test_render_battle_report_contains_result_value_in_root_div():
     battle = _finished_attacker_win_battle()
 
@@ -85,3 +114,25 @@ def test_render_battle_report_shows_human_readable_result_text_for_attacker_win(
     result_div = root.find(".//div[@data-battle-result]")
     assert result_div.attrib["data-battle-result"] == BattleResult.ATTACKER_WIN.value
     assert result_div.text == "Zwycięstwo atakującego"
+
+
+def test_render_battle_report_shows_human_readable_result_text_for_defender_win():
+    battle = _finished_defender_win_battle()
+
+    html = render_battle_report(battle)
+
+    root = ET.fromstring(html)
+    result_div = root.find(".//div[@data-battle-result]")
+    assert result_div.attrib["data-battle-result"] == BattleResult.DEFENDER_WIN.value
+    assert result_div.text == "Zwycięstwo broniącego"
+
+
+def test_render_battle_report_shows_human_readable_result_text_for_draw():
+    battle = _finished_draw_battle()
+
+    html = render_battle_report(battle)
+
+    root = ET.fromstring(html)
+    result_div = root.find(".//div[@data-battle-result]")
+    assert result_div.attrib["data-battle-result"] == BattleResult.DRAW.value
+    assert result_div.text == "Remis"
