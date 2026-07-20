@@ -352,9 +352,11 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   `data-player-owned=""`. Czysty, deterministyczny.
 - `render_party_panel(world, player_duchy_id=None)` — fragment `data-party-panel`
   z wierszem `data-party-row` (= nazwa regionu) na party w kolejności
-  `world.regions`; `data-owner`/`data-size` (liczba podkomendnych) i tekst
-  `<region> (<owner|„—">): bohater + N podkomendnych`; przy `player_duchy_id`
-  wiersze z `owner_id` gracza mają `data-player-owned=""`. Czysty, deterministyczny.
+  `world.regions`; `data-owner`/`data-size` (liczba podkomendnych)/`data-hp`
+  (suma `Unit.hp` bohatera i podkomendnych) i tekst
+  `<region> (<owner|„—">): bohater + N podkomendnych · siła: HP H`; przy
+  `player_duchy_id` wiersze z `owner_id` gracza mają `data-player-owned=""`.
+  Czysty, deterministyczny.
 - `render_game_page(world, game, calendar, battle=None, player_duchy_id=None)` —
   SVG mapy, kalendarz (`data-calendar` + widoczny tekst `Rok N, miesiąc M`),
   panel księstw (`data-duchy` + tekst statusu; przy `player_duchy_id` dopasowany

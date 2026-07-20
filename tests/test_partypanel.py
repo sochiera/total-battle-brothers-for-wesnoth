@@ -49,6 +49,35 @@ def test_render_party_panel_rows_match_parties_in_region_order():
     assert world.parties == parties_before
 
 
+def test_render_party_panel_row_carries_hp_sum_and_text_suffix():
+    """``data-hp`` is the sum of ``Unit.hp`` over hero and all party units, and
+    the visible text gains a matching `` · siła: HP H`` suffix.
+    """
+    a = Region("A")
+    world = WorldMap(
+        [a],
+        [],
+        parties={
+            a: Party(
+                hero=Unit(training=5),
+                units=(Unit(training=2), Unit(training=0)),
+                owner_id="north",
+            ),
+        },
+    )
+
+    xml = render_party_panel(world)
+    root = ET.fromstring(xml)
+
+    row_a = root.findall("div")[0]
+    expected_hp = (10 + 5) + (10 + 2) + (10 + 0)
+    assert row_a.attrib["data-hp"] == str(expected_hp)
+    assert (
+        f"A (north): bohater + 2 podkomendnych · siła: HP {expected_hp}"
+        in "".join(row_a.itertext())
+    )
+
+
 def test_render_party_panel_marks_player_owned_row_when_duchy_id_given():
     """When ``player_duchy_id`` is given, rows whose ``owner_id`` matches it get
     ``data-player-owned=""``; other rows do not carry the attribute at all.

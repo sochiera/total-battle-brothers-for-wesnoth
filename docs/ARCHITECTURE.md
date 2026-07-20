@@ -99,13 +99,14 @@ kolejności `world.regions` (region bez osady → brak wiersza). Atrybuty wiersz
 (wolne F), garnizon N` zgodny z atrybutami. Czyste, deterministyczne, bez
 mutacji `world`; rdzeń bez zmian.
 
-**Panel party HTML (K22.2a / K24.1a):** `tbbui.partypanel.render_party_panel(world,
+**Panel party HTML (K22.2a / K24.1a / K25.1a):** `tbbui.partypanel.render_party_panel(world,
 player_duchy_id=None) -> str` — parsowalny fragment XML z korzeniem
 `<div data-party-panel="">`; po jednym `<div data-party-row="<region.name>">`
 na region z party w kolejności `world.regions` (region bez party → brak wiersza).
-Atrybuty: `data-owner` (`owner_id` lub `""`), `data-size` (`len(party.units)`);
-widoczny tekst `<region.name> (<owner_id lub „—">): bohater + N podkomendnych`
-zgodny z `data-size`. Gdy `player_duchy_id` nie jest `None`, wiersze z
+Atrybuty: `data-owner` (`owner_id` lub `""`), `data-size` (`len(party.units)`),
+`data-hp` (suma `Unit.hp` po bohaterze i podkomendnych);
+widoczny tekst `<region.name> (<owner_id lub „—">): bohater + N podkomendnych · siła: HP H`
+zgodny z `data-size`/`data-hp`. Gdy `player_duchy_id` nie jest `None`, wiersze z
 `owner_id == player_duchy_id` dostają `data-player-owned=""`; `None` (domyślnie)
 → wynik bajt-w-bajt jak bez argumentu. Czyste, deterministyczne, bez mutacji
 `world`; rdzeń bez zmian.
