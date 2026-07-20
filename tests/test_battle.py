@@ -1141,3 +1141,52 @@ def test_auto_resolve_side_morale_advantage_decides_symmetric_duel():
 
     assert high_attacker.result() is BattleResult.ATTACKER_WIN
     assert high_defender.result() is BattleResult.DEFENDER_WIN
+
+
+def test_auto_resolve_equal_side_morale_matches_uniform_morale_semantics():
+    """Equal attacker/defender morale matches the former uniform morale=X path.
+
+    Same seed and multi-unit layout → same result and full battle state as
+    driving every unit turn with a single morale value X (old auto_resolve).
+    """
+    x = 30
+    seed = 42
+    move_points = 1
+    battle = (
+        HexBattle(Battlefield())
+        .deploy(Unit(equipment=4), Hex(0, 0), BattleSide.ATTACKER)
+        .deploy(Unit(equipment=2), Hex(2, 0), BattleSide.DEFENDER)
+        .deploy(Unit(equipment=3), Hex(0, 1), BattleSide.ATTACKER)
+        .deploy(Unit(equipment=1), Hex(2, 1), BattleSide.DEFENDER)
+    )
+
+    via_sides = battle.auto_resolve(
+        move_points=move_points,
+        rng=Rng(seed),
+        attacker_morale=x,
+        defender_morale=x,
+    )
+
+    # Reference: former uniform-morale auto_resolve loop (every turn gets X).
+    reference = battle
+    rng = Rng(seed)
+    rounds = 0
+    max_rounds = 1000
+    while reference.result() is None and rounds < max_rounds:
+        for position in reference._deployment_order:
+            if reference.result() is not None:
+                break
+            unit = reference.unit_at(position)
+            if (
+                unit is None
+                or reference.current_hp_at(position) == 0
+                or unit.stunned
+            ):
+                continue
+            reference = reference.take_unit_turn(
+                position, move_points, x, rng
+            )
+        rounds += 1
+
+    assert via_sides == reference
+    assert via_sides.result() is not None
