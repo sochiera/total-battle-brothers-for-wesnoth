@@ -1977,6 +1977,50 @@ def test_game_app_post_order_engage_with_target_applies_explicit_target():
     assert world_before.party_at(enemy_b) is south_party_b
 
 
+def test_game_app_post_order_engage_empty_or_unknown_target_falls_back():
+    """POST /order/engage?target=<empty|unknown> falls back to engage_duchy_party_recorded.
+
+    Contract (task-105 / K19.1b): an empty ``target`` value or one that does
+    not match any region name in ``world.regions`` is treated the same as no
+    ``target`` at all — the auto-cel fallback (``ai.engage_duchy_party_recorded``)
+    applies, not ``engage_duchy_party_to_recorded``.
+    """
+    start, enemy_a, enemy_b = map(Region, ("Start", "EnemyA", "EnemyB"))
+    north_party = Party(Unit(training=5, equipment=6), owner_id="north")
+    south_party_a = Party(Unit(training=1, equipment=1), owner_id="south")
+    south_party_b = Party(Unit(training=1, equipment=1), owner_id="south")
+    world = WorldMap(
+        (start, enemy_a, enemy_b),
+        ((start, enemy_a), (start, enemy_b)),
+        parties={start: north_party, enemy_a: south_party_a, enemy_b: south_party_b},
+    )
+    game = GameState(
+        (
+            Duchy("north", north_party.hero, parties=(north_party,), morale=10),
+            Duchy(
+                "south",
+                south_party_a.hero,
+                parties=(south_party_a, south_party_b),
+                morale=-5,
+            ),
+        )
+    )
+    calendar = Calendar(year=2, month=3)
+
+    for query in (
+        "/order/engage?target=",
+        "/order/engage?target=Nonexistent",
+    ):
+        app = GameApp(world, game, calendar, Rng(11), player_duchy_id="north")
+        code, body = app.handle("POST", query)
+        assert code == 200
+        assert body.strip() != ""
+        # Auto-cel engage picks the first neighbor with an enemy party:
+        # EnemyA, not the never-specified EnemyB.
+        assert app.world.party_at(enemy_a).owner_id == "north"
+        assert app.world.party_at(enemy_b).owner_id == "south"
+
+
 def test_game_app_post_order_assault_empty_or_unknown_target_falls_back():
     """POST /order/assault?target=<empty|unknown> falls back to assault_duchy_party.
 
