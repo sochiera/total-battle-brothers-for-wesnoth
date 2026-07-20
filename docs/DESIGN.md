@@ -767,6 +767,13 @@ partii ze stanem świata i przyciskiem „następna tura". Wydawanie rozkazów
 przez gracza (rekrutacja, marsz, szturm z przeglądarki) dochodzi w kolejnym
 kamieniu. Rdzeń `tbb` nigdy nie importuje `tbbui` (§8 bez zmian).
 
+**ROZSTRZYGNIĘTE (V13.2a, szkielet SVG mapy):** `render_world_svg(world)` w
+`tbbui.worldsvg` zwraca parsowalny string SVG z jednym węzłem (`g[data-region]`)
+i etykietą tekstową na każdy region. Pozycje środków wynikają ze stałego pitcha
+nad `layout_world` (kolumna→x, wiersz→y); przejście jest czyste i
+deterministyczne. Linie połączeń, znaczniki osad/party i paleta właścicieli —
+kolejne przyrosty V13.2b–d.
+
 ## 10. Otwarte pytania (do rozstrzygnięcia w trakcie)
 Oznaczone, bo decyzja nie jest przesądzona — rozstrzygać przy okazji zadań, które
 ich dotykają, i notować wynik tutaj:

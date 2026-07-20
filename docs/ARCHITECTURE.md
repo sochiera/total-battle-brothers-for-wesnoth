@@ -44,6 +44,13 @@ regionu; **kolumna** = dystans od korzenia; w warstwie BFS kolejność =
 `world.regions`; **wiersz** = pierwszy wolny indeks w kolumnie (liczniki
 kolumn globalne między komponentami).
 
+**Szkielet SVG mapy (V13.2a):** `tbbui.worldsvg.render_world_svg(world) -> str`
+— parsowalny XML z korzeniem `<svg>`; po jednym `<g data-region="…">` na region
+(z etykietą tekstową = nazwa). Środki węzłów: stały pitch z komórek
+`layout_world` (`x = ORIGIN_X + col * PITCH_X`, `y = ORIGIN_Y + row * PITCH_Y`).
+Czyste, deterministyczne, bez mutacji mapy. Linie, znaczniki osad/party i paleta
+właścicieli dochodzą w V13.2b–d.
+
 ## 2. Struktura katalogów
 ```
 game/                     # katalog projektu (repo root dla tej gry)
@@ -75,7 +82,8 @@ game/                     # katalog projektu (repo root dla tej gry)
 │   │   └── rng.py        # seedowalny RNG izolowany od stanu globalnego
 │   └── tbbui/            # pakiet prezentacji (stdlib SVG/HTML); tbb go nie importuje
 │       ├── __init__.py
-│       └── layout.py     # deterministyczny layout regionów WorldMap → (col, row)
+│       ├── layout.py     # deterministyczny layout regionów WorldMap → (col, row)
+│       └── worldsvg.py   # szkielet SVG mapy strategicznej (węzły regionów)
 ├── tests/                # testy pytest (mirror struktury src/)
 │   ├── test_battle.py
 │   ├── test_ai.py
@@ -97,6 +105,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │   ├── test_wound.py
 │   ├── test_world.py
 │   ├── test_layout.py    # layout mapy strategicznej (tbbui)
+│   ├── test_worldsvg.py  # SVG szkielet mapy (tbbui)
 │   └── test_smoke.py
 ├── scripts/
 │   ├── test.sh           # uruchamia pełny pakiet testów
