@@ -16,6 +16,7 @@ from tbb.settlement import HERO_GOLD_COST, Settlement
 from tbb.turn import Calendar
 from tbb.unit import Unit
 from tbb.world import Region, WorldMap
+from tbb.wound import BRUISE, MAIMED
 
 
 def test_monthly_tick_precedes_recruitment_and_syncs_the_grown_settlement():
@@ -56,6 +57,46 @@ def test_monthly_tick_precedes_recruitment_and_syncs_the_grown_settlement():
     assert north_duchy.settlements == (grown_keep,)
     assert world.settlement_at(north) is north_keep
     assert game.duchies[0].settlements == (north_keep,)
+
+
+def test_headless_game_heals_party_bruise_over_two_turns_keeps_maimed(
+    monkeypatch,
+):
+    """Driver monthly chain expires party BRUISE after two turns; MAIMED stays."""
+    camp, south = map(Region, ("Camp", "South"))
+    hero = Unit(training=1, wounds=(BRUISE, MAIMED))
+    subordinate = Unit(equipment=1, wounds=(BRUISE,))
+    party = Party(hero, (subordinate,), owner_id="north")
+    south_keep = Settlement("South Keep", 2, owner_id="south")
+    world = WorldMap(
+        (camp, south),
+        settlements={south: south_keep},
+        parties={camp: party},
+    )
+    game = GameState(
+        (
+            Duchy("north", hero, parties=(party,)),
+            Duchy("south", Unit(), settlements=(south_keep,)),
+        )
+    )
+    monkeypatch.setattr(ai, "take_duchy_turn", lambda w, d, r: w)
+    monkeypatch.setattr(ai, "raise_duchy_hero", lambda w, d: (w, d))
+
+    first = run_headless_game(world, game, Rng(17), max_turns=2)
+    second = run_headless_game(world, game, Rng(17), max_turns=2)
+    result_world, _, _ = first
+    healed = result_world.party_at(camp)
+
+    assert healed is not None
+    assert BRUISE not in healed.hero.wounds
+    assert MAIMED in healed.hero.wounds
+    assert healed.hero.wounds == (MAIMED,)
+    assert BRUISE not in healed.units[0].wounds
+    assert healed.units[0].wounds == ()
+    assert first == second
+    assert world.party_at(camp) is party
+    assert party.hero.wounds == (BRUISE, MAIMED)
+    assert party.units[0].wounds == (BRUISE,)
 
 
 def test_one_turn_threads_real_ai_actions_through_duchies_immutably():

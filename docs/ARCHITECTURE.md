@@ -145,10 +145,12 @@ Uruchamiaj z katalogu `game/`.
   z ukrytymi efektami. `WorldMap.with_settlement` jest wspólnym czystym
   przejściem do wstawiania lub podmiany pojedynczej osady z zachowaniem grafu
   i rozmieszczenia party.
-- **Headless driver:** `run_headless_game` przewleka niemutowalny `Calendar`,
-  kończy każdą wykonaną turę przez `turn.end_turn` i zwraca mapę, stan gry oraz
-  kalendarz; CLI odbiera całą trójkę i wypisuje wynik wraz z końcowym rokiem
-  i miesiącem, nie wyliczając czasu samodzielnie.
+- **Headless driver:** na początku każdej wykonywanej tury `run_headless_game`
+  woła `tick_settlements()`, zaraz potem `tick_parties()`, a następnie
+  `sync_from_world` — zanim rozpocznie przebieg księstw. Driver przewleka
+  niemutowalny `Calendar`, kończy każdą wykonaną turę przez `turn.end_turn` i
+  zwraca mapę, stan gry oraz kalendarz; CLI odbiera całą trójkę i wypisuje
+  wynik wraz z końcowym rokiem i miesiącem, nie wyliczając czasu samodzielnie.
 - **Nazwy:** moduł ↔ test 1:1 (patrz wyżej).
 
 ## 5. Uruchamianie lokalnie (dla człowieka)

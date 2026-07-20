@@ -276,9 +276,11 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   **ROZSTRZYGNIĘTE (W12.2, miesięczne leczenie party):**
   `WorldMap.tick_parties()` stosuje `Party.tick_wounds(1)` do każdego party
   w deterministycznej kolejności `world.regions`. Graf, osady i regiony bez
-  party pozostają niezmienione; mapa wejściowa nie jest mutowana. Bohater
-  bez party w `Duchy` (poza mapą) nadal pozostaje poza zakresem tego
-  przejścia — leczy się dopiero w składzie party na mapie.
+  party pozostają niezmienione; mapa wejściowa nie jest mutowana. Driver
+  `run_headless_game` wywołuje to przejście bezpośrednio po
+  `tick_settlements()`, przed `sync_from_world`. Bohater bez party w `Duchy`
+  (poza mapą) nadal pozostaje poza zakresem tego przejścia — leczy się
+  dopiero w składzie party na mapie.
   **ROZSTRZYGNIĘTE (B4.5b, minimalne rozstrzygnięcie 0 HP):** jednostkę, której
   bieżące HP spadło do `0`, rozstrzyga się dokładnie jednym rzutem RNG: **50%**
   oznacza śmierć i usunięcie jej z rozstawienia, a pozostałe 50% — pozostawienie
@@ -926,12 +928,13 @@ ich dotykają, i notować wynik tutaj:
   tylko za I/O i kończy kodem 0. To domyka grywalną headless pętlę MVP (§6).
   **ROZSTRZYGNIĘTE (M8.1, ekonomia w driverze headless):** na początku każdej
   wykonywanej tury, przed przebiegiem księstw, driver wywołuje dokładnie jedno
-  `WorldMap.tick_settlements()`, a następnie `GameState.sync_from_world()`. Dzięki
-  temu rekrutacja, ruch i bitwy widzą osady po miesięcznej produkcji, wzroście
-  i imigracji, a od U9.5 także po treningu i uzbrojeniu garnizonu. Gra
-  rozstrzygnięta na wejściu oraz `max_turns == 0` nadal zwracają dokładnie
-  wejściowe obiekty bez ticka i synchronizacji. Przejście pozostaje czyste
-  i deterministyczne.
+  `WorldMap.tick_settlements()`, następnie `WorldMap.tick_parties()` (W12.2),
+  a potem `GameState.sync_from_world()`. Dzięki temu rekrutacja, ruch i bitwy
+  widzą osady po miesięcznej produkcji, wzroście i imigracji, a od U9.5 także
+  po treningu i uzbrojeniu garnizonu; rany czasowe party na mapie mijają
+  automatycznie z turami. Gra rozstrzygnięta na wejściu oraz `max_turns == 0`
+  nadal zwracają dokładnie wejściowe obiekty bez ticka i synchronizacji.
+  Przejście pozostaje czyste i deterministyczne.
   **ROZSTRZYGNIĘTE (M8.2, kalendarz w driverze headless):** driver przewleka
   wejściowy `Calendar` i po każdej rozpoczętej oraz ukończonej turze przesuwa go
   dokładnie o miesiąc przez `turn.end_turn`. Tura zakończona zwycięstwem w środku

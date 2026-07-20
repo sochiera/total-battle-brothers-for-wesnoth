@@ -62,6 +62,7 @@ def run_headless_game(
         if current_game.is_over:
             break
         current_world = current_world.tick_settlements()
+        current_world = current_world.tick_parties()
         current_game = current_game.sync_from_world(current_world)
         duchy_ids = tuple(
             duchy.duchy_id
