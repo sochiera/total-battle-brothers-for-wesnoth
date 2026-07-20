@@ -369,6 +369,29 @@ def test_assault_with_morale_by_owner_matches_resolve_settlement_battle():
     assert settlement.owner_id == "def"
 
 
+def test_assault_morale_by_owner_none_matches_omitted_argument():
+    """Backward compat: morale_by_owner=None is identical to omitting the arg."""
+    start, target = Region("Start"), Region("Target")
+    party = Party(Unit(training=5, equipment=6), owner_id="att")
+    settlement = Settlement(
+        "Target", population=1, garrison=(Unit(equipment=1),), owner_id="def"
+    )
+    world = WorldMap(
+        [start, target],
+        [(start, target)],
+        settlements={target: settlement},
+        parties={start: party},
+    )
+    seed = 3
+
+    without_arg = assault_nearest_enemy_settlement(world, start, tbb.Rng(seed))
+    with_none = assault_nearest_enemy_settlement(
+        world, start, tbb.Rng(seed), morale_by_owner=None
+    )
+
+    assert with_none == without_arg
+
+
 def test_muster_duchy_party_moves_hero_and_garrison_without_mutating_input():
     home = Region("Home")
     hero = Unit(training=4)
