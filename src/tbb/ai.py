@@ -210,7 +210,10 @@ def assault_nearest_enemy_settlement(
 
 
 def take_duchy_military_action(
-    world: WorldMap, duchy: Duchy, rng: Rng
+    world: WorldMap,
+    duchy: Duchy,
+    rng: Rng,
+    morale_by_owner: dict[str, int] | None = None,
 ) -> WorldMap:
     """Muster, march once, and assault for one duchy's military action."""
     if duchy.hero is None:
@@ -227,14 +230,23 @@ def take_duchy_military_action(
     position = _duchy_party_position(current, duchy.duchy_id)
     if position is None:
         return current
-    return assault_nearest_enemy_settlement(current, position, rng)
+    return assault_nearest_enemy_settlement(
+        current, position, rng, morale_by_owner=morale_by_owner
+    )
 
 
-def take_duchy_turn(world: WorldMap, duchy: Duchy, rng: Rng) -> WorldMap:
+def take_duchy_turn(
+    world: WorldMap,
+    duchy: Duchy,
+    rng: Rng,
+    morale_by_owner: dict[str, int] | None = None,
+) -> WorldMap:
     """Develop, recruit once, then perform one duchy's military action."""
     current = develop_duchy_settlement(world, duchy)
     current = recruit_duchy_unit(current, duchy)
-    return take_duchy_military_action(current, duchy, rng)
+    return take_duchy_military_action(
+        current, duchy, rng, morale_by_owner=morale_by_owner
+    )
 
 
 def _duchy_party_position(world: WorldMap, duchy_id: str) -> Region | None:

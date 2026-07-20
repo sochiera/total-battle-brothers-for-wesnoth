@@ -361,8 +361,13 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   `attacker_morale = morale_by_owner.get(party.owner_id, 0)` oraz
   `defender_morale = morale_by_owner.get(settlement.owner_id, 0)` i przekazuje
   je do `WorldMap.resolve_settlement_battle`. Brak argumentu / `None` = `0`/`0`
-  (zgodność wstecz). Wątkowanie przez `take_duchy_*` i budowa mapy w driverze:
-  B12.1b-2b / B12.1b-2c.
+  (zgodność wstecz). Budowa mapy w driverze: B12.1b-2c.
+- **ROZSTRZYGNIĘTE (B12.1b-2b, morale_by_owner przez politykę tury AI):**
+  `take_duchy_military_action(world, duchy, rng, morale_by_owner=None)` oraz
+  `take_duchy_turn(world, duchy, rng, morale_by_owner=None)` przyjmują opcjonalną
+  mapę `owner_id → morale` na końcu sygnatury i przekazują ją bez zmian do
+  `assault_nearest_enemy_settlement` (odpowiednio bezpośrednio / przez akcję
+  wojskową). `None`/brak argumentu zachowuje dotychczasowe zachowanie.
 - **ROZSTRZYGNIĘTE (BW.3, rekonstrukcja ocalałych z bitwy do party na mapie):** po bitwie
   party na mapie ma zawierać wyłącznie **ocalałych** (aktywnych + ogłuszonych)
   z zachowanymi ranami i doświadczeniem, a polegli mają zniknąć — zastępując
@@ -845,6 +850,8 @@ ich dotykają, i notować wynik tutaj:
   `take_duchy_military_action()` składa gotowe prymitywy wojskowe. AI próbuje wystawić party,
   następnie wykonuje najwyżej jeden krok marszu ku najbliższej wrogiej osadzie,
   po czym — już z aktualnej pozycji — rozstrzyga szturm, jeśli cel jest sąsiedni.
+  Opcjonalne `morale_by_owner` (B12.1b-2b) jest przekazywane do
+  `assault_nearest_enemy_settlement`.
   Dzięki kolejności **muster → marsz → szturm** party może w tej samej turze dojść
   pod osadę i ją zaatakować, zgodnie z fazami ruchu i bitew. Po każdym przejściu
   pozycja party jest wyszukiwana ponownie na `WorldMap`, bo ruch i podbój zmieniają
@@ -865,7 +872,8 @@ ich dotykają, i notować wynik tutaj:
   **ROZSTRZYGNIĘTE (A7.1b5b2/G10.5, pełna polityka tury AI):** czyste przejście
   `take_duchy_turn()` najpierw wywołuje `develop_duchy_settlement()`, potem
   `recruit_duchy_unit()`, a następnie przekazuje uzyskaną mapę do
-  `take_duchy_military_action()`. Dzięki temu świeży
+  `take_duchy_military_action()`. Opcjonalne `morale_by_owner` (B12.1b-2b) jest
+  wątkowane do akcji wojskowej (a stamtąd do szturmu). Dzięki temu świeży
   rekrut może jeszcze w tej samej turze wejść do wystawianego party; jeśli party
   już istnieje, rekrut pozostaje w garnizonie, a akcja wojskowa używa istniejącego
   składu. Brak możliwości rozwoju lub rekrutacji nie blokuje kolejnych etapów,

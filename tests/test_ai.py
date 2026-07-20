@@ -559,6 +559,35 @@ def test_duchy_military_action_is_publicly_exported():
     assert tbb.take_duchy_military_action is take_duchy_military_action
 
 
+def test_duchy_military_action_threads_morale_by_owner_to_assault():
+    """Equivalence: morale_by_owner reaches assault with identical seed/map."""
+    start, target = Region("Start"), Region("Target")
+    party = Party(Unit(training=5, equipment=6), owner_id="ai")
+    settlement = Settlement(
+        "Target", 1, garrison=(Unit(equipment=1),), owner_id="enemy"
+    )
+    world = WorldMap(
+        [start, target],
+        [(start, target)],
+        {target: settlement},
+        {start: party},
+    )
+    duchy = Duchy("ai", party.hero, parties=(party,))
+    seed = 9
+    morale_by_owner = {"ai": 40, "enemy": -20}
+
+    via_military = take_duchy_military_action(
+        world, duchy, tbb.Rng(seed), morale_by_owner=morale_by_owner
+    )
+    via_assault = assault_nearest_enemy_settlement(
+        world, start, tbb.Rng(seed), morale_by_owner=morale_by_owner
+    )
+
+    assert via_military == via_assault
+    assert world.party_at(start) is party
+    assert world.settlement_at(target) is settlement
+
+
 def test_recruit_duchy_unit_adds_exactly_one_fresh_unit_without_mutating_inputs():
     home = Region("Home")
     settlement = Settlement(
