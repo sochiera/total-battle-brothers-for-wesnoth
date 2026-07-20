@@ -88,6 +88,17 @@ def test_with_settlement_replaces_one_settlement_without_mutating_world():
     assert world.settlement_at(town) is original
 
 
+def test_with_settlement_inserts_settlement_into_empty_region():
+    empty_region = Region("Empty")
+    settlement = Settlement("New Town", population=2)
+    world = WorldMap([empty_region])
+
+    updated = world.with_settlement(empty_region, settlement)
+
+    assert updated.settlement_at(empty_region) is settlement
+    assert world.settlement_at(empty_region) is None
+
+
 def test_tick_settlements_applies_economy_births_then_immigration():
     farms = Region("Farms")
     market = Region("Market")
