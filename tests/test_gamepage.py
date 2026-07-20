@@ -208,6 +208,30 @@ def test_render_game_page_embeds_human_readable_result_text_matching_data_result
     assert draw_texts[0].get("data-result-text") == "Remis"
 
 
+def test_render_game_page_duchy_panel_has_human_readable_status_text():
+    """Each ``data-duchy`` element contains a human-readable status line."""
+    world, game, calendar = _ongoing_fixture()
+
+    html = render_game_page(world, game, calendar)
+    root = ET.fromstring(html)
+
+    duchy_els = _find_by_attr(root, "data-duchy")
+    by_id = {el.get("data-duchy"): el for el in duchy_els}
+    assert len(duchy_els) == len(game.duchies)
+
+    for duchy in game.duchies:
+        el = by_id[duchy.duchy_id]
+        expected_text = (
+            f"{duchy.duchy_id}: osady {len(duchy.settlements)}, "
+            f"party {len(duchy.parties)}, morale {duchy.morale}"
+        )
+        assert (el.text or "").strip() == expected_text
+        # Machine-readable attributes remain unchanged alongside the new text.
+        assert el.get("data-morale") == str(duchy.morale)
+        assert el.get("data-settlements") == str(len(duchy.settlements))
+        assert el.get("data-parties") == str(len(duchy.parties))
+
+
 def test_render_game_page_optional_battle_slot_embeds_svg_and_defaults_unchanged():
     """``battle`` param embeds ``render_battle_svg(battle)``; default output is unchanged."""
     world, game, calendar = _ongoing_fixture()

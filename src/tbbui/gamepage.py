@@ -38,7 +38,8 @@ def render_game_page(
     """Return a parsable HTML string for one party snapshot.
 
     Embeds the strategic map SVG from ``render_world_svg``, a calendar stamp,
-    one duchy panel row per ``game.duchies``, a machine-readable result marker
+    one duchy panel row per ``game.duchies`` (machine ``data-*`` attributes
+    plus human-readable status text), a machine-readable result marker
     (``data-result``), and a human-readable result banner
     (``data-result-text``). When ``battle`` is a ``HexBattle``, also embeds the
     canonical strings from ``render_battle_svg(battle)`` and
@@ -51,13 +52,17 @@ def render_game_page(
 
     duchy_parts: list[str] = []
     for duchy in game.duchies:
+        status_text = (
+            f"{duchy.duchy_id}: osady {len(duchy.settlements)}, "
+            f"party {len(duchy.parties)}, morale {duchy.morale}"
+        )
         duchy_parts.append(
             "<div"
             f' data-duchy="{duchy.duchy_id}"'
             f' data-morale="{duchy.morale}"'
             f' data-settlements="{len(duchy.settlements)}"'
             f' data-parties="{len(duchy.parties)}"'
-            "></div>"
+            f">{status_text}</div>"
         )
 
     if battle is not None:

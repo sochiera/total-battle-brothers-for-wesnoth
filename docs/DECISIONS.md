@@ -136,3 +136,4 @@
 | K17.1a | HTML raport bitwy | `tbbui.battlereport.render_battle_report(battle) -> str`: fragment `data-battle-report` z `data-battle-result` i per-stroną `data-battle-side`/`data-fallen`/`data-stunned`/`data-active` z `HexBattle.report()`. |
 | K17.1b | Raport w stronie partii | `render_game_page(..., battle=…)` osadza kanoniczny `render_battle_report(battle)` w `<body>` obok SVG bitwy; bez `battle` wynik bajt-w-bajt jak wcześniej. |
 | K20.1a | Banner wyniku | `render_game_page` zawsze osadza `<p data-result-text>` (`Gra w toku` / `Remis` / `Zwycięstwo: <duchy_id>`) z `_result_text`; `data-result` bez zmian. |
+| K20.1b | Wiersz statusu księstwa | Każdy `data-duchy` ma widoczny tekst `<duchy_id>: osady N, party M, morale K` zgodny z atrybutami; atrybuty `data-*` bez zmian. |

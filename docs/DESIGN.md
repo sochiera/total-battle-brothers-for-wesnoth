@@ -341,9 +341,10 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
 - `render_battle_report(battle)` — fragment `data-battle-report` z wynikiem i
   stratami per strona z `HexBattle.report()`.
 - `render_game_page(world, game, calendar, battle=None)` — SVG mapy, kalendarz
-  (`data-calendar`), panel księstw (`data-duchy`), wynik (`data-result`), banner
-  wyniku (`<p data-result-text>`: `Gra w toku` / `Remis` / `Zwycięstwo: <id>`),
-  opcjonalnie SVG bitwy i raport bitwy gdy `battle` podane.
+  (`data-calendar`), panel księstw (`data-duchy` + tekst statusu), wynik
+  (`data-result`), banner wyniku (`<p data-result-text>`: `Gra w toku` /
+  `Remis` / `Zwycięstwo: <id>`), opcjonalnie SVG bitwy i raport bitwy gdy
+  `battle` podane.
 
 **GameApp / rozkazy gracza:**
 - `GameApp(..., player_duchy_id=None)` — w `POST /turn` woła `run_headless_game`
@@ -424,9 +425,10 @@ pokazuje po jednym formularzu na sąsiednią wrogą party (helper
 
 **K20 (czytelna dla człowieka strona partii):** banner wyniku (`<p
 data-result-text>`: `Gra w toku` / `Remis` / `Zwycięstwo: <duchy_id>`) na stronie
-partii (K20.1a). PLAN: czytelny wiersz statusu w każdym panelu `data-duchy`
-(nazwa + osady/party/morale; K20.1b). Istniejące markery `data-result` /
-`data-duchy` / `data-*` bez zmian. Bez zmian w rdzeniu.
+partii (K20.1a); w każdym panelu `data-duchy` widoczny wiersz
+`<duchy_id>: osady N, party M, morale K` zgodny z atrybutami (K20.1b).
+Istniejące markery `data-result` / `data-duchy` / `data-*` bez zmian. Bez zmian
+w rdzeniu.
 
 ## 12. Otwarte pytania (nadal)
 - **Krzywe filarów:** różne parametry stromości per filar oraz wpływ budynków/
