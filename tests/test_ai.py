@@ -588,6 +588,36 @@ def test_duchy_military_action_threads_morale_by_owner_to_assault():
     assert world.settlement_at(target) is settlement
 
 
+def test_duchy_turn_threads_morale_by_owner_when_develop_and_recruit_are_noop():
+    """Equivalence: take_duchy_turn ≡ take_duchy_military_action with same morale."""
+    start, target = Region("Start"), Region("Target")
+    party = Party(Unit(training=5, equipment=6), owner_id="ai")
+    settlement = Settlement(
+        "Target", 1, garrison=(Unit(equipment=1),), owner_id="enemy"
+    )
+    world = WorldMap(
+        [start, target],
+        [(start, target)],
+        {target: settlement},
+        {start: party},
+    )
+    # No owned settlements / free pop / gold → develop + recruit are no-ops.
+    duchy = Duchy("ai", party.hero, parties=(party,))
+    seed = 9
+    morale_by_owner = {"ai": 40, "enemy": -20}
+
+    via_turn = take_duchy_turn(
+        world, duchy, tbb.Rng(seed), morale_by_owner=morale_by_owner
+    )
+    via_military = take_duchy_military_action(
+        world, duchy, tbb.Rng(seed), morale_by_owner=morale_by_owner
+    )
+
+    assert via_turn == via_military
+    assert world.party_at(start) is party
+    assert world.settlement_at(target) is settlement
+
+
 def test_recruit_duchy_unit_adds_exactly_one_fresh_unit_without_mutating_inputs():
     home = Region("Home")
     settlement = Settlement(
