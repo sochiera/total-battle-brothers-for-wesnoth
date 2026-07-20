@@ -1019,6 +1019,14 @@ ich dotykają, i notować wynik tutaj:
   je do `run_headless_game` (`max_turns=1`). `GET /` osadza element `data-player`
   (wartość id lub `""` gdy `None`). CLI `python -m tbbui serve` buduje
   `GameApp` z `player_duchy_id="player"`. `None` = obserwator AI-vs-AI jak K13.
+  **ROZSTRZYGNIĘTE (K14.2a, rozkaz rekrutacji gracza):**
+  `POST /order/recruit` na `GameApp` — gdy `player_duchy_id` ustawiony, gra nie
+  jest `is_over` i księstwo o tym id jest w `game.duchies`, stosuje
+  `ai.recruit_duchy_unit(world, player_duchy)`, podmienia mapę i re-synchronizuje
+  `game = game.sync_from_world(world)`; w przeciwnym razie no-op. Zawsze
+  `(200, strona)`. `GET /` zawiera formularz
+  `<form method="post" action="/order/recruit">`. Wybór osady automatyczny
+  (pierwsza kwalifikująca się w prymitywie AI).
   **ROZSTRZYGNIĘTE (A7.2b3b1, akcje księstw na wspólnej mapie):** gdy gra
   trwa i budżet pozwala na co najmniej jedną turę, driver wykonuje pojedynczy
   przebieg księstw w kolejności `game.duchies`. Każde niepokonane księstwo

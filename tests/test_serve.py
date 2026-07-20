@@ -8,6 +8,7 @@ import xml.etree.ElementTree as ET
 import tbb.ai as ai
 from tbb.duchy import Duchy
 from tbb.game import GameState
+from tbb.resources import Resources
 from tbb.rng import Rng
 from tbb.settlement import Settlement
 from tbb.turn import Calendar
@@ -254,4 +255,80 @@ def test_tbbui_serve_builds_game_app_with_player_duchy_id(monkeypatch):
     assert "player" in {d.duchy_id for d in headless_game.duchies}
     assert captured["closed"] is True
     assert captured["host"] == "127.0.0.1"
+
+
+def test_game_app_post_order_recruit_applies_recruit_and_resyncs():
+    """POST /order/recruit applies ai.recruit_duchy_unit + re-syncs game.
+
+    Contract (task-078 / K14.2a):
+    - when player_duchy_id is set, game is not is_over, and the player duchy
+      exists in game.duchies: applies ai.recruit_duchy_unit(self.world,
+      player_duchy), replaces self.world, re-syncs
+      self.game = self.game.sync_from_world(self.world); returns (200, page)
+    - player duchy looked up by duchy_id == player_duchy_id
+    """
+    north, south = map(Region, ("North", "South"))
+    north_keep = Settlement(
+        "North Keep",
+        3,
+        storage=Resources(0, 2),
+        garrison=(Unit(training=1),),
+        occupied=1,
+        owner_id="north",
+    )
+    south_keep = Settlement("South Keep", 2, owner_id="south")
+    world = WorldMap(
+        (north, south), settlements={north: north_keep, south: south_keep}
+    )
+    game = GameState(
+        (
+            Duchy("north", Unit(), settlements=(north_keep,)),
+            Duchy("south", Unit(), settlements=(south_keep,)),
+        )
+    )
+    assert not game.is_over
+    calendar = Calendar(year=2, month=3)
+    app = GameApp(world, game, calendar, Rng(11), player_duchy_id="north")
+
+    world_before = app.world
+    game_before = app.game
+    north_before = world_before.settlement_at(north)
+    assert north_before.storage.gold == 2
+    assert len(north_before.garrison) == 1
+    assert north_before.occupied == 1
+
+    expected_world = ai.recruit_duchy_unit(world_before, game_before.duchies[0])
+    expected_game = game_before.sync_from_world(expected_world)
+    expected_settlement = expected_world.settlement_at(north)
+    assert expected_settlement is not north_before
+    assert len(expected_settlement.garrison) == 2
+    assert expected_settlement.occupied == 2
+    assert expected_settlement.storage.gold == 1
+
+    code, body = app.handle("POST", "/order/recruit")
+    assert code == 200
+    assert isinstance(body, str)
+    assert body.strip() != ""
+    root = ET.fromstring(body)
+    assert _local(root.tag) == "html"
+    assert _calendar_stamp(body) == (2, 3)
+
+    # World replaced with recruit result; game re-synced from that world.
+    assert app.world is not world_before
+    assert app.world.settlement_at(north).garrison == expected_settlement.garrison
+    assert app.world.settlement_at(north).occupied == expected_settlement.occupied
+    assert app.world.settlement_at(north).storage == expected_settlement.storage
+    assert app.game is not game_before
+    player = next(d for d in app.game.duchies if d.duchy_id == "north")
+    expected_player = next(
+        d for d in expected_game.duchies if d.duchy_id == "north"
+    )
+    assert player.settlements == expected_player.settlements
+    # South and calendar untouched.
+    assert app.world.settlement_at(south) is south_keep
+    assert app.calendar == calendar
+    # Inputs to the call must not have been mutated in place.
+    assert world_before.settlement_at(north) is north_before
+    assert north_before.garrison == (Unit(training=1),)
+    assert north_before.storage.gold == 2
 

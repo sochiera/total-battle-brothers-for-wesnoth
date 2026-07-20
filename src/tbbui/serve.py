@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import http.server
 
+from tbb import ai
 from tbb.driver import run_headless_game
 from tbb.game import GameState
 from tbb.rng import Rng
@@ -14,6 +15,12 @@ from tbbui.gamepage import render_game_page
 _TURN_FORM = (
     '<form method="post" action="/turn">'
     '<button type="submit">Next turn</button>'
+    "</form>"
+)
+
+_RECRUIT_FORM = (
+    '<form method="post" action="/order/recruit">'
+    '<button type="submit">Recruit</button>'
     "</form>"
 )
 
@@ -50,12 +57,29 @@ class GameApp:
                     player_duchy_id=self.player_duchy_id,
                 )
             return 200, self._render()
+        if method == "POST" and path == "/order/recruit":
+            if not self.game.is_over and self.player_duchy_id is not None:
+                player_duchy = next(
+                    (
+                        d
+                        for d in self.game.duchies
+                        if d.duchy_id == self.player_duchy_id
+                    ),
+                    None,
+                )
+                if player_duchy is not None:
+                    self.world = ai.recruit_duchy_unit(self.world, player_duchy)
+                    self.game = self.game.sync_from_world(self.world)
+            return 200, self._render()
         return 404, "Not Found"
 
     def _render(self) -> str:
         html = render_game_page(self.world, self.game, self.calendar)
         player_value = self.player_duchy_id if self.player_duchy_id is not None else ""
-        extras = f'<span data-player="{player_value}"></span>{_TURN_FORM}'
+        extras = (
+            f'<span data-player="{player_value}"></span>'
+            f"{_TURN_FORM}{_RECRUIT_FORM}"
+        )
         if "</body>" in html:
             return html.replace("</body>", f"{extras}</body>", 1)
         return f"{html}{extras}"
