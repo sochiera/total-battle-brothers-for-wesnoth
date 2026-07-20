@@ -53,6 +53,11 @@ def _has_post_develop_form(html: str) -> bool:
     return _has_post_form(html, "/order/develop")
 
 
+def _has_post_march_form(html: str) -> bool:
+    """True when body contains a form that POSTs to /order/march (K14.2d2)."""
+    return _has_post_form(html, "/order/march")
+
+
 def _has_post_form(html: str, action_path: str) -> bool:
     """True when body contains a form that POSTs to ``action_path``."""
     root = ET.fromstring(html)
@@ -914,4 +919,130 @@ def test_game_app_post_order_march_applies_march_and_resyncs():
     # Inputs to the call must not have been mutated in place.
     assert world_before.party_at(start) is party
     assert world_before.party_at(step) is None
+
+
+def test_game_app_order_march_form_noop_and_determinism():
+    """GET form /order/march; no-op guards; march sequence determinism.
+
+    Contract (task-082 / K14.2d2):
+    - GET / contains <form method="post" action="/order/march"> with a submit
+    - when player_duchy_id is None, game is is_over, or player duchy is absent
+      from game.duchies: POST /order/march is a no-op (state unchanged), still
+      (200, page)
+    - fixed GameApp seed + same handle sequence → identical bodies and state
+    """
+    def _march_ready_world_game() -> tuple[
+        WorldMap, GameState, Region, Region, Region
+    ]:
+        """World where north can march two steps before standing next to enemy.
+
+        Chain Start → Mid → Approach → Target (enemy keep). March stops when
+        the enemy is adjacent (assault is a separate order), so two marches
+        leave the party at Approach.
+        """
+        start, mid, approach, target = map(
+            Region, ("Start", "Mid", "Approach", "Target")
+        )
+        party = Party(Unit(training=4), (Unit(equipment=1),), owner_id="north")
+        enemy_keep = Settlement("Enemy Keep", 2, owner_id="south")
+        w = WorldMap(
+            (start, mid, approach, target),
+            ((start, mid), (mid, approach), (approach, target)),
+            settlements={target: enemy_keep},
+            parties={start: party},
+        )
+        g = GameState(
+            (
+                Duchy("north", party.hero, parties=(party,)),
+                Duchy("south", Unit(), settlements=(enemy_keep,)),
+            )
+        )
+        return w, g, start, mid, approach
+
+    world, game, start, mid, approach = _march_ready_world_game()
+    calendar = Calendar(year=2, month=3)
+    party = world.party_at(start)
+
+    # GET / embeds the march form (and a button).
+    app = GameApp(world, game, calendar, Rng(11), player_duchy_id="north")
+    code_get, body_get = app.handle("GET", "/")
+    assert code_get == 200
+    assert _has_post_march_form(body_get)
+    assert re.search(
+        r"<button\b[^>]*>\s*March\s*</button>", body_get, flags=re.IGNORECASE
+    )
+
+    # No-op: player_duchy_id is None — state frozen, still 200 + page.
+    none_app = GameApp(world, game, calendar, Rng(11), player_duchy_id=None)
+    world_n, game_n = none_app.world, none_app.game
+    code_n, body_n = none_app.handle("POST", "/order/march")
+    assert code_n == 200
+    assert isinstance(body_n, str)
+    assert none_app.world is world_n
+    assert none_app.game is game_n
+    assert none_app.calendar == calendar
+    assert _calendar_stamp(body_n) == (2, 3)
+    assert _has_post_march_form(body_n)
+    # Would-be march target unchanged (party still at start).
+    assert none_app.world.party_at(start) is party
+    assert none_app.world.party_at(mid) is None
+
+    # No-op: game is_over — finished sole-duchy world.
+    fin_world, fin_game = _finished_world_game()
+    fin_cal = Calendar(year=5, month=1)
+    fin_app = GameApp(
+        fin_world, fin_game, fin_cal, Rng(3), player_duchy_id="north"
+    )
+    w_f, g_f = fin_app.world, fin_app.game
+    code_f, body_f = fin_app.handle("POST", "/order/march")
+    assert code_f == 200
+    assert fin_app.world is w_f
+    assert fin_app.game is g_f
+    assert fin_app.calendar == fin_cal
+    assert _calendar_stamp(body_f) == (5, 1)
+
+    # No-op: player duchy id not present in game.duchies.
+    missing = GameApp(
+        world, game, calendar, Rng(11), player_duchy_id="ghost"
+    )
+    w_m, g_m = missing.world, missing.game
+    code_m, _body_m = missing.handle("POST", "/order/march")
+    assert code_m == 200
+    assert missing.world is w_m
+    assert missing.game is g_m
+    assert missing.calendar == calendar
+    assert missing.world.party_at(start) is party
+    assert missing.world.party_at(mid) is None
+
+    # Determinism: two apps, same seed, same march sequence → same bodies/state.
+    wa, ga, _, _, _ = _march_ready_world_game()
+    wb, gb, _, _, _ = _march_ready_world_game()
+    a = GameApp(wa, ga, Calendar(year=2, month=3), Rng(11), player_duchy_id="north")
+    b = GameApp(wb, gb, Calendar(year=2, month=3), Rng(11), player_duchy_id="north")
+    seq = (
+        ("GET", "/"),
+        ("POST", "/order/march"),
+        ("GET", "/"),
+        ("POST", "/order/march"),
+    )
+    bodies_a: list[str] = []
+    bodies_b: list[str] = []
+    for method, path in seq:
+        ca, ba = a.handle(method, path)
+        cb, bb = b.handle(method, path)
+        assert ca == cb == 200
+        assert ba == bb
+        bodies_a.append(ba)
+        bodies_b.append(bb)
+    assert bodies_a == bodies_b
+    # Two successful marches: party advanced Start → Mid → Approach.
+    start_r, mid_r, approach_r, target_r = a.world.regions
+    assert a.world.party_at(start_r) is None
+    assert a.world.party_at(mid_r) is None
+    assert a.world.party_at(approach_r) is not None
+    assert a.world.party_at(target_r) is None
+    assert b.world.party_at(start_r) is None
+    assert b.world.party_at(mid_r) is None
+    assert b.world.party_at(approach_r) is not None
+    assert a.world.party_at(approach_r) == b.world.party_at(approach_r)
 
