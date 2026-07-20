@@ -341,3 +341,65 @@ def test_render_world_svg_settlement_and_party_markers():
     assert world.parties is parties_before
     assert world.regions == regions_before
     assert world.connections == connections_before
+
+
+def test_render_world_svg_owner_fill_same_and_distinct():
+    """Markers: same owner_id → identical fill; different owners → different fill.
+
+    Fixture: A settlement+party both 'north', B settlement 'south', C unowned
+    settlement. Also checks neutral fill for None and SVG determinism.
+    """
+    from tbbui.palette import NEUTRAL_OWNER_COLOR, owner_palette
+
+    a = Region("A")
+    b = Region("B")
+    c = Region("C")
+    world = WorldMap(
+        [a, b, c],
+        [(a, b), (b, c)],
+        settlements={
+            a: Settlement("Keep A", population=1, owner_id="north"),
+            b: Settlement("Keep B", population=1, owner_id="south"),
+            c: Settlement("Keep C", population=1, owner_id=None),
+        },
+        parties={
+            a: Party(Unit(), owner_id="north"),
+        },
+    )
+    palette = owner_palette(world)
+    assert "north" in palette and "south" in palette
+    assert palette["north"] != palette["south"]
+
+    svg = render_world_svg(world)
+    root = ET.fromstring(svg)
+    assert _local(root.tag) == "svg"
+
+    def _markers_with(attr: str, region_name: str) -> list[ET.Element]:
+        return [
+            el
+            for el in root.iter()
+            if el.get(attr) == region_name
+        ]
+
+    a_settlement = _markers_with("data-settlement", a.name)
+    a_party = _markers_with("data-party", a.name)
+    b_settlement = _markers_with("data-settlement", b.name)
+    c_settlement = _markers_with("data-settlement", c.name)
+    assert len(a_settlement) == 1 and len(a_party) == 1
+    assert len(b_settlement) == 1 and len(c_settlement) == 1
+
+    fill_a_s = a_settlement[0].get("fill")
+    fill_a_p = a_party[0].get("fill")
+    fill_b = b_settlement[0].get("fill")
+    fill_c = c_settlement[0].get("fill")
+
+    # Same faction markers share fill; different factions differ.
+    assert fill_a_s == fill_a_p == palette["north"]
+    assert fill_b == palette["south"]
+    assert fill_a_s != fill_b
+    # Unowned marker uses neutral fill (not an owner palette entry).
+    assert fill_c == NEUTRAL_OWNER_COLOR
+    assert fill_c not in (fill_a_s, fill_b)
+
+    again = render_world_svg(world)
+    assert again == svg

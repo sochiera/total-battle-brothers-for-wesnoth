@@ -4,7 +4,7 @@ from tbb.party import Party
 from tbb.settlement import Settlement
 from tbb.unit import Unit
 from tbb.world import Region, WorldMap
-from tbbui.palette import owner_palette
+from tbbui.palette import OWNER_COLORS, owner_palette
 
 
 def test_owner_palette_first_occurrence_order_distinct_colors_deterministic():
@@ -55,3 +55,27 @@ def test_owner_palette_first_occurrence_order_distinct_colors_deterministic():
     assert world.regions == regions_before
     assert world.settlements == settlements_before
     assert world.parties == parties_before
+
+
+def test_owner_palette_cycles_when_more_owners_than_colors():
+    """More distinct owners than OWNER_COLORS wraps cyclically (index i % n)."""
+    n = len(OWNER_COLORS)
+    assert n >= 1
+    # One region per owner so first-occurrence order is owner_0 … owner_{n}.
+    regions = [Region(f"R{i}") for i in range(n + 1)]
+    connections = [(regions[i], regions[i + 1]) for i in range(n)]
+    settlements = {
+        regions[i]: Settlement(f"Keep {i}", population=1, owner_id=f"owner_{i}")
+        for i in range(n + 1)
+    }
+    world = WorldMap(regions, connections, settlements=settlements)
+
+    palette = owner_palette(world)
+
+    assert list(palette.keys()) == [f"owner_{i}" for i in range(n + 1)]
+    for i in range(n + 1):
+        assert palette[f"owner_{i}"] == OWNER_COLORS[i % n]
+    # Wrap: last owner reuses first color; first n colors stay unique.
+    assert palette[f"owner_{n}"] == OWNER_COLORS[0]
+    assert palette["owner_0"] == OWNER_COLORS[0]
+    assert len({palette[f"owner_{i}"] for i in range(n)}) == n
