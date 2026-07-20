@@ -48,30 +48,30 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > w party nigdy nie leczą ran (W11.3 leczy tylko garnizon). Kamień 12 wpina
 > morale księstw w celność stron bitwy, leczy party w turze i domyka linię
 > sukcesji. Po drodze mały refaktor duplikacji skanowania osad w `ai.py`.
-- [ ] **R12.1** Refaktor: wspólna kwerenda własnych osad w `ai.py`. *(task-041)*
+- [ ] **R12.1** Refaktor: wspólna kwerenda własnych osad w `ai.py`. *(task-051)*
   - AC: prywatny generator `_owned_settlements(world, duchy_id)` reużyty przez
     `develop_duchy_settlement`/`raise_duchy_hero`/`recruit_duchy_unit`/
     `muster_duchy_party`; publiczne sygnatury i zachowanie bez zmian; bez
     nowych testów; cały pakiet zielony.
-- [ ] **B12.1a** Morale per strona w auto-rozgrywce bitwy. *(task-042)*
+- [ ] **B12.1a** Morale per strona w auto-rozgrywce bitwy. *(task-052)*
   - AC: `HexBattle.auto_resolve(move_points, rng, attacker_morale=0,
     defender_morale=0)`; tura jednostki dostaje morale JEJ strony; strona
     `+45` vs `-45` wygrywa przy ustalonym seedzie, zamiana odwraca zwycięzcę;
     równe morale obu stron = dotychczasowy przebieg; `WorldMap.resolve_*`
     pomostowo podaje wspólne `morale` obu stronom; DESIGN (B12.1a).
-- [ ] **B12.1b** Morale księstw wpięte w bitwy na mapie i w driverze. *(task-043)*
+- [ ] **B12.1b** Morale księstw wpięte w bitwy na mapie i w driverze. *(task-053)*
   - AC: `resolve_party_battle`/`resolve_settlement_battle` z
     `attacker_morale`/`defender_morale` zamiast `morale`; `ai.assault…`/
     `take_duchy_military_action`/`take_duchy_turn` z opcjonalnym
     `morale_by_owner`; driver buduje mapę morale z `GameState` przed każdą
     akcją; test: morale księstwa obserwowalnie zmienia wynik szturmu;
     determinizm; DESIGN (B12.1b).
-- [ ] **W12.2** Leczenie ran party w miesięcznej turze. *(task-044)*
+- [ ] **W12.2** Leczenie ran party w miesięcznej turze. *(task-054)*
   - AC: `Party.tick_wounds(months=1)` (bohater + podkomendni, `0` no-op,
     ujemne błąd); `WorldMap.tick_parties()` po `tick_settlements()` w driverze;
     `Bruise` w party znika po 2 turach, `Maimed` zostaje; determinizm;
     DESIGN (W12.2) + ARCHITECTURE.
-- [ ] **D12.3** Księstwo wyznacza dziedzica w turze. *(task-045)*
+- [ ] **D12.3** Księstwo wyznacza dziedzica w turze. *(task-055)*
   - AC: `ai.designate_duchy_heir(world, duchy) -> (WorldMap, Duchy)` — no-op
     gdy brak bohatera/jest heir/brak kandydata; inaczej pierwsza własna osada
     z ≥1 wolnym i `HERO_GOLD_COST` złota daje świeżego `Unit` jako `heir`;
@@ -87,27 +87,33 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > widok bitwy heksowej, strona partii oraz przeglądarkowy podgląd z przyciskiem
 > „następna tura". Rdzeń `tbb` nie importuje `tbbui`. Rozkazy gracza
 > z przeglądarki (rekrutacja/marsz/szturm) to kolejny kamień (K14).
-- [ ] **V13.1** Pakiet `tbbui` + deterministyczny layout mapy. *(task-046)*
+>
+> **Nota po wsadzie 046–050:** V13.1 (task-046) zostało zaimplementowane
+> i przeszło zielono w cyklu 1, ale pętla dobiła do limitu cykli i orkiestrator
+> wycofał commit (`git reset` do `forge/task-046-start`; implementacja
+> referencyjna w reflogu: `8770d8f`). Zadania 046–050 są martwe — pozycje V13.*
+> zostaną wystawione z nowymi numerami w kolejnym wsadzie (po K12).
+- [ ] **V13.1** Pakiet `tbbui` + deterministyczny layout mapy. *(kolejny wsad; ref. 8770d8f)*
   - AC: `tbbui.layout.layout_world(world) -> dict[Region, (kolumna, wiersz)]` —
     BFS po komponentach w kolejności regionów, kolumna = dystans, wiersz =
     pierwszy wolny w kolumnie; pozycje unikalne; determinizm, bez RNG;
     ARCHITECTURE dostaje sekcję prezentacji (decyzja stdlib SVG/HTML).
-- [ ] **V13.2** SVG mapy strategicznej. *(task-047)*
+- [ ] **V13.2** SVG mapy strategicznej. *(kolejny wsad)*
   - AC: `render_world_svg(world)` → parsowalny SVG; linia na połączenie,
     element `data-region` + nazwa na region, znaczniki `data-settlement`/
     `data-party` z `data-owner`; stała paleta kolorów właścicieli wg pierwszego
     wystąpienia; identyczny string dla tego samego świata.
-- [ ] **V13.3** Geometria heksów i SVG bitwy. *(task-048)*
+- [ ] **V13.3** Geometria heksów i SVG bitwy. *(kolejny wsad)*
   - AC: `hex_to_pixel`/`hex_corners` (pointy-top, sąsiedzi równoodlegli);
     `render_battle_svg(battle)` → SVG z heksami obwiedni rozstawienia ±1,
     wypełnienie z terenu, znaczniki jednostek z `data-side`/`data-hp`/
     `data-stunned`; czyste i deterministyczne.
-- [ ] **V13.4** Strona HTML partii + snapshot z CLI. *(task-049)*
+- [ ] **V13.4** Strona HTML partii + snapshot z CLI. *(kolejny wsad)*
   - AC: `render_game_page(world, game, calendar)` → HTML z SVG mapy,
     kalendarzem, panelem księstw (`data-duchy`, morale, osady, party) i
     `data-result` po rozstrzygnięciu; `python -m tbbui [ścieżka]` zapisuje
     stronę rozegranej partii (domyślnie `out/game.html`), exit 0.
-- [ ] **V13.5** Przeglądarkowy podgląd partii z przyciskiem tury. *(task-050)*
+- [ ] **V13.5** Przeglądarkowy podgląd partii z przyciskiem tury. *(kolejny wsad)*
   - AC: `GameApp.handle(method, path)`: `GET /` → strona bieżącego stanu
     z formularzem `POST /turn`; `POST /turn` → dokładnie jedna tura
     (`run_headless_game` z `max_turns=1`), po `is_over` no-op; 404 dla innych
