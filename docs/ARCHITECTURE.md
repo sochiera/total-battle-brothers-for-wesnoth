@@ -115,21 +115,26 @@ aktualizacja wewnętrznego stanu (gdy podany `player_duchy_id`, driver pomija
 AI tego księstwa — K14.1a); gdy `game.is_over` przed żądaniem, no-op (stan bez
 zmian, wciąż `200`). Rozkazy gracza `POST /order/recruit` (K14.2a),
 `POST /order/muster` (K14.2b), `POST /order/develop` (K14.2c),
-`POST /order/march` (K14.2d2 / K15.1b) i `POST /order/assault` (K14.2e2 /
-K15.2b) idą wspólnym helperem `_apply_player_order(transition)`: gdy
-`player_duchy_id` ustawiony, gra nie jest `is_over` i księstwo gracza istnieje
-w `game.duchies`, stosuje `transition(world, player_duchy)`
-(`ai.recruit_duchy_unit` / `ai.muster_duchy_party` / `ai.develop_duchy_settlement`
-/ dla marszu i szturmu: wspólne `_order_target_region(query)` — niepusty,
-URL-dekodowany `target` dopasowany do `world.regions` po nazwie →
-`ai.march_duchy_party_to` / `ai.assault_duchy_party_to` z `self.rng` i
-`morale_by_owner={d.duchy_id: d.morale for d in game.duchies}`; brak/pusty/
-nieznany `target` → fallback `ai.march_duchy_party` /
-`ai.assault_duchy_party` z tymi samymi `rng`/morale), podmienia `world` i
+`POST /order/march` (K14.2d2 / K15.1b) idzie wspólnym helperem
+`_apply_player_order(transition)`: gdy `player_duchy_id` ustawiony, gra nie
+jest `is_over` i księstwo gracza istnieje w `game.duchies`, stosuje
+`transition(world, player_duchy)` (`ai.recruit_duchy_unit` /
+`ai.muster_duchy_party` / `ai.develop_duchy_settlement` / dla marszu: wspólne
+`_order_target_region(query)` — niepusty, URL-dekodowany `target` dopasowany
+do `world.regions` po nazwie → `ai.march_duchy_party_to`; brak/pusty/nieznany
+`target` → fallback `ai.march_duchy_party`), podmienia `world` i
 re-synchronizuje `game = game.sync_from_world(world)`; w przeciwnym razie
-no-op; zawsze `(200, strona)`. Inna ścieżka lub metoda → `(404, treść)`.
-Determinizm: ten sam seed i sekwencja `handle` → te same treści i stan.
-`player_duchy_id=None` zachowuje zachowanie obserwatora AI-vs-AI.
+no-op; zawsze `(200, strona)`. `POST /order/assault` (K14.2e2 / K15.2b /
+K16.1d-2) ma te same guardy przez `_apply_player_assault_order`: jawny
+`target` → `ai.assault_duchy_party_to_recorded`, auto →
+`ai.assault_duchy_party_recorded` (oba z `self.rng` i
+`morale_by_owner={d.duchy_id: d.morale for d in game.duchies}`); wynik
+`(world, battle)` podmienia `world`, sync `game`, a gdy `battle is not None`
+ustawia `self.last_battle` (init `None`; no-op/guardy nie ustawiają bitwy).
+`_render` woła `render_game_page(..., battle=self.last_battle)`. Inna ścieżka
+lub metoda → `(404, treść)`. Determinizm: ten sam seed i sekwencja `handle` →
+te same treści i stan. `player_duchy_id=None` zachowuje zachowanie
+obserwatora AI-vs-AI.
 
 **Serwer podglądu (V13.5b / K14.1b / K15.1b–c / K15.2b–c):** cienki adapter nad `GameApp.handle`:
 `handle_request(app, method, path) -> (kod, bajty UTF-8)` oraz

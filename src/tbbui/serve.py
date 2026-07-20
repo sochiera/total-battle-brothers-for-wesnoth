@@ -84,6 +84,7 @@ class GameApp:
         self.calendar = calendar
         self.rng = rng
         self.player_duchy_id = player_duchy_id
+        self.last_battle = None
 
     def handle(self, method: str, path: str) -> tuple[int, str]:
         """Route one request; return ``(http_status, body)`` without sockets."""
@@ -125,8 +126,8 @@ class GameApp:
             morale_by_owner = {d.duchy_id: d.morale for d in self.game.duchies}
             target_region = self._order_target_region(query)
             if target_region is not None:
-                self._apply_player_order(
-                    lambda world, duchy: ai.assault_duchy_party_to(
+                self._apply_player_assault_order(
+                    lambda world, duchy: ai.assault_duchy_party_to_recorded(
                         world,
                         duchy,
                         target_region,
@@ -135,8 +136,8 @@ class GameApp:
                     )
                 )
             else:
-                self._apply_player_order(
-                    lambda world, duchy: ai.assault_duchy_party(
+                self._apply_player_assault_order(
+                    lambda world, duchy: ai.assault_duchy_party_recorded(
                         world,
                         duchy,
                         self.rng,
@@ -179,6 +180,26 @@ class GameApp:
         self.world = transition(self.world, player_duchy)
         self.game = self.game.sync_from_world(self.world)
 
+    def _apply_player_assault_order(self, transition) -> None:
+        """Apply recorded assault ``transition(world, duchy) -> (world, battle)``.
+
+        Same guards as ``_apply_player_order``. On success replaces ``world``,
+        re-syncs ``game``, and when ``battle`` is not ``None`` sets
+        ``self.last_battle``. No-op paths leave ``last_battle`` unchanged.
+        """
+        if self.game.is_over or self.player_duchy_id is None:
+            return
+        player_duchy = next(
+            (d for d in self.game.duchies if d.duchy_id == self.player_duchy_id),
+            None,
+        )
+        if player_duchy is None:
+            return
+        self.world, battle = transition(self.world, player_duchy)
+        if battle is not None:
+            self.last_battle = battle
+        self.game = self.game.sync_from_world(self.world)
+
     def _march_forms(self) -> str:
         """Per-target march forms when the player has a party; bare fallback otherwise."""
         if (
@@ -216,7 +237,9 @@ class GameApp:
         return _ASSAULT_FORM
 
     def _render(self) -> str:
-        html = render_game_page(self.world, self.game, self.calendar)
+        html = render_game_page(
+            self.world, self.game, self.calendar, battle=self.last_battle
+        )
         player_value = self.player_duchy_id if self.player_duchy_id is not None else ""
         extras = (
             f'<span data-player="{player_value}"></span>'

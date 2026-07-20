@@ -16,6 +16,7 @@ from tbb.settlement import Settlement
 from tbb.turn import Calendar
 from tbb.unit import Unit
 from tbb.world import Region, WorldMap
+from tbbui.battlesvg import render_battle_svg
 from tbbui.serve import GameApp
 
 
@@ -1463,6 +1464,61 @@ def test_game_app_post_order_assault_with_target_applies_assault_to():
     assert world_before.settlement_at(keep_b_region) is keep_b
     assert keep_a.owner_id == "south"
     assert keep_b.owner_id == "south"
+
+
+def test_game_app_post_order_assault_with_target_sets_last_battle_and_renders_svg():
+    """POST /order/assault?target=<region> sets last_battle and _render embeds its SVG.
+
+    Contract (task-096 / K16.1d-2):
+    - ``GameApp.last_battle`` starts as ``None``.
+    - With an explicit ``target``, the assault reuses
+      ``ai.assault_duchy_party_to_recorded`` (not the non-recorded variant),
+      which returns ``(world, HexBattle)``; ``self.last_battle`` is set to
+      that ``HexBattle``.
+    - The returned page embeds ``render_battle_svg(self.last_battle)`` because
+      ``_render`` calls ``render_game_page(..., battle=self.last_battle)``.
+    """
+    start, keep_a_region, keep_b_region = map(
+        Region, ("Start", "KeepA", "KeepB")
+    )
+    party = Party(Unit(training=5, equipment=6), owner_id="north")
+    keep_a = Settlement(
+        "Keep A", population=1, garrison=(Unit(equipment=1),), owner_id="south"
+    )
+    keep_b = Settlement(
+        "Keep B", population=1, garrison=(Unit(equipment=1),), owner_id="south"
+    )
+    world = WorldMap(
+        (start, keep_a_region, keep_b_region),
+        ((start, keep_a_region), (start, keep_b_region)),
+        settlements={keep_a_region: keep_a, keep_b_region: keep_b},
+        parties={start: party},
+    )
+    game = GameState(
+        (
+            Duchy("north", party.hero, parties=(party,), morale=10),
+            Duchy("south", Unit(), settlements=(keep_a, keep_b), morale=-5),
+        )
+    )
+    calendar = Calendar(year=2, month=3)
+    seed = 11
+    app = GameApp(world, game, calendar, Rng(seed), player_duchy_id="north")
+    assert app.last_battle is None
+
+    player_duchy = next(d for d in game.duchies if d.duchy_id == "north")
+    _, expected_battle = ai.assault_duchy_party_to_recorded(
+        world,
+        player_duchy,
+        keep_b_region,
+        Rng(seed),
+        morale_by_owner={d.duchy_id: d.morale for d in game.duchies},
+    )
+    assert expected_battle is not None
+
+    code, body = app.handle("POST", "/order/assault?target=KeepB")
+    assert code == 200
+    assert app.last_battle == expected_battle
+    assert render_battle_svg(expected_battle) in body
 
 
 def test_game_app_post_order_assault_empty_or_unknown_target_falls_back():
