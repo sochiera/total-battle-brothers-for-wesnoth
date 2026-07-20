@@ -1229,6 +1229,49 @@ def test_game_app_render_engage_forms_one_per_adjacent_enemy_party_region():
     assert "Far" in body
 
 
+def test_game_app_render_order_section_headers_precede_their_forms():
+    """GET / has one h2 header per order section, in order, before its forms (task-112 / K21.2).
+
+    Contract:
+    - body contains exactly one of each:
+      ``<h2 data-order-section="march">Marsz</h2>``,
+      ``<h2 data-order-section="assault">Szturm</h2>``,
+      ``<h2 data-order-section="engage">Starcie</h2>``
+    - they appear in this order: march, assault, engage
+    - each header precedes the start of its own form group
+      (``action="/order/march``, ``action="/order/assault``, ``action="/order/engage``)
+    - player_duchy_id=None (observer) still renders the page without error
+    """
+    start, near = map(Region, ("Start", "Near"))
+    world = WorldMap((start, near))
+    game = GameState((Duchy("north", Unit()), Duchy("south", Unit())))
+    calendar = Calendar(year=1, month=1)
+    app = GameApp(world, game, calendar, Rng(3), player_duchy_id=None)
+
+    code, body = app.handle("GET", "/")
+    assert code == 200
+
+    march_header = '<h2 data-order-section="march">Marsz</h2>'
+    assault_header = '<h2 data-order-section="assault">Szturm</h2>'
+    engage_header = '<h2 data-order-section="engage">Starcie</h2>'
+
+    assert body.count(march_header) == 1
+    assert body.count(assault_header) == 1
+    assert body.count(engage_header) == 1
+
+    march_pos = body.index(march_header)
+    assault_pos = body.index(assault_header)
+    engage_pos = body.index(engage_header)
+    assert march_pos < assault_pos < engage_pos
+
+    march_form_pos = body.index('action="/order/march')
+    assault_form_pos = body.index('action="/order/assault')
+    engage_form_pos = body.index('action="/order/engage')
+    assert march_pos < march_form_pos
+    assert assault_pos < assault_form_pos
+    assert engage_pos < engage_form_pos
+
+
 def test_game_app_post_order_march_with_target_applies_march_to():
     """POST /order/march?target=<region> applies march_duchy_party_to + re-syncs.
 

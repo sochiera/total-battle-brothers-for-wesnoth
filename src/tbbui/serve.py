@@ -55,6 +55,10 @@ _ENGAGE_FORM = (
     "</form>"
 )
 
+_MARCH_SECTION_HEADER = '<h2 data-order-section="march">Marsz</h2>'
+_ASSAULT_SECTION_HEADER = '<h2 data-order-section="assault">Szturm</h2>'
+_ENGAGE_SECTION_HEADER = '<h2 data-order-section="engage">Starcie</h2>'
+
 
 def _march_targets(world: WorldMap, player_duchy_id: str) -> tuple[Region, ...]:
     """Regions with a foreign-owned settlement, in ``world.regions`` order."""
@@ -324,8 +328,10 @@ class GameApp:
         extras = (
             f'<span data-player="{player_value}"></span>'
             f"{_TURN_FORM}{_RECRUIT_FORM}{_MUSTER_FORM}"
-            f"{_DEVELOP_FORM}{self._march_forms()}{self._assault_forms()}"
-            f"{self._engage_forms()}"
+            f"{_DEVELOP_FORM}"
+            f"{_MARCH_SECTION_HEADER}{self._march_forms()}"
+            f"{_ASSAULT_SECTION_HEADER}{self._assault_forms()}"
+            f"{_ENGAGE_SECTION_HEADER}{self._engage_forms()}"
         )
         if "</body>" in html:
             return html.replace("</body>", f"{extras}</body>", 1)
