@@ -491,6 +491,21 @@ panelu party; K24.2a dodaje `player_duchy_id` w `render_owner_legend`
 `None` → wyniki bajt-w-bajt jak dotąd. Rdzeń `tbb` bez zmian; dane z
 istniejących `Party`/`owner_palette`.
 
+**PLAN K25 (czytelna siła bojowa dla decyzji o walce):** K22–K24 pokazały
+gospodarkę, liczności i tożsamość, ale gracz nie widzi **realnej siły bojowej**
+i nie oceni, czy oddział wygra starcie ani czy garnizon obroni osadę (§6 pkt 2).
+K25 dokłada do wierszy paneli zagregowaną siłę bojową liczoną z istniejących
+`Unit`: **HP = suma `Unit.hp`, atak = suma `Unit.damage`, obrona = suma
+`Unit.defense`**. Party liczy po bohaterze i wszystkich podkomendnych
+(K25.1a HP → `data-hp`, K25.1b atak/obrona → `data-attack`/`data-defense`;
+sufiks tekstu ` · siła: HP H, atak A, obrona D`). Osada liczy po garnizonie
+(K25.2a HP → `data-garrison-hp`, K25.2b → `data-garrison-attack`/
+`data-garrison-defense`; pusty garnizon → `0`; sufiks ` · siła garnizonu: HP H,
+atak A, obrona D`). Refaktor R25.1 scala agregację w jeden helper po dwóch
+konsumentach. Dotychczasowe atrybuty/tekst i kolejność wierszy bez zmian; panele
+osadzone w `render_game_page` re-embedują zmianę automatycznie. Rdzeń `tbb` bez
+zmian.
+
 ## 12. Otwarte pytania (nadal)
 - **Krzywe filarów:** różne parametry stromości per filar oraz wpływ budynków/
   mnożników — strojenie przy balansie (bazowa trójkątna krzywa: U3.2 w DECISIONS).

@@ -157,3 +157,9 @@
 | K24.1b | Panel party w stronie z graczem | `render_game_page` woła `render_party_panel(world, player_duchy_id)`; `None` → bajt-w-bajt jak wcześniej. |
 | K24.2a | Legenda — kolor gracza | `render_owner_legend(world, player_duchy_id=None)`: wiersz z `owner_id == player_duchy_id` dostaje `data-player-owner=""` + prefiks `» `; `None` → bajt-w-bajt jak wcześniej; paleta/kolejność/atrybuty K23.1a bez zmian. |
 | K24.2b | Legenda w stronie z graczem | `render_game_page` woła `render_owner_legend(world, player_duchy_id)`; `None` → bajt-w-bajt jak wcześniej. |
+| K25.0 | Siła bojowa w panelach | Panele prezentacji agregują siłę bojową sekwencji `Unit` jako HP=Σ`hp`, atak=Σ`damage`, obrona=Σ`defense`; party po bohaterze+podkomendnych, osada po garnizonie. |
+| K25.1a | Panel party — HP | `render_party_panel`: wiersz party dokłada `data-hp` (Σ`Unit.hp` po `[hero, *units]`) + sufiks tekstu ` · siła: HP H`. |
+| K25.1b | Panel party — atak/obrona | Wiersz party dokłada `data-attack` (Σ`damage`) / `data-defense` (Σ`defense`) + sufiks `, atak A, obrona D`. |
+| K25.2a | Panel osad — HP garnizonu | `render_settlement_panel`: wiersz osady dokłada `data-garrison-hp` (Σ`Unit.hp` po garnizonie; pusty → 0) + sufiks ` · siła garnizonu: HP H`. |
+| K25.2b | Panel osad — atak/obrona garnizonu | Wiersz osady dokłada `data-garrison-attack` (Σ`damage`) / `data-garrison-defense` (Σ`defense`) + sufiks `, atak A, obrona D`. |
+| R25.1 | Helper agregacji siły | Wspólny czysty helper `tbbui` liczący `(hp, attack, defense)` sekwencji `Unit`, reużyty przez panel party i osad; HTML bez zmian. |

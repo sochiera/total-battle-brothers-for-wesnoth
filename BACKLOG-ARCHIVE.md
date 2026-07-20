@@ -260,3 +260,8 @@
 - [x] **K23.2a** Oznaczenie księstwa gracza w stronie (`render_game_page(..., player_duchy_id=None)`, `data-player-duchy` + prefiks `» `). *(task-121)*
 - [x] **K23.2b** Przewleczenie `player_duchy_id` z `GameApp._render`. *(task-122)*
 - [x] **K23.3a** Panel osad wyróżnia osady gracza (`render_settlement_panel(..., player_duchy_id=None)`, `data-player-owned`). *(task-123)*
+- [x] **K23.3b** Przewleczenie `player_duchy_id` do panelu osad w `render_game_page`. *(task-124)*
+- [x] **K24.1a** Panel party wyróżnia party gracza (`render_party_panel(..., player_duchy_id=None)`, `data-player-owned`). *(task-125)*
+- [x] **K24.1b** Przewleczenie `player_duchy_id` do panelu party w `render_game_page`. *(task-126)*
+- [x] **K24.2a** Legenda wyróżnia kolor gracza (`render_owner_legend(..., player_duchy_id=None)`, `data-player-owner` + prefiks `» `). *(task-127)*
+- [x] **K24.2b** Przewleczenie `player_duchy_id` do legendy w `render_game_page`. *(task-128)*
