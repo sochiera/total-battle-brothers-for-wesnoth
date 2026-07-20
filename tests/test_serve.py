@@ -1414,6 +1414,52 @@ def test_game_app_post_order_assault_with_target_applies_assault_to():
     assert keep_b.owner_id == "south"
 
 
+def test_game_app_post_order_assault_empty_or_unknown_target_falls_back():
+    """POST /order/assault?target=<empty|unknown> falls back to assault_duchy_party.
+
+    Contract (task-089 / K15.2b): an empty ``target`` value or one that does
+    not match any region name in ``world.regions`` is treated the same as no
+    ``target`` at all — the nearest-enemy fallback (``ai.assault_duchy_party``)
+    applies, not ``assault_duchy_party_to``.
+    """
+    start, keep_a_region, keep_b_region = map(
+        Region, ("Start", "KeepA", "KeepB")
+    )
+    party = Party(Unit(training=5, equipment=6), owner_id="north")
+    keep_a = Settlement(
+        "Keep A", population=1, garrison=(Unit(equipment=1),), owner_id="south"
+    )
+    keep_b = Settlement(
+        "Keep B", population=1, garrison=(Unit(equipment=1),), owner_id="south"
+    )
+    world = WorldMap(
+        (start, keep_a_region, keep_b_region),
+        ((start, keep_a_region), (start, keep_b_region)),
+        settlements={keep_a_region: keep_a, keep_b_region: keep_b},
+        parties={start: party},
+    )
+    game = GameState(
+        (
+            Duchy("north", party.hero, parties=(party,), morale=10),
+            Duchy("south", Unit(), settlements=(keep_a, keep_b), morale=-5),
+        )
+    )
+    calendar = Calendar(year=2, month=3)
+
+    for query in (
+        "/order/assault?target=",
+        "/order/assault?target=Nonexistent",
+    ):
+        app = GameApp(world, game, calendar, Rng(11), player_duchy_id="north")
+        code, body = app.handle("POST", query)
+        assert code == 200
+        assert body.strip() != ""
+        # Fallback nearest-enemy assault ties on distance and keeps the
+        # first region in world.regions order: KeepA, not KeepB.
+        assert app.world.settlement_at(keep_a_region).owner_id == "north"
+        assert app.world.settlement_at(keep_b_region).owner_id == "south"
+
+
 def test_game_app_order_assault_form_noop_and_determinism():
     """GET form /order/assault; no-op guards; assault sequence determinism.
 
