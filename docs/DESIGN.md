@@ -79,21 +79,23 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   `move_points` jest jednolitym placeholderm (domyślnie `1`); morale jest
   **per strona** (`attacker_morale` / `defender_morale`, domyślnie `0`/`0`;
   B12.1b-1).
-- **ROZSTRZYGNIĘTE (BM.2, rozstrzygnięcie kontaktu party↔osada):** czyste
-  przejście `WorldMap.resolve_settlement_battle()` składa rozpoczęcie szturmu,
-  automatyczną rozgrywkę i zapis jej wyniku na mapie, analogicznie do BM.1.
-  Walidacja kontaktu (regiony na mapie, różne, sąsiednie, `source` z party,
-  `destination` z osadą, różni właściciele) pozostaje wspólna ze
-  `start_settlement_battle`. `ATTACKER_WIN` = **podbój**: osada zmienia
-  `owner_id` na właściciela party atakującej, a zrekonstruowane party (tylko
-  ocalali) wchodzi na `destination`; przy pozostałych wynikach party
-  atakujące znika z `source`, a osada zachowuje właściciela i wchłania ocalałych
-  obrońców zgodnie z G10.2a. Party na mapie po bitwie
-  zawiera **tylko ocalałych** (polegli usunięci, rany/doświadczenie zachowane).
-  Determinizm (ten sam seed → ta sama mapa); mapa, osady i garnizony wejściowe
-  nie są mutowane. `move_points` jest jednolitym placeholderm (domyślnie `1`);
-  morale jest **per strona** (`attacker_morale` / `defender_morale`, domyślnie
-  `0`/`0`; B12.1b-1), jak w BM.1.
+- **ROZSTRZYGNIĘTE (BM.2 / K16.1b, rozstrzygnięcie kontaktu party↔osada):**
+  czyste przejście `WorldMap.resolve_settlement_battle_recorded()` składa
+  rozpoczęcie szturmu, automatyczną rozgrywkę i zapis wyniku na mapie, zwracając
+  `(WorldMap, HexBattle)` — rozstrzygniętą bitwę (wynik `auto_resolve`) bez
+  dodatkowego zużycia RNG. `resolve_settlement_battle(...)` deleguje do tej
+  wersji i zwraca wyłącznie mapę (pierwszy element krotki). Walidacja kontaktu
+  (regiony na mapie, różne, sąsiednie, `source` z party, `destination` z osadą,
+  różni właściciele) pozostaje wspólna ze `start_settlement_battle`.
+  `ATTACKER_WIN` = **podbój**: osada zmienia `owner_id` na właściciela party
+  atakującej, a zrekonstruowane party (tylko ocalali) wchodzi na `destination`;
+  przy pozostałych wynikach party atakujące znika z `source`, a osada zachowuje
+  właściciela i wchłania ocalałych obrońców zgodnie z G10.2a. Party na mapie po
+  bitwie zawiera **tylko ocalałych** (polegli usunięci, rany/doświadczenie
+  zachowane). Determinizm (ten sam seed → ta sama mapa i ta sama bitwa); mapa,
+  osady i garnizony wejściowe nie są mutowane. `move_points` jest jednolitym
+  placeholderm (domyślnie `1`); morale jest **per strona** (`attacker_morale` /
+  `defender_morale`, domyślnie `0`/`0`; B12.1b-1), jak w BM.1.
 - **ROZSTRZYGNIĘTE (BW.2, wynik bitwy party↔osada na mapie):** po rozstrzygnięciu
   szturmu party na garnizon osady czyste przejście
   `WorldMap.apply_settlement_battle_result(source, destination, result)` zapisuje
