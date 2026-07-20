@@ -214,6 +214,21 @@ def test_tick_wounds_heals_bruise_on_hero_and_subordinate_keeps_maimed():
     assert party.units[0].wounds == (BRUISE,)
 
 
+def test_tick_wounds_zero_is_noop_and_negative_raises():
+    """months == 0 leaves party equal; months < 0 raises ValueError."""
+    hero = Unit(training=2, wounds=(BRUISE, MAIMED))
+    subordinate = Unit(equipment=3, experience=1, wounds=(BRUISE,))
+    party = Party(hero, (subordinate,), owner_id="north")
+
+    assert party.tick_wounds(0) is party
+    assert party.tick_wounds(0) == party
+    assert party.hero.wounds == (BRUISE, MAIMED)
+    assert party.units[0].wounds == (BRUISE,)
+
+    with pytest.raises(ValueError):
+        party.tick_wounds(-1)
+
+
 def test_public_api_exports_party():
     from tbb import Party as PublicParty
 
