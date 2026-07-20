@@ -266,26 +266,37 @@ class GameApp:
             self.last_battle = battle
         self.game = self.game.sync_from_world(self.world)
 
+    @staticmethod
+    def _emit_target_forms(order_path: str, targets) -> str:
+        """Emit per-target POST forms: ``{order_path}?target=quote(name)`` + button.
+
+        Shared HTML shape for march, assault, and engage (R21.1). Callers supply
+        ``order_path`` and the target region sequence; empty ``targets`` yields ``""``.
+        """
+        forms: list[str] = []
+        for region in targets:
+            action = f"{order_path}?target={quote(region.name)}"
+            forms.append(
+                f'<form method="post" action="{action}">'
+                f'<button type="submit">{region.name}</button>'
+                "</form>"
+            )
+        return "".join(forms)
+
     def _target_forms(self, order_path: str, bare_form: str) -> str:
         """Per-target order forms when the player has a party; bare fallback otherwise.
 
-        Shared by march and assault (same guard, ``_march_targets`` iteration,
-        and ``<form>`` shape); only ``order_path`` and ``bare_form`` differ.
+        Shared by march and assault (same guard and ``_march_targets``); only
+        ``order_path`` and ``bare_form`` differ. Forms via ``_emit_target_forms``.
         """
         if (
             self.player_duchy_id is not None
             and not self.game.is_over
             and _duchy_has_party(self.world, self.player_duchy_id)
         ):
-            forms: list[str] = []
-            for region in _march_targets(self.world, self.player_duchy_id):
-                action = f"{order_path}?target={quote(region.name)}"
-                forms.append(
-                    f'<form method="post" action="{action}">'
-                    f'<button type="submit">{region.name}</button>'
-                    "</form>"
-                )
-            return "".join(forms)
+            return self._emit_target_forms(
+                order_path, _march_targets(self.world, self.player_duchy_id)
+            )
         return bare_form
 
     def _march_forms(self) -> str:
@@ -302,6 +313,7 @@ class GameApp:
         Unlike march/assault (foreign settlements anywhere), engage targets are
         neighbors of the player party only. Bare ``_ENGAGE_FORM`` when there is
         no player id, the game is over, or ``_engage_targets`` is empty.
+        Forms via ``_emit_target_forms`` (same HTML shape as march/assault).
         """
         if (
             self.player_duchy_id is not None
@@ -309,15 +321,7 @@ class GameApp:
         ):
             targets = _engage_targets(self.world, self.player_duchy_id)
             if targets:
-                forms: list[str] = []
-                for region in targets:
-                    action = f"/order/engage?target={quote(region.name)}"
-                    forms.append(
-                        f'<form method="post" action="{action}">'
-                        f'<button type="submit">{region.name}</button>'
-                        "</form>"
-                    )
-                return "".join(forms)
+                return self._emit_target_forms("/order/engage", targets)
         return _ENGAGE_FORM
 
     def _render(self) -> str:

@@ -136,11 +136,14 @@ party↔party (K19.1c: gdy `player_duchy_id` ustawiony, gra nie `is_over` i
 `_engage_targets` niepuste — po jednym
 `<form method="post" action="/order/engage?target=<nazwa>">` na sąsiednią
 wrogą party w kolejności `world.neighbors`; inaczej bare
-`<form method="post" action="/order/engage">`). Wspólna logika HTML sekcji
-marszu/szturmu (R16.1): prywatny `GameApp._target_forms(order_path, bare_form)`;
-`_march_forms` / `_assault_forms` tylko przekazują ścieżkę i fallback.
-Engage ma osobny helper `_engage_targets` / `_engage_forms` (cele = sąsiednie
-wrogie party, nie obce osady).
+`<form method="post" action="/order/engage">`). Wspólny emiter HTML formularzy celu (R16.1 / R21.1): prywatny
+`GameApp._emit_target_forms(order_path, targets)` buduje pętlę
+`<form action="{path}?target=quote(name)">` + przycisk z nazwą; reużywany przez
+marsz, szturm i starcie. Guardy i dobór celów zostają per sekcja: prywatny
+`GameApp._target_forms(order_path, bare_form)` (party gracza + `_march_targets`)
+dla marszu/szturmu — `_march_forms` / `_assault_forms` tylko przekazują ścieżkę
+i fallback; `_engage_forms` z `_engage_targets` (sąsiednie wrogie party, nie
+obce osady) woła ten sam emiter przy niepustych celach, inaczej bare.
 `POST /turn` → jedna tura przez
 `run_headless_game(..., max_turns=1, calendar=..., player_duchy_id=...)` i
 aktualizacja wewnętrznego stanu (gdy podany `player_duchy_id`, driver pomija
@@ -169,11 +172,11 @@ ustawia `self.last_battle` (init `None`; no-op/guardy nie ustawiają bitwy).
 `ai.engage_duchy_party_to_recorded`, brak/pusty/nieznany `target` →
 `ai.engage_duchy_party_recorded` (auto-cel: pierwsze sąsiednie wrogie party);
 oba z `self.rng` + `morale_by_owner` jak szturm; na trafieniu ustawia
-`last_battle`, no-op/guardy nie ruszają bitwy. GET `/` sekcja engage (K19.1c):
+`last_battle`, no-op/guardy nie ruszają bitwy. GET `/` sekcja engage (K19.1c / R21.1):
 `_engage_forms()` — `_engage_targets(world, player_duchy_id)` to sąsiedzi
 pozycji party gracza (pierwsza w `world.regions` z `owner_id == player`)
 trzymający party z jawnym `owner_id != player`; gdy niepuste i guardy OK —
-formularze z `?target=`; inaczej bare `_ENGAGE_FORM`. `POST /turn` oraz
+`_emit_target_forms("/order/engage", targets)`; inaczej bare `_ENGAGE_FORM`. `POST /turn` oraz
 `/order/recruit|muster|develop|march` zerują `self.last_battle` (K16.1d-3);
 `assault`/`engage` nie zerują przed wykonaniem. `_render` woła
 `render_game_page(..., battle=self.last_battle)`. Inna ścieżka lub metoda →
