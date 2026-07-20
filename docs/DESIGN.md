@@ -368,6 +368,14 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   mapę `owner_id → morale` na końcu sygnatury i przekazują ją bez zmian do
   `assault_nearest_enemy_settlement` (odpowiednio bezpośrednio / przez akcję
   wojskową). `None`/brak argumentu zachowuje dotychczasowe zachowanie.
+- **ROZSTRZYGNIĘTE (B12.1b-2, morale księstw z GameState w AI i driverze):**
+  `run_headless_game` przed każdym `take_duchy_turn` buduje
+  `morale_by_owner = {d.duchy_id: d.morale for d in current_game.duchies}` z
+  bieżącego `GameState` (po `raise_duchy_hero` / sukcesji wcześniejszych
+  księstw w tej samej turze) i przekazuje mapę do polityki tury. Dzięki temu
+  `Duchy.morale` (w tym kara sukcesji) realnie steruje celnością stron bitwy
+  w pełnej partii headless. Sygnatura `run_headless_game` bez zmian. Domknięcie
+  B12.1b (2a–2c): AI + driver.
 - **ROZSTRZYGNIĘTE (BW.3, rekonstrukcja ocalałych z bitwy do party na mapie):** po bitwie
   party na mapie ma zawierać wyłącznie **ocalałych** (aktywnych + ogłuszonych)
   z zachowanymi ranami i doświadczeniem, a polegli mają zniknąć — zastępując
@@ -941,6 +949,9 @@ ich dotykają, i notować wynik tutaj:
   synchronizacja bieżących osad i party zachowuje awansowanego dziedzica oraz
   karę morale. Jeśli party księstwa pozostaje na mapie, bohater i morale nie
   zmieniają się. Całe przejście pozostaje czyste.
+  **ROZSTRZYGNIĘTE (B12.1b-2c, mapa morale w driverze):** przed każdym
+  `take_duchy_turn` driver buduje `morale_by_owner` z bieżącego `GameState`
+  (`{duchy_id: morale}`) i przekazuje ją do polityki tury — patrz B12.1b-2.
   **ROZSTRZYGNIĘTE (A7.2b3c, pętla drivera headless):** driver powtarza pełne
   tury w ramach `max_turns` i kończy natychmiast po osiągnięciu
   `GameState.is_over`, także w środku tury po akcji księstwa. Każda tura pobiera

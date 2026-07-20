@@ -79,7 +79,9 @@ def test_headless_game_heals_party_bruise_over_two_turns_keeps_maimed(
             Duchy("south", Unit(), settlements=(south_keep,)),
         )
     )
-    monkeypatch.setattr(ai, "take_duchy_turn", lambda w, d, r: w)
+    monkeypatch.setattr(
+        ai, "take_duchy_turn", lambda w, d, r, morale_by_owner=None: w
+    )
     monkeypatch.setattr(ai, "raise_duchy_hero", lambda w, d: (w, d))
 
     first = run_headless_game(world, game, Rng(17), max_turns=2)
@@ -196,8 +198,12 @@ def test_one_turn_delegates_to_live_ai_api_in_duchy_order(monkeypatch):
     real_take_duchy_turn = ai.take_duchy_turn
     calls = []
 
-    def recording_take_duchy_turn(current_world, duchy, rng):
-        next_world = real_take_duchy_turn(current_world, duchy, rng)
+    def recording_take_duchy_turn(
+        current_world, duchy, rng, morale_by_owner=None
+    ):
+        next_world = real_take_duchy_turn(
+            current_world, duchy, rng, morale_by_owner=morale_by_owner
+        )
         calls.append((current_world, duchy, next_world))
         return next_world
 
@@ -225,6 +231,38 @@ def test_one_turn_delegates_to_live_ai_api_in_duchy_order(monkeypatch):
     )
 
 
+def test_run_headless_game_passes_morale_by_owner_from_game_state(monkeypatch):
+    """Driver builds morale_by_owner from GameState for every take_duchy_turn call."""
+    north, south = map(Region, ("North", "South"))
+    north_keep = Settlement("North Keep", 1, owner_id="north")
+    south_keep = Settlement("South Keep", 1, owner_id="south")
+    world = WorldMap(
+        (north, south),
+        settlements={north: north_keep, south: south_keep},
+    )
+    game = GameState(
+        (
+            Duchy("north", Unit(), morale=17, settlements=(north_keep,)),
+            Duchy("south", Unit(), morale=-9, settlements=(south_keep,)),
+        )
+    )
+    expected_morale = {d.duchy_id: d.morale for d in game.duchies}
+    captured: list[dict[str, int] | None] = []
+
+    def recording_take(current_world, duchy, rng, morale_by_owner=None):
+        captured.append(morale_by_owner)
+        return current_world
+
+    monkeypatch.setattr(ai, "take_duchy_turn", recording_take)
+
+    run_headless_game(world, game, Rng(17), max_turns=1)
+
+    assert len(captured) == 2
+    assert captured[0] == expected_morale
+    assert captured[1] == expected_morale
+    assert expected_morale == {"north": 17, "south": -9}
+
+
 def test_conquest_syncs_game_and_skips_newly_defeated_duchy(monkeypatch):
     north, south = map(Region, ("North", "South"))
     north_keep = Settlement("North Keep", 1, owner_id="north")
@@ -241,7 +279,7 @@ def test_conquest_syncs_game_and_skips_newly_defeated_duchy(monkeypatch):
     )
     calls = []
 
-    def conquer_south(current_world, duchy, rng):
+    def conquer_south(current_world, duchy, rng, morale_by_owner=None):
         calls.append(duchy.duchy_id)
         if duchy.duchy_id != "north":
             return current_world
@@ -286,7 +324,9 @@ def test_turn_loop_stops_immediately_after_a_later_turn_ends_game(monkeypatch):
     )
     calls = []
 
-    def conquer_on_norths_second_turn(current_world, duchy, rng):
+    def conquer_on_norths_second_turn(
+        current_world, duchy, rng, morale_by_owner=None
+    ):
         calls.append(duchy.duchy_id)
         if calls.count("north") < 2:
             return current_world
@@ -326,7 +366,7 @@ def test_turn_ending_during_first_duchy_action_advances_calendar_once(monkeypatc
     starting_calendar = Calendar(year=7, month=13)
     calls = []
 
-    def conquer_south(current_world, duchy, rng):
+    def conquer_south(current_world, duchy, rng, morale_by_owner=None):
         calls.append(duchy.duchy_id)
         conquered_keep = Settlement("South Keep", 1, owner_id="north")
         return WorldMap(
@@ -371,7 +411,7 @@ def test_positive_safety_limit_runs_every_active_duchy_each_turn(monkeypatch):
     )
     calls = []
 
-    def do_nothing(current_world, duchy, rng):
+    def do_nothing(current_world, duchy, rng, morale_by_owner=None):
         calls.append(duchy.duchy_id)
         return current_world
 
@@ -407,7 +447,11 @@ def test_idle_hero_without_strategic_assets_does_not_succeed(monkeypatch):
             Duchy("south", Unit(), settlements=(south_keep,)),
         )
     )
-    monkeypatch.setattr(ai, "take_duchy_turn", lambda world, duchy, rng: world)
+    monkeypatch.setattr(
+        ai,
+        "take_duchy_turn",
+        lambda world, duchy, rng, morale_by_owner=None: world,
+    )
 
     _, result_game, _ = run_headless_game(world, game, Rng(17), max_turns=3)
 
@@ -469,7 +513,7 @@ def _development_scenario():
     return world, game
 
 
-def _conquer_after_development(world, duchy, rng):
+def _conquer_after_development(world, duchy, rng, morale_by_owner=None):
     if duchy.duchy_id != "north":
         return world
     north, south = world.regions
@@ -678,11 +722,13 @@ def test_raise_duchy_hero_runs_before_take_duchy_turn_with_sync(monkeypatch):
         events.append(("raise_out", result_duchy.duchy_id, result_duchy.has_hero))
         return result_world, result_duchy
 
-    def recording_take(current_world, duchy, rng):
+    def recording_take(current_world, duchy, rng, morale_by_owner=None):
         events.append(
             ("take", duchy.duchy_id, duchy.has_hero, duchy.hero, type(rng).__name__)
         )
-        return real_take(current_world, duchy, rng)
+        return real_take(
+            current_world, duchy, rng, morale_by_owner=morale_by_owner
+        )
 
     monkeypatch.setattr(ai, "raise_duchy_hero", recording_raise)
     monkeypatch.setattr(ai, "take_duchy_turn", recording_take)

@@ -84,7 +84,13 @@ def run_headless_game(
             current_game = _replace_duchy(current_game, duchy)
             current_game = current_game.sync_from_world(current_world)
             world_before = current_world
-            current_world = ai.take_duchy_turn(world_before, duchy, rng)
+            morale_by_owner = {
+                candidate.duchy_id: candidate.morale
+                for candidate in current_game.duchies
+            }
+            current_world = ai.take_duchy_turn(
+                world_before, duchy, rng, morale_by_owner=morale_by_owner
+            )
             resolved = resolve_hero_survival(duchy, world_before, current_world)
             current_game = _replace_duchy(current_game, resolved)
             current_game = current_game.sync_from_world(current_world)

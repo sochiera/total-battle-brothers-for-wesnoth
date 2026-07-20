@@ -147,7 +147,9 @@ Uruchamiaj z katalogu `game/`.
   i rozmieszczenia party.
 - **Headless driver:** na początku każdej wykonywanej tury `run_headless_game`
   woła `tick_settlements()`, zaraz potem `tick_parties()`, a następnie
-  `sync_from_world` — zanim rozpocznie przebieg księstw. Driver przewleka
+  `sync_from_world` — zanim rozpocznie przebieg księstw. Przed każdym
+  `take_duchy_turn` buduje `morale_by_owner` z bieżącego `GameState`
+  (`{duchy_id: morale}`) i przekazuje do polityki AI. Driver przewleka
   niemutowalny `Calendar`, kończy każdą wykonaną turę przez `turn.end_turn` i
   zwraca mapę, stan gry oraz kalendarz; CLI odbiera całą trójkę i wypisuje
   wynik wraz z końcowym rokiem i miesiącem, nie wyliczając czasu samodzielnie.
