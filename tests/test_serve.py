@@ -1521,6 +1521,68 @@ def test_game_app_post_order_assault_with_target_sets_last_battle_and_renders_sv
     assert render_battle_svg(expected_battle) in body
 
 
+def test_game_app_post_order_assault_without_target_sets_last_battle_and_renders_svg():
+    """POST /order/assault (no target) sets last_battle via assault_duchy_party_recorded.
+
+    Contract (task-096 / K16.1d-2):
+    - auto (no ``target``) assault reuses ``ai.assault_duchy_party_recorded``,
+      which returns ``(world, HexBattle)``; on a hit ``self.last_battle`` is
+      set to that ``HexBattle`` and its SVG is embedded via ``_render``.
+    - when the transition finds no target (no party / no adjacent enemy), the
+      no-op path returns ``(world, None)`` and leaves ``self.last_battle``
+      as ``None``.
+    """
+    start, target = map(Region, ("Start", "Target"))
+    party = Party(Unit(training=5, equipment=6), owner_id="north")
+    enemy_keep = Settlement(
+        "Enemy Keep", population=1, garrison=(Unit(equipment=1),), owner_id="south"
+    )
+    world = WorldMap(
+        (start, target),
+        ((start, target),),
+        settlements={target: enemy_keep},
+        parties={start: party},
+    )
+    game = GameState(
+        (
+            Duchy("north", party.hero, parties=(party,), morale=10),
+            Duchy("south", Unit(), settlements=(enemy_keep,), morale=-5),
+        )
+    )
+    calendar = Calendar(year=2, month=3)
+    seed = 11
+    app = GameApp(world, game, calendar, Rng(seed), player_duchy_id="north")
+    assert app.last_battle is None
+
+    player_duchy = next(d for d in game.duchies if d.duchy_id == "north")
+    expected_world, expected_battle = ai.assault_duchy_party_recorded(
+        world,
+        player_duchy,
+        Rng(seed),
+        morale_by_owner={d.duchy_id: d.morale for d in game.duchies},
+    )
+    assert expected_battle is not None
+    assert expected_world.settlement_at(target).owner_id == "north"
+
+    code, body = app.handle("POST", "/order/assault")
+    assert code == 200
+    assert app.last_battle == expected_battle
+    assert render_battle_svg(expected_battle) in body
+
+    # No-op: party has no adjacent enemy settlement — transition finds no
+    # target, so last_battle stays None even though the order guards pass.
+    isolated = Region("Isolated")
+    lone_party = Party(Unit(training=5, equipment=6), owner_id="north")
+    lone_world = WorldMap((isolated,), (), parties={isolated: lone_party})
+    lone_game = GameState((Duchy("north", lone_party.hero, parties=(lone_party,)),))
+    lone_app = GameApp(
+        lone_world, lone_game, calendar, Rng(seed), player_duchy_id="north"
+    )
+    code_lone, _body_lone = lone_app.handle("POST", "/order/assault")
+    assert code_lone == 200
+    assert lone_app.last_battle is None
+
+
 def test_game_app_post_order_assault_empty_or_unknown_target_falls_back():
     """POST /order/assault?target=<empty|unknown> falls back to assault_duchy_party.
 
@@ -1628,6 +1690,7 @@ def test_game_app_order_assault_form_noop_and_determinism():
     assert none_app.world is world_n
     assert none_app.game is game_n
     assert none_app.calendar == calendar
+    assert none_app.last_battle is None
     assert _calendar_stamp(body_n) == (2, 3)
     assert _has_post_assault_form(body_n)
     # Would-be assault target unchanged (enemy keep still south-owned).
@@ -1649,6 +1712,7 @@ def test_game_app_order_assault_form_noop_and_determinism():
     assert fin_app.world is w_f
     assert fin_app.game is g_f
     assert fin_app.calendar == fin_cal
+    assert fin_app.last_battle is None
     assert _calendar_stamp(body_f) == (5, 1)
     assert fin_app.rng.randint(0, 10**9) == Rng(3).randint(0, 10**9)
 
@@ -1662,6 +1726,7 @@ def test_game_app_order_assault_form_noop_and_determinism():
     assert missing.world is w_m
     assert missing.game is g_m
     assert missing.calendar == calendar
+    assert missing.last_battle is None
     assert missing.world.party_at(start) is party
     assert missing.world.settlement_at(target) is enemy_keep
     assert missing.rng.randint(0, 10**9) == Rng(11).randint(0, 10**9)
