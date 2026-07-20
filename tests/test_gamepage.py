@@ -113,6 +113,7 @@ def test_render_game_page_html_map_calendar_duchies_result_and_purity():
     cal_el = calendars[0]
     assert cal_el.get("data-year") == str(calendar.year)
     assert cal_el.get("data-month") == str(calendar.month)
+    assert (cal_el.text or "").strip() == f"Rok {calendar.year}, miesiąc {calendar.month}"
 
     duchy_els = _find_by_attr(root, "data-duchy")
     by_id = {el.get("data-duchy"): el for el in duchy_els}

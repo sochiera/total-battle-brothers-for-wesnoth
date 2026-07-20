@@ -37,7 +37,8 @@ def render_game_page(
 ) -> str:
     """Return a parsable HTML string for one party snapshot.
 
-    Embeds the strategic map SVG from ``render_world_svg``, a calendar stamp,
+    Embeds the strategic map SVG from ``render_world_svg``, a calendar stamp
+    (``data-year`` / ``data-month`` plus visible text ``Rok N, miesiąc M``),
     one duchy panel row per ``game.duchies`` (machine ``data-*`` attributes
     plus human-readable status text), a machine-readable result marker
     (``data-result``), and a human-readable result banner
@@ -78,7 +79,8 @@ def render_game_page(
         f"{battle_svg}"
         f"{battle_report}"
         f'<div data-calendar="" data-year="{calendar.year}"'
-        f' data-month="{calendar.month}"></div>'
+        f' data-month="{calendar.month}">'
+        f"Rok {calendar.year}, miesiąc {calendar.month}</div>"
         f"{''.join(duchy_parts)}"
         f'<div data-result="{result}"></div>'
         f'<p data-result-text="{result_text}">{result_text}</p>'
