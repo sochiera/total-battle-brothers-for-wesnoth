@@ -109,7 +109,10 @@ osadą, `quote` na nazwie, przycisk = nazwa; inaczej bare
 `<form method="post" action="/order/march">`) i
 sekcję szturmu (K15.2c: ten sam guard i cele `_march_targets` — po jednym
 `<form method="post" action="/order/assault?target=<nazwa>">`; inaczej bare
-`<form method="post" action="/order/assault">`). `POST /turn` → jedna tura przez
+`<form method="post" action="/order/assault">`). Wspólna logika HTML obu
+sekcji (R16.1): prywatny `GameApp._target_forms(order_path, bare_form)`;
+`_march_forms` / `_assault_forms` tylko przekazują ścieżkę i fallback.
+`POST /turn` → jedna tura przez
 `run_headless_game(..., max_turns=1, calendar=..., player_duchy_id=...)` i
 aktualizacja wewnętrznego stanu (gdy podany `player_duchy_id`, driver pomija
 AI tego księstwa — K14.1a); gdy `game.is_over` przed żądaniem, no-op (stan bez

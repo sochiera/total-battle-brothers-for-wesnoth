@@ -205,8 +205,12 @@ class GameApp:
             self.last_battle = battle
         self.game = self.game.sync_from_world(self.world)
 
-    def _march_forms(self) -> str:
-        """Per-target march forms when the player has a party; bare fallback otherwise."""
+    def _target_forms(self, order_path: str, bare_form: str) -> str:
+        """Per-target order forms when the player has a party; bare fallback otherwise.
+
+        Shared by march and assault (same guard, ``_march_targets`` iteration,
+        and ``<form>`` shape); only ``order_path`` and ``bare_form`` differ.
+        """
         if (
             self.player_duchy_id is not None
             and not self.game.is_over
@@ -214,32 +218,22 @@ class GameApp:
         ):
             forms: list[str] = []
             for region in _march_targets(self.world, self.player_duchy_id):
-                action = f"/order/march?target={quote(region.name)}"
+                action = f"{order_path}?target={quote(region.name)}"
                 forms.append(
                     f'<form method="post" action="{action}">'
                     f'<button type="submit">{region.name}</button>'
                     "</form>"
                 )
             return "".join(forms)
-        return _MARCH_FORM
+        return bare_form
+
+    def _march_forms(self) -> str:
+        """Per-target march forms when the player has a party; bare fallback otherwise."""
+        return self._target_forms("/order/march", _MARCH_FORM)
 
     def _assault_forms(self) -> str:
         """Per-target assault forms when the player has a party; bare fallback otherwise."""
-        if (
-            self.player_duchy_id is not None
-            and not self.game.is_over
-            and _duchy_has_party(self.world, self.player_duchy_id)
-        ):
-            forms: list[str] = []
-            for region in _march_targets(self.world, self.player_duchy_id):
-                action = f"/order/assault?target={quote(region.name)}"
-                forms.append(
-                    f'<form method="post" action="{action}">'
-                    f'<button type="submit">{region.name}</button>'
-                    "</form>"
-                )
-            return "".join(forms)
-        return _ASSAULT_FORM
+        return self._target_forms("/order/assault", _ASSAULT_FORM)
 
     def _render(self) -> str:
         html = render_game_page(
