@@ -296,6 +296,50 @@ def test_march_duchy_party_to_moves_one_step_toward_explicit_target():
     assert world.party_at(step_far) is None
 
 
+def test_march_duchy_party_to_is_noop_without_party_on_map():
+    """When the duchy has no party on the map, march_duchy_party_to is a no-op."""
+    home, camp, far = Region("Home"), Region("Camp"), Region("Far")
+    settlement = Settlement("Home", 1, owner_id="ai")
+    foreign_party = _owned_party("Enemy", "enemy")
+    world = WorldMap(
+        [home, camp, far],
+        [(home, camp), (camp, far)],
+        settlements={home: settlement, far: _settlement("Far", "enemy")},
+        parties={camp: foreign_party},
+    )
+    duchy = Duchy("ai", Unit())
+    before = dict(world.parties)
+
+    result = ai.march_duchy_party_to(world, duchy, far)
+
+    assert result is world
+    assert dict(world.parties) == before
+    assert world.settlement_at(home) is settlement
+    assert world.party_at(camp) is foreign_party
+
+
+def test_march_duchy_party_to_is_noop_when_next_march_step_is_none():
+    """When next_march_step is None (adjacent/same target), march_duchy_party_to is a no-op."""
+    start, target = Region("Start"), Region("Target")
+    party = _owned_party("Hero", "ai")
+    world = WorldMap(
+        [start, target],
+        [(start, target)],
+        settlements={target: _settlement("Target", "enemy")},
+        parties={start: party},
+    )
+    duchy = Duchy("ai", party.hero, parties=(party,))
+    assert next_march_step(world, start, target) is None
+    before = dict(world.parties)
+
+    result = ai.march_duchy_party_to(world, duchy, target)
+
+    assert result is world
+    assert dict(world.parties) == before
+    assert world.party_at(start) is party
+    assert world.party_at(target) is None
+
+
 def test_assault_duchy_party_applies_assault_from_party_position():
     """assault_duchy_party finds the duchy party and assaults from its region."""
     start, target = Region("Start"), Region("Target")
