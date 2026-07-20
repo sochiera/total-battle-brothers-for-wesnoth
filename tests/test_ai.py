@@ -1804,6 +1804,39 @@ def test_engage_duchy_party_to_recorded_fights_explicit_target_not_first_neighbo
     assert world.party_at(second) is enemy_second
 
 
+@pytest.mark.parametrize(
+    "case",
+    ["not_neighbor", "no_party", "target_ownerless", "same_owner", "no_player_party"],
+)
+def test_engage_duchy_party_to_recorded_is_noop_and_does_not_use_rng(case):
+    """engage_duchy_party_to_recorded returns (world, None) without RNG for every no-op case."""
+    start, target, far = map(Region, ("Start", "Target", "Far"))
+    party = Party(Unit(training=5, equipment=6), owner_id="ai")
+    if case == "not_neighbor":
+        edges = [(start, far), (far, target)]
+    else:
+        edges = [(start, target)]
+    if case == "no_player_party":
+        parties: dict[Region, Party] = {}
+    else:
+        parties = {start: party}
+        if case == "target_ownerless":
+            parties[target] = Party(Unit(equipment=1))
+        elif case == "same_owner":
+            parties[target] = Party(Unit(equipment=1), owner_id="ai")
+        elif case == "not_neighbor":
+            parties[target] = Party(Unit(equipment=1), owner_id="enemy")
+    world = WorldMap([start, target, far], edges, parties=parties)
+    duchy = Duchy("ai", party.hero, parties=(party,))
+
+    result_world, battle = ai.engage_duchy_party_to_recorded(
+        world, duchy, target, _ForbiddenRng()
+    )
+
+    assert result_world is world
+    assert battle is None
+
+
 def test_engage_duchy_party_recorded_is_noop_when_no_adjacent_enemy_party():
     """engage_duchy_party_recorded returns (world, None) without using RNG when no enemy party is adjacent."""
     start, target = Region("Start"), Region("Target")
