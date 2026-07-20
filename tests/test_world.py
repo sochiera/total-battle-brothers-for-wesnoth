@@ -12,6 +12,7 @@ from tbb import (
     HexBattle,
     FARM,
     Hex,
+    MAIMED,
     MARKET,
     Party,
     PLAINS,
@@ -268,6 +269,53 @@ def test_tick_settlements_does_not_mutate_input_and_returns_immutable_mapping():
     assert ticked.settlement_at(vale) is not original_settlement
     with pytest.raises(TypeError):
         ticked.settlements[vale] = original_settlement
+
+
+def test_tick_parties_applies_tick_wounds_in_region_order_without_mutating_world():
+    """WorldMap.tick_parties advances temporary wounds for every party."""
+    north = Region("North")
+    empty = Region("Wilds")
+    south = Region("South")
+    town = Settlement("Oakrest", population=2)
+    first_party = Party(
+        Unit(wounds=(BRUISE, MAIMED)),
+        (Unit(wounds=(BRUISE,)),),
+        owner_id="north",
+    )
+    second_party = Party(Unit(wounds=(BRUISE,)), owner_id="south")
+    world = WorldMap(
+        [north, empty, south],
+        [(north, empty), (empty, south)],
+        settlements={north: town},
+        parties={north: first_party, south: second_party},
+    )
+    parties_before = dict(world.parties)
+    settlements_before = dict(world.settlements)
+
+    ticked = world.tick_parties()
+    empty_world = WorldMap([north, empty, south], [(north, empty), (empty, south)])
+    empty_ticked = empty_world.tick_parties()
+
+    assert ticked is not world
+    assert ticked.regions == world.regions
+    assert ticked.connections == world.connections
+    assert ticked.neighbors(north) == (empty,)
+    assert ticked.neighbors(empty) == (north, south)
+    assert ticked.settlement_at(north) is town
+    assert ticked.settlement_at(empty) is None
+    assert ticked.party_at(empty) is None
+    assert ticked.party_at(north) == first_party.tick_wounds(1)
+    assert ticked.party_at(south) == second_party.tick_wounds(1)
+    assert ticked.party_at(north).hero.wounds[0].duration_months == 1
+    assert MAIMED in ticked.party_at(north).hero.wounds
+    assert dict(world.parties) == parties_before
+    assert dict(world.settlements) == settlements_before
+    assert world.party_at(north) is first_party
+    assert world.party_at(south) is second_party
+    assert first_party.hero.wounds == (BRUISE, MAIMED)
+    assert empty_ticked == empty_world
+    with pytest.raises(TypeError):
+        ticked.parties[north] = first_party
 
 
 @pytest.mark.parametrize(

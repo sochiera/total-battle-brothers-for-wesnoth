@@ -273,6 +273,12 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   miesiąc. `WorldMap.tick_settlements()` wywołuje leczenie po rozwoju
   wyposażenia, więc rany czasowe garnizonu mijają automatycznie z turami mapy;
   party i bohaterowie poza garnizonem nie są na tym etapie leczeni.
+  **ROZSTRZYGNIĘTE (W12.2, miesięczne leczenie party):**
+  `WorldMap.tick_parties()` stosuje `Party.tick_wounds(1)` do każdego party
+  w deterministycznej kolejności `world.regions`. Graf, osady i regiony bez
+  party pozostają niezmienione; mapa wejściowa nie jest mutowana. Bohater
+  bez party w `Duchy` (poza mapą) nadal pozostaje poza zakresem tego
+  przejścia — leczy się dopiero w składzie party na mapie.
   **ROZSTRZYGNIĘTE (B4.5b, minimalne rozstrzygnięcie 0 HP):** jednostkę, której
   bieżące HP spadło do `0`, rozstrzyga się dokładnie jednym rzutem RNG: **50%**
   oznacza śmierć i usunięcie jej z rozstawienia, a pozostałe 50% — pozostawienie
@@ -511,8 +517,8 @@ osobno w U9.5.
 po wzroście, a uzbrojenie korzysta z magazynu po bieżącej miesięcznej produkcji.
 Driver headless reużywa to przejście na początku każdej tury, więc rozwój
 automatycznie trafia do pełnej pętli gry. Mapa, osady wejściowe, graf i party
-pozostają niemutowane; jednostki w maszerującym party nie rozwijają się ani nie
-leczą w tym przejściu.
+pozostają niemutowane; jednostki w maszerującym party nie rozwijają się w tym
+przejściu — leczenie party to osobne `WorldMap.tick_parties()` (W12.2).
 
 ## 6. Pętla rozgrywki (MVP)
 Najmniejsza grywalna pętla, single-player vs **jedno** księstwo AI:

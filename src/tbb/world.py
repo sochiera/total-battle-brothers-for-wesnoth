@@ -130,6 +130,20 @@ class WorldMap:
             self.parties,
         )
 
+    def tick_parties(self) -> "WorldMap":
+        """Return a new world after every party heals temporary wounds by one month."""
+        parties = {
+            region: self.parties[region].tick_wounds(1)
+            for region in self.regions
+            if region in self.parties
+        }
+        return WorldMap(
+            self.regions,
+            self.connections,
+            self.settlements,
+            parties,
+        )
+
     def muster_party(self, region: Region, hero: Unit) -> "WorldMap":
         """Muster a settlement's garrison and place it in the same region."""
         if region not in self._neighbors:

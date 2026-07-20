@@ -124,7 +124,10 @@ Uruchamiaj z katalogu `game/`.
   `Unit.wounds` przechowuje niemutowalną krotkę ran, których kary sumują się
   w efektywnych statystykach z podłogą na zero. Miesięczny łańcuch
   `WorldMap.tick_settlements()` kończy `Settlement.tick_healing()`, które
-  przesuwa czasowe rany całego garnizonu o jeden miesiąc.
+  przesuwa czasowe rany całego garnizonu o jeden miesiąc. Osobne przejście
+  `WorldMap.tick_parties()` stosuje `Party.tick_wounds(1)` do każdego party
+  w deterministycznej kolejności `world.regions`; graf, osady i regiony bez
+  party pozostają bez zmian.
 - **Skład party:** `Party` wymaga bohatera `Unit` i kopiuje do krotki maksymalnie
   12 podkomendnych `Unit`; bohater jest osobnym polem i nie wlicza się do limitu.
 - **Postęp treningu:** `Unit.train()` reużywa trójkątną krzywą z `progression`;
