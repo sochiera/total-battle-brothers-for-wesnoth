@@ -846,7 +846,7 @@ brak/nieznany `target` **zachowuje** dotychczasowe automatyczne prymitywy
 (`march_duchy_party` / `assault_duchy_party`) dla zgodności wstecz (K15.1b,
 K15.2b). Strona partii renderuje po jednym formularzu na region-cel, więc gracz
 klika konkretny cel zamiast jednego przycisku z celem automatycznym (K15.1c dla
-marszu; UI wyboru celu szturmu — K15.2c). Rdzeń `tbb` nadal nie importuje
+marszu; K15.2c dla szturmu). Rdzeń `tbb` nadal nie importuje
 `tbbui`; wybór celu nie zmienia rozstrzygania bitwy ani morale.
 
 **PLAN K16 (obserwowalna bitwa gracza w podglądzie):** `render_battle_svg`
@@ -1149,9 +1149,19 @@ ich dotykają, i notować wynik tutaj:
   Brak / pusty / nieznany `target` → fallback
   `(world, duchy) -> ai.assault_duchy_party(world, duchy, self.rng,
   morale_by_owner=…)` (K14.2e2). No-op gdy brak gracza, gra skończona lub
-  brak księstwa. Zawsze `(200, strona)`. `GET /` zawiera formularz
-  `<form method="post" action="/order/assault">` (UI wyboru celu — kolejny
-  wsad).
+  brak księstwa. Zawsze `(200, strona)`. UI wyboru celu (formularze per
+  region) — K15.2c.
+  **ROZSTRZYGNIĘTE (K15.2c, UI wyboru celu szturmu):** gdy `player_duchy_id`
+  jest ustawiony, gra nie jest `is_over` i księstwo gracza ma party na mapie
+  (`owner_id == player_duchy_id`), `GameApp._render` emituje po jednym
+  `<form method="post" action="/order/assault?target=<nazwa>">` (nazwa
+  URL-enkodowana przez `urllib.parse.quote`) dla każdego regionu z osadą o
+  `owner_id != player_duchy_id` (kolejność `world.regions`, te same cele co
+  marsz przez `_march_targets`); przycisk zawiera nazwę regionu-celu; bare
+  `action="/order/assault"` jest wtedy nieobecny. Brak party na mapie albo
+  `player_duchy_id is None` (lub gra skończona) → pojedynczy fallbackowy
+  formularz `action="/order/assault"` jak w K14.2e2. Pozostałe formularze i
+  `data-player` bez zmian.
   **ROZSTRZYGNIĘTE (A7.2b3b1, akcje księstw na wspólnej mapie):** gdy gra
   trwa i budżet pozwala na co najmniej jedną turę, driver wykonuje pojedynczy
   przebieg księstw w kolejności `game.duchies`. Każde niepokonane księstwo

@@ -197,13 +197,31 @@ class GameApp:
             return "".join(forms)
         return _MARCH_FORM
 
+    def _assault_forms(self) -> str:
+        """Per-target assault forms when the player has a party; bare fallback otherwise."""
+        if (
+            self.player_duchy_id is not None
+            and not self.game.is_over
+            and _duchy_has_party(self.world, self.player_duchy_id)
+        ):
+            forms: list[str] = []
+            for region in _march_targets(self.world, self.player_duchy_id):
+                action = f"/order/assault?target={quote(region.name)}"
+                forms.append(
+                    f'<form method="post" action="{action}">'
+                    f'<button type="submit">{region.name}</button>'
+                    "</form>"
+                )
+            return "".join(forms)
+        return _ASSAULT_FORM
+
     def _render(self) -> str:
         html = render_game_page(self.world, self.game, self.calendar)
         player_value = self.player_duchy_id if self.player_duchy_id is not None else ""
         extras = (
             f'<span data-player="{player_value}"></span>'
             f"{_TURN_FORM}{_RECRUIT_FORM}{_MUSTER_FORM}"
-            f"{_DEVELOP_FORM}{self._march_forms()}{_ASSAULT_FORM}"
+            f"{_DEVELOP_FORM}{self._march_forms()}{self._assault_forms()}"
         )
         if "</body>" in html:
             return html.replace("</body>", f"{extras}</body>", 1)
