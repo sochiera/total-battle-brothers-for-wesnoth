@@ -8,6 +8,7 @@ import xml.etree.ElementTree as ET
 import tbb.ai as ai
 from tbb.duchy import Duchy
 from tbb.game import GameState
+from tbb.party import Party
 from tbb.resources import Resources
 from tbb.rng import Rng
 from tbb.settlement import Settlement
@@ -457,4 +458,77 @@ def test_game_app_order_recruit_form_noop_and_determinism():
     # Two successful recruits on north: garrison grew, gold spent.
     assert len(north_a.garrison) == 3
     assert north_a.storage.gold == 0
+
+
+def test_game_app_post_order_muster_applies_muster_and_resyncs():
+    """POST /order/muster applies ai.muster_duchy_party + re-syncs game.
+
+    Contract (task-079 / K14.2b):
+    - when player_duchy_id is set, game is not is_over, and the player duchy
+      exists in game.duchies: applies ai.muster_duchy_party(self.world,
+      player_duchy), replaces self.world, re-syncs
+      self.game = self.game.sync_from_world(self.world); returns (200, page)
+    - player duchy looked up by duchy_id == player_duchy_id
+    """
+    north, south = map(Region, ("North", "South"))
+    hero = Unit(training=4)
+    garrison = (Unit(equipment=1), Unit(experience=2))
+    north_keep = Settlement(
+        "North Keep",
+        3,
+        occupied=2,
+        garrison=garrison,
+        owner_id="north",
+    )
+    south_keep = Settlement("South Keep", 2, owner_id="south")
+    world = WorldMap(
+        (north, south), settlements={north: north_keep, south: south_keep}
+    )
+    game = GameState(
+        (
+            Duchy("north", hero, settlements=(north_keep,)),
+            Duchy("south", Unit(), settlements=(south_keep,)),
+        )
+    )
+    assert not game.is_over
+    calendar = Calendar(year=2, month=3)
+    app = GameApp(world, game, calendar, Rng(11), player_duchy_id="north")
+
+    world_before = app.world
+    game_before = app.game
+    assert world_before.party_at(north) is None
+    assert world_before.settlement_at(north).garrison == garrison
+
+    expected_world = ai.muster_duchy_party(world_before, game_before.duchies[0])
+    expected_game = game_before.sync_from_world(expected_world)
+    assert expected_world.party_at(north) == Party(hero, garrison, owner_id="north")
+    assert expected_world.settlement_at(north).garrison == ()
+    assert expected_world is not world_before
+
+    code, body = app.handle("POST", "/order/muster")
+    assert code == 200
+    assert isinstance(body, str)
+    assert body.strip() != ""
+    root = ET.fromstring(body)
+    assert _local(root.tag) == "html"
+    assert _calendar_stamp(body) == (2, 3)
+
+    # World replaced with muster result; game re-synced from that world.
+    assert app.world is not world_before
+    assert app.world.party_at(north) == expected_world.party_at(north)
+    assert app.world.settlement_at(north).garrison == ()
+    assert app.game is not game_before
+    player = next(d for d in app.game.duchies if d.duchy_id == "north")
+    expected_player = next(
+        d for d in expected_game.duchies if d.duchy_id == "north"
+    )
+    assert player.settlements == expected_player.settlements
+    # South and calendar untouched.
+    assert app.world.settlement_at(south) is south_keep
+    assert app.world.party_at(south) is None
+    assert app.calendar == calendar
+    # Inputs to the call must not have been mutated in place.
+    assert world_before.settlement_at(north) is north_keep
+    assert world_before.party_at(north) is None
+    assert north_keep.garrison == garrison
 

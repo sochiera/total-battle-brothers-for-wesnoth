@@ -1027,6 +1027,13 @@ ich dotykają, i notować wynik tutaj:
   `(200, strona)`. `GET /` zawiera formularz
   `<form method="post" action="/order/recruit">`. Wybór osady automatyczny
   (pierwsza kwalifikująca się w prymitywie AI).
+  **ROZSTRZYGNIĘTE (K14.2b, rozkaz wystawienia party gracza):**
+  `POST /order/muster` na `GameApp` — ten sam warunek i re-sync co rekrutacja,
+  wspólnym helperem `_apply_player_order`, stosuje `ai.muster_duchy_party`
+  (garnizon pierwszej własnej osady + bohater → party). No-op gdy brak gracza,
+  gra skończona lub brak księstwa. Zawsze `(200, strona)`. `GET /` zawiera
+  formularz `<form method="post" action="/order/muster">`. Wybór osady
+  automatyczny (prymityw AI).
   **ROZSTRZYGNIĘTE (A7.2b3b1, akcje księstw na wspólnej mapie):** gdy gra
   trwa i budżet pozwala na co najmniej jedną turę, driver wykonuje pojedynczy
   przebieg księstw w kolejności `game.duchies`. Każde niepokonane księstwo

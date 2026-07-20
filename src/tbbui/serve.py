@@ -24,6 +24,12 @@ _RECRUIT_FORM = (
     "</form>"
 )
 
+_MUSTER_FORM = (
+    '<form method="post" action="/order/muster">'
+    '<button type="submit">Muster</button>'
+    "</form>"
+)
+
 
 class GameApp:
     """In-memory request router over one party snapshot (GET page / POST turn)."""
@@ -58,27 +64,37 @@ class GameApp:
                 )
             return 200, self._render()
         if method == "POST" and path == "/order/recruit":
-            if not self.game.is_over and self.player_duchy_id is not None:
-                player_duchy = next(
-                    (
-                        d
-                        for d in self.game.duchies
-                        if d.duchy_id == self.player_duchy_id
-                    ),
-                    None,
-                )
-                if player_duchy is not None:
-                    self.world = ai.recruit_duchy_unit(self.world, player_duchy)
-                    self.game = self.game.sync_from_world(self.world)
+            self._apply_player_order(ai.recruit_duchy_unit)
+            return 200, self._render()
+        if method == "POST" and path == "/order/muster":
+            self._apply_player_order(ai.muster_duchy_party)
             return 200, self._render()
         return 404, "Not Found"
+
+    def _apply_player_order(self, transition) -> None:
+        """Apply ``transition(world, player_duchy)`` when a player order is legal.
+
+        No-op when the game is over, there is no player duchy id, or that
+        duchy is absent from ``game.duchies``. On success replaces ``world``
+        and re-syncs ``game`` from the new map.
+        """
+        if self.game.is_over or self.player_duchy_id is None:
+            return
+        player_duchy = next(
+            (d for d in self.game.duchies if d.duchy_id == self.player_duchy_id),
+            None,
+        )
+        if player_duchy is None:
+            return
+        self.world = transition(self.world, player_duchy)
+        self.game = self.game.sync_from_world(self.world)
 
     def _render(self) -> str:
         html = render_game_page(self.world, self.game, self.calendar)
         player_value = self.player_duchy_id if self.player_duchy_id is not None else ""
         extras = (
             f'<span data-player="{player_value}"></span>'
-            f"{_TURN_FORM}{_RECRUIT_FORM}"
+            f"{_TURN_FORM}{_RECRUIT_FORM}{_MUSTER_FORM}"
         )
         if "</body>" in html:
             return html.replace("</body>", f"{extras}</body>", 1)
