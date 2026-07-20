@@ -343,11 +343,13 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   tekst wyniku (`Zwycięstwo atakującego` / `Zwycięstwo broniącego` / `Remis`)
   oraz w każdym `data-battle-side` wiersz strat czytelny dla człowieka
   (`Atakujący/Broniący: polegli N, ogłuszeni M, zdolni K`, zgodny z atrybutami).
-- `render_settlement_panel(world)` — fragment `data-settlement-panel` z wierszem
-  `data-settlement-row` (= nazwa regionu) na osadę w kolejności `world.regions`;
-  atrybuty `data-owner`/`data-wheat`/`data-gold`/`data-population`/`data-free`/
-  `data-garrison` i widoczny tekst `<nazwa> (<owner|„—">): pszenica W, złoto G ·
-  populacja P (wolne F), garnizon N` zgodny z atrybutami. Czysty, deterministyczny.
+- `render_settlement_panel(world, player_duchy_id=None)` — fragment
+  `data-settlement-panel` z wierszem `data-settlement-row` (= nazwa regionu) na
+  osadę w kolejności `world.regions`; atrybuty `data-owner`/`data-wheat`/
+  `data-gold`/`data-population`/`data-free`/`data-garrison` i widoczny tekst
+  `<nazwa> (<owner|„—">): pszenica W, złoto G · populacja P (wolne F), garnizon N`
+  zgodny z atrybutami; przy `player_duchy_id` wiersze z `owner_id` gracza mają
+  `data-player-owned=""`. Czysty, deterministyczny.
 - `render_party_panel(world)` — fragment `data-party-panel` z wierszem
   `data-party-row` (= nazwa regionu) na party w kolejności `world.regions`;
   `data-owner`/`data-size` (liczba podkomendnych) i tekst `<region> (<owner|„—">):
@@ -358,7 +360,8 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   wiersz ma `data-player-duchy=""` i prefiks `» `), wynik (`data-result`), banner
   wyniku (`<p data-result-text>`: `Gra w toku` / `Remis` / `Zwycięstwo: <id>`),
   opcjonalnie SVG bitwy i raport bitwy gdy `battle` podane; osadza też panel osad
-  (`render_settlement_panel`) i panel party (`render_party_panel`).
+  (`render_settlement_panel(world, player_duchy_id)`) i panel party
+  (`render_party_panel`).
 
 **GameApp / rozkazy gracza:**
 - `GameApp(..., player_duchy_id=None)` — w `POST /turn` woła `run_headless_game`

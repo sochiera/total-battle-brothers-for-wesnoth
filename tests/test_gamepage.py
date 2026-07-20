@@ -370,6 +370,31 @@ def test_render_game_page_marks_player_duchy_with_attribute_and_prefix():
     assert not (south_el.text or "").strip().startswith("» ")
 
 
+def test_render_game_page_passes_player_duchy_id_to_settlement_panel():
+    """``player_duchy_id`` reaches the settlement panel: matching rows flagged."""
+    world, game, calendar = _ongoing_fixture()
+    expected_panel = render_settlement_panel(world, "north")
+
+    html = render_game_page(world, game, calendar, player_duchy_id="north")
+    assert expected_panel in html, (
+        "page must embed render_settlement_panel(world, player_duchy_id) output"
+    )
+
+    root = ET.fromstring(html)
+    row_els = _find_by_attr(root, "data-settlement-row")
+    by_region = {el.get("data-settlement-row"): el for el in row_els}
+
+    for region in world.regions:
+        settlement = world.settlement_at(region)
+        if settlement is None:
+            continue
+        el = by_region[region.name]
+        if settlement.owner_id == "north":
+            assert el.get("data-player-owned") == ""
+        else:
+            assert el.get("data-player-owned") is None
+
+
 def test_render_game_page_embeds_battle_report_matching_battle_report_counts():
     """``data-battle-report`` is present with battle, absent without; counts match."""
     world, game, calendar = _ongoing_fixture()
