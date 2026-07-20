@@ -47,3 +47,30 @@ def test_render_battle_report_contains_result_value_in_root_div():
         == battle.report().result.value
         == BattleResult.ATTACKER_WIN.value
     )
+
+
+def test_render_battle_report_has_attacker_then_defender_side_counts():
+    battle = _finished_attacker_win_battle()
+    report = battle.report()
+
+    html = render_battle_report(battle)
+
+    root = ET.fromstring(html)
+    side_divs = root.findall(".//div[@data-battle-side]")
+    assert [div.attrib["data-battle-side"] for div in side_divs] == [
+        "attacker",
+        "defender",
+    ]
+    attacker_div, defender_div = side_divs
+    assert attacker_div.attrib["data-fallen"] == str(len(report.attacker.fallen))
+    assert attacker_div.attrib["data-stunned"] == str(len(report.attacker.stunned))
+    assert attacker_div.attrib["data-active"] == str(len(report.attacker.active))
+    assert defender_div.attrib["data-fallen"] == str(len(report.defender.fallen))
+    assert defender_div.attrib["data-stunned"] == str(len(report.defender.stunned))
+    assert defender_div.attrib["data-active"] == str(len(report.defender.active))
+
+
+def test_render_battle_report_is_deterministic():
+    battle = _finished_attacker_win_battle()
+
+    assert render_battle_report(battle) == render_battle_report(battle)
