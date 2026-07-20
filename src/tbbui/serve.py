@@ -30,6 +30,12 @@ _MUSTER_FORM = (
     "</form>"
 )
 
+_DEVELOP_FORM = (
+    '<form method="post" action="/order/develop">'
+    '<button type="submit">Develop settlement</button>'
+    "</form>"
+)
+
 
 class GameApp:
     """In-memory request router over one party snapshot (GET page / POST turn)."""
@@ -69,6 +75,9 @@ class GameApp:
         if method == "POST" and path == "/order/muster":
             self._apply_player_order(ai.muster_duchy_party)
             return 200, self._render()
+        if method == "POST" and path == "/order/develop":
+            self._apply_player_order(ai.develop_duchy_settlement)
+            return 200, self._render()
         return 404, "Not Found"
 
     def _apply_player_order(self, transition) -> None:
@@ -94,7 +103,7 @@ class GameApp:
         player_value = self.player_duchy_id if self.player_duchy_id is not None else ""
         extras = (
             f'<span data-player="{player_value}"></span>'
-            f"{_TURN_FORM}{_RECRUIT_FORM}{_MUSTER_FORM}"
+            f"{_TURN_FORM}{_RECRUIT_FORM}{_MUSTER_FORM}{_DEVELOP_FORM}"
         )
         if "</body>" in html:
             return html.replace("</body>", f"{extras}</body>", 1)

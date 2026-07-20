@@ -1034,6 +1034,13 @@ ich dotykają, i notować wynik tutaj:
   gra skończona lub brak księstwa. Zawsze `(200, strona)`. `GET /` zawiera
   formularz `<form method="post" action="/order/muster">`. Wybór osady
   automatyczny (prymityw AI).
+  **ROZSTRZYGNIĘTE (K14.2c, rozkaz rozwoju osady gracza):**
+  `POST /order/develop` na `GameApp` — ten sam warunek i re-sync, wspólnym
+  helperem `_apply_player_order`, stosuje `ai.develop_duchy_settlement`
+  (otwarcie najwyżej jednego budynku Farm→Smith→Market). No-op gdy brak gracza,
+  gra skończona lub brak księstwa. Zawsze `(200, strona)`. `GET /` zawiera
+  formularz `<form method="post" action="/order/develop">`. Wybór osady i
+  budynku automatyczny (prymityw AI).
   **ROZSTRZYGNIĘTE (A7.2b3b1, akcje księstw na wspólnej mapie):** gdy gra
   trwa i budżet pozwala na co najmniej jedną turę, driver wykonuje pojedynczy
   przebieg księstw w kolejności `game.duchies`. Każde niepokonane księstwo

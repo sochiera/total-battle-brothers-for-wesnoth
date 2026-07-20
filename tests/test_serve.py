@@ -656,3 +656,76 @@ def test_game_app_order_muster_form_noop_and_determinism():
     assert a.world.settlement_at(north_a).garrison == ()
     assert b.world.party_at(north_b) == Party(hero_b, garrison_b, owner_id="north")
 
+
+def test_game_app_post_order_develop_applies_develop_and_resyncs():
+    """POST /order/develop applies ai.develop_duchy_settlement + re-syncs game.
+
+    Contract (task-080 / K14.2c):
+    - when player_duchy_id is set, game is not is_over, and the player duchy
+      exists in game.duchies: applies ai.develop_duchy_settlement(self.world,
+      player_duchy), replaces self.world, re-syncs
+      self.game = self.game.sync_from_world(self.world); returns (200, page)
+    - player duchy looked up by duchy_id == player_duchy_id
+    - opens at most one building by priority Farm→Smith→Market
+    """
+    from tbb.building import FARM
+
+    north, south = map(Region, ("North", "South"))
+    # Free slots + no buildings: develop opens Farm (staff=1) first.
+    north_keep = Settlement("North Keep", 3, owner_id="north")
+    south_keep = Settlement("South Keep", 2, owner_id="south")
+    world = WorldMap(
+        (north, south), settlements={north: north_keep, south: south_keep}
+    )
+    game = GameState(
+        (
+            Duchy("north", Unit(), settlements=(north_keep,)),
+            Duchy("south", Unit(), settlements=(south_keep,)),
+        )
+    )
+    assert not game.is_over
+    calendar = Calendar(year=2, month=3)
+    app = GameApp(world, game, calendar, Rng(11), player_duchy_id="north")
+
+    world_before = app.world
+    game_before = app.game
+    north_before = world_before.settlement_at(north)
+    assert north_before.active_buildings == ()
+    assert north_before.occupied == 0
+
+    expected_world = ai.develop_duchy_settlement(world_before, game_before.duchies[0])
+    expected_game = game_before.sync_from_world(expected_world)
+    expected_settlement = expected_world.settlement_at(north)
+    assert expected_settlement is not north_before
+    assert expected_settlement.active_buildings == (FARM,)
+    assert expected_settlement.occupied == FARM.staff
+
+    code, body = app.handle("POST", "/order/develop")
+    assert code == 200
+    assert isinstance(body, str)
+    assert body.strip() != ""
+    root = ET.fromstring(body)
+    assert _local(root.tag) == "html"
+    assert _calendar_stamp(body) == (2, 3)
+
+    # World replaced with develop result; game re-synced from that world.
+    assert app.world is not world_before
+    assert (
+        app.world.settlement_at(north).active_buildings
+        == expected_settlement.active_buildings
+    )
+    assert app.world.settlement_at(north).occupied == expected_settlement.occupied
+    assert app.game is not game_before
+    player = next(d for d in app.game.duchies if d.duchy_id == "north")
+    expected_player = next(
+        d for d in expected_game.duchies if d.duchy_id == "north"
+    )
+    assert player.settlements == expected_player.settlements
+    # South and calendar untouched.
+    assert app.world.settlement_at(south) is south_keep
+    assert app.calendar == calendar
+    # Inputs to the call must not have been mutated in place.
+    assert world_before.settlement_at(north) is north_before
+    assert north_before.active_buildings == ()
+    assert north_before.occupied == 0
+
