@@ -59,3 +59,20 @@ def test_render_settlement_panel_rows_match_settlements_in_region_order():
     assert "Keep C (—): pszenica 0, złoto 0" in "".join(row_c.itertext())
 
     assert world.settlements == settlements_before
+
+
+def test_render_settlement_panel_empty_root_when_no_settlements():
+    """A world with regions but no settlements at all yields a bare, childless
+    ``<div data-settlement-panel="">`` root (no rows).
+    """
+    a = Region("A")
+    b = Region("B")
+    world = WorldMap([a, b], [(a, b)])
+
+    xml = render_settlement_panel(world)
+    root = ET.fromstring(xml)
+
+    assert root.tag == "div"
+    assert root.attrib.get("data-settlement-panel") == ""
+    assert root.findall("div") == []
+    assert list(root) == []
