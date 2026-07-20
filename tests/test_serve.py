@@ -65,6 +65,11 @@ def _has_post_assault_form(html: str) -> bool:
     return _has_post_form(html, "/order/assault")
 
 
+def _has_post_engage_form(html: str) -> bool:
+    """True when body contains a form that POSTs to /order/engage (K18.1c)."""
+    return _has_post_form(html, "/order/engage")
+
+
 def _has_post_form(html: str, action_path: str) -> bool:
     """True when body contains a form that POSTs to ``action_path``."""
     root = ET.fromstring(html)
@@ -1772,6 +1777,22 @@ def test_game_app_post_order_assault_without_target_sets_last_battle_and_renders
     assert lone_app.last_battle is None
 
 
+def test_game_app_order_engage_form_on_get():
+    """GET / embeds bare <form method="post" action="/order/engage"> (task-103 / K18.1c).
+
+    Contract: ``_render`` always appends ``_ENGAGE_FORM`` (auto-cel; no per-target
+    forms), with a submit button, independent of whether a fight is available.
+    """
+    world, game = _ongoing_world_game()
+    app = GameApp(world, game, Calendar(year=2, month=3), Rng(11), player_duchy_id="north")
+    code, body = app.handle("GET", "/")
+    assert code == 200
+    assert _has_post_engage_form(body)
+    assert re.search(
+        r"<button\b[^>]*>\s*Engage\s*</button>", body, flags=re.IGNORECASE
+    )
+
+
 def test_game_app_post_order_engage_sets_last_battle_and_renders_svg():
     """POST /order/engage sets last_battle via ai.engage_duchy_party_recorded (task-103 / K18.1c).
 
@@ -1826,6 +1847,42 @@ def test_game_app_post_order_engage_sets_last_battle_and_renders_svg():
     code_lone, _body_lone = lone_app.handle("POST", "/order/engage")
     assert code_lone == 200
     assert lone_app.last_battle is None
+
+
+def test_game_app_post_order_engage_noop_when_no_player_duchy_id():
+    """POST /order/engage is a no-op when player_duchy_id is None (task-103 / K18.1c).
+
+    Contract: engage goes through the same guard as assault
+    (``_apply_player_assault_order``), so with no player id the world/game are
+    left untouched, ``self.rng`` is not drawn from, and last_battle stays None,
+    while still returning ``(200, page)``.
+    """
+    start, target = map(Region, ("Start", "Target"))
+    north_party = Party(Unit(training=5, equipment=6), owner_id="north")
+    south_party = Party(Unit(training=1, equipment=1), owner_id="south")
+    world = WorldMap(
+        (start, target),
+        ((start, target),),
+        parties={start: north_party, target: south_party},
+    )
+    game = GameState(
+        (
+            Duchy("north", north_party.hero, parties=(north_party,), morale=10),
+            Duchy("south", south_party.hero, parties=(south_party,), morale=-5),
+        )
+    )
+    calendar = Calendar(year=2, month=3)
+    none_app = GameApp(world, game, calendar, Rng(11), player_duchy_id=None)
+    world_before, game_before = none_app.world, none_app.game
+
+    code, body = none_app.handle("POST", "/order/engage")
+
+    assert code == 200
+    assert isinstance(body, str)
+    assert none_app.world is world_before
+    assert none_app.game is game_before
+    assert none_app.last_battle is None
+    assert none_app.rng.randint(0, 10**9) == Rng(11).randint(0, 10**9)
 
 
 def test_game_app_post_order_assault_empty_or_unknown_target_falls_back():
