@@ -62,6 +62,7 @@
 | K16.1b | Nagrana wersja szturmu | `resolve_settlement_battle_recorded(...) -> (WorldMap, HexBattle)`; `resolve_settlement_battle` deleguje i zwraca tylko mapę. |
 | K18.1a | Nagrana bitwa party↔party | `resolve_party_battle_recorded(...) -> (WorldMap, HexBattle)`; `resolve_party_battle` deleguje i zwraca tylko mapę. |
 | K18.1b | Auto-starcie party↔party z nagraniem | `engage_duchy_party_recorded → (WorldMap, HexBattle\|None)`; pierwszy sąsiad z wrogim jawnym `owner_id` → recorded; no-op → (world, None) bez RNG. |
+| K18.1c | POST /order/engage | `_apply_player_assault_order` + `engage_duchy_party_recorded`; bare form GET; last_battle jak szturm. |
 | G10.1 | absorb_defenders | `Settlement.absorb_defenders(survivors)` zastępuje garnizon; polegli −population i −occupied; sekwencja > garnizon odrzucona. |
 | G10.2a | Garnizon po obronie | apply_settlement DEF/DRAW + battle → absorb_defenders(DEFENDER); bez battle garnizon nietknięty. |
 | G10.2b | Garnizon po podboju | ATTACKER_WIN + battle → absorb_defenders potem zmiana owner; bez battle owner się zmienia, garnizon nietknięty. |

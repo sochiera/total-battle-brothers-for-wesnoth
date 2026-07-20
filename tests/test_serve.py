@@ -1772,6 +1772,62 @@ def test_game_app_post_order_assault_without_target_sets_last_battle_and_renders
     assert lone_app.last_battle is None
 
 
+def test_game_app_post_order_engage_sets_last_battle_and_renders_svg():
+    """POST /order/engage sets last_battle via ai.engage_duchy_party_recorded (task-103 / K18.1c).
+
+    Contract:
+    - route goes through ``_apply_player_assault_order`` with
+      ``ai.engage_duchy_party_recorded(world, duchy, self.rng, morale_by_owner=...)``;
+      on a hit ``self.last_battle`` is set and its SVG is embedded via ``_render``.
+    - no-op (no adjacent enemy party) leaves ``self.last_battle`` as ``None``.
+    """
+    start, target = map(Region, ("Start", "Target"))
+    north_party = Party(Unit(training=5, equipment=6), owner_id="north")
+    south_party = Party(Unit(training=1, equipment=1), owner_id="south")
+    world = WorldMap(
+        (start, target),
+        ((start, target),),
+        parties={start: north_party, target: south_party},
+    )
+    game = GameState(
+        (
+            Duchy("north", north_party.hero, parties=(north_party,), morale=10),
+            Duchy("south", south_party.hero, parties=(south_party,), morale=-5),
+        )
+    )
+    calendar = Calendar(year=2, month=3)
+    seed = 11
+    app = GameApp(world, game, calendar, Rng(seed), player_duchy_id="north")
+    assert app.last_battle is None
+
+    player_duchy = next(d for d in game.duchies if d.duchy_id == "north")
+    expected_world, expected_battle = ai.engage_duchy_party_recorded(
+        world,
+        player_duchy,
+        Rng(seed),
+        morale_by_owner={d.duchy_id: d.morale for d in game.duchies},
+    )
+    assert expected_battle is not None
+
+    code, body = app.handle("POST", "/order/engage")
+    assert code == 200
+    assert app.last_battle == expected_battle
+    assert render_battle_svg(expected_battle) in body
+
+    # No-op: party has no adjacent enemy party — transition finds no target,
+    # so last_battle stays None even though the order guards pass.
+    isolated = Region("Isolated")
+    lone_party = Party(Unit(training=5, equipment=6), owner_id="north")
+    lone_world = WorldMap((isolated,), (), parties={isolated: lone_party})
+    lone_game = GameState((Duchy("north", lone_party.hero, parties=(lone_party,)),))
+    lone_app = GameApp(
+        lone_world, lone_game, calendar, Rng(seed), player_duchy_id="north"
+    )
+    code_lone, _body_lone = lone_app.handle("POST", "/order/engage")
+    assert code_lone == 200
+    assert lone_app.last_battle is None
+
+
 def test_game_app_post_order_assault_empty_or_unknown_target_falls_back():
     """POST /order/assault?target=<empty|unknown> falls back to assault_duchy_party.
 

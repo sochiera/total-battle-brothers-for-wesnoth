@@ -357,11 +357,16 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   `assault_duchy_party_recorded` z `morale_by_owner` z `game.duchies` i
   `self.rng`; wynikowa `HexBattle` trafia do `last_battle` (no-op / guardy
   zostawiają `last_battle` bez bitwy).
+- `POST /order/engage` — `engage_duchy_party_recorded` (auto-cel: pierwsze
+  sąsiednie wrogie party) z tymi samymi guardami i `morale_by_owner` /
+  `self.rng` co szturm; przez `_apply_player_assault_order`; na hit ustawia
+  `last_battle`, no-op/guardy bez zmian. GET `/` ma bare formularz
+  `action="/order/engage"`.
 - `GameApp.last_battle: HexBattle | None` — init `None`; `_render` przekazuje
   `battle=self.last_battle` do `render_game_page` (SVG + raport bitwy w stronie
-  po szturmie). `POST /turn` oraz rozkazy nie-szturmowe
+  po szturmie / starciu). `POST /turn` oraz rozkazy nie-bitewne
   (`/order/recruit|muster|develop|march`) zerują `last_battle` (stara bitwa nie
-  wisi po innym działaniu gracza).
+  wisi po innym działaniu gracza); `assault`/`engage` nie zerują przed wykonaniem.
 - UI celów: gdy gracz ma party na mapie — po jednym formularzu
   `?target=<quote(nazwa)>` na obcą osadę (kolejność `world.regions`, helper
   `_march_targets`); bare action nieobecny. Brak party / brak id / gra skończona →

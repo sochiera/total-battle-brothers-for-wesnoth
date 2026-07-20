@@ -119,9 +119,11 @@ osadą, `quote` na nazwie, przycisk = nazwa; inaczej bare
 `<form method="post" action="/order/march">`) i
 sekcję szturmu (K15.2c: ten sam guard i cele `_march_targets` — po jednym
 `<form method="post" action="/order/assault?target=<nazwa>">`; inaczej bare
-`<form method="post" action="/order/assault">`). Wspólna logika HTML obu
-sekcji (R16.1): prywatny `GameApp._target_forms(order_path, bare_form)`;
-`_march_forms` / `_assault_forms` tylko przekazują ścieżkę i fallback.
+`<form method="post" action="/order/assault">`) oraz bare
+`<form method="post" action="/order/engage">` (K18.1c; auto-cel party↔party).
+Wspólna logika HTML sekcji marszu/szturmu (R16.1): prywatny
+`GameApp._target_forms(order_path, bare_form)`; `_march_forms` /
+`_assault_forms` tylko przekazują ścieżkę i fallback.
 `POST /turn` → jedna tura przez
 `run_headless_game(..., max_turns=1, calendar=..., player_duchy_id=...)` i
 aktualizacja wewnętrznego stanu (gdy podany `player_duchy_id`, driver pomija
@@ -144,8 +146,13 @@ K16.1d-2) ma te same guardy przez `_apply_player_assault_order`: jawny
 `morale_by_owner={d.duchy_id: d.morale for d in game.duchies}`); wynik
 `(world, battle)` podmienia `world`, sync `game`, a gdy `battle is not None`
 ustawia `self.last_battle` (init `None`; no-op/guardy nie ustawiają bitwy).
-`POST /turn` oraz `/order/recruit|muster|develop|march` zerują
-`self.last_battle` (K16.1d-3). `_render` woła
+`POST /order/engage` (K18.1c) — te same guardy przez
+`_apply_player_assault_order` z `ai.engage_duchy_party_recorded` (auto-cel:
+pierwsze sąsiednie wrogie party; `self.rng` + `morale_by_owner` jak szturm);
+na trafieniu ustawia `last_battle`, no-op/guardy nie ruszają bitwy. GET `/`
+osadza bare `<form method="post" action="/order/engage">`. `POST /turn` oraz
+`/order/recruit|muster|develop|march` zerują `self.last_battle` (K16.1d-3);
+`assault`/`engage` nie zerują przed wykonaniem. `_render` woła
 `render_game_page(..., battle=self.last_battle)`. Inna ścieżka lub metoda →
 `(404, treść)`. Determinizm: ten sam seed i sekwencja `handle` →
 te same treści i stan. `player_duchy_id=None` zachowuje zachowanie

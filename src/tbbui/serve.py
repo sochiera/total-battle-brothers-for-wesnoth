@@ -49,6 +49,12 @@ _ASSAULT_FORM = (
     "</form>"
 )
 
+_ENGAGE_FORM = (
+    '<form method="post" action="/order/engage">'
+    '<button type="submit">Engage</button>'
+    "</form>"
+)
+
 
 def _march_targets(world: WorldMap, player_duchy_id: str) -> tuple[Region, ...]:
     """Regions with a foreign-owned settlement, in ``world.regions`` order."""
@@ -150,6 +156,17 @@ class GameApp:
                     )
                 )
             return 200, self._render()
+        if method == "POST" and route == "/order/engage":
+            morale_by_owner = {d.duchy_id: d.morale for d in self.game.duchies}
+            self._apply_player_assault_order(
+                lambda world, duchy: ai.engage_duchy_party_recorded(
+                    world,
+                    duchy,
+                    self.rng,
+                    morale_by_owner=morale_by_owner,
+                )
+            )
+            return 200, self._render()
         return 404, "Not Found"
 
     def _order_target_region(self, query: str):
@@ -244,6 +261,7 @@ class GameApp:
             f'<span data-player="{player_value}"></span>'
             f"{_TURN_FORM}{_RECRUIT_FORM}{_MUSTER_FORM}"
             f"{_DEVELOP_FORM}{self._march_forms()}{self._assault_forms()}"
+            f"{_ENGAGE_FORM}"
         )
         if "</body>" in html:
             return html.replace("</body>", f"{extras}</body>", 1)
