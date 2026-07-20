@@ -231,3 +231,13 @@
 - [x] **V13.4b** Snapshot partii z CLI (`python -m tbbui`). *(task-073)*
 - [x] **V13.5a** `GameApp.handle` — routing podglądu (bez gniazda). *(task-074)*
 - [x] **V13.5b** Serwer podglądu `http.server` + `python -m tbbui serve`. *(task-075)*
+
+## Kamień milowy 21 — dokończenie czytelności strony w przeglądarce — UKOŃCZONY
+> Widoczny tekst kalendarza i raportu bitwy oraz odróżnialne nagłówki sekcji
+> rozkazów; refaktor emitera formularzy celu. Maszynowe `data-*` i routing bez
+> zmian; rdzeń bez zmian.
+- [x] **K21.1a** Czytelny tekst kalendarza (`Rok N, miesiąc M`) w `data-calendar`. *(task-109)*
+- [x] **K21.1b** Czytelny tekst wyniku bitwy w `render_battle_report`. *(task-110)*
+- [x] **K21.1c** Czytelne straty per strona w `render_battle_report`. *(task-111)*
+- [x] **K21.2** Nagłówki sekcji rozkazów w `GET /` (`data-order-section`). *(task-112)*
+- [x] **R21.1 (refaktor)** Wspólny emiter formularzy celu marsz/szturm/starcie. *(task-113)*

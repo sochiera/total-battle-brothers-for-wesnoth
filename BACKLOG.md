@@ -96,23 +96,33 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > statusu księstw obok maszynowych markerów. Pozycje (task-107…108)
 > w `BACKLOG-ARCHIVE.md`.
 
-## Kamień milowy 21 — dokończenie czytelności strony w przeglądarce (grywalność)
+## Kamień milowy 21 — dokończenie czytelności strony w przeglądarce (grywalność) — UKOŃCZONY
 > DESIGN §11 (PLAN K21): K20 udostępnił banner wyniku i wiersze księstw, ale
 > kalendarz, raport bitwy i sekcje rozkazów pozostały dla człowieka nieczytelne.
-> K21 dokłada widoczny tekst kalendarza i raportu bitwy oraz odróżnialne nagłówki
-> sekcji rozkazów. Maszynowe `data-*` i routing bez zmian; rdzeń bez zmian.
-- [ ] **K21.1a** Czytelny tekst kalendarza (`Rok N, miesiąc M`) w `data-calendar`. *(task-109)*
-  - AC: widoczny tekst zgodny z `data-year`/`data-month`; atrybuty bez zmian.
-- [ ] **K21.1b** Czytelny tekst wyniku bitwy w `render_battle_report`. *(task-110)*
-  - AC: `Zwycięstwo atakującego`/`Zwycięstwo broniącego`/`Remis`; `data-battle-result` bez zmian.
-- [ ] **K21.1c** Czytelne straty per strona w `render_battle_report`. *(task-111)*
-  - AC: `Atakujący/Broniący: polegli N, ogłuszeni M, zdolni K`; `data-*` bez zmian.
-- [ ] **K21.2** Nagłówki sekcji rozkazów w `GET /` (`data-order-section`). *(task-112)*
-  - AC: `<h2 data-order-section="march|assault|engage">` w kolejności marsz→szturm→starcie; formularze/routing bez zmian.
+> K21 dołożył widoczny tekst kalendarza i raportu bitwy oraz odróżnialne nagłówki
+> sekcji rozkazów (K21.1a–c, K21.2) plus refaktor emitera formularzy (R21.1).
+> Pozycje (task-109…113) w `BACKLOG-ARCHIVE.md`. Maszynowe `data-*` i routing bez
+> zmian; rdzeń bez zmian.
+
+## Kamień milowy 22 — czytelny stan gospodarczo-wojskowy w podglądzie (decyzje gracza)
+> DESIGN §11 (PLAN K22): strona pokazuje wynik/kalendarz/liczby księstw i raport
+> bitwy, ale gracz nie widzi gospodarki własnych osad (pszenica/złoto, populacja,
+> garnizon) ani siły oddziałów na mapie — nie może świadomie decydować o
+> rekrutacji/rozwoju/starciu (DESIGN §6 pkt 2). K22 dokłada czyste panele
+> prezentacji osad i party osadzone w stronie partii. Rdzeń bez zmian.
+- [ ] **K22.1a** Panel osad z zasobami (`render_settlement_panel`, `data-settlement-row`/`data-wheat`/`data-gold`). *(task-114)*
+  - AC: fragment `data-settlement-panel`; wiersz na osadę w kolejności `world.regions`; tekst `<name> (<owner>): pszenica W, złoto G`.
+- [ ] **K22.1b** Panel osad: populacja i garnizon (`data-population`/`data-free`/`data-garrison`). *(task-115)*
+  - AC: dokleja `· populacja P (wolne F), garnizon N`; atrybuty/tekst K22.1a bez zmian.
+- [ ] **K22.1c** Osadzenie panelu osad w `render_game_page`. *(task-116)*
+  - AC: dokładnie jeden `data-settlement-panel` na stronie; reszta strony bez zmian poza dodaniem panelu.
+- [ ] **K22.2a** Panel party z siłą oddziału (`render_party_panel`, `data-party-row`/`data-size`). *(task-117)*
+  - AC: fragment `data-party-panel`; wiersz na party w kolejności `world.regions`; tekst `<region> (<owner>): bohater + N podkomendnych`.
+- [ ] **K22.2b** Osadzenie panelu party w `render_game_page`. *(task-118)*
+  - AC: dokładnie jeden `data-party-panel` na stronie; reszta strony bez zmian poza dodaniem panelu.
 
 ## Dług/refaktor
-- [ ] **R21.1 (refaktor)** Wspólny emiter formularzy celu marsz/szturm/starcie w `serve.py`. *(task-113)*
-  - AC: bez nowych testów; pętla `?target=` w jednym helperze reużyta przez trzy sekcje; zachowanie GET `/` bez zmian.
+- [x] **R21.1 (refaktor)** Wspólny emiter formularzy celu marsz/szturm/starcie w `serve.py`. *(task-113)*
 - [x] **R15.1 (refaktor)** Kompaktacja DESIGN.md do stanu obecnego; historia → DECISIONS.md. *(task-094)*
 - [x] **R16.1 (refaktor)** Wspólny generator formularzy celu marsz/szturm w `serve.py`. *(task-098)*
 

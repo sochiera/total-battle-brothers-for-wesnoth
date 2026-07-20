@@ -142,3 +142,8 @@
 | K21.1c | Tekst strat bitwy | Każdy `data-battle-side` ma widoczny tekst `Atakujący/Broniący: polegli N, ogłuszeni M, zdolni K` zgodny z atrybutami; `data-*` bez zmian. |
 | K21.2 | Nagłówki sekcji rozkazów | `GET /` ma po jednym `<h2 data-order-section="march\|assault\|engage">Marsz\|Szturm\|Starcie</h2>` przed grupą formularzy danej akcji; formularze/routing bez zmian. |
 | R21.1 | Emiter formularzy celu | Wspólna pętla formularzy `?target=` w jednym helperze `GameApp`, reużyta przez marsz/szturm/starcie; zachowanie GET `/` bez zmian. |
+| K22.1a | Panel osad — zasoby | `tbbui.settlementpanel.render_settlement_panel(world)`: `data-settlement-panel` z wierszem `data-settlement-row`/`data-owner`/`data-wheat`/`data-gold` na osadę (kolejność `world.regions`) + tekst `<name> (<owner>): pszenica W, złoto G`. |
+| K22.1b | Panel osad — populacja/garnizon | Wiersz osady dokłada `data-population`/`data-free`/`data-garrison` i tekst `· populacja P (wolne F), garnizon N`. |
+| K22.1c | Panel osad w stronie | `render_game_page` osadza kanoniczny `render_settlement_panel(world)` w `<body>`. |
+| K22.2a | Panel party — siła | `tbbui.partypanel.render_party_panel(world)`: `data-party-panel` z wierszem `data-party-row`/`data-owner`/`data-size` na party + tekst `<region> (<owner>): bohater + N podkomendnych`. |
+| K22.2b | Panel party w stronie | `render_game_page` osadza kanoniczny `render_party_panel(world)` w `<body>`. |

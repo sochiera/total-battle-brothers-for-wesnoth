@@ -343,11 +343,21 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   tekst wyniku (`Zwycięstwo atakującego` / `Zwycięstwo broniącego` / `Remis`)
   oraz w każdym `data-battle-side` wiersz strat czytelny dla człowieka
   (`Atakujący/Broniący: polegli N, ogłuszeni M, zdolni K`, zgodny z atrybutami).
+- `render_settlement_panel(world)` — fragment `data-settlement-panel` z wierszem
+  `data-settlement-row` (= nazwa regionu) na osadę w kolejności `world.regions`;
+  atrybuty `data-owner`/`data-wheat`/`data-gold`/`data-population`/`data-free`/
+  `data-garrison` i widoczny tekst `<nazwa> (<owner|„—">): pszenica W, złoto G ·
+  populacja P (wolne F), garnizon N` zgodny z atrybutami. Czysty, deterministyczny.
+- `render_party_panel(world)` — fragment `data-party-panel` z wierszem
+  `data-party-row` (= nazwa regionu) na party w kolejności `world.regions`;
+  `data-owner`/`data-size` (liczba podkomendnych) i tekst `<region> (<owner|„—">):
+  bohater + N podkomendnych`. Czysty, deterministyczny.
 - `render_game_page(world, game, calendar, battle=None)` — SVG mapy, kalendarz
   (`data-calendar` + widoczny tekst `Rok N, miesiąc M`), panel księstw
   (`data-duchy` + tekst statusu), wynik (`data-result`), banner wyniku
   (`<p data-result-text>`: `Gra w toku` / `Remis` / `Zwycięstwo: <id>`),
-  opcjonalnie SVG bitwy i raport bitwy gdy `battle` podane.
+  opcjonalnie SVG bitwy i raport bitwy gdy `battle` podane; osadza też panel osad
+  (`render_settlement_panel`) i panel party (`render_party_panel`).
 
 **GameApp / rozkazy gracza:**
 - `GameApp(..., player_duchy_id=None)` — w `POST /turn` woła `run_headless_game`
@@ -442,6 +452,15 @@ rozkazów `<h2 data-order-section="march|assault|engage">` w `GET /` (K21.2), by
 człowiek odróżnił marsz/szturm/starcie; refaktor R21.1 scala pętlę formularzy
 celu (marsz/szturm/starcie) w jeden emiter. Maszynowe `data-*` i routing bez
 zmian; rdzeń bez zmian.
+
+**PLAN K22 (czytelny stan gospodarczo-wojskowy dla decyzji gracza):** strona
+pokazuje wynik/kalendarz/liczby księstw i raport bitwy, ale gracz nie widzi
+gospodarki własnych osad (pszenica/złoto, populacja, garnizon) ani siły
+oddziałów na mapie — nie może świadomie decydować o rekrutacji/rozwoju/starciu
+(§6 pkt 2). K22 dokłada czyste prymitywy prezentacji `render_settlement_panel`
+(zasoby → K22.1a; populacja/garnizon → K22.1b) i `render_party_panel` (siła
+oddziału → K22.2a), osadzone w `render_game_page` (K22.1c/K22.2b). Rdzeń `tbb`
+bez zmian; dane pochodzą z istniejących `Settlement`/`Party`.
 
 ## 12. Otwarte pytania (nadal)
 - **Krzywe filarów:** różne parametry stromości per filar oraz wpływ budynków/

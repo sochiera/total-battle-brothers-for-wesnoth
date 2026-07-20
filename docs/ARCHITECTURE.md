@@ -86,12 +86,32 @@ wynik (`Zwycięstwo atakującego` / `Zwycięstwo broniącego` / `Remis` wg
 `data-fallen`/`data-stunned`/`data-active`). Czyste, deterministyczne,
 bez mutacji `battle`.
 
-**Strona HTML partii (V13.4a / K16.1a / K17.1b / K20.1a / K20.1b / K21.1a):** `tbbui.gamepage.render_game_page(world,
+**Panel osad HTML (K22.1a–b):** `tbbui.settlementpanel.render_settlement_panel(world)
+-> str` — parsowalny fragment XML z korzeniem `<div data-settlement-panel="">`;
+po jednym `<div data-settlement-row="<region.name>">` na region z osadą w
+kolejności `world.regions` (region bez osady → brak wiersza). Atrybuty wiersza:
+`data-owner` (`owner_id` lub `""`), `data-wheat`/`data-gold` (`storage`),
+`data-population`/`data-free`/`data-garrison` (`population`/`free`/
+`len(garrison)`). Obok atrybutów widoczny tekst `<Settlement.name> (<owner_id lub
+„—">): pszenica W, złoto G · populacja P (wolne F), garnizon N` zgodny z
+atrybutami. Czyste, deterministyczne, bez mutacji `world`; rdzeń bez zmian.
+
+**Panel party HTML (K22.2a):** `tbbui.partypanel.render_party_panel(world) -> str`
+— parsowalny fragment XML z korzeniem `<div data-party-panel="">`; po jednym
+`<div data-party-row="<region.name>">` na region z party w kolejności
+`world.regions` (region bez party → brak wiersza). Atrybuty: `data-owner`
+(`owner_id` lub `""`), `data-size` (`len(party.units)`); widoczny tekst
+`<region.name> (<owner_id lub „—">): bohater + N podkomendnych` zgodny z
+`data-size`. Czyste, deterministyczne, bez mutacji `world`; rdzeń bez zmian.
+
+**Strona HTML partii (V13.4a / K16.1a / K17.1b / K20.1a / K20.1b / K21.1a / K22.1c / K22.2b):** `tbbui.gamepage.render_game_page(world,
 game, calendar, battle=None) -> str` — parsowalny HTML z korzeniem `<html>`;
 osadza kanoniczny string z `render_world_svg(world)`; opcjonalny
 `battle: HexBattle | None = None` — gdy podany, osadza w `<body>` kanoniczne
 stringi z `render_battle_svg(battle)` (`tbbui.battlesvg`) oraz
-`render_battle_report(battle)` (`tbbui.battlereport`); gdy `None` (domyślnie)
+`render_battle_report(battle)` (`tbbui.battlereport`); zawsze osadza też
+kanoniczne stringi z `render_settlement_panel(world)` (K22.1c) i
+`render_party_panel(world)` (K22.2b); gdy `None` (domyślnie)
 wynik jest identyczny bajt-w-bajt jak bez argumentu; element `data-calendar` z
 `data-year` / `data-month` z podanego `Calendar` oraz widocznym tekstem
 `Rok N, miesiąc M` (K21.1a, zgodnym z atrybutami); po jednym elemencie
@@ -231,6 +251,8 @@ game/                     # katalog projektu (repo root dla tej gry)
 │       ├── hexgeom.py    # geometria heksów pointy-top (hex→pixel, narożniki)
 │       ├── battlesvg.py  # SVG pola bitwy heksowej (heksy + znaczniki jednostek)
 │       ├── battlereport.py  # HTML fragment raportu bitwy (wynik + straty)
+│       ├── settlementpanel.py # HTML panel osad (zasoby + populacja + garnizon)
+│       ├── partypanel.py   # HTML panel party (właściciel + siła oddziału)
 │       ├── layout.py     # deterministyczny layout regionów WorldMap → (col, row)
 │       ├── palette.py    # paleta kolorów właścicieli (owner_id → fill)
 │       ├── worldsvg.py   # SVG mapy strategicznej (węzły + linie + znaczniki)
@@ -261,6 +283,8 @@ game/                     # katalog projektu (repo root dla tej gry)
 │   ├── test_worldsvg.py  # SVG mapy: węzły + linie + znaczniki (tbbui)
 │   ├── test_battlesvg.py # SVG pola bitwy heksowej (tbbui)
 │   ├── test_battlereport.py  # HTML raport bitwy (tbbui, K17.1a)
+│   ├── test_settlementpanel.py # HTML panel osad (tbbui, K22.1)
+│   ├── test_partypanel.py  # HTML panel party (tbbui, K22.2)
 │   ├── test_gamepage.py  # HTML strony partii (tbbui)
 │   ├── test_ui_main.py   # CLI snapshot partii (python -m tbbui)
 │   ├── test_serve.py     # GameApp.handle routing podglądu (tbbui, V13.5a)
