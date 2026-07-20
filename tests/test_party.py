@@ -149,6 +149,20 @@ def test_reconstruct_rejects_missing_hero_and_more_than_twelve_subordinates():
         Party.reconstruct(original, [Unit() for _ in range(14)])
 
 
+@pytest.mark.parametrize(
+    ("survivors", "message"),
+    [
+        ((object(),), "party hero must be a Unit"),
+        ((Unit(), object()), "party subordinates must be Units"),
+    ],
+)
+def test_reconstruct_rejects_non_unit_survivors_with_constructor_errors(
+    survivors, message
+):
+    with pytest.raises(TypeError, match=message):
+        Party.reconstruct(Party(Unit()), survivors)
+
+
 def test_reconstruct_accepts_side_survivors_in_deployment_order():
     original = Party(Unit(), [Unit()], owner_id="north")
     hero = Unit(training=2)

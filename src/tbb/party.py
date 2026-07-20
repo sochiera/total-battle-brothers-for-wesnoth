@@ -45,6 +45,12 @@ class Party:
         ordered_survivors = tuple(survivors)
         if not ordered_survivors:
             raise ValueError("cannot reconstruct a party without a surviving hero")
+        if not isinstance(ordered_survivors[0], Unit):
+            raise TypeError("party hero must be a Unit")
+        if len(ordered_survivors) > 13:
+            raise ValueError("party cannot have more than twelve subordinates")
+        if any(not isinstance(unit, Unit) for unit in ordered_survivors[1:]):
+            raise TypeError("party subordinates must be Units")
         strategic_survivors = tuple(
             replace(unit, stunned=False) if unit.stunned else unit
             for unit in ordered_survivors
