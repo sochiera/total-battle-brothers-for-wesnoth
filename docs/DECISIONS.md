@@ -147,3 +147,8 @@
 | K22.1c | Panel osad w stronie | `render_game_page` osadza kanoniczny `render_settlement_panel(world)` w `<body>`. |
 | K22.2a | Panel party — siła | `tbbui.partypanel.render_party_panel(world)`: `data-party-panel` z wierszem `data-party-row`/`data-owner`/`data-size` na party + tekst `<region> (<owner>): bohater + N podkomendnych`. |
 | K22.2b | Panel party w stronie | `render_game_page` osadza kanoniczny `render_party_panel(world)` w `<body>`. |
+| K23.1a | Legenda właścicieli | `tbbui.ownerlegend.render_owner_legend(world)`: fragment `data-owner-legend` z wierszem `data-owner-legend-row`/`data-owner`/`data-color` na właściciela (kolejność `owner_palette`) + tekst `<owner>: <kolor>`. |
+| K23.1b | Legenda w stronie | `render_game_page` osadza kanoniczny `render_owner_legend(world)` w `<body>`. |
+| K23.2a | Oznaczenie gracza w stronie | `render_game_page(..., player_duchy_id=None)`: dopasowane `data-duchy` dostaje `data-player-duchy=""` + prefiks `» `; `None` → bajt-w-bajt jak wcześniej. |
+| K23.2b | Przewleczenie gracza z GameApp | `GameApp._render` woła `render_game_page(..., player_duchy_id=self.player_duchy_id)`; `data-player`/routing bez zmian. |
+| K23.3a | Panel osad — osady gracza | `render_settlement_panel(world, player_duchy_id=None)`: wiersze z `owner_id == player_duchy_id` dostają `data-player-owned=""`; `None` → bajt-w-bajt jak wcześniej; atrybuty/tekst K22.1 bez zmian. |

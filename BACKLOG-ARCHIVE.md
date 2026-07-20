@@ -241,3 +241,12 @@
 - [x] **K21.1c** Czytelne straty per strona w `render_battle_report`. *(task-111)*
 - [x] **K21.2** Nagłówki sekcji rozkazów w `GET /` (`data-order-section`). *(task-112)*
 - [x] **R21.1 (refaktor)** Wspólny emiter formularzy celu marsz/szturm/starcie. *(task-113)*
+
+## Kamień milowy 22 — czytelny stan gospodarczo-wojskowy w podglądzie — UKOŃCZONY
+> Czyste panele prezentacji gospodarki osad (pszenica/złoto, populacja, garnizon)
+> i siły oddziałów na mapie, osadzone w stronie partii. Rdzeń bez zmian.
+- [x] **K22.1a** Panel osad z zasobami (`render_settlement_panel`, `data-settlement-row`/`data-wheat`/`data-gold`). *(task-114)*
+- [x] **K22.1b** Panel osad: populacja i garnizon (`data-population`/`data-free`/`data-garrison`). *(task-115)*
+- [x] **K22.1c** Osadzenie panelu osad w `render_game_page`. *(task-116)*
+- [x] **K22.2a** Panel party z siłą oddziału (`render_party_panel`, `data-party-row`/`data-size`). *(task-117)*
+- [x] **K22.2b** Osadzenie panelu party w `render_game_page`. *(task-118)*

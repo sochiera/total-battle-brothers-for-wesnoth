@@ -462,6 +462,19 @@ oddziałów na mapie — nie może świadomie decydować o rekrutacji/rozwoju/st
 oddziału → K22.2a), osadzone w `render_game_page` (K22.1c/K22.2b). Rdzeń `tbb`
 bez zmian; dane pochodzą z istniejących `Settlement`/`Party`.
 
+**PLAN K23 (orientacja gracza w podglądzie):** K22 dał gospodarkę i siłę, ale
+mapa koloruje właścicieli bez legendy (człowiek nie odczyta kolorów), a strona
+listuje księstwa i osady jednakowo (gracz nie wie, które są jego). K23 dokłada:
+czysty prymityw `tbbui.ownerlegend.render_owner_legend(world)` (fragment
+`data-owner-legend` z wierszem na właściciela z palety, K23.1a) osadzony w
+`render_game_page` (K23.1b); opcjonalny `player_duchy_id` w `render_game_page`
+oznaczający wiersz `data-duchy` gracza (`data-player-duchy` + prefiks `» `,
+K23.2a) przewleczony z `GameApp._render` (K23.2b); opcjonalny `player_duchy_id`
+w `render_settlement_panel` znakujący własne osady (`data-player-owned`, K23.3a;
+osadzenie w stronie — przyszły przyrost). Nowe argumenty domyślnie `None` →
+wyniki bajt-w-bajt jak dotąd. Rdzeń `tbb` bez zmian; dane z istniejących
+`owner_palette`/`Settlement`/`GameState`.
+
 ## 12. Otwarte pytania (nadal)
 - **Krzywe filarów:** różne parametry stromości per filar oraz wpływ budynków/
   mnożników — strojenie przy balansie (bazowa trójkątna krzywa: U3.2 w DECISIONS).

@@ -104,22 +104,30 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > Pozycje (task-109…113) w `BACKLOG-ARCHIVE.md`. Maszynowe `data-*` i routing bez
 > zmian; rdzeń bez zmian.
 
-## Kamień milowy 22 — czytelny stan gospodarczo-wojskowy w podglądzie (decyzje gracza)
-> DESIGN §11 (PLAN K22): strona pokazuje wynik/kalendarz/liczby księstw i raport
-> bitwy, ale gracz nie widzi gospodarki własnych osad (pszenica/złoto, populacja,
-> garnizon) ani siły oddziałów na mapie — nie może świadomie decydować o
-> rekrutacji/rozwoju/starciu (DESIGN §6 pkt 2). K22 dokłada czyste panele
-> prezentacji osad i party osadzone w stronie partii. Rdzeń bez zmian.
-- [ ] **K22.1a** Panel osad z zasobami (`render_settlement_panel`, `data-settlement-row`/`data-wheat`/`data-gold`). *(task-114)*
-  - AC: fragment `data-settlement-panel`; wiersz na osadę w kolejności `world.regions`; tekst `<name> (<owner>): pszenica W, złoto G`.
-- [ ] **K22.1b** Panel osad: populacja i garnizon (`data-population`/`data-free`/`data-garrison`). *(task-115)*
-  - AC: dokleja `· populacja P (wolne F), garnizon N`; atrybuty/tekst K22.1a bez zmian.
-- [ ] **K22.1c** Osadzenie panelu osad w `render_game_page`. *(task-116)*
-  - AC: dokładnie jeden `data-settlement-panel` na stronie; reszta strony bez zmian poza dodaniem panelu.
-- [ ] **K22.2a** Panel party z siłą oddziału (`render_party_panel`, `data-party-row`/`data-size`). *(task-117)*
-  - AC: fragment `data-party-panel`; wiersz na party w kolejności `world.regions`; tekst `<region> (<owner>): bohater + N podkomendnych`.
-- [ ] **K22.2b** Osadzenie panelu party w `render_game_page`. *(task-118)*
-  - AC: dokładnie jeden `data-party-panel` na stronie; reszta strony bez zmian poza dodaniem panelu.
+## Kamień milowy 22 — czytelny stan gospodarczo-wojskowy w podglądzie — UKOŃCZONY
+> DESIGN §11 (PLAN K22): strona pokazuje gospodarkę własnych osad (pszenica/złoto,
+> populacja, garnizon) i siłę oddziałów na mapie przez czyste panele
+> `render_settlement_panel` (K22.1a–b) i `render_party_panel` (K22.2a) osadzone
+> w `render_game_page` (K22.1c/K22.2b). Wszystkie pozycje (task-114…118)
+> w `BACKLOG-ARCHIVE.md`. Rdzeń bez zmian.
+
+## Kamień milowy 23 — orientacja gracza w podglądzie (legenda + tożsamość)
+> DESIGN §11 (PLAN K23): K22 dał gospodarkę i siłę, ale mapa koloruje właścicieli
+> bez legendy (człowiek nie odczyta kolorów), a strona listuje księstwa i osady
+> jednakowo (gracz nie wie, które są jego). K23 dokłada czystą legendę właścicieli
+> oraz oznaczenie księstwa/osad gracza — wszystko jako opcjonalne, wsteczne
+> przyrosty prezentacji. Rdzeń `tbb` bez zmian.
+- [ ] **K23.1a** Legenda właścicieli (`render_owner_legend`, `data-owner-legend`/`data-owner-legend-row`/`data-color`). *(task-119)*
+  - AC: fragment `data-owner-legend`; wiersz na właściciela w kolejności `owner_palette`; tekst `<owner>: <kolor>`.
+- [ ] **K23.1b** Osadzenie legendy w `render_game_page`. *(task-120)*
+  - AC: dokładnie jeden `data-owner-legend` na stronie; reszta strony bez zmian poza dodaniem legendy.
+- [ ] **K23.2a** Oznaczenie księstwa gracza w stronie (`render_game_page(..., player_duchy_id=None)`, `data-player-duchy`). *(task-121)*
+  - AC: `None` → bajt-w-bajt jak dziś; dopasowane księstwo dostaje `data-player-duchy=""` + prefiks `» `.
+- [ ] **K23.2b** Przewleczenie `player_duchy_id` z `GameApp._render`. *(task-122)*
+  - AC: `GET /` z ustawionym graczem ma dokładnie jeden `data-player-duchy`; `None` → brak; `data-player`/routing bez zmian.
+- [ ] **K23.3a** Panel osad wyróżnia osady gracza (`render_settlement_panel(..., player_duchy_id=None)`, `data-player-owned`). *(task-123)*
+  - AC: `None` → bajt-w-bajt jak dziś; wiersze z `owner_id == player_duchy_id` dostają `data-player-owned=""`; atrybuty/tekst K22.1 bez zmian.
+- [ ] **K23.3b** Przewleczenie `player_duchy_id` do panelu osad w `render_game_page` (przyszły przyrost).
 
 ## Dług/refaktor
 - [x] **R21.1 (refaktor)** Wspólny emiter formularzy celu marsz/szturm/starcie w `serve.py`. *(task-113)*
