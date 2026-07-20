@@ -317,6 +317,14 @@ def test_render_game_page_embeds_canonical_party_panel_with_matching_rows():
     panels = _find_by_attr(root, "data-party-panel")
     assert len(panels) == 1
 
+    party_regions = [
+        region for region in world.regions if world.party_at(region) is not None
+    ]
+    row_els = _find_by_attr(root, "data-party-row")
+    assert [el.get("data-party-row") for el in row_els] == [
+        region.name for region in party_regions
+    ]
+
 
 def test_render_game_page_embeds_canonical_owner_legend_with_matching_rows():
     """Page embeds ``render_owner_legend(world)`` verbatim; rows match owner_palette."""
@@ -336,14 +344,6 @@ def test_render_game_page_embeds_canonical_owner_legend_with_matching_rows():
     assert [el.get("data-owner-legend-row") for el in row_els] == list(
         owner_palette(world)
     )
-
-    party_regions = [
-        region for region in world.regions if world.party_at(region) is not None
-    ]
-    row_els = _find_by_attr(root, "data-party-row")
-    assert [el.get("data-party-row") for el in row_els] == [
-        region.name for region in party_regions
-    ]
 
 
 def test_render_game_page_embeds_battle_report_matching_battle_report_counts():
