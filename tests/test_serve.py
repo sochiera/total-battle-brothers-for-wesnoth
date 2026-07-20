@@ -1317,6 +1317,103 @@ def test_game_app_post_order_assault_applies_assault_and_resyncs():
     assert enemy_keep.owner_id == "south"
 
 
+def test_game_app_post_order_assault_with_target_applies_assault_to():
+    """POST /order/assault?target=<region> applies assault_duchy_party_to + re-syncs.
+
+    Contract (task-089 / K15.2b):
+    - handle splits path from query so POST /order/assault?target=… routes as
+      assault
+    - non-empty URL-decoded target matching a name in world.regions applies
+      via _apply_player_order the transition
+      ``lambda world, duchy: ai.assault_duchy_party_to(world, duchy, region,
+      self.rng, morale_by_owner=...)`` with morale_by_owner built from
+      self.game.duchies; replaces self.world, re-syncs game from the new map;
+      returns (200, page)
+    - target is *not* the nearest enemy settlement (tie-break keeps the first
+      region in world.regions order), so the resolved battle cannot come from
+      the automatic assault_duchy_party fallback
+    """
+    start, keep_a_region, keep_b_region = map(
+        Region, ("Start", "KeepA", "KeepB")
+    )
+    party = Party(Unit(training=5, equipment=6), owner_id="north")
+    keep_a = Settlement(
+        "Keep A", population=1, garrison=(Unit(equipment=1),), owner_id="south"
+    )
+    keep_b = Settlement(
+        "Keep B", population=1, garrison=(Unit(equipment=1),), owner_id="south"
+    )
+    world = WorldMap(
+        (start, keep_a_region, keep_b_region),
+        ((start, keep_a_region), (start, keep_b_region)),
+        settlements={keep_a_region: keep_a, keep_b_region: keep_b},
+        parties={start: party},
+    )
+    game = GameState(
+        (
+            Duchy("north", party.hero, parties=(party,), morale=10),
+            Duchy("south", Unit(), settlements=(keep_a, keep_b), morale=-5),
+        )
+    )
+    assert not game.is_over
+    calendar = Calendar(year=2, month=3)
+    seed = 11
+    app = GameApp(world, game, calendar, Rng(seed), player_duchy_id="north")
+
+    world_before = app.world
+    game_before = app.game
+    player_duchy = next(
+        d for d in game_before.duchies if d.duchy_id == "north"
+    )
+    # Automatic nearest-enemy assault ties on distance and keeps the first
+    # region in world.regions order: KeepA, not KeepB.
+    auto = ai.assault_duchy_party(
+        world_before,
+        player_duchy,
+        Rng(seed),
+        morale_by_owner={d.duchy_id: d.morale for d in game_before.duchies},
+    )
+    assert auto.settlement_at(keep_a_region).owner_id == "north"
+    assert auto.settlement_at(keep_b_region).owner_id == "south"
+
+    expected_world = ai.assault_duchy_party_to(
+        world_before,
+        player_duchy,
+        keep_b_region,
+        Rng(seed),
+        morale_by_owner={d.duchy_id: d.morale for d in game_before.duchies},
+    )
+    expected_game = game_before.sync_from_world(expected_world)
+    assert expected_world.settlement_at(keep_b_region).owner_id == "north"
+    assert expected_world.settlement_at(keep_a_region).owner_id == "south"
+
+    code, body = app.handle("POST", "/order/assault?target=KeepB")
+    assert code == 200
+    assert isinstance(body, str)
+    assert body.strip() != ""
+    root = ET.fromstring(body)
+    assert _local(root.tag) == "html"
+    assert _calendar_stamp(body) == (2, 3)
+
+    # World replaced with explicit-target assault result; game re-synced.
+    assert app.world is not world_before
+    assert app.world.settlement_at(keep_b_region).owner_id == "north"
+    assert app.world.settlement_at(keep_a_region).owner_id == "south"
+    assert app.game is not game_before
+    player = next(d for d in app.game.duchies if d.duchy_id == "north")
+    expected_player = next(
+        d for d in expected_game.duchies if d.duchy_id == "north"
+    )
+    assert player.parties == expected_player.parties
+    assert player.settlements == expected_player.settlements
+    assert app.calendar == calendar
+    # Inputs to the call must not have been mutated in place.
+    assert world_before.settlement_at(keep_a_region) is keep_a
+    assert world_before.settlement_at(keep_b_region) is keep_b
+    assert keep_a.owner_id == "south"
+    assert keep_b.owner_id == "south"
+
+
 def test_game_app_order_assault_form_noop_and_determinism():
     """GET form /order/assault; no-op guards; assault sequence determinism.
 

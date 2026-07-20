@@ -111,7 +111,7 @@ class GameApp:
             self._apply_player_order(ai.develop_duchy_settlement)
             return 200, self._render()
         if method == "POST" and route == "/order/march":
-            target_region = self._march_target_region(query)
+            target_region = self._order_target_region(query)
             if target_region is not None:
                 self._apply_player_order(
                     lambda world, duchy: ai.march_duchy_party_to(
@@ -123,20 +123,30 @@ class GameApp:
             return 200, self._render()
         if method == "POST" and route == "/order/assault":
             morale_by_owner = {d.duchy_id: d.morale for d in self.game.duchies}
-
-            def _assault(world, duchy):
-                return ai.assault_duchy_party(
-                    world,
-                    duchy,
-                    self.rng,
-                    morale_by_owner=morale_by_owner,
+            target_region = self._order_target_region(query)
+            if target_region is not None:
+                self._apply_player_order(
+                    lambda world, duchy: ai.assault_duchy_party_to(
+                        world,
+                        duchy,
+                        target_region,
+                        self.rng,
+                        morale_by_owner=morale_by_owner,
+                    )
                 )
-
-            self._apply_player_order(_assault)
+            else:
+                self._apply_player_order(
+                    lambda world, duchy: ai.assault_duchy_party(
+                        world,
+                        duchy,
+                        self.rng,
+                        morale_by_owner=morale_by_owner,
+                    )
+                )
             return 200, self._render()
         return 404, "Not Found"
 
-    def _march_target_region(self, query: str):
+    def _order_target_region(self, query: str):
         """Resolve non-empty ``target`` query to a known ``Region``, else ``None``."""
         if not query:
             return None

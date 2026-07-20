@@ -1088,10 +1088,9 @@ ich dotykają, i notować wynik tutaj:
   — jawny cel przez query: K15.1b.
   **ROZSTRZYGNIĘTE (K15.1b, rozkaz marszu na wskazany region):**
   `GameApp.handle` rozdziela ścieżkę od query (`path.partition("?")`) i
-  parsuje `target` przez `urllib.parse.parse_qs`. `POST /order/march?target=<nazwa>`
-  z niepustym, URL-dekodowanym `target` odpowiadającym regionowi w
-  `world.regions` (dopasowanie po `Region.name`) stosuje przez
-  `_apply_player_order` przejście
+  parsuje `target` przez wspólne `_order_target_region` (`urllib.parse.parse_qs`,
+  dopasowanie po `Region.name` w `world.regions`). `POST /order/march?target=<nazwa>`
+  z niepustym, znanym `target` stosuje przez `_apply_player_order` przejście
   `lambda world, duchy: ai.march_duchy_party_to(world, duchy, region)`.
   Brak / pusty / nieznany `target` → fallback `ai.march_duchy_party` (jak
   K14.2d2). Handler `make_server` przekazuje pełne `self.path` (z query) do
@@ -1125,15 +1124,20 @@ ich dotykają, i notować wynik tutaj:
   duchy.duchy_id` / `owner_id is None`) → no-op bez rzutu RNG. Bez mutacji
   wejścia; odpowiednik `assault_duchy_party` z jawnym `target` zamiast
   `nearest_enemy_settlement`. Routing `?target=` i UI — K15.2b+.
-  **ROZSTRZYGNIĘTE (K14.2e2, rozkaz szturmu osady gracza):**
+  **ROZSTRZYGNIĘTE (K14.2e2 / K15.2b, rozkaz szturmu osady gracza):**
   `POST /order/assault` na `GameApp` — ten sam warunek i re-sync, wspólnym
-  helperem `_apply_player_order`, z zamknięciem
+  helperem `_apply_player_order`. Parsowanie `target` reużywa
+  `_order_target_region` (jak marsz K15.1b). `POST /order/assault?target=<nazwa>`
+  z niepustym, URL-dekodowanym `target` odpowiadającym regionowi w
+  `world.regions` →
+  `(world, duchy) -> ai.assault_duchy_party_to(world, duchy, region, self.rng,
+  morale_by_owner={d.duchy_id: d.morale for d in self.game.duchies})`.
+  Brak / pusty / nieznany `target` → fallback
   `(world, duchy) -> ai.assault_duchy_party(world, duchy, self.rng,
-  morale_by_owner={d.duchy_id: d.morale for d in self.game.duchies})` (szturm
-  potrzebuje `rng` i morale, więc nie da się podać samego prymitywu). No-op
-  gdy brak gracza, gra skończona lub brak księstwa. Zawsze `(200, strona)`.
-  `GET /` zawiera formularz `<form method="post" action="/order/assault">`.
-  Cel szturmu automatyczny (prymityw AI).
+  morale_by_owner=…)` (K14.2e2). No-op gdy brak gracza, gra skończona lub
+  brak księstwa. Zawsze `(200, strona)`. `GET /` zawiera formularz
+  `<form method="post" action="/order/assault">` (UI wyboru celu — kolejny
+  wsad).
   **ROZSTRZYGNIĘTE (A7.2b3b1, akcje księstw na wspólnej mapie):** gdy gra
   trwa i budżet pozwala na co najmniej jedną turę, driver wykonuje pojedynczy
   przebieg księstw w kolejności `game.duchies`. Każde niepokonane księstwo
