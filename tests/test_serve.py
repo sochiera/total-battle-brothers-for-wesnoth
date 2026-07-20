@@ -1566,6 +1566,150 @@ def test_game_app_post_order_recruit_clears_last_battle():
     assert battle_svg not in body2
 
 
+def test_game_app_post_order_march_with_target_clears_last_battle():
+    """POST /order/march?target=<region> resets self.last_battle to None (task-097 / K16.1d-3).
+
+    A recorded battle from a prior assault must not linger once the player
+    marches a party: the returned page no longer embeds the old battle's SVG.
+    """
+    start, keep_a_region, keep_b_region = map(
+        Region, ("Start", "KeepA", "KeepB")
+    )
+    party = Party(Unit(training=5, equipment=6), owner_id="north")
+    keep_a = Settlement(
+        "Keep A", population=1, garrison=(Unit(equipment=1),), owner_id="south"
+    )
+    keep_b = Settlement(
+        "Keep B", population=1, garrison=(Unit(equipment=1),), owner_id="south"
+    )
+    world = WorldMap(
+        (start, keep_a_region, keep_b_region),
+        ((start, keep_a_region), (start, keep_b_region)),
+        settlements={keep_a_region: keep_a, keep_b_region: keep_b},
+        parties={start: party},
+    )
+    game = GameState(
+        (
+            Duchy("north", party.hero, parties=(party,), morale=10),
+            Duchy("south", Unit(), settlements=(keep_a, keep_b), morale=-5),
+        )
+    )
+    calendar = Calendar(year=2, month=3)
+    seed = 11
+    app = GameApp(world, game, calendar, Rng(seed), player_duchy_id="north")
+
+    code, body = app.handle("POST", "/order/assault?target=KeepB")
+    assert code == 200
+    assert app.last_battle is not None
+    battle_svg = render_battle_svg(app.last_battle)
+    assert battle_svg in body
+
+    code2, body2 = app.handle("POST", "/order/march?target=KeepA")
+    assert code2 == 200
+    assert app.last_battle is None
+    assert battle_svg not in body2
+
+
+def test_game_app_post_order_march_clears_last_battle():
+    """POST /order/march (no target) resets self.last_battle to None (task-097 / K16.1d-3).
+
+    Acceptance requires march both with and without ``?target=`` to clear the
+    recorded battle; the with-target case is covered separately.
+    """
+    _assault_then_order_clears_last_battle("/order/march")
+
+
+def _assault_then_order_clears_last_battle(order_route: str) -> None:
+    """Shared body: assault sets last_battle, then order_route clears it (task-097 / K16.1d-3)."""
+    start, keep_a_region, keep_b_region = map(
+        Region, ("Start", "KeepA", "KeepB")
+    )
+    party = Party(Unit(training=5, equipment=6), owner_id="north")
+    keep_a = Settlement(
+        "Keep A", population=1, garrison=(Unit(equipment=1),), owner_id="south"
+    )
+    keep_b = Settlement(
+        "Keep B", population=1, garrison=(Unit(equipment=1),), owner_id="south"
+    )
+    world = WorldMap(
+        (start, keep_a_region, keep_b_region),
+        ((start, keep_a_region), (start, keep_b_region)),
+        settlements={keep_a_region: keep_a, keep_b_region: keep_b},
+        parties={start: party},
+    )
+    game = GameState(
+        (
+            Duchy("north", party.hero, parties=(party,), morale=10),
+            Duchy("south", Unit(), settlements=(keep_a, keep_b), morale=-5),
+        )
+    )
+    calendar = Calendar(year=2, month=3)
+    seed = 11
+    app = GameApp(world, game, calendar, Rng(seed), player_duchy_id="north")
+
+    code, body = app.handle("POST", "/order/assault?target=KeepB")
+    assert code == 200
+    assert app.last_battle is not None
+    battle_svg = render_battle_svg(app.last_battle)
+    assert battle_svg in body
+
+    code2, body2 = app.handle("POST", order_route)
+    assert code2 == 200
+    assert app.last_battle is None
+    assert battle_svg not in body2
+
+
+def test_game_app_post_order_muster_clears_last_battle():
+    """POST /order/muster resets self.last_battle to None (task-097 / K16.1d-3)."""
+    _assault_then_order_clears_last_battle("/order/muster")
+
+
+def test_game_app_post_order_develop_clears_last_battle():
+    """POST /order/develop resets self.last_battle to None (task-097 / K16.1d-3)."""
+    _assault_then_order_clears_last_battle("/order/develop")
+
+
+def test_game_app_post_turn_clears_last_battle():
+    """POST /turn resets self.last_battle to None (task-097 / K16.1d-3).
+
+    South owns a single settlement and nothing else, so conquering it ends
+    the game; the following ``POST /turn`` takes the is_over no-op path
+    (task-074 / V13.5a) and still must clear the recorded battle.
+    """
+    start, target = map(Region, ("Start", "Target"))
+    party = Party(Unit(training=5, equipment=6), owner_id="north")
+    enemy_keep = Settlement(
+        "Enemy Keep", population=1, garrison=(Unit(equipment=1),), owner_id="south"
+    )
+    world = WorldMap(
+        (start, target),
+        ((start, target),),
+        settlements={target: enemy_keep},
+        parties={start: party},
+    )
+    game = GameState(
+        (
+            Duchy("north", party.hero, parties=(party,), morale=10),
+            Duchy("south", None, settlements=(enemy_keep,), morale=-5),
+        )
+    )
+    calendar = Calendar(year=2, month=3)
+    seed = 11
+    app = GameApp(world, game, calendar, Rng(seed), player_duchy_id="north")
+
+    code, body = app.handle("POST", "/order/assault")
+    assert code == 200
+    assert app.last_battle is not None
+    assert app.game.is_over
+    battle_svg = render_battle_svg(app.last_battle)
+    assert battle_svg in body
+
+    code2, body2 = app.handle("POST", "/turn")
+    assert code2 == 200
+    assert app.last_battle is None
+    assert battle_svg not in body2
+
+
 def test_game_app_post_order_assault_without_target_sets_last_battle_and_renders_svg():
     """POST /order/assault (no target) sets last_battle via assault_duchy_party_recorded.
 
