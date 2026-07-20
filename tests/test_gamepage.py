@@ -420,6 +420,28 @@ def test_render_game_page_passes_player_duchy_id_to_party_panel():
             assert el.get("data-player-owned") is None
 
 
+def test_render_game_page_passes_player_duchy_id_to_owner_legend():
+    """``player_duchy_id`` reaches the owner legend: matching row flagged."""
+    world, game, calendar = _ongoing_fixture()
+    expected_legend = render_owner_legend(world, "north")
+
+    html = render_game_page(world, game, calendar, player_duchy_id="north")
+    assert expected_legend in html, (
+        "page must embed render_owner_legend(world, player_duchy_id) output"
+    )
+
+    root = ET.fromstring(html)
+    row_els = _find_by_attr(root, "data-owner-legend-row")
+    by_owner = {el.get("data-owner-legend-row"): el for el in row_els}
+
+    for owner_id in owner_palette(world):
+        el = by_owner[owner_id]
+        if owner_id == "north":
+            assert el.get("data-player-owner") == ""
+        else:
+            assert el.get("data-player-owner") is None
+
+
 def test_render_game_page_embeds_battle_report_matching_battle_report_counts():
     """``data-battle-report`` is present with battle, absent without; counts match."""
     world, game, calendar = _ongoing_fixture()

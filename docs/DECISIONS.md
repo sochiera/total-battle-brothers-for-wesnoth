@@ -156,3 +156,4 @@
 | K24.1a | Panel party — party gracza | `render_party_panel(world, player_duchy_id=None)`: wiersze z `owner_id == player_duchy_id` dostają `data-player-owned=""`; `None` → bajt-w-bajt jak wcześniej; atrybuty/tekst K22.2 bez zmian. |
 | K24.1b | Panel party w stronie z graczem | `render_game_page` woła `render_party_panel(world, player_duchy_id)`; `None` → bajt-w-bajt jak wcześniej. |
 | K24.2a | Legenda — kolor gracza | `render_owner_legend(world, player_duchy_id=None)`: wiersz z `owner_id == player_duchy_id` dostaje `data-player-owner=""` + prefiks `» `; `None` → bajt-w-bajt jak wcześniej; paleta/kolejność/atrybuty K23.1a bez zmian. |
+| K24.2b | Legenda w stronie z graczem | `render_game_page` woła `render_owner_legend(world, player_duchy_id)`; `None` → bajt-w-bajt jak wcześniej. |

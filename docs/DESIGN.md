@@ -360,7 +360,8 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   panel księstw (`data-duchy` + tekst statusu; przy `player_duchy_id` dopasowany
   wiersz ma `data-player-duchy=""` i prefiks `» `), wynik (`data-result`), banner
   wyniku (`<p data-result-text>`: `Gra w toku` / `Remis` / `Zwycięstwo: <id>`),
-  opcjonalnie SVG bitwy i raport bitwy gdy `battle` podane; osadza też panel osad
+  opcjonalnie SVG bitwy i raport bitwy gdy `battle` podane; osadza też legendę
+  właścicieli (`render_owner_legend(world, player_duchy_id)`), panel osad
   (`render_settlement_panel(world, player_duchy_id)`) i panel party
   (`render_party_panel(world, player_duchy_id)`).
 
@@ -485,9 +486,9 @@ dane z istniejących `owner_palette`/`Settlement`/`GameState`.
 gracza; K24.1a dodaje `player_duchy_id` w `render_party_panel` (`data-player-owned`
 na własnych party); K24.1b przewleka `player_duchy_id` z `render_game_page` do
 panelu party; K24.2a dodaje `player_duchy_id` w `render_owner_legend`
-(`data-player-owner` + prefiks `» ` na wierszu gracza). Pozostaje przewleczenie
-`player_duchy_id` do legendy przez `render_game_page` (K24.2b). Nowe argumenty
-domyślnie `None` → wyniki bajt-w-bajt jak dotąd. Rdzeń `tbb` bez zmian; dane z
+(`data-player-owner` + prefiks `» ` na wierszu gracza); K24.2b przewleka
+`player_duchy_id` z `render_game_page` do legendy. Nowe argumenty domyślnie
+`None` → wyniki bajt-w-bajt jak dotąd. Rdzeń `tbb` bez zmian; dane z
 istniejących `Party`/`owner_palette`.
 
 ## 12. Otwarte pytania (nadal)
