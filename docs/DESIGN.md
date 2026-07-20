@@ -825,8 +825,12 @@ reużywające istniejące czyste prymitywy: `recruit` → `ai.recruit_duchy_unit
 (K14.2a–c); po każdym rozkazie mapa jest podmieniana, a gra
 re-synchronizowana `sync_from_world`. **Wybór celu/osady pozostaje automatyczny**
 (pierwsza kwalifikująca się) — to placeholder, gracz decyduje jedynie *czy*
-wykonać akcję w tej turze. Marsz i szturm gracza oraz wybór konkretnej
-osady/celu z przeglądarki dochodzą w kolejnym wsadzie K14. Rdzeń `tbb` nadal
+wykonać akcję w tej turze. Marsz i szturm gracza domykają agency single-player:
+`march` → `ai.march_duchy_party` (K14.2d), `assault` → `ai.assault_duchy_party`
+z `rng`/morale księstw (K14.2e); oba prymitywy AI znajdują party gracza przez
+`_duchy_party_position` i delegują do istniejących `march_toward_nearest_enemy` /
+`assault_nearest_enemy_settlement`. **Wybór konkretnej osady/celu i marsz na
+zadany region pozostają poza K14** (placeholder automatyczny). Rdzeń `tbb` nadal
 nie importuje `tbbui` (§8 bez zmian).
 
 ## 10. Otwarte pytania (do rozstrzygnięcia w trakcie)

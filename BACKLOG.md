@@ -59,23 +59,24 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > reużywające istniejące czyste prymitywy `ai.*` — wybór celu pozostaje
 > automatyczny (placeholder), gracz decyduje *czy* wykonać akcję. Marsz i szturm
 > gracza oraz wybór konkretnej osady/celu to następny wsad K14.
-- [ ] **K14.1a** Driver pomija turę AI księstwa gracza. *(task-076)*
-  - AC: `run_headless_game(..., player_duchy_id=None)` — gdy podany, pętla nie
-    woła `take_duchy_turn` dla tego księstwa; tick/sync/raise_hero/heir bez
-    zmian; `None` = zgodność wsteczna; czyste i deterministyczne.
-- [ ] **K14.1b** GameApp zna gracza; `/turn` odpala tylko AI. *(task-077)*
-  - AC: `GameApp(..., player_duchy_id=None)`; `POST /turn` przewleka je do
-    `run_headless_game`; `GET /` osadza `data-player`; `python -m tbbui serve`
-    tworzy grę z `player_duchy_id="player"`.
-- [ ] **K14.2a** Rozkaz gracza: rekrutacja (`POST /order/recruit`). *(task-078)*
-  - AC: stosuje `ai.recruit_duchy_unit` na księstwie gracza + re-sync; formularz
-    na stronie; no-op po `is_over`/braku gracza; deterministyczne.
-- [ ] **K14.2b** Rozkaz gracza: wystawienie party (`POST /order/muster`). *(task-079)*
-  - AC: stosuje `ai.muster_duchy_party` na księstwie gracza + re-sync (wspólny
-    helper rozkazu); formularz; no-op po `is_over`/braku gracza; deterministyczne.
-- [ ] **K14.2c** Rozkaz gracza: rozwój osady (`POST /order/develop`). *(task-080)*
-  - AC: stosuje `ai.develop_duchy_settlement` na księstwie gracza + re-sync;
-    formularz; no-op po `is_over`/braku gracza; deterministyczne.
+- [x] **K14.1a** Driver pomija turę AI księstwa gracza. *(task-076)*
+- [x] **K14.1b** GameApp zna gracza; `/turn` odpala tylko AI. *(task-077)*
+- [x] **K14.2a** Rozkaz gracza: rekrutacja (`POST /order/recruit`). *(task-078)*
+- [x] **K14.2b** Rozkaz gracza: wystawienie party (`POST /order/muster`). *(task-079)*
+- [x] **K14.2c** Rozkaz gracza: rozwój osady (`POST /order/develop`). *(task-080)*
+- [ ] **K14.2d1** Prymityw AI marszu party księstwa (`ai.march_duchy_party`). *(task-081)*
+  - AC: znajduje pozycję party księstwa i stosuje `march_toward_nearest_enemy`;
+    brak party = no-op; czyste, deterministyczne; reużywa `_duchy_party_position`.
+- [ ] **K14.2d2** Rozkaz gracza: marsz party (`POST /order/march`). *(task-082)*
+  - AC: `_apply_player_order(ai.march_duchy_party)` + re-sync; formularz; no-op po
+    `is_over`/braku gracza; deterministyczne.
+- [ ] **K14.2e1** Prymityw AI szturmu party księstwa (`ai.assault_duchy_party`). *(task-083)*
+  - AC: znajduje pozycję party i stosuje `assault_nearest_enemy_settlement`
+    (`rng`, `morale_by_owner`); brak party = no-op bez RNG; deterministyczne.
+- [ ] **K14.2e2** Rozkaz gracza: szturm osady (`POST /order/assault`). *(task-084)*
+  - AC: stosuje `ai.assault_duchy_party` na księstwie gracza z `self.rng`
+    i morale z `game.duchies` + re-sync; formularz; no-op po `is_over`/braku
+    gracza; deterministyczne.
 
 ## Później (poza MVP)
 - [ ] **R12.1 (opcjonalny dług)** Wspólna kwerenda własnych osad w `ai.py`:
