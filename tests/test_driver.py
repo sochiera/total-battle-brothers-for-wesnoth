@@ -12,7 +12,7 @@ from tbb.game import GameState, create_headless_game
 from tbb.party import Party
 from tbb.resources import Resources
 from tbb.rng import Rng
-from tbb.settlement import Settlement
+from tbb.settlement import HERO_GOLD_COST, Settlement
 from tbb.turn import Calendar
 from tbb.unit import Unit
 from tbb.world import Region, WorldMap
@@ -524,6 +524,152 @@ def test_lost_party_during_real_ai_turn_promotes_heir_before_world_sync():
         dict(world.parties),
         game.duchies,
     )
+
+
+def test_lost_hero_without_heir_regains_hero_from_settlement_next_turn():
+    """Heroless after succession without heir; next turn raises from owned settlement."""
+    camp, keep, home = map(Region, ("North Camp", "South Keep", "North Home"))
+    hero = Unit(equipment=1)
+    attacking_party = Party(hero, owner_id="north")
+    home_keep = Settlement(
+        "North Home",
+        population=5,
+        storage=Resources(wheat=20, gold=10),
+        owner_id="north",
+    )
+    south_keep = Settlement(
+        "South Keep",
+        4,
+        occupied=1,
+        garrison=(Unit(training=5, equipment=12),),
+        owner_id="south",
+    )
+    world = WorldMap(
+        (camp, keep, home),
+        ((camp, keep),),
+        settlements={home: home_keep, keep: south_keep},
+        parties={camp: attacking_party},
+    )
+    game = GameState(
+        (
+            Duchy(
+                "north",
+                hero,
+                morale=3,
+                parties=(attacking_party,),
+                settlements=(home_keep,),
+            ),
+            Duchy("south", Unit(), settlements=(south_keep,)),
+        )
+    )
+    snapshot = (dict(world.settlements), dict(world.parties), game.duchies)
+
+    after_loss_world, after_loss_game, _ = run_headless_game(
+        world, game, Rng(4), max_turns=1
+    )
+    north_after_loss = next(
+        duchy for duchy in after_loss_game.duchies if duchy.duchy_id == "north"
+    )
+    assert after_loss_world.party_at(camp) is None
+    assert north_after_loss.has_hero is False
+    assert north_after_loss.hero is None
+    assert north_after_loss.heir is None
+    assert north_after_loss.settlements
+    assert any(
+        settlement.population - settlement.occupied >= 1
+        and settlement.storage.gold >= HERO_GOLD_COST
+        for settlement in north_after_loss.settlements
+    )
+
+    first = run_headless_game(world, game, Rng(4), max_turns=2)
+    second = run_headless_game(world, game, Rng(4), max_turns=2)
+    result_world, result_game, _ = first
+    north = next(
+        duchy for duchy in result_game.duchies if duchy.duchy_id == "north"
+    )
+
+    assert first == second
+    assert north.has_hero is True
+    assert north.hero == Unit()
+    assert north.heir is None
+    assert result_world.settlement_at(home) is not None
+    assert result_world.settlement_at(home).owner_id == "north"
+    assert snapshot == (
+        dict(world.settlements),
+        dict(world.parties),
+        game.duchies,
+    )
+
+
+def test_raise_duchy_hero_runs_before_take_duchy_turn_with_sync(monkeypatch):
+    """Heroless duchy is raised before policy; take_duchy_turn sees the new hero."""
+    home, south = map(Region, ("Home", "South"))
+    home_keep = Settlement(
+        "Home",
+        population=5,
+        storage=Resources(wheat=10, gold=HERO_GOLD_COST + 4),
+        garrison=(Unit(training=1),),
+        owner_id="north",
+    )
+    south_keep = Settlement(
+        "South",
+        3,
+        storage=Resources(wheat=4, gold=2),
+        owner_id="south",
+    )
+    world = WorldMap(
+        (home, south),
+        settlements={home: home_keep, south: south_keep},
+    )
+    game = GameState(
+        (
+            Duchy("north", None, morale=2, settlements=(home_keep,)),
+            Duchy("south", Unit(), settlements=(south_keep,)),
+        )
+    )
+    events = []
+    real_raise = ai.raise_duchy_hero
+    real_take = ai.take_duchy_turn
+
+    def recording_raise(current_world, duchy):
+        events.append(("raise_in", duchy.duchy_id, duchy.has_hero))
+        result_world, result_duchy = real_raise(current_world, duchy)
+        events.append(("raise_out", result_duchy.duchy_id, result_duchy.has_hero))
+        return result_world, result_duchy
+
+    def recording_take(current_world, duchy, rng):
+        events.append(
+            ("take", duchy.duchy_id, duchy.has_hero, duchy.hero, type(rng).__name__)
+        )
+        return real_take(current_world, duchy, rng)
+
+    monkeypatch.setattr(ai, "raise_duchy_hero", recording_raise)
+    monkeypatch.setattr(ai, "take_duchy_turn", recording_take)
+
+    result_world, result_game, _ = run_headless_game(
+        world, game, Rng(3), max_turns=1
+    )
+    north = next(
+        duchy for duchy in result_game.duchies if duchy.duchy_id == "north"
+    )
+    north_events = [event for event in events if event[1] == "north"]
+
+    assert north_events[0] == ("raise_in", "north", False)
+    assert north_events[1] == ("raise_out", "north", True)
+    assert north_events[2][0] == "take"
+    assert north_events[2][1] == "north"
+    assert north_events[2][2] is True
+    assert north_events[2][3] == Unit()
+    assert north_events[2][4] == "Rng"
+    assert north.has_hero is True
+    assert north.hero == Unit()
+    assert north.morale == 2
+    assert result_game.duchies[0] is north or any(
+        duchy.duchy_id == "north" and duchy.has_hero for duchy in result_game.duchies
+    )
+    assert result_world.settlement_at(home).owner_id == "north"
+    assert world.settlement_at(home) is home_keep
+    assert game.duchies[0].has_hero is False
 
 
 def test_exit_conditions_return_typed_exact_unchanged_inputs():
