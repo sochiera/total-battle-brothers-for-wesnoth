@@ -127,3 +127,4 @@
 | K15.2a | assault_duchy_party_to | Jawny sąsiedni wrogi target → resolve_settlement_battle; inaczej no-op bez RNG. |
 | K15.2b | assault?target= | Jak K15.1b; fallback assault_duchy_party. |
 | K15.2c | UI celów szturmu | Jak K15.1c dla /order/assault; cele z `_march_targets`. |
+| K17.1a | HTML raport bitwy | `tbbui.battlereport.render_battle_report(battle) -> str`: fragment `data-battle-report` z `data-battle-result` i per-stroną `data-battle-side`/`data-fallen`/`data-stunned`/`data-active` z `HexBattle.report()`. |

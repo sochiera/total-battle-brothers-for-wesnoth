@@ -72,6 +72,15 @@ pointy-top: `hex_to_pixel(hex, size) -> (x, y)` (axial → piksel środka) oraz
 (`data-side`/`data-hp`/`data-stunned`) w środku z `hex_to_pixel`. Czyste,
 deterministyczne, bez mutacji `battle`.
 
+**Raport bitwy HTML (K17.1a):** `tbbui.battlereport.render_battle_report(battle)
+-> str` — parsowalny fragment XML z korzeniem `<div data-battle-report="">`;
+konsumuje `battle.report()` (rdzeń bez zmian). Dziecko
+`<div data-battle-result="…">` z `report.result.value` (`attacker_win` /
+`defender_win` / `draw`); po jednym `<div data-battle-side="attacker|defender">`
+z atrybutami `data-fallen` / `data-stunned` / `data-active` = liczności krotek
+`BattleSideReport` (kolejność: attacker, potem defender). Czyste, deterministyczne,
+bez mutacji `battle`. Osadzenie w `render_game_page` — K17.1b.
+
 **Strona HTML partii (V13.4a / K16.1a):** `tbbui.gamepage.render_game_page(world,
 game, calendar, battle=None) -> str` — parsowalny HTML z korzeniem `<html>`;
 osadza kanoniczny string z `render_world_svg(world)`; opcjonalny
@@ -187,6 +196,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │       ├── __main__.py   # CLI: snapshot HTML lub `serve [port]` (python -m tbbui)
 │       ├── hexgeom.py    # geometria heksów pointy-top (hex→pixel, narożniki)
 │       ├── battlesvg.py  # SVG pola bitwy heksowej (heksy + znaczniki jednostek)
+│       ├── battlereport.py  # HTML fragment raportu bitwy (wynik + straty)
 │       ├── layout.py     # deterministyczny layout regionów WorldMap → (col, row)
 │       ├── palette.py    # paleta kolorów właścicieli (owner_id → fill)
 │       ├── worldsvg.py   # SVG mapy strategicznej (węzły + linie + znaczniki)
@@ -216,6 +226,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │   ├── test_palette.py   # paleta kolorów właścicieli (tbbui)
 │   ├── test_worldsvg.py  # SVG mapy: węzły + linie + znaczniki (tbbui)
 │   ├── test_battlesvg.py # SVG pola bitwy heksowej (tbbui)
+│   ├── test_battlereport.py  # HTML raport bitwy (tbbui, K17.1a)
 │   ├── test_gamepage.py  # HTML strony partii (tbbui)
 │   ├── test_ui_main.py   # CLI snapshot partii (python -m tbbui)
 │   ├── test_serve.py     # GameApp.handle routing podglądu (tbbui, V13.5a)
