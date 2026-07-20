@@ -45,63 +45,37 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > dziedzica prowadzącego do sukcesji. Wszystkie pozycje (task-056…064)
 > w `BACKLOG-ARCHIVE.md`.
 
-## Kamień milowy 13 — minimalna warstwa wizualna (obserwator)
-> DESIGN §9a: rdzeń dojrzał (kamienie 7–11), a prezentacja nigdy nie powstała.
-> K13 buduje osobny pakiet `src/tbbui/` w **czystym stdlib** (SVG/HTML +
-> `http.server`; pygame/tkinter są niedostępne w środowisku, a string SVG jest
-> w pełni testowalny w TDD): deterministyczny layout i widok mapy strategicznej,
-> widok bitwy heksowej, strona partii oraz przeglądarkowy podgląd z przyciskiem
-> „następna tura". Rdzeń `tbb` nie importuje `tbbui`. Rozkazy gracza
-> z przeglądarki (rekrutacja/marsz/szturm) to kolejny kamień (K14).
->
-> **Nota po wsadzie 046–050:** V13.1 (task-046) zostało zaimplementowane
-> i przeszło zielono w cyklu 1, ale pętla dobiła do limitu cykli i orkiestrator
-> wycofał commit (`git reset` do `forge/task-046-start`; implementacja
-> referencyjna w reflogu: `8770d8f`). Zadania 046–050 są martwe — pozycje V13.*
-> zostaną wystawione z nowymi numerami w kolejnym wsadzie (po K12).
-- [x] **V13.1** Pakiet `tbbui` + deterministyczny layout mapy. *(task-065; ref. 8770d8f)*
-  - AC: `tbbui.layout.layout_world(world) -> dict[Region, (kolumna, wiersz)]` —
-    BFS po komponentach w kolejności regionów, kolumna = dystans, wiersz =
-    pierwszy wolny w kolumnie; pozycje unikalne; determinizm, bez RNG;
-    ARCHITECTURE dostaje sekcję prezentacji (decyzja stdlib SVG/HTML).
-> **V13.2 pocięte drobniej (wsad 066–069):** monolityczne SVG mapy (parse +
-> linie + znaczniki + paleta) to zbyt duża powierzchnia dla jednej pętli
-> (jak martwe V13.* z 046–050). Rozbite na cztery przyrosty, każdy z
-> deterministycznym testem stringu/parsu, bez zależności od seeda. V13.3
-> zaczyna się od czystej geometrii (070) przed `render_battle_svg`.
-- [x] **V13.2a** Szkielet SVG mapy + węzły regionów. *(task-066)*
-- [x] **V13.2b** Linie połączeń mapy SVG. *(task-067)*
-- [x] **V13.2c** Znaczniki osad i party na mapie SVG. *(task-068)*
-- [x] **V13.2d** Paleta kolorów właścicieli. *(task-069)*
-- [x] **V13.3a** Geometria heksów pointy-top. *(task-070)*
-> **Wsad 071–075 (domknięcie K13):** monolityczne V13.4 (strona + snapshot CLI)
-> i V13.5 (routing + serwer) rozbite na a/b — nowa powierzchnia API oddzielona
-> od CLI/serwera, każdy przyrost z deterministycznym testem stringu/parsu bez
-> zależności od gniazda. Kolejność: render bitwy → strona → snapshot CLI →
-> routing `GameApp.handle` → serwer `http.server`.
-- [ ] **V13.3b** `render_battle_svg` — pole bitwy heksowej. *(task-071)*
-  - AC: `tbbui.battlesvg.render_battle_svg(battle)` → parsowalny SVG z heksami
-    obwiedni rozstawienia ±1 (`<polygon>` z `hex_corners`, wypełnienie z terenu),
-    znaczniki jednostek z `data-side`/`data-hp`/`data-stunned`; czyste i det.
-- [ ] **V13.4a** `render_game_page` — strona HTML partii. *(task-072)*
-  - AC: `tbbui.gamepage.render_game_page(world, game, calendar)` → parsowalny
-    HTML z osadzonym SVG mapy, `data-calendar` (rok/miesiąc), panelem księstw
-    (`data-duchy`, `data-morale`, `data-settlements`, `data-parties`) i
-    `data-result` (zwycięzca/`draw`/`ongoing`); czyste i deterministyczne.
-- [ ] **V13.4b** Snapshot partii z CLI. *(task-073)*
-  - AC: `tbbui.__main__.main(argv)` rozgrywa deterministyczną partię headless
-    i zapisuje `render_game_page` do HTML (domyślnie `out/game.html`, katalog
-    tworzony); exit 0; plik parsowalny z `data-result`; determinizm dwóch uruchomień.
-- [ ] **V13.5a** `GameApp.handle` — routing podglądu (bez gniazda). *(task-074)*
-  - AC: `tbbui.serve.GameApp(world, game, calendar, rng).handle(method, path)`:
-    `GET /` → `(200, strona)` z formularzem `POST /turn`; `POST /turn` → jedna
-    tura (`run_headless_game` `max_turns=1`), po `is_over` no-op; inne → `404`;
-    determinizm seeda i sekwencji żądań.
-- [ ] **V13.5b** Serwer podglądu `http.server` + `python -m tbbui serve`. *(task-075)*
-  - AC: `make_server(app, host, port=0)` → `HTTPServer` (bez `serve_forever`),
-    handler deleguje GET/POST do `app.handle` przez wspólny
-    `handle_request(app, method, path)`; `python -m tbbui serve [port]` startuje
-    serwer; test wiązania portu i delegacji bez realnego ruchu w pętli.
+## Kamień milowy 13 — minimalna warstwa wizualna (obserwator) — UKOŃCZONY
+> DESIGN §9a: osobny pakiet `src/tbbui/` w czystym stdlib (SVG/HTML +
+> `http.server`) daje deterministyczny widok mapy strategicznej, pola bitwy
+> heksowej, stronę partii oraz przeglądarkowy podgląd z „następną turą".
+> Rdzeń `tbb` nie importuje `tbbui`. Wszystkie pozycje (task-065…075) w
+> `BACKLOG-ARCHIVE.md`. Rozkazy gracza z przeglądarki — Kamień 14.
+
+## Kamień milowy 14 — rozkazy gracza w podglądzie (single-player)
+> DESIGN §9a/§6: podgląd K13 to obserwator AI-vs-AI. K14 daje graczowi realną
+> sprawczość: steruje **jednym** księstwem (`player`), AI resztą. „Następna
+> tura" rusza wyłącznie AI (K14.1), a gracz wydaje rozkazy przez `POST /order/*`
+> reużywające istniejące czyste prymitywy `ai.*` — wybór celu pozostaje
+> automatyczny (placeholder), gracz decyduje *czy* wykonać akcję. Marsz i szturm
+> gracza oraz wybór konkretnej osady/celu to następny wsad K14.
+- [ ] **K14.1a** Driver pomija turę AI księstwa gracza. *(task-076)*
+  - AC: `run_headless_game(..., player_duchy_id=None)` — gdy podany, pętla nie
+    woła `take_duchy_turn` dla tego księstwa; tick/sync/raise_hero/heir bez
+    zmian; `None` = zgodność wsteczna; czyste i deterministyczne.
+- [ ] **K14.1b** GameApp zna gracza; `/turn` odpala tylko AI. *(task-077)*
+  - AC: `GameApp(..., player_duchy_id=None)`; `POST /turn` przewleka je do
+    `run_headless_game`; `GET /` osadza `data-player`; `python -m tbbui serve`
+    tworzy grę z `player_duchy_id="player"`.
+- [ ] **K14.2a** Rozkaz gracza: rekrutacja (`POST /order/recruit`). *(task-078)*
+  - AC: stosuje `ai.recruit_duchy_unit` na księstwie gracza + re-sync; formularz
+    na stronie; no-op po `is_over`/braku gracza; deterministyczne.
+- [ ] **K14.2b** Rozkaz gracza: wystawienie party (`POST /order/muster`). *(task-079)*
+  - AC: stosuje `ai.muster_duchy_party` na księstwie gracza + re-sync (wspólny
+    helper rozkazu); formularz; no-op po `is_over`/braku gracza; deterministyczne.
+- [ ] **K14.2c** Rozkaz gracza: rozwój osady (`POST /order/develop`). *(task-080)*
+  - AC: stosuje `ai.develop_duchy_settlement` na księstwie gracza + re-sync;
+    formularz; no-op po `is_over`/braku gracza; deterministyczne.
 
 ## Później (poza MVP)
 - [ ] **R12.1 (opcjonalny dług)** Wspólna kwerenda własnych osad w `ai.py`:

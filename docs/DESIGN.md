@@ -813,6 +813,22 @@ kanoniczny SVG mapy z `render_world_svg`, znacznik kalendarza (`data-calendar`
 oraz wynik partii (`data-result`: `duchy_id` / `draw` / `ongoing`). Czyste i
 deterministyczne; bez mutacji wejść. Snapshot CLI i serwer — V13.4b/V13.5.
 
+**PLAN K14 (rozkazy gracza w podglądzie, single-player):** obserwator K13 rusza
+obie strony jako AI. K14 daje graczowi sprawczość: steruje **jednym** księstwem
+(`player`), AI resztą. „Następna tura" ma odpalać wyłącznie AI —
+`run_headless_game` dostaje `player_duchy_id` i pomija `take_duchy_turn` tego
+księstwa (tick ekonomii, sukcesja i wyznaczanie dziedzica pozostają automatyczne
+jako ciągłość dynastii; K14.1a). `GameApp` przechowuje `player_duchy_id`
+i przewleka go do drivera (K14.1b). Rozkazy gracza to `POST /order/*`
+reużywające istniejące czyste prymitywy: `recruit` → `ai.recruit_duchy_unit`,
+`muster` → `ai.muster_duchy_party`, `develop` → `ai.develop_duchy_settlement`
+(K14.2a–c); po każdym rozkazie mapa jest podmieniana, a gra
+re-synchronizowana `sync_from_world`. **Wybór celu/osady pozostaje automatyczny**
+(pierwsza kwalifikująca się) — to placeholder, gracz decyduje jedynie *czy*
+wykonać akcję w tej turze. Marsz i szturm gracza oraz wybór konkretnej
+osady/celu z przeglądarki dochodzą w kolejnym wsadzie K14. Rdzeń `tbb` nadal
+nie importuje `tbbui` (§8 bez zmian).
+
 ## 10. Otwarte pytania (do rozstrzygnięcia w trakcie)
 Oznaczone, bo decyzja nie jest przesądzona — rozstrzygać przy okazji zadań, które
 ich dotykają, i notować wynik tutaj:

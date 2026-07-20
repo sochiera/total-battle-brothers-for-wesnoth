@@ -167,3 +167,20 @@
 - [x] **B12.1b-2b** `morale_by_owner` przez `take_duchy_military_action`/`take_duchy_turn`. *(task-062)*
 - [x] **B12.1b-2c** Driver buduje mapę morale z `GameState` + DESIGN. *(task-063)*
 - [x] **D12.3** Księstwo wyznacza dziedzica w turze — `ai.designate_duchy_heir`. *(task-064)*
+
+## Kamień milowy 13 — minimalna warstwa wizualna (obserwator) — UKOŃCZONY
+> Osobny pakiet `src/tbbui/` w czystym stdlib (SVG/HTML + `http.server`):
+> deterministyczny layout i widok mapy strategicznej, pole bitwy heksowej,
+> strona partii oraz przeglądarkowy podgląd z „następną turą". Rdzeń `tbb`
+> nie importuje `tbbui`.
+- [x] **V13.1** Pakiet `tbbui` + deterministyczny layout mapy. *(task-065)*
+- [x] **V13.2a** Szkielet SVG mapy + węzły regionów. *(task-066)*
+- [x] **V13.2b** Linie połączeń mapy SVG. *(task-067)*
+- [x] **V13.2c** Znaczniki osad i party na mapie SVG. *(task-068)*
+- [x] **V13.2d** Paleta kolorów właścicieli. *(task-069)*
+- [x] **V13.3a** Geometria heksów pointy-top (`tbbui.hexgeom`). *(task-070)*
+- [x] **V13.3b** `render_battle_svg` — pole bitwy heksowej. *(task-071)*
+- [x] **V13.4a** `render_game_page` — strona HTML partii. *(task-072)*
+- [x] **V13.4b** Snapshot partii z CLI (`python -m tbbui`). *(task-073)*
+- [x] **V13.5a** `GameApp.handle` — routing podglądu (bez gniazda). *(task-074)*
+- [x] **V13.5b** Serwer podglądu `http.server` + `python -m tbbui serve`. *(task-075)*
