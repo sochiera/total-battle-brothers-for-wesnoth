@@ -44,7 +44,7 @@ regionu; **kolumna** = dystans od korzenia; w warstwie BFS kolejność =
 `world.regions`; **wiersz** = pierwszy wolny indeks w kolumnie (liczniki
 kolumn globalne między komponentami).
 
-**Szkielet SVG mapy (V13.2a–c):** `tbbui.worldsvg.render_world_svg(world) -> str`
+**Szkielet SVG mapy (V13.2a–d):** `tbbui.worldsvg.render_world_svg(world) -> str`
 — parsowalny XML z korzeniem `<svg>`; po jednym `<g data-region="…">` na region
 (z etykietą tekstową = nazwa). Środki węzłów: stały pitch z komórek
 `layout_world` (`x = ORIGIN_X + col * PITCH_X`, `y = ORIGIN_Y + row * PITCH_Y`).
@@ -52,8 +52,12 @@ Po jednym `<line data-from data-to>` na połączenie z `world.connections` (kole
 zachowana; końce w środkach węzłów; linie przed węzłami w DOM). Obsada: w grupie
 regionu znacznik z `data-settlement` / `data-party` (= nazwa regionu) i
 `data-owner` (`owner_id` lub `""`) przy środku węzła, gdy `settlement_at` /
-`party_at` zwraca obsadę. Czyste, deterministyczne, bez mutacji mapy. Paleta
-właścicieli — V13.2d.
+`party_at` zwraca obsadę. **Paleta właścicieli (V13.2d):**
+`tbbui.palette.owner_palette(world) -> dict[str, str]` zbiera odrębne niepuste
+`owner_id` w kolejności pierwszego wystąpienia (iteracja `world.regions`; w
+regionie osada, potem party) i przypisuje kolory z ustalonej, cyklicznej listy
+`OWNER_COLORS`. `render_world_svg` ustawia `fill` znacznika z tej palety; brak
+właściciela → `NEUTRAL_OWNER_COLOR`. Czyste, deterministyczne, bez mutacji mapy.
 
 ## 2. Struktura katalogów
 ```
@@ -87,6 +91,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │   └── tbbui/            # pakiet prezentacji (stdlib SVG/HTML); tbb go nie importuje
 │       ├── __init__.py
 │       ├── layout.py     # deterministyczny layout regionów WorldMap → (col, row)
+│       ├── palette.py    # paleta kolorów właścicieli (owner_id → fill)
 │       └── worldsvg.py   # SVG mapy strategicznej (węzły + linie + znaczniki)
 ├── tests/                # testy pytest (mirror struktury src/)
 │   ├── test_battle.py
@@ -109,6 +114,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │   ├── test_wound.py
 │   ├── test_world.py
 │   ├── test_layout.py    # layout mapy strategicznej (tbbui)
+│   ├── test_palette.py   # paleta kolorów właścicieli (tbbui)
 │   ├── test_worldsvg.py  # SVG mapy: węzły + linie + znaczniki (tbbui)
 │   └── test_smoke.py
 ├── scripts/

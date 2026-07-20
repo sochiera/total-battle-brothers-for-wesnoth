@@ -783,7 +783,18 @@ zmiany kontraktu.
 (`world.settlement_at`) — jeden element z `data-settlement` (= nazwa regionu) i
 `data-owner` (= `owner_id` lub `""` gdy `None`); analogicznie `data-party` /
 `data-owner` dla party. Znaczniki przy środku węzła regionu; regiony bez obsady
-bez znacznika. Paleta kolorów właścicieli — V13.2d.
+bez znacznika.
+
+**ROZSTRZYGNIĘTE (V13.2d, paleta kolorów właścicieli):**
+`tbbui.palette.owner_palette(world)` zwraca deterministyczny słownik
+`owner_id → kolor` (hex): zbiera **odrębne** niepuste `owner_id` w kolejności
+pierwszego wystąpienia (iteracja `world.regions`; w regionie najpierw osada,
+potem party) i przypisuje kolory z ustalonej, cyklicznej listy. `render_world_svg`
+ustawia atrybut `fill` znacznika osady/party na kolor właściciela; brak
+`owner_id` (`None`) → ustalony kolor neutralny. Znaczniki tej samej frakcji mają
+identyczny `fill`, różne frakcje w tej mapie — różne (dopóki nie ma więcej
+właścicieli niż długość listy, wtedy kolory się powtarzają cyklicznie).
+Czyste, bez RNG i bez mutacji mapy.
 
 ## 10. Otwarte pytania (do rozstrzygnięcia w trakcie)
 Oznaczone, bo decyzja nie jest przesądzona — rozstrzygać przy okazji zadań, które

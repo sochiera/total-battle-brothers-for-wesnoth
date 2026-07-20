@@ -6,6 +6,7 @@ import xml.etree.ElementTree as ET
 
 from tbb.world import WorldMap
 from tbbui.layout import layout_world
+from tbbui.palette import NEUTRAL_OWNER_COLOR, owner_palette
 
 # Fixed pixel spacing between adjacent layout columns / rows.
 PITCH_X = 100
@@ -28,6 +29,13 @@ def _owner_attr(owner_id: str | None) -> str:
     return owner_id if owner_id is not None else ""
 
 
+def _marker_fill(owner_id: str | None, palette: dict[str, str]) -> str:
+    """Fill color for a settlement/party marker from the owner palette."""
+    if owner_id is None:
+        return NEUTRAL_OWNER_COLOR
+    return palette[owner_id]
+
+
 def render_world_svg(world: WorldMap) -> str:
     """Return a parsable SVG string with connection lines, labelled nodes, markers.
 
@@ -36,10 +44,12 @@ def render_world_svg(world: WorldMap) -> str:
     Node centers are an affine map of ``layout_world`` cells:
     ``x = ORIGIN_X + col * PITCH_X``, ``y = ORIGIN_Y + row * PITCH_Y``.
     Occupied regions get settlement / party markers (``data-settlement`` /
-    ``data-party`` plus ``data-owner``) at the same node center.
+    ``data-party`` plus ``data-owner``) at the same node center; ``fill`` comes
+    from ``owner_palette`` (or ``NEUTRAL_OWNER_COLOR`` when unowned).
     Pure and deterministic: no RNG, input map is not mutated.
     """
     positions = layout_world(world)
+    palette = owner_palette(world)
 
     max_col = 0
     max_row = 0
@@ -131,7 +141,7 @@ def render_world_svg(world: WorldMap) -> str:
                     "r": str(SETTLEMENT_MARKER_RADIUS),
                     "data-settlement": region.name,
                     "data-owner": _owner_attr(settlement.owner_id),
-                    "fill": "#888888",
+                    "fill": _marker_fill(settlement.owner_id, palette),
                     "stroke": "#222222",
                 },
             )
@@ -147,7 +157,7 @@ def render_world_svg(world: WorldMap) -> str:
                     "r": str(PARTY_MARKER_RADIUS),
                     "data-party": region.name,
                     "data-owner": _owner_attr(party.owner_id),
-                    "fill": "#aaaaaa",
+                    "fill": _marker_fill(party.owner_id, palette),
                     "stroke": "#222222",
                 },
             )
