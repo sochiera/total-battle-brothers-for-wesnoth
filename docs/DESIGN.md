@@ -350,6 +350,8 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   zostawiają `last_battle` bez bitwy).
 - `GameApp.last_battle: HexBattle | None` — init `None`; `_render` przekazuje
   `battle=self.last_battle` do `render_game_page` (SVG bitwy w stronie po szturmie).
+  `POST /turn` oraz rozkazy nie-szturmowe (`/order/recruit|muster|develop|march`)
+  zerują `last_battle` (stara bitwa nie wisi po innym działaniu gracza).
 - UI celów: gdy gracz ma party na mapie — po jednym formularzu
   `?target=<quote(nazwa)>` na obcą osadę (kolejność `world.regions`, helper
   `_march_targets`); bare action nieobecny. Brak party / brak id / gra skończona →

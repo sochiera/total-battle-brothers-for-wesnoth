@@ -131,8 +131,10 @@ K16.1d-2) ma te same guardy przez `_apply_player_assault_order`: jawny
 `morale_by_owner={d.duchy_id: d.morale for d in game.duchies}`); wynik
 `(world, battle)` podmienia `world`, sync `game`, a gdy `battle is not None`
 ustawia `self.last_battle` (init `None`; no-op/guardy nie ustawiają bitwy).
-`_render` woła `render_game_page(..., battle=self.last_battle)`. Inna ścieżka
-lub metoda → `(404, treść)`. Determinizm: ten sam seed i sekwencja `handle` →
+`POST /turn` oraz `/order/recruit|muster|develop|march` zerują
+`self.last_battle` (K16.1d-3). `_render` woła
+`render_game_page(..., battle=self.last_battle)`. Inna ścieżka lub metoda →
+`(404, treść)`. Determinizm: ten sam seed i sekwencja `handle` →
 te same treści i stan. `player_duchy_id=None` zachowuje zachowanie
 obserwatora AI-vs-AI.
 

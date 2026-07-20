@@ -92,6 +92,7 @@ class GameApp:
         if method == "GET" and route == "/":
             return 200, self._render()
         if method == "POST" and route == "/turn":
+            self.last_battle = None
             if not self.game.is_over:
                 self.world, self.game, self.calendar = run_headless_game(
                     self.world,
@@ -103,15 +104,19 @@ class GameApp:
                 )
             return 200, self._render()
         if method == "POST" and route == "/order/recruit":
+            self.last_battle = None
             self._apply_player_order(ai.recruit_duchy_unit)
             return 200, self._render()
         if method == "POST" and route == "/order/muster":
+            self.last_battle = None
             self._apply_player_order(ai.muster_duchy_party)
             return 200, self._render()
         if method == "POST" and route == "/order/develop":
+            self.last_battle = None
             self._apply_player_order(ai.develop_duchy_settlement)
             return 200, self._render()
         if method == "POST" and route == "/order/march":
+            self.last_battle = None
             target_region = self._order_target_region(query)
             if target_region is not None:
                 self._apply_player_order(
