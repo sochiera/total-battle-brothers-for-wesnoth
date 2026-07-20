@@ -281,6 +281,79 @@ def test_assault_duchy_party_applies_assault_from_party_position():
     assert world.settlement_at(target) is settlement
 
 
+def test_assault_duchy_party_is_noop_without_party_and_does_not_use_rng():
+    """When the duchy has no party on the map, assault_duchy_party is a no-op."""
+    home, camp = Region("Home"), Region("Camp")
+    settlement = Settlement("Home", 1, owner_id="ai")
+    foreign_party = _owned_party("Enemy", "enemy")
+    world = WorldMap(
+        [home, camp],
+        settlements={home: settlement},
+        parties={camp: foreign_party},
+    )
+    duchy = Duchy("ai", Unit())
+    before = dict(world.parties)
+
+    result = assault_duchy_party(world, duchy, _ForbiddenRng())
+
+    assert result is world
+    assert dict(world.parties) == before
+    assert world.settlement_at(home) is settlement
+    assert world.party_at(camp) is foreign_party
+
+
+def test_assault_duchy_party_is_noop_when_nearest_enemy_not_adjacent():
+    """Non-adjacent nearest enemy: same as assault_nearest_enemy_settlement (no change)."""
+    start, middle, target = map(Region, ("Start", "Middle", "Target"))
+    party = _owned_party("Hero", "ai")
+    world = WorldMap(
+        [start, middle, target],
+        [(start, middle), (middle, target)],
+        settlements={target: _settlement("Target", "enemy")},
+        parties={start: party},
+    )
+    duchy = Duchy("ai", party.hero, parties=(party,))
+
+    result = assault_duchy_party(world, duchy, _ForbiddenRng())
+
+    assert result is world
+    assert result == assault_nearest_enemy_settlement(
+        world, start, _ForbiddenRng()
+    )
+    assert world.party_at(start) is party
+
+
+def test_assault_duchy_party_is_deterministic_and_preserves_input():
+    """Same world/duchy/seed yields equal results; input map and parties unchanged."""
+    start, target = Region("Start"), Region("Target")
+    party = Party(Unit(training=5, equipment=6), owner_id="ai")
+    settlement = Settlement(
+        "Target", population=1, garrison=(Unit(equipment=1),), owner_id="enemy"
+    )
+    world = WorldMap(
+        [start, target],
+        [(start, target)],
+        settlements={target: settlement},
+        parties={start: party},
+    )
+    duchy = Duchy("ai", party.hero, parties=(party,))
+    seed = 12
+    morale_by_owner = {"ai": 5, "enemy": 0}
+
+    first = assault_duchy_party(
+        world, duchy, tbb.Rng(seed), morale_by_owner=morale_by_owner
+    )
+    second = assault_duchy_party(
+        world, duchy, tbb.Rng(seed), morale_by_owner=morale_by_owner
+    )
+
+    assert first == second
+    assert world.party_at(start) is party
+    assert world.settlement_at(target) is settlement
+    assert party.units == ()
+    assert settlement.owner_id == "enemy"
+
+
 def test_march_target_and_route_ties_follow_world_region_order():
     start, first, second, first_target, second_target = map(
         Region, ("Start", "First", "Second", "First target", "Second target")
