@@ -1164,6 +1164,71 @@ def test_game_app_render_assault_forms_one_per_foreign_settlement_region():
     assert "Far" in body
 
 
+def test_game_app_render_engage_forms_one_per_adjacent_enemy_party_region():
+    """GET / renders one engage form per adjacent enemy-party region (task-106 / K19.1c).
+
+    Contract:
+    - when player_duchy_id is set, game is not over, and the player duchy has
+      a party on the map, _render emits one
+      ``<form method="post" action="/order/engage?target=<name>">`` per region
+      in ``world.neighbors(player_party_region)`` that holds a party with an
+      explicit ``owner_id != player_duchy_id`` (name URL-encoded via
+      urllib.parse.quote); the bare fallback ``/order/engage`` form is absent
+    - a neighbor with no party, or with a party owned by the player, is not
+      an engage target; a non-neighbor enemy party is not a target either
+    - the submit button carries the target region's name
+    """
+    start, near, far, own, empty = map(
+        Region, ("Start", "Near", "Far", "Own", "Empty")
+    )
+    player_party = Party(Unit(training=4), owner_id="north")
+    near_enemy = Party(Unit(training=1), owner_id="south")
+    far_enemy = Party(Unit(training=1), owner_id="south")
+    own_party = Party(Unit(training=1), owner_id="north")
+    world = WorldMap(
+        (start, near, far, own, empty),
+        (
+            (start, near),
+            (start, far),
+            (start, own),
+            (start, empty),
+        ),
+        parties={
+            start: player_party,
+            near: near_enemy,
+            far: far_enemy,
+            own: own_party,
+        },
+    )
+    game = GameState(
+        (
+            Duchy(
+                "north",
+                player_party.hero,
+                parties=(player_party, own_party),
+            ),
+            Duchy("south", Unit(), parties=(near_enemy, far_enemy)),
+        )
+    )
+    calendar = Calendar(year=1, month=1)
+    app = GameApp(world, game, calendar, Rng(3), player_duchy_id="north")
+
+    code, body = app.handle("GET", "/")
+    assert code == 200
+
+    expected_near_action = f"/order/engage?target={quote('Near')}"
+    expected_far_action = f"/order/engage?target={quote('Far')}"
+    assert _has_post_form(body, expected_near_action)
+    assert _has_post_form(body, expected_far_action)
+    # Own-owned or party-less neighbors are not engage targets.
+    assert not _has_post_form(body, "/order/engage?target=Own")
+    assert not _has_post_form(body, "/order/engage?target=Empty")
+    # Bare fallback form absent: the player has a party on the map.
+    assert not _has_post_engage_form(body)
+    assert "Near" in body
+    assert "Far" in body
+
+
 def test_game_app_post_order_march_with_target_applies_march_to():
     """POST /order/march?target=<region> applies march_duchy_party_to + re-syncs.
 

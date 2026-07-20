@@ -66,6 +66,34 @@ def _march_targets(world: WorldMap, player_duchy_id: str) -> tuple[Region, ...]:
     )
 
 
+def _engage_targets(world: WorldMap, player_duchy_id: str) -> tuple[Region, ...]:
+    """Neighbor regions holding an enemy party, in ``world.neighbors`` order.
+
+    Uses the first map region occupied by a party with ``owner_id ==
+    player_duchy_id`` (same pick as ``ai._duchy_party_position``). Empty when
+    the player has no party on the map. A neighbor is a target only when it
+    holds a party with an explicit ``owner_id != player_duchy_id``.
+    """
+    position = next(
+        (
+            region
+            for region in world.regions
+            if (party := world.party_at(region)) is not None
+            and party.owner_id == player_duchy_id
+        ),
+        None,
+    )
+    if position is None:
+        return ()
+    return tuple(
+        neighbor
+        for neighbor in world.neighbors(position)
+        if (other := world.party_at(neighbor)) is not None
+        and other.owner_id is not None
+        and other.owner_id != player_duchy_id
+    )
+
+
 def _duchy_has_party(world: WorldMap, duchy_id: str) -> bool:
     """True when a party with ``owner_id == duchy_id`` is on the map."""
     return any(
@@ -264,6 +292,30 @@ class GameApp:
         """Per-target assault forms when the player has a party; bare fallback otherwise."""
         return self._target_forms("/order/assault", _ASSAULT_FORM)
 
+    def _engage_forms(self) -> str:
+        """Per-target engage forms for adjacent enemy parties; bare fallback otherwise.
+
+        Unlike march/assault (foreign settlements anywhere), engage targets are
+        neighbors of the player party only. Bare ``_ENGAGE_FORM`` when there is
+        no player id, the game is over, or ``_engage_targets`` is empty.
+        """
+        if (
+            self.player_duchy_id is not None
+            and not self.game.is_over
+        ):
+            targets = _engage_targets(self.world, self.player_duchy_id)
+            if targets:
+                forms: list[str] = []
+                for region in targets:
+                    action = f"/order/engage?target={quote(region.name)}"
+                    forms.append(
+                        f'<form method="post" action="{action}">'
+                        f'<button type="submit">{region.name}</button>'
+                        "</form>"
+                    )
+                return "".join(forms)
+        return _ENGAGE_FORM
+
     def _render(self) -> str:
         html = render_game_page(
             self.world, self.game, self.calendar, battle=self.last_battle
@@ -273,7 +325,7 @@ class GameApp:
             f'<span data-player="{player_value}"></span>'
             f"{_TURN_FORM}{_RECRUIT_FORM}{_MUSTER_FORM}"
             f"{_DEVELOP_FORM}{self._march_forms()}{self._assault_forms()}"
-            f"{_ENGAGE_FORM}"
+            f"{self._engage_forms()}"
         )
         if "</body>" in html:
             return html.replace("</body>", f"{extras}</body>", 1)
