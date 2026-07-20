@@ -58,6 +58,11 @@ def _has_post_march_form(html: str) -> bool:
     return _has_post_form(html, "/order/march")
 
 
+def _has_post_assault_form(html: str) -> bool:
+    """True when body contains a form that POSTs to /order/assault (K14.2e2)."""
+    return _has_post_form(html, "/order/assault")
+
+
 def _has_post_form(html: str, action_path: str) -> bool:
     """True when body contains a form that POSTs to ``action_path``."""
     root = ET.fromstring(html)
@@ -1129,4 +1134,123 @@ def test_game_app_post_order_assault_applies_assault_and_resyncs():
     assert world_before.party_at(start) is party
     assert world_before.settlement_at(target) is enemy_keep
     assert enemy_keep.owner_id == "south"
+
+
+def test_game_app_order_assault_form_noop_and_determinism():
+    """GET form /order/assault; no-op guards; assault sequence determinism.
+
+    Contract (task-084 / K14.2e2):
+    - GET / contains <form method="post" action="/order/assault"> with a submit
+    - when player_duchy_id is None, game is is_over, or player duchy is absent
+      from game.duchies: POST /order/assault is a no-op (state unchanged, no RNG
+      draw), still (200, page)
+    - fixed GameApp seed + same handle sequence → identical bodies and state
+    """
+    def _assault_ready_world_game() -> tuple[
+        WorldMap, GameState, Region, Region, Party, Settlement
+    ]:
+        """World where north party is adjacent to a weak enemy keep (assaultable)."""
+        start, target = map(Region, ("Start", "Target"))
+        party = Party(Unit(training=5, equipment=6), owner_id="north")
+        enemy_keep = Settlement(
+            "Enemy Keep",
+            population=1,
+            garrison=(Unit(equipment=1),),
+            owner_id="south",
+        )
+        w = WorldMap(
+            (start, target),
+            ((start, target),),
+            settlements={target: enemy_keep},
+            parties={start: party},
+        )
+        g = GameState(
+            (
+                Duchy("north", party.hero, parties=(party,), morale=10),
+                Duchy("south", Unit(), settlements=(enemy_keep,), morale=-5),
+            )
+        )
+        return w, g, start, target, party, enemy_keep
+
+    world, game, start, target, party, enemy_keep = _assault_ready_world_game()
+    calendar = Calendar(year=2, month=3)
+
+    # GET / embeds the assault form (and a button).
+    app = GameApp(world, game, calendar, Rng(11), player_duchy_id="north")
+    code_get, body_get = app.handle("GET", "/")
+    assert code_get == 200
+    assert _has_post_assault_form(body_get)
+    assert re.search(
+        r"<button\b[^>]*>\s*Assault\s*</button>", body_get, flags=re.IGNORECASE
+    )
+
+    # No-op: player_duchy_id is None — state frozen, RNG unused, still 200 + page.
+    none_app = GameApp(world, game, calendar, Rng(11), player_duchy_id=None)
+    world_n, game_n = none_app.world, none_app.game
+    code_n, body_n = none_app.handle("POST", "/order/assault")
+    assert code_n == 200
+    assert isinstance(body_n, str)
+    assert none_app.world is world_n
+    assert none_app.game is game_n
+    assert none_app.calendar == calendar
+    assert _calendar_stamp(body_n) == (2, 3)
+    assert _has_post_assault_form(body_n)
+    # Would-be assault target unchanged (enemy keep still south-owned).
+    assert none_app.world.party_at(start) is party
+    assert none_app.world.settlement_at(target) is enemy_keep
+    assert enemy_keep.owner_id == "south"
+    # No RNG draw: next randint matches a fresh Rng(11).
+    assert none_app.rng.randint(0, 10**9) == Rng(11).randint(0, 10**9)
+
+    # No-op: game is_over — finished sole-duchy world.
+    fin_world, fin_game = _finished_world_game()
+    fin_cal = Calendar(year=5, month=1)
+    fin_app = GameApp(
+        fin_world, fin_game, fin_cal, Rng(3), player_duchy_id="north"
+    )
+    w_f, g_f = fin_app.world, fin_app.game
+    code_f, body_f = fin_app.handle("POST", "/order/assault")
+    assert code_f == 200
+    assert fin_app.world is w_f
+    assert fin_app.game is g_f
+    assert fin_app.calendar == fin_cal
+    assert _calendar_stamp(body_f) == (5, 1)
+    assert fin_app.rng.randint(0, 10**9) == Rng(3).randint(0, 10**9)
+
+    # No-op: player duchy id not present in game.duchies.
+    missing = GameApp(
+        world, game, calendar, Rng(11), player_duchy_id="ghost"
+    )
+    w_m, g_m = missing.world, missing.game
+    code_m, _body_m = missing.handle("POST", "/order/assault")
+    assert code_m == 200
+    assert missing.world is w_m
+    assert missing.game is g_m
+    assert missing.calendar == calendar
+    assert missing.world.party_at(start) is party
+    assert missing.world.settlement_at(target) is enemy_keep
+    assert missing.rng.randint(0, 10**9) == Rng(11).randint(0, 10**9)
+
+    # Determinism: two apps, same seed, same assault sequence → same bodies/state.
+    wa, ga, _, _, _, _ = _assault_ready_world_game()
+    wb, gb, _, _, _, _ = _assault_ready_world_game()
+    a = GameApp(wa, ga, Calendar(year=2, month=3), Rng(11), player_duchy_id="north")
+    b = GameApp(wb, gb, Calendar(year=2, month=3), Rng(11), player_duchy_id="north")
+    seq = (
+        ("GET", "/"),
+        ("POST", "/order/assault"),
+        ("GET", "/"),
+    )
+    bodies_a: list[str] = []
+    bodies_b: list[str] = []
+    for method, path in seq:
+        ca, ba = a.handle(method, path)
+        cb, bb = b.handle(method, path)
+        assert ca == cb == 200
+        assert ba == bb
+        bodies_a.append(ba)
+        bodies_b.append(bb)
+    assert bodies_a == bodies_b
+    assert a.world == b.world
+    assert a.game.duchies == b.game.duchies
 
