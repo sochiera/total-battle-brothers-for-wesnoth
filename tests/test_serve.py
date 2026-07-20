@@ -43,6 +43,11 @@ def _has_post_recruit_form(html: str) -> bool:
     return _has_post_form(html, "/order/recruit")
 
 
+def _has_post_muster_form(html: str) -> bool:
+    """True when body contains a form that POSTs to /order/muster (K14.2b)."""
+    return _has_post_form(html, "/order/muster")
+
+
 def _has_post_form(html: str, action_path: str) -> bool:
     """True when body contains a form that POSTs to ``action_path``."""
     root = ET.fromstring(html)
@@ -531,4 +536,123 @@ def test_game_app_post_order_muster_applies_muster_and_resyncs():
     assert world_before.settlement_at(north) is north_keep
     assert world_before.party_at(north) is None
     assert north_keep.garrison == garrison
+
+
+def test_game_app_order_muster_form_noop_and_determinism():
+    """GET form /order/muster; no-op guards; muster sequence determinism.
+
+    Contract (task-079 / K14.2b):
+    - GET / contains <form method="post" action="/order/muster"> with a submit
+    - when player_duchy_id is None, game is is_over, or player duchy is absent
+      from game.duchies: POST /order/muster is a no-op (state unchanged), still
+      (200, page)
+    - fixed GameApp seed + same handle sequence → identical bodies and state
+    """
+    def _muster_ready_world_game() -> tuple[WorldMap, GameState, Region, Unit, tuple[Unit, ...]]:
+        """World where north can muster (hero + owned garrison, no party yet)."""
+        n, s = map(Region, ("North", "South"))
+        hero = Unit(training=4)
+        garrison = (Unit(equipment=1), Unit(experience=2))
+        nk = Settlement(
+            "North Keep",
+            3,
+            occupied=2,
+            garrison=garrison,
+            owner_id="north",
+        )
+        sk = Settlement("South Keep", 2, owner_id="south")
+        w = WorldMap((n, s), settlements={n: nk, s: sk})
+        g = GameState(
+            (
+                Duchy("north", hero, settlements=(nk,)),
+                Duchy("south", Unit(), settlements=(sk,)),
+            )
+        )
+        return w, g, n, hero, garrison
+
+    world, game, north, hero, garrison = _muster_ready_world_game()
+    calendar = Calendar(year=2, month=3)
+
+    # GET / embeds the muster form (and a button).
+    app = GameApp(world, game, calendar, Rng(11), player_duchy_id="north")
+    code_get, body_get = app.handle("GET", "/")
+    assert code_get == 200
+    assert _has_post_muster_form(body_get)
+    assert re.search(
+        r"<button\b[^>]*>\s*Muster\s*</button>", body_get, flags=re.IGNORECASE
+    )
+
+    # No-op: player_duchy_id is None — state frozen, still 200 + page.
+    none_app = GameApp(world, game, calendar, Rng(11), player_duchy_id=None)
+    world_n, game_n = none_app.world, none_app.game
+    code_n, body_n = none_app.handle("POST", "/order/muster")
+    assert code_n == 200
+    assert isinstance(body_n, str)
+    assert none_app.world is world_n
+    assert none_app.game is game_n
+    assert none_app.calendar == calendar
+    assert _calendar_stamp(body_n) == (2, 3)
+    assert _has_post_muster_form(body_n)
+    # Would-be muster target unchanged (garrison intact, no party).
+    assert none_app.world.settlement_at(north).garrison == garrison
+    assert none_app.world.party_at(north) is None
+
+    # No-op: game is_over — finished sole-duchy world.
+    fin_world, fin_game = _finished_world_game()
+    fin_cal = Calendar(year=5, month=1)
+    fin_app = GameApp(
+        fin_world, fin_game, fin_cal, Rng(3), player_duchy_id="north"
+    )
+    w_f, g_f = fin_app.world, fin_app.game
+    code_f, body_f = fin_app.handle("POST", "/order/muster")
+    assert code_f == 200
+    assert fin_app.world is w_f
+    assert fin_app.game is g_f
+    assert fin_app.calendar == fin_cal
+    assert _calendar_stamp(body_f) == (5, 1)
+
+    # No-op: player duchy id not present in game.duchies.
+    missing = GameApp(
+        world, game, calendar, Rng(11), player_duchy_id="ghost"
+    )
+    w_m, g_m = missing.world, missing.game
+    code_m, _body_m = missing.handle("POST", "/order/muster")
+    assert code_m == 200
+    assert missing.world is w_m
+    assert missing.game is g_m
+    assert missing.calendar == calendar
+    assert missing.world.settlement_at(north).garrison == garrison
+    assert missing.world.party_at(north) is None
+
+    # Determinism: two apps, same seed, same muster sequence → same bodies/state.
+    wa, ga, _, hero_a, garrison_a = _muster_ready_world_game()
+    wb, gb, _, hero_b, garrison_b = _muster_ready_world_game()
+    a = GameApp(wa, ga, Calendar(year=2, month=3), Rng(11), player_duchy_id="north")
+    b = GameApp(wb, gb, Calendar(year=2, month=3), Rng(11), player_duchy_id="north")
+    seq = (
+        ("GET", "/"),
+        ("POST", "/order/muster"),
+        ("GET", "/"),
+        ("POST", "/order/muster"),
+    )
+    bodies_a: list[str] = []
+    bodies_b: list[str] = []
+    for method, path in seq:
+        ca, ba = a.handle(method, path)
+        cb, bb = b.handle(method, path)
+        assert ca == cb == 200
+        assert ba == bb
+        bodies_a.append(ba)
+        bodies_b.append(bb)
+    assert bodies_a == bodies_b
+    north_a = a.world.regions[0]
+    north_b = b.world.regions[0]
+    assert a.world.party_at(north_a) == b.world.party_at(north_b)
+    assert a.world.settlement_at(north_a).garrison == b.world.settlement_at(
+        north_b
+    ).garrison
+    # First muster succeeds; second is a no-op (party already fielded).
+    assert a.world.party_at(north_a) == Party(hero_a, garrison_a, owner_id="north")
+    assert a.world.settlement_at(north_a).garrison == ()
+    assert b.world.party_at(north_b) == Party(hero_b, garrison_b, owner_id="north")
 
