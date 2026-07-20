@@ -91,6 +91,13 @@ class Settlement:
             ),
         )
 
+    def tick_healing(self) -> "Settlement":
+        """Return the settlement after one monthly garrison healing tick."""
+        return replace(
+            self,
+            garrison=tuple(unit.tick_wounds(1) for unit in self.garrison),
+        )
+
     def tick_equipment(self) -> "Settlement":
         """Equip one least-equipped soldier when an active smith can be paid."""
         if (

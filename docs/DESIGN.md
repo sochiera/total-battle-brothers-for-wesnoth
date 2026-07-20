@@ -267,8 +267,12 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   `Unit.tick_wounds(months=1)` zmniejsza czas każdej rany czasowej o podaną
   nieujemną liczbę miesięcy i usuwa ranę po wygaśnięciu; rany trwałe, kolejność
   pozostałych ran oraz reszta stanu jednostki pozostają bez zmian. Częściowo
-  wyleczona rana zachowuje pełne kary aż do wygaśnięcia. Miesięczne wywołanie
-  leczenia w warstwie strategicznej dochodzi osobno w W11.3.
+  wyleczona rana zachowuje pełne kary aż do wygaśnięcia.
+  **ROZSTRZYGNIĘTE (W11.3, miesięczne leczenie garnizonu):**
+  `Settlement.tick_healing()` przesuwa rany każdej jednostki garnizonu o jeden
+  miesiąc. `WorldMap.tick_settlements()` wywołuje leczenie po rozwoju
+  wyposażenia, więc rany czasowe garnizonu mijają automatycznie z turami mapy;
+  party i bohaterowie poza garnizonem nie są na tym etapie leczeni.
   **ROZSTRZYGNIĘTE (B4.5b, minimalne rozstrzygnięcie 0 HP):** jednostkę, której
   bieżące HP spadło do `0`, rozstrzyga się dokładnie jednym rzutem RNG: **50%**
   oznacza śmierć i usunięcie jej z rozstawienia, a pozostałe 50% — pozostawienie
@@ -503,11 +507,12 @@ osobno w U9.5.
 **ROZSTRZYGNIĘTE (U9.5, rozwój garnizonu w miesięcznej turze):**
 `WorldMap.tick_settlements()` stosuje do każdej osady deterministyczny łańcuch
 `tick_economy() → tick_growth() → tick_immigration() → tick_training()
-→ tick_equipment()`. Trening i uzbrajanie następują po wzroście, a uzbrojenie
-korzysta z magazynu po bieżącej miesięcznej produkcji. Driver headless reużywa
-to przejście na początku każdej tury, więc rozwój automatycznie trafia do pełnej
-pętli gry. Mapa, osady wejściowe, graf i party pozostają niemutowane; jednostki
-w maszerującym party nie rozwijają się w tym przejściu.
+→ tick_equipment() → tick_healing()`. Trening, uzbrajanie i leczenie następują
+po wzroście, a uzbrojenie korzysta z magazynu po bieżącej miesięcznej produkcji.
+Driver headless reużywa to przejście na początku każdej tury, więc rozwój
+automatycznie trafia do pełnej pętli gry. Mapa, osady wejściowe, graf i party
+pozostają niemutowane; jednostki w maszerującym party nie rozwijają się ani nie
+leczą w tym przejściu.
 
 ## 6. Pętla rozgrywki (MVP)
 Najmniejsza grywalna pętla, single-player vs **jedno** księstwo AI:

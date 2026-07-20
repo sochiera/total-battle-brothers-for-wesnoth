@@ -122,7 +122,9 @@ Uruchamiaj z katalogu `game/`.
   używając wspólnego wzoru trafienia i jednego rzutu wstrzykniętego `Rng`.
 - **Rany:** `Wound` jest niemutowalnym modyfikatorem celności i obrony;
   `Unit.wounds` przechowuje niemutowalną krotkę ran, których kary sumują się
-  w efektywnych statystykach z podłogą na zero.
+  w efektywnych statystykach z podłogą na zero. Miesięczny łańcuch
+  `WorldMap.tick_settlements()` kończy `Settlement.tick_healing()`, które
+  przesuwa czasowe rany całego garnizonu o jeden miesiąc.
 - **Skład party:** `Party` wymaga bohatera `Unit` i kopiuje do krotki maksymalnie
   12 podkomendnych `Unit`; bohater jest osobnym polem i nie wlicza się do limitu.
 - **Postęp treningu:** `Unit.train()` reużywa trójkątną krzywą z `progression`;

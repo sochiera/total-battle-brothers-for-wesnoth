@@ -158,6 +158,7 @@ def test_tick_settlements_chains_phase_results_in_required_order(monkeypatch):
     after_immigration = Settlement("After immigration", population=4)
     after_training = Settlement("After training", population=5)
     after_equipment = Settlement("After equipment", population=6)
+    after_healing = Settlement("After healing", population=7)
     calls = []
 
     def tick_economy(settlement):
@@ -180,11 +181,16 @@ def test_tick_settlements_chains_phase_results_in_required_order(monkeypatch):
         calls.append(("equipment", settlement))
         return after_equipment
 
+    def tick_healing(settlement):
+        calls.append(("healing", settlement))
+        return after_healing
+
     monkeypatch.setattr(Settlement, "tick_economy", tick_economy)
     monkeypatch.setattr(Settlement, "tick_growth", tick_growth)
     monkeypatch.setattr(Settlement, "tick_immigration", tick_immigration)
     monkeypatch.setattr(Settlement, "tick_training", tick_training)
     monkeypatch.setattr(Settlement, "tick_equipment", tick_equipment)
+    monkeypatch.setattr(Settlement, "tick_healing", tick_healing)
     world = WorldMap([vale], settlements={vale: initial})
 
     ticked = world.tick_settlements()
@@ -195,13 +201,34 @@ def test_tick_settlements_chains_phase_results_in_required_order(monkeypatch):
         "immigration",
         "training",
         "equipment",
+        "healing",
     ]
     assert calls[0][1] is initial
     assert calls[1][1] is after_economy
     assert calls[2][1] is after_growth
     assert calls[3][1] is after_immigration
     assert calls[4][1] is after_training
-    assert ticked.settlement_at(vale) is after_equipment
+    assert calls[5][1] is after_equipment
+    assert ticked.settlement_at(vale) is after_healing
+
+
+def test_tick_settlements_heals_temporary_garrison_wounds_over_months():
+    vale = Region("Vale")
+    wounded = Unit(wounds=(BRUISE,))
+    world = WorldMap(
+        [vale],
+        settlements={
+            vale: Settlement("Oakrest", population=1, garrison=(wounded,))
+        },
+    )
+
+    after_one_month = world.tick_settlements()
+    after_two_months = after_one_month.tick_settlements()
+
+    healing_wound = after_one_month.settlement_at(vale).garrison[0].wounds[0]
+    assert healing_wound.duration_months == 1
+    assert after_two_months.settlement_at(vale).garrison[0].wounds == ()
+    assert world.settlement_at(vale).garrison == (wounded,)
 
 
 def test_tick_settlements_preserves_graph_empty_region_and_party_positions():

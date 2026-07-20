@@ -119,6 +119,7 @@ class WorldMap:
             .tick_immigration()
             .tick_training()
             .tick_equipment()
+            .tick_healing()
             for region in self.regions
             if region in self.settlements
         }

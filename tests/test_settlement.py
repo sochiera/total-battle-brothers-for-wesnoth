@@ -662,6 +662,49 @@ def test_tick_training_empty_garrison_is_noop_and_other_state_is_pure_rng_free()
     assert random.getstate() == rng_state
 
 
+def test_tick_healing_ticks_every_garrison_wound_and_preserves_settlement_state():
+    units = (
+        Unit(training=2, wounds=(BRUISE, MAIMED)),
+        Unit(equipment=3, experience=4, wounds=(BRUISE,)),
+    )
+    original = Settlement(
+        "A",
+        population=5,
+        occupied=3,
+        active_buildings=(SMITH,),
+        storage=Resources(7, 9),
+        capacity=8,
+        garrison=units,
+        owner_id="north",
+    )
+    rng_state = random.getstate()
+
+    healed = original.tick_healing()
+
+    assert healed is not original
+    assert healed.garrison == tuple(unit.tick_wounds(1) for unit in units)
+    assert (
+        healed.name,
+        healed.population,
+        healed.occupied,
+        healed.active_buildings,
+        healed.storage,
+        healed.capacity,
+        healed.owner_id,
+    ) == (
+        original.name,
+        original.population,
+        original.occupied,
+        original.active_buildings,
+        original.storage,
+        original.capacity,
+        original.owner_id,
+    )
+    assert original.garrison == units
+    assert original.tick_healing() == healed
+    assert random.getstate() == rng_state
+
+
 def test_tick_equipment_uses_exported_cost_to_equip_earliest_least_equipped_unit(
     monkeypatch,
 ):
