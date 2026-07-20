@@ -906,7 +906,9 @@ def test_resolve_party_battle_clears_stun_but_keeps_bruise_on_survivor():
         [camp, vale], [(camp, vale)], parties={camp: attacker, vale: defender}
     )
 
-    battle = world.start_battle(camp, vale).auto_resolve(1, 100, Rng(11))
+    battle = world.start_battle(camp, vale).auto_resolve(
+        1, Rng(11), attacker_morale=100, defender_morale=100
+    )
     stunned_survivor = battle.report().attacker.stunned[0]
     resolved = world.resolve_party_battle(
         camp, vale, Rng(11), move_points=1, morale=100
@@ -1406,7 +1408,7 @@ def test_resolve_settlement_battle_conquers_with_attacking_survivors():
     )
 
     battle = world.start_settlement_battle(camp, vale).auto_resolve(
-        move_points=1, morale=100, rng=Rng(2)
+        move_points=1, rng=Rng(2), attacker_morale=100, defender_morale=100
     )
     first = world.resolve_settlement_battle(
         camp, vale, Rng(2), move_points=1, morale=100
@@ -1477,7 +1479,7 @@ def test_resolve_settlement_battle_clears_stun_but_keeps_bruise_in_garrison():
         parties={camp: attacker},
     )
 
-    battle = world.start_settlement_battle(camp, vale).auto_resolve(1, 0, Rng(10))
+    battle = world.start_settlement_battle(camp, vale).auto_resolve(1, Rng(10))
     stunned_survivor = battle.report().defender.stunned[0]
     resolved = world.resolve_settlement_battle(camp, vale, Rng(10))
 

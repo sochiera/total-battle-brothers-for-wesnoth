@@ -337,10 +337,19 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   bez wyjątku. Na początku każdej rundy utrwala snapshot bieżącej kolejności
   rozstawienia i wywołuje `take_unit_turn()` kolejno dla nadal obecnych, aktywnych
   jednostek spod tych pozycji; pozycje opuszczone wskutek ruchu, śmierci lub
-  ogłuszenia są pomijane. Jednolite `move_points` i `morale` dotyczą tymczasowo
-  wszystkich jednostek. Ustalony stan i seed RNG dają ten sam przebieg i wynik,
-  a każde przejście tworzy nowy stan, więc bitwa wejściowa pozostaje niezmieniona.
-  Bitwa już rozstrzygnięta jest natychmiastowym no-opem.
+  ogłuszenia są pomijane. `move_points` jest jednolite dla wszystkich jednostek;
+  **morale jest per strona** (B12.1a). Ustalony stan i seed RNG dają ten sam
+  przebieg i wynik, a każde przejście tworzy nowy stan, więc bitwa wejściowa
+  pozostaje niezmieniona. Bitwa już rozstrzygnięta jest natychmiastowym no-opem.
+- **ROZSTRZYGNIĘTE (B12.1a, morale per strona w auto-rozgrywce):**
+  `HexBattle.auto_resolve(move_points, rng, attacker_morale=0, defender_morale=0)`
+  zastępuje jednolity parametr `morale`. Tura jednostki dostaje morale jej
+  strony (`BattleSide.ATTACKER` → `attacker_morale`, `DEFENDER` →
+  `defender_morale`); semantyka ciosu (B4.3a: morale uderzającego → celność)
+  bez zmian. Równe `attacker_morale=X` i `defender_morale=X` dają przebieg
+  identyczny z dawnym jednolitym `morale=X`. `WorldMap.resolve_party_battle` /
+  `resolve_settlement_battle` zachowują publiczny parametr `morale` i pomostowo
+  podają go obu stronom (per-strona na mapie: B12.1b).
 - **ROZSTRZYGNIĘTE (BW.3, rekonstrukcja ocalałych z bitwy do party na mapie):** po bitwie
   party na mapie ma zawierać wyłącznie **ocalałych** (aktywnych + ogłuszonych)
   z zachowanymi ranami i doświadczeniem, a polegli mają zniknąć — zastępując

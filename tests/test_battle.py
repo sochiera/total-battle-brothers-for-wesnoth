@@ -1061,7 +1061,9 @@ def test_auto_resolve_finishes_seeded_duel_and_produces_report():
         Unit(equipment=10), attacker, BattleSide.ATTACKER
     ).deploy(Unit(), defender, BattleSide.DEFENDER)
 
-    resolved = battle.auto_resolve(move_points=1, morale=100, rng=Rng(4))
+    resolved = battle.auto_resolve(
+        move_points=1, rng=Rng(4), attacker_morale=100, defender_morale=100
+    )
 
     assert resolved.result() is BattleResult.ATTACKER_WIN
     assert resolved.report().result is BattleResult.ATTACKER_WIN
@@ -1072,8 +1074,8 @@ def test_auto_resolve_is_deterministic_for_the_same_seed():
         Unit(equipment=3), Hex(0, 0), BattleSide.ATTACKER
     ).deploy(Unit(equipment=2), Hex(3, 0), BattleSide.DEFENDER)
 
-    first = battle.auto_resolve(move_points=1, morale=0, rng=Rng(12))
-    second = battle.auto_resolve(move_points=1, morale=0, rng=Rng(12))
+    first = battle.auto_resolve(move_points=1, rng=Rng(12))
+    second = battle.auto_resolve(move_points=1, rng=Rng(12))
 
     assert first == second
     assert first.result() is not None
@@ -1085,7 +1087,7 @@ def test_auto_resolve_stops_after_maximum_rounds_before_resolution():
     ).deploy(Unit(equipment=1), Hex(4, 0), BattleSide.DEFENDER)
 
     partial = battle.auto_resolve(
-        move_points=1, morale=0, rng=Rng(1), max_rounds=1
+        move_points=1, rng=Rng(1), max_rounds=1
     )
 
     assert partial.result() is None
@@ -1099,7 +1101,9 @@ def test_auto_resolve_does_not_mutate_the_input_battle():
     units_before = dict(battle.units)
     hp_before = {position: battle.current_hp_at(position) for position in battle.units}
 
-    battle.auto_resolve(move_points=1, morale=100, rng=Rng(4))
+    battle.auto_resolve(
+        move_points=1, rng=Rng(4), attacker_morale=100, defender_morale=100
+    )
 
     assert dict(battle.units) == units_before
     assert {
@@ -1113,7 +1117,27 @@ def test_auto_resolve_is_no_op_for_an_already_resolved_battle():
         Unit(), Hex(0, 0), BattleSide.ATTACKER
     )
 
-    resolved = battle.auto_resolve(move_points=1, morale=0, rng=Rng(1))
+    resolved = battle.auto_resolve(move_points=1, rng=Rng(1))
 
     assert resolved is battle
     assert resolved.result() is BattleResult.ATTACKER_WIN
+
+
+def test_auto_resolve_side_morale_advantage_decides_symmetric_duel():
+    """Per-side morale: +45 beats -45 in a 1v1; swapping sides reverses the winner."""
+    attacker, defender = Hex(0, 0), Hex(1, 0)
+    battle = (
+        HexBattle(Battlefield())
+        .deploy(Unit(equipment=2), attacker, BattleSide.ATTACKER)
+        .deploy(Unit(equipment=2), defender, BattleSide.DEFENDER)
+    )
+
+    high_attacker = battle.auto_resolve(
+        move_points=1, rng=Rng(0), attacker_morale=45, defender_morale=-45
+    )
+    high_defender = battle.auto_resolve(
+        move_points=1, rng=Rng(0), attacker_morale=-45, defender_morale=45
+    )
+
+    assert high_attacker.result() is BattleResult.ATTACKER_WIN
+    assert high_defender.result() is BattleResult.DEFENDER_WIN

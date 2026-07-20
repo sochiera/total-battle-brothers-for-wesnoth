@@ -154,11 +154,15 @@ class HexBattle:
     def auto_resolve(
         self,
         move_points: int,
-        morale: int,
         rng: Rng,
+        attacker_morale: int = 0,
+        defender_morale: int = 0,
         max_rounds: int = 1000,
     ) -> "HexBattle":
-        """Play deployment-ordered rounds until resolution or the round limit."""
+        """Play deployment-ordered rounds until resolution or the round limit.
+
+        Each unit receives the morale of its battle side (attacker or defender).
+        """
         battle = self
         rounds = 0
         while battle.result() is None and rounds < max_rounds:
@@ -173,6 +177,12 @@ class HexBattle:
                     or unit.stunned
                 ):
                     continue
+                side = battle.sides[position]
+                morale = (
+                    attacker_morale
+                    if side is BattleSide.ATTACKER
+                    else defender_morale
+                )
                 battle = battle.take_unit_turn(position, move_points, morale, rng)
             rounds += 1
         return battle
