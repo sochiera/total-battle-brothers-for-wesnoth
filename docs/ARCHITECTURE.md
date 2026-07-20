@@ -79,7 +79,14 @@ string z `render_world_svg(world)`; element `data-calendar` z `data-year` /
 `duchy_id`) na każde `game.duchies` z `data-morale`, `data-settlements` i
 `data-parties` (liczby); element `data-result` = `duchy_id` zwycięzcy /
 `draw` / `ongoing` wg `game.is_over` i `game.winner`. Czyste, deterministyczne,
-bez mutacji wejść. Zapis pliku/CLI i serwer — osobne przyrosty (V13.4b/V13.5).
+bez mutacji wejść. Serwer podglądu — osobny przyrost (V13.5).
+
+**Snapshot CLI (V13.4b):** `python -m tbbui [ścieżka]` → `tbbui.__main__.main(argv)
+-> int`. Rozgrywa deterministyczną partię headless (`create_headless_game` +
+`run_headless_game` z ustalonym seedem `73`, jak `python -m tbb`) i zapisuje
+`render_game_page` do pliku HTML. Opcjonalny pierwszy argument `argv` to ścieżka
+wyjścia (domyślnie `out/game.html`); katalog nadrzędny jest tworzony, gdy nie
+istnieje. Zwraca `0`. Dwa uruchomienia z tym samym seedem dają identyczną treść.
 
 ## 2. Struktura katalogów
 ```
@@ -112,6 +119,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │   │   └── rng.py        # seedowalny RNG izolowany od stanu globalnego
 │   └── tbbui/            # pakiet prezentacji (stdlib SVG/HTML); tbb go nie importuje
 │       ├── __init__.py
+│       ├── __main__.py   # CLI snapshot: headless partia → HTML (python -m tbbui)
 │       ├── hexgeom.py    # geometria heksów pointy-top (hex→pixel, narożniki)
 │       ├── battlesvg.py  # SVG pola bitwy heksowej (heksy + znaczniki jednostek)
 │       ├── layout.py     # deterministyczny layout regionów WorldMap → (col, row)
@@ -143,6 +151,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │   ├── test_worldsvg.py  # SVG mapy: węzły + linie + znaczniki (tbbui)
 │   ├── test_battlesvg.py # SVG pola bitwy heksowej (tbbui)
 │   ├── test_gamepage.py  # HTML strony partii (tbbui)
+│   ├── test_ui_main.py   # CLI snapshot partii (python -m tbbui)
 │   └── test_smoke.py
 ├── scripts/
 │   ├── test.sh           # uruchamia pełny pakiet testów
