@@ -4,7 +4,7 @@
 > Szczegóły decyzji mechaniki/architektury żyją w `docs/DESIGN.md` i
 > `docs/ARCHITECTURE.md`. Tu zostaje jedynie ślad, co i kiedy zamknięto.
 
-## Kamień milowy 10 — realne straty i koszty w pętli strategicznej (w toku)
+## Kamień milowy 10 — realne straty i koszty w pętli strategicznej — UKOŃCZONY
 - [x] **G10.1** Osada wchłania ocalałych obrońców po bitwie
       (`Settlement.absorb_defenders(survivors)` — garnizon = ocalali, polegli
       zmniejszają `population`/`occupied` po `free`; niemutowalne, bez RNG).
@@ -21,6 +21,17 @@
       (`ai.develop_duchy_settlement` otwiera pierwszy brakujący budynek wg
       priorytetu `Farm`→`Smith`→`Market` w pierwszej własnej osadzie z dość
       wolną populacją; brak kandydata = no-op; niemutowalne, bez RNG).
+- [x] **G10.5a** `take_duchy_turn`: rozwój → rekrutacja → wojsko *(task-032)*
+      (`develop_duchy_settlement` przed `recruit_duchy_unit` i akcją wojskową;
+      brak możliwości rozwoju nie przerywa dalszych etapów).
+- [x] **G10.5b** Progresja priorytetu `Farm`→`Smith` w kolejnych turach
+      *(task-033)* (dwa kolejne `take_duchy_turn` otwierają Farm, potem Smith).
+- [x] **G10.5c** Integracja rozwoju AI w realnej partii headless *(task-034)*
+      (`run_headless_game` z `create_headless_game`: osada AI otwiera `Farm`;
+      determinizm end-to-end).
+- [x] **R10.1** Refaktor: `WorldMap.with_settlement`, dedup rekonstrukcji mapy
+      *(task-035)* (`ai.py` i `world.py` reużywają wspólnego czystego przejścia;
+      zero zmian zachowania).
 
 ## Kamień milowy 9 — rozwój jednostek w turze (§6 pkt 2: „trenuj i wyposażaj")
 - [x] **U9.1** Trening jednostki jako czyste przejście z malejącym zyskiem

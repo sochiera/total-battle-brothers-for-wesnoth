@@ -4,7 +4,7 @@
 > Statusy: `[ ]` do zrobienia, `[~]` w toku, `[x]` zrobione.
 > Bierz zadania z góry. Nie łącz wielu przyrostów w jeden. Aktualizuj status i
 > dopisuj nowe zadania, gdy wizja się doprecyzowuje. Detale mechaniki → `docs/DESIGN.md`.
-> Ukończone milestony przeniesione do `BACKLOG-ARCHIVE.md` (kamienie 0–8 oraz
+> Ukończone milestony przeniesione do `BACKLOG-ARCHIVE.md` (kamienie 0–10 oraz
 > A7.1*/A7.2*) — tu zostaje wyłącznie żywy tail w stronę grywalnego MVP.
 
 ## Legenda
@@ -26,45 +26,43 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > garnizon obserwowalnie mocnieje (trening = czas; uzbrojenie = złoto + kuźnia)
 > w realnej headless partii. Wszystkie pozycje w `BACKLOG-ARCHIVE.md`.
 
-## Kamień milowy 10 — realne straty i koszty w pętli strategicznej
-> Headless pętla MVP działa end-to-end, ale trzy placeholdery czynią warstwę
-> strategiczną płytką: (a) garnizon osady **nigdy nie ponosi strat** — po obronie
-> zostaje pełny, a po podboju obrońcy zostają garnizonem zdobywcy (BW.3c/BM.2
-> świadomie odłożone); (b) rekrutacja jest **darmowa** poza 1 populacją, więc AI
-> spamuje żołnierzy bez związku z ekonomią (§7 „koszt … dochodzi później");
-> (c) AI **nigdy nie otwiera budynków**, więc ekonomia jest statyczna, a uzbrojenie
-> garnizonu (wymaga kuźni) w realnej partii nie postępuje. Ten kamień domyka te
-> trzy luki, spinając straty, koszt rekrutacji i rozwój ekonomii AI z pętlą.
-> Strojenie wartości (balans) pozostaje poza kamieniem.
-- [x] **G10.1** Osada wchłania ocalałych obrońców po bitwie. *(task-022)* →
-      `BACKLOG-ARCHIVE.md`
-- [x] **G10.2a** Straty garnizonu obrońcy przy `DEFENDER_WIN`/`DRAW`. *(task-027)*
-      → `BACKLOG-ARCHIVE.md`
-- [x] **G10.2b** Garnizon zdobytej osady przy `ATTACKER_WIN`. *(task-028)*
-      → `BACKLOG-ARCHIVE.md`
-- [x] **G10.3** Koszt złota rekrutacji. *(task-029)* → `BACKLOG-ARCHIVE.md`
-- [x] **G10.4** Polityka AI: otwieranie budynków ekonomii/kuźni. *(task-030)*
-      → `BACKLOG-ARCHIVE.md`
-- [x] **G10.5a** `take_duchy_turn`: rozwój → rekrutacja → wojsko. *(task-032)*
-  - AC: `take_duchy_turn` wywołuje `develop_duchy_settlement` przed
-    `recruit_duchy_unit`; test AI: po turze osada AI ma `Farm` i +1 rekruta; brak
-    możliwości rozwoju nie przerywa rekrutacji/wojska; DESIGN §3.1 ROZSTRZYGNIĘTE
-    G10.5; niemutowalne, deterministyczne.
-  - Uwaga: rozbicie G10.5 po porażce (`.forge/failures.md`).
-- [x] **G10.5b** Progresja priorytetu `Farm`→`Smith` w kolejnych turach. *(task-033)*
-  - AC: na mapie bez wrogiej osady (wojsko = no-op) dwa kolejne `take_duchy_turn`
-    otwierają najpierw `Farm`, potem `Smith`; rekrutacja działa; deterministyczne,
-    niemutowalne.
-- [x] **G10.5c** Integracja rozwoju AI w realnej partii headless. *(task-034)*
-  - AC: `run_headless_game` z `create_headless_game` osiąga stan, gdzie osada AI
-    ma otwarty `Farm`; determinizm end-to-end (ten sam seed → ten sam wynik);
-    stany wejściowe nie mutowane. (Twarda asercja `Smith` w pełnej partii świadomie
-    pominięta — progresję dowodzi G10.5b.)
-- [ ] **R10.1** Refaktor: `WorldMap.with_settlement`, dedup rekonstrukcji mapy.
-      *(task-035)*
-  - AC: `WorldMap.with_settlement(region, settlement)` czyste przejście; `ai.py`
-    (`develop`/`recruit`) i wewnętrzne miejsca `world.py` reużywają go; zero zmian
-    zachowania, cały pakiet zielony.
+## Kamień milowy 10 — realne straty i koszty w pętli strategicznej — UKOŃCZONE
+> Garnizon ponosi straty po bitwie (G10.1–G10.2), rekrutacja kosztuje złoto
+> (G10.3), AI otwiera budynki i rozwija ekonomię w pełnej polityce tury
+> (G10.4–G10.5), a rekonstrukcja mapy po podmianie osady jest zdeduplikowana
+> w `WorldMap.with_settlement` (R10.1). Wszystkie pozycje (task-022…035)
+> w `BACKLOG-ARCHIVE.md`. Strojenie wartości pozostaje balansem.
+
+## Kamień milowy 11 — regeneracja i ciągłość władzy
+> Trzy luki czynią długą partię zdegenerowaną: (a) **rany czasowe nigdy nie
+> mijają** (B4.5a odkłada upływ czasu ran) — kary `Bruise` są de facto trwałe;
+> (b) **ogłuszenie wychodzi z bitwy na mapę** — ocalały ze `stunned=True` nigdy
+> więcej nie zaatakuje ani się nie ruszy w żadnej kolejnej bitwie; (c) księstwo
+> **bez bohatera i dziedzica jest wiecznie bierne**, mimo że warunek przegranej
+> (D6.3a) zakłada możliwość wystawienia nowego bohatera z osady. Ten kamień
+> domyka leczenie, zdjęcie ogłuszenia przy powrocie na mapę i odrodzenie
+> bohatera w pętli headless. Balans kosztów/czasów pozostaje poza kamieniem.
+- [ ] **W11.1** Leczenie ran czasowych: `Unit.tick_wounds(months=1)`. *(task-036)*
+  - AC: rana czasowa traci `months` miesięcy i znika przy `<= 0`; trwałe bez
+    zmian; kolejność ran i reszta jednostki zachowane; `0` no-op, ujemne błąd;
+    czyste, bez RNG; DESIGN B4.5a ROZSTRZYGNIĘTE (W11.1).
+- [ ] **W11.2** Ogłuszenie nie przenosi się na warstwę strategiczną. *(task-037)*
+  - AC: `Party.reconstruct` i `Settlement.absorb_defenders` zdejmują
+    `stunned` (rany/XP zachowane); po `resolve_*_battle` nikt na mapie nie jest
+    ogłuszony; walidacje bez zmian; DESIGN ROZSTRZYGNIĘTE (W11.2).
+- [ ] **W11.3** Miesięczne leczenie garnizonu w łańcuchu osady. *(task-038)*
+  - AC: `Settlement.tick_healing()` = `tick_wounds(1)` dla garnizonu;
+    `tick_settlements` kończy łańcuch `…→training→equipment→healing`; `Bruise`
+    znika po 2 turach mapy; driver dziedziczy bez zmian; DESIGN/ARCHITECTURE.
+- [ ] **D11.4a** Wystawienie nowego bohatera z osady. *(task-039)*
+  - AC: `Settlement.raise_hero() -> (Settlement, Unit)`: świeży `Unit`, −1
+    wolnej populacji, −`HERO_GOLD_COST` (placeholder `2`) złota; niedobór →
+    `ValueError`; czyste, bez RNG; DESIGN §7 ROZSTRZYGNIĘTE (D11.4a).
+- [ ] **D11.4b** Bezhetmańskie księstwo wystawia bohatera w turze. *(task-040)*
+  - AC: `ai.raise_duchy_hero(world, duchy) -> (WorldMap, Duchy)` — pierwsza
+    własna osada stać na koszt, no-op gdy `has_hero`/brak kandydata; driver
+    wpina przed akcją księstwa (`_replace_duchy` + sync); test: po stracie
+    bohatera bez dziedzica księstwo z osadą odzyskuje `has_hero`; determinizm.
 
 ## Później (poza MVP)
 - [ ] Prezentacja/UI (pygame lub most do innego silnika) nad rdzeniem.
