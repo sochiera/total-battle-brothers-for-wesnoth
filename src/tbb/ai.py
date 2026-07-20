@@ -239,6 +239,45 @@ def assault_duchy_party(
     )
 
 
+def assault_duchy_party_recorded(
+    world: WorldMap,
+    duchy: Duchy,
+    rng: Rng,
+    morale_by_owner: dict[str, int] | None = None,
+) -> tuple[WorldMap, HexBattle | None]:
+    """Assault nearest adjacent enemy settlement; return map and battle.
+
+    No-op paths return ``(world, None)`` without consuming RNG. On a hit the
+    map matches ``assault_duchy_party`` for the same inputs.
+    """
+    position = _duchy_party_position(world, duchy.duchy_id)
+    if position is None:
+        return world, None
+    party = world.party_at(position)
+    if party is None:
+        return world, None
+    if party.owner_id is None:
+        raise ValueError("party must have an explicit owner_id")
+
+    target = nearest_enemy_settlement(world, position, party.owner_id)
+    if target is None or target not in world.neighbors(position):
+        return world, None
+
+    attacker_morale = 0
+    defender_morale = 0
+    if morale_by_owner is not None:
+        settlement = world.settlement_at(target)
+        attacker_morale = morale_by_owner.get(party.owner_id, 0)
+        defender_morale = morale_by_owner.get(settlement.owner_id, 0)
+    return world.resolve_settlement_battle_recorded(
+        position,
+        target,
+        rng,
+        attacker_morale=attacker_morale,
+        defender_morale=defender_morale,
+    )
+
+
 def assault_duchy_party_to(
     world: WorldMap,
     duchy: Duchy,

@@ -442,6 +442,40 @@ def test_assault_duchy_party_is_deterministic_and_preserves_input():
     assert settlement.owner_id == "enemy"
 
 
+def test_assault_duchy_party_recorded_returns_battle_and_matches_assault_duchy_party():
+    """assault_duchy_party_recorded mirrors assault_duchy_party's map, plus the battle."""
+    start, target = Region("Start"), Region("Target")
+    party = Party(Unit(training=5, equipment=6), owner_id="ai")
+    settlement = Settlement(
+        "Target", population=1, garrison=(Unit(equipment=1),), owner_id="enemy"
+    )
+    world = WorldMap(
+        [start, target],
+        [(start, target)],
+        settlements={target: settlement},
+        parties={start: party},
+    )
+    duchy = Duchy("ai", party.hero, parties=(party,))
+    seed = 2
+    morale_by_owner = {"ai": 10, "enemy": -5}
+
+    resolved_world, battle = ai.assault_duchy_party_recorded(
+        world, duchy, tbb.Rng(seed), morale_by_owner=morale_by_owner
+    )
+
+    expected_world, expected_battle = world.resolve_settlement_battle_recorded(
+        start, target, tbb.Rng(seed), attacker_morale=10, defender_morale=-5
+    )
+    assert resolved_world == expected_world
+    assert battle == expected_battle
+    assert resolved_world == assault_duchy_party(
+        world, duchy, tbb.Rng(seed), morale_by_owner=morale_by_owner
+    )
+    assert resolved_world != world
+    assert world.party_at(start) is party
+    assert world.settlement_at(target) is settlement
+
+
 def test_assault_duchy_party_to_assaults_explicit_target_not_nearest():
     """assault_duchy_party_to resolves the explicit target, not the nearest enemy.
 

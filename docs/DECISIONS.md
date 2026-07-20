@@ -109,6 +109,7 @@
 | V13.4a | Strona partii | `render_game_page(world, game, calendar, battle=None)`: SVG mapy, kalendarz, panel duchies, result. |
 | K16.1a | Slot SVG bitwy | `render_game_page(..., battle=None)` osadza `render_battle_svg` gdy podano HexBattle. |
 | K16.1c | Szturm z nagraniem | `assault_duchy_party_to_recorded → (WorldMap, HexBattle\|None)`; no-op → (world, None) bez RNG. |
+| K16.1d-1 | Auto-szturm z nagraniem | `assault_duchy_party_recorded → (WorldMap, HexBattle\|None)`; nearest adjacent → recorded; no-op → (world, None) bez RNG. |
 | K14.1a | Pomijanie tury gracza | `player_duchy_id` na run_headless_game: bez take_duchy_turn dla tego id; tick/sync/raise/heir zostają. |
 | K14.1b | GameApp player | `GameApp(..., player_duchy_id=None)`; POST /turn max_turns=1; data-player; serve z `"player"`. |
 | K14.2a | POST /order/recruit | `_apply_player_order` → recruit_duchy_unit + sync; formularz GET. |

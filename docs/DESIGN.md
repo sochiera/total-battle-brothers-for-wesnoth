@@ -278,9 +278,10 @@ w regionie (wymaga osady i wolnego slotu party).
 - `take_duchy_turn` — develop → recruit → military (+ `morale_by_owner`).
 - `march_duchy_party` / `march_duchy_party_to(world, duchy, target)` —
   party księstwa (`_duchy_party_position`) + marsz auto / jawny target.
-- `assault_duchy_party` / `assault_duchy_party_to` / `_to_recorded` —
-  analogicznie dla szturmu; no-op bez party/sąsiedztwa/wrogiej osady **bez** RNG;
-  recorded → `(WorldMap, HexBattle | None)`.
+- `assault_duchy_party` / `_recorded` / `assault_duchy_party_to` / `_to_recorded` —
+  analogicznie dla szturmu (auto = najbliższa wroga osada); no-op bez
+  party/sąsiedztwa/wrogiej osady **bez** RNG; recorded →
+  `(WorldMap, HexBattle | None)`.
 
 **Setup i pętla:**
 - `create_headless_game()` → `WorldMap` + `GameState` z księstwami `player` i `ai`;
@@ -366,9 +367,10 @@ sąsiednią wrogą osadę szturmuje. Prymitywy `march_duchy_party_to` /
 prymitywy; formularze per region-cel. Bez zmiany rozstrzygania bitwy ani morale.
 
 **PLAN K16 (obserwowalna bitwa w podglądzie):** opcjonalny slot `battle` w
-`render_game_page`; `resolve_settlement_battle_recorded`; 
-`assault_duchy_party_to_recorded`; `GameApp` trzyma ostatnią bitwę ze szturmu i
-przekazuje do strony (K16.1d). Nagranie nie zmienia rozstrzygania ani morale.
+`render_game_page`; `resolve_settlement_battle_recorded`;
+`assault_duchy_party_to_recorded` / `assault_duchy_party_recorded`; `GameApp`
+trzyma ostatnią bitwę ze szturmu i przekazuje do strony (K16.1d). Nagranie nie
+zmienia rozstrzygania ani morale.
 
 ## 12. Otwarte pytania (nadal)
 - **Krzywe filarów:** różne parametry stromości per filar oraz wpływ budynków/
