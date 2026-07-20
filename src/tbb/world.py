@@ -322,8 +322,8 @@ class WorldMap:
             raise ValueError("destination is already occupied by a party")
 
         parties = dict(self.parties)
-        settlements = dict(self.settlements)
         attacker = parties.pop(source)
+        settlement = self.settlements[destination]
         if result is BattleResult.ATTACKER_WIN:
             parties[destination] = (
                 attacker
@@ -332,33 +332,29 @@ class WorldMap:
                     attacker, battle.side_survivors(BattleSide.ATTACKER)
                 )
             )
-            conquered_settlement = settlements[destination]
             if battle is not None:
-                if conquered_settlement.occupied < len(
-                    conquered_settlement.garrison
-                ):
-                    conquered_settlement = replace(
-                        conquered_settlement,
-                        occupied=len(conquered_settlement.garrison),
+                if settlement.occupied < len(settlement.garrison):
+                    settlement = replace(
+                        settlement,
+                        occupied=len(settlement.garrison),
                     )
-                conquered_settlement = conquered_settlement.absorb_defenders(
+                settlement = settlement.absorb_defenders(
                     battle.side_survivors(BattleSide.DEFENDER)
                 )
-            settlements[destination] = replace(
-                conquered_settlement, owner_id=attacker.owner_id
-            )
+            settlement = replace(settlement, owner_id=attacker.owner_id)
         elif battle is not None:
-            settlements[destination] = settlements[
-                destination
-            ].absorb_defenders(
+            settlement = settlement.absorb_defenders(
                 battle.side_survivors(BattleSide.DEFENDER)
             )
 
-        return WorldMap(
+        world_with_updated_parties = WorldMap(
             self.regions,
             self.connections,
-            settlements,
+            self.settlements,
             parties,
+        )
+        return world_with_updated_parties.with_settlement(
+            destination, settlement
         )
 
     def resolve_settlement_battle(
