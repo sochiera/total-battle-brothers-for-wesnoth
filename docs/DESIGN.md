@@ -694,6 +694,16 @@ warstwa wizualna**, nie tylko `python -m tbb` w konsoli:
 - Ma trafić do `BACKLOG.md` jako zadania z kryteriami akceptacji jak każde
   inne, nie zostać odłożone bezterminowo.
 
+**ROZSTRZYGNIĘTE (plan K13, stack prezentacji):** środowisko nie ma pygame ani
+tkinter, a warstwa wizualna ma być budowana w TDD — powstaje więc jako osobny
+pakiet `src/tbbui/` w **czystym stdlib**: deterministyczne renderowanie mapy
+strategicznej i bitwy heksowej do **SVG/HTML** (stringi w pełni testowalne
+pytestem) plus lokalny serwer na `http.server`; wyświetlaczem jest
+przeglądarka. Pierwszy przyrost (Kamień 13) to **tryb obserwatora**: strona
+partii ze stanem świata i przyciskiem „następna tura". Wydawanie rozkazów
+przez gracza (rekrutacja, marsz, szturm z przeglądarki) dochodzi w kolejnym
+kamieniu. Rdzeń `tbb` nigdy nie importuje `tbbui` (§8 bez zmian).
+
 ## 10. Otwarte pytania (do rozstrzygnięcia w trakcie)
 Oznaczone, bo decyzja nie jest przesądzona — rozstrzygać przy okazji zadań, które
 ich dotykają, i notować wynik tutaj:
