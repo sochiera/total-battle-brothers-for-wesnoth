@@ -6,7 +6,17 @@ from dataclasses import FrozenInstanceError
 import pytest
 
 import tbb.settlement as settlement_module
-from tbb import Building, FARM, MARKET, Resources, Settlement, SMITH, Unit
+from tbb import (
+    BRUISE,
+    MAIMED,
+    Building,
+    FARM,
+    MARKET,
+    Resources,
+    Settlement,
+    SMITH,
+    Unit,
+)
 
 
 def test_construction_defaults_all_population_to_free():
@@ -520,6 +530,52 @@ def test_absorb_defenders_replaces_garrison_and_accounts_for_fallen_purely():
     assert original.population == 8
     assert original.occupied == 4
     assert random.getstate() == rng_state
+
+
+def test_absorb_defenders_clears_stun_and_preserves_survivor_state_purely():
+    stunned = Unit(
+        training=2,
+        equipment=3,
+        experience=4,
+        ranged_range=5,
+        wounds=(BRUISE, MAIMED),
+        stunned=True,
+        training_progress=1,
+        equipment_progress=2,
+    )
+    ready = Unit(training=1, experience=6, wounds=(MAIMED,))
+    fallen = Unit(equipment=2)
+    original = Settlement(
+        "Keep",
+        population=8,
+        occupied=4,
+        garrison=(ready, fallen, stunned),
+        owner_id="north",
+    )
+    survivors = [stunned, ready]
+    survivors_before = list(survivors)
+
+    absorbed = original.absorb_defenders(survivors)
+
+    assert absorbed.garrison == (
+        Unit(
+            training=2,
+            equipment=3,
+            experience=4,
+            ranged_range=5,
+            wounds=(BRUISE, MAIMED),
+            stunned=False,
+            training_progress=1,
+            equipment_progress=2,
+        ),
+        ready,
+    )
+    assert absorbed.garrison[1] is ready
+    assert (absorbed.population, absorbed.occupied, absorbed.free) == (7, 3, 4)
+    assert survivors == survivors_before
+    assert stunned.stunned is True
+    assert original.garrison == (ready, fallen, stunned)
+    assert (original.population, original.occupied, original.free) == (8, 4, 4)
 
 
 def test_absorb_defenders_rejects_extra_survivors_and_accepts_none():
