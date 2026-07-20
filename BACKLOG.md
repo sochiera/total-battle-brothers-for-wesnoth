@@ -86,31 +86,33 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > rozkaz gracza `POST /order/engage` (auto-cel). Pozycje (task-101…103) w
 > `BACKLOG-ARCHIVE.md`. Jawny wybór celu party → Kamień 19.
 
-## Kamień milowy 19 — jawny wybór celu starcia party↔party
-> DESIGN §11 (PLAN K19): K18 dał starcie z auto-celem (pierwszy sąsiad). K19
-> odwraca placeholder jak K15 dla szturmu: gracz wskazuje *którą* sąsiednią
-> wrogą party zaatakować. Prymityw-pierwszy → routing `?target=` → formularze
-> celu; bez zmian w rozstrzyganiu bitwy ani morale.
-- [ ] **K19.1a** Prymityw AI starcia na wskazany cel (`ai.engage_duchy_party_to_recorded`). *(task-104)*
-  - AC: jawny sąsiedni wrogi `target` → `resolve_party_battle_recorded`; no-op →
-    `(world, None)` bez RNG; morale per strona z `morale_by_owner`.
-- [ ] **K19.1b** Routing `POST /order/engage?target=` (fallback auto). *(task-105)*
-  - AC: znany target → `engage_duchy_party_to_recorded`; brak/nieznany → auto
-    `engage_duchy_party_recorded`; `last_battle`/guardy jak K18.1c.
-- [ ] **K19.1c** Formularze celu starcia w GET `/` (sąsiednie wrogie party). *(task-106)*
-  - AC: przy party gracza — form per sąsiednia wroga party `?target=`; inaczej
-    bare `/order/engage`.
+## Kamień milowy 19 — jawny wybór celu starcia party↔party — UKOŃCZONY
+> DESIGN §11 (PLAN K19): gracz wskazuje *którą* sąsiednią wrogą party zaatakować
+> (prymityw → routing `?target=` → formularze celu). Wszystkie pozycje
+> (task-104…106) w `BACKLOG-ARCHIVE.md`. Bez zmian w rozstrzyganiu bitwy ani morale.
 
-## Kamień milowy 20 — czytelna dla człowieka strona partii (grywalność w przeglądarce)
-> DESIGN §11 (PLAN K20): strona komunikuje stan atrybutami `data-*` (kontrakt
-> testów), ale człowiek w przeglądarce nie widzi tekstu. K20 dokłada widoczny,
-> czytelny banner wyniku i wiersze statusu księstw obok istniejących markerów.
-- [ ] **K20.1a** Czytelny banner wyniku (`<p data-result-text>`). *(task-107)*
-  - AC: `Gra w toku`/`Remis`/`Zwycięstwo: <duchy_id>`; `data-result` bez zmian.
-- [ ] **K20.1b** Czytelny wiersz statusu księstwa w panelu `data-duchy`. *(task-108)*
-  - AC: widoczny tekst z `duchy_id`/osady/party/morale; atrybuty `data-*` bez zmian.
+## Kamień milowy 20 — czytelna dla człowieka strona partii — UKOŃCZONY
+> DESIGN §11 (PLAN K20): widoczny banner wyniku (`data-result-text`) i wiersze
+> statusu księstw obok maszynowych markerów. Pozycje (task-107…108)
+> w `BACKLOG-ARCHIVE.md`.
+
+## Kamień milowy 21 — dokończenie czytelności strony w przeglądarce (grywalność)
+> DESIGN §11 (PLAN K21): K20 udostępnił banner wyniku i wiersze księstw, ale
+> kalendarz, raport bitwy i sekcje rozkazów pozostały dla człowieka nieczytelne.
+> K21 dokłada widoczny tekst kalendarza i raportu bitwy oraz odróżnialne nagłówki
+> sekcji rozkazów. Maszynowe `data-*` i routing bez zmian; rdzeń bez zmian.
+- [ ] **K21.1a** Czytelny tekst kalendarza (`Rok N, miesiąc M`) w `data-calendar`. *(task-109)*
+  - AC: widoczny tekst zgodny z `data-year`/`data-month`; atrybuty bez zmian.
+- [ ] **K21.1b** Czytelny tekst wyniku bitwy w `render_battle_report`. *(task-110)*
+  - AC: `Zwycięstwo atakującego`/`Zwycięstwo broniącego`/`Remis`; `data-battle-result` bez zmian.
+- [ ] **K21.1c** Czytelne straty per strona w `render_battle_report`. *(task-111)*
+  - AC: `Atakujący/Broniący: polegli N, ogłuszeni M, zdolni K`; `data-*` bez zmian.
+- [ ] **K21.2** Nagłówki sekcji rozkazów w `GET /` (`data-order-section`). *(task-112)*
+  - AC: `<h2 data-order-section="march|assault|engage">` w kolejności marsz→szturm→starcie; formularze/routing bez zmian.
 
 ## Dług/refaktor
+- [ ] **R21.1 (refaktor)** Wspólny emiter formularzy celu marsz/szturm/starcie w `serve.py`. *(task-113)*
+  - AC: bez nowych testów; pętla `?target=` w jednym helperze reużyta przez trzy sekcje; zachowanie GET `/` bez zmian.
 - [x] **R15.1 (refaktor)** Kompaktacja DESIGN.md do stanu obecnego; historia → DECISIONS.md. *(task-094)*
 - [x] **R16.1 (refaktor)** Wspólny generator formularzy celu marsz/szturm w `serve.py`. *(task-098)*
 

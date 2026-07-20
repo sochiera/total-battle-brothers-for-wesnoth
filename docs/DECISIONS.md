@@ -137,3 +137,8 @@
 | K17.1b | Raport w stronie partii | `render_game_page(..., battle=…)` osadza kanoniczny `render_battle_report(battle)` w `<body>` obok SVG bitwy; bez `battle` wynik bajt-w-bajt jak wcześniej. |
 | K20.1a | Banner wyniku | `render_game_page` zawsze osadza `<p data-result-text>` (`Gra w toku` / `Remis` / `Zwycięstwo: <duchy_id>`) z `_result_text`; `data-result` bez zmian. |
 | K20.1b | Wiersz statusu księstwa | Każdy `data-duchy` ma widoczny tekst `<duchy_id>: osady N, party M, morale K` zgodny z atrybutami; atrybuty `data-*` bez zmian. |
+| K21.1a | Tekst kalendarza | Element `data-calendar` ma widoczny tekst `Rok N, miesiąc M` z `Calendar`; atrybuty `data-year`/`data-month` bez zmian. |
+| K21.1b | Tekst wyniku bitwy | `render_battle_report` ma widoczny tekst `Zwycięstwo atakującego`/`Zwycięstwo broniącego`/`Remis` wg `report.result`; `data-battle-result` bez zmian. |
+| K21.1c | Tekst strat bitwy | Każdy `data-battle-side` ma widoczny tekst `Atakujący/Broniący: polegli N, ogłuszeni M, zdolni K` zgodny z atrybutami; `data-*` bez zmian. |
+| K21.2 | Nagłówki sekcji rozkazów | `GET /` ma po jednym `<h2 data-order-section="march\|assault\|engage">Marsz\|Szturm\|Starcie</h2>` przed grupą formularzy danej akcji; formularze/routing bez zmian. |
+| R21.1 | Emiter formularzy celu | Wspólna pętla formularzy `?target=` w jednym helperze `GameApp`, reużyta przez marsz/szturm/starcie; zachowanie GET `/` bez zmian. |

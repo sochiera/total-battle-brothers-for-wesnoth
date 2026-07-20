@@ -339,12 +339,15 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
 - `render_battle_svg(battle)` — heksy obwiedni zajętych ±1, znaczniki
   `data-side`/`data-hp`/`data-stunned`.
 - `render_battle_report(battle)` — fragment `data-battle-report` z wynikiem i
-  stratami per strona z `HexBattle.report()`.
+  stratami per strona z `HexBattle.report()`. Obok maszynowych `data-*`: widoczny
+  tekst wyniku (`Zwycięstwo atakującego` / `Zwycięstwo broniącego` / `Remis`)
+  oraz w każdym `data-battle-side` wiersz strat czytelny dla człowieka
+  (`Atakujący/Broniący: polegli N, ogłuszeni M, zdolni K`, zgodny z atrybutami).
 - `render_game_page(world, game, calendar, battle=None)` — SVG mapy, kalendarz
-  (`data-calendar`), panel księstw (`data-duchy` + tekst statusu), wynik
-  (`data-result`), banner wyniku (`<p data-result-text>`: `Gra w toku` /
-  `Remis` / `Zwycięstwo: <id>`), opcjonalnie SVG bitwy i raport bitwy gdy
-  `battle` podane.
+  (`data-calendar` + widoczny tekst `Rok N, miesiąc M`), panel księstw
+  (`data-duchy` + tekst statusu), wynik (`data-result`), banner wyniku
+  (`<p data-result-text>`: `Gra w toku` / `Remis` / `Zwycięstwo: <id>`),
+  opcjonalnie SVG bitwy i raport bitwy gdy `battle` podane.
 
 **GameApp / rozkazy gracza:**
 - `GameApp(..., player_duchy_id=None)` — w `POST /turn` woła `run_headless_game`
@@ -429,6 +432,16 @@ partii (K20.1a); w każdym panelu `data-duchy` widoczny wiersz
 `<duchy_id>: osady N, party M, morale K` zgodny z atrybutami (K20.1b).
 Istniejące markery `data-result` / `data-duchy` / `data-*` bez zmian. Bez zmian
 w rdzeniu.
+
+**PLAN K21 (dokończenie czytelności strony w przeglądarce):** K20 dał czytelny
+banner wyniku i wiersze księstw, ale kalendarz, raport bitwy i sekcje rozkazów
+były dla człowieka nieczytelne. K21 dokłada: widoczny tekst kalendarza
+`Rok N, miesiąc M` w `data-calendar` (K21.1a); widoczny tekst wyniku bitwy
+(K21.1b) i strat per strona (K21.1c) w `render_battle_report`; nagłówki sekcji
+rozkazów `<h2 data-order-section="march|assault|engage">` w `GET /` (K21.2), by
+człowiek odróżnił marsz/szturm/starcie; refaktor R21.1 scala pętlę formularzy
+celu (marsz/szturm/starcie) w jeden emiter. Maszynowe `data-*` i routing bez
+zmian; rdzeń bez zmian.
 
 ## 12. Otwarte pytania (nadal)
 - **Krzywe filarów:** różne parametry stromości per filar oraz wpływ budynków/

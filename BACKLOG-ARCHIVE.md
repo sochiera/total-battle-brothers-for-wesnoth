@@ -42,6 +42,15 @@
 - [x] **K18.1b** Prymityw AI auto-starcia party↔party z nagraniem (`ai.engage_duchy_party_recorded`). *(task-102)*
 - [x] **K18.1c** Rozkaz gracza `POST /order/engage` ustawia i renderuje `last_battle`. *(task-103)*
 
+## Kamień milowy 19 — jawny wybór celu starcia party↔party — UKOŃCZONY
+- [x] **K19.1a** Prymityw AI starcia na wskazany cel (`ai.engage_duchy_party_to_recorded`). *(task-104)*
+- [x] **K19.1b** Routing `POST /order/engage?target=` (fallback auto). *(task-105)*
+- [x] **K19.1c** Formularze celu starcia w GET `/` (sąsiednie wrogie party). *(task-106)*
+
+## Kamień milowy 20 — czytelna dla człowieka strona partii — UKOŃCZONY
+- [x] **K20.1a** Czytelny banner wyniku (`<p data-result-text>`). *(task-107)*
+- [x] **K20.1b** Czytelny wiersz statusu księstwa w panelu `data-duchy`. *(task-108)*
+
 ## Kamień milowy 10 — realne straty i koszty w pętli strategicznej — UKOŃCZONY
 - [x] **G10.1** Osada wchłania ocalałych obrońców po bitwie
       (`Settlement.absorb_defenders(survivors)` — garnizon = ocalali, polegli

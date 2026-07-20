@@ -72,23 +72,29 @@ pointy-top: `hex_to_pixel(hex, size) -> (x, y)` (axial → piksel środka) oraz
 (`data-side`/`data-hp`/`data-stunned`) w środku z `hex_to_pixel`. Czyste,
 deterministyczne, bez mutacji `battle`.
 
-**Raport bitwy HTML (K17.1a):** `tbbui.battlereport.render_battle_report(battle)
+**Raport bitwy HTML (K17.1a / K21.1b / K21.1c):** `tbbui.battlereport.render_battle_report(battle)
 -> str` — parsowalny fragment XML z korzeniem `<div data-battle-report="">`;
 konsumuje `battle.report()` (rdzeń bez zmian). Dziecko
 `<div data-battle-result="…">` z `report.result.value` (`attacker_win` /
 `defender_win` / `draw`); po jednym `<div data-battle-side="attacker|defender">`
 z atrybutami `data-fallen` / `data-stunned` / `data-active` = liczności krotek
-`BattleSideReport` (kolejność: attacker, potem defender). Czyste, deterministyczne,
+`BattleSideReport` (kolejność: attacker, potem defender). Obok maszynowych
+atrybutów fragment niesie tekst czytelny dla człowieka (K21.1b/c): widoczny
+wynik (`Zwycięstwo atakującego` / `Zwycięstwo broniącego` / `Remis` wg
+`report.result`) oraz w każdym `data-battle-side` wiersz strat
+(`Atakujący/Broniący: polegli N, ogłuszeni M, zdolni K`, zgodny z
+`data-fallen`/`data-stunned`/`data-active`). Czyste, deterministyczne,
 bez mutacji `battle`.
 
-**Strona HTML partii (V13.4a / K16.1a / K17.1b / K20.1a / K20.1b):** `tbbui.gamepage.render_game_page(world,
+**Strona HTML partii (V13.4a / K16.1a / K17.1b / K20.1a / K20.1b / K21.1a):** `tbbui.gamepage.render_game_page(world,
 game, calendar, battle=None) -> str` — parsowalny HTML z korzeniem `<html>`;
 osadza kanoniczny string z `render_world_svg(world)`; opcjonalny
 `battle: HexBattle | None = None` — gdy podany, osadza w `<body>` kanoniczne
 stringi z `render_battle_svg(battle)` (`tbbui.battlesvg`) oraz
 `render_battle_report(battle)` (`tbbui.battlereport`); gdy `None` (domyślnie)
 wynik jest identyczny bajt-w-bajt jak bez argumentu; element `data-calendar` z
-`data-year` / `data-month` z podanego `Calendar`; po jednym elemencie
+`data-year` / `data-month` z podanego `Calendar` oraz widocznym tekstem
+`Rok N, miesiąc M` (K21.1a, zgodnym z atrybutami); po jednym elemencie
 `data-duchy` (= `duchy_id`) na każde `game.duchies` z `data-morale`,
 `data-settlements` i `data-parties` (liczby) oraz widocznym tekstem
 `<duchy_id>: osady N, party M, morale K` (zgodnym z atrybutami); element
@@ -106,7 +112,7 @@ bitwy z rozkazu gracza — K16.1d.
 wyjścia (domyślnie `out/game.html`); katalog nadrzędny jest tworzony, gdy nie
 istnieje. Zwraca `0`. Dwa uruchomienia z tym samym seedem dają identyczną treść.
 
-**Routing podglądu (V13.5a / K14.1b / K14.2a–e2 / K15.1b–c / K15.2b–c):** `tbbui.serve.GameApp(world, game,
+**Routing podglądu (V13.5a / K14.1b / K14.2a–e2 / K15.1b–c / K15.2b–c / K21.2):** `tbbui.serve.GameApp(world, game,
 calendar, rng, player_duchy_id=None)` trzyma stan partii w pamięci i udostępnia
 czystą metodę `handle(method, path) -> (kod_http, treść)` — bez gniazda HTTP.
 `handle` rozdziela ścieżkę od query (`path.partition("?")`) na początku routingu.
@@ -116,6 +122,9 @@ czystą metodę `handle(method, path) -> (kod_http, treść)` — bez gniazda HT
 `<form method="post" action="/order/recruit">`,
 `<form method="post" action="/order/muster">`,
 `<form method="post" action="/order/develop">`,
+a przed grupami marszu/szturmu/starcia po jednym nagłówku
+`<h2 data-order-section="march|assault|engage">Marsz|Szturm|Starcie</h2>`
+(K21.2, kolejność marsz→szturm→starcie; formularze/routing bez zmian),
 sekcję marszu (K15.1c: gdy gracz ma party — po jednym
 `<form method="post" action="/order/march?target=<nazwa>">` na region z obcą
 osadą, `quote` na nazwie, przycisk = nazwa; inaczej bare
