@@ -47,34 +47,46 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > nigdy nie awansuje dziedzica, bo nikt go nie wyznacza. Do tego jednostki
 > w party nigdy nie leczą ran (W11.3 leczy tylko garnizon). Kamień 12 wpina
 > morale księstw w celność stron bitwy, leczy party w turze i domyka linię
-> sukcesji. Po drodze mały refaktor duplikacji skanowania osad w `ai.py`.
-- [ ] **R12.1** Refaktor: wspólna kwerenda własnych osad w `ai.py`. *(task-051)*
-  - AC: prywatny generator `_owned_settlements(world, duchy_id)` reużyty przez
-    `develop_duchy_settlement`/`raise_duchy_hero`/`recruit_duchy_unit`/
-    `muster_duchy_party`; publiczne sygnatury i zachowanie bez zmian; bez
-    nowych testów; cały pakiet zielony.
-- [ ] **B12.1a** Morale per strona w auto-rozgrywce bitwy. *(task-052)*
+> sukcesji.
+>
+> **Nota po wsadzie 051–055 (micro-cap):** poprzedni wsad otwierał refaktor
+> **R12.1** (`_owned_settlements`), który dobił do limitu 12 cykli mikro-TDD
+> (jak wcześniej R10.1, 7 cykli — refaktory są kruche w tej pętli). Porażka
+> pierwszego zadania wsadu wycofała cały pakiet 052–055, choć nigdy nie zostały
+> uruchomione. **Decyzja:** R12.1 zdjęty z kamienia (duplikacja ~4 linii × 4
+> funkcje jest drobna i NIE blokuje MVP → przeniesiony do „Później"). Zadania
+> morale/leczenia przecięte drobniej i przenumerowane od 056; najbezpieczniejsze,
+> niezależne najpierw (leczenie party przed łańcuchem morale), by wartość
+> „bankowała się" nawet jeśli późniejsze zadanie padnie. Dziedzic (D12.3)
+> wypada do kolejnego wsadu i traci zależność od `_owned_settlements`.
+- [~] **W12.2a** Leczenie ran party — `Party.tick_wounds`. *(task-056)*
+  - AC: `Party.tick_wounds(months=1)` (bohater + podkomendni, `0` no-op,
+    ujemne błąd); czyste, bez RNG; `Bruise` znika po `tick_wounds(2)`,
+    `Maimed` zostaje; pakiet zielony.
+- [~] **W12.2b** Leczenie party w turze mapy i driverze. *(task-057)*
+  - AC: `WorldMap.tick_parties()` po kolejności regionów; driver woła je zaraz
+    po `tick_settlements()`; `Bruise` w party znika po 2 turach, `Maimed`
+    zostaje; determinizm; DESIGN (W12.2) + ARCHITECTURE.
+- [~] **B12.1a** Morale per strona w auto-rozgrywce bitwy. *(task-058)*
   - AC: `HexBattle.auto_resolve(move_points, rng, attacker_morale=0,
     defender_morale=0)`; tura jednostki dostaje morale JEJ strony; strona
     `+45` vs `-45` wygrywa przy ustalonym seedzie, zamiana odwraca zwycięzcę;
     równe morale obu stron = dotychczasowy przebieg; `WorldMap.resolve_*`
     pomostowo podaje wspólne `morale` obu stronom; DESIGN (B12.1a).
-- [ ] **B12.1b** Morale księstw wpięte w bitwy na mapie i w driverze. *(task-053)*
+- [~] **B12.1b-1** Per-strona morale w sygnaturach `WorldMap.resolve_*`. *(task-059)*
   - AC: `resolve_party_battle`/`resolve_settlement_battle` z
-    `attacker_morale`/`defender_morale` zamiast `morale`; `ai.assault…`/
-    `take_duchy_military_action`/`take_duchy_turn` z opcjonalnym
-    `morale_by_owner`; driver buduje mapę morale z `GameState` przed każdą
-    akcją; test: morale księstwa obserwowalnie zmienia wynik szturmu;
-    determinizm; DESIGN (B12.1b).
-- [ ] **W12.2** Leczenie ran party w miesięcznej turze. *(task-054)*
-  - AC: `Party.tick_wounds(months=1)` (bohater + podkomendni, `0` no-op,
-    ujemne błąd); `WorldMap.tick_parties()` po `tick_settlements()` w driverze;
-    `Bruise` w party znika po 2 turach, `Maimed` zostaje; determinizm;
-    DESIGN (W12.2) + ARCHITECTURE.
-- [ ] **D12.3** Księstwo wyznacza dziedzica w turze. *(task-055)*
+    `attacker_morale`/`defender_morale` (domyślnie 0/0, zgodność wstecz);
+    morale `+45` po jednej stronie zmienia wynik na mapie; determinizm.
+- [~] **B12.1b-2** Morale księstw wpięte w AI i driver. *(task-060)*
+  - AC: `assault…`/`take_duchy_military_action`/`take_duchy_turn` z opcjonalnym
+    `morale_by_owner`; driver buduje mapę morale z `GameState` przed akcją;
+    test: morale księstwa obserwowalnie zmienia wynik szturmu; determinizm;
+    DESIGN (B12.1b).
+- [ ] **D12.3** Księstwo wyznacza dziedzica w turze. *(kolejny wsad; bez zależności od R12.1)*
   - AC: `ai.designate_duchy_heir(world, duchy) -> (WorldMap, Duchy)` — no-op
     gdy brak bohatera/jest heir/brak kandydata; inaczej pierwsza własna osada
-    z ≥1 wolnym i `HERO_GOLD_COST` złota daje świeżego `Unit` jako `heir`;
+    z ≥1 wolnym i `HERO_GOLD_COST` złota daje świeżego `Unit` jako `heir`
+    (skan osad inline, jak w `raise_duchy_hero` — bez `_owned_settlements`);
     driver wpina po `raise_duchy_hero`, przed `take_duchy_turn`; test: śmierć
     bohatera z dziedzicem → sukcesja w turze, morale −`SUCCESSION_MORALE_PENALTY`;
     determinizm; DESIGN (D12.3).
@@ -120,6 +132,12 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
     ścieżek; determinizm dla seeda i sekwencji żądań; `python -m tbbui serve`.
 
 ## Później (poza MVP)
+- [ ] **R12.1 (opcjonalny dług)** Wspólna kwerenda własnych osad w `ai.py`:
+      generator `_owned_settlements(world, duchy_id)` reużyty przez
+      `develop_duchy_settlement`/`raise_duchy_hero`/`recruit_duchy_unit`/
+      `muster_duchy_party`. Zdjęty z K12 po dwóch micro-cap porażkach refaktorów
+      w pętli — duplikacja ~4 linii × 4 funkcje nie blokuje MVP. Podjąć tylko
+      gdy pojawi się kolejny konsument tego wzorca.
 - [ ] Bogatszy model ran, terenu, budynków; więcej typów jednostek.
 - [ ] **Bramkowanie treningu budynkiem (§5 „odpowiednie budynki"):** katalog
       budynku treningowego i wymóg jego czynności w `tick_training` (dziś trening
