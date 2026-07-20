@@ -62,6 +62,33 @@ def raise_duchy_hero(world: WorldMap, duchy: Duchy) -> tuple[WorldMap, Duchy]:
     return world, duchy
 
 
+def designate_duchy_heir(world: WorldMap, duchy: Duchy) -> tuple[WorldMap, Duchy]:
+    """Designate an heir for a duchy that has a hero but no heir yet."""
+    if not duchy.has_hero or duchy.heir is not None:
+        return world, duchy
+
+    for region in world.regions:
+        settlement = world.settlements.get(region)
+        if (
+            settlement is None
+            or settlement.owner_id != duchy.duchy_id
+            or settlement.free < 1
+            or settlement.storage.gold < settlement_module.HERO_GOLD_COST
+        ):
+            continue
+
+        raised, heir = settlement.raise_hero()
+        return world.with_settlement(region, raised), Duchy(
+            duchy_id=duchy.duchy_id,
+            hero=duchy.hero,
+            morale=duchy.morale,
+            heir=heir,
+            settlements=duchy.settlements,
+            parties=duchy.parties,
+        )
+    return world, duchy
+
+
 def recruit_duchy_unit(world: WorldMap, duchy: Duchy) -> WorldMap:
     """Recruit one fresh unit in the first eligible owned settlement."""
     for region in world.regions:

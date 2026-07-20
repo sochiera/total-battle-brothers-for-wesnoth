@@ -611,7 +611,24 @@ Wstępne encje rdzenia (nazwy robocze, doprecyzowywane wraz z implementacją):
   `take_duchy_turn` każdego niepokonanego księstwa, podmienia księstwo przez
   `_replace_duchy` i synchronizuje stan, więc świeży bohater może jeszcze w tej
   samej turze wystawić party. Kara morale za wystawienie, inny wybór osady i
-  dziedziczenie statystyk — poza zakresem. **ROZSTRZYGNIĘTE (MU.1,
+  dziedziczenie statystyk — poza zakresem.
+  **ROZSTRZYGNIĘTE (D12.3, księstwo wyznacza dziedzica w turze):**
+  czyste, deterministyczne przejście `ai.designate_duchy_heir(world, duchy) ->
+  (WorldMap, Duchy)`. No-op (zwraca wejścia), gdy księstwo nie ma bohatera
+  (`has_hero is False`), gdy ma już `heir`, albo gdy brak kwalifikującej się
+  osady. W przeciwnym razie pierwsza według kolejności regionów mapy **własna**
+  osada (`owner_id == duchy_id`) z ≥1 wolnym mieszkańcem i `HERO_GOLD_COST`
+  złota przechodzi `Settlement.raise_hero()`; mapa jest odtwarzana przez
+  `WorldMap.with_settlement` (skan osad inline, jak w `raise_duchy_hero`), a
+  świeży `Unit` staje się `heir` nowego `Duchy` (pozostałe pola, w tym `hero`,
+  `morale` i krotka `settlements`, bez zmian). Osady obce, bez właściciela, bez
+  wolnej populacji lub bez złota są pomijane. Bez RNG; wejścia niemutowane.
+  Driver w `run_headless_game` woła to **po** `raise_duchy_hero` i **przed**
+  `take_duchy_turn` każdego niepokonanego księstwa, podmienia księstwo przez
+  `_replace_duchy` i synchronizuje stan — tak śmierć bohatera w akcji może
+  awansować dziedzica przez istniejące `succeed()` z karą morale. Kara morale
+  za samo wystawienie dziedzica, inny wybór osady i dziedziczenie statystyk —
+  poza zakresem. **ROZSTRZYGNIĘTE (MU.1,
   wystawienie party):** `Settlement.muster(hero)` to czyste przejście przenoszące
   cały garnizon, w zachowanej kolejności, do nowego `Party` z bohaterem i
   właścicielem osady. Wymarsz opróżnia garnizon oraz zmniejsza `population`
@@ -937,7 +954,8 @@ ich dotykają, i notować wynik tutaj:
   każdą akcją pobiera bieżące księstwo po `duchy_id` z aktualnego `GameState`
   i pomija je, jeśli po wcześniejszej akcji stało się pokonane. Dla każdego
   niepokonanego księstwa driver najpierw woła `raise_duchy_hero` (D11.4b),
-  podmienia księstwo i `sync_from_world`, a dopiero potem `take_duchy_turn`.
+  podmienia księstwo i `sync_from_world`, następnie `designate_duchy_heir`
+  (D12.3) z tą samą podmianą i synchronizacją, a dopiero potem `take_duchy_turn`.
   Po każdym `take_duchy_turn` (i sukcesji) wywołuje `GameState.sync_from_world`,
   więc następne księstwo i wynik tury widzą bieżące osady oraz party; utrata
   ostatniej osady eliminuje księstwo jeszcze w tej samej turze. Wykonana tura

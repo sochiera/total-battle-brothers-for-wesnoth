@@ -17,8 +17,11 @@ def create_headless_game() -> tuple[WorldMap, "GameState"]:
     border_region = Region("border")
     ai_region = Region("ai lands")
 
+    # Player gold is enough to recruit once (death-of-party detection via
+    # population drop) but below HERO_GOLD_COST, so D12.3 cannot seat an heir
+    # before the opening assault. That keeps the fixed headless seed decisive.
     player_settlement = Settlement(
-        "Player Keep", 5, storage=Resources(10, 10), owner_id="player"
+        "Player Keep", 5, storage=Resources(10, 1), owner_id="player"
     )
     ai_settlement = Settlement(
         "AI Keep",

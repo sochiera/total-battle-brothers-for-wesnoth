@@ -83,6 +83,9 @@ def run_headless_game(
             current_world, duchy = ai.raise_duchy_hero(current_world, duchy)
             current_game = _replace_duchy(current_game, duchy)
             current_game = current_game.sync_from_world(current_world)
+            current_world, duchy = ai.designate_duchy_heir(current_world, duchy)
+            current_game = _replace_duchy(current_game, duchy)
+            current_game = current_game.sync_from_world(current_world)
             world_before = current_world
             morale_by_owner = {
                 candidate.duchy_id: candidate.morale

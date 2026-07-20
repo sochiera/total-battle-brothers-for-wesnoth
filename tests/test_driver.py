@@ -112,6 +112,7 @@ def test_one_turn_threads_real_ai_actions_through_duchies_immutably():
     expected_world, expected_game = create_headless_game()
     expected_rng = Rng(17)
     expected_world = expected_world.tick_settlements()
+    expected_world = expected_world.tick_parties()
     expected_game = expected_game.sync_from_world(expected_world)
     for duchy_id in tuple(duchy.duchy_id for duchy in expected_game.duchies):
         duchy = next(
@@ -119,9 +120,25 @@ def test_one_turn_threads_real_ai_actions_through_duchies_immutably():
             for duchy in expected_game.duchies
             if duchy.duchy_id == duchy_id
         )
+        if duchy.is_defeated:
+            continue
+        expected_world, duchy = ai.raise_duchy_hero(expected_world, duchy)
+        expected_game = GameState(
+            duchy if current.duchy_id == duchy_id else current
+            for current in expected_game.duchies
+        ).sync_from_world(expected_world)
+        expected_world, duchy = ai.designate_duchy_heir(expected_world, duchy)
+        expected_game = GameState(
+            duchy if current.duchy_id == duchy_id else current
+            for current in expected_game.duchies
+        ).sync_from_world(expected_world)
         world_before = expected_world
+        morale_by_owner = {
+            candidate.duchy_id: candidate.morale
+            for candidate in expected_game.duchies
+        }
         expected_world = take_duchy_turn(
-            expected_world, duchy, expected_rng
+            expected_world, duchy, expected_rng, morale_by_owner=morale_by_owner
         )
         resolved = resolve_hero_survival(
             duchy, world_before, expected_world
@@ -611,8 +628,13 @@ def test_lost_party_during_real_ai_turn_promotes_heir_before_world_sync():
     )
 
 
-def test_lost_hero_without_heir_regains_hero_from_settlement_next_turn():
-    """Heroless after succession without heir; next turn raises from owned settlement."""
+def test_lost_hero_without_heir_regains_hero_from_settlement_next_turn(monkeypatch):
+    """Heroless after succession without heir; next turn raises from owned settlement.
+
+    Disables automatic heir designation so this case still exercises the
+    raise_duchy_hero recovery path (D11.4b) rather than same-turn succession.
+    """
+    monkeypatch.setattr(ai, "designate_duchy_heir", lambda w, d: (w, d))
     camp, keep, home = map(Region, ("North Camp", "South Keep", "North Home"))
     hero = Unit(equipment=1)
     attacking_party = Party(hero, owner_id="north")
