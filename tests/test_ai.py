@@ -476,6 +476,29 @@ def test_assault_duchy_party_recorded_returns_battle_and_matches_assault_duchy_p
     assert world.settlement_at(target) is settlement
 
 
+def test_assault_duchy_party_recorded_is_noop_when_no_adjacent_enemy_settlement():
+    """assault_duchy_party_recorded returns (world, None) without using RNG when no enemy is adjacent."""
+    start, target = Region("Start"), Region("Target")
+    party = Party(Unit(training=5, equipment=6), owner_id="ai")
+    own_settlement = Settlement("Target", population=1, owner_id="ai")
+    world = WorldMap(
+        [start, target],
+        [(start, target)],
+        settlements={target: own_settlement},
+        parties={start: party},
+    )
+    duchy = Duchy("ai", party.hero, parties=(party,))
+
+    result_world, battle = ai.assault_duchy_party_recorded(
+        world, duchy, _ForbiddenRng()
+    )
+
+    assert result_world is world
+    assert battle is None
+    assert world.party_at(start) is party
+    assert world.settlement_at(target) is own_settlement
+
+
 def test_assault_duchy_party_to_assaults_explicit_target_not_nearest():
     """assault_duchy_party_to resolves the explicit target, not the nearest enemy.
 
