@@ -64,6 +64,14 @@ pointy-top: `hex_to_pixel(hex, size) -> (x, y)` (axial → piksel środka) oraz
 `hex_corners(hex, size) ->` 6 narożników na okręgu o promieniu `size` wokół
 środka (kąty `60°·i − 30°`). Stdlib only; fundament pod SVG pola bitwy.
 
+**SVG pola bitwy (V13.3b):** `tbbui.battlesvg.render_battle_svg(battle) -> str`
+— parsowalny XML z korzeniem `<svg>`; heksy w osiowej obwiedni zajętych pozycji
+(`battle.units`) rozszerzonej o ±1 w `q` i `r`; każdy heks to `<polygon>` z
+`data-q`/`data-r`, narożnikami z `hex_corners` i `fill` zależnym od nazwy terenu
+(`battlefield.terrain_at`). Po jednym znaczniku na zajęty heks
+(`data-side`/`data-hp`/`data-stunned`) w środku z `hex_to_pixel`. Czyste,
+deterministyczne, bez mutacji `battle`.
+
 ## 2. Struktura katalogów
 ```
 game/                     # katalog projektu (repo root dla tej gry)
@@ -96,6 +104,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │   └── tbbui/            # pakiet prezentacji (stdlib SVG/HTML); tbb go nie importuje
 │       ├── __init__.py
 │       ├── hexgeom.py    # geometria heksów pointy-top (hex→pixel, narożniki)
+│       ├── battlesvg.py  # SVG pola bitwy heksowej (heksy + znaczniki jednostek)
 │       ├── layout.py     # deterministyczny layout regionów WorldMap → (col, row)
 │       ├── palette.py    # paleta kolorów właścicieli (owner_id → fill)
 │       └── worldsvg.py   # SVG mapy strategicznej (węzły + linie + znaczniki)
@@ -122,6 +131,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │   ├── test_layout.py    # layout mapy strategicznej (tbbui)
 │   ├── test_palette.py   # paleta kolorów właścicieli (tbbui)
 │   ├── test_worldsvg.py  # SVG mapy: węzły + linie + znaczniki (tbbui)
+│   ├── test_battlesvg.py # SVG pola bitwy heksowej (tbbui)
 │   └── test_smoke.py
 ├── scripts/
 │   ├── test.sh           # uruchamia pełny pakiet testów

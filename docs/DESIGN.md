@@ -796,6 +796,17 @@ identyczny `fill`, różne frakcje w tej mapie — różne (dopóki nie ma więc
 właścicieli niż długość listy, wtedy kolory się powtarzają cyklicznie).
 Czyste, bez RNG i bez mutacji mapy.
 
+**ROZSTRZYGNIĘTE (V13.3a, geometria heksów bitwy):** `tbbui.hexgeom` dostarcza
+czyste funkcje pointy-top `hex_to_pixel` / `hex_corners` (axial → piksel środka
+i sześć narożników). Fundament pod render pola bitwy.
+
+**ROZSTRZYGNIĘTE (V13.3b, SVG pola bitwy):** `render_battle_svg(battle)` w
+`tbbui.battlesvg` zwraca parsowalny string SVG: heksy obwiedni zajętych pozycji
+rozszerzonej o ±1 (`data-q`/`data-r`, `fill` z terenu), plus znaczniki jednostek
+(`data-side`/`data-hp`/`data-stunned`) w środkach heksów. Czyste i
+deterministyczne; bez mutacji stanu bitwy. Strona HTML partii i CLI/serwer
+dochodzą w V13.4–V13.5.
+
 ## 10. Otwarte pytania (do rozstrzygnięcia w trakcie)
 Oznaczone, bo decyzja nie jest przesądzona — rozstrzygać przy okazji zadań, które
 ich dotykają, i notować wynik tutaj:
