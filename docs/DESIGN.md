@@ -832,6 +832,23 @@ deleguje do `assault_nearest_enemy_settlement`. **Wybór konkretnej osady/celu i
 marsz na zadany region pozostają poza K14** (placeholder automatyczny). Rdzeń
 `tbb` nadal nie importuje `tbbui` (§8 bez zmian).
 
+**PLAN K15 (wybór celu przez gracza — realna sprawczość):** K14 dał graczowi
+decyzję *czy* wykonać akcję, ale cel wybierał automat („pierwszy/najbliższy
+kwalifikujący się"). K15 **odwraca** ten placeholder z §9a: gracz wskazuje
+*dokąd* maszeruje i *którą* sąsiednią wrogą osadę szturmuje. Nowe czyste
+prymitywy AI biorą **jawny region docelowy**: `ai.march_duchy_party_to(world,
+duchy, target)` robi jeden krok `next_march_step` ku `target` (K15.1a), a
+`ai.assault_duchy_party_to(world, duchy, target, rng, morale_by_owner=None)`
+rozstrzyga szturm, gdy party sąsiaduje z obcą osadą na `target` (K15.2a). W
+podglądzie `GameApp.handle` rozdziela ścieżkę od query i czyta parametr
+`target` (`POST /order/march?target=…` / `POST /order/assault?target=…`);
+brak/nieznany `target` **zachowuje** dotychczasowe automatyczne prymitywy
+(`march_duchy_party` / `assault_duchy_party`) dla zgodności wstecz (K15.1b,
+K15.2b). Strona partii renderuje po jednym formularzu na region-cel, więc gracz
+klika konkretny cel zamiast jednego przycisku z celem automatycznym (K15.1c dla
+marszu; UI wyboru celu szturmu — kolejny wsad). Rdzeń `tbb` nadal nie importuje
+`tbbui`; wybór celu nie zmienia rozstrzygania bitwy ani morale.
+
 ## 10. Otwarte pytania (do rozstrzygnięcia w trakcie)
 Oznaczone, bo decyzja nie jest przesądzona — rozstrzygać przy okazji zadań, które
 ich dotykają, i notować wynik tutaj:

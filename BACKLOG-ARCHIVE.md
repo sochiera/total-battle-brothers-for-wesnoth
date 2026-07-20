@@ -4,6 +4,17 @@
 > Szczegóły decyzji mechaniki/architektury żyją w `docs/DESIGN.md` i
 > `docs/ARCHITECTURE.md`. Tu zostaje jedynie ślad, co i kiedy zamknięto.
 
+## Kamień milowy 14 — rozkazy gracza w podglądzie (single-player) — UKOŃCZONY
+- [x] **K14.1a** Driver pomija turę AI księstwa gracza. *(task-076)*
+- [x] **K14.1b** GameApp zna gracza; `/turn` odpala tylko AI. *(task-077)*
+- [x] **K14.2a** Rozkaz gracza: rekrutacja (`POST /order/recruit`). *(task-078)*
+- [x] **K14.2b** Rozkaz gracza: wystawienie party (`POST /order/muster`). *(task-079)*
+- [x] **K14.2c** Rozkaz gracza: rozwój osady (`POST /order/develop`). *(task-080)*
+- [x] **K14.2d1** Prymityw AI marszu party księstwa (`ai.march_duchy_party`). *(task-081)*
+- [x] **K14.2d2** Rozkaz gracza: marsz party (`POST /order/march`). *(task-082)*
+- [x] **K14.2e1** Prymityw AI szturmu party księstwa (`ai.assault_duchy_party`). *(task-083)*
+- [x] **K14.2e2** Rozkaz gracza: szturm osady (`POST /order/assault`). *(task-084)*
+
 ## Kamień milowy 10 — realne straty i koszty w pętli strategicznej — UKOŃCZONY
 - [x] **G10.1** Osada wchłania ocalałych obrońców po bitwie
       (`Settlement.absorb_defenders(survivors)` — garnizon = ocalali, polegli

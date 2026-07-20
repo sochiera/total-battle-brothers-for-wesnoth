@@ -52,31 +52,36 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > Rdzeń `tbb` nie importuje `tbbui`. Wszystkie pozycje (task-065…075) w
 > `BACKLOG-ARCHIVE.md`. Rozkazy gracza z przeglądarki — Kamień 14.
 
-## Kamień milowy 14 — rozkazy gracza w podglądzie (single-player)
-> DESIGN §9a/§6: podgląd K13 to obserwator AI-vs-AI. K14 daje graczowi realną
+## Kamień milowy 14 — rozkazy gracza w podglądzie (single-player) — UKOŃCZONY
+> DESIGN §9a/§6: podgląd K13 to obserwator AI-vs-AI. K14 dał graczowi realną
 > sprawczość: steruje **jednym** księstwem (`player`), AI resztą. „Następna
 > tura" rusza wyłącznie AI (K14.1), a gracz wydaje rozkazy przez `POST /order/*`
-> reużywające istniejące czyste prymitywy `ai.*` — wybór celu pozostaje
-> automatyczny (placeholder), gracz decyduje *czy* wykonać akcję. Marsz i szturm
-> gracza oraz wybór konkretnej osady/celu to następny wsad K14.
-- [x] **K14.1a** Driver pomija turę AI księstwa gracza. *(task-076)*
-- [x] **K14.1b** GameApp zna gracza; `/turn` odpala tylko AI. *(task-077)*
-- [x] **K14.2a** Rozkaz gracza: rekrutacja (`POST /order/recruit`). *(task-078)*
-- [x] **K14.2b** Rozkaz gracza: wystawienie party (`POST /order/muster`). *(task-079)*
-- [x] **K14.2c** Rozkaz gracza: rozwój osady (`POST /order/develop`). *(task-080)*
-- [x] **K14.2d1** Prymityw AI marszu party księstwa (`ai.march_duchy_party`). *(task-081)*
-  - AC: znajduje pozycję party księstwa i stosuje `march_toward_nearest_enemy`;
-    brak party = no-op; czyste, deterministyczne; reużywa `_duchy_party_position`.
-- [ ] **K14.2d2** Rozkaz gracza: marsz party (`POST /order/march`). *(task-082)*
-  - AC: `_apply_player_order(ai.march_duchy_party)` + re-sync; formularz; no-op po
-    `is_over`/braku gracza; deterministyczne.
-- [ ] **K14.2e1** Prymityw AI szturmu party księstwa (`ai.assault_duchy_party`). *(task-083)*
-  - AC: znajduje pozycję party i stosuje `assault_nearest_enemy_settlement`
-    (`rng`, `morale_by_owner`); brak party = no-op bez RNG; deterministyczne.
-- [ ] **K14.2e2** Rozkaz gracza: szturm osady (`POST /order/assault`). *(task-084)*
-  - AC: stosuje `ai.assault_duchy_party` na księstwie gracza z `self.rng`
-    i morale z `game.duchies` + re-sync; formularz; no-op po `is_over`/braku
-    gracza; deterministyczne.
+> reużywające istniejące czyste prymitywy `ai.*` — wybór celu automatyczny
+> (placeholder), gracz decyduje *czy* wykonać akcję. Wszystkie pozycje
+> (task-076…084) w `BACKLOG-ARCHIVE.md`. Wybór konkretnej osady/celu → Kamień 15.
+
+## Kamień milowy 15 — wybór celu przez gracza (realna sprawczość)
+> DESIGN §9a (PLAN K15): K14 dał decyzję *czy*, cel wybierał automat. K15
+> **odwraca** ten placeholder: gracz wskazuje *dokąd* maszeruje i *którą* obcą
+> osadę szturmuje. Nowe prymitywy AI biorą **jawny region docelowy**; podgląd
+> czyta `?target=…`, brak/nieznany target zachowuje automatyczne prymitywy
+> (zgodność wstecz). Wybór celu nie zmienia rozstrzygania bitwy ani morale.
+- [ ] **K15.1a** Prymityw AI marszu na wskazany region (`ai.march_duchy_party_to`). *(task-085)*
+  - AC: `_duchy_party_position` + jeden `next_march_step` ku `target` → `move_party`;
+    brak party lub `step is None` = no-op; czyste, deterministyczne, bez RNG.
+- [ ] **K15.1b** Rozkaz gracza: marsz na wskazany region (`POST /order/march?target=`). *(task-086)*
+  - AC: `handle` rozdziela ścieżkę/query i parsuje `target`; z targetem →
+    `march_duchy_party_to`, bez → `march_duchy_party` (fallback); `_dispatch`
+    przekazuje query; deterministyczne.
+- [ ] **K15.1c** UI wyboru celu marszu (formularze per region-cel). *(task-087)*
+  - AC: gdy gracz ma party — po jednym `<form action="/order/march?target=…">`
+    na obcą osadę; brak party = pojedynczy fallbackowy formularz; reszta bez zmian.
+- [ ] **K15.2a** Prymityw AI szturmu na wskazaną osadę (`ai.assault_duchy_party_to`). *(task-088)*
+  - AC: gdy party sąsiaduje z obcą osadą na `target` → `resolve_settlement_battle`
+    z morale; brak party / brak sąsiedztwa / osada własna = no-op bez RNG; deterministyczne.
+- [ ] **K15.2b** Rozkaz gracza: szturm na wskazaną osadę (`POST /order/assault?target=`). *(task-089)*
+  - AC: z targetem → `assault_duchy_party_to` (morale z `game.duchies`), bez →
+    `assault_duchy_party` (fallback); reużywa parsowania query z K15.1b; deterministyczne.
 
 ## Później (poza MVP)
 - [ ] **R12.1 (opcjonalny dług)** Wspólna kwerenda własnych osad w `ai.py`:
