@@ -238,6 +238,42 @@ def assault_duchy_party(
     )
 
 
+def assault_duchy_party_to(
+    world: WorldMap,
+    duchy: Duchy,
+    target: Region,
+    rng: Rng,
+    morale_by_owner: dict[str, int] | None = None,
+) -> WorldMap:
+    """Assault an explicit adjacent enemy settlement from the duchy's party."""
+    position = _duchy_party_position(world, duchy.duchy_id)
+    if position is None:
+        return world
+    if target not in world.neighbors(position):
+        return world
+    settlement = world.settlement_at(target)
+    if (
+        settlement is None
+        or settlement.owner_id is None
+        or settlement.owner_id == duchy.duchy_id
+    ):
+        return world
+
+    party = world.party_at(position)
+    attacker_morale = 0
+    defender_morale = 0
+    if morale_by_owner is not None:
+        attacker_morale = morale_by_owner.get(party.owner_id, 0)
+        defender_morale = morale_by_owner.get(settlement.owner_id, 0)
+    return world.resolve_settlement_battle(
+        position,
+        target,
+        rng,
+        attacker_morale=attacker_morale,
+        defender_morale=defender_morale,
+    )
+
+
 def assault_nearest_enemy_settlement(
     world: WorldMap,
     start: Region,

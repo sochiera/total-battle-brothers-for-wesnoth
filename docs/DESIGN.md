@@ -1114,6 +1114,17 @@ ich dotykają, i notować wynik tutaj:
   morale_by_owner=morale_by_owner)`. Brak party na mapie → no-op (zwraca
   wejściową mapę, bez rzutu RNG). Bez mutacji wejścia; reużywa istniejące
   prymitywy szturmu (cel i bitwa bez duplikacji).
+  **ROZSTRZYGNIĘTE (K15.2a, prymityw AI szturmu na wskazaną osadę):**
+  czyste, deterministyczne
+  `ai.assault_duchy_party_to(world, duchy, target, rng, morale_by_owner=None)
+  -> WorldMap` znajduje pozycję party przez `_duchy_party_position`; gdy
+  `target` jest sąsiadem party i ma osadę o obcym `owner_id`, rozstrzyga
+  `world.resolve_settlement_battle(position, target, rng, attacker_morale=…,
+  defender_morale=…)` z morale z `morale_by_owner.get(…, 0)` (domyślnie 0/0).
+  Brak party, brak sąsiedztwa, brak osady albo cel własny (`owner_id ==
+  duchy.duchy_id` / `owner_id is None`) → no-op bez rzutu RNG. Bez mutacji
+  wejścia; odpowiednik `assault_duchy_party` z jawnym `target` zamiast
+  `nearest_enemy_settlement`. Routing `?target=` i UI — K15.2b+.
   **ROZSTRZYGNIĘTE (K14.2e2, rozkaz szturmu osady gracza):**
   `POST /order/assault` na `GameApp` — ten sam warunek i re-sync, wspólnym
   helperem `_apply_player_order`, z zamknięciem

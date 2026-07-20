@@ -442,6 +442,44 @@ def test_assault_duchy_party_is_deterministic_and_preserves_input():
     assert settlement.owner_id == "enemy"
 
 
+def test_assault_duchy_party_to_assaults_explicit_target_not_nearest():
+    """assault_duchy_party_to resolves the explicit target, not the nearest enemy.
+
+    ``near`` is the nearest-enemy pick; ``far`` is a second, non-nearest but
+    still adjacent enemy settlement explicitly requested as the target.
+    """
+    start, near, far = map(Region, ("Start", "Near", "Far"))
+    party = Party(Unit(training=5, equipment=6), owner_id="ai")
+    near_settlement = Settlement(
+        "Near", population=1, garrison=(Unit(equipment=1),), owner_id="enemy"
+    )
+    far_settlement = Settlement(
+        "Far", population=1, garrison=(Unit(equipment=1),), owner_id="enemy"
+    )
+    world = WorldMap(
+        [start, near, far],
+        [(start, near), (start, far)],
+        settlements={near: near_settlement, far: far_settlement},
+        parties={start: party},
+    )
+    duchy = Duchy("ai", party.hero, parties=(party,))
+    seed = 2
+    morale_by_owner = {"ai": 10, "enemy": -5}
+    assert nearest_enemy_settlement(world, start, "ai") is near
+
+    resolved = ai.assault_duchy_party_to(
+        world, duchy, far, tbb.Rng(seed), morale_by_owner=morale_by_owner
+    )
+
+    assert resolved == world.resolve_settlement_battle(
+        start, far, tbb.Rng(seed), attacker_morale=10, defender_morale=-5
+    )
+    assert resolved != world
+    assert world.party_at(start) is party
+    assert world.settlement_at(near) is near_settlement
+    assert world.settlement_at(far) is far_settlement
+
+
 def test_march_target_and_route_ties_follow_world_region_order():
     start, first, second, first_target, second_target = map(
         Region, ("Start", "First", "Second", "First target", "Second target")
