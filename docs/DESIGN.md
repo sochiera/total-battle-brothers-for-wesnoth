@@ -1067,6 +1067,16 @@ ich dotykają, i notować wynik tutaj:
   `march_toward_nearest_enemy(world, position)` (jeden krok ku najbliższej
   wrogiej osadzie). Brak party na mapie → no-op (zwraca wejściową mapę).
   Bez mutacji wejścia, bez RNG; reużywa istniejące prymitywy marszu.
+  **ROZSTRZYGNIĘTE (K15.1a, prymityw AI marszu na wskazany region):**
+  czyste, deterministyczne
+  `ai.march_duchy_party_to(world, duchy, target) -> WorldMap` znajduje
+  pozycję party księstwa przez `_duchy_party_position`, liczy jeden krok
+  `next_march_step(world, position, target)` i przesuwa party
+  `world.move_party(position, step, 1)`. Brak party na mapie albo
+  `next_march_step is None` (target sąsiaduje / jest pozycją party /
+  nieosiągalny) → no-op (zwraca wejściową mapę). Bez mutacji wejścia, bez
+  RNG; odpowiednik `march_duchy_party` z jawnym `target` zamiast
+  `nearest_enemy_settlement`. Routing `?target=` i UI — K15.1b/c.
   **ROZSTRZYGNIĘTE (K14.2d2, rozkaz marszu party gracza):**
   `POST /order/march` na `GameApp` — ten sam warunek i re-sync, wspólnym
   helperem `_apply_player_order`, stosuje `ai.march_duchy_party` (jeden krok

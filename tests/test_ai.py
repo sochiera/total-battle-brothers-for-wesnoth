@@ -12,6 +12,7 @@ from tbb.ai import (
     march_duchy_party,
     raise_duchy_hero,
 )
+import tbb.ai as ai
 
 from tbb import (
     Duchy,
@@ -250,6 +251,49 @@ def test_march_duchy_party_is_noop_without_party_on_map():
     assert dict(world.parties) == before
     assert world.settlement_at(home) is settlement
     assert world.party_at(camp) is foreign_party
+
+
+def test_march_duchy_party_to_moves_one_step_toward_explicit_target():
+    """march_duchy_party_to finds the duchy party and marches one step toward target.
+
+    Uses an explicit target that is *not* the nearest enemy settlement, so the
+    step cannot come from march_toward_nearest_enemy / march_duchy_party.
+    """
+    start, step_near, near, step_far, far = map(
+        Region, ("Start", "StepNear", "Near", "StepFar", "Far")
+    )
+    party = _owned_party("Hero", "ai")
+    world = WorldMap(
+        [start, step_near, near, step_far, far],
+        [
+            (start, step_near),
+            (step_near, near),
+            (start, step_far),
+            (step_far, far),
+        ],
+        settlements={
+            near: _settlement("Near", "enemy"),
+            far: _settlement("Far", "enemy"),
+        },
+        parties={start: party},
+    )
+    duchy = Duchy("ai", party.hero, parties=(party,))
+    expected_step = next_march_step(world, start, far)
+    assert expected_step is step_far
+    # Sanity: automatic nearest-enemy march would go toward ``near``, not far.
+    auto = march_duchy_party(world, duchy)
+    assert auto.party_at(step_near) is party
+    assert auto.party_at(step_far) is None
+
+    moved = ai.march_duchy_party_to(world, duchy, far)
+
+    assert moved is not world
+    assert moved == world.move_party(start, expected_step, 1)
+    assert moved.party_at(step_far) is party
+    assert moved.party_at(start) is None
+    assert moved.party_at(step_near) is None
+    assert world.party_at(start) is party
+    assert world.party_at(step_far) is None
 
 
 def test_assault_duchy_party_applies_assault_from_party_position():
