@@ -1057,6 +1057,14 @@ ich dotykają, i notować wynik tutaj:
   skończona lub brak księstwa. Zawsze `(200, strona)`. `GET /` zawiera
   formularz `<form method="post" action="/order/march">`. Cel marszu
   automatyczny (prymityw AI).
+  **ROZSTRZYGNIĘTE (K14.2e1, prymityw AI szturmu party księstwa):**
+  czyste, deterministyczne
+  `ai.assault_duchy_party(world, duchy, rng, morale_by_owner=None) -> WorldMap`
+  znajduje pozycję party księstwa przez `_duchy_party_position` i stosuje
+  `assault_nearest_enemy_settlement(world, position, rng,
+  morale_by_owner=morale_by_owner)`. Brak party na mapie → no-op (zwraca
+  wejściową mapę, bez rzutu RNG). Bez mutacji wejścia; reużywa istniejące
+  prymitywy szturmu (cel i bitwa bez duplikacji).
   **ROZSTRZYGNIĘTE (A7.2b3b1, akcje księstw na wspólnej mapie):** gdy gra
   trwa i budżet pozwala na co najmniej jedną turę, driver wykonuje pojedynczy
   przebieg księstw w kolejności `game.duchies`. Każde niepokonane księstwo

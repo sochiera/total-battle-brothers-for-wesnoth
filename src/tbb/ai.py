@@ -210,6 +210,21 @@ def march_duchy_party(world: WorldMap, duchy: Duchy) -> WorldMap:
     return march_toward_nearest_enemy(world, position)
 
 
+def assault_duchy_party(
+    world: WorldMap,
+    duchy: Duchy,
+    rng: Rng,
+    morale_by_owner: dict[str, int] | None = None,
+) -> WorldMap:
+    """Assault the nearest enemy settlement from the duchy's party position."""
+    position = _duchy_party_position(world, duchy.duchy_id)
+    if position is None:
+        return world
+    return assault_nearest_enemy_settlement(
+        world, position, rng, morale_by_owner=morale_by_owner
+    )
+
+
 def assault_nearest_enemy_settlement(
     world: WorldMap,
     start: Region,

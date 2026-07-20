@@ -6,6 +6,7 @@ import pytest
 import tbb
 import tbb.settlement as settlement_module
 from tbb.ai import (
+    assault_duchy_party,
     designate_duchy_heir,
     develop_duchy_settlement,
     march_duchy_party,
@@ -249,6 +250,35 @@ def test_march_duchy_party_is_noop_without_party_on_map():
     assert dict(world.parties) == before
     assert world.settlement_at(home) is settlement
     assert world.party_at(camp) is foreign_party
+
+
+def test_assault_duchy_party_applies_assault_from_party_position():
+    """assault_duchy_party finds the duchy party and assaults from its region."""
+    start, target = Region("Start"), Region("Target")
+    party = Party(Unit(training=5, equipment=6), owner_id="ai")
+    settlement = Settlement(
+        "Target", population=1, garrison=(Unit(equipment=1),), owner_id="enemy"
+    )
+    world = WorldMap(
+        [start, target],
+        [(start, target)],
+        settlements={target: settlement},
+        parties={start: party},
+    )
+    duchy = Duchy("ai", party.hero, parties=(party,))
+    seed = 2
+    morale_by_owner = {"ai": 10, "enemy": -5}
+
+    resolved = assault_duchy_party(
+        world, duchy, tbb.Rng(seed), morale_by_owner=morale_by_owner
+    )
+
+    assert resolved == assault_nearest_enemy_settlement(
+        world, start, tbb.Rng(seed), morale_by_owner=morale_by_owner
+    )
+    assert resolved != world
+    assert world.party_at(start) is party
+    assert world.settlement_at(target) is settlement
 
 
 def test_march_target_and_route_ties_follow_world_region_order():
