@@ -195,6 +195,25 @@ def test_reconstruct_does_not_mutate_original_or_survivor_sequence():
     assert survivors == survivors_before
 
 
+def test_tick_wounds_heals_bruise_on_hero_and_subordinate_keeps_maimed():
+    """Party.tick_wounds advances temporary wounds for every member."""
+    hero = Unit(training=2, wounds=(BRUISE, MAIMED))
+    subordinate = Unit(equipment=3, experience=1, wounds=(BRUISE,))
+    party = Party(hero, (subordinate,), owner_id="north")
+
+    healed = party.tick_wounds(2)
+
+    assert healed is not party
+    assert healed.owner_id == "north"
+    assert healed.hero.wounds == (MAIMED,)
+    assert healed.units == (Unit(equipment=3, experience=1, wounds=()),)
+    assert BRUISE not in healed.hero.wounds
+    assert BRUISE not in healed.units[0].wounds
+    assert MAIMED in healed.hero.wounds
+    assert party.hero.wounds == (BRUISE, MAIMED)
+    assert party.units[0].wounds == (BRUISE,)
+
+
 def test_public_api_exports_party():
     from tbb import Party as PublicParty
 

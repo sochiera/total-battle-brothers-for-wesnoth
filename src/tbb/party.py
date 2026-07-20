@@ -60,3 +60,15 @@ class Party:
             units=strategic_survivors[1:],
             owner_id=original.owner_id,
         )
+
+    def tick_wounds(self, months: int = 1) -> "Party":
+        """Return this party after temporary wounds heal for ``months``."""
+        if months < 0:
+            raise ValueError("healing months cannot be negative")
+        if months == 0:
+            return self
+        return Party(
+            hero=self.hero.tick_wounds(months),
+            units=tuple(unit.tick_wounds(months) for unit in self.units),
+            owner_id=self.owner_id,
+        )
