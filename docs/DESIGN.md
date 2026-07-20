@@ -777,7 +777,13 @@ deterministyczne.
 emituje dokładnie jeden element `<line>` na wpis w `world.connections` (kolejność
 zachowana), z atrybutami `data-from` / `data-to` (nazwy regionów) i końcami
 `(x1,y1)` / `(x2,y2)` w środkach węzłów tych regionów. Węzły z V13.2a bez
-zmiany kontraktu. Znaczniki osad/party i paleta właścicieli — V13.2c–d.
+zmiany kontraktu.
+
+**ROZSTRZYGNIĘTE (V13.2c, znaczniki osad i party):** dla każdego regionu z osadą
+(`world.settlement_at`) — jeden element z `data-settlement` (= nazwa regionu) i
+`data-owner` (= `owner_id` lub `""` gdy `None`); analogicznie `data-party` /
+`data-owner` dla party. Znaczniki przy środku węzła regionu; regiony bez obsady
+bez znacznika. Paleta kolorów właścicieli — V13.2d.
 
 ## 10. Otwarte pytania (do rozstrzygnięcia w trakcie)
 Oznaczone, bo decyzja nie jest przesądzona — rozstrzygać przy okazji zadań, które

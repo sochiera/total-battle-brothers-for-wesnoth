@@ -1,4 +1,4 @@
-"""Deterministic SVG skeleton of the strategic WorldMap (nodes + edges)."""
+"""Deterministic SVG skeleton of the strategic WorldMap (nodes + edges + markers)."""
 
 from __future__ import annotations
 
@@ -14,6 +14,8 @@ PITCH_Y = 80
 ORIGIN_X = 50
 ORIGIN_Y = 50
 NODE_RADIUS = 12
+SETTLEMENT_MARKER_RADIUS = 6
+PARTY_MARKER_RADIUS = 5
 
 
 def _node_center(col: int, row: int) -> tuple[int, int]:
@@ -21,13 +23,20 @@ def _node_center(col: int, row: int) -> tuple[int, int]:
     return ORIGIN_X + col * PITCH_X, ORIGIN_Y + row * PITCH_Y
 
 
+def _owner_attr(owner_id: str | None) -> str:
+    """SVG ``data-owner`` value: explicit id or empty string when unowned."""
+    return owner_id if owner_id is not None else ""
+
+
 def render_world_svg(world: WorldMap) -> str:
-    """Return a parsable SVG string with connection lines and labelled nodes.
+    """Return a parsable SVG string with connection lines, labelled nodes, markers.
 
     One ``<line>`` per ``world.connections`` entry (same order), with
     ``data-from`` / ``data-to`` and endpoints at the region node centers.
     Node centers are an affine map of ``layout_world`` cells:
     ``x = ORIGIN_X + col * PITCH_X``, ``y = ORIGIN_Y + row * PITCH_Y``.
+    Occupied regions get settlement / party markers (``data-settlement`` /
+    ``data-party`` plus ``data-owner``) at the same node center.
     Pure and deterministic: no RNG, input map is not mutated.
     """
     positions = layout_world(world)
@@ -110,5 +119,37 @@ def render_world_svg(world: WorldMap) -> str:
             },
         )
         text.text = region.name
+
+        settlement = world.settlement_at(region)
+        if settlement is not None:
+            ET.SubElement(
+                group,
+                "circle",
+                {
+                    "cx": "0",
+                    "cy": "0",
+                    "r": str(SETTLEMENT_MARKER_RADIUS),
+                    "data-settlement": region.name,
+                    "data-owner": _owner_attr(settlement.owner_id),
+                    "fill": "#888888",
+                    "stroke": "#222222",
+                },
+            )
+
+        party = world.party_at(region)
+        if party is not None:
+            ET.SubElement(
+                group,
+                "circle",
+                {
+                    "cx": "0",
+                    "cy": "0",
+                    "r": str(PARTY_MARKER_RADIUS),
+                    "data-party": region.name,
+                    "data-owner": _owner_attr(party.owner_id),
+                    "fill": "#aaaaaa",
+                    "stroke": "#222222",
+                },
+            )
 
     return ET.tostring(svg, encoding="unicode")

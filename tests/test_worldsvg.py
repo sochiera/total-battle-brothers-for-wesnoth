@@ -6,6 +6,9 @@ import re
 import xml.etree.ElementTree as ET
 from itertools import combinations
 
+from tbb.party import Party
+from tbb.settlement import Settlement
+from tbb.unit import Unit
 from tbb.world import Region, WorldMap
 from tbbui.layout import layout_world
 from tbbui.worldsvg import render_world_svg
@@ -193,5 +196,148 @@ def test_render_world_svg_connection_lines_match_node_centers():
     assert again == svg
     assert world.regions is regions_before
     assert world.connections is connections_before
+    assert world.regions == regions_before
+    assert world.connections == connections_before
+
+
+def _marker_center(element: ET.Element) -> tuple[float, float]:
+    """Resolve a marker's base position from transform, circle, or x/y attrs."""
+    transform = element.get("transform") or ""
+    match = re.search(
+        r"translate\(\s*([-\d.]+)[,\s]+([-\d.]+)\s*\)",
+        transform,
+    )
+    if match:
+        return float(match.group(1)), float(match.group(2))
+
+    if element.get("cx") is not None:
+        return float(element.get("cx")), float(element.get("cy", "0"))
+
+    if element.get("x") is not None:
+        return float(element.get("x")), float(element.get("y", "0"))
+
+    for child in element:
+        if _local(child.tag) == "circle" and child.get("cx") is not None:
+            return float(child.get("cx")), float(child.get("cy", "0"))
+        if child.get("x") is not None:
+            return float(child.get("x")), float(child.get("y", "0"))
+
+    raise AssertionError(
+        f"marker {_local(element.tag)} has no discoverable center "
+        f"(attrs={element.attrib!r})"
+    )
+
+
+def test_render_world_svg_settlement_and_party_markers():
+    """Settlement/party markers: data-*, owners, node centers, empty region, pure.
+
+    Map: A has settlement owner_id='north', B has party owner_id='south',
+    C is empty (no settlement, no party). Nodes (066) and lines (067) remain.
+    """
+    a = Region("A")
+    b = Region("B")
+    c = Region("C")
+    settlement = Settlement("Keep A", population=1, owner_id="north")
+    party = Party(Unit(), owner_id="south")
+    world = WorldMap(
+        [a, b, c],
+        [(a, b), (a, c)],
+        settlements={a: settlement},
+        parties={b: party},
+    )
+    connections_before = world.connections
+    regions_before = world.regions
+    settlements_before = world.settlements
+    parties_before = world.parties
+
+    svg = render_world_svg(world)
+
+    root = ET.fromstring(svg)
+    assert _local(root.tag) == "svg"
+
+    # Region nodes (066) still present and unique.
+    groups_by_name: dict[str, ET.Element] = {}
+    for element in root.iter():
+        if _local(element.tag) != "g":
+            continue
+        name = element.get("data-region")
+        if name is None:
+            continue
+        assert name not in groups_by_name, f"duplicate data-region={name!r}"
+        groups_by_name[name] = element
+    assert set(groups_by_name) == {region.name for region in world.regions}
+    centers: dict[str, tuple[float, float]] = {
+        name: _group_center(group) for name, group in groups_by_name.items()
+    }
+
+    # Connection lines (067) still present and endpoint-correct.
+    lines = [el for el in root.iter() if _local(el.tag) == "line"]
+    assert len(lines) == len(world.connections)
+    for line, (from_region, to_region) in zip(lines, world.connections, strict=True):
+        assert line.get("data-from") == from_region.name
+        assert line.get("data-to") == to_region.name
+        assert abs(float(line.get("x1")) - centers[from_region.name][0]) < 1e-9
+        assert abs(float(line.get("y1")) - centers[from_region.name][1]) < 1e-9
+        assert abs(float(line.get("x2")) - centers[to_region.name][0]) < 1e-9
+        assert abs(float(line.get("y2")) - centers[to_region.name][1]) < 1e-9
+
+    # Exactly one settlement marker for A; none for B/C.
+    settlement_markers = [
+        el for el in root.iter() if el.get("data-settlement") is not None
+    ]
+    assert len(settlement_markers) == 1
+    s_marker = settlement_markers[0]
+    assert s_marker.get("data-settlement") == a.name
+    assert s_marker.get("data-owner") == "north"
+    sx, sy = _marker_center(s_marker)
+    # Marker base coords match region node center (or relative 0,0 inside its group).
+    ax, ay = centers[a.name]
+    if abs(sx) < 1e-9 and abs(sy) < 1e-9:
+        # Relative to containing region group — must sit under data-region=A.
+        ancestor_regions = [
+            el.get("data-region")
+            for el in root.iter()
+            if _local(el.tag) == "g"
+            and el.get("data-region") is not None
+            and any(child is s_marker or s_marker in child.iter() for child in [el])
+        ]
+        assert a.name in ancestor_regions
+    else:
+        assert abs(sx - ax) < 1e-9
+        assert abs(sy - ay) < 1e-9
+
+    # Exactly one party marker for B; none for A/C.
+    party_markers = [
+        el for el in root.iter() if el.get("data-party") is not None
+    ]
+    assert len(party_markers) == 1
+    p_marker = party_markers[0]
+    assert p_marker.get("data-party") == b.name
+    assert p_marker.get("data-owner") == "south"
+    px, py = _marker_center(p_marker)
+    bx, by = centers[b.name]
+    if abs(px) < 1e-9 and abs(py) < 1e-9:
+        ancestor_regions = [
+            el.get("data-region")
+            for el in root.iter()
+            if _local(el.tag) == "g"
+            and el.get("data-region") is not None
+            and any(child is p_marker or p_marker in child.iter() for child in [el])
+        ]
+        assert b.name in ancestor_regions
+    else:
+        assert abs(px - bx) < 1e-9
+        assert abs(py - by) < 1e-9
+
+    # Empty region C: no settlement or party marker keyed to C.
+    assert not any(el.get("data-settlement") == c.name for el in root.iter())
+    assert not any(el.get("data-party") == c.name for el in root.iter())
+
+    again = render_world_svg(world)
+    assert again == svg
+    assert world.regions is regions_before
+    assert world.connections is connections_before
+    assert world.settlements is settlements_before
+    assert world.parties is parties_before
     assert world.regions == regions_before
     assert world.connections == connections_before
