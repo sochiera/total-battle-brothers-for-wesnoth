@@ -234,6 +234,23 @@ def test_render_game_page_optional_battle_slot_embeds_svg_and_defaults_unchanged
     assert render_game_page(world, game, calendar, battle=None) == baseline_html
 
 
+def test_render_game_page_result_text_present_with_battle_and_battle_not_mutated():
+    """``data-result-text`` is emitted regardless of ``battle``; ``battle`` unmutated."""
+    world, game, calendar = _ongoing_fixture()
+    battle = _finished_battle_fixture()
+    battle_before = battle
+
+    html_with_battle = render_game_page(world, game, calendar, battle=battle)
+
+    root = ET.fromstring(html_with_battle)
+    texts = _find_by_attr(root, "data-result-text")
+    assert len(texts) == 1
+    assert texts[0].get("data-result-text") == "Gra w toku"
+
+    assert battle is battle_before
+    assert battle == _finished_battle_fixture()
+
+
 def test_render_game_page_embeds_battle_report_matching_battle_report_counts():
     """``data-battle-report`` is present with battle, absent without; counts match."""
     world, game, calendar = _ongoing_fixture()
