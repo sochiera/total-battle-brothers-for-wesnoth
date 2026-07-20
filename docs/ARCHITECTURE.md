@@ -104,6 +104,15 @@ atrybutami. Czyste, deterministyczne, bez mutacji `world`; rdzeń bez zmian.
 `<region.name> (<owner_id lub „—">): bohater + N podkomendnych` zgodny z
 `data-size`. Czyste, deterministyczne, bez mutacji `world`; rdzeń bez zmian.
 
+**Legenda właścicieli HTML (K23.1a):** `tbbui.ownerlegend.render_owner_legend(world)
+-> str` — parsowalny fragment XML z korzeniem `<div data-owner-legend="">`;
+po jednym `<div data-owner-legend-row="<owner_id>">` na wpis
+`owner_palette(world)` w tej samej kolejności (pierwsze wystąpienie). Atrybuty
+wiersza: `data-owner` (= `owner_id`), `data-color` (kolor z palety); widoczny
+tekst `<owner_id>: <kolor>` zgodny z atrybutami. Brak właścicieli → sam pusty
+korzeń (bez wierszy). Czyste, deterministyczne, bez mutacji `world`; rdzeń bez
+zmian. Osadzenie w `render_game_page` — K23.1b.
+
 **Strona HTML partii (V13.4a / K16.1a / K17.1b / K20.1a / K20.1b / K21.1a / K22.1c / K22.2b):** `tbbui.gamepage.render_game_page(world,
 game, calendar, battle=None) -> str` — parsowalny HTML z korzeniem `<html>`;
 osadza kanoniczny string z `render_world_svg(world)`; opcjonalny
