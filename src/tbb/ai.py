@@ -278,6 +278,55 @@ def assault_duchy_party_recorded(
     )
 
 
+def engage_duchy_party_recorded(
+    world: WorldMap,
+    duchy: Duchy,
+    rng: Rng,
+    morale_by_owner: dict[str, int] | None = None,
+) -> tuple[WorldMap, HexBattle | None]:
+    """Engage the first adjacent enemy party; return map and battle.
+
+    Target is the first neighbor (in ``world.neighbors`` order) that holds a
+    party with a different explicit ``owner_id``. No-op paths return
+    ``(world, None)`` without consuming RNG.
+    """
+    position = _duchy_party_position(world, duchy.duchy_id)
+    if position is None:
+        return world, None
+    party = world.party_at(position)
+    if party is None:
+        return world, None
+    if party.owner_id is None:
+        raise ValueError("party must have an explicit owner_id")
+
+    target = None
+    for neighbor in world.neighbors(position):
+        other = world.party_at(neighbor)
+        if (
+            other is not None
+            and other.owner_id is not None
+            and other.owner_id != party.owner_id
+        ):
+            target = neighbor
+            break
+    if target is None:
+        return world, None
+
+    attacker_morale = 0
+    defender_morale = 0
+    if morale_by_owner is not None:
+        enemy = world.party_at(target)
+        attacker_morale = morale_by_owner.get(party.owner_id, 0)
+        defender_morale = morale_by_owner.get(enemy.owner_id, 0)
+    return world.resolve_party_battle_recorded(
+        position,
+        target,
+        rng,
+        attacker_morale=attacker_morale,
+        defender_morale=defender_morale,
+    )
+
+
 def assault_duchy_party_to(
     world: WorldMap,
     duchy: Duchy,

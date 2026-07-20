@@ -1740,3 +1740,54 @@ def test_designate_duchy_heir_raises_from_first_owned_settlement_by_region_order
         wheat=2, gold=settlement_module.HERO_GOLD_COST + 1
     )
     assert settlements[first].garrison == garrison
+
+
+def test_engage_duchy_party_recorded_fights_first_adjacent_enemy_party_in_neighbor_order():
+    """engage_duchy_party_recorded picks the first neighbor with a differently-owned party."""
+    start, first, second = map(Region, ("Start", "First", "Second"))
+    attacker = Party(Unit(training=5, equipment=6), owner_id="ai")
+    enemy_first = Party(Unit(equipment=1), owner_id="enemy")
+    enemy_second = Party(Unit(equipment=1), owner_id="enemy")
+    world = WorldMap(
+        [start, first, second],
+        [(start, first), (start, second)],
+        parties={start: attacker, first: enemy_first, second: enemy_second},
+    )
+    assert list(world.neighbors(start)) == [first, second]
+    duchy = Duchy("ai", attacker.hero, parties=(attacker,))
+    seed = 2
+    morale_by_owner = {"ai": 10, "enemy": -5}
+
+    resolved_world, battle = ai.engage_duchy_party_recorded(
+        world, duchy, tbb.Rng(seed), morale_by_owner=morale_by_owner
+    )
+
+    expected_world, expected_battle = world.resolve_party_battle_recorded(
+        start, first, tbb.Rng(seed), attacker_morale=10, defender_morale=-5
+    )
+    assert resolved_world == expected_world
+    assert battle == expected_battle
+    assert resolved_world != world
+    assert world.party_at(start) is attacker
+    assert world.party_at(first) is enemy_first
+    assert world.party_at(second) is enemy_second
+
+
+def test_engage_duchy_party_recorded_is_noop_when_no_adjacent_enemy_party():
+    """engage_duchy_party_recorded returns (world, None) without using RNG when no enemy party is adjacent."""
+    start, target = Region("Start"), Region("Target")
+    party = Party(Unit(training=5, equipment=6), owner_id="ai")
+    world = WorldMap(
+        [start, target],
+        [(start, target)],
+        parties={start: party},
+    )
+    duchy = Duchy("ai", party.hero, parties=(party,))
+
+    result_world, battle = ai.engage_duchy_party_recorded(
+        world, duchy, _ForbiddenRng()
+    )
+
+    assert result_world is world
+    assert battle is None
+    assert world.party_at(start) is party
