@@ -544,7 +544,17 @@ Wstępne encje rdzenia (nazwy robocze, doprecyzowywane wraz z implementacją):
   **ROZSTRZYGNIĘTE (G10.3, koszt rekrutacji):** to samo przejście wymaga
   `RECRUIT_GOLD_COST` złota (obecnie `1`) i odejmuje je od `storage`; niedobór
   także blokuje rekrutację bez mutacji. Koszt pszenicy i miesięcy pozostaje poza
-  zakresem. **ROZSTRZYGNIĘTE (MU.1,
+  zakresem. **ROZSTRZYGNIĘTE (D11.4a, wystawienie bohatera z osady):**
+  `Settlement.raise_hero()` to czyste przejście zwracające
+  `(nowa_osada, bohater)`. Bohater to zawsze **świeży** `Unit()` (filary 0) —
+  bez dziedziczenia statystyk. Z puli wolnej ubywa **1** mieszkaniec
+  (`population` −1, `occupied` bez zmian, więc `free` −1); magazyn traci
+  `HERO_GOLD_COST` złota (placeholder, obecnie `2` — drożej niż rekrut). Bohater
+  **nie** trafia do garnizonu (opuszcza osadę, analogicznie do `muster`). Brak
+  wolnej populacji lub złota poniżej kosztu rzuca `ValueError` bez mutacji osady
+  wejściowej. Garnizon, budynki i pozostały stan osady bez zmian; bez RNG.
+  Koszt pszenicy, czas wystawienia i morale — poza zakresem (wpięcie w księstwo/
+  AI: D11.4b). **ROZSTRZYGNIĘTE (MU.1,
   wystawienie party):** `Settlement.muster(hero)` to czyste przejście przenoszące
   cały garnizon, w zachowanej kolejności, do nowego `Party` z bohaterem i
   właścicielem osady. Wymarsz opróżnia garnizon oraz zmniejsza `population`

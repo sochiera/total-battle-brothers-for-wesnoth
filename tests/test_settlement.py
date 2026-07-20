@@ -411,6 +411,62 @@ def test_two_recruits_occupy_two_population_and_join_garrison():
     assert len(recruited.garrison) == 2
 
 
+def test_raise_hero_spends_free_population_and_exported_gold_without_garrison_or_mutation():
+    assert settlement_module.HERO_GOLD_COST == 2
+    garrison = (Unit(training=1), Unit(equipment=2))
+    original = Settlement(
+        "Keep",
+        population=6,
+        occupied=3,
+        active_buildings=(SMITH,),
+        storage=Resources(
+            wheat=5, gold=settlement_module.HERO_GOLD_COST + 1
+        ),
+        capacity=10,
+        garrison=garrison,
+        owner_id="north",
+    )
+    rng_state = random.getstate()
+
+    first = original.raise_hero()
+    second = original.raise_hero()
+
+    raised, hero = first
+    assert first == second
+    assert raised is not original
+    assert hero == Unit()
+    assert (
+        hero.training,
+        hero.equipment,
+        hero.experience,
+    ) == (0, 0, 0)
+    assert raised.population == original.population - 1
+    assert raised.occupied == original.occupied
+    assert raised.free == original.free - 1
+    assert raised.storage == Resources(wheat=5, gold=1)
+    assert raised.garrison == garrison
+    assert hero not in raised.garrison
+    assert (
+        raised.name,
+        raised.active_buildings,
+        raised.capacity,
+        raised.owner_id,
+    ) == (
+        original.name,
+        original.active_buildings,
+        original.capacity,
+        original.owner_id,
+    )
+    assert original.population == 6
+    assert original.occupied == 3
+    assert original.free == 3
+    assert original.storage == Resources(
+        wheat=5, gold=settlement_module.HERO_GOLD_COST + 1
+    )
+    assert original.garrison == garrison
+    assert random.getstate() == rng_state
+
+
 def test_muster_moves_garrison_to_party_and_preserves_free_population():
     units = (Unit(training=1), Unit(equipment=2), Unit(experience=3))
     original = Settlement(
