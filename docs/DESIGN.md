@@ -362,8 +362,9 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
 
 **GameApp / rozkazy gracza:**
 - `GameApp(..., player_duchy_id=None)` — w `POST /turn` woła `run_headless_game`
-  z `max_turns=1` i tym id; `GET /` ma `data-player`. CLI `python -m tbbui serve`
-  ustawia `player_duchy_id="player"`.
+  z `max_turns=1` i tym id; `GET /` ma `data-player` oraz (K23.2b) przekazuje
+  `player_duchy_id` do `render_game_page` (`data-player-duchy` na wierszu gracza).
+  CLI `python -m tbbui serve` ustawia `player_duchy_id="player"`.
 - Wspólny warunek rozkazu: ustawiony gracz, gra nie `is_over`, księstwo w
   `game.duchies` → `_apply_player_order` + `sync_from_world`; inaczej no-op;
   zawsze `(200, strona)`.

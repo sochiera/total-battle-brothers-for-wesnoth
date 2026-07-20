@@ -255,6 +255,32 @@ def test_game_app_player_duchy_id_data_player_and_turn_skips_player_ai(monkeypat
     assert set(take_calls) == {"north", "south"}
 
 
+def test_game_app_render_forwards_player_duchy_id_to_data_player_duchy():
+    """GameApp._render passes self.player_duchy_id into render_game_page.
+
+    Contract (task-122 / K23.2b): with player_duchy_id="north" set, GET /
+    contains exactly one element carrying data-player-duchy (on the "north"
+    duchy panel row); with player_duchy_id=None, no element carries it.
+    """
+    world, game = _ongoing_world_game()
+    calendar = Calendar(year=4, month=9)
+    app = GameApp(world, game, calendar, Rng(17), player_duchy_id="north")
+
+    code, body = app.handle("GET", "/")
+    assert code == 200
+    root = ET.fromstring(body)
+    marked = _find_by_attr(root, "data-player-duchy")
+    assert len(marked) == 1
+    assert marked[0].get("data-duchy") == "north"
+
+    w2, g2 = _ongoing_world_game()
+    none_app = GameApp(w2, g2, Calendar(year=1, month=1), Rng(5))
+    code_n, body_n = none_app.handle("GET", "/")
+    assert code_n == 200
+    root_n = ET.fromstring(body_n)
+    assert _find_by_attr(root_n, "data-player-duchy") == []
+
+
 def test_tbbui_serve_builds_game_app_with_player_duchy_id(monkeypatch):
     """python -m tbbui serve creates GameApp with player_duchy_id='player'.
 

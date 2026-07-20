@@ -150,7 +150,8 @@ istnieje. Zwraca `0`. Dwa uruchomienia z tym samym seedem dają identyczną tre�
 calendar, rng, player_duchy_id=None)` trzyma stan partii w pamięci i udostępnia
 czystą metodę `handle(method, path) -> (kod_http, treść)` — bez gniazda HTTP.
 `handle` rozdziela ścieżkę od query (`path.partition("?")`) na początku routingu.
-`GET /` → `(200, strona)` z `render_game_page` plus znacznik
+`GET /` → `(200, strona)` z `render_game_page(..., player_duchy_id=self.player_duchy_id)`
+(K23.2b — panel księstw z `data-player-duchy` przy wierszu gracza) plus znacznik
 `data-player` (wartość `player_duchy_id` lub `""` gdy `None`) oraz formularze
 `<form method="post" action="/turn">`,
 `<form method="post" action="/order/recruit">`,

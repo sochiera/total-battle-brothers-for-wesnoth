@@ -326,7 +326,11 @@ class GameApp:
 
     def _render(self) -> str:
         html = render_game_page(
-            self.world, self.game, self.calendar, battle=self.last_battle
+            self.world,
+            self.game,
+            self.calendar,
+            battle=self.last_battle,
+            player_duchy_id=self.player_duchy_id,
         )
         player_value = self.player_duchy_id if self.player_duchy_id is not None else ""
         extras = (
