@@ -59,6 +59,11 @@ regionie osada, potem party) i przypisuje kolory z ustalonej, cyklicznej listy
 `OWNER_COLORS`. `render_world_svg` ustawia `fill` znacznika z tej palety; brak
 właściciela → `NEUTRAL_OWNER_COLOR`. Czyste, deterministyczne, bez mutacji mapy.
 
+**Geometria heksów bitwy (V13.3a):** `tbbui.hexgeom` — czyste funkcje
+pointy-top: `hex_to_pixel(hex, size) -> (x, y)` (axial → piksel środka) oraz
+`hex_corners(hex, size) ->` 6 narożników na okręgu o promieniu `size` wokół
+środka (kąty `60°·i − 30°`). Stdlib only; fundament pod SVG pola bitwy.
+
 ## 2. Struktura katalogów
 ```
 game/                     # katalog projektu (repo root dla tej gry)
@@ -90,6 +95,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │   │   └── rng.py        # seedowalny RNG izolowany od stanu globalnego
 │   └── tbbui/            # pakiet prezentacji (stdlib SVG/HTML); tbb go nie importuje
 │       ├── __init__.py
+│       ├── hexgeom.py    # geometria heksów pointy-top (hex→pixel, narożniki)
 │       ├── layout.py     # deterministyczny layout regionów WorldMap → (col, row)
 │       ├── palette.py    # paleta kolorów właścicieli (owner_id → fill)
 │       └── worldsvg.py   # SVG mapy strategicznej (węzły + linie + znaczniki)
