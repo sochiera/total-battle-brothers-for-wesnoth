@@ -176,7 +176,10 @@ def march_toward_nearest_enemy(world: WorldMap, start: Region) -> WorldMap:
 
 
 def assault_nearest_enemy_settlement(
-    world: WorldMap, start: Region, rng: Rng
+    world: WorldMap,
+    start: Region,
+    rng: Rng,
+    morale_by_owner: dict[str, int] | None = None,
 ) -> WorldMap:
     """Resolve an assault when the party's nearest enemy settlement is adjacent."""
     if start not in world.regions:
@@ -190,7 +193,20 @@ def assault_nearest_enemy_settlement(
     target = nearest_enemy_settlement(world, start, party.owner_id)
     if target is None or target not in world.neighbors(start):
         return world
-    return world.resolve_settlement_battle(start, target, rng)
+
+    attacker_morale = 0
+    defender_morale = 0
+    if morale_by_owner is not None:
+        settlement = world.settlement_at(target)
+        attacker_morale = morale_by_owner.get(party.owner_id, 0)
+        defender_morale = morale_by_owner.get(settlement.owner_id, 0)
+    return world.resolve_settlement_battle(
+        start,
+        target,
+        rng,
+        attacker_morale=attacker_morale,
+        defender_morale=defender_morale,
+    )
 
 
 def take_duchy_military_action(

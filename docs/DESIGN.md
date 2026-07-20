@@ -354,8 +354,15 @@ Gra ma dwie sprzężone warstwy. Rdzeń logiki obu jest oddzielony od prezentacj
   `WorldMap.resolve_party_battle` / `resolve_settlement_battle` przyjmują
   `attacker_morale=0` i `defender_morale=0` (zamiast wspólnego `morale`) i
   przekazują je do `auto_resolve` odpowiednio stronie atakującej i broniącej.
-  Domyślne `0`/`0` zachowują dotychczasowe wywołania bez morale. Wpięcie
-  morale księstw w AI/driver: B12.1b-2.
+  Domyślne `0`/`0` zachowują dotychczasowe wywołania bez morale.
+- **ROZSTRZYGNIĘTE (B12.1b-2a, szturm AI z mapą morale):**
+  `assault_nearest_enemy_settlement(world, start, rng, morale_by_owner=None)`
+  przyjmuje opcjonalną mapę `owner_id → morale`. Gdy podana, szturm ustala
+  `attacker_morale = morale_by_owner.get(party.owner_id, 0)` oraz
+  `defender_morale = morale_by_owner.get(settlement.owner_id, 0)` i przekazuje
+  je do `WorldMap.resolve_settlement_battle`. Brak argumentu / `None` = `0`/`0`
+  (zgodność wstecz). Wątkowanie przez `take_duchy_*` i budowa mapy w driverze:
+  B12.1b-2b / B12.1b-2c.
 - **ROZSTRZYGNIĘTE (BW.3, rekonstrukcja ocalałych z bitwy do party na mapie):** po bitwie
   party na mapie ma zawierać wyłącznie **ocalałych** (aktywnych + ogłuszonych)
   z zachowanymi ranami i doświadczeniem, a polegli mają zniknąć — zastępując
@@ -817,10 +824,13 @@ ich dotykają, i notować wynik tutaj:
   wybiera najbliższą wrogą osadę przez A7.1a i rozstrzyga kontakt przez
   `WorldMap.resolve_settlement_battle()` wyłącznie wtedy, gdy wybrany cel jest
   bezpośrednim sąsiadem party. RNG jest jawnie wstrzykiwany, a placeholderowe
-  parametry bitwy pozostają zgodne z BM.2. Brak celu albo cel dalszy niż jedno
-  połączenie oznacza no-op; brak party lub jego jawnego `owner_id` w regionie
-  startowym pozostaje błędem wejścia. Marsz, muster i pełna polityka tury AI
-  nie są składane w tym kroku i pozostają w A7.1b2 oraz A7.1b4–b5.
+  parametry bitwy pozostają zgodne z BM.2. Opcjonalna mapa `morale_by_owner`
+  (B12.1b-2a) mapuje `owner_id` atakującego party i broniącej osady na
+  `attacker_morale` / `defender_morale`; brak mapy = `0`/`0`. Brak celu albo
+  cel dalszy niż jedno połączenie oznacza no-op; brak party lub jego jawnego
+  `owner_id` w regionie startowym pozostaje błędem wejścia. Marsz, muster i
+  pełna polityka tury AI nie są składane w tym kroku i pozostają w A7.1b2
+  oraz A7.1b4–b5.
   **ROZSTRZYGNIĘTE (A7.1b4, wystawienie party AI):** AI może wystawić najwyżej jedno party
   prowadzone przez swojego żyjącego bohatera. Źródłem bieżącego rozmieszczenia
   party i osad jest `WorldMap`, natomiast `Duchy` dostarcza tożsamość właściciela

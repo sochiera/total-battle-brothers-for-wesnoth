@@ -334,6 +334,41 @@ def test_assault_transition_is_publicly_exported():
     assert tbb.assault_nearest_enemy_settlement is assault_nearest_enemy_settlement
 
 
+def test_assault_with_morale_by_owner_matches_resolve_settlement_battle():
+    """Equivalence: morale_by_owner maps owner ids to resolve_* side morale."""
+    start, target = Region("Start"), Region("Target")
+    party = Party(Unit(training=5, equipment=6), owner_id="att")
+    settlement = Settlement(
+        "Target", population=1, garrison=(Unit(equipment=1),), owner_id="def"
+    )
+    world = WorldMap(
+        [start, target],
+        [(start, target)],
+        settlements={target: settlement},
+        parties={start: party},
+    )
+    seed = 7
+    attacker_morale = 30
+    defender_morale = -15
+    morale_by_owner = {"att": attacker_morale, "def": defender_morale}
+
+    via_assault = assault_nearest_enemy_settlement(
+        world, start, tbb.Rng(seed), morale_by_owner=morale_by_owner
+    )
+    via_resolve = world.resolve_settlement_battle(
+        start,
+        target,
+        tbb.Rng(seed),
+        attacker_morale=attacker_morale,
+        defender_morale=defender_morale,
+    )
+
+    assert via_assault == via_resolve
+    assert world.party_at(start) is party
+    assert world.settlement_at(target) is settlement
+    assert settlement.owner_id == "def"
+
+
 def test_muster_duchy_party_moves_hero_and_garrison_without_mutating_input():
     home = Region("Home")
     hero = Unit(training=4)
