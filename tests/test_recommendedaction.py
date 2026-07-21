@@ -2660,3 +2660,218 @@ def test_render_recommended_action_data_recommended_risk_when_battle_is_risky():
         r: world.settlement_at(r) for r in world.regions
     } == settlements_before
     assert game.duchies == duchies_before
+
+
+def test_render_recommended_action_no_data_recommended_risk_when_not_risky():
+    """When ``recommended_battle_is_risky(...)`` is ``False`` (no player /
+    non-battle advice / ``own >= enemy``), the root from
+    ``render_recommended_action`` does not carry ``data-recommended-risk``;
+    the fragment stays byte-stable without that attribute — K52.1b.
+
+    Pure: no world/game mutation.
+    """
+    recommended_battle_is_risky = recommendedaction.recommended_battle_is_risky
+    recommended_order_reason = recommendedaction.recommended_order_reason
+    recommended_order_text = recommendedaction.recommended_order_text
+    recommended_battle_forecast_text = (
+        recommendedaction.recommended_battle_forecast_text
+    )
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+    enemy_camp = Region("EnemyCamp")
+    field = Region("Field")
+    other_n = Region("OtherN")
+
+    def _assert_no_risk_attr(xml: str) -> None:
+        root = ET.fromstring(xml)
+        assert "data-recommended-risk" not in root.attrib
+        assert "data-recommended-risk" not in xml
+
+    # no player → empty root, not risky
+    empty_world = WorldMap([], [])
+    empty = render_recommended_action(empty_world, game)
+    assert recommended_battle_is_risky(empty_world, game, None) is False
+    assert empty == '<div data-recommended-action=""></div>'
+    _assert_no_risk_attr(empty)
+    unknown = render_recommended_action(
+        empty_world, game, player_duchy_id="missing"
+    )
+    assert recommended_battle_is_risky(empty_world, game, "missing") is False
+    assert unknown == '<div data-recommended-action=""></div>'
+    _assert_no_risk_attr(unknown)
+
+    # non-battle advice (develop): forecast empty → not risky
+    home = Region("Home")
+    develop_world = WorldMap(
+        [home],
+        [],
+        parties={
+            home: Party(
+                hero=Unit(training=5, equipment=3),
+                units=(Unit(training=4),),
+                owner_id="player",
+            ),
+        },
+        settlements={
+            home: Settlement(
+                "HomeS", population=2, owner_id="player", garrison=()
+            ),
+        },
+    )
+    assert recommended_order(develop_world, game, "player") == (
+        "develop",
+        None,
+    )
+    assert recommended_battle_is_risky(develop_world, game, "player") is False
+    assert recommended_battle_forecast_text(develop_world, game, "player") == ""
+
+    regions_before = develop_world.regions
+    parties_before = {
+        r: develop_world.party_at(r) for r in develop_world.regions
+    }
+    settlements_before = {
+        r: develop_world.settlement_at(r) for r in develop_world.regions
+    }
+    duchies_before = game.duchies
+
+    develop_xml = render_recommended_action(
+        develop_world, game, player_duchy_id="player"
+    )
+    develop_root = ET.fromstring(develop_xml)
+    assert develop_root.attrib.get("data-action") == "develop"
+    assert develop_root.attrib.get("data-posture") == net_posture(
+        advantageous_target_count(develop_world, game, "player"),
+        threatened_position_count(develop_world, game, "player"),
+    )
+    assert develop_root.text == (
+        f"Zalecany rozkaz: {recommended_order_text('develop', None)}"
+    )
+    _assert_no_risk_attr(develop_xml)
+    # byte-stable shape without risk flag: data-action closes before '>'
+    assert 'data-action="develop">' in develop_xml
+    assert 'data-action="develop" data-recommended-risk' not in develop_xml
+    reason = recommended_order_reason(develop_world, game, "player")
+    children = list(develop_root)
+    assert len(children) == 1
+    assert children[0].attrib == {
+        "data-recommendation-reason": html.escape(reason, quote=True)
+    }
+    assert children[0].text == reason
+
+    assert develop_world.regions == regions_before
+    assert {
+        r: develop_world.party_at(r) for r in develop_world.regions
+    } == parties_before
+    assert {
+        r: develop_world.settlement_at(r) for r in develop_world.regions
+    } == settlements_before
+    assert game.duchies == duchies_before
+
+    # own > enemy → battle advice but not risky (assault)
+    own_strong = sum(
+        combat_totals((Unit(training=8, equipment=4), Unit(training=5)))
+    )
+    enemy_weak = sum(combat_totals((Unit(training=1),)))
+    assert own_strong > enemy_weak
+    przewaga_world = WorldMap(
+        [field, other_n, enemy_camp],
+        [(field, other_n), (field, enemy_camp)],
+        parties={
+            field: Party(
+                hero=Unit(training=8, equipment=4),
+                units=(Unit(training=5),),
+                owner_id="player",
+            ),
+        },
+        settlements={
+            enemy_camp: Settlement(
+                "EnemyS",
+                population=1,
+                owner_id="enemy",
+                garrison=(Unit(training=1),),
+            ),
+        },
+    )
+    order = recommended_order(przewaga_world, game, "player")
+    assert order is not None
+    action, target = order
+    assert action == "assault"
+    assert recommended_battle_is_risky(przewaga_world, game, "player") is False
+
+    m = advantageous_target_count(przewaga_world, game, "player")
+    n = threatened_position_count(przewaga_world, game, "player")
+    expected_posture = net_posture(m, n)
+    expected_text = (
+        f"Zalecany rozkaz: {recommended_order_text(action, target)}"
+    )
+    reason = recommended_order_reason(przewaga_world, game, "player")
+    forecast = recommended_battle_forecast_text(przewaga_world, game, "player")
+    assert forecast != ""
+
+    xml = render_recommended_action(
+        przewaga_world, game, player_duchy_id="player"
+    )
+    root = ET.fromstring(xml)
+    assert root.attrib.get("data-posture") == expected_posture
+    assert root.attrib.get("data-action") == action
+    assert root.text == expected_text
+    _assert_no_risk_attr(xml)
+    assert f'data-action="{action}">' in xml
+    assert f'data-action="{action}" data-recommended-risk' not in xml
+
+    children = list(root)
+    assert len(children) == 2
+    assert children[0].attrib == {
+        "data-recommendation-reason": html.escape(reason, quote=True)
+    }
+    assert children[0].text == reason
+    assert children[1].attrib == {
+        "data-recommended-forecast": html.escape(forecast, quote=True)
+    }
+    assert children[1].text == forecast
+
+    # own == enemy → not risky
+    keep = Region("Keep")
+    eq_garrison = (Unit(training=2),)
+    eq_enemy_hero = Unit(training=2)
+    own_eq = sum(combat_totals(eq_garrison))
+    enemy_eq = sum(combat_totals((eq_enemy_hero,)))
+    assert own_eq == enemy_eq
+    equal_world = WorldMap(
+        [keep, enemy_camp],
+        [(keep, enemy_camp)],
+        parties={
+            keep: Party(
+                hero=Unit(training=5, equipment=3),
+                units=(Unit(training=4),),
+                owner_id="player",
+            ),
+            enemy_camp: Party(
+                hero=eq_enemy_hero, units=(), owner_id="enemy"
+            ),
+        },
+        settlements={
+            keep: Settlement(
+                "KeepS",
+                population=2,
+                owner_id="player",
+                garrison=eq_garrison,
+            ),
+        },
+    )
+    assert recommended_order(equal_world, game, "player") == (
+        "defend",
+        keep.name,
+    )
+    assert recommended_battle_is_risky(equal_world, game, "player") is False
+    equal_xml = render_recommended_action(
+        equal_world, game, player_duchy_id="player"
+    )
+    equal_root = ET.fromstring(equal_xml)
+    assert equal_root.attrib.get("data-action") == "defend"
+    _assert_no_risk_attr(equal_xml)
+    assert 'data-action="defend">' in equal_xml
