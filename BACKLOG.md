@@ -292,14 +292,20 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > `player_march_target` (K49.1a), tekst rady „maszeruj ku osadzie" (K49.1b),
 > gałąź akcji `march` w gałęzi zrównoważonej `recommended_order`/renderze przed
 > `develop` (K49.1c) oraz mapowanie `march`→`/order/march` z celem domykające
-> radę w jeden klik (K49.1d). Reużywa `ai.nearest_enemy_settlement` /
-> `ai.region_distance` / `ai.march_duchy_party_to` i generyczny
-> `_recommended_order_form`; rdzeń `tbb` bez zmian.
+> radę w jeden klik (K49.1d). **Uwaga (task-233):** mapowanie
+> `recommended_order_path("march")`→`/order/march` i formularz jednego kliknięcia
+> w `GET /` weszły już z K49.1c — `_recommended_order_form` woła
+> `recommended_order_path` bezwarunkowo dla każdej akcji z `recommended_order`,
+> więc brak wpisu `march` psułby ~15 zielonych testów; pokrycie:
+> `test_recommended_order_path_march` + `test_get_recommended_march_form_balanced_with_target`
+> w `tests/test_serve.py`. `POST /order/march` i notice `Marsz do R: wykonano`
+> reużywają istniejącą trasę (K14/K28) bez nowego backendu. Reużywa
+> `ai.nearest_enemy_settlement` / `ai.region_distance` / `ai.march_duchy_party_to`
+> i generyczny `_recommended_order_form`; rdzeń `tbb` bez zmian.
 - [ ] **K49.1a** `tbbui.recommendedaction.player_march_target(world, game, player_duchy_id)` zwraca `None`, gdy `gamelookup.player_duchy(game, player_duchy_id) is None` albo gdy `maplookup.first_party_region(world, player_duchy_id) is None`; gdy gracz ma party w regionie R i `ai.nearest_enemy_settlement(world, R, player_duchy_id)` istnieje z `ai.region_distance(world, R, target) >= 2`, zwraca `target.name`; inaczej `None`. Czyste, bez mutacji. *(task-231)*
 - [ ] **K49.1b** `tbbui.recommendedaction.recommended_order_text("march", "Północ")` zwraca `"maszeruj ku osadzie Północ"`; pozostałe akcje bez zmian. *(task-232)*
 - [ ] **K49.1c** W gałęzi zrównoważonej `recommended_order(...)` zwraca `("march", target)` gdy `player_march_target(...) is not None` (inaczej `("develop", None)`), po priorytecie muster/ofensywa/obrona; `render_recommended_action` niesie wtedy `data-action="march"` i tekst `Zalecany rozkaz: maszeruj ku osadzie R` (`data-posture` = `"balanced"`). *(task-233)*
-- [ ] **K49.1d** `tbbui.serve.recommended_order_path("march")` = `"/order/march"`; `GET /` u gracza z party bez sąsiedniego celu, z odległą wrogą osadą R, osadza jeden `<form action="/order/march?target=R" data-recommended-order="">` (`Wykonaj zalecenie: maszeruj ku osadzie R`), a `POST /order/march?target=R` reużywa `ai.march_duchy_party_to` (`last_notice == "Marsz do R: wykonano"`). *(task-234)*
-
+- [x] **K49.1d** Domknięcie rada→akcja dla `march` (zrealizowane w task-233, nie osobnym task-234): `recommended_order_path("march")` = `"/order/march"`; `GET /` u gracza z party bez sąsiedniego celu i z odległą wrogą osadą R osadza jeden `<form action="/order/march?target=R" data-recommended-order="">` (`Wykonaj zalecenie: maszeruj ku osadzie R`) — testy w `tests/test_serve.py`; `POST /order/march?target=R` reużywa istniejącą trasę `ai.march_duchy_party_to` i notice `Marsz do R: wykonano` (K14/K28, bez nowego backendu). Nie dublować w kolejnym zadaniu.
 ## Dług/refaktor
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*
 - [x] **R21.1 (refaktor)** Wspólny emiter formularzy celu marsz/szturm/starcie w `serve.py`. *(task-113)*
