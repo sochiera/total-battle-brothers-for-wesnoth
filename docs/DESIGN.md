@@ -459,9 +459,12 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   gracza lub id spoza `game.duchies` (`player_duchy(...) is None`) → sam pusty
   korzeń `<div data-recommended-action="">` (bez `data-posture`/tekstu). Przy
   znanym graczu korzeń niesie `data-posture` = `net_posture(M, N)` (M =
-  `advantageous_target_count`, N = `threatened_position_count`) i tekst
-  `Zalecany rozkaz: atakuj` (offensive) / `broń się` (defensive) /
-  `rozwijaj księstwo` (balanced). Czysty, deterministyczny.
+  `advantageous_target_count`, N = `threatened_position_count`) i tekst:
+  offensive → pierwszy korzystny cel z `first_advantageous_target`
+  (`Zalecany rozkaz: szturmuj osadę <region>` gdy `kind=="settlement"`,
+  `zaatakuj oddział <region>` gdy `kind=="party"`; postawa ofensywna ⇒ M≥1);
+  defensive → `broń się`; balanced → `rozwijaj księstwo`. Czysty,
+  deterministyczny.
 - `render_party_panel(world, player_duchy_id=None)` — fragment `data-party-panel`
   z wierszem `data-party-row` (= nazwa regionu) na party w kolejności
   `world.regions`; `data-owner`/`data-size` (liczba podkomendnych)/`data-hp`/

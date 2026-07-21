@@ -10,6 +10,7 @@ from tbb.unit import Unit
 from tbb.world import Region, WorldMap
 from tbbui.engagementpreview import (
     advantageous_target_count,
+    first_advantageous_target,
     render_engagement_preview,
 )
 from tbbui.unitstrength import combat_totals
@@ -587,6 +588,218 @@ def test_advantageous_target_count_adjacent_with_advantage_and_zero_when_absent(
         },
     )
     assert advantageous_target_count(empty_map, game, "player") == 0
+
+    assert world.regions is regions_before
+    assert game.duchies is duchies_before
+    for r in world.regions:
+        assert world.party_at(r) is parties_before[r]
+        assert world.settlement_at(r) is settlements_before[r]
+
+
+def test_first_advantageous_target_first_adjacent_with_advantage_or_none():
+    """``first_advantageous_target(world, game, player_duchy_id)`` returns
+    ``(region_name, kind)`` for the first adjacent hostile target with
+    advantage — same rule and order as ``advantageous_target_count`` /
+    preview rows: ``world.neighbors`` order, settlement before party in a
+    region, advantage when ``own_sum >= enemy_sum``. Unknown player
+    (``player_duchy(...) is None``), known player with no party on the map,
+    or no advantageous target → ``None``. Pure (no world/game mutation).
+    """
+    home = Region("Home")
+    strong_region = Region("StrongKeep")
+    equal_region = Region("EqualKeep")
+    weak_party_region = Region("WeakParty")
+    both = Region("Both")
+    far = Region("Far")
+
+    hero = Unit()
+    player_party = Party(hero=hero, units=(), owner_id="player")
+    own_hp, own_attack, own_defense = combat_totals((hero,))
+    own_sum = own_hp + own_attack + own_defense
+
+    # Stronger enemy garrison first in neighbors — no advantage (skipped).
+    strong_garrison = (Unit(training=9),)
+    st_hp, st_attack, st_defense = combat_totals(strong_garrison)
+    assert own_sum < st_hp + st_attack + st_defense
+
+    # Equal enemy garrison — advantage; first hit after StrongKeep.
+    equal_garrison = (Unit(),)
+    eq_hp, eq_attack, eq_defense = combat_totals(equal_garrison)
+    assert own_sum == eq_hp + eq_attack + eq_defense
+
+    # Weaker adjacent enemy party — advantage, but later than EqualKeep.
+    weak_hero = Unit()
+    weak_party = Party(hero=weak_hero, units=(), owner_id="enemy")
+    w_hp, w_attack, w_defense = combat_totals((weak_hero,))
+    assert own_sum >= w_hp + w_attack + w_defense
+
+    # Region with both: weak settlement (advantage) before strong party.
+    both_garrison = (Unit(),)
+    both_party = Party(hero=Unit(training=9), units=(), owner_id="enemy")
+
+    # Non-adjacent equal enemy settlement must not win.
+    far_garrison = (Unit(),)
+
+    world = WorldMap(
+        [home, strong_region, equal_region, weak_party_region, both, far],
+        [
+            (home, strong_region),
+            (home, equal_region),
+            (home, weak_party_region),
+            (home, both),
+            (strong_region, far),
+        ],
+        parties={
+            home: player_party,
+            weak_party_region: weak_party,
+            both: both_party,
+        },
+        settlements={
+            strong_region: Settlement(
+                "KeepStrong",
+                population=1,
+                owner_id="enemy",
+                garrison=strong_garrison,
+            ),
+            equal_region: Settlement(
+                "KeepEqual",
+                population=1,
+                owner_id="enemy",
+                garrison=equal_garrison,
+            ),
+            both: Settlement(
+                "KeepBoth",
+                population=1,
+                owner_id="enemy",
+                garrison=both_garrison,
+            ),
+            far: Settlement(
+                "KeepFar",
+                population=1,
+                owner_id="enemy",
+                garrison=far_garrison,
+            ),
+        },
+    )
+    assert [r.name for r in world.neighbors(home)] == [
+        "StrongKeep",
+        "EqualKeep",
+        "WeakParty",
+        "Both",
+    ]
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+
+    # Preview advantageous rows in order: EqualKeep/settlement, WeakParty/party,
+    # Both/settlement → first is EqualKeep settlement.
+    preview = ET.fromstring(
+        render_engagement_preview(world, game, player_duchy_id="player")
+    )
+    advantage_true = [
+        r for r in list(preview) if r.get("data-advantage") == "true"
+    ]
+    assert [
+        (r.get("data-target-region"), r.get("data-target-kind"))
+        for r in advantage_true
+    ][0] == ("EqualKeep", "settlement")
+    assert advantageous_target_count(world, game, "player") == len(
+        advantage_true
+    )
+
+    regions_before = world.regions
+    parties_before = {r: world.party_at(r) for r in world.regions}
+    settlements_before = {r: world.settlement_at(r) for r in world.regions}
+    duchies_before = game.duchies
+
+    assert first_advantageous_target(world, game, "player") == (
+        "EqualKeep",
+        "settlement",
+    )
+
+    # Unknown / missing player → None
+    assert first_advantageous_target(world, game, None) is None
+    assert first_advantageous_target(world, game, "missing") is None
+
+    # Known player, no party on map → None
+    empty_map = WorldMap(
+        [home, equal_region],
+        [(home, equal_region)],
+        parties={},
+        settlements={
+            equal_region: Settlement(
+                "KeepEqual",
+                population=1,
+                owner_id="enemy",
+                garrison=equal_garrison,
+            ),
+        },
+    )
+    assert first_advantageous_target(empty_map, game, "player") is None
+
+    # On map but only disadvantageous targets → None
+    strong_only = WorldMap(
+        [home, strong_region],
+        [(home, strong_region)],
+        parties={home: player_party},
+        settlements={
+            strong_region: Settlement(
+                "KeepStrong",
+                population=1,
+                owner_id="enemy",
+                garrison=strong_garrison,
+            ),
+        },
+    )
+    assert advantageous_target_count(strong_only, game, "player") == 0
+    assert first_advantageous_target(strong_only, game, "player") is None
+
+    # First advantageous can be a party when no earlier settlement qualifies.
+    party_first = WorldMap(
+        [home, strong_region, weak_party_region],
+        [(home, strong_region), (home, weak_party_region)],
+        parties={
+            home: player_party,
+            weak_party_region: weak_party,
+        },
+        settlements={
+            strong_region: Settlement(
+                "KeepStrong",
+                population=1,
+                owner_id="enemy",
+                garrison=strong_garrison,
+            ),
+        },
+    )
+    assert first_advantageous_target(party_first, game, "player") == (
+        "WeakParty",
+        "party",
+    )
+
+    # Settlement before party in the same region when both advantageous.
+    both_only = WorldMap(
+        [home, both],
+        [(home, both)],
+        parties={
+            home: player_party,
+            both: Party(hero=Unit(), units=(), owner_id="enemy"),
+        },
+        settlements={
+            both: Settlement(
+                "KeepBoth",
+                population=1,
+                owner_id="enemy",
+                garrison=both_garrison,
+            ),
+        },
+    )
+    assert first_advantageous_target(both_only, game, "player") == (
+        "Both",
+        "settlement",
+    )
 
     assert world.regions is regions_before
     assert game.duchies is duchies_before

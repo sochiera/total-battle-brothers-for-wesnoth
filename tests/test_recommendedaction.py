@@ -56,9 +56,9 @@ def test_render_recommended_action_data_posture_and_order_text_from_m_vs_n():
     (M=``advantageous_target_count``, N=``threatened_position_count``):
     ``"offensive"`` when M>N, ``"defensive"`` when N>M, ``"balanced"`` when
     M==N. Visible text: balanced → ``Zalecany rozkaz: rozwijaj księstwo``;
-    offensive → ``Zalecany rozkaz: atakuj``; defensive →
-    ``Zalecany rozkaz: broń się``. Pure and deterministic (no world/game
-    mutation).
+    offensive → first advantageous target named (``szturmuj osadę <region>``
+    or ``zaatakuj oddział <region>``); defensive → ``Zalecany rozkaz:
+    broń się``. Pure and deterministic (no world/game mutation).
     """
     home = Region("Home")
     keep = Region("Keep")
@@ -71,12 +71,13 @@ def test_render_recommended_action_data_posture_and_order_text_from_m_vs_n():
     )
 
     order_text = {
-        "offensive": "Zalecany rozkaz: atakuj",
         "defensive": "Zalecany rozkaz: broń się",
         "balanced": "Zalecany rozkaz: rozwijaj księstwo",
     }
 
-    def _assert_recommended(world: WorldMap, expected: str) -> None:
+    def _assert_recommended(
+        world: WorldMap, expected: str, *, text: str | None = None
+    ) -> None:
         n = threatened_position_count(world, game, "player")
         m = advantageous_target_count(world, game, "player")
         if expected == "offensive":
@@ -101,7 +102,8 @@ def test_render_recommended_action_data_posture_and_order_text_from_m_vs_n():
         assert root.attrib.get("data-recommended-action") == ""
         assert root.attrib.get("data-posture") == expected
         assert root.attrib.get("data-posture") == net_posture(m, n)
-        assert root.text == order_text[expected]
+        expected_text = text if text is not None else order_text[expected]
+        assert root.text == expected_text
         assert list(root) == []
 
         assert world.regions == regions_before
@@ -148,4 +150,8 @@ def test_render_recommended_action_data_posture_and_order_text_from_m_vs_n():
             ),
         },
     )
-    _assert_recommended(offensive_world, "offensive")
+    _assert_recommended(
+        offensive_world,
+        "offensive",
+        text="Zalecany rozkaz: szturmuj osadę EnemyCamp",
+    )

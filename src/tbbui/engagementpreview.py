@@ -61,6 +61,46 @@ def _adjacent_hostile_targets(
     return targets
 
 
+def _advantageous_targets(
+    world: WorldMap,
+    game: GameState,
+    player_duchy_id: str | None,
+) -> list[tuple[str, str]]:
+    """Adjacent hostile targets with advantage: ``(region_name, kind)`` in order.
+
+    Same targets, order, and advantage rule as ``render_engagement_preview``
+    rows (``world.neighbors``, settlement before party, ``own_sum >=
+    enemy_sum``). Empty when ``player_duchy(...) is None`` or the player has
+    no party on the map.
+    """
+    if player_duchy(game, player_duchy_id) is None:
+        return []
+    assert player_duchy_id is not None
+
+    player_region = first_party_region(world, player_duchy_id)
+    if player_region is None:
+        return []
+
+    party = world.party_at(player_region)
+    assert party is not None
+    own_hp, own_attack, own_defense = combat_totals((party.hero, *party.units))
+    own_sum = own_hp + own_attack + own_defense
+
+    result: list[tuple[str, str]] = []
+    for (
+        name,
+        _owner,
+        kind,
+        _label,
+        enemy_hp,
+        enemy_attack,
+        enemy_defense,
+    ) in _adjacent_hostile_targets(world, player_region, player_duchy_id):
+        if own_sum >= enemy_hp + enemy_attack + enemy_defense:
+            result.append((name, kind))
+    return result
+
+
 def advantageous_target_count(
     world: WorldMap,
     game: GameState,
@@ -75,32 +115,25 @@ def advantageous_target_count(
     returns ``0``. Pure and deterministic: no RNG/IO; does not mutate
     ``world`` or ``game``.
     """
-    if player_duchy(game, player_duchy_id) is None:
-        return 0
-    assert player_duchy_id is not None
+    return len(_advantageous_targets(world, game, player_duchy_id))
 
-    player_region = first_party_region(world, player_duchy_id)
-    if player_region is None:
-        return 0
 
-    party = world.party_at(player_region)
-    assert party is not None
-    own_hp, own_attack, own_defense = combat_totals((party.hero, *party.units))
-    own_sum = own_hp + own_attack + own_defense
+def first_advantageous_target(
+    world: WorldMap,
+    game: GameState,
+    player_duchy_id: str | None,
+) -> tuple[str, str] | None:
+    """Return ``(region_name, kind)`` of the first advantageous adjacent target.
 
-    count = 0
-    for (
-        _name,
-        _owner,
-        _kind,
-        _label,
-        enemy_hp,
-        enemy_attack,
-        enemy_defense,
-    ) in _adjacent_hostile_targets(world, player_region, player_duchy_id):
-        if own_sum >= enemy_hp + enemy_attack + enemy_defense:
-            count += 1
-    return count
+    Same rule and order as ``advantageous_target_count`` / preview rows:
+    ``world.neighbors``, settlement before party, advantage when
+    ``own_sum >= enemy_sum``. ``kind`` is ``"settlement"`` or ``"party"``.
+    Unknown player (``player_duchy(...) is None``), known player with no
+    party on the map, or no advantageous target → ``None``. Pure and
+    deterministic: no RNG/IO; does not mutate ``world`` or ``game``.
+    """
+    targets = _advantageous_targets(world, game, player_duchy_id)
+    return targets[0] if targets else None
 
 
 def render_engagement_preview(
