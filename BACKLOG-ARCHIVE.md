@@ -426,3 +426,9 @@
 - [x] **K43.1b** `GameApp.order_log` (init `[]`) — każdy POST znaną trasą dokłada `last_notice`; `POST /new` czyści i zapisuje wpis startowy. *(task-209)*
 - [x] **K43.1c** `GameApp._render` osadza jeden `render_order_log(self.order_log)` w `GET /`, także przy `is_over`. *(task-210)*
 - [x] **K43.2a** `serve.ORDER_LOG_LIMIT` (placeholder `10`) — dziennik przycięty do ostatnich N wpisów (najstarsze wypadają). *(task-211)*
+
+## Kamień milowy 44 — czytelny, zakotwiczony w czasie dziennik kampanii — UKOŃCZONY
+- [x] **K44.1a** Czysty `orderlog.format_log_entry(notice, calendar)` → `f"Rok {year}, miesiąc {month} — {notice}"` (bez escapowania, bez mutacji). *(task-212)*
+- [x] **K44.1b** `GameApp._append_order_log` dokłada `format_log_entry(notice, self.calendar)` (wpis z prefiksem daty); `data-notice` i limit bez zmian. *(task-213)*
+- [x] **K44.2a** `render_order_log` osadza pierwszy nagłówek `<h2 data-order-log-header>Dziennik rozkazów</h2>`; `data-count`/wpisy bez zmian. *(task-214)*
+- [x] **K44.2b** `render_order_log` dla pustej sekwencji dokłada `<p data-order-log-empty>Brak rozkazów w tej kampanii</p>`; niepusta → brak elementu. *(task-215)*

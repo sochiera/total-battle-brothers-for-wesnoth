@@ -254,18 +254,25 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > (K43.2a); poprzedzony refaktorem R43.1 (kompaktacja DESIGN §11). Wszystkie
 > pozycje (task-207…211) w `BACKLOG-ARCHIVE.md`. Rdzeń `tbb` bez zmian.
 
-## Kamień milowy 44 — czytelny, zakotwiczony w czasie dziennik kampanii
-> DESIGN §11: K43 dał dziennik, ale wpisy rozkazów gracza nie niosą daty (gracz
-> nie umie ich osadzić w czasie), a sekcja nie ma nagłówka ani stanu pustego.
-> K44 domyka ciągłość kampanii: czysty `format_log_entry(notice, calendar)`
-> (K44.1a) wpięty w akumulator `GameApp` (K44.1b) zakotwicza każdy wpis prefiksem
-> daty, a `render_order_log` dostaje widoczny nagłówek (K44.2a) i komunikat stanu
-> pustego (K44.2b). Reużywa istniejące `last_notice`/`Calendar` — bez nowego
-> backendu rozkazów. Rdzeń `tbb` bez zmian.
-- [ ] **K44.1a** Czysty `orderlog.format_log_entry(notice, calendar)` → `f"Rok {year}, miesiąc {month} — {notice}"` (bez escapowania, bez mutacji). *(task-212)*
-- [ ] **K44.1b** `GameApp._append_order_log` dokłada `format_log_entry(notice, self.calendar)` (wpis z prefiksem daty); `data-notice` i limit bez zmian. *(task-213)*
-- [ ] **K44.2a** `render_order_log` osadza pierwszy nagłówek `<h2 data-order-log-header>Dziennik rozkazów</h2>`; `data-count`/wpisy bez zmian. *(task-214)*
-- [ ] **K44.2b** `render_order_log` dla pustej sekwencji dokłada `<p data-order-log-empty>Brak rozkazów w tej kampanii</p>`; niepusta → brak elementu. *(task-215)*
+## Kamień milowy 44 — czytelny, zakotwiczony w czasie dziennik kampanii — UKOŃCZONY
+> DESIGN §11: `format_log_entry(notice, calendar)` (K44.1a) wpięty w akumulator
+> `GameApp` (K44.1b) zakotwicza każdy wpis prefiksem daty, a `render_order_log`
+> dostał widoczny nagłówek (K44.2a) i komunikat stanu pustego (K44.2b). Wszystkie
+> pozycje (task-212…215) w `BACKLOG-ARCHIVE.md`. Rdzeń `tbb` bez zmian.
+
+## Kamień milowy 45 — dziennik kampanii: najnowsze na wierzchu, objętość i skróty
+> DESIGN §11: K44 zakotwiczył wpisy w czasie, ale dziennik nadal czyta się od
+> najstarszego (gracz przewija na dół po ostatnie zdarzenie), nie widać ile
+> wpisów jest ani że starsze wypadły przy limicie. K45 czyni dziennik czytelnym
+> „na jeden rzut oka": kolejność od najnowszego (K45.1a), znacznik najnowszego
+> wpisu (K45.2a), liczba wpisów w nagłówku (K45.3a) oraz nota o obcięciu przy
+> limicie (K45.4a) wpięta w `GameApp` (K45.4b). Reużywa istniejące
+> `order_log`/`ORDER_LOG_LIMIT` — bez nowego backendu rozkazów. Rdzeń `tbb` bez zmian.
+- [ ] **K45.1a** `render_order_log` wyświetla wpisy od najnowszego: dzieci `data-order-log-entry` w kolejności odwrotnej do `entries` (indeks 0 = ostatni element `entries`); `data-count`, escaping, nagłówek i stan pusty bez zmian. *(task-216)*
+- [ ] **K45.2a** Najnowszy (pierwszy) `data-order-log-entry` niesie `data-order-log-latest=""` i poprzedza ciało `<span data-order-log-latest-badge="">najnowszy</span>`; pozostałe wpisy i stan pusty bez tego atrybutu/badge. *(task-217)*
+- [ ] **K45.3a** Nagłówek pokazuje liczbę wpisów: `<h2 data-order-log-header="">Dziennik rozkazów ({N})</h2>` (N = `len(entries)`, także 0); `data-count` i dzieci bez zmian. *(task-218)*
+- [ ] **K45.4a** `render_order_log(entries, at_limit=False)`: przy `at_limit=True` i niepustej sekwencji po ostatnim wpisie (przed `</div>`) dokładnie jedno `<p data-order-log-truncated="">Pokazano ostatnie wpisy</p>`; `at_limit=False` lub pusta sekwencja → brak tego elementu (bajt-w-bajt jak dotąd). *(task-219)*
+- [ ] **K45.4b** `GameApp._render` woła `render_order_log(self.order_log, at_limit=len(self.order_log) >= ORDER_LOG_LIMIT)`; strona ma `data-order-log-truncated` iff dziennik osiągnął `ORDER_LOG_LIMIT`. *(task-220)*
 
 ## Dług/refaktor
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*
