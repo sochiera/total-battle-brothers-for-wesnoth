@@ -27,6 +27,7 @@ from tbbui.engagementpreview import render_engagement_preview
 from tbbui.herochase import render_hero_chase
 from tbbui.herolocator import render_enemy_hero_locator
 from tbbui.nextobjective import render_next_objective
+from tbbui.recommendedaction import render_recommended_action
 from tbbui.situationreport import render_situation_report
 from tbbui.threatalert import render_threat_alert
 from tbbui.turnsummary import render_turn_summary
@@ -929,6 +930,49 @@ def test_render_game_page_omits_situation_report_when_player_duchy_id_none():
     root = ET.fromstring(baseline_html)
     assert _find_by_attr(root, "data-situation-report") == []
     assert "data-situation-report" not in baseline_html
+
+
+def test_render_game_page_embeds_canonical_recommended_action_after_situation_report():
+    """``player_duchy_id`` embeds one canonical ``render_recommended_action`` after report.
+
+    Exactly one ``data-recommended-action`` in ``<body>``; string equals
+    ``render_recommended_action(world, game, player_duchy_id)`` and sits
+    immediately after the embedded ``render_situation_report`` output
+    (``data-situation-report`` before ``data-recommended-action``, before
+    ``data-duchy`` rows).
+    """
+    world, game, calendar = _ongoing_fixture()
+    expected_report = render_situation_report(world, game, "north")
+    expected_action = render_recommended_action(world, game, "north")
+
+    html = render_game_page(world, game, calendar, player_duchy_id="north")
+
+    assert expected_action in html, (
+        "page must embed render_recommended_action(world, game, player_duchy_id) "
+        "output"
+    )
+    assert html.count(expected_action) == 1
+    assert html.index(expected_report) + len(expected_report) == html.index(
+        expected_action
+    ), "recommended action must sit directly after the embedded situation report"
+
+    root = ET.fromstring(html)
+    assert _local(root.tag) == "html"
+    body = next(el for el in root if _local(el.tag) == "body")
+    action_els = _find_by_attr(root, "data-recommended-action")
+    assert len(action_els) == 1
+    assert action_els[0] in list(body.iter())
+    report_els = _find_by_attr(root, "data-situation-report")
+    assert len(report_els) == 1
+    duchy_els = _find_by_attr(root, "data-duchy")
+    assert duchy_els, "fixture must include data-duchy rows"
+    body_order = list(body.iter())
+    assert body_order.index(report_els[0]) < body_order.index(
+        action_els[0]
+    ), "data-situation-report must precede data-recommended-action in body"
+    assert body_order.index(action_els[0]) < body_order.index(
+        duchy_els[0]
+    ), "data-recommended-action must precede data-duchy rows in body"
 
 
 def test_render_game_page_omits_hero_chase_when_player_duchy_id_none():

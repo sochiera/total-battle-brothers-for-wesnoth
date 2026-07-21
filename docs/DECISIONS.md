@@ -230,3 +230,4 @@
 | K41.1b | Ofensywa wskazuje cel | `first_advantageous_target` → `(region, kind)` pierwszego korzystnego sąsiada (kolejność jak `advantageous_target_count`); przy `data-posture="offensive"` tekst „szturmuj osadę <region>" / „zaatakuj oddział <region>". |
 | K41.1c | Defensywa wskazuje pozycję | `first_threatened_region` → nazwa regionu pierwszej zagrożonej własnej pozycji (kolejność jak `threatened_position_count`); przy `data-posture="defensive"` tekst „broń pozycji <region>". |
 | K41.2a | Maszynowa flaga rozkazu | `render_recommended_action` dokłada `data-action` zaraz po `data-posture`: ofensywna+settlement → `assault`, ofensywna+party → `engage`, defensywna → `defend`, zrównoważona → `develop`. |
+| K41.3a | Osadzenie zalecanego rozkazu | `render_game_page` przy `player_duchy_id is not None` osadza jeden `render_recommended_action(world, game, player_duchy_id)` zaraz po `render_situation_report`; `None` → bajt-w-bajt jak dotąd. |

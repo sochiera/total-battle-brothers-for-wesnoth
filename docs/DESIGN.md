@@ -467,7 +467,8 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   `kind=="settlement"`, `zaatakuj oddział <region>` gdy `kind=="party"`;
   postawa ofensywna ⇒ M≥1); defensive → pierwsza zagrożona własna pozycja z
   `first_threatened_region` (`broń pozycji <region>`; postawa defensywna ⇒ N≥1);
-  balanced → `rozwijaj księstwo`. Czysty, deterministyczny.
+  balanced → `rozwijaj księstwo`. Osadzony w stronie partii zaraz po
+  `data-situation-report` (K41.3a). Czysty, deterministyczny.
 - `render_party_panel(world, player_duchy_id=None)` — fragment `data-party-panel`
   z wierszem `data-party-row` (= nazwa regionu) na party w kolejności
   `world.regions`; `data-owner`/`data-size` (liczba podkomendnych)/`data-hp`/
@@ -524,7 +525,9 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   `render_threat_alert(world, game, player_duchy_id)` (K39.1c, dokładnie jeden
   `data-threat-alert`), a zaraz po alercie zagrożeń kanoniczny
   `render_situation_report(world, game, player_duchy_id)` (K40.1c, dokładnie
-  jeden `data-situation-report`); `None` → bajt-w-bajt jak dotąd. Przy
+  jeden `data-situation-report`), a zaraz po skrócie sytuacji kanoniczny
+  `render_recommended_action(world, game, player_duchy_id)` (K41.3a, dokładnie
+  jeden `data-recommended-action`); `None` → bajt-w-bajt jak dotąd. Przy
   `player_duchy_id is not None` osadza też
   `<p data-player-result-text>` z wynikiem z perspektywy gracza (`Gra w toku` /
   `Zwycięstwo Twojego księstwa` / `Porażka Twojego księstwa` / `Remis` wg

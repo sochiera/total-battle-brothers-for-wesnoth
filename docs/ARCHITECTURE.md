@@ -272,7 +272,7 @@ ofensywna|defensywna|zrównoważona`. Czyste, deterministyczne, bez mutacji
 deterministyczna. Wspólne źródło `data-net-posture` w `render_situation_report`
 oraz `data-posture` w `render_recommended_action`.
 
-**Zalecany rozkaz HTML (K41.1a / K41.1b / K41.1c / K41.2a):**
+**Zalecany rozkaz HTML (K41.1a / K41.1b / K41.1c / K41.2a / K41.3a):**
 `tbbui.recommendedaction.render_recommended_action(world, game, player_duchy_id=None) -> str`
 — parsowalny fragment z korzeniem `<div data-recommended-action="">`. Gdy
 `player_duchy(...) is None` → sam pusty korzeń (bez `data-posture`, bez
@@ -284,7 +284,8 @@ ofensywna i `kind=="settlement"`, `engage` gdy ofensywna i `kind=="party"`,
 z `first_advantageous_target` — `Zalecany rozkaz: szturmuj osadę <region>`
 (`kind=="settlement"`) lub `zaatakuj oddział <region>` (`kind=="party"`); przy
 `defensive` z `first_threatened_region` — `broń pozycji <region>` (postawa
-defensywna ⇒ N≥1); przy `balanced` — `rozwijaj księstwo`. Czyste,
+defensywna ⇒ N≥1); przy `balanced` — `rozwijaj księstwo`. Osadzony w
+`render_game_page` zaraz po `data-situation-report` (K41.3a). Czyste,
 deterministyczne, bez mutacji `world`/`game`; rdzeń bez zmian.
 
 **Lokalizacja party na mapie (R37.1):**
@@ -408,14 +409,17 @@ jeden `data-engagement-preview`), zaraz po podglądzie starcia kanoniczny string
 z `render_threat_alert(world, game, player_duchy_id)` (K39.1c, dokładnie jeden
 `data-threat-alert`), zaraz po alercie zagrożeń kanoniczny string z
 `render_situation_report(world, game, player_duchy_id)` (K40.1c, dokładnie jeden
-`data-situation-report`) oraz dokładnie jeden
+`data-situation-report`), zaraz po skrócie sytuacji kanoniczny string z
+`render_recommended_action(world, game, player_duchy_id)` (K41.3a, dokładnie jeden
+`data-recommended-action`) oraz dokładnie jeden
 `<p data-player-result-text="…">…</p>` z `_player_result_text` (K31.2a:
 `Gra w toku` / `Zwycięstwo Twojego księstwa` / `Porażka Twojego księstwa` /
 `Remis` wg `game.is_over` i `game.winner` względem `player_duchy_id`); `None`
 (domyślnie) → bajt-w-bajt jak bez argumentu (bez `data-player-summary`, bez
 `data-victory-progress`, bez `data-next-objective`, bez `data-hero-locator`,
 bez `data-hero-chase`, bez `data-engagement-preview`, bez `data-threat-alert`,
-bez `data-situation-report` i bez `data-player-result-text`);
+bez `data-situation-report`, bez `data-recommended-action` i bez
+`data-player-result-text`);
 element `data-result` = `duchy_id` zwycięzcy / `draw` / `ongoing` wg
 `game.is_over` i `game.winner`; zawsze `<p data-result-text="…">` z czytelnym
 tekstem z `_result_text` (`Gra w toku` / `Remis` / `Zwycięstwo: <duchy_id>`) —
