@@ -726,3 +726,30 @@ def test_render_game_page_omits_player_result_text_when_player_duchy_id_none():
     root = ET.fromstring(baseline_html)
     assert _find_by_attr(root, "data-player-result-text") == []
     assert "data-player-result-text" not in baseline_html
+
+
+def test_render_game_page_has_document_title_in_head_before_body():
+    """``<html>`` has exactly one ``<head>`` with one ``<title>Total Battle Brothers</title>`` before ``<body>``."""
+    world, game, calendar = _ongoing_fixture()
+
+    html = render_game_page(world, game, calendar)
+    root = ET.fromstring(html)
+
+    assert _local(root.tag) == "html"
+    direct_children = list(root)
+    assert [_local(el.tag) for el in direct_children] == ["head", "body"]
+
+    heads = [el for el in root.iter() if _local(el.tag) == "head"]
+    assert len(heads) == 1
+    head = heads[0]
+    assert head in direct_children
+
+    titles = [el for el in head if _local(el.tag) == "title"]
+    assert len(titles) == 1
+    assert (titles[0].text or "").strip() == "Total Battle Brothers"
+
+    all_titles = [el for el in root.iter() if _local(el.tag) == "title"]
+    assert len(all_titles) == 1
+
+    bodies = [el for el in root if _local(el.tag) == "body"]
+    assert len(bodies) == 1

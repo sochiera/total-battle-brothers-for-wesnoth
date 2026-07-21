@@ -376,9 +376,11 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   przy `player_duchy_id` wiersze z `owner_id` gracza mają `data-player-owned=""`.
   Czysty, deterministyczny.
 - `render_game_page(world, game, calendar, battle=None, player_duchy_id=None)` —
-  SVG mapy, kalendarz (`data-calendar` + widoczny tekst `Rok N, miesiąc M`),
-  panel księstw (`data-duchy` + `data-hero`/`data-heir` (`"true"`/`"false"` z
-  `Duchy.has_hero` / `heir is not None`) + tekst statusu
+  dokument z `<html>` → `<head><title>Total Battle Brothers</title></head>`
+  (K32.1a, stały tytuł) → `<body>`; SVG mapy, kalendarz (`data-calendar` +
+  widoczny tekst `Rok N, miesiąc M`), panel księstw (`data-duchy` +
+  `data-hero`/`data-heir` (`"true"`/`"false"` z `Duchy.has_hero` /
+  `heir is not None`) + tekst statusu
   `<duchy_id>: osady N, party M, morale K, bohater tak|nie, dziedzic tak|nie`;
   przy `player_duchy_id` dopasowany wiersz ma `data-player-duchy=""` i prefiks
   `» `), wynik (`data-result`), banner

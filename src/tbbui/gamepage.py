@@ -53,9 +53,11 @@ def render_game_page(
 ) -> str:
     """Return a parsable HTML string for one party snapshot.
 
-    Embeds the strategic map SVG from ``render_world_svg``, the owner-color
-    legend from ``render_owner_legend(world, player_duchy_id)``, a visible
-    settlements section header
+    Root ``<html>`` has exactly one ``<head>`` with
+    ``<title>Total Battle Brothers</title>`` (K32.1a) immediately before
+    ``<body>``. Embeds the strategic map SVG from ``render_world_svg``, the
+    owner-color legend from ``render_owner_legend(world, player_duchy_id)``, a
+    visible settlements section header
     (``<h2 data-panel-section="settlements">Osady</h2>``, K27.3a) immediately
     before the settlement panel from
     ``render_settlement_panel(world, player_duchy_id)``, a visible parties
@@ -140,7 +142,9 @@ def render_game_page(
     duchies_header = '<h2 data-panel-section="duchies">Księstwa</h2>'
 
     return (
-        "<html><body>"
+        "<html>"
+        "<head><title>Total Battle Brothers</title></head>"
+        "<body>"
         f"{map_svg}"
         f"{owner_legend}"
         f"{player_summary}"

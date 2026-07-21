@@ -190,3 +190,4 @@
 | K31.1b | Przycisk „Nowa gra" | `GET /` emituje `<form action="/new">` z przyciskiem „Nowa gra" przed `/turn`, niezależnie od stanu gry i gracza. |
 | K31.1c | Seed w CLI serve | `python -m tbbui serve` konstruuje `GameApp(..., seed=HEADLESS_SEED)`, by `POST /new` odtwarzał deterministyczną partię. |
 | K31.2a | Wynik z perspektywy gracza | `render_game_page` przy `player_duchy_id is not None` dokłada `<p data-player-result-text>`: `Gra w toku` / `Zwycięstwo Twojego księstwa` / `Porażka Twojego księstwa` / `Remis`; `None` → nieobecny (bajt-w-bajt jak dotąd). |
+| K32.1a | Tytuł dokumentu strony partii | `render_game_page` emituje `<head><title>Total Battle Brothers</title></head>` bezpośrednio przed `<body>`; tytuł stały, niezależny od `player_duchy_id` / `battle`. |
