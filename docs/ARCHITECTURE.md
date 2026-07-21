@@ -201,9 +201,10 @@ bitwy z rozkazu gracza — K16.1d.
 wyjścia (domyślnie `out/game.html`); katalog nadrzędny jest tworzony, gdy nie
 istnieje. Zwraca `0`. Dwa uruchomienia z tym samym seedem dają identyczną treść.
 
-**Routing podglądu (V13.5a / K14.1b / K14.2a–e2 / K15.1b–c / K15.2b–c / K21.2):** `tbbui.serve.GameApp(world, game,
-calendar, rng, player_duchy_id=None)` trzyma stan partii w pamięci i udostępnia
+**Routing podglądu (V13.5a / K14.1b / K14.2a–e2 / K15.1b–c / K15.2b–c / K21.2 / K31.1a):** `tbbui.serve.GameApp(world, game,
+calendar, rng, player_duchy_id=None, seed=None)` trzyma stan partii w pamięci i udostępnia
 czystą metodę `handle(method, path) -> (kod_http, treść)` — bez gniazda HTTP.
+Opcjonalny `seed` jest przechowywany na app (restart `POST /new` w K31.1a); domyślnie `None`.
 `handle` rozdziela ścieżkę od query (`path.partition("?")`) na początku routingu.
 `GET /` → `(200, strona)` z `render_game_page(..., player_duchy_id=self.player_duchy_id)`
 (K23.2b — panel księstw z `data-player-duchy` przy wierszu gracza) plus znacznik

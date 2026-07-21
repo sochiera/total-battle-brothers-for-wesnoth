@@ -999,6 +999,38 @@ def test_game_app_render_forwards_player_duchy_id_to_data_player_duchy():
     assert _find_by_attr(root_n, "data-player-duchy") == []
 
 
+def test_game_app_accepts_optional_seed_default_none():
+    """GameApp accepts optional seed; default None; constructions without seed work (K31.1a).
+
+    Contract (task-157 / K31.1a):
+    - GameApp(world, game, calendar, rng, player_duchy_id=None, seed=None)
+      takes optional ``seed: int | None = None`` after player_duchy_id
+    - constructing without the seed kwarg still works (existing call sites)
+    - omitting seed or passing seed=None stores seed is None
+    - passing seed=<int> stores that value on the app
+    - player_duchy_id remains independently settable with seed present
+    """
+    world, game = _ongoing_world_game()
+    calendar = Calendar(year=4, month=9)
+    rng = Rng(17)
+
+    bare = GameApp(world, game, calendar, rng)
+    assert bare.seed is None
+    assert bare.player_duchy_id is None
+
+    none_seed = GameApp(world, game, calendar, rng, player_duchy_id="north", seed=None)
+    assert none_seed.seed is None
+    assert none_seed.player_duchy_id == "north"
+
+    with_seed = GameApp(world, game, calendar, rng, player_duchy_id="north", seed=73)
+    assert with_seed.seed == 73
+    assert with_seed.player_duchy_id == "north"
+
+    seed_only = GameApp(world, game, calendar, rng, seed=11)
+    assert seed_only.seed == 11
+    assert seed_only.player_duchy_id is None
+
+
 def test_tbbui_serve_builds_game_app_with_player_duchy_id(monkeypatch):
     """python -m tbbui serve creates GameApp with player_duchy_id='player'.
 

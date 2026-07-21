@@ -124,12 +124,14 @@ class GameApp:
         calendar: Calendar,
         rng: Rng,
         player_duchy_id: str | None = None,
+        seed: int | None = None,
     ) -> None:
         self.world = world
         self.game = game
         self.calendar = calendar
         self.rng = rng
         self.player_duchy_id = player_duchy_id
+        self.seed = seed
         self.last_battle = None
         self.last_notice = ""
 
