@@ -346,7 +346,11 @@ sytuacji (postawa ofensywna/defensywna/zrównoważona) i jeden zalecany rozkaz
 (gdy gracz ma bohatera i osadę do zbiórki, lecz brak party na mapie, zalecenie ma
 priorytet „zbierz oddział" przed radą opartą o postawę; gdy gracz ma party na
 mapie bez sąsiedniego celu i bez zagrożeń, a istnieje odległa wroga osada,
-zalecenie brzmi „maszeruj ku osadzie" zamiast „rozwijaj księstwo").
+zalecenie brzmi „maszeruj ku osadzie" zamiast „rozwijaj księstwo"). Zalecenie
+niesie też krótkie **uzasadnienie** („dlaczego") czytelne dla człowieka —
+zależne od wybranej akcji (przewaga nad celem, zagrożenie pozycji, brak celów
+w zasięgu itp.) — pokazane zarówno w panelu rady, jak i przy przycisku
+wykonania rady w jeden klik.
 Strona niesie też **dziennik kampanii** — przewijalną, ograniczoną listę ostatnich
 rozkazów i skutków tur, czytaną od najnowszego wpisu; każdy wpis jest zakotwiczony
 datą (rok/miesiąc), sekcja ma nagłówek i czytelny stan pusty. Teksty na stronie

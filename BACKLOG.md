@@ -285,27 +285,30 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > domykające radę w jeden klik (K48.1d). Wszystkie pozycje (task-227…230)
 > w `BACKLOG-ARCHIVE.md`. Rdzeń `tbb` bez zmian.
 
-## Kamień milowy 49 — zalecenie marszu ku wrogowi dla bezczynnego party gracza
+## Kamień milowy 49 — zalecenie marszu ku wrogowi dla bezczynnego party gracza — UKOŃCZONY
 > DESIGN §11: rada w jeden klik (K41–K48) mówiła graczowi z party na mapie, ale
-> bez sąsiedniego celu, tylko „rozwijaj księstwo" — nigdy „maszeruj ku wrogowi",
-> więc odległa wroga osada pozostawała poza radą. K49 dokłada czysty cel marszu
-> `player_march_target` (K49.1a), tekst rady „maszeruj ku osadzie" (K49.1b),
-> gałąź akcji `march` w gałęzi zrównoważonej `recommended_order`/renderze przed
-> `develop` (K49.1c) oraz mapowanie `march`→`/order/march` z celem domykające
-> radę w jeden klik (K49.1d). **Uwaga (task-233):** mapowanie
-> `recommended_order_path("march")`→`/order/march` i formularz jednego kliknięcia
-> w `GET /` weszły już z K49.1c — `_recommended_order_form` woła
-> `recommended_order_path` bezwarunkowo dla każdej akcji z `recommended_order`,
-> więc brak wpisu `march` psułby ~15 zielonych testów; pokrycie:
-> `test_recommended_order_path_march` + `test_get_recommended_march_form_balanced_with_target`
-> w `tests/test_serve.py`. `POST /order/march` i notice `Marsz do R: wykonano`
-> reużywają istniejącą trasę (K14/K28) bez nowego backendu. Reużywa
-> `ai.nearest_enemy_settlement` / `ai.region_distance` / `ai.march_duchy_party_to`
-> i generyczny `_recommended_order_form`; rdzeń `tbb` bez zmian.
-- [ ] **K49.1a** `tbbui.recommendedaction.player_march_target(world, game, player_duchy_id)` zwraca `None`, gdy `gamelookup.player_duchy(game, player_duchy_id) is None` albo gdy `maplookup.first_party_region(world, player_duchy_id) is None`; gdy gracz ma party w regionie R i `ai.nearest_enemy_settlement(world, R, player_duchy_id)` istnieje z `ai.region_distance(world, R, target) >= 2`, zwraca `target.name`; inaczej `None`. Czyste, bez mutacji. *(task-231)*
-- [ ] **K49.1b** `tbbui.recommendedaction.recommended_order_text("march", "Północ")` zwraca `"maszeruj ku osadzie Północ"`; pozostałe akcje bez zmian. *(task-232)*
-- [ ] **K49.1c** W gałęzi zrównoważonej `recommended_order(...)` zwraca `("march", target)` gdy `player_march_target(...) is not None` (inaczej `("develop", None)`), po priorytecie muster/ofensywa/obrona; `render_recommended_action` niesie wtedy `data-action="march"` i tekst `Zalecany rozkaz: maszeruj ku osadzie R` (`data-posture` = `"balanced"`). *(task-233)*
-- [x] **K49.1d** Domknięcie rada→akcja dla `march` (zrealizowane w task-233, nie osobnym task-234): `recommended_order_path("march")` = `"/order/march"`; `GET /` u gracza z party bez sąsiedniego celu i z odległą wrogą osadą R osadza jeden `<form action="/order/march?target=R" data-recommended-order="">` (`Wykonaj zalecenie: maszeruj ku osadzie R`) — testy w `tests/test_serve.py`; `POST /order/march?target=R` reużywa istniejącą trasę `ai.march_duchy_party_to` i notice `Marsz do R: wykonano` (K14/K28, bez nowego backendu). Nie dublować w kolejnym zadaniu.
+> bez sąsiedniego celu, tylko „rozwijaj księstwo" — nigdy „maszeruj ku wrogowi".
+> K49 dołożył czysty cel marszu `player_march_target` (K49.1a), tekst rady
+> „maszeruj ku osadzie" (K49.1b) oraz gałąź akcji `march` w gałęzi zrównoważonej
+> `recommended_order`/renderze przed `develop` (K49.1c); domknięcie rada→akcja
+> (`recommended_order_path("march")`→`/order/march` + formularz jednego kliknięcia
+> w `GET /`, K49.1d) weszło razem z K49.1c w task-233 (task-234 pominięty jako
+> duplikat). `POST /order/march` reużywa istniejącą trasę `ai.march_duchy_party_to`
+> (K14/K28, bez nowego backendu). Wszystkie pozycje (task-231…233) w
+> `BACKLOG-ARCHIVE.md`. Rdzeń `tbb` bez zmian.
+
+## Kamień milowy 50 — czytelne uzasadnienie zalecanego rozkazu (dlaczego ta rada)
+> DESIGN §11: K41–K49 dały graczowi jeden zalecany rozkaz i wykonanie go w jeden
+> klik, ale nigdy nie mówiły DLACZEGO — gracz musiał sam zgadywać, skąd rada.
+> K50 dokłada czyste, deterministyczne uzasadnienie zależne od wybranej akcji:
+> prymityw `recommended_order_reason` (K50.1a), jego osadzenie w panelu rady
+> `render_recommended_action` (K50.1b) oraz przy przycisku wykonania rady w jeden
+> klik w `GET /` (K50.1c). Reużywa `recommended_order` jako jedynego źródła
+> `(action, target)`; bez nowego backendu, bez zmiany routingu; rdzeń `tbb` bez
+> zmian.
+- [ ] **K50.1a** `tbbui.recommendedaction.recommended_order_reason(world, game, player_duchy_id)` zwraca `""`, gdy `recommended_order(...) is None`; inaczej dokładny tekst per akcja: `muster` → `"Masz bohatera i wolną osadę, lecz żaden oddział nie stoi na mapie"`, `assault` → `f"Twój oddział ma przewagę nad garnizonem osady {target}"`, `engage` → `f"Twój oddział ma przewagę nad wrogim oddziałem w {target}"`, `defend` → `f"Pozycję {target} zagraża sąsiedni wrogi oddział"`, `march` → `f"Brak celów i zagrożeń w zasięgu; najbliższa wroga osada to {target}"`, `develop` → `"Brak zagrożeń i celów w zasięgu — rozwijaj gospodarkę"`. Czyste, bez mutacji, deleguje do `recommended_order`. *(task-235)*
+- [ ] **K50.1b** `render_recommended_action` przy znanym graczu po tekście `Zalecany rozkaz: …` osadza jedno dziecko `<p data-recommendation-reason="{reason}">{reason}</p>` (`reason = recommended_order_reason(...)`, `html.escape(quote=True)`); brak gracza → sam pusty korzeń bez zmian; `data-posture`/`data-action` bez zmian. *(task-236)*
+- [ ] **K50.1c** `GameApp._recommended_order_form()` przy emitowanym formularzu dokłada po `<button>` jedno `<p data-recommended-order-reason="{reason}">{reason}</p>` (`reason = recommended_order_reason(...)`, `html.escape(quote=True)`); przypadki `""` (brak gracza / `is_over` / rada `None`) bez zmian; `action`/routing bez zmian. *(task-237)*
 ## Dług/refaktor
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*
 - [x] **R21.1 (refaktor)** Wspólny emiter formularzy celu marsz/szturm/starcie w `serve.py`. *(task-113)*
