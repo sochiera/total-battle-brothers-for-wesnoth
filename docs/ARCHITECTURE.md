@@ -471,15 +471,17 @@ Opcjonalny `seed` jest przechowywany na app (restart `POST /new` w K31.1a); domy
 `GameApp.previous_game: GameState | None` (K38.2a) — init `None`; `_render` woła
 `render_game_page(..., previous_game=self.previous_game)` (podsumowanie tury w stronie).
 `GameApp.order_log: list[str]` (K43.1b) — init `[]`; `GET /` i nieznane trasy (404)
-nie mutują listy (ten sam obiekt listy).
+nie mutują listy (ten sam obiekt listy). Każdy znany `POST` (`/turn`, `/order/*`,
+`/new`) dokłada dokładnie raz bieżący `last_notice` na koniec listy po obsłużeniu
+trasy; `POST /new` najpierw `order_log.clear()`, potem append wpisu nowej gry.
 `handle` rozdziela ścieżkę od query (`path.partition("?")`) na początku routingu.
-`POST /new` (K31.1a): zawsze zeruje `previous_game`; gdy `seed is not None` podmienia
-`world`/`game` na świeże
+`POST /new` (K31.1a): zawsze zeruje `previous_game` i czyści `order_log`; gdy
+`seed is not None` podmienia `world`/`game` na świeże
 `create_headless_game()`, `calendar` na `Calendar()`, `rng` na `Rng(seed)`, zeruje
 `last_battle`, ustawia `last_notice` = `"Nowa gra: rok 1, miesiąc 1"` (`player_duchy_id`
 bez zmian); gdy `seed is None` — no-op stanu (`world`/`game`/`calendar`/`rng`/
-`last_battle` bez zmian), `last_notice` = `"Nowa gra: brak zmian"`; zawsze
-`(200, strona)`.
+`last_battle` bez zmian), `last_notice` = `"Nowa gra: brak zmian"`; potem
+`order_log.append(last_notice)`; zawsze `(200, strona)`.
 `GET /` → `(200, strona)` z `render_game_page(..., player_duchy_id=self.player_duchy_id,
 previous_game=self.previous_game)`
 (K23.2b — panel księstw z `data-player-duchy` przy wierszu gracza; K38.2a — dziennik

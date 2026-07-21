@@ -168,6 +168,7 @@ class GameApp:
             return 200, self._render()
         if method == "POST" and route == "/new":
             self.previous_game = None
+            self.order_log.clear()
             if self.seed is not None:
                 self.world, self.game = create_headless_game()
                 self.calendar = Calendar()
@@ -176,6 +177,7 @@ class GameApp:
                 self.last_notice = "Nowa gra: rok 1, miesiąc 1"
             else:
                 self.last_notice = "Nowa gra: brak zmian"
+            self.order_log.append(self.last_notice)
             return 200, self._render()
         if method == "POST" and route == "/turn":
             self.last_battle = None
@@ -197,21 +199,25 @@ class GameApp:
             else:
                 self.previous_game = None
                 self.last_notice = "Następna tura: gra zakończona"
+            self.order_log.append(self.last_notice)
             return 200, self._render()
         if method == "POST" and route == "/order/recruit":
             self.last_battle = None
             self.previous_game = None
             self._apply_player_order(ai.recruit_duchy_unit, "Rekrutacja")
+            self.order_log.append(self.last_notice)
             return 200, self._render()
         if method == "POST" and route == "/order/muster":
             self.last_battle = None
             self.previous_game = None
             self._apply_player_order(ai.muster_duchy_party, "Zebranie oddziału")
+            self.order_log.append(self.last_notice)
             return 200, self._render()
         if method == "POST" and route == "/order/develop":
             self.last_battle = None
             self.previous_game = None
             self._apply_player_order(ai.develop_duchy_settlement, "Rozbudowa")
+            self.order_log.append(self.last_notice)
             return 200, self._render()
         if method == "POST" and route == "/order/march":
             self.last_battle = None
@@ -226,6 +232,7 @@ class GameApp:
                 )
             else:
                 self._apply_player_order(ai.march_duchy_party, "Marsz")
+            self.order_log.append(self.last_notice)
             return 200, self._render()
         if method == "POST" and route == "/order/assault":
             self.previous_game = None
@@ -252,6 +259,7 @@ class GameApp:
                     ),
                     "Szturm",
                 )
+            self.order_log.append(self.last_notice)
             return 200, self._render()
         if method == "POST" and route == "/order/engage":
             self.previous_game = None
@@ -278,6 +286,7 @@ class GameApp:
                     ),
                     "Starcie",
                 )
+            self.order_log.append(self.last_notice)
             return 200, self._render()
         return 404, "Not Found"
 

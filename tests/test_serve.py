@@ -375,6 +375,41 @@ def test_game_app_order_log_starts_empty_and_get_does_not_append():
     assert id(app.order_log) == log_id
 
 
+def test_game_app_post_turn_and_orders_append_last_notice_to_order_log():
+    """POST /turn and each POST /order/* append last_notice once to order_log (K43.1b).
+
+    Contract (task-209 / K43.1b):
+    - after POST /turn, order_log grows by exactly one entry and order_log[-1]
+      equals the current last_notice
+    - after each of POST /order/recruit|muster|develop|march|assault|engage,
+      same: exactly one new entry equal to last_notice (prefix of the log is
+      the previous contents — no rewrite, no double-append)
+    """
+    world, game = _ongoing_world_game()
+    app = GameApp(
+        world, game, Calendar(year=1, month=1), Rng(1), player_duchy_id="north"
+    )
+    assert app.order_log == []
+
+    routes = (
+        "/turn",
+        "/order/recruit",
+        "/order/muster",
+        "/order/develop",
+        "/order/march",
+        "/order/assault",
+        "/order/engage",
+    )
+    for route in routes:
+        before = list(app.order_log)
+        code, _body = app.handle("POST", route)
+        assert code == 200
+        assert app.last_notice != ""
+        assert len(app.order_log) == len(before) + 1
+        assert app.order_log[:-1] == before
+        assert app.order_log[-1] == app.last_notice
+
+
 def test_game_app_last_notice_empty_string_renders_empty_data_notice():
     """GameApp exposes last_notice, rendered as one <p data-notice> in extras.
 
