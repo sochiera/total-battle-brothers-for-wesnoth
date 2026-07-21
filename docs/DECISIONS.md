@@ -175,3 +175,4 @@
 | K28.1a | Slot komunikatu rozkazu | `GameApp.last_notice: str = ""`; `_render` dokłada do extras `<p data-notice="{escape(last_notice)}"></p>`; świeży GET → pusty atrybut; treść z rozkazów w kolejnych kamieniach. |
 | K28.1b | Skutek recruit/muster/develop | `_apply_player_order(transition, label=None)` przy podanym `label` ustawia `last_notice` na `{label}: wykonano` / `{label}: brak zmian` (w tym guardy); etykiety: Rekrutacja / Zebranie oddziału / Rozbudowa; marsz bez `label` — `last_notice` bez zmian (K28.1c). |
 | K28.1c | Skutek marszu z celem | `POST /order/march` przez `_apply_player_order`: znany `target` → etykieta `Marsz do {region.name}`, brak/pusty/nieznany → `Marsz`; prymitywy bez zmian. |
+| K28.1d | Skutek szturmu/starcia | `_apply_player_assault_order(transition, label)` ustawia `last_notice` na `{label}: bitwa` / `{label}: brak zmian` (w tym guardy); assault: `Szturm na {name}` / `Szturm`; engage: `Starcie z {name}` / `Starcie`. |

@@ -242,19 +242,24 @@ Etykiety: `POST /order/recruit` → `"Rekrutacja"`, `muster` →
 `"Zebranie oddziału"`, `develop` → `"Rozbudowa"`, marsz ze znanym celem →
 `f"Marsz do {region.name}"`, marsz bez/nieznany cel → `"Marsz"` (K28.1c).
 `POST /order/assault` (K14.2e2 / K15.2b /
-K16.1d-2) ma te same guardy przez `_apply_player_assault_order`: jawny
-`target` → `ai.assault_duchy_party_to_recorded`, auto →
-`ai.assault_duchy_party_recorded` (oba z `self.rng` i
+K16.1d-2 / K28.1d) ma te same guardy przez
+`_apply_player_assault_order(transition, label)`: jawny `target` →
+`ai.assault_duchy_party_to_recorded` z etykietą
+`f"Szturm na {region.name}"`, auto → `ai.assault_duchy_party_recorded` z
+etykietą `"Szturm"` (oba z `self.rng` i
 `morale_by_owner={d.duchy_id: d.morale for d in game.duchies}`); wynik
 `(world, battle)` podmienia `world`, sync `game`, a gdy `battle is not None`
-ustawia `self.last_battle` (init `None`; no-op/guardy nie ustawiają bitwy).
-`POST /order/engage` (K18.1c / K19.1b) — te same guardy przez
-`_apply_player_assault_order`; routing `?target=` jak szturm
-(`_order_target_region`): jawny znany region →
-`ai.engage_duchy_party_to_recorded`, brak/pusty/nieznany `target` →
-`ai.engage_duchy_party_recorded` (auto-cel: pierwsze sąsiednie wrogie party);
-oba z `self.rng` + `morale_by_owner` jak szturm; na trafieniu ustawia
-`last_battle`, no-op/guardy nie ruszają bitwy. GET `/` sekcja engage (K19.1c / R21.1):
+ustawia `self.last_battle` (init `None`; no-op/guardy nie ustawiają bitwy);
+po wykonaniu `self.last_notice` = `f"{label}: bitwa"` gdy bitwa, inaczej
+`f"{label}: brak zmian"` (również przy guardach).
+`POST /order/engage` (K18.1c / K19.1b / K28.1d) — te same guardy i
+`last_notice` przez `_apply_player_assault_order`; routing `?target=` jak
+szturm (`_order_target_region`): jawny znany region →
+`ai.engage_duchy_party_to_recorded` z etykietą
+`f"Starcie z {region.name}"`, brak/pusty/nieznany `target` →
+`ai.engage_duchy_party_recorded` z etykietą `"Starcie"` (auto-cel: pierwsze
+sąsiednie wrogie party); oba z `self.rng` + `morale_by_owner` jak szturm;
+na trafieniu ustawia `last_battle`, no-op/guardy nie ruszają bitwy. GET `/` sekcja engage (K19.1c / R21.1):
 `_engage_forms()` — `_engage_targets(world, player_duchy_id)` to sąsiedzi
 pozycji party gracza (pierwsza w `world.regions` z `owner_id == player`)
 trzymający party z jawnym `owner_id != player`; gdy niepuste i guardy OK —

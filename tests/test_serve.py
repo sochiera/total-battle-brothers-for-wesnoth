@@ -505,6 +505,63 @@ def test_game_app_post_order_march_with_target_sets_last_notice_with_region_name
     assert notices2[0].get("data-notice") == "Marsz do Target: brak zmian"
 
 
+def test_game_app_post_order_assault_with_target_sets_last_notice_bitwa_then_brak_zmian():
+    """POST /order/assault?target=<region> sets last_notice via target-named label (K28.1d).
+
+    Contract: a known target uses label f"Szturm na {region.name}"; when the
+    recorded assault returns a battle, last_notice == "Szturm na KeepB: bitwa"
+    and the page carries matching data-notice; a subsequent assault that finds
+    no enemy (battle is None) sets last_notice == "Szturm na KeepB: brak zmian".
+    last_battle remains set after the hit assault (primitives / return code
+    unchanged: 200 + page).
+    """
+    start, keep_a_region, keep_b_region = map(
+        Region, ("Start", "KeepA", "KeepB")
+    )
+    party = Party(Unit(training=5, equipment=6), owner_id="north")
+    keep_a = Settlement(
+        "Keep A", population=1, garrison=(Unit(equipment=1),), owner_id="south"
+    )
+    keep_b = Settlement(
+        "Keep B", population=1, garrison=(Unit(equipment=1),), owner_id="south"
+    )
+    world = WorldMap(
+        (start, keep_a_region, keep_b_region),
+        ((start, keep_a_region), (start, keep_b_region)),
+        settlements={keep_a_region: keep_a, keep_b_region: keep_b},
+        parties={start: party},
+    )
+    game = GameState(
+        (
+            Duchy("north", party.hero, parties=(party,), morale=10),
+            Duchy("south", Unit(), settlements=(keep_a, keep_b), morale=-5),
+        )
+    )
+    calendar = Calendar(year=2, month=3)
+    seed = 11
+    app = GameApp(world, game, calendar, Rng(seed), player_duchy_id="north")
+    assert app.last_notice == ""
+    assert app.last_battle is None
+
+    code, body = app.handle("POST", "/order/assault?target=KeepB")
+    assert code == 200
+    assert app.last_battle is not None
+    assert app.last_notice == "Szturm na KeepB: bitwa"
+    root = ET.fromstring(body)
+    notices = _find_by_attr(root, "data-notice")
+    assert len(notices) == 1
+    assert notices[0].get("data-notice") == "Szturm na KeepB: bitwa"
+
+    # KeepB is now owned by the player — re-assaulting it is a no-op (no battle).
+    code2, body2 = app.handle("POST", "/order/assault?target=KeepB")
+    assert code2 == 200
+    assert app.last_notice == "Szturm na KeepB: brak zmian"
+    root2 = ET.fromstring(body2)
+    notices2 = _find_by_attr(root2, "data-notice")
+    assert len(notices2) == 1
+    assert notices2[0].get("data-notice") == "Szturm na KeepB: brak zmian"
+
+
 def test_game_app_render_forwards_player_duchy_id_to_data_player_duchy():
     """GameApp._render passes self.player_duchy_id into render_game_page.
 

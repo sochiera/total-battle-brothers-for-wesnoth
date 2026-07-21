@@ -402,16 +402,19 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   `_order_target_region` (`parse_qs`, dopasowanie `Region.name`); znany target →
   `march_duchy_party_to` z etykietą `f"Marsz do {region.name}"`; brak/nieznany
   → `march_duchy_party` z etykietą `"Marsz"` (K28.1c).
-- `POST /order/assault` / `?target=` — `assault_duchy_party_to_recorded` /
-  `assault_duchy_party_recorded` z `morale_by_owner` z `game.duchies` i
-  `self.rng`; wynikowa `HexBattle` trafia do `last_battle` (no-op / guardy
-  zostawiają `last_battle` bez bitwy).
+- `POST /order/assault` / `?target=` — przez `_apply_player_assault_order`:
+  znany target → `assault_duchy_party_to_recorded` z etykietą
+  `f"Szturm na {region.name}"`; brak/nieznany → `assault_duchy_party_recorded`
+  z etykietą `"Szturm"`; `morale_by_owner` z `game.duchies` i `self.rng`;
+  wynikowa `HexBattle` trafia do `last_battle`; `last_notice` =
+  `"{label}: bitwa"` gdy bitwa, inaczej `"{label}: brak zmian"` (w tym guardy)
+  (K28.1d).
 - `POST /order/engage` / `?target=` — jak szturm: znany target →
-  `engage_duchy_party_to_recorded`, brak/pusty/nieznany →
-  `engage_duchy_party_recorded` (auto-cel: pierwsze sąsiednie wrogie party);
-  te same guardy i `morale_by_owner` / `self.rng` co szturm; przez
-  `_apply_player_assault_order`; na hit ustawia `last_battle`, no-op/guardy
-  bez zmian. GET `/` ma bare formularz `action="/order/engage"`.
+  `engage_duchy_party_to_recorded` z etykietą `f"Starcie z {region.name}"`,
+  brak/pusty/nieznany → `engage_duchy_party_recorded` z etykietą `"Starcie"`
+  (auto-cel: pierwsze sąsiednie wrogie party); te same guardy i
+  `morale_by_owner` / `self.rng` / `last_notice` bitwa vs brak zmian co szturm
+  (K28.1d). GET `/` ma bare formularz `action="/order/engage"`.
 - `GameApp.last_battle: HexBattle | None` — init `None`; `_render` przekazuje
   `battle=self.last_battle` do `render_game_page` (SVG + raport bitwy w stronie
   po szturmie / starciu). `POST /turn` oraz rozkazy nie-bitewne

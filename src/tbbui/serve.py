@@ -179,7 +179,8 @@ class GameApp:
                         target_region,
                         self.rng,
                         morale_by_owner=morale_by_owner,
-                    )
+                    ),
+                    f"Szturm na {target_region.name}",
                 )
             else:
                 self._apply_player_assault_order(
@@ -188,7 +189,8 @@ class GameApp:
                         duchy,
                         self.rng,
                         morale_by_owner=morale_by_owner,
-                    )
+                    ),
+                    "Szturm",
                 )
             return 200, self._render()
         if method == "POST" and route == "/order/engage":
@@ -202,7 +204,8 @@ class GameApp:
                         target_region,
                         self.rng,
                         morale_by_owner=morale_by_owner,
-                    )
+                    ),
+                    f"Starcie z {target_region.name}",
                 )
             else:
                 self._apply_player_assault_order(
@@ -211,7 +214,8 @@ class GameApp:
                         duchy,
                         self.rng,
                         morale_by_owner=morale_by_owner,
-                    )
+                    ),
+                    "Starcie",
                 )
             return 200, self._render()
         return 404, "Not Found"
@@ -262,24 +266,31 @@ class GameApp:
             else:
                 self.last_notice = f"{label}: brak zmian"
 
-    def _apply_player_assault_order(self, transition) -> None:
+    def _apply_player_assault_order(self, transition, label: str) -> None:
         """Apply recorded assault ``transition(world, duchy) -> (world, battle)``.
 
         Same guards as ``_apply_player_order``. On success replaces ``world``,
         re-syncs ``game``, and when ``battle`` is not ``None`` sets
         ``self.last_battle``. No-op paths leave ``last_battle`` unchanged.
+        Always sets ``last_notice`` to ``"{label}: bitwa"`` when a battle was
+        recorded, else ``"{label}: brak zmian"`` (including guard rejections).
         """
         if self.game.is_over or self.player_duchy_id is None:
+            self.last_notice = f"{label}: brak zmian"
             return
         player_duchy = next(
             (d for d in self.game.duchies if d.duchy_id == self.player_duchy_id),
             None,
         )
         if player_duchy is None:
+            self.last_notice = f"{label}: brak zmian"
             return
         self.world, battle = transition(self.world, player_duchy)
         if battle is not None:
             self.last_battle = battle
+            self.last_notice = f"{label}: bitwa"
+        else:
+            self.last_notice = f"{label}: brak zmian"
         self.game = self.game.sync_from_world(self.world)
 
     @staticmethod
