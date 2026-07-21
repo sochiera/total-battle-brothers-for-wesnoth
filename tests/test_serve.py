@@ -3487,3 +3487,57 @@ def test_game_app_order_assault_form_noop_and_determinism():
     assert a.world == b.world
     assert a.game.duchies == b.game.duchies
 
+
+def test_game_app_get_hides_turn_and_orders_when_is_over():
+    """When game.is_over, GET / omits turn and order forms/sections (K32.2a).
+
+    Contract (task-164 / K32.2a):
+    - finished game (``game.is_over``): GET / body has no form ``action="/turn"``
+    - no form whose ``action`` starts with ``/order/`` (recruit/muster/develop/
+      march/assault/engage, with or without query)
+    - no elements with ``data-order-section`` (section headers)
+    """
+    fin_world, fin_game = _finished_world_game()
+    assert fin_game.is_over
+    app = GameApp(
+        fin_world,
+        fin_game,
+        Calendar(year=1, month=1),
+        Rng(17),
+        player_duchy_id="north",
+    )
+
+    code, body = app.handle("GET", "/")
+    assert code == 200
+    assert isinstance(body, str)
+    root = ET.fromstring(body)
+    assert _local(root.tag) == "html"
+
+    assert not _has_post_turn_form(body)
+    assert not _has_post_form(body, "/turn")
+
+    order_forms = []
+    for el in root.iter():
+        if _local(el.tag) != "form":
+            continue
+        method = (el.get("method") or "").lower()
+        action = el.get("action") or ""
+        if method == "post" and action.startswith("/order/"):
+            order_forms.append(action)
+    assert order_forms == [], f"unexpected order forms when is_over: {order_forms}"
+
+    # Also cover bare action helpers used elsewhere for the six order routes.
+    assert not _has_post_recruit_form(body)
+    assert not _has_post_muster_form(body)
+    assert not _has_post_develop_form(body)
+    assert not _has_post_march_form(body)
+    assert not _has_post_assault_form(body)
+    assert not _has_post_engage_form(body)
+
+    section_headers = [el for el in root.iter() if el.get("data-order-section") is not None]
+    assert section_headers == [], (
+        "data-order-section must be absent when is_over; "
+        f"found {[el.get('data-order-section') for el in section_headers]}"
+    )
+    assert 'data-order-section="' not in body
+

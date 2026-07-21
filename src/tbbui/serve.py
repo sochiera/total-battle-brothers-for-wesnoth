@@ -398,13 +398,17 @@ class GameApp:
             f'<span data-player="{player_value}"></span>'
             f'<p data-notice="{notice_value}">{notice_value}</p>'
             f"{_NEW_GAME_FORM}"
-            f"{_TURN_FORM}"
-            f"{_DEVELOP_SECTION_HEADER}{_recruit_form()}{_MUSTER_FORM}"
-            f"{_DEVELOP_FORM}"
-            f"{_MARCH_SECTION_HEADER}{self._march_forms()}"
-            f"{_ASSAULT_SECTION_HEADER}{self._assault_forms()}"
-            f"{_ENGAGE_SECTION_HEADER}{self._engage_forms()}"
         )
+        # K32.2a: when finished, omit turn and all order sections.
+        if not self.game.is_over:
+            extras += (
+                f"{_TURN_FORM}"
+                f"{_DEVELOP_SECTION_HEADER}{_recruit_form()}{_MUSTER_FORM}"
+                f"{_DEVELOP_FORM}"
+                f"{_MARCH_SECTION_HEADER}{self._march_forms()}"
+                f"{_ASSAULT_SECTION_HEADER}{self._assault_forms()}"
+                f"{_ENGAGE_SECTION_HEADER}{self._engage_forms()}"
+            )
         if "</body>" in html:
             return html.replace("</body>", f"{extras}</body>", 1)
         return f"{html}{extras}"

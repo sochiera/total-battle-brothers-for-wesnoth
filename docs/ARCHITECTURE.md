@@ -233,7 +233,9 @@ rozkazu `<p data-notice="{escape(last_notice)}">{escape(last_notice)}</p>`
 escapowana wartość w atrybucie i w widocznym ciele akapitu; `html.escape`;
 K28.1b — `_apply_player_order` ustawia skutek rozkazu rozwoju) oraz formularze
 `<form method="post" action="/new">` (przycisk `Nowa gra`, K31.1b — zawsze w
-extras przed `/turn`, niezależnie od `is_over` i `player_duchy_id`),
+extras, niezależnie od `is_over` i `player_duchy_id`). Przy `game.is_over`
+extras kończy się na `/new` — bez `/turn`, bez `/order/*` i bez
+`data-order-section` (K32.2a; routing POST bez zmian). Przy grze w toku dalej:
 `<form method="post" action="/turn">` (przycisk `Następna tura`),
 `<form method="post" action="/order/recruit">` (`Rekrutuj (koszt złota: N)`
 z `tbb.settlement.RECRUIT_GOLD_COST`, K30.2a),

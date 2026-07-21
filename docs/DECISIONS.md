@@ -193,3 +193,4 @@
 | K32.1a | Tytuł dokumentu strony partii | `render_game_page` emituje `<head><title>Total Battle Brothers</title></head>` bezpośrednio przed `<body>`; tytuł stały, niezależny od `player_duchy_id` / `battle`. |
 | K32.1b | Widoczny nagłówek strony | `render_game_page`: pierwszym dzieckiem `<body>` jest `<h1 data-page-title="">Total Battle Brothers</h1>` (przed SVG mapy); stały, niezależny od `player_duchy_id` / `battle`. |
 | K32.1c | Linia celu gry | `render_game_page` po h1 i przed SVG mapy emituje stały `<p data-objective="…">…</p>` (`_OBJECTIVE_TEXT`; atrybut = ciało); niezależny od `player_duchy_id` / `game` / `battle`. |
+| K32.2a | Ukrycie tury i rozkazów po końcu | Przy `game.is_over` `GET /` (`_render`) emituje tylko `data-player`, `data-notice` i formularz `/new`; bez `/turn`, bez `/order/*` i bez `data-order-section`; routing POST bez zmian. |

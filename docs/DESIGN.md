@@ -412,8 +412,10 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   `last_battle`, `last_notice` = `"Nowa gra: rok 1, miesiąc 1"`; gdy `seed is
   None` — no-op stanu, `last_notice` = `"Nowa gra: brak zmian"`; zawsze
   `(200, strona)`. `GET /` emituje `<form action="/new">` (przycisk „Nowa gra")
-  przed `/turn`, niezależnie od stanu gry (K31.1a–b). CLI `python -m tbbui
-  serve` przekazuje `seed=HEADLESS_SEED` (K31.1c).
+  niezależnie od stanu gry (K31.1a–b); przy grze w toku — przed `/turn` i
+  sekcjami rozkazów; przy `game.is_over` — bez formularza `/turn`, bez
+  `/order/*` i bez nagłówków `data-order-section` (K32.2a; POST no-opy bez
+  zmian). CLI `python -m tbbui serve` przekazuje `seed=HEADLESS_SEED` (K31.1c).
 - `GameApp(..., player_duchy_id=None)` — w `POST /turn` woła `run_headless_game`
   z `max_turns=1` i tym id; `GET /` ma `data-player` oraz (K23.2b) przekazuje
   `player_duchy_id` do `render_game_page` (`data-player-duchy` na wierszu gracza).
