@@ -128,6 +128,18 @@ jest `None` albo spoza `game.duchies` — sam pusty korzeń (bez
 `data-enemies-remaining`, bez wierszy i bez tekstu). Czyste, deterministyczne,
 bez mutacji `game`; rdzeń bez zmian.
 
+**Podpowiedź następnego kroku HTML (K34.1a):**
+`tbbui.nextobjective.render_next_objective(game, player_duchy_id=None) -> str`
+— parsowalny fragment z korzeniem `<p data-next-objective="TEXT">TEXT</p>`
+(atrybut i ciało = te same znaki, `html.escape(..., quote=True)`). Gdy
+`player_duchy_id` jest `None` albo spoza `game.duchies` — pusty korzeń
+(`TEXT=""`). Inaczej, względem wrogów (`duchy_id != player`, `not is_defeated`):
+brak niepokonanych → `Cel osiągnięty: wszyscy wrogowie pokonani`; suma
+`len(settlements)` po niepokonanych `S > 0` → `Odbierz wrogie osady
+(pozostało: S)`; `S == 0` → `Dobij wrogich bohaterów (pozostało: H)`
+(`H` = liczba niepokonanych z `has_hero`). Czyste, deterministyczne, bez
+mutacji `game`; rdzeń bez zmian.
+
 **Panel party HTML (K22.2a / K24.1a / K25.1a / K25.1b / K27.1a):** `tbbui.partypanel.render_party_panel(world,
 player_duchy_id=None) -> str` — parsowalny fragment XML z korzeniem
 `<div data-party-panel="">`; po jednym `<div data-party-row="<region.name>">`
