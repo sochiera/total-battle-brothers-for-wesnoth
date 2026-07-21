@@ -343,9 +343,18 @@ z `first_threatened_region` (defensywna ⇒ N≥1); zrównoważona: gdy
 `player_march_target(...) is not None` → `("march", target)` (K49.1c), inaczej
 `("develop", None)`. Tekst: `recommended_order_text` (K42.2a / K48.1b /
 K49.1b: `szturmuj osadę <R>` / `zaatakuj oddział <R>` / `broń pozycji <R>` /
-`maszeruj ku osadzie <R>` / `zbierz oddział` / `rozwijaj księstwo`). Osadzony
-w `render_game_page` zaraz po `data-situation-report` (K41.3a). Czyste,
-deterministyczne, bez mutacji `world`/`game`; rdzeń bez zmian.
+`maszeruj ku osadzie <R>` / `zbierz oddział` / `rozwijaj księstwo`).
+Uzasadnienie (K50.1a): `recommended_order_reason(world, game,
+player_duchy_id=None) -> str` — reużywa `recommended_order` jako jedyne źródło
+`(action, target)`; `None` → `""`; inaczej: `muster` → `"Masz bohatera i wolną
+osadę, lecz żaden oddział nie stoi na mapie"`; `assault` → `"Twój oddział ma
+przewagę nad garnizonem osady {target}"`; `engage` → `"Twój oddział ma
+przewagę nad wrogim oddziałem w {target}"`; `defend` → `"Pozycję {target}
+zagraża sąsiedni wrogi oddział"`; `march` → `"Brak celów i zagrożeń w
+zasięgu; najbliższa wroga osada to {target}"`; `develop` → `"Brak zagrożeń i
+celów w zasięgu — rozwijaj gospodarkę"`. Osadzony w `render_game_page` zaraz
+po `data-situation-report` (K41.3a). Czyste, deterministyczne, bez mutacji
+`world`/`game`; rdzeń bez zmian.
 
 **Zalecany rozkaz w jeden klik w GameApp (K42.1b / K42.1c / K42.2a / K48.1c / K48.1d / K49.1c):**
 `tbbui.serve.recommended_order_path(action) -> str` — czysta mapa akcji na

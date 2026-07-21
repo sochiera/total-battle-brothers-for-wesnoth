@@ -148,6 +148,40 @@ def recommended_order_text(action: str, target_name: str | None) -> str:
     return "rozwijaj księstwo"
 
 
+def recommended_order_reason(
+    world: WorldMap,
+    game: GameState,
+    player_duchy_id: str | None = None,
+) -> str:
+    """Return a human-readable *why* for the recommended order.
+
+    Delegates the decision to ``recommended_order`` (sole source of
+    ``(action, target)``). Returns ``""`` when that call returns ``None``
+    (no player / id not in ``game.duchies``). Otherwise exact text per
+    action: muster / assault / engage / defend / march / develop (K50.1a).
+    Pure and deterministic: no RNG/IO; does not mutate ``world`` or ``game``.
+    """
+    order = recommended_order(world, game, player_duchy_id)
+    if order is None:
+        return ""
+    action, target = order
+    if action == "muster":
+        return (
+            "Masz bohatera i wolną osadę, lecz żaden oddział nie stoi na mapie"
+        )
+    if action == "assault":
+        return f"Twój oddział ma przewagę nad garnizonem osady {target}"
+    if action == "engage":
+        return f"Twój oddział ma przewagę nad wrogim oddziałem w {target}"
+    if action == "defend":
+        return f"Pozycję {target} zagraża sąsiedni wrogi oddział"
+    if action == "march":
+        return (
+            f"Brak celów i zagrożeń w zasięgu; najbliższa wroga osada to {target}"
+        )
+    return "Brak zagrożeń i celów w zasięgu — rozwijaj gospodarkę"
+
+
 def render_recommended_action(
     world: WorldMap,
     game: GameState,

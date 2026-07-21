@@ -450,6 +450,53 @@ def test_recommended_order_returns_none_when_player_duchy_missing():
     assert game.duchies == duchies_before
 
 
+def test_recommended_order_reason_empty_when_recommended_order_is_none():
+    """``recommended_order_reason(world, game, player_duchy_id)`` returns ``""``
+    when ``recommended_order(world, game, player_duchy_id) is None`` — i.e. no
+    player (``player_duchy_id is None``) or id not in ``game.duchies`` — K50.1a.
+
+    Contract: reuses ``recommended_order`` as the sole decision source; pure and
+    deterministic (no RNG/IO; does not mutate ``world`` or ``game``).
+    """
+    recommended_order_reason = recommendedaction.recommended_order_reason
+    a = Region("A")
+    b = Region("B")
+    world = WorldMap(
+        [a, b],
+        [(a, b)],
+        parties={
+            a: Party(hero=Unit(), units=(), owner_id="south"),
+        },
+        settlements={},
+    )
+    game = GameState(
+        (
+            Duchy("north", Unit()),
+            Duchy("south", Unit()),
+        )
+    )
+    regions_before = world.regions
+    parties_before = {r: world.party_at(r) for r in world.regions}
+    settlements_before = {
+        r: world.settlement_at(r) for r in world.regions
+    }
+    duchies_before = game.duchies
+
+    for player_duchy_id in (None, "missing"):
+        assert player_duchy(game, player_duchy_id) is None
+        assert recommended_order(world, game, player_duchy_id) is None
+        assert recommended_order_reason(world, game, player_duchy_id) == ""
+
+    assert world.regions == regions_before
+    assert {
+        r: world.party_at(r) for r in world.regions
+    } == parties_before
+    assert {
+        r: world.settlement_at(r) for r in world.regions
+    } == settlements_before
+    assert game.duchies == duchies_before
+
+
 def test_recommended_order_offensive_assault_and_engage_from_first_advantageous_target():
     """Offensive posture: ``recommended_order`` returns
     ``("assault", <region>)`` when ``first_advantageous_target`` has
