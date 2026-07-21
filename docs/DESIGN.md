@@ -429,7 +429,13 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   `<region> (<owner|„—">): bohater + N podkomendnych · siła: HP H, atak A, obrona D · ranni: W`;
   przy `player_duchy_id` wiersze z `owner_id` gracza mają `data-player-owned=""`.
   Czysty, deterministyczny.
-- `render_game_page(world, game, calendar, battle=None, player_duchy_id=None)` —
+- `render_turn_summary(before, after)` — fragment `data-turn-summary` z flagą i
+  wierszami zmian po turze (K38.1a–b): przy `before is None` pusty korzeń; przy
+  `GameState` `data-changed` / `data-change-count` oraz wiersze `data-turn-duchy`
+  dla księstw różniących się w `len(settlements)` / `has_hero`. Czysty,
+  deterministyczny.
+- `render_game_page(world, game, calendar, battle=None, player_duchy_id=None,
+  previous_game=None)` —
   dokument z `<html>` → `<head><title>Total Battle Brothers</title></head>`
   (K32.1a, stały tytuł) → `<body>` zaczynające się od
   `<h1 data-page-title="">Total Battle Brothers</h1>` (K32.1b, stały nagłówek
@@ -437,7 +443,10 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   `<p data-objective="…">…</p>` (K32.1c: „Cel: pokonaj księstwo AI — odbierz mu
   wszystkie osady i pokonaj jego bohatera"; atrybut = ciało; niezależna od
   `player_duchy_id` / `game` / `battle`) → SVG mapy, kalendarz (`data-calendar` +
-  widoczny tekst `Rok N, miesiąc M`), panel księstw (`data-duchy` +
+  widoczny tekst `Rok N, miesiąc M`); przy `previous_game is not None` zaraz po
+  kalendarzu kanoniczny `render_turn_summary(previous_game, game)` (K38.1c,
+  dokładnie jeden `data-turn-summary`; niezależnie od `player_duchy_id`;
+  `None` → bez podsumowania tury); panel księstw (`data-duchy` +
   `data-hero`/`data-heir` (`"true"`/`"false"` z `Duchy.has_hero` /
   `heir is not None`) + tekst statusu
   `<duchy_id>: osady N, party M, morale K, bohater tak|nie, dziedzic tak|nie`;

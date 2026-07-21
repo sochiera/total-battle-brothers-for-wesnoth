@@ -16,6 +16,7 @@ from tbbui.ownerlegend import render_owner_legend
 from tbbui.partypanel import render_party_panel
 from tbbui.playersummary import render_player_summary
 from tbbui.settlementpanel import render_settlement_panel
+from tbbui.turnsummary import render_turn_summary
 from tbbui.victoryprogress import render_victory_progress
 from tbbui.worldsvg import render_world_svg
 
@@ -60,6 +61,7 @@ def render_game_page(
     calendar: Calendar,
     battle: HexBattle | None = None,
     player_duchy_id: str | None = None,
+    previous_game: GameState | None = None,
 ) -> str:
     """Return a parsable HTML string for one party snapshot.
 
@@ -80,7 +82,11 @@ def render_game_page(
     K27.3b) immediately before the party panel from
     ``render_party_panel(world, player_duchy_id)``, a calendar stamp
     (``data-year`` / ``data-month`` plus visible text ``Rok N, miesiąc M``),
-    a visible duchies section header
+    optional ``previous_game`` embeds the canonical string from
+    ``render_turn_summary(previous_game, game)`` immediately after the
+    calendar (K38.1c, exactly one ``data-turn-summary``; independent of
+    ``player_duchy_id``); ``None`` (default) omits it, a visible duchies
+    section header
     (``<h2 data-panel-section="duchies">Księstwa</h2>``, K27.3b)
     immediately before one duchy panel row per ``game.duchies`` (machine
     ``data-*`` attributes including ``data-hero`` from ``duchy.has_hero`` and
@@ -140,6 +146,10 @@ def render_game_page(
         hero_chase = ""
         engagement_preview = ""
         player_result_html = ""
+    if previous_game is not None:
+        turn_summary = render_turn_summary(previous_game, game)
+    else:
+        turn_summary = ""
     result = _result_value(game)
     result_text = _result_text(game)
 
@@ -209,6 +219,7 @@ def render_game_page(
         f'<div data-calendar="" data-year="{calendar.year}"'
         f' data-month="{calendar.month}">'
         f"Rok {calendar.year}, miesiąc {calendar.month}</div>"
+        f"{turn_summary}"
         f"{duchies_header}"
         f"{''.join(duchy_parts)}"
         f'<div data-result="{result}"></div>'

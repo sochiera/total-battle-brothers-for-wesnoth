@@ -257,8 +257,8 @@ HP H, atak A, obrona D` zgodny z atrybutami. Gdy `player_duchy_id` jest
 liczbowych i bez tekstu). Czyste, deterministyczne, bez mutacji `game`;
 rdzeń bez zmian.
 
-**Strona HTML partii (V13.4a / K16.1a / K17.1b / K20.1a / K20.1b / K21.1a / K22.1c / K22.2b / K23.1b / K23.2a / K23.3b / K24.1b / K24.2b / K26.2a–b / K27.3a–b / K30.3c / K31.2a / K32.1a / K32.1b / K32.1c / K33.1c / K34.1b / K35.1b / K36.1c / K37.1c):** `tbbui.gamepage.render_game_page(world,
-game, calendar, battle=None, player_duchy_id=None) -> str` — parsowalny HTML z korzeniem `<html>`;
+**Strona HTML partii (V13.4a / K16.1a / K17.1b / K20.1a / K20.1b / K21.1a / K22.1c / K22.2b / K23.1b / K23.2a / K23.3b / K24.1b / K24.2b / K26.2a–b / K27.3a–b / K30.3c / K31.2a / K32.1a / K32.1b / K32.1c / K33.1c / K34.1b / K35.1b / K36.1c / K37.1c / K38.1c):** `tbbui.gamepage.render_game_page(world,
+game, calendar, battle=None, player_duchy_id=None, previous_game=None) -> str` — parsowalny HTML z korzeniem `<html>`;
 dokładnie jeden `<head>` z `<title>Total Battle Brothers</title>` (K32.1a)
 bezpośrednio przed `<body>` (tytuł stały, niezależny od `player_duchy_id` /
 `battle`); pierwszym dzieckiem `<body>` jest widoczny nagłówek
@@ -285,7 +285,12 @@ kanonicznym stringiem z
 pierwszym wierszem `data-duchy` (kolejność: settlements, parties, duchies);
 gdy `None` (domyślnie) wynik jest identyczny bajt-w-bajt jak bez argumentu;
 element `data-calendar` z `data-year` / `data-month` z podanego `Calendar` oraz
-widocznym tekstem `Rok N, miesiąc M` (K21.1a, zgodnym z atrybutami); po jednym
+widocznym tekstem `Rok N, miesiąc M` (K21.1a, zgodnym z atrybutami); opcjonalny
+`previous_game: GameState | None = None` (K38.1c) — gdy podany, osadza w
+`<body>` dokładnie jeden kanoniczny string z
+`render_turn_summary(previous_game, game)` bezpośrednio po `data-calendar`
+(niezależnie od `player_duchy_id`); `None` (domyślnie) → bez `data-turn-summary`
+(bajt-w-bajt jak bez argumentu); po jednym
 elemencie `data-duchy` (= `duchy_id`) na każde `game.duchies` z `data-morale`,
 `data-settlements` i `data-parties` (liczby), `data-hero` / `data-heir`
 (`"true"`/`"false"` z `Duchy.has_hero` / `heir is not None`) oraz widocznym

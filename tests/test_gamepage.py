@@ -27,6 +27,7 @@ from tbbui.engagementpreview import render_engagement_preview
 from tbbui.herochase import render_hero_chase
 from tbbui.herolocator import render_enemy_hero_locator
 from tbbui.nextobjective import render_next_objective
+from tbbui.turnsummary import render_turn_summary
 from tbbui.victoryprogress import render_victory_progress
 from tbbui.worldsvg import render_world_svg
 
@@ -1064,3 +1065,64 @@ def test_render_game_page_emits_objective_line_after_page_title_before_map():
     assert html.index(expected_p) < html.index(expected_svg), (
         "objective line must precede the embedded world map SVG in <body>"
     )
+
+
+def test_render_game_page_embeds_canonical_turn_summary_after_calendar_when_previous_game():
+    """``previous_game`` embeds one canonical ``render_turn_summary`` right after calendar.
+
+    Exactly one ``data-turn-summary`` in ``<body>``; string equals
+    ``render_turn_summary(previous_game, game)`` and sits immediately after
+    the ``data-calendar`` element. Independent of ``player_duchy_id`` (works
+    in observer mode).
+    """
+    world, game, calendar = _ongoing_fixture()
+    # Distinct previous snapshot: south still has a hero (current fixture: south
+    # has hero; use a stripped previous so summary has a real change flag).
+    previous_game = GameState(
+        (
+            Duchy(
+                "north",
+                Unit(),
+                morale=7,
+                settlements=(
+                    Settlement("North Keep", 3, owner_id="north"),
+                ),
+                parties=(),
+            ),
+            Duchy(
+                "south",
+                Unit(),
+                morale=3,
+                settlements=(
+                    Settlement("South Keep", 4, owner_id="south"),
+                ),
+                parties=(),
+            ),
+        )
+    )
+    expected_summary = render_turn_summary(previous_game, game)
+    calendar_snippet = (
+        f'<div data-calendar="" data-year="{calendar.year}"'
+        f' data-month="{calendar.month}">'
+        f"Rok {calendar.year}, miesiąc {calendar.month}</div>"
+    )
+
+    html = render_game_page(
+        world, game, calendar, previous_game=previous_game
+    )
+
+    assert expected_summary in html, (
+        "page must embed render_turn_summary(previous_game, game) output"
+    )
+    assert html.count(expected_summary) == 1
+    assert html.index(calendar_snippet) + len(calendar_snippet) == html.index(
+        expected_summary
+    ), "turn summary must sit directly after the data-calendar element"
+
+    root = ET.fromstring(html)
+    assert _local(root.tag) == "html"
+    body = next(el for el in root if _local(el.tag) == "body")
+    summary_els = _find_by_attr(root, "data-turn-summary")
+    assert len(summary_els) == 1
+    assert summary_els[0] in list(body.iter())
+
