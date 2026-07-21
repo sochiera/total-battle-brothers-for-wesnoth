@@ -239,8 +239,9 @@ no-op; zawsze `(200, strona)`. Po próbie ustawia `self.last_notice` na
 `f"{label}: wykonano"` gdy nowy `world !=` poprzedni, inaczej
 `f"{label}: brak zmian"` (również przy odrzuceniu przez guardy). Etykiety:
 `POST /order/recruit` → `"Rekrutacja"`, `muster` → `"Zebranie oddziału"`,
-`develop` → `"Rozbudowa"`; marsz przekazuje etykietę
-(`"Marsz"` / `f"Marsz do {name}"` — kontrakt K28.1c). `POST /order/assault` (K14.2e2 / K15.2b /
+`develop` → `"Rozbudowa"`; trasa marszu też woła helper (wymóg sygnatury)
+z etykietą-placeholderem — treść komunikatu marszu to K28.1c.
+`POST /order/assault` (K14.2e2 / K15.2b /
 K16.1d-2) ma te same guardy przez `_apply_player_assault_order`: jawny
 `target` → `ai.assault_duchy_party_to_recorded`, auto →
 `ai.assault_duchy_party_recorded` (oba z `self.rng` i

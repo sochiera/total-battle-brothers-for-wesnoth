@@ -158,15 +158,18 @@ class GameApp:
         if method == "POST" and route == "/order/march":
             self.last_battle = None
             target_region = self._order_target_region(query)
+            # Label is required by _apply_player_order; user-facing march
+            # notices ("Marsz" / "Marsz do …") are K28.1c — keep a neutral
+            # placeholder so this task does not lock that copy.
             if target_region is not None:
                 self._apply_player_order(
                     lambda world, duchy: ai.march_duchy_party_to(
                         world, duchy, target_region
                     ),
-                    f"Marsz do {target_region.name}",
+                    "",
                 )
             else:
-                self._apply_player_order(ai.march_duchy_party, "Marsz")
+                self._apply_player_order(ai.march_duchy_party, "")
             return 200, self._render()
         if method == "POST" and route == "/order/assault":
             morale_by_owner = {d.duchy_id: d.morale for d in self.game.duchies}

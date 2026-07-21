@@ -325,6 +325,98 @@ def test_game_app_post_order_recruit_sets_last_notice_wykonano_then_brak_zmian()
     assert notices2[0].get("data-notice") == "Rekrutacja: brak zmian"
 
 
+def test_game_app_post_order_muster_sets_last_notice_wykonano_then_brak_zmian():
+    """POST /order/muster sets last_notice via the "Zebranie oddziału" label.
+
+    Contract (task-144 / K28.1b):
+    - a muster that changes world sets last_notice == "Zebranie oddziału: wykonano"
+      and the rendered page carries that data-notice value
+    - a subsequent muster with party already fielded (world unchanged) sets
+      last_notice == "Zebranie oddziału: brak zmian"
+    """
+    north, south = map(Region, ("North", "South"))
+    hero = Unit(training=4)
+    garrison = (Unit(equipment=1), Unit(experience=2))
+    north_keep = Settlement(
+        "North Keep",
+        3,
+        occupied=2,
+        garrison=garrison,
+        owner_id="north",
+    )
+    south_keep = Settlement("South Keep", 2, owner_id="south")
+    world = WorldMap(
+        (north, south), settlements={north: north_keep, south: south_keep}
+    )
+    game = GameState(
+        (
+            Duchy("north", hero, settlements=(north_keep,)),
+            Duchy("south", Unit(), settlements=(south_keep,)),
+        )
+    )
+    calendar = Calendar(year=2, month=3)
+    app = GameApp(world, game, calendar, Rng(11), player_duchy_id="north")
+
+    code, body = app.handle("POST", "/order/muster")
+    assert code == 200
+    assert app.last_notice == "Zebranie oddziału: wykonano"
+    assert app.world.party_at(north) == Party(hero, garrison, owner_id="north")
+    root = ET.fromstring(body)
+    notices = _find_by_attr(root, "data-notice")
+    assert len(notices) == 1
+    assert notices[0].get("data-notice") == "Zebranie oddziału: wykonano"
+
+    code2, body2 = app.handle("POST", "/order/muster")
+    assert code2 == 200
+    assert app.last_notice == "Zebranie oddziału: brak zmian"
+    root2 = ET.fromstring(body2)
+    notices2 = _find_by_attr(root2, "data-notice")
+    assert len(notices2) == 1
+    assert notices2[0].get("data-notice") == "Zebranie oddziału: brak zmian"
+
+
+def test_game_app_post_order_develop_sets_last_notice_wykonano_then_brak_zmian():
+    """POST /order/develop sets last_notice via the "Rozbudowa" label.
+
+    Contract (task-144 / K28.1b):
+    - a develop that changes world sets last_notice == "Rozbudowa: wykonano"
+      and the rendered page carries that data-notice value
+    - a subsequent develop with no free slots (world unchanged) sets
+      last_notice == "Rozbudowa: brak zmian"
+    """
+    north, south = map(Region, ("North", "South"))
+    # capacity=1 → first develop opens Farm (staff=1); second has free=0.
+    north_keep = Settlement("North Keep", 1, owner_id="north")
+    south_keep = Settlement("South Keep", 2, owner_id="south")
+    world = WorldMap(
+        (north, south), settlements={north: north_keep, south: south_keep}
+    )
+    game = GameState(
+        (
+            Duchy("north", Unit(), settlements=(north_keep,)),
+            Duchy("south", Unit(), settlements=(south_keep,)),
+        )
+    )
+    calendar = Calendar(year=2, month=3)
+    app = GameApp(world, game, calendar, Rng(11), player_duchy_id="north")
+
+    code, body = app.handle("POST", "/order/develop")
+    assert code == 200
+    assert app.last_notice == "Rozbudowa: wykonano"
+    root = ET.fromstring(body)
+    notices = _find_by_attr(root, "data-notice")
+    assert len(notices) == 1
+    assert notices[0].get("data-notice") == "Rozbudowa: wykonano"
+
+    code2, body2 = app.handle("POST", "/order/develop")
+    assert code2 == 200
+    assert app.last_notice == "Rozbudowa: brak zmian"
+    root2 = ET.fromstring(body2)
+    notices2 = _find_by_attr(root2, "data-notice")
+    assert len(notices2) == 1
+    assert notices2[0].get("data-notice") == "Rozbudowa: brak zmian"
+
+
 def test_game_app_render_forwards_player_duchy_id_to_data_player_duchy():
     """GameApp._render passes self.player_duchy_id into render_game_page.
 
@@ -525,6 +617,11 @@ def test_game_app_order_recruit_form_noop_and_determinism():
     # Would-be recruit target unchanged (gold still 2, garrison still 1).
     assert none_app.world.settlement_at(north).storage.gold == 2
     assert len(none_app.world.settlement_at(north).garrison) == 1
+    # K28.1b: guard rejection still sets last_notice / data-notice.
+    assert none_app.last_notice == "Rekrutacja: brak zmian"
+    notices_n = _find_by_attr(ET.fromstring(body_n), "data-notice")
+    assert len(notices_n) == 1
+    assert notices_n[0].get("data-notice") == "Rekrutacja: brak zmian"
 
     # No-op: game is_over — finished sole-duchy world.
     fin_world, fin_game = _finished_world_game()
@@ -539,19 +636,27 @@ def test_game_app_order_recruit_form_noop_and_determinism():
     assert fin_app.game is g_f
     assert fin_app.calendar == fin_cal
     assert _calendar_stamp(body_f) == (5, 1)
+    assert fin_app.last_notice == "Rekrutacja: brak zmian"
+    notices_f = _find_by_attr(ET.fromstring(body_f), "data-notice")
+    assert len(notices_f) == 1
+    assert notices_f[0].get("data-notice") == "Rekrutacja: brak zmian"
 
     # No-op: player duchy id not present in game.duchies.
     missing = GameApp(
         world, game, calendar, Rng(11), player_duchy_id="ghost"
     )
     w_m, g_m = missing.world, missing.game
-    code_m, _body_m = missing.handle("POST", "/order/recruit")
+    code_m, body_m = missing.handle("POST", "/order/recruit")
     assert code_m == 200
     assert missing.world is w_m
     assert missing.game is g_m
     assert missing.calendar == calendar
     assert missing.world.settlement_at(north).storage.gold == 2
     assert len(missing.world.settlement_at(north).garrison) == 1
+    assert missing.last_notice == "Rekrutacja: brak zmian"
+    notices_m = _find_by_attr(ET.fromstring(body_m), "data-notice")
+    assert len(notices_m) == 1
+    assert notices_m[0].get("data-notice") == "Rekrutacja: brak zmian"
 
     # Determinism: two apps, same seed, same recruit sequence → same bodies/state.
     wa, ga, _ = _recruit_ready_world_game()
