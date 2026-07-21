@@ -340,11 +340,11 @@ tuple[str, str | None] | None` (K42.1a / K48.1c) — brak gracza → `None`; gdy
 inaczej postawa: `assault` (ofensywna, `kind=="settlement"`) / `engage`
 (ofensywna, `kind=="party"`) z `first_advantageous_target`; `defend` z
 `first_threatened_region` (defensywna ⇒ N≥1); `develop` gdy zrównoważona
-(target `None`). Tekst: `recommended_order_text` (K42.2a / K48.1b:
+(target `None`). Tekst: `recommended_order_text` (K42.2a / K48.1b / K49.1b:
 `szturmuj osadę <R>` / `zaatakuj oddział <R>` / `broń pozycji <R>` /
-`zbierz oddział` / `rozwijaj księstwo`). Osadzony w `render_game_page` zaraz
-po `data-situation-report` (K41.3a). Czyste, deterministyczne, bez mutacji
-`world`/`game`; rdzeń bez zmian.
+`maszeruj ku osadzie <R>` / `zbierz oddział` / `rozwijaj księstwo`). Osadzony
+w `render_game_page` zaraz po `data-situation-report` (K41.3a). Czyste,
+deterministyczne, bez mutacji `world`/`game`; rdzeń bez zmian.
 
 **Zalecany rozkaz w jeden klik w GameApp (K42.1b / K42.1c / K42.2a / K48.1c / K48.1d):**
 `tbbui.serve.recommended_order_path(action) -> str` — czysta mapa akcji na

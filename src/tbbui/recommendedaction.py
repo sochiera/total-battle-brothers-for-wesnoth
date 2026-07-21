@@ -126,9 +126,10 @@ def recommended_order_text(action: str, target_name: str | None) -> str:
 
     ``("assault", R)`` → ``szturmuj osadę <R>``; ``("engage", R)`` →
     ``zaatakuj oddział <R>``; ``("defend", R)`` → ``broń pozycji <R>``;
-    ``("muster", None)`` → ``zbierz oddział``; ``("develop", None)`` →
-    ``rozwijaj księstwo``. Pure and deterministic. Shared by
-    ``render_recommended_action`` and the GameApp button label.
+    ``("march", R)`` → ``maszeruj ku osadzie <R>``; ``("muster", None)`` →
+    ``zbierz oddział``; ``("develop", None)`` → ``rozwijaj księstwo``.
+    Pure and deterministic. Shared by ``render_recommended_action`` and the
+    GameApp button label.
     """
     if action == "assault":
         return f"szturmuj osadę {target_name}"
@@ -136,6 +137,8 @@ def recommended_order_text(action: str, target_name: str | None) -> str:
         return f"zaatakuj oddział {target_name}"
     if action == "defend":
         return f"broń pozycji {target_name}"
+    if action == "march":
+        return f"maszeruj ku osadzie {target_name}"
     if action == "muster":
         return "zbierz oddział"
     return "rozwijaj księstwo"

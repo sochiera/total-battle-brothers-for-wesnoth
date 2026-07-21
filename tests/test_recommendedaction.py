@@ -268,6 +268,29 @@ def test_recommended_order_text_muster_returns_zbierz_oddzial():
     assert recommended_order_text("muster", None) == "zbierz oddział"
 
 
+def test_recommended_order_text_march_returns_maszeruj_ku_osadzie():
+    """``recommended_order_text("march", "Północ")`` →
+    ``"maszeruj ku osadzie Północ"`` — K49.1b.
+
+    Contract (task-232): new ``march`` branch
+    ``f"maszeruj ku osadzie {target_name}"``; descriptive half only (no
+    ``Zalecany rozkaz: `` prefix). Remaining actions unchanged:
+    ``("assault", R)`` → ``"szturmuj osadę R"``, ``("engage", R)`` →
+    ``"zaatakuj oddział R"``, ``("defend", R)`` → ``"broń pozycji R"``,
+    ``("muster", None)`` → ``"zbierz oddział"``, ``("develop", None)`` →
+    ``"rozwijaj księstwo"``. Pure and deterministic.
+    """
+    recommended_order_text = recommendedaction.recommended_order_text
+    assert recommended_order_text("march", "Północ") == (
+        "maszeruj ku osadzie Północ"
+    )
+    assert recommended_order_text("assault", "R") == "szturmuj osadę R"
+    assert recommended_order_text("engage", "R") == "zaatakuj oddział R"
+    assert recommended_order_text("defend", "R") == "broń pozycji R"
+    assert recommended_order_text("muster", None) == "zbierz oddział"
+    assert recommended_order_text("develop", None) == "rozwijaj księstwo"
+
+
 def test_recommended_order_muster_before_posture_when_player_can_muster():
     """``recommended_order`` returns ``("muster", None)`` when
     ``player_can_muster`` is True — priority BEFORE posture (K48.1c).
