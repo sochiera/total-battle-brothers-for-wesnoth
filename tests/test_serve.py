@@ -18,7 +18,7 @@ from tbb.turn import Calendar
 from tbb.unit import Unit
 from tbb.world import Region, WorldMap
 from tbbui.battlesvg import render_battle_svg
-from tbbui.recommendedaction import recommended_order
+from tbbui.recommendedaction import recommended_order, recommended_order_text
 from tbbui.serve import GameApp, recommended_order_path
 from tbbui.turnsummary import render_turn_summary
 
@@ -3852,6 +3852,112 @@ def test_get_recommended_order_form_action_matches_path_and_target():
     ]
     assert len(rec_forms2) == 1
     assert rec_forms2[0].get("action") == expected_with_target
+
+
+def test_get_recommended_order_button_label_uses_recommended_order_text():
+    """``data-recommended-order`` submit button shows ``Wykonaj zalecenie: <opis>`` (K42.2a).
+
+    Contract (task-206): visible button text is
+    ``html.escape(f"Wykonaj zalecenie: {recommended_order_text(action, target)}")``
+    for the current ``recommended_order`` — shared description source with
+    ``render_recommended_action``. Covers develop (no target) and a named-region
+    assault; raw form markup carries the html-escaped label.
+    """
+    from html import escape
+
+    def _rec_form_html(body: str) -> str:
+        match = re.search(
+            r'<form\b[^>]*\bdata-recommended-order=""[^>]*>.*?</form>',
+            body,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        assert match is not None, "data-recommended-order form missing from GET /"
+        return match.group(0)
+
+    def _rec_form_button_text(body: str) -> str:
+        root = ET.fromstring(body)
+        rec_forms = [
+            el
+            for el in root.iter()
+            if _local(el.tag) == "form"
+            and el.get("data-recommended-order") is not None
+        ]
+        assert len(rec_forms) == 1
+        buttons = [
+            c for c in rec_forms[0].iter() if _local(c.tag) == "button"
+        ]
+        assert len(buttons) >= 1
+        return "".join(buttons[0].itertext()).strip()
+
+    # develop → region None
+    world, game = _ongoing_world_game()
+    assert not game.is_over
+    order = recommended_order(world, game, "north")
+    assert order is not None
+    action, region = order
+    assert region is None
+    expected_plain = (
+        f"Wykonaj zalecenie: {recommended_order_text(action, region)}"
+    )
+    assert expected_plain == "Wykonaj zalecenie: rozwijaj księstwo"
+
+    app = GameApp(
+        world, game, Calendar(year=1, month=1), Rng(1), player_duchy_id="north"
+    )
+    code, body = app.handle("GET", "/")
+    assert code == 200
+    assert _rec_form_button_text(body) == expected_plain
+    assert (
+        f'<button type="submit">{escape(expected_plain)}</button>'
+        in _rec_form_html(body)
+    )
+
+    # named region (assault): label follows recommended_order_text + escape
+    home = Region("Home")
+    enemy_camp = Region("EnemyCamp")
+    assault_game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+    assault_world = WorldMap(
+        [home, enemy_camp],
+        [(home, enemy_camp)],
+        parties={home: Party(hero=Unit(), units=(), owner_id="player")},
+        settlements={
+            enemy_camp: Settlement(
+                "EnemyS", population=2, owner_id="enemy"
+            ),
+        },
+    )
+    assault_order = recommended_order(assault_world, assault_game, "player")
+    assert assault_order is not None
+    assault_action, assault_region = assault_order
+    assert assault_action == "assault"
+    assert assault_region == "EnemyCamp"
+    expected_assault = (
+        f"Wykonaj zalecenie: "
+        f"{recommended_order_text(assault_action, assault_region)}"
+    )
+    assert expected_assault == (
+        "Wykonaj zalecenie: szturmuj osadę EnemyCamp"
+    )
+
+    assault_app = GameApp(
+        assault_world,
+        assault_game,
+        Calendar(year=1, month=1),
+        Rng(1),
+        player_duchy_id="player",
+    )
+    code2, body2 = assault_app.handle("GET", "/")
+    assert code2 == 200
+    assert _rec_form_button_text(body2) == expected_assault
+    assert (
+        f'<button type="submit">{escape(expected_assault)}</button>'
+        in _rec_form_html(body2)
+    )
 
 
 def test_get_omits_recommended_order_when_no_player_over_or_no_advice():
