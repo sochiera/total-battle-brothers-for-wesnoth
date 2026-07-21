@@ -346,10 +346,13 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
 - `render_settlement_panel(world, player_duchy_id=None)` — fragment
   `data-settlement-panel` z wierszem `data-settlement-row` (= nazwa regionu) na
   osadę w kolejności `world.regions`; atrybuty `data-owner`/`data-wheat`/
-  `data-gold`/`data-population`/`data-free`/`data-garrison` i widoczny tekst
-  `<nazwa> (<owner|„—">): pszenica W, złoto G · populacja P (wolne F), garnizon N`
-  zgodny z atrybutami; przy `player_duchy_id` wiersze z `owner_id` gracza mają
-  `data-player-owned=""`. Czysty, deterministyczny.
+  `data-gold`/`data-population`/`data-free`/`data-garrison`/
+  `data-garrison-hp`/`data-garrison-attack`/`data-garrison-defense` (sumy
+  `Unit.hp`/`Unit.damage`/`Unit.defense` po garnizonie; pusty → `0`) i widoczny
+  tekst `<nazwa> (<owner|„—">): pszenica W, złoto G · populacja P (wolne F),
+  garnizon N · siła garnizonu: HP H, atak A, obrona D` zgodny z atrybutami; przy
+  `player_duchy_id` wiersze z `owner_id` gracza mają `data-player-owned=""`.
+  Czysty, deterministyczny.
 - `render_party_panel(world, player_duchy_id=None)` — fragment `data-party-panel`
   z wierszem `data-party-row` (= nazwa regionu) na party w kolejności
   `world.regions`; `data-owner`/`data-size` (liczba podkomendnych)/`data-hp`/

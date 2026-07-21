@@ -86,19 +86,20 @@ wynik (`Zwycięstwo atakującego` / `Zwycięstwo broniącego` / `Remis` wg
 `data-fallen`/`data-stunned`/`data-active`). Czyste, deterministyczne,
 bez mutacji `battle`.
 
-**Panel osad HTML (K22.1a–b / K23.3a / K25.2a):** `tbbui.settlementpanel.render_settlement_panel(world, player_duchy_id=None)
+**Panel osad HTML (K22.1a–b / K23.3a / K25.2a–b):** `tbbui.settlementpanel.render_settlement_panel(world, player_duchy_id=None)
 -> str` — parsowalny fragment XML z korzeniem `<div data-settlement-panel="">`;
 po jednym `<div data-settlement-row="<region.name>">` na region z osadą w
 kolejności `world.regions` (region bez osady → brak wiersza). Atrybuty wiersza:
 `data-owner` (`owner_id` lub `""`), `data-wheat`/`data-gold` (`storage`),
 `data-population`/`data-free`/`data-garrison` (`population`/`free`/
-`len(garrison)`), `data-garrison-hp` (suma `Unit.hp` po garnizonie; pusty →
-`0`). Gdy `player_duchy_id` nie jest `None`, wiersze z
+`len(garrison)`), `data-garrison-hp` / `data-garrison-attack` /
+`data-garrison-defense` (suma `Unit.hp` / `Unit.damage` / `Unit.defense` po
+garnizonie; pusty → `0`). Gdy `player_duchy_id` nie jest `None`, wiersze z
 `owner_id == player_duchy_id` dostają `data-player-owned=""`; `None` (domyślnie)
 → wynik bajt-w-bajt jak bez argumentu. Obok atrybutów widoczny tekst
 `<Settlement.name> (<owner_id lub „—">): pszenica W, złoto G · populacja P
-(wolne F), garnizon N · siła garnizonu: HP H` zgodny z atrybutami. Czyste,
-deterministyczne, bez mutacji `world`; rdzeń bez zmian.
+(wolne F), garnizon N · siła garnizonu: HP H, atak A, obrona D` zgodny z
+atrybutami. Czyste, deterministyczne, bez mutacji `world`; rdzeń bez zmian.
 
 **Panel party HTML (K22.2a / K24.1a / K25.1a / K25.1b):** `tbbui.partypanel.render_party_panel(world,
 player_duchy_id=None) -> str` — parsowalny fragment XML z korzeniem
