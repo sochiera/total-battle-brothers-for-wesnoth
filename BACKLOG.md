@@ -69,13 +69,8 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 ## Kamień milowy 16 — obserwowalna bitwa gracza w podglądzie — UKOŃCZONY
 > DESIGN §9a (PLAN K16): rozkaz szturmu nagrywa rozstrzygniętą `HexBattle`, a
 > `GameApp` renderuje ostatnią bitwę (SVG) w stronie partii; inne rozkazy i tura
-> ją zerują. Wszystkie pozycje (task-091…098, w tym refaktor R16.1) ukończone.
-- [x] **K16.1a** Strona partii z opcjonalnym slotem SVG bitwy (`render_game_page(..., battle=None)`). *(task-091)*
-- [x] **K16.1b** Rdzeń: nagrana wersja szturmu osady (`resolve_settlement_battle_recorded → (WorldMap, HexBattle)`). *(task-092)*
-- [x] **K16.1c** Prymityw AI szturmu na wskazaną osadę zwraca bitwę (`ai.assault_duchy_party_to_recorded`). *(task-093)*
-- [x] **K16.1d-1** Prymityw AI auto-szturmu z nagraniem (`ai.assault_duchy_party_recorded`). *(task-095)*
-- [x] **K16.1d-2** `GameApp` nagrywa i renderuje ostatnią bitwę po szturmie (`last_battle`). *(task-096)*
-- [x] **K16.1d-3** Inne rozkazy i `POST /turn` czyszczą `last_battle`. *(task-097)*
+> ją zerują. Wszystkie pozycje (task-091…098, w tym refaktor R16.1)
+> w `BACKLOG-ARCHIVE.md`.
 
 ## Kamień milowy 17 — czytelny wynik bitwy gracza w podglądzie — UKOŃCZONY
 > DESIGN §11 (PLAN K17): raport HTML bitwy (wynik + polegli/ogłuszeni/zdolni per
@@ -225,17 +220,26 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > „obronisz się", osadzony w `render_game_page` po podglądzie starcia. Wszystkie
 > pozycje (task-188…192) w `BACKLOG-ARCHIVE.md`. Rdzeń `tbb` bez zmian.
 
-## Kamień milowy 40 — skrót sytuacji taktycznej (bronić się czy atakować)
-> DESIGN §6 pkt 3–5: K33–K39 dały bogate panele doradcze; K40 dokłada czysty
-> `render_situation_report` — jednolinijkowy skrót „na jeden rzut oka": liczba
-> zagrożonych pozycji vs liczba korzystnych celów, z werdyktem postawy, osadzony
-> w `render_game_page` po alercie zagrożeń. Poprzedza go refaktor R39.1
-> (wspólny predykat wrogiego party). Rdzeń `tbb` bez zmian.
-- [ ] **R39.1 (refaktor)** Wspólny predykat „wrogie party u sąsiada" `tbbui.maplookup.is_hostile_owner` reużyty przez `threatalert`/`engagementpreview` (bez nowych testów). *(task-193)*
-- [ ] **K40.1a** Prymityw `render_situation_report` — korzeń `data-situation-report`/`data-threatened-count` + tekst „Sytuacja: zagrożone pozycje N". *(task-194)*
-- [ ] **K40.1b** `data-opportunity-count` (korzystne cele z przewagą) + rozszerzenie tekstu. *(task-195)*
-- [ ] **K40.1c** Osadzenie w `render_game_page` po `data-threat-alert` (bez gracza → bajt-w-bajt jak dotąd). *(task-196)*
-- [ ] **K40.2a** Flaga `data-net-posture="offensive|defensive|balanced"` + sufiks postawy. *(task-197)*
+## Kamień milowy 40 — skrót sytuacji taktycznej (bronić się czy atakować) — UKOŃCZONY
+> DESIGN §11: czysty `render_situation_report` — jednolinijkowy skrót „na jeden
+> rzut oka": liczba zagrożonych pozycji (`data-threatened-count`) vs korzystnych
+> celów (`data-opportunity-count`) z werdyktem postawy
+> (`data-net-posture=offensive|defensive|balanced`), osadzony w `render_game_page`
+> po alercie zagrożeń; poprzedzony refaktorem R39.1 (wspólny predykat wrogiego
+> party). Wszystkie pozycje (task-193…197) w `BACKLOG-ARCHIVE.md`. Rdzeń `tbb`
+> bez zmian.
+
+## Kamień milowy 41 — zalecany następny rozkaz (rada wykonalna)
+> DESIGN §11: K33–K40 dały bogate panele i werdykt postawy; K41 zamienia werdykt
+> w jeden konkretny **zalecany rozkaz** — czysty `render_recommended_action`
+> nazywa cel (szturm/starcie na korzystny cel, obrona zagrożonej pozycji, rozwój)
+> i niesie maszynowe `data-action`, osadzony w `render_game_page` po skrócie
+> sytuacji. Rdzeń `tbb` bez zmian.
+- [ ] **K41.1a** Prymityw `render_recommended_action` — korzeń `data-recommended-action`/`data-posture` + ogólny tekst zalecenia; `situationreport.net_posture` publiczny. *(task-198)*
+- [ ] **K41.1b** Zalecenie ofensywne z celem (`engagementpreview.first_advantageous_target`): „szturmuj osadę <R>"/„zaatakuj oddział <R>". *(task-199)*
+- [ ] **K41.1c** Zalecenie defensywne z regionem (`threatalert.first_threatened_region`): „broń pozycji <R>". *(task-200)*
+- [ ] **K41.2a** Maszynowa flaga `data-action="assault|engage|defend|develop"` po `data-posture`. *(task-201)*
+- [ ] **K41.3a** Osadzenie w `render_game_page` po `data-situation-report` (bez gracza → bajt-w-bajt jak dotąd). *(task-202)*
 
 ## Dług/refaktor
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*

@@ -391,3 +391,18 @@
 - [x] **K39.1c** Osadzenie w `render_game_page` po `data-engagement-preview` (bez gracza → bajt-w-bajt jak dotąd). *(task-190)*
 - [x] **K39.2a** Siła obronna własnej pozycji (`data-own-*`) i wroga (`data-enemy-*`) w wierszu + sufiks tekstu. *(task-191)*
 - [x] **K39.2b** Flaga `data-defensible="true|false"` + sufiks „ — obronisz się"/„ — przewaga wroga". *(task-192)*
+
+## Kamień milowy 16 — obserwowalna bitwa gracza w podglądzie — UKOŃCZONY
+- [x] **K16.1a** Strona partii z opcjonalnym slotem SVG bitwy (`render_game_page(..., battle=None)`). *(task-091)*
+- [x] **K16.1b** Rdzeń: nagrana wersja szturmu osady (`resolve_settlement_battle_recorded → (WorldMap, HexBattle)`). *(task-092)*
+- [x] **K16.1c** Prymityw AI szturmu na wskazaną osadę zwraca bitwę (`ai.assault_duchy_party_to_recorded`). *(task-093)*
+- [x] **K16.1d-1** Prymityw AI auto-szturmu z nagraniem (`ai.assault_duchy_party_recorded`). *(task-095)*
+- [x] **K16.1d-2** `GameApp` nagrywa i renderuje ostatnią bitwę po szturmie (`last_battle`). *(task-096)*
+- [x] **K16.1d-3** Inne rozkazy i `POST /turn` czyszczą `last_battle`. *(task-097)*
+
+## Kamień milowy 40 — skrót sytuacji taktycznej (bronić się czy atakować) — UKOŃCZONY
+- [x] **R39.1 (refaktor)** Wspólny predykat „wrogie party u sąsiada" `tbbui.maplookup.is_hostile_owner` reużyty przez `threatalert`/`engagementpreview` (bez nowych testów). *(task-193)*
+- [x] **K40.1a** Prymityw `render_situation_report` — korzeń `data-situation-report`/`data-threatened-count` + tekst „Sytuacja: zagrożone pozycje N". *(task-194)*
+- [x] **K40.1b** `data-opportunity-count` (korzystne cele z przewagą) + rozszerzenie tekstu. *(task-195)*
+- [x] **K40.1c** Osadzenie w `render_game_page` po `data-threat-alert` (bez gracza → bajt-w-bajt jak dotąd). *(task-196)*
+- [x] **K40.2a** Flaga `data-net-posture="offensive|defensive|balanced"` + sufiks postawy. *(task-197)*
