@@ -199,3 +199,4 @@
 | K33.1c | Osadzenie postępu w stronie | `render_game_page` przy `player_duchy_id is not None` osadza jeden `render_victory_progress(game, player_duchy_id)` (zaraz po `render_player_summary`); `None` → bajt-w-bajt jak dotąd. |
 | K33.2a | Oznaczenie pokonanego wroga | Wiersz `data-enemy-duchy` niesie `data-defeated="true\|false"` (z `is_defeated`); tekst pokonanego wroga ma sufiks „ — pokonany". |
 | K34.1a | Podpowiedź następnego kroku | `tbbui.nextobjective.render_next_objective(game, player_duchy_id=None)` → `<p data-next-objective="TEXT">TEXT</p>` (atrybut=ciało, `html.escape(quote=True)`); `None`/spoza gry → pusty; inaczej: wszyscy wrogowie pokonani / pozostałe osady S / dobicie bohaterów H. |
+| K34.1b | Osadzenie podpowiedzi w stronie | `render_game_page` przy `player_duchy_id is not None` osadza jeden `render_next_objective(game, player_duchy_id)` zaraz po `render_victory_progress`; `None` → bajt-w-bajt jak dotąd. |
