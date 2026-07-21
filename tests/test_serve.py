@@ -3626,3 +3626,73 @@ def test_game_app_post_turn_sets_previous_game_and_embeds_turn_summary():
     root = ET.fromstring(body)
     assert len(_find_by_attr(root, "data-turn-summary")) == 1
 
+
+def test_game_app_post_new_orders_and_is_over_turn_clear_previous_game():
+    """POST /new, /order/*, is_over /turn set previous_game=None (K38.2a).
+
+    Contract (task-186 / K38.2a): after a successful POST /turn has set
+    ``previous_game`` (and embedded the turn summary), every other mutating
+    path clears it so the journal does not linger — same pattern as
+    ``last_battle``:
+
+    - POST /order/recruit|muster|develop|march|assault|engage → previous_game None
+    - POST /new → previous_game None
+    - POST /turn when game is already is_over (no-op) → previous_game None
+    - returned page has no ``data-turn-summary`` once cleared
+    """
+    order_routes = (
+        "/order/recruit",
+        "/order/muster",
+        "/order/develop",
+        "/order/march",
+        "/order/assault",
+        "/order/engage",
+    )
+
+    def _app_after_turn(*, seed: int | None = None) -> GameApp:
+        world, game = _ongoing_world_game()
+        app = GameApp(
+            world,
+            game,
+            Calendar(year=4, month=9),
+            Rng(17),
+            player_duchy_id="north",
+            seed=seed,
+        )
+        code, body = app.handle("POST", "/turn")
+        assert code == 200
+        assert app.previous_game is not None
+        assert len(_find_by_attr(ET.fromstring(body), "data-turn-summary")) == 1
+        return app
+
+    for route in order_routes:
+        app = _app_after_turn()
+        code, body = app.handle("POST", route)
+        assert code == 200, route
+        assert app.previous_game is None, route
+        assert _find_by_attr(ET.fromstring(body), "data-turn-summary") == [], route
+        assert "data-turn-summary" not in body, route
+
+    # POST /new clears previous_game (with and without seed; both paths set None).
+    for seed in (None, 73):
+        app = _app_after_turn(seed=seed)
+        code, body = app.handle("POST", "/new")
+        assert code == 200
+        assert app.previous_game is None
+        assert _find_by_attr(ET.fromstring(body), "data-turn-summary") == []
+        assert "data-turn-summary" not in body
+
+    # No-op POST /turn when game is already is_over clears a lingering previous_game.
+    fin_world, fin_game = _finished_world_game()
+    lingering = _app_after_turn().previous_game
+    assert lingering is not None
+    finished = GameApp(
+        fin_world, fin_game, Calendar(year=3, month=7), Rng(5)
+    )
+    finished.previous_game = lingering
+    code_fin, body_fin = finished.handle("POST", "/turn")
+    assert code_fin == 200
+    assert finished.previous_game is None
+    assert _find_by_attr(ET.fromstring(body_fin), "data-turn-summary") == []
+    assert "data-turn-summary" not in body_fin
+
