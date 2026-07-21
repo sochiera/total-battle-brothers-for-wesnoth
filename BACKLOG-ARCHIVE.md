@@ -327,3 +327,13 @@
 - [x] **K30.3a** Panel podsumowania księstwa gracza — gospodarka (`render_player_summary`: osady/oddziały/złoto/pszenica). *(task-154)*
 - [x] **K30.3b** Panel podsumowania — łączna siła bojowa oddziałów (reużycie `combat_totals`). *(task-155)*
 - [x] **K30.3c** Osadzenie podsumowania w `render_game_page` (bez gracza → bajt-w-bajt jak dotąd). *(task-156)*
+
+## Kamień milowy 31 — grywalna pełna partia w przeglądarce: nowa gra + wynik z perspektywy gracza — UKOŃCZONY
+> DESIGN §11 (PLAN K31): restart `POST /new` + przycisk „Nowa gra" + seed w CLI
+> serve oraz czytelny wynik z perspektywy gracza w `render_game_page`. Domyka
+> pętlę §6 w przeglądarce: partię można rozegrać, zakończyć, odczytać wynik i
+> zacząć od nowa bez restartu procesu. Rdzeń `tbb` bez zmian.
+- [x] **K31.1a** Restart partii przez `POST /new` (GameApp `seed`; reset do świeżej deterministycznej gry). *(task-157)*
+- [x] **K31.1b** Przycisk „Nowa gra" w `GET /` (`<form action="/new">`). *(task-158)*
+- [x] **K31.1c** CLI `python -m tbbui serve` przekazuje `seed=HEADLESS_SEED` do `GameApp`. *(task-159)*
+- [x] **K31.2a** Wynik gry z perspektywy gracza w `render_game_page` (`data-player-result-text`). *(task-160)*

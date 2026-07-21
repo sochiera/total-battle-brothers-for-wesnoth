@@ -166,18 +166,23 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > rekrutacji (K30.2a). Wszystkie pozycje (task-152…156) w `BACKLOG-ARCHIVE.md`.
 > Rdzeń `tbb` bez zmian.
 
-## Kamień milowy 31 — grywalna pełna partia w przeglądarce: nowa gra + wynik z perspektywy gracza
-> DESIGN §11 (PLAN K31): K14–K30 dały graczowi sprawczość, orientację i decyzje,
-> ale po zakończeniu partii nie da się zagrać ponownie bez restartu procesu, a
-> banner wyniku (`Zwycięstwo: <id>`) nie mówi, czy wygrał *gracz*. K31 domyka
-> pętlę §6: restart `POST /new` (K31.1a) z przyciskiem „Nowa gra" (K31.1b) i
-> wpięciem seedu w CLI serve (K31.1c), oraz czytelny wynik z perspektywy gracza
-> w `render_game_page` (K31.2a). Rdzeń `tbb` bez zmian; reużywa
-> `create_headless_game`/`Rng`/`Calendar` i istniejący `GameState`.
-- [ ] **K31.1a** Restart partii przez `POST /new` (GameApp `seed`; reset do świeżej deterministycznej gry). *(task-157)*
-- [ ] **K31.1b** Przycisk „Nowa gra" w `GET /` (`<form action="/new">`). *(task-158)*
-- [ ] **K31.1c** CLI `python -m tbbui serve` przekazuje `seed=HEADLESS_SEED` do `GameApp`. *(task-159)*
-- [ ] **K31.2a** Wynik gry z perspektywy gracza w `render_game_page` (`data-player-result-text`). *(task-160)*
+## Kamień milowy 31 — grywalna pełna partia w przeglądarce: nowa gra + wynik z perspektywy gracza — UKOŃCZONY
+> DESIGN §11 (PLAN K31): restart `POST /new` (K31.1a) z przyciskiem „Nowa gra"
+> (K31.1b) i wpięciem seedu w CLI serve (K31.1c), oraz czytelny wynik z
+> perspektywy gracza w `render_game_page` (K31.2a). Wszystkie pozycje
+> (task-157…160) w `BACKLOG-ARCHIVE.md`. Rdzeń `tbb` bez zmian.
+
+## Kamień milowy 32 — dokończenie ramy strony i czytelnego końca gry
+> DESIGN §11: K31 domknął pętlę (restart + wynik gracza), ale strona nadal nie ma
+> tytułu/ramy ani komunikatu celu, a po zakończeniu partii pokazuje bezużyteczne
+> formularze rozkazów. K32 dokłada tytuł dokumentu (K32.1a), widoczny nagłówek
+> strony (K32.1b) i linię celu gry (K32.1c) w `render_game_page` oraz ukrycie
+> tury i rozkazów w `GET /` po `is_over`, zostawiając tylko „Nowa gra" (K32.2a).
+> Rdzeń `tbb` bez zmian.
+- [ ] **K32.1a** Tytuł dokumentu `<head><title>Total Battle Brothers</title></head>` w `render_game_page`. *(task-161)*
+- [ ] **K32.1b** Widoczny nagłówek strony `<h1 data-page-title>` na początku `<body>`. *(task-162)*
+- [ ] **K32.1c** Linia celu gry `<p data-objective>` pod nagłówkiem. *(task-163)*
+- [ ] **K32.2a** `GET /` ukrywa turę i sekcje rozkazów gdy `game.is_over` (zostaje „Nowa gra"). *(task-164)*
 
 ## Dług/refaktor
 - [x] **R21.1 (refaktor)** Wspólny emiter formularzy celu marsz/szturm/starcie w `serve.py`. *(task-113)*
