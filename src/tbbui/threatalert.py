@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 from tbb.game import GameState
+from tbb.party import Party
 from tbb.world import Region, WorldMap
 from tbbui.gamelookup import player_duchy
+from tbbui.unitstrength import combat_totals
 
 
 def _first_hostile_neighbor(
     world: WorldMap, region: Region, player_duchy_id: str
-) -> tuple[Region, str] | None:
-    """Return (neighbor region, owner_id) of first hostile adjacent party.
+) -> tuple[Region, Party] | None:
+    """Return (neighbor region, party) of first hostile adjacent party.
 
     Walks ``world.neighbors(region)`` order; skips empty regions and parties
     without explicit ``owner_id`` or with ``owner_id == player_duchy_id``.
@@ -21,8 +23,57 @@ def _first_hostile_neighbor(
             continue
         owner = party.owner_id
         if owner is not None and owner != player_duchy_id:
-            return neighbor, owner
+            return neighbor, party
     return None
+
+
+def _strength_attrs_and_suffix(
+    own_units, enemy_party: Party
+) -> tuple[str, str]:
+    """Return (HTML attrs fragment, visible text suffix) for own vs enemy strength."""
+    own_hp, own_attack, own_defense = combat_totals(own_units)
+    enemy_hp, enemy_attack, enemy_defense = combat_totals(
+        (enemy_party.hero, *enemy_party.units)
+    )
+    attrs = (
+        f' data-own-hp="{own_hp}"'
+        f' data-own-attack="{own_attack}"'
+        f' data-own-defense="{own_defense}"'
+        f' data-enemy-hp="{enemy_hp}"'
+        f' data-enemy-attack="{enemy_attack}"'
+        f' data-enemy-defense="{enemy_defense}"'
+    )
+    suffix = (
+        f" · siła obronna: HP {own_hp}, atak {own_attack},"
+        f" obrona {own_defense}"
+        f" · siła wroga: HP {enemy_hp}, atak {enemy_attack},"
+        f" obrona {enemy_defense}"
+    )
+    return attrs, suffix
+
+
+def _row_html(
+    region: Region,
+    kind: str,
+    kind_label: str,
+    enemy_region: Region,
+    enemy_owner: str,
+    own_units,
+    enemy_party: Party,
+) -> str:
+    """One threatened-position row: identity attrs, strength attrs, and text."""
+    strength_attrs, strength_suffix = _strength_attrs_and_suffix(
+        own_units, enemy_party
+    )
+    return (
+        f'<div data-threatened-region="{region.name}"'
+        f' data-threatened-kind="{kind}"'
+        f' data-enemy-region="{enemy_region.name}"'
+        f' data-enemy-owner="{enemy_owner}"'
+        f"{strength_attrs}>"
+        f"{kind_label} {region.name}: zagrożenie od {enemy_owner}"
+        f" z {enemy_region.name}{strength_suffix}</div>"
+    )
 
 
 def _threatened_rows(world: WorldMap, player_duchy_id: str) -> list[str]:
@@ -35,26 +86,35 @@ def _threatened_rows(world: WorldMap, player_duchy_id: str) -> list[str]:
         hostile = _first_hostile_neighbor(world, region, player_duchy_id)
         if hostile is None:
             continue
-        enemy_region, enemy_owner = hostile
+        enemy_region, enemy_party = hostile
+        enemy_owner = enemy_party.owner_id
+        assert enemy_owner is not None
+
         settlement = world.settlement_at(region)
         if settlement is not None and settlement.owner_id == player_duchy_id:
             rows.append(
-                f'<div data-threatened-region="{region.name}"'
-                f' data-threatened-kind="settlement"'
-                f' data-enemy-region="{enemy_region.name}"'
-                f' data-enemy-owner="{enemy_owner}">'
-                f"Osada {region.name}: zagrożenie od {enemy_owner}"
-                f" z {enemy_region.name}</div>"
+                _row_html(
+                    region,
+                    "settlement",
+                    "Osada",
+                    enemy_region,
+                    enemy_owner,
+                    settlement.garrison,
+                    enemy_party,
+                )
             )
         party = world.party_at(region)
         if party is not None and party.owner_id == player_duchy_id:
             rows.append(
-                f'<div data-threatened-region="{region.name}"'
-                f' data-threatened-kind="party"'
-                f' data-enemy-region="{enemy_region.name}"'
-                f' data-enemy-owner="{enemy_owner}">'
-                f"Oddział {region.name}: zagrożenie od {enemy_owner}"
-                f" z {enemy_region.name}</div>"
+                _row_html(
+                    region,
+                    "party",
+                    "Oddział",
+                    enemy_region,
+                    enemy_owner,
+                    (party.hero, *party.units),
+                    enemy_party,
+                )
             )
     return rows
 
@@ -76,8 +136,11 @@ def render_threat_alert(
     ``data-threatened-region`` / ``data-threatened-kind`` /
     ``data-enemy-region`` / ``data-enemy-owner`` for the first neighboring
     party with explicit ``owner_id != player_duchy_id`` in ``world.neighbors``
-    order. ``N`` equals the number of emitted rows. Pure and deterministic:
-    no RNG/IO; does not mutate ``world`` or ``game``.
+    order, plus ``data-own-hp`` / ``data-own-attack`` / ``data-own-defense``
+    (settlement garrison or party hero+units via ``combat_totals``) and
+    ``data-enemy-hp`` / ``data-enemy-attack`` / ``data-enemy-defense`` (hostile
+    party), with matching text suffix. ``N`` equals the number of emitted rows.
+    Pure and deterministic: no RNG/IO; does not mutate ``world`` or ``game``.
     """
     if player_duchy(game, player_duchy_id) is None:
         return '<div data-threat-alert=""></div>'

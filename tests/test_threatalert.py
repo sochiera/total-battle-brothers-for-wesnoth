@@ -9,6 +9,7 @@ from tbb.settlement import Settlement
 from tbb.unit import Unit
 from tbb.world import Region, WorldMap
 from tbbui.threatalert import render_threat_alert
+from tbbui.unitstrength import combat_totals
 
 
 def test_render_threat_alert_empty_root_when_none_or_unknown_duchy():
@@ -242,7 +243,134 @@ def test_render_threat_alert_rows_per_threatened_position():
         rows, expected, strict=True
     ):
         assert row.tag == "div"
-        assert "".join(row.itertext()) == (
+        # K39.2a: strength attrs + matching text suffix after the K39.1b prefix.
+        prefix = (
             f"{kind_label[kind]} {region}: zagrożenie od {owner}"
             f" z {enemy_region}"
         )
+        text = "".join(row.itertext())
+        assert text.startswith(prefix)
+        assert " · siła obronna: HP " in text
+        assert " · siła wroga: HP " in text
+        assert row.get("data-own-hp") is not None
+        assert row.get("data-own-attack") is not None
+        assert row.get("data-own-defense") is not None
+        assert row.get("data-enemy-hp") is not None
+        assert row.get("data-enemy-attack") is not None
+        assert row.get("data-enemy-defense") is not None
+        assert text == (
+            f"{prefix}"
+            f" · siła obronna: HP {row.get('data-own-hp')},"
+            f" atak {row.get('data-own-attack')},"
+            f" obrona {row.get('data-own-defense')}"
+            f" · siła wroga: HP {row.get('data-enemy-hp')},"
+            f" atak {row.get('data-enemy-attack')},"
+            f" obrona {row.get('data-enemy-defense')}"
+        )
+
+
+def test_render_threat_alert_row_own_and_enemy_combat_totals():
+    """Each ``data-threatened-region`` row carries own and enemy combat totals.
+
+    Own strength: settlement → ``combat_totals(settlement.garrison)``; party →
+    ``combat_totals((hero, *units))``. Enemy strength:
+    ``combat_totals((enemy.hero, *enemy.units))`` of the first hostile adjacent
+    party. Attributes ``data-own-hp`` / ``data-own-attack`` / ``data-own-defense``
+    and ``data-enemy-hp`` / ``data-enemy-attack`` / ``data-enemy-defense`` match
+    those totals. Visible text keeps the K39.1b prefix and appends
+    `` · siła obronna: HP Ho, atak Ao, obrona Do · siła wroga: HP He, atak Ae,
+    obrona De`` consistent with the attributes.
+    """
+    home = Region("Home")
+    keep = Region("Keep")
+    enemy_camp = Region("EnemyCamp")
+
+    garrison = (Unit(training=2), Unit(equipment=1, experience=1))
+    own_party_hero = Unit(training=4)
+    own_party_units = (Unit(equipment=3),)
+    enemy_hero = Unit(training=1, equipment=2)
+    enemy_units = (Unit(training=5), Unit(experience=2))
+
+    garrison_hp, garrison_atk, garrison_def = combat_totals(garrison)
+    party_hp, party_atk, party_def = combat_totals(
+        (own_party_hero, *own_party_units)
+    )
+    enemy_hp, enemy_atk, enemy_def = combat_totals(
+        (enemy_hero, *enemy_units)
+    )
+
+    world = WorldMap(
+        [home, keep, enemy_camp],
+        [
+            (home, enemy_camp),
+            (keep, enemy_camp),
+        ],
+        parties={
+            home: Party(
+                hero=own_party_hero,
+                units=own_party_units,
+                owner_id="player",
+            ),
+            enemy_camp: Party(
+                hero=enemy_hero,
+                units=enemy_units,
+                owner_id="enemy",
+            ),
+        },
+        settlements={
+            keep: Settlement(
+                "KeepS",
+                population=4,
+                owner_id="player",
+                garrison=garrison,
+            ),
+        },
+    )
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+
+    xml = render_threat_alert(world, game, player_duchy_id="player")
+    root = ET.fromstring(xml)
+    rows = [
+        el
+        for el in root
+        if el.get("data-threatened-region") is not None
+    ]
+    assert [
+        (r.get("data-threatened-region"), r.get("data-threatened-kind"))
+        for r in rows
+    ] == [("Home", "party"), ("Keep", "settlement")]
+
+    home_row, keep_row = rows
+
+    assert home_row.get("data-own-hp") == str(party_hp)
+    assert home_row.get("data-own-attack") == str(party_atk)
+    assert home_row.get("data-own-defense") == str(party_def)
+    assert home_row.get("data-enemy-hp") == str(enemy_hp)
+    assert home_row.get("data-enemy-attack") == str(enemy_atk)
+    assert home_row.get("data-enemy-defense") == str(enemy_def)
+    assert "".join(home_row.itertext()) == (
+        f"Oddział Home: zagrożenie od enemy z EnemyCamp"
+        f" · siła obronna: HP {party_hp}, atak {party_atk},"
+        f" obrona {party_def}"
+        f" · siła wroga: HP {enemy_hp}, atak {enemy_atk},"
+        f" obrona {enemy_def}"
+    )
+
+    assert keep_row.get("data-own-hp") == str(garrison_hp)
+    assert keep_row.get("data-own-attack") == str(garrison_atk)
+    assert keep_row.get("data-own-defense") == str(garrison_def)
+    assert keep_row.get("data-enemy-hp") == str(enemy_hp)
+    assert keep_row.get("data-enemy-attack") == str(enemy_atk)
+    assert keep_row.get("data-enemy-defense") == str(enemy_def)
+    assert "".join(keep_row.itertext()) == (
+        f"Osada Keep: zagrożenie od enemy z EnemyCamp"
+        f" · siła obronna: HP {garrison_hp}, atak {garrison_atk},"
+        f" obrona {garrison_def}"
+        f" · siła wroga: HP {enemy_hp}, atak {enemy_atk},"
+        f" obrona {enemy_def}"
+    )

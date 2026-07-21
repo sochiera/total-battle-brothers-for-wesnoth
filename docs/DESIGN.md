@@ -427,11 +427,16 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   bez `data-threats`, bez tekstu i bez dzieci. Przy znanym graczu korzeń niesie
   `data-threats="N"` oraz tekst `Zagrożone pozycje: N`, plus po jednym wierszu
   `<div data-threatened-region data-threatened-kind="settlement|party"
-  data-enemy-region data-enemy-owner>` na każdą zagrożoną własną pozycję
-  (kolejność `world.regions`; w regionie osada przed party); zagrażający =
-  pierwsze sąsiednie party z jawnym `owner_id != player_duchy_id` w kolejności
-  `world.neighbors`; tekst `Osada|Oddział <R>: zagrożenie od <owner> z <E>`;
-  `N` = liczba wierszy (0 → brak dzieci). Osadzony w stronie partii zaraz po
+  data-enemy-region data-enemy-owner data-own-hp data-own-attack
+  data-own-defense data-enemy-hp data-enemy-attack data-enemy-defense>` na
+  każdą zagrożoną własną pozycję (kolejność `world.regions`; w regionie osada
+  przed party); zagrażający = pierwsze sąsiednie party z jawnym
+  `owner_id != player_duchy_id` w kolejności `world.neighbors`; siła obronna =
+  `combat_totals(garrison)` (osada) lub `combat_totals((hero, *units))` (party);
+  siła wroga = `combat_totals((enemy.hero, *enemy.units))`; tekst
+  `Osada|Oddział <R>: zagrożenie od <owner> z <E> · siła obronna: HP Ho, atak Ao,
+  obrona Do · siła wroga: HP He, atak Ae, obrona De`; `N` = liczba wierszy
+  (0 → brak dzieci). Osadzony w stronie partii zaraz po
   `data-engagement-preview` (K39.1c). Czysty, deterministyczny.
 - `render_party_panel(world, player_duchy_id=None)` — fragment `data-party-panel`
   z wierszem `data-party-row` (= nazwa regionu) na party w kolejności

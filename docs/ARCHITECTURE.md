@@ -210,18 +210,23 @@ bez party → `data-player-on-map="false"` bez wierszy; brak/nieznany gracz → 
 pusty korzeń. Osadzony w `render_game_page` zaraz po `data-hero-chase` (K37.1c).
 Czyste, deterministyczne, bez mutacji `world`/`game`; rdzeń bez zmian.
 
-**Alert zagrożonych pozycji HTML (K39.1a–b / K39.1c):**
+**Alert zagrożonych pozycji HTML (K39.1a–c / K39.2a):**
 `tbbui.threatalert.render_threat_alert(world, game, player_duchy_id=None) -> str`
 — parsowalny fragment z korzeniem `<div data-threat-alert="">`. Gdy
 `player_duchy(game, player_duchy_id) is None` (`player_duchy_id` `None` lub
 spoza `game.duchies`) → sam pusty korzeń (bez `data-threats`, bez tekstu, bez
 dzieci). Przy znanym graczu: `data-threats="N"` i tekst `Zagrożone pozycje: N`
 oraz wiersze `data-threatened-region` / `data-threatened-kind` /
-`data-enemy-region` / `data-enemy-owner` (kolejność `world.regions`, w regionie
-osada przed party; wróg = pierwsze sąsiednie party z jawnym
-`owner_id != player_duchy_id` w kolejności `world.neighbors`; `N` = liczba
-wierszy). Osadzony w `render_game_page` zaraz po `data-engagement-preview`
-(K39.1c). Czyste, deterministyczne, bez mutacji `world`/`game`; rdzeń bez zmian.
+`data-enemy-region` / `data-enemy-owner` plus `data-own-hp` /
+`data-own-attack` / `data-own-defense` (`combat_totals` garnizonu lub
+`hero+units` własnej pozycji) i `data-enemy-hp` / `data-enemy-attack` /
+`data-enemy-defense` (`combat_totals` zagrażającego party); tekst wiersza
+dostaje sufiks ` · siła obronna: … · siła wroga: …` (kolejność
+`world.regions`, w regionie osada przed party; wróg = pierwsze sąsiednie party
+z jawnym `owner_id != player_duchy_id` w kolejności `world.neighbors`; `N` =
+liczba wierszy). Osadzony w `render_game_page` zaraz po
+`data-engagement-preview` (K39.1c). Czyste, deterministyczne, bez mutacji
+`world`/`game`; rdzeń bez zmian.
 
 **Lokalizacja party na mapie (R37.1):**
 `tbbui.maplookup.first_party_region(world, owner_id) -> Region | None` — pierwszy
@@ -530,7 +535,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │       ├── herolocator.py  # HTML lista pościgu wrogich bohaterów (K35.1)
 │       ├── herochase.py   # HTML dystans marszu do wrogich bohaterów (K36.1)
 │       ├── engagementpreview.py # HTML podgląd siły celu szturmu (K37.1)
-│       ├── threatalert.py # HTML alert zagrożonych pozycji (K39.1a–c)
+│       ├── threatalert.py # HTML alert zagrożonych pozycji (K39.1a–c / K39.2a)
 │       ├── turnsummary.py # HTML podsumowanie zmian po turze (K38.1a–b)
 │       ├── maplookup.py    # czysty helper: pierwszy region party właściciela (R37.1)
 │       ├── gamelookup.py   # czysty helper: księstwo gracza po id (R38.1)
@@ -572,7 +577,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │   ├── test_herolocator.py # HTML lista pościgu wrogich bohaterów (tbbui, K35.1)
 │   ├── test_herochase.py # HTML dystans marszu do wrogich bohaterów (tbbui, K36.1)
 │   ├── test_engagementpreview.py # HTML podgląd siły celu szturmu (tbbui, K37.1)
-│   ├── test_threatalert.py # HTML alert zagrożonych pozycji (tbbui, K39.1a–c)
+│   ├── test_threatalert.py # HTML alert zagrożonych pozycji (tbbui, K39.1a–c / K39.2a)
 │   ├── test_turnsummary.py # HTML podsumowanie zmian po turze (tbbui, K38.1a–b)
 │   ├── test_ui_maplookup.py # helper lokalizacji party właściciela (tbbui, R37.1)
 │   ├── test_ui_gamelookup.py # helper lokalizacji księstwa gracza (tbbui, R38.1)
