@@ -1172,9 +1172,9 @@ def test_render_recommended_action_embeds_reason_child_from_recommended_order_re
         assert root.text == expected_text
 
         children = list(root)
-        # K50.1b: first child is the reason; optional forecast sibling (K51.1d)
-        # may follow for battle orders (assault/engage/defend).
-        assert len(children) >= 1
+        # K50.1b: first child is the reason; K51.1d: forecast sibling only
+        # for battle orders (assault/engage/defend). Empty forecast for
+        # muster/march/develop → exactly one child (reason only).
         child = children[0]
         assert child.tag == "p"
         assert child.attrib == {"data-recommendation-reason": escaped}
@@ -1183,8 +1183,11 @@ def test_render_recommended_action_embeds_reason_child_from_recommended_order_re
         # Raw fragment must escape reason in attribute (and body source).
         assert f'data-recommendation-reason="{escaped}"' in xml
         assert f">{escaped}</p>" in xml or f">{reason}</p>" in xml
-        if len(children) > 1:
+        if expected_action in ("assault", "engage", "defend"):
+            assert len(children) == 2
             assert "data-recommended-forecast" in children[1].attrib
+        else:
+            assert len(children) == 1
 
         assert world.regions == regions_before
         assert {
@@ -1249,12 +1252,17 @@ def test_render_recommended_action_data_posture_and_order_text_from_m_vs_n():
         assert root.attrib.get("data-posture") == net_posture(m, n)
         expected_text = text if text is not None else order_text[expected]
         assert root.text == expected_text
-        # K50.1b: first child is the reason; optional forecast sibling (K51.1d)
-        # may follow for battle orders; posture/action/text unchanged.
+        # K50.1b: first child is the reason. K51.1d: balanced → develop →
+        # empty forecast → exactly one child; offensive/defensive battle
+        # orders carry a forecast sibling (len == 2).
         children = list(root)
-        assert len(children) >= 1
         assert children[0].tag == "p"
         assert "data-recommendation-reason" in children[0].attrib
+        if expected == "balanced":
+            assert len(children) == 1
+        else:
+            assert len(children) == 2
+            assert "data-recommended-forecast" in children[1].attrib
 
         assert world.regions == regions_before
         assert {
