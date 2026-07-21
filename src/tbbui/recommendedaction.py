@@ -9,8 +9,46 @@ from tbbui.engagementpreview import (
     first_advantageous_target,
 )
 from tbbui.gamelookup import player_duchy
+from tbbui.maplookup import first_party_region
 from tbbui.situationreport import net_posture
 from tbbui.threatalert import first_threatened_region, threatened_position_count
+
+
+def player_can_muster(
+    world: WorldMap,
+    game: GameState,
+    player_duchy_id: str | None,
+) -> bool:
+    """Return whether the player can muster a party on the strategic map.
+
+    True iff ``player_duchy(game, player_duchy_id)`` is known, the duchy has a
+    hero (``Duchy.has_hero``), ``first_party_region(world, player_duchy_id)``
+    is ``None`` (no player party on the map), and some region in
+    ``world.regions`` holds an own settlement with a free party slot
+    (``settlement.owner_id == player_duchy_id and region not in world.parties``)
+    — same free-settlement predicate as successful ``ai.muster_duchy_party``.
+    Otherwise False (including ``player_duchy_id`` None/unknown, no hero,
+    party already fielded, or no free own settlement). Pure and deterministic:
+    no RNG/IO; does not mutate ``world`` or ``game``.
+    """
+    duchy = player_duchy(game, player_duchy_id)
+    if duchy is None:
+        return False
+    assert player_duchy_id is not None
+    if not duchy.has_hero:
+        return False
+    if first_party_region(world, player_duchy_id) is not None:
+        return False
+    for region in world.regions:
+        settlement = world.settlement_at(region)
+        if (
+            settlement is not None
+            and settlement.owner_id == player_duchy_id
+            and region not in world.parties
+        ):
+            return True
+    return False
+
 
 def recommended_order(
     world: WorldMap,

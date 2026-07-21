@@ -306,6 +306,17 @@ ofensywna|defensywna|zrównoważona`. Czyste, deterministyczne, bez mutacji
 deterministyczna. Wspólne źródło `data-net-posture` w `render_situation_report`
 oraz `data-posture` w `render_recommended_action`.
 
+**Predykat zbiórki oddziału (K48.1a):**
+`tbbui.recommendedaction.player_can_muster(world, game, player_duchy_id) -> bool`
+— `True` iff `gamelookup.player_duchy(game, player_duchy_id) is not None`,
+księstwo ma bohatera (`Duchy.has_hero`), `maplookup.first_party_region(world,
+player_duchy_id) is None` (brak party gracza na mapie) oraz istnieje własna
+osada w regionie bez party (`settlement.owner_id == player_duchy_id` i
+`region not in world.parties`, kolejność `world.regions`) — warunek zbiórki
+zgodny z sukcesem `ai.muster_duchy_party`. `player_duchy_id=None`/spoza
+`game.duchies`, brak hero, party już na mapie lub brak wolnej własnej osady →
+`False`. Czyste, deterministyczne, bez mutacji `world`/`game`; rdzeń bez zmian.
+
 **Zalecany rozkaz HTML (K41.1a / K41.1b / K41.1c / K41.2a / K41.3a):**
 `tbbui.recommendedaction.render_recommended_action(world, game, player_duchy_id=None) -> str`
 — parsowalny fragment z korzeniem `<div data-recommended-action="">`. Gdy

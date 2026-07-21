@@ -13,10 +13,119 @@ from tbbui.engagementpreview import (
     first_advantageous_target,
 )
 from tbbui.gamelookup import player_duchy
+from tbbui.maplookup import first_party_region
 from tbbui import recommendedaction
 from tbbui.recommendedaction import recommended_order, render_recommended_action
 from tbbui.situationreport import net_posture
 from tbbui.threatalert import first_threatened_region, threatened_position_count
+
+
+def test_player_can_muster_true_iff_hero_no_party_and_free_own_settlement():
+    """``player_can_muster(world, game, player_duchy_id)`` is True iff the
+    player duchy is known, has a hero, has no party on the map, and owns a
+    settlement in a party-free region (``world.regions`` order) — K48.1a.
+
+    Contract: reuses ``player_duchy`` and ``first_party_region``; free-settlement
+    predicate matches ``ai.muster_duchy_party`` success
+    (``settlement.owner_id == player_duchy_id and region not in world.parties``).
+    Pure and deterministic: no world/game mutation. False for ``None``/unknown
+    id, no hero, party already fielded, or no free own settlement.
+    """
+    player_can_muster = recommendedaction.player_can_muster
+    home = Region("Home")
+    other = Region("Other")
+    occupied = Region("Occupied")
+    hero = Unit(training=2)
+    own_settlement = Settlement("HomeS", population=2, owner_id="player")
+    foreign_settlement = Settlement("OtherS", population=1, owner_id="enemy")
+
+    ready_world = WorldMap(
+        [home, other],
+        [(home, other)],
+        parties={},
+        settlements={
+            home: own_settlement,
+            other: foreign_settlement,
+        },
+    )
+    game = GameState(
+        (
+            Duchy("player", hero),
+            Duchy("enemy", Unit()),
+        )
+    )
+    no_hero_game = GameState(
+        (
+            Duchy("player", None),
+            Duchy("enemy", Unit()),
+        )
+    )
+
+    # Preconditions of the True path align with lookup helpers / muster rules.
+    assert player_duchy(game, "player") is not None
+    assert player_duchy(game, "player").has_hero
+    assert first_party_region(ready_world, "player") is None
+    assert home not in ready_world.parties
+    assert ready_world.settlement_at(home).owner_id == "player"
+
+    regions_before = ready_world.regions
+    parties_before = {r: ready_world.party_at(r) for r in ready_world.regions}
+    settlements_before = {
+        r: ready_world.settlement_at(r) for r in ready_world.regions
+    }
+    duchies_before = game.duchies
+
+    assert player_can_muster(ready_world, game, "player") is True
+
+    assert ready_world.regions == regions_before
+    assert {
+        r: ready_world.party_at(r) for r in ready_world.regions
+    } == parties_before
+    assert {
+        r: ready_world.settlement_at(r) for r in ready_world.regions
+    } == settlements_before
+    assert game.duchies == duchies_before
+
+    # player_duchy_id is None or not in game.duchies → False
+    for player_duchy_id in (None, "missing"):
+        assert player_duchy(game, player_duchy_id) is None
+        assert player_can_muster(ready_world, game, player_duchy_id) is False
+
+    # no hero → False
+    assert player_duchy(no_hero_game, "player") is not None
+    assert not player_duchy(no_hero_game, "player").has_hero
+    assert player_can_muster(ready_world, no_hero_game, "player") is False
+
+    # player party already on map → False
+    fielded_world = WorldMap(
+        [home, other],
+        [(home, other)],
+        parties={other: Party(hero=Unit(), units=(), owner_id="player")},
+        settlements={home: own_settlement},
+    )
+    assert first_party_region(fielded_world, "player") is not None
+    assert player_can_muster(fielded_world, game, "player") is False
+
+    # own settlement exists but its region is occupied by another party → False
+    blocked_world = WorldMap(
+        [occupied],
+        [],
+        parties={occupied: Party(hero=Unit(), units=(), owner_id="enemy")},
+        settlements={
+            occupied: Settlement("BlockedS", population=2, owner_id="player"),
+        },
+    )
+    assert first_party_region(blocked_world, "player") is None
+    assert player_can_muster(blocked_world, game, "player") is False
+
+    # no own settlement at all → False
+    no_own_world = WorldMap(
+        [other],
+        [],
+        parties={},
+        settlements={other: foreign_settlement},
+    )
+    assert player_can_muster(no_own_world, game, "player") is False
 
 
 def test_recommended_order_text_maps_action_and_target_to_description():
