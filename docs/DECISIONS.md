@@ -168,3 +168,4 @@
 | K26.2a | Wiersz księstwa — bohater | `render_game_page`: element `data-duchy` dokłada `data-hero` (`"true"`/`"false"` z `duchy.has_hero`) + tekst `, bohater tak|nie` po `morale K`. |
 | K26.2b | Wiersz księstwa — dziedzic | Element `data-duchy` dokłada `data-heir` (`"true"`/`"false"` z `duchy.heir is not None`) + tekst `, dziedzic tak|nie` po części o bohaterze. |
 | K27.1a | Panel party — ranni | `render_party_panel`: wiersz party dokłada `data-wounded` (liczba jednostek spośród `(hero, *units)` z niepustą `wounds`) + sufiks tekstu ` · ranni: W`. |
+| K27.2a | Panel osad — ranni w garnizonie | `render_settlement_panel`: wiersz osady dokłada `data-garrison-wounded` (liczba jednostek garnizonu z niepustą `wounds`) + sufiks tekstu ` · ranni: W` po budynkach. |

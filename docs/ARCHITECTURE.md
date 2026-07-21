@@ -91,7 +91,7 @@ tuple[int, int, int]` — czysty helper `(hp, attack, defense)` = suma
 `Unit.hp` / `Unit.damage` / `Unit.defense` po sekwencji jednostek (pusta →
 `(0, 0, 0)`); bez mutacji wejść. Reużywany przez panele party i osad.
 
-**Panel osad HTML (K22.1a–b / K23.3a / K25.2a–b / K26.1a–b):** `tbbui.settlementpanel.render_settlement_panel(world, player_duchy_id=None)
+**Panel osad HTML (K22.1a–b / K23.3a / K25.2a–b / K26.1a–b / K27.2a):** `tbbui.settlementpanel.render_settlement_panel(world, player_duchy_id=None)
 -> str` — parsowalny fragment XML z korzeniem `<div data-settlement-panel="">`;
 po jednym `<div data-settlement-row="<region.name>">` na region z osadą w
 kolejności `world.regions` (region bez osady → brak wiersza). Atrybuty wiersza:
@@ -99,15 +99,17 @@ kolejności `world.regions` (region bez osady → brak wiersza). Atrybuty wiersz
 `data-population`/`data-free`/`data-garrison` (`population`/`free`/
 `len(garrison)`), `data-garrison-hp` / `data-garrison-attack` /
 `data-garrison-defense` (z `combat_totals(garrison)`; pusty → `0`),
-`data-buildings` (`len(active_buildings)`) i `data-building-names` (nazwy
-`active_buildings` złączone `", "`, pusty → `""`). Gdy
+`data-buildings` (`len(active_buildings)`), `data-building-names` (nazwy
+`active_buildings` złączone `", "`, pusty → `""`) oraz
+`data-garrison-wounded` (liczba jednostek garnizonu z niepustą krotką `wounds`;
+pusty garnizon → `0`). Gdy
 `player_duchy_id` nie jest `None`, wiersze z `owner_id == player_duchy_id`
 dostają `data-player-owned=""`; `None` (domyślnie) → wynik bajt-w-bajt jak bez
 argumentu. Obok atrybutów widoczny tekst
 `<Settlement.name> (<owner_id lub „—">): pszenica W, złoto G · populacja P
 (wolne F), garnizon N · siła garnizonu: HP H, atak A, obrona D · budynki: B
-(nazwa1, …)` (nawias z nazwami tylko gdy `B>0`) zgodny z atrybutami. Czyste,
-deterministyczne, bez mutacji `world`; rdzeń bez zmian.
+(nazwa1, …) · ranni: W` (nawias z nazwami tylko gdy `B>0`) zgodny z atrybutami.
+Czyste, deterministyczne, bez mutacji `world`; rdzeń bez zmian.
 
 **Panel party HTML (K22.2a / K24.1a / K25.1a / K25.1b / K27.1a):** `tbbui.partypanel.render_party_panel(world,
 player_duchy_id=None) -> str` — parsowalny fragment XML z korzeniem

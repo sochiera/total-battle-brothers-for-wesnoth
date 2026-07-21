@@ -19,12 +19,15 @@ def render_settlement_panel(
     (sums of ``Unit.hp`` / ``Unit.damage`` / ``Unit.defense`` over the garrison;
     empty → 0) / ``data-buildings`` (``len(active_buildings)``; none → 0) /
     ``data-building-names`` (building names joined by ``", "`` in
-    ``active_buildings`` order; empty → ``""``) and visible text matching those
+    ``active_buildings`` order; empty → ``""``) /
+    ``data-garrison-wounded`` (count of garrison units with a non-empty
+    ``wounds`` tuple; empty garrison → 0) and visible text matching those
     attributes, including the
     `` · siła garnizonu: HP H, atak A, obrona D · budynki: N`` suffix and, when
-    N>0, `` (name1, name2)`` after the count. When ``player_duchy_id`` is not
-    ``None``, rows whose ``owner_id`` matches get ``data-player-owned=""``.
-    Pure and deterministic: no RNG/IO; ``world`` is not mutated.
+    N>0, `` (name1, name2)`` after the count, then `` · ranni: W``. When
+    ``player_duchy_id`` is not ``None``, rows whose ``owner_id`` matches get
+    ``data-player-owned=""``. Pure and deterministic: no RNG/IO; ``world`` is
+    not mutated.
     """
     rows: list[str] = []
     for region in world.regions:
@@ -41,6 +44,7 @@ def render_settlement_panel(
         garrison_hp, garrison_attack, garrison_defense = combat_totals(
             settlement.garrison
         )
+        garrison_wounded = sum(1 for unit in settlement.garrison if unit.wounds)
         buildings = len(settlement.active_buildings)
         building_names = ", ".join(b.name for b in settlement.active_buildings)
         buildings_suffix = (
@@ -54,6 +58,7 @@ def render_settlement_panel(
             f" · siła garnizonu: HP {garrison_hp}"
             f", atak {garrison_attack}, obrona {garrison_defense}"
             f"{buildings_suffix}"
+            f" · ranni: {garrison_wounded}"
         )
         player_owned = (
             ' data-player-owned=""'
@@ -73,6 +78,7 @@ def render_settlement_panel(
             f' data-garrison-defense="{garrison_defense}"'
             f' data-buildings="{buildings}"'
             f' data-building-names="{building_names}"'
+            f' data-garrison-wounded="{garrison_wounded}"'
             f"{player_owned}"
             f">{text}</div>"
         )

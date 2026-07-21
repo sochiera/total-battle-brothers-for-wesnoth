@@ -349,11 +349,13 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   `data-gold`/`data-population`/`data-free`/`data-garrison`/
   `data-garrison-hp`/`data-garrison-attack`/`data-garrison-defense` (sumy
   `Unit.hp`/`Unit.damage`/`Unit.defense` po garnizonie; pusty → `0`),
-  `data-buildings` (`len(active_buildings)`) i `data-building-names` (nazwy
-  `active_buildings` złączone `", "`, pusty → `""`) oraz widoczny tekst
+  `data-buildings` (`len(active_buildings)`), `data-building-names` (nazwy
+  `active_buildings` złączone `", "`, pusty → `""`) oraz
+  `data-garrison-wounded` (liczba jednostek garnizonu z niepustą krotką
+  `wounds`; pusty garnizon → `0`) oraz widoczny tekst
   `<nazwa> (<owner|„—">): pszenica W, złoto G · populacja P (wolne F),
-  garnizon N · siła garnizonu: HP H, atak A, obrona D · budynki: B (nazwa1, …)`
-  (nawias z nazwami tylko gdy `B>0`) zgodny z atrybutami; przy
+  garnizon N · siła garnizonu: HP H, atak A, obrona D · budynki: B (nazwa1, …)
+  · ranni: W` (nawias z nazwami tylko gdy `B>0`) zgodny z atrybutami; przy
   `player_duchy_id` wiersze z `owner_id` gracza mają `data-player-owned=""`.
   Czysty, deterministyczny.
 - `render_party_panel(world, player_duchy_id=None)` — fragment `data-party-panel`
