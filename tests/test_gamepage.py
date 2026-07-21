@@ -714,3 +714,15 @@ def test_render_game_page_player_result_text_from_player_perspective():
     assert len(draw_els) == 1
     assert draw_els[0].get("data-player-result-text") == "Remis"
     assert (draw_els[0].text or "").strip() == "Remis"
+
+
+def test_render_game_page_omits_player_result_text_when_player_duchy_id_none():
+    """Default / explicit ``player_duchy_id=None``: no ``data-player-result-text``."""
+    world, game, calendar = _ongoing_fixture()
+    baseline_html = render_game_page(world, game, calendar)
+
+    assert render_game_page(world, game, calendar, player_duchy_id=None) == baseline_html
+
+    root = ET.fromstring(baseline_html)
+    assert _find_by_attr(root, "data-player-result-text") == []
+    assert "data-player-result-text" not in baseline_html
