@@ -196,7 +196,7 @@ HP H, atak A, obrona D` zgodny z atrybutami. Gdy `player_duchy_id` jest
 liczbowych i bez tekstu). Czyste, deterministyczne, bez mutacji `game`;
 rdzeń bez zmian.
 
-**Strona HTML partii (V13.4a / K16.1a / K17.1b / K20.1a / K20.1b / K21.1a / K22.1c / K22.2b / K23.1b / K23.2a / K23.3b / K24.1b / K24.2b / K26.2a–b / K27.3a–b / K30.3c / K31.2a / K32.1a / K32.1b / K32.1c / K33.1c / K34.1b):** `tbbui.gamepage.render_game_page(world,
+**Strona HTML partii (V13.4a / K16.1a / K17.1b / K20.1a / K20.1b / K21.1a / K22.1c / K22.2b / K23.1b / K23.2a / K23.3b / K24.1b / K24.2b / K26.2a–b / K27.3a–b / K30.3c / K31.2a / K32.1a / K32.1b / K32.1c / K33.1c / K34.1b / K35.1b):** `tbbui.gamepage.render_game_page(world,
 game, calendar, battle=None, player_duchy_id=None) -> str` — parsowalny HTML z korzeniem `<html>`;
 dokładnie jeden `<head>` z `<title>Total Battle Brothers</title>` (K32.1a)
 bezpośrednio przed `<body>` (tytuł stały, niezależny od `player_duchy_id` /
@@ -230,7 +230,7 @@ elemencie `data-duchy` (= `duchy_id`) na każde `game.duchies` z `data-morale`,
 (`"true"`/`"false"` z `Duchy.has_hero` / `heir is not None`) oraz widocznym
 tekstem `<duchy_id>: osady N, party M, morale K, bohater tak|nie, dziedzic tak|nie`
 (zgodnym z atrybutami); opcjonalny
-`player_duchy_id` (K23.2a / K23.3b / K24.1b / K24.2b / K30.3c / K31.2a / K33.1c / K34.1b) — gdy równa się
+`player_duchy_id` (K23.2a / K23.3b / K24.1b / K24.2b / K30.3c / K31.2a / K33.1c / K34.1b / K35.1b) — gdy równa się
 `duchy_id` wiersza, ten element dostaje `data-player-duchy=""` i prefiks `» `
 przed tekstem statusu, w osadzonych panelach osad i party wiersze z
 `owner_id == player_duchy_id` dostają `data-player-owned=""`, a w osadzonej
@@ -241,13 +241,15 @@ dokładnie jeden `data-player-summary`), zaraz po nim kanoniczny string z
 `render_victory_progress(game, player_duchy_id)` (K33.1c, dokładnie jeden
 `data-victory-progress`), zaraz po postępie kanoniczny string z
 `render_next_objective(game, player_duchy_id)` (K34.1b, dokładnie jeden
-`data-next-objective`) oraz dokładnie jeden
+`data-next-objective`), zaraz po podpowiedzi kanoniczny string z
+`render_enemy_hero_locator(world, game, player_duchy_id)` (K35.1b, dokładnie
+jeden `data-hero-locator`) oraz dokładnie jeden
 `<p data-player-result-text="…">…</p>` z `_player_result_text` (K31.2a:
 `Gra w toku` / `Zwycięstwo Twojego księstwa` / `Porażka Twojego księstwa` /
 `Remis` wg `game.is_over` i `game.winner` względem `player_duchy_id`); `None`
 (domyślnie) → bajt-w-bajt jak bez argumentu (bez `data-player-summary`, bez
-`data-victory-progress`, bez `data-next-objective` i bez
-`data-player-result-text`);
+`data-victory-progress`, bez `data-next-objective`, bez `data-hero-locator` i
+bez `data-player-result-text`);
 element `data-result` = `duchy_id` zwycięzcy / `draw` / `ongoing` wg
 `game.is_over` i `game.winner`; zawsze `<p data-result-text="…">` z czytelnym
 tekstem z `_result_text` (`Gra w toku` / `Remis` / `Zwycięstwo: <duchy_id>`) —

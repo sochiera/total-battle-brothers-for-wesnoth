@@ -424,7 +424,9 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   kanoniczny `render_victory_progress(game, player_duchy_id)` (K33.1c, dokładnie
   jeden `data-victory-progress`), a zaraz po postępie kanoniczny
   `render_next_objective(game, player_duchy_id)` (K34.1b, dokładnie jeden
-  `data-next-objective`); `None` → bajt-w-bajt jak dotąd. Przy
+  `data-next-objective`), a zaraz po podpowiedzi kanoniczny
+  `render_enemy_hero_locator(world, game, player_duchy_id)` (K35.1b, dokładnie
+  jeden `data-hero-locator`); `None` → bajt-w-bajt jak dotąd. Przy
   `player_duchy_id is not None` osadza też
   `<p data-player-result-text>` z wynikiem z perspektywy gracza (`Gra w toku` /
   `Zwycięstwo Twojego księstwa` / `Porażka Twojego księstwa` / `Remis` wg

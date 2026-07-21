@@ -23,6 +23,7 @@ from tbbui.palette import owner_palette
 from tbbui.partypanel import render_party_panel
 from tbbui.playersummary import render_player_summary
 from tbbui.settlementpanel import render_settlement_panel
+from tbbui.herolocator import render_enemy_hero_locator
 from tbbui.nextobjective import render_next_objective
 from tbbui.victoryprogress import render_victory_progress
 from tbbui.worldsvg import render_world_svg
@@ -686,6 +687,36 @@ def test_render_game_page_embeds_canonical_next_objective_after_victory_progress
     objective_els = _find_by_attr(root, "data-next-objective")
     assert len(objective_els) == 1
     assert objective_els[0] in list(body.iter())
+
+
+def test_render_game_page_embeds_canonical_enemy_hero_locator_after_next_objective():
+    """``player_duchy_id`` embeds one canonical ``render_enemy_hero_locator`` after objective.
+
+    Exactly one ``data-hero-locator`` in ``<body>``; string equals
+    ``render_enemy_hero_locator(world, game, player_duchy_id)`` and sits
+    immediately after the embedded ``render_next_objective`` output.
+    """
+    world, game, calendar = _ongoing_fixture()
+    expected_objective = render_next_objective(game, "north")
+    expected_locator = render_enemy_hero_locator(world, game, "north")
+
+    html = render_game_page(world, game, calendar, player_duchy_id="north")
+
+    assert expected_locator in html, (
+        "page must embed render_enemy_hero_locator(world, game, player_duchy_id) "
+        "output"
+    )
+    assert html.count(expected_locator) == 1
+    assert html.index(expected_objective) + len(expected_objective) == html.index(
+        expected_locator
+    ), "hero locator must sit directly after the embedded next objective"
+
+    root = ET.fromstring(html)
+    assert _local(root.tag) == "html"
+    body = next(el for el in root if _local(el.tag) == "body")
+    locator_els = _find_by_attr(root, "data-hero-locator")
+    assert len(locator_els) == 1
+    assert locator_els[0] in list(body.iter())
 
 
 def test_render_game_page_omits_victory_progress_when_player_duchy_id_none():
