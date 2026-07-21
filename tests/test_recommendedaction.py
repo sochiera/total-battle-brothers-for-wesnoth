@@ -2388,3 +2388,167 @@ def test_recommended_battle_is_risky_false_when_forecast_is_none():
         None,
     )
     _assert_not_risky(develop_world, "player")
+
+
+def test_recommended_battle_is_risky_true_iff_own_less_than_enemy():
+    """When ``recommended_battle_forecast`` is ``(own, enemy)``,
+    ``recommended_battle_is_risky(...)`` returns ``True`` iff ``own < enemy``,
+    otherwise ``False`` — same threshold as the ``ryzyko`` / ``przewaga``
+    verdict in ``recommended_battle_forecast_text`` (K52.1a).
+
+    Contract: pure and deterministic (no RNG/IO; does not mutate ``world`` or
+    ``game``); delegates the forecast decision to ``recommended_battle_forecast``
+    as the sole source of the prediction.
+    """
+    recommended_battle_forecast = recommendedaction.recommended_battle_forecast
+    recommended_battle_is_risky = recommendedaction.recommended_battle_is_risky
+    recommended_battle_forecast_text = (
+        recommendedaction.recommended_battle_forecast_text
+    )
+    home = Region("Home")
+    enemy_camp = Region("EnemyCamp")
+    field = Region("Field")
+    other_n = Region("OtherN")
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+
+    def _assert_risk(world: WorldMap, own: int, enemy: int) -> None:
+        assert recommended_battle_forecast(world, game, "player") == (
+            own,
+            enemy,
+        )
+        expected_risky = own < enemy
+        verdict = "ryzyko" if expected_risky else "przewaga"
+        assert recommended_battle_forecast_text(
+            world, game, "player"
+        ) == f"Przewidywana siła: Ty {own} vs wróg {enemy} — {verdict}"
+
+        regions_before = world.regions
+        parties_before = {r: world.party_at(r) for r in world.regions}
+        settlements_before = {
+            r: world.settlement_at(r) for r in world.regions
+        }
+        duchies_before = game.duchies
+
+        assert recommended_battle_is_risky(world, game, "player") is (
+            expected_risky
+        )
+
+        assert world.regions == regions_before
+        assert {
+            r: world.party_at(r) for r in world.regions
+        } == parties_before
+        assert {
+            r: world.settlement_at(r) for r in world.regions
+        } == settlements_before
+        assert game.duchies == duchies_before
+
+    # own > enemy → not risky (assault: strong party vs weak garrison)
+    hero = Unit(training=3, equipment=2)
+    companion = Unit(training=1)
+    garrison = (Unit(training=1), Unit(equipment=1))
+    own_strong = sum(combat_totals((hero, companion)))
+    enemy_weak = sum(combat_totals(garrison))
+    assert own_strong > enemy_weak
+
+    przewaga_world = WorldMap(
+        [home, enemy_camp],
+        [(home, enemy_camp)],
+        parties={
+            home: Party(hero=hero, units=(companion,), owner_id="player"),
+        },
+        settlements={
+            enemy_camp: Settlement(
+                "EnemyS",
+                population=2,
+                owner_id="enemy",
+                garrison=garrison,
+            ),
+        },
+    )
+    assert net_posture(
+        advantageous_target_count(przewaga_world, game, "player"),
+        threatened_position_count(przewaga_world, game, "player"),
+    ) == "offensive"
+    assert recommended_order(przewaga_world, game, "player") == (
+        "assault",
+        enemy_camp.name,
+    )
+    _assert_risk(przewaga_world, own_strong, enemy_weak)
+    assert recommended_battle_is_risky(przewaga_world, game, "player") is False
+
+    # own == enemy → not risky (defend: equal garrison vs adjacent party)
+    keep = Region("Keep")
+    eq_garrison = (Unit(training=2),)
+    eq_enemy_hero = Unit(training=2)
+    own_eq = sum(combat_totals(eq_garrison))
+    enemy_eq = sum(combat_totals((eq_enemy_hero,)))
+    assert own_eq == enemy_eq
+    equal_world = WorldMap(
+        [keep, enemy_camp],
+        [(keep, enemy_camp)],
+        parties={
+            keep: Party(
+                hero=Unit(training=5, equipment=3),
+                units=(Unit(training=4),),
+                owner_id="player",
+            ),
+            enemy_camp: Party(
+                hero=eq_enemy_hero, units=(), owner_id="enemy"
+            ),
+        },
+        settlements={
+            keep: Settlement(
+                "KeepS",
+                population=2,
+                owner_id="player",
+                garrison=eq_garrison,
+            ),
+        },
+    )
+    assert net_posture(
+        advantageous_target_count(equal_world, game, "player"),
+        threatened_position_count(equal_world, game, "player"),
+    ) == "defensive"
+    assert recommended_order(equal_world, game, "player") == (
+        "defend",
+        keep.name,
+    )
+    _assert_risk(equal_world, own_eq, enemy_eq)
+    assert recommended_battle_is_risky(equal_world, game, "player") is False
+
+    # own < enemy → risky (defend: weak party vs strong neighbor)
+    field_hero = Unit(training=3, equipment=2)
+    field_units = (Unit(training=1),)
+    field_enemy_hero = Unit(training=20)
+    own_weak = sum(combat_totals((field_hero, *field_units)))
+    enemy_strong = sum(combat_totals((field_enemy_hero,)))
+    assert own_weak < enemy_strong
+
+    ryzyko_world = WorldMap(
+        [field, other_n, enemy_camp],
+        [(field, other_n), (field, enemy_camp)],
+        parties={
+            field: Party(
+                hero=field_hero, units=field_units, owner_id="player"
+            ),
+            enemy_camp: Party(
+                hero=field_enemy_hero, units=(), owner_id="enemy"
+            ),
+        },
+        settlements={},
+    )
+    assert net_posture(
+        advantageous_target_count(ryzyko_world, game, "player"),
+        threatened_position_count(ryzyko_world, game, "player"),
+    ) == "defensive"
+    assert recommended_order(ryzyko_world, game, "player") == (
+        "defend",
+        field.name,
+    )
+    _assert_risk(ryzyko_world, own_weak, enemy_strong)
+    assert recommended_battle_is_risky(ryzyko_world, game, "player") is True
