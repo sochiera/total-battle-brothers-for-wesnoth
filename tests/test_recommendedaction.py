@@ -497,6 +497,167 @@ def test_recommended_order_reason_empty_when_recommended_order_is_none():
     assert game.duchies == duchies_before
 
 
+def test_recommended_order_reason_exact_text_per_action_from_recommended_order():
+    """When ``recommended_order`` returns ``(action, target)``,
+    ``recommended_order_reason`` returns the exact K50.1a text per action.
+
+    Contract: ``muster`` → ``"Masz bohatera i wolną osadę, lecz żaden oddział
+    nie stoi na mapie"``; ``assault`` →
+    ``f"Twój oddział ma przewagę nad garnizonem osady {target}"``; ``engage`` →
+    ``f"Twój oddział ma przewagę nad wrogim oddziałem w {target}"``; ``defend`` →
+    ``f"Pozycję {target} zagraża sąsiedni wrogi oddział"``; ``march`` →
+    ``f"Brak celów i zagrożeń w zasięgu; najbliższa wroga osada to {target}"``;
+    ``develop`` → ``"Brak zagrożeń i celów w zasięgu — rozwijaj gospodarkę"``.
+    Decision source is solely ``recommended_order`` (reason target matches);
+    pure and deterministic (no world/game mutation).
+    """
+    recommended_order_reason = recommendedaction.recommended_order_reason
+    player_can_muster = recommendedaction.player_can_muster
+    player_march_target = recommendedaction.player_march_target
+    home = Region("Home")
+    keep = Region("Keep")
+    enemy_camp = Region("EnemyCamp")
+    weak_a = Region("WeakA")
+    weak_b = Region("WeakB")
+    road = Region("Road")
+    far_enemy = Region("FarEnemy")
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+
+    def _assert_reason(world: WorldMap, expected: str) -> None:
+        order = recommended_order(world, game, "player")
+        assert order is not None
+        regions_before = world.regions
+        parties_before = {r: world.party_at(r) for r in world.regions}
+        settlements_before = {
+            r: world.settlement_at(r) for r in world.regions
+        }
+        duchies_before = game.duchies
+
+        assert recommended_order_reason(world, game, "player") == expected
+
+        assert world.regions == regions_before
+        assert {
+            r: world.party_at(r) for r in world.regions
+        } == parties_before
+        assert {
+            r: world.settlement_at(r) for r in world.regions
+        } == settlements_before
+        assert game.duchies == duchies_before
+
+    # muster: hero + free own settlement, no party on map
+    muster_world = WorldMap(
+        [keep, enemy_camp],
+        [(keep, enemy_camp)],
+        parties={
+            enemy_camp: Party(hero=Unit(), units=(), owner_id="enemy"),
+        },
+        settlements={
+            keep: Settlement("KeepS", population=2, owner_id="player"),
+        },
+    )
+    assert player_can_muster(muster_world, game, "player") is True
+    assert recommended_order(muster_world, game, "player") == ("muster", None)
+    _assert_reason(
+        muster_world,
+        "Masz bohatera i wolną osadę, lecz żaden oddział nie stoi na mapie",
+    )
+
+    # assault: offensive + settlement target
+    assault_world = WorldMap(
+        [home, enemy_camp],
+        [(home, enemy_camp)],
+        parties={home: Party(hero=Unit(), units=(), owner_id="player")},
+        settlements={
+            enemy_camp: Settlement(
+                "EnemyS", population=2, owner_id="enemy"
+            ),
+        },
+    )
+    order = recommended_order(assault_world, game, "player")
+    assert order == ("assault", enemy_camp.name)
+    _assert_reason(
+        assault_world,
+        f"Twój oddział ma przewagę nad garnizonem osady {order[1]}",
+    )
+
+    # engage: offensive + party target (M=2 > N=1)
+    engage_world = WorldMap(
+        [home, weak_a, weak_b],
+        [(home, weak_a), (home, weak_b)],
+        parties={
+            home: Party(hero=Unit(), units=(), owner_id="player"),
+            weak_a: Party(hero=Unit(), units=(), owner_id="enemy"),
+            weak_b: Party(hero=Unit(), units=(), owner_id="enemy"),
+        },
+        settlements={},
+    )
+    order = recommended_order(engage_world, game, "player")
+    assert order is not None
+    assert order[0] == "engage"
+    _assert_reason(
+        engage_world,
+        f"Twój oddział ma przewagę nad wrogim oddziałem w {order[1]}",
+    )
+
+    # defend: defensive posture, party fielded (no muster)
+    defensive_world = WorldMap(
+        [keep, enemy_camp],
+        [(keep, enemy_camp)],
+        parties={
+            keep: Party(hero=Unit(), units=(), owner_id="player"),
+            enemy_camp: Party(hero=Unit(), units=(), owner_id="enemy"),
+        },
+        settlements={
+            keep: Settlement("KeepS", population=2, owner_id="player"),
+        },
+    )
+    order = recommended_order(defensive_world, game, "player")
+    assert order is not None
+    assert order[0] == "defend"
+    _assert_reason(
+        defensive_world,
+        f"Pozycję {order[1]} zagraża sąsiedni wrogi oddział",
+    )
+
+    # march: balanced + distant enemy settlement
+    march_world = WorldMap(
+        [home, road, far_enemy],
+        [(home, road), (road, far_enemy)],
+        parties={home: Party(hero=Unit(), units=(), owner_id="player")},
+        settlements={
+            far_enemy: Settlement("FarS", population=2, owner_id="enemy"),
+        },
+    )
+    target = player_march_target(march_world, game, "player")
+    assert target is not None
+    assert recommended_order(march_world, game, "player") == ("march", target)
+    _assert_reason(
+        march_world,
+        f"Brak celów i zagrożeń w zasięgu; najbliższa wroga osada to {target}",
+    )
+
+    # develop: balanced, no march target
+    develop_world = WorldMap(
+        [home],
+        [],
+        parties={home: Party(hero=Unit(), units=(), owner_id="player")},
+        settlements={},
+    )
+    assert recommended_order(develop_world, game, "player") == (
+        "develop",
+        None,
+    )
+    _assert_reason(
+        develop_world,
+        "Brak zagrożeń i celów w zasięgu — rozwijaj gospodarkę",
+    )
+
+
 def test_recommended_order_offensive_assault_and_engage_from_first_advantageous_target():
     """Offensive posture: ``recommended_order`` returns
     ``("assault", <region>)`` when ``first_advantageous_target`` has
