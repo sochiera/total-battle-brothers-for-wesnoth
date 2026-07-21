@@ -18,7 +18,7 @@ from tbb.turn import Calendar
 from tbb.unit import Unit
 from tbb.world import Region, WorldMap
 from tbbui.battlesvg import render_battle_svg
-from tbbui.serve import GameApp
+from tbbui.serve import GameApp, recommended_order_path
 from tbbui.turnsummary import render_turn_summary
 
 
@@ -3695,4 +3695,15 @@ def test_game_app_post_new_orders_and_is_over_turn_clear_previous_game():
     assert finished.previous_game is None
     assert _find_by_attr(ET.fromstring(body_fin), "data-turn-summary") == []
     assert "data-turn-summary" not in body_fin
+
+
+def test_recommended_order_path_assault_and_engage():
+    """``recommended_order_path`` maps assault/engage to existing POST routes (K42.1b).
+
+    Contract (task-204): pure ``tbbui.serve.recommended_order_path(action) -> str``
+    reuses player order routes — ``"assault"`` → ``"/order/assault"``,
+    ``"engage"`` → ``"/order/engage"``. Deterministic, no IO.
+    """
+    assert recommended_order_path("assault") == "/order/assault"
+    assert recommended_order_path("engage") == "/order/engage"
 

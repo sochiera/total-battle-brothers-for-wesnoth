@@ -73,6 +73,23 @@ _MARCH_SECTION_HEADER = '<h2 data-order-section="march">Marsz</h2>'
 _ASSAULT_SECTION_HEADER = '<h2 data-order-section="assault">Szturm</h2>'
 _ENGAGE_SECTION_HEADER = '<h2 data-order-section="engage">Starcie</h2>'
 
+_RECOMMENDED_ORDER_PATHS = {
+    "assault": "/order/assault",
+    "engage": "/order/engage",
+    "defend": "/order/march",
+    "develop": "/order/develop",
+}
+
+
+def recommended_order_path(action: str) -> str:
+    """Map recommendation machine action to an existing POST order route (K42.1b).
+
+    Pure and deterministic: ``assault``/``engage``/``develop`` keep their
+    names; ``defend`` reuses ``/order/march`` (move the party to the threatened
+    position). Unknown actions raise ``KeyError``.
+    """
+    return _RECOMMENDED_ORDER_PATHS[action]
+
 
 def _march_targets(world: WorldMap, player_duchy_id: str) -> tuple[Region, ...]:
     """Regions with a foreign-owned settlement, in ``world.regions`` order."""
