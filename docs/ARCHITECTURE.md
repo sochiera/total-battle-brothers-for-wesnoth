@@ -357,7 +357,7 @@ przewagę nad wrogim oddziałem w {target}"`; `defend` → `"Pozycję {target}
 zagraża sąsiedni wrogi oddział"`; `march` → `"Brak celów i zagrożeń w
 zasięgu; najbliższa wroga osada to {target}"`; `develop` → `"Brak zagrożeń i
 celów w zasięgu — rozwijaj gospodarkę"`.
-Prognoza siły bitwy (K51.1a / K51.1b):
+Prognoza siły bitwy (K51.1a / K51.1b / K51.1c):
 `recommended_battle_forecast(world, game, player_duchy_id=None) ->
 tuple[int, int] | None` — `None` gdy `recommended_order(...) is None` albo
 akcja spoza `{"assault", "engage", "defend"}` (`march`/`develop`/`muster` →
@@ -372,6 +372,12 @@ w `R`; `enemy_total` z pierwszej sąsiedniej wrogiej party
 co alert zagrożeń); region celu po nazwie w `world.regions`; reużywa
 `recommended_order` / `maplookup.first_party_region` /
 `maplookup.is_hostile_owner` / `unitstrength.combat_totals`.
+Czytelny tekst (K51.1c):
+`recommended_battle_forecast_text(world, game, player_duchy_id=None) -> str` —
+`""` gdy `recommended_battle_forecast(...) is None`; inaczej dokładnie
+`f"Przewidywana siła: Ty {own} vs wróg {enemy} — {verdict}"` z
+`verdict="przewaga"` przy `own >= enemy`, inaczej `"ryzyko"`; czysty helper
+nad `recommended_battle_forecast`, bez mutacji.
 Osadzony w `render_game_page` zaraz po `data-situation-report` (K41.3a).
 Czyste, deterministyczne, bez mutacji `world`/`game`; rdzeń bez zmian.
 

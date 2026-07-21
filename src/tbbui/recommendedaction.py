@@ -198,6 +198,29 @@ def recommended_battle_forecast(
     return (own_total, enemy_total)
 
 
+def recommended_battle_forecast_text(
+    world: WorldMap,
+    game: GameState,
+    player_duchy_id: str | None = None,
+) -> str:
+    """Return a human-readable battle-strength forecast for the advice line.
+
+    Returns ``""`` when ``recommended_battle_forecast(world, game,
+    player_duchy_id) is None`` (no player, or non-battle orders muster /
+    march / develop). When the forecast is ``(own, enemy)``, returns exactly
+    ``f"Przewidywana siła: Ty {own} vs wróg {enemy} — {verdict}"`` with
+    ``verdict = "przewaga"`` if ``own >= enemy``, else ``"ryzyko"``. Pure and
+    deterministic: no RNG/IO; does not mutate ``world`` or ``game``; delegates
+    the forecast decision to ``recommended_battle_forecast`` (K51.1c).
+    """
+    forecast = recommended_battle_forecast(world, game, player_duchy_id)
+    if forecast is None:
+        return ""
+    own, enemy = forecast
+    verdict = "przewaga" if own >= enemy else "ryzyko"
+    return f"Przewidywana siła: Ty {own} vs wróg {enemy} — {verdict}"
+
+
 def recommended_order_text(action: str, target_name: str | None) -> str:
     """Descriptive half of the advice line (no ``Zalecany rozkaz: `` prefix).
 
