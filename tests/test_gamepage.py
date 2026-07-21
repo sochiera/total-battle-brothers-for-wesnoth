@@ -396,8 +396,11 @@ def test_render_game_page_settlements_header_precedes_settlement_panel():
 
     root = ET.fromstring(html)
     headers = _find_by_attr(root, "data-panel-section")
-    assert [el.get("data-panel-section") for el in headers] == ["settlements"]
-    assert [el.text for el in headers] == ["Osady"]
+    assert [el.get("data-panel-section") for el in headers] == [
+        "settlements",
+        "parties",
+    ]
+    assert [el.text for el in headers] == ["Osady", "Oddziały"]
 
 
 def test_render_game_page_embeds_canonical_party_panel_with_matching_rows():
@@ -421,6 +424,28 @@ def test_render_game_page_embeds_canonical_party_panel_with_matching_rows():
     assert [el.get("data-party-row") for el in row_els] == [
         region.name for region in party_regions
     ]
+
+
+def test_render_game_page_parties_header_precedes_party_panel():
+    """A single parties ``<h2>`` sits immediately before the embedded party panel."""
+    world, game, calendar = _ongoing_fixture()
+    expected_panel = render_party_panel(world)
+    header = '<h2 data-panel-section="parties">Oddziały</h2>'
+
+    html = render_game_page(world, game, calendar)
+
+    assert html.count(header) == 1
+    assert html.index(header) + len(header) == html.index(expected_panel), (
+        "header must sit directly before the embedded party panel"
+    )
+
+    root = ET.fromstring(html)
+    headers = _find_by_attr(root, "data-panel-section")
+    assert [el.get("data-panel-section") for el in headers] == [
+        "settlements",
+        "parties",
+    ]
+    assert [el.text for el in headers] == ["Osady", "Oddziały"]
 
 
 def test_render_game_page_embeds_canonical_owner_legend_with_matching_rows():

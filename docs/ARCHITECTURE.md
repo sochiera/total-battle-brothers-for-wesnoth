@@ -138,7 +138,7 @@ prefiks `» ` przed tekstem; id spoza palety → żaden wiersz nieoznaczony; `No
 korzeń (bez wierszy). Czyste, deterministyczne, bez mutacji `world`; rdzeń bez
 zmian.
 
-**Strona HTML partii (V13.4a / K16.1a / K17.1b / K20.1a / K20.1b / K21.1a / K22.1c / K22.2b / K23.1b / K23.2a / K23.3b / K24.1b / K24.2b / K26.2a–b / K27.3a):** `tbbui.gamepage.render_game_page(world,
+**Strona HTML partii (V13.4a / K16.1a / K17.1b / K20.1a / K20.1b / K21.1a / K22.1c / K22.2b / K23.1b / K23.2a / K23.3b / K24.1b / K24.2b / K26.2a–b / K27.3a–b):** `tbbui.gamepage.render_game_page(world,
 game, calendar, battle=None, player_duchy_id=None) -> str` — parsowalny HTML z korzeniem `<html>`;
 osadza kanoniczny string z `render_world_svg(world)`; zawsze osadza też
 kanoniczny string z `render_owner_legend(world, player_duchy_id)` (K23.1b /
@@ -146,10 +146,12 @@ K24.2b, dokładnie jeden `data-owner-legend` w `<body>`); opcjonalny
 `battle: HexBattle | None = None` — gdy podany, osadza w `<body>` kanoniczne
 stringi z `render_battle_svg(battle)` (`tbbui.battlesvg`) oraz
 `render_battle_report(battle)` (`tbbui.battlereport`); zawsze osadza też
-dokładnie jeden nagłówek sekcji
+nagłówki sekcji
 `<h2 data-panel-section="settlements">Osady</h2>` (K27.3a) bezpośrednio przed
 kanonicznym stringiem z `render_settlement_panel(world, player_duchy_id)`
-(K22.1c / K23.3b) oraz kanoniczny string z
+(K22.1c / K23.3b) oraz
+`<h2 data-panel-section="parties">Oddziały</h2>` (K27.3b) bezpośrednio przed
+kanonicznym stringiem z
 `render_party_panel(world, player_duchy_id)` (K22.2b / K24.1b); gdy
 `None` (domyślnie) wynik jest identyczny bajt-w-bajt jak bez argumentu; element
 `data-calendar` z `data-year` / `data-month` z podanego `Calendar` oraz

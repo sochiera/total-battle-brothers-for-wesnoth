@@ -46,7 +46,9 @@ def render_game_page(
     settlements section header
     (``<h2 data-panel-section="settlements">Osady</h2>``, K27.3a) immediately
     before the settlement panel from
-    ``render_settlement_panel(world, player_duchy_id)``, the party panel from
+    ``render_settlement_panel(world, player_duchy_id)``, a visible parties
+    section header (``<h2 data-panel-section="parties">Oddziały</h2>``,
+    K27.3b) immediately before the party panel from
     ``render_party_panel(world, player_duchy_id)``, a calendar stamp
     (``data-year`` / ``data-month`` plus visible text ``Rok N, miesiąc M``),
     one duchy panel row per ``game.duchies`` (machine ``data-*`` attributes
@@ -106,6 +108,7 @@ def render_game_page(
         battle_report = ""
 
     settlements_header = '<h2 data-panel-section="settlements">Osady</h2>'
+    parties_header = '<h2 data-panel-section="parties">Oddziały</h2>'
 
     return (
         "<html><body>"
@@ -115,6 +118,7 @@ def render_game_page(
         f"{battle_report}"
         f"{settlements_header}"
         f"{settlement_panel}"
+        f"{parties_header}"
         f"{party_panel}"
         f'<div data-calendar="" data-year="{calendar.year}"'
         f' data-month="{calendar.month}">'
