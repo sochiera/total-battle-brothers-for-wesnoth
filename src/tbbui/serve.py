@@ -16,6 +16,12 @@ from tbb.turn import Calendar
 from tbb.world import Region, WorldMap
 from tbbui.gamepage import render_game_page
 
+_NEW_GAME_FORM = (
+    '<form method="post" action="/new">'
+    '<button type="submit">Nowa gra</button>'
+    "</form>"
+)
+
 _TURN_FORM = (
     '<form method="post" action="/turn">'
     '<button type="submit">Następna tura</button>'
@@ -391,6 +397,7 @@ class GameApp:
         extras = (
             f'<span data-player="{player_value}"></span>'
             f'<p data-notice="{notice_value}">{notice_value}</p>'
+            f"{_NEW_GAME_FORM}"
             f"{_TURN_FORM}"
             f"{_DEVELOP_SECTION_HEADER}{_recruit_form()}{_MUSTER_FORM}"
             f"{_DEVELOP_FORM}"

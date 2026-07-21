@@ -1250,6 +1250,37 @@ def test_game_app_post_new_same_seed_converges_get_bodies():
     assert body_a == body_b
 
 
+def test_game_app_get_embeds_exactly_one_new_game_form_with_button():
+    """GET / contains exactly one POST /new form with button „Nowa gra" (K31.1b).
+
+    Contract (task-158 / K31.1b):
+    - GET / embeds exactly one ``<form method="post" action="/new">``
+    - that form's submit button text is ``Nowa gra``
+    """
+    world, game = _ongoing_world_game()
+    app = GameApp(
+        world, game, Calendar(year=1, month=1), Rng(17), player_duchy_id="north"
+    )
+
+    code, body = app.handle("GET", "/")
+    assert code == 200
+    assert isinstance(body, str)
+    assert body.strip() != ""
+    root = ET.fromstring(body)
+    assert _local(root.tag) == "html"
+
+    new_forms = [
+        el
+        for el in root.iter()
+        if _local(el.tag) == "form"
+        and (el.get("method") or "").lower() == "post"
+        and (el.get("action") or "") == "/new"
+    ]
+    assert len(new_forms) == 1
+    assert _has_post_form(body, "/new")
+    assert _form_submit_button_text(body, "/new") == "Nowa gra"
+
+
 def test_tbbui_serve_builds_game_app_with_player_duchy_id(monkeypatch):
     """python -m tbbui serve creates GameApp with player_duchy_id='player'.
 

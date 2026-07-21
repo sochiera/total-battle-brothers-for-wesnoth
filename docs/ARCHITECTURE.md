@@ -201,7 +201,7 @@ bitwy z rozkazu gracza — K16.1d.
 wyjścia (domyślnie `out/game.html`); katalog nadrzędny jest tworzony, gdy nie
 istnieje. Zwraca `0`. Dwa uruchomienia z tym samym seedem dają identyczną treść.
 
-**Routing podglądu (V13.5a / K14.1b / K14.2a–e2 / K15.1b–c / K15.2b–c / K21.2 / K31.1a):** `tbbui.serve.GameApp(world, game,
+**Routing podglądu (V13.5a / K14.1b / K14.2a–e2 / K15.1b–c / K15.2b–c / K21.2 / K31.1a–b):** `tbbui.serve.GameApp(world, game,
 calendar, rng, player_duchy_id=None, seed=None)` trzyma stan partii w pamięci i udostępnia
 czystą metodę `handle(method, path) -> (kod_http, treść)` — bez gniazda HTTP.
 Opcjonalny `seed` jest przechowywany na app (restart `POST /new` w K31.1a); domyślnie `None`.
@@ -219,6 +219,8 @@ rozkazu `<p data-notice="{escape(last_notice)}">{escape(last_notice)}</p>`
 (K28.1a / K29.1a — `GameApp.last_notice` inicjalizowane na `""`; ta sama
 escapowana wartość w atrybucie i w widocznym ciele akapitu; `html.escape`;
 K28.1b — `_apply_player_order` ustawia skutek rozkazu rozwoju) oraz formularze
+`<form method="post" action="/new">` (przycisk `Nowa gra`, K31.1b — zawsze w
+extras przed `/turn`, niezależnie od `is_over` i `player_duchy_id`),
 `<form method="post" action="/turn">` (przycisk `Następna tura`),
 `<form method="post" action="/order/recruit">` (`Rekrutuj (koszt złota: N)`
 z `tbb.settlement.RECRUIT_GOLD_COST`, K30.2a),
