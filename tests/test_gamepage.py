@@ -658,6 +658,21 @@ def test_render_game_page_embeds_canonical_victory_progress_after_player_summary
     assert progress_els[0] in list(body.iter())
 
 
+def test_render_game_page_omits_victory_progress_when_player_duchy_id_none():
+    """Default / explicit ``player_duchy_id=None``: no ``data-victory-progress``.
+
+    Default and explicit None are byte-for-byte identical (no progress panel).
+    """
+    world, game, calendar = _ongoing_fixture()
+    baseline_html = render_game_page(world, game, calendar)
+
+    assert render_game_page(world, game, calendar, player_duchy_id=None) == baseline_html
+
+    root = ET.fromstring(baseline_html)
+    assert _find_by_attr(root, "data-victory-progress") == []
+    assert "data-victory-progress" not in baseline_html
+
+
 def test_render_game_page_omits_player_summary_when_player_duchy_id_none():
     """Default / explicit ``player_duchy_id=None``: no ``data-player-summary``."""
     world, game, calendar = _ongoing_fixture()
