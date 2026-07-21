@@ -18,7 +18,7 @@ def format_log_entry(notice: str, calendar: Calendar) -> str:
     return f"Rok {calendar.year}, miesiąc {calendar.month} — {notice}"
 
 
-def render_order_log(entries: Sequence[str]) -> str:
+def render_order_log(entries: Sequence[str], at_limit: bool = False) -> str:
     """Return a parsable HTML fragment listing order-log text entries.
 
     Root is ``<div data-order-log="" data-count="N">`` where ``N`` is
@@ -33,7 +33,12 @@ def render_order_log(entries: Sequence[str]) -> str:
     first entry child = ``entries[-1]``, last = ``entries[0]``). The newest
     (first) entry also carries ``data-order-log-latest=""`` and a leading
     literal badge ``<span data-order-log-latest-badge="">najnowszy</span>``
-    before the escaped body; older entries have neither. Pure and
+    before the escaped body; older entries have neither. When
+    ``at_limit=True`` and ``entries`` is non-empty, after the last entry
+    child and before the root close, exactly one
+    ``<p data-order-log-truncated="">Pokazano ostatnie wpisy</p>`` is
+    appended; when ``at_limit=False`` or ``entries`` is empty that node is
+    omitted (default ``at_limit=False`` preserves prior output). Pure and
     deterministic: no RNG/IO; does not mutate ``entries``.
     """
     count = len(entries)
@@ -58,4 +63,9 @@ def render_order_log(entries: Sequence[str]) -> str:
                     f'<div data-order-log-entry="">{escaped}</div>'
                 )
         body = f"{header}{''.join(parts)}"
+        if at_limit:
+            body = (
+                f'{body}'
+                f'<p data-order-log-truncated="">Pokazano ostatnie wpisy</p>'
+            )
     return f'<div data-order-log="" data-count="{count}">{body}</div>'

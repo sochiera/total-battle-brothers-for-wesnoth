@@ -145,13 +145,13 @@ księstwa bez zmian nie dają wiersza; `data-change-count` = liczba dzieci
 `data-turn-duchy`. Czyste, deterministyczne, bez mutacji `before`/`after`;
 rdzeń bez zmian.
 
-**Dziennik rozkazów HTML (K43.1a / K44.1a / K44.2a / K44.2b / K45.1a / K45.2a / K45.3a):**
+**Dziennik rozkazów HTML (K43.1a / K44.1a / K44.2a / K44.2b / K45.1a / K45.2a / K45.3a / K45.4a):**
 `tbbui.orderlog.format_log_entry(notice, calendar) -> str` — czysty helper
 `f"Rok {calendar.year}, miesiąc {calendar.month} — {notice}"` (bez escapowania,
 bez mutacji; odczyt tylko `year`/`month`).
-`tbbui.orderlog.render_order_log(entries) -> str` — parsowalny fragment XML z
-korzeniem `<div data-order-log="" data-count="N">` (`N = len(entries)`; nagłówek
-nie jest liczony). Pierwszym dzieckiem zawsze jest
+`tbbui.orderlog.render_order_log(entries, at_limit=False) -> str` — parsowalny
+fragment XML z korzeniem `<div data-order-log="" data-count="N">`
+(`N = len(entries)`; nagłówek nie jest liczony). Pierwszym dzieckiem zawsze jest
 `<h2 data-order-log-header="">Dziennik rozkazów ({N})</h2>` (także dla pustej
 sekwencji z `N=0`). Dla pustej sekwencji po nagłówku dokładnie jedno
 `<p data-order-log-empty="">Brak rozkazów w tej kampanii</p>` i zero dzieci
@@ -162,8 +162,12 @@ kolejności `reversed(entries)` (najnowszy wpis pierwszy: pierwsze dziecko =
 `entries[-1]`, ostatnie = `entries[0]`). Najnowszy (pierwszy) wpis ma dodatkowo
 `data-order-log-latest=""` i zaczyna ciało od literału
 `<span data-order-log-latest-badge="">najnowszy</span>` przed escaped tekstem;
-pozostałe wpisy bez tych atrybutów. Czyste, deterministyczne, bez mutacji
-`entries`; rdzeń bez zmian.
+pozostałe wpisy bez tych atrybutów. Przy `at_limit=True` i niepustej sekwencji
+po ostatnim `data-order-log-entry` (przed zamknięciem korzenia) dokładnie jedno
+`<p data-order-log-truncated="">Pokazano ostatnie wpisy</p>`; przy
+`at_limit=False` lub pustej sekwencji brak tego elementu (domyślne
+`at_limit=False` zachowuje wyjście bajt-w-bajt jak przed K45.4a). Czyste,
+deterministyczne, bez mutacji `entries`; rdzeń bez zmian.
 
 **Podpowiedź następnego kroku HTML (K34.1a):**
 `tbbui.nextobjective.render_next_objective(game, player_duchy_id=None) -> str`

@@ -379,3 +379,42 @@ def test_render_order_log_header_includes_entry_count():
             f'<h2 data-order-log-header="">Dziennik rozkazów ({n})</h2>'
             in xml
         )
+
+
+def test_render_order_log_at_limit_true_nonempty_embeds_truncation_note():
+    """K45.4a: ``render_order_log(entries, at_limit=True)`` with non-empty
+    ``entries`` embeds exactly one
+    ``<p data-order-log-truncated="">Pokazano ostatnie wpisy</p>`` after the
+    last ``data-order-log-entry`` child and before the root ``</div>``; default
+    ``at_limit=False`` keeps the previous fragment byte-for-byte.
+    """
+    entries = ("oldest", "newest")
+    baseline = render_order_log(entries)
+    assert render_order_log(entries, at_limit=False) == baseline
+    assert "data-order-log-truncated" not in baseline
+
+    xml = render_order_log(entries, at_limit=True)
+    root = ET.fromstring(xml)
+    children = list(root)
+
+    note_literal = (
+        '<p data-order-log-truncated="">Pokazano ostatnie wpisy</p>'
+    )
+    assert note_literal in xml
+    assert xml.count("data-order-log-truncated") == 1
+
+    truncated = [
+        c
+        for c in children
+        if c.tag == "p" and c.attrib.get("data-order-log-truncated") == ""
+    ]
+    assert len(truncated) == 1
+    assert "".join(truncated[0].itertext()) == "Pokazano ostatnie wpisy"
+    assert children[-1] is truncated[0]
+
+    entry_children = [
+        c for c in children if c.attrib.get("data-order-log-entry") == ""
+    ]
+    assert len(entry_children) == len(entries)
+    assert children.index(entry_children[-1]) < children.index(truncated[0])
+    assert xml.endswith(f"{note_literal}</div>")
