@@ -275,3 +275,12 @@
 - [x] **K25.2a** Panel osad pokazuje siłę (HP) garnizonu (`data-garrison-hp`; sufiks ` · siła garnizonu: HP H`). *(task-131)*
 - [x] **K25.2b** Panel osad pokazuje atak i obronę garnizonu (`data-garrison-attack`/`data-garrison-defense`; sufiks `, atak A, obrona D`). *(task-132)*
 - [x] **R25.1 (refaktor)** Wspólny helper agregacji siły bojowej sekwencji `Unit` (`combat_totals`) reużyty przez oba panele. *(task-133)*
+
+## Kamień milowy 26 — czytelny stan strukturalno-dynastyczny (budynki + władza) — UKOŃCZONY
+> Panel osad dostał liczbę i nazwy aktywnych budynków (K26.1a–b) z
+> `Settlement.active_buildings`, a wiersz księstwa flagi `data-hero`/`data-heir`
+> (K26.2a–b) z `Duchy`. Rdzeń `tbb` bez zmian.
+- [x] **K26.1a** Panel osad pokazuje liczbę aktywnych budynków (`data-buildings` = `len(active_buildings)`; sufiks ` · budynki: N`). *(task-134)*
+- [x] **K26.1b** Panel osad wymienia nazwy aktywnych budynków (`data-building-names`; przy N>0 tekst ` (nazwa1, nazwa2)`). *(task-135)*
+- [x] **K26.2a** Wiersz księstwa pokazuje obecność bohatera (`data-hero`; tekst `, bohater tak|nie`). *(task-136)*
+- [x] **K26.2b** Wiersz księstwa pokazuje obecność dziedzica (`data-heir`; tekst `, dziedzic tak|nie`). *(task-137)*

@@ -131,18 +131,27 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > `tbbui.unitstrength.combat_totals`. Wszystkie pozycje (task-129…133) w
 > `BACKLOG-ARCHIVE.md`. Rdzeń `tbb` bez zmian.
 
-## Kamień milowy 26 — czytelny stan strukturalno-dynastyczny (budynki + władza)
-> DESIGN §11 (PLAN K26): K22–K25 pokazały gospodarkę, siłę i tożsamość, ale gracz
-> nie widzi **aktywnych budynków** osady (co dołoży `develop` — §6 pkt 2) ani
-> **obecności bohatera/dziedzica** księstwa (ciągłość władzy — §3.1). K26 dokłada
-> do panelu osad liczbę i nazwy budynków (K26.1a–b) z `Settlement.active_buildings`,
-> a do wiersza księstwa flagi `data-hero`/`data-heir` (K26.2a–b) z `Duchy`.
-> Rdzeń `tbb` bez zmian; panel osad osadzony w `render_game_page` re-embeduje
-> zmianę automatycznie.
-- [ ] **K26.1a** Panel osad pokazuje liczbę aktywnych budynków (`data-buildings` = `len(active_buildings)`; sufiks ` · budynki: N`). *(task-134)*
-- [ ] **K26.1b** Panel osad wymienia nazwy aktywnych budynków (`data-building-names`; przy N>0 tekst ` (nazwa1, nazwa2)`). *(task-135)*
-- [ ] **K26.2a** Wiersz księstwa pokazuje obecność bohatera (`data-hero`; tekst `, bohater tak|nie`). *(task-136)*
-- [ ] **K26.2b** Wiersz księstwa pokazuje obecność dziedzica (`data-heir`; tekst `, dziedzic tak|nie`). *(task-137)*
+## Kamień milowy 26 — czytelny stan strukturalno-dynastyczny (budynki + władza) — UKOŃCZONY
+> DESIGN §11 (PLAN K26): panel osad dostał liczbę i nazwy aktywnych budynków
+> (K26.1a–b) z `Settlement.active_buildings`, a wiersz księstwa flagi
+> `data-hero`/`data-heir` (K26.2a–b) z `Duchy`. Wszystkie pozycje
+> (task-134…137) w `BACKLOG-ARCHIVE.md`. Rdzeń `tbb` bez zmian.
+
+## Kamień milowy 27 — czytelna gotowość bojowa (rany) i orientacja w układzie strony
+> DESIGN §11 (PLAN K27): K25 pokazał siłę bojową, ale nie **gotowość** — ilu
+> ludzi niesie czasowe rany, które miną w kolejnych turach (§3.2/§4). Bez tego
+> gracz nie oceni, czy uderzyć teraz, czy poczekać na wyleczenie (§6 pkt 4).
+> K27 dokłada do panelu party (K27.1a) i garnizonu osady (K27.2a) liczbę rannych
+> (`data-wounded` / `data-garrison-wounded`, sufiks ` · ranni: W`) z
+> `Unit.wounds`; po dwóch konsumentach refaktor R27.1 scala licznik w
+> `tbbui.unitstrength.wounded_count`. Osobno K27.3a–b dokłada widoczne nagłówki
+> sekcji strony (`<h2 data-panel-section="settlements|parties|duchies">`) — jak
+> K21.2 dla rozkazów — by człowiek odróżnił panele. Rdzeń `tbb` bez zmian.
+- [ ] **K27.1a** Panel party pokazuje liczbę rannych w oddziale (`data-wounded`; sufiks ` · ranni: W`). *(task-138)*
+- [ ] **K27.2a** Panel osad pokazuje liczbę rannych w garnizonie (`data-garrison-wounded`; sufiks ` · ranni: W`). *(task-139)*
+- [ ] **R27.1 (refaktor)** Wspólny licznik `tbbui.unitstrength.wounded_count`; bez nowych testów. *(task-140)*
+- [ ] **K27.3a** Nagłówek sekcji osad na stronie (`<h2 data-panel-section="settlements">Osady</h2>`). *(task-141)*
+- [ ] **K27.3b** Nagłówki sekcji party i księstw na stronie (`parties`/`duchies`). *(task-142)*
 
 ## Dług/refaktor
 - [x] **R21.1 (refaktor)** Wspólny emiter formularzy celu marsz/szturm/starcie w `serve.py`. *(task-113)*
