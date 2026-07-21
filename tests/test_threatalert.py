@@ -53,7 +53,7 @@ def test_render_threat_alert_data_threats_count_and_label():
     ``Zagrożone pozycje: N``. ``N`` counts own positions (player settlement
     and/or party, separately per region and kind) that have ≥1 neighbor
     with ``party_at(neighbor).owner_id`` set and ``!= player_duchy_id``.
-    No child rows at this stage; pure (no world/game mutation).
+    Pure (no world/game mutation).
     """
     home = Region("Home")
     keep = Region("Keep")
@@ -118,8 +118,10 @@ def test_render_threat_alert_data_threats_count_and_label():
     assert root.tag == "div"
     assert root.attrib.get("data-threat-alert") == ""
     assert root.attrib.get("data-threats") == str(expected_n)
-    assert list(root) == []
-    assert "".join(root.itertext()).strip() == f"Zagrożone pozycje: {expected_n}"
+    # Root text node carries the K39.1a counter; child rows (K39.1b) add more
+    # descendant text, so check root.text rather than full itertext().
+    assert root.text == f"Zagrożone pozycje: {expected_n}"
+    assert len(root.findall("*[@data-threatened-region]")) == expected_n
 
     assert world.regions == regions_before
     assert {r: world.party_at(r) for r in world.regions} == parties_before
@@ -127,3 +129,120 @@ def test_render_threat_alert_data_threats_count_and_label():
         r: world.settlement_at(r) for r in world.regions
     } == settlements_before
     assert game.duchies == duchies_before
+
+
+def test_render_threat_alert_rows_per_threatened_position():
+    """Known player: one child row per threatened own position.
+
+    Order follows ``world.regions``; within a region with both a player
+    settlement and a player party the settlement row comes first. Each row is
+    ``<div data-threatened-region data-threatened-kind data-enemy-region
+    data-enemy-owner>`` where the enemy is the first neighbouring party with
+    explicit ``owner_id != player_duchy_id`` in ``world.neighbors`` order
+    (neutral/same-owner parties are skipped). Visible text is
+    ``Osada <R>: zagrożenie od <owner> z <E>`` or
+    ``Oddział <R>: zagrożenie od <owner> z <E>``. ``data-threats`` equals the
+    number of emitted rows.
+    """
+    home = Region("Home")
+    keep = Region("Keep")
+    fort = Region("Fort")
+    safe = Region("Safe")
+    neutral_camp = Region("NeutralCamp")
+    bandit_camp = Region("BanditCamp")
+    enemy_camp = Region("EnemyCamp")
+    ally_camp = Region("AllyCamp")
+
+    # Topology / expected first hostile (neighbors order = world.regions order):
+    # home party: neighbors NeutralCamp (unowned), BanditCamp (bandit),
+    #   EnemyCamp (enemy) → first hostile BanditCamp / bandit
+    # keep settlement: neighbors EnemyCamp → EnemyCamp / enemy
+    # fort settlement+party: neighbors BanditCamp → BanditCamp / bandit
+    # safe party: neighbors AllyCamp (same owner) → no threat
+    world = WorldMap(
+        [
+            home,
+            keep,
+            fort,
+            safe,
+            neutral_camp,
+            bandit_camp,
+            enemy_camp,
+            ally_camp,
+        ],
+        [
+            (home, neutral_camp),
+            (home, bandit_camp),
+            (home, enemy_camp),
+            (keep, enemy_camp),
+            (fort, bandit_camp),
+            (safe, ally_camp),
+        ],
+        parties={
+            home: Party(hero=Unit(), units=(), owner_id="player"),
+            fort: Party(hero=Unit(), units=(), owner_id="player"),
+            safe: Party(hero=Unit(), units=(), owner_id="player"),
+            bandit_camp: Party(hero=Unit(), units=(), owner_id="bandit"),
+            enemy_camp: Party(hero=Unit(), units=(), owner_id="enemy"),
+            neutral_camp: Party(hero=Unit(), units=(), owner_id=None),
+            ally_camp: Party(hero=Unit(), units=(), owner_id="player"),
+        },
+        settlements={
+            keep: Settlement("KeepS", population=2, owner_id="player"),
+            fort: Settlement("FortS", population=2, owner_id="player"),
+        },
+    )
+    assert [r.name for r in world.neighbors(home)] == [
+        "NeutralCamp",
+        "BanditCamp",
+        "EnemyCamp",
+    ]
+    assert [r.name for r in world.neighbors(keep)] == ["EnemyCamp"]
+    assert [r.name for r in world.neighbors(fort)] == ["BanditCamp"]
+    assert [r.name for r in world.neighbors(safe)] == ["AllyCamp"]
+
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("bandit", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+
+    xml = render_threat_alert(world, game, player_duchy_id="player")
+    root = ET.fromstring(xml)
+
+    rows = [
+        el
+        for el in root
+        if el.get("data-threatened-region") is not None
+    ]
+    # world.regions order: Home party → Keep settlement → Fort settlement
+    # then Fort party; Safe has no hostile neighbor.
+    expected = [
+        ("Home", "party", "BanditCamp", "bandit"),
+        ("Keep", "settlement", "EnemyCamp", "enemy"),
+        ("Fort", "settlement", "BanditCamp", "bandit"),
+        ("Fort", "party", "BanditCamp", "bandit"),
+    ]
+    assert [
+        (
+            r.get("data-threatened-region"),
+            r.get("data-threatened-kind"),
+            r.get("data-enemy-region"),
+            r.get("data-enemy-owner"),
+        )
+        for r in rows
+    ] == expected
+    assert root.attrib.get("data-threats") == str(len(expected))
+    assert len(rows) == len(expected)
+
+    kind_label = {"settlement": "Osada", "party": "Oddział"}
+    for row, (region, kind, enemy_region, owner) in zip(
+        rows, expected, strict=True
+    ):
+        assert row.tag == "div"
+        assert "".join(row.itertext()) == (
+            f"{kind_label[kind]} {region}: zagrożenie od {owner}"
+            f" z {enemy_region}"
+        )

@@ -425,10 +425,13 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   połowa decyzji o walce). Brak gracza lub id spoza `game.duchies`
   (`player_duchy(...) is None`) → sam pusty korzeń `<div data-threat-alert="">`
   bez `data-threats`, bez tekstu i bez dzieci. Przy znanym graczu korzeń niesie
-  `data-threats="N"` oraz tekst `Zagrożone pozycje: N`, gdzie `N` = liczba
-  własnych pozycji (osada i/lub party gracza, osobno per region i rodzaj) z
-  ≥1 sąsiadem (`world.neighbors`) mającym party o jawnym
-  `owner_id != player_duchy_id`; bez wierszy/dzieci. Czysty, deterministyczny.
+  `data-threats="N"` oraz tekst `Zagrożone pozycje: N`, plus po jednym wierszu
+  `<div data-threatened-region data-threatened-kind="settlement|party"
+  data-enemy-region data-enemy-owner>` na każdą zagrożoną własną pozycję
+  (kolejność `world.regions`; w regionie osada przed party); zagrażający =
+  pierwsze sąsiednie party z jawnym `owner_id != player_duchy_id` w kolejności
+  `world.neighbors`; tekst `Osada|Oddział <R>: zagrożenie od <owner> z <E>`;
+  `N` = liczba wierszy (0 → brak dzieci). Czysty, deterministyczny.
 - `render_party_panel(world, player_duchy_id=None)` — fragment `data-party-panel`
   z wierszem `data-party-row` (= nazwa regionu) na party w kolejności
   `world.regions`; `data-owner`/`data-size` (liczba podkomendnych)/`data-hp`/
