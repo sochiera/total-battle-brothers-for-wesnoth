@@ -10,6 +10,7 @@ from tbbui.battlereport import render_battle_report
 from tbbui.battlesvg import render_battle_svg
 from tbbui.ownerlegend import render_owner_legend
 from tbbui.partypanel import render_party_panel
+from tbbui.playersummary import render_player_summary
 from tbbui.settlementpanel import render_settlement_panel
 from tbbui.worldsvg import render_world_svg
 
@@ -65,13 +66,20 @@ def render_game_page(
     ``data-player-duchy=""`` and a visible ``» `` text prefix, and is
     forwarded to the owner legend, settlement panel, and party panel so
     matching legend / ``data-settlement-row`` / ``data-party-row`` entries
-    get player markers; ``None`` (default) omits those markers. Pure and
-    deterministic: no RNG/IO; inputs (including ``battle``) are not mutated.
+    get player markers; when not ``None``, also embeds the canonical string
+    from ``render_player_summary(game, player_duchy_id)`` in ``<body>``
+    (exactly one ``data-player-summary``); ``None`` (default) omits those
+    markers and the summary. Pure and deterministic: no RNG/IO; inputs
+    (including ``battle``) are not mutated.
     """
     map_svg = render_world_svg(world)
     owner_legend = render_owner_legend(world, player_duchy_id)
     settlement_panel = render_settlement_panel(world, player_duchy_id)
     party_panel = render_party_panel(world, player_duchy_id)
+    if player_duchy_id is not None:
+        player_summary = render_player_summary(game, player_duchy_id)
+    else:
+        player_summary = ""
     result = _result_value(game)
     result_text = _result_text(game)
 
@@ -117,6 +125,7 @@ def render_game_page(
         "<html><body>"
         f"{map_svg}"
         f"{owner_legend}"
+        f"{player_summary}"
         f"{battle_svg}"
         f"{battle_report}"
         f"{settlements_header}"

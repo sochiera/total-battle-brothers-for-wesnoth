@@ -153,7 +153,7 @@ HP H, atak A, obrona D` zgodny z atrybutami. Gdy `player_duchy_id` jest
 liczbowych i bez tekstu). Czyste, deterministyczne, bez mutacji `game`;
 rdzeń bez zmian.
 
-**Strona HTML partii (V13.4a / K16.1a / K17.1b / K20.1a / K20.1b / K21.1a / K22.1c / K22.2b / K23.1b / K23.2a / K23.3b / K24.1b / K24.2b / K26.2a–b / K27.3a–b):** `tbbui.gamepage.render_game_page(world,
+**Strona HTML partii (V13.4a / K16.1a / K17.1b / K20.1a / K20.1b / K21.1a / K22.1c / K22.2b / K23.1b / K23.2a / K23.3b / K24.1b / K24.2b / K26.2a–b / K27.3a–b / K30.3c):** `tbbui.gamepage.render_game_page(world,
 game, calendar, battle=None, player_duchy_id=None) -> str` — parsowalny HTML z korzeniem `<html>`;
 osadza kanoniczny string z `render_world_svg(world)`; zawsze osadza też
 kanoniczny string z `render_owner_legend(world, player_duchy_id)` (K23.1b /
@@ -178,12 +178,15 @@ elemencie `data-duchy` (= `duchy_id`) na każde `game.duchies` z `data-morale`,
 (`"true"`/`"false"` z `Duchy.has_hero` / `heir is not None`) oraz widocznym
 tekstem `<duchy_id>: osady N, party M, morale K, bohater tak|nie, dziedzic tak|nie`
 (zgodnym z atrybutami); opcjonalny
-`player_duchy_id` (K23.2a / K23.3b / K24.1b / K24.2b) — gdy równa się `duchy_id`
-wiersza, ten element dostaje `data-player-duchy=""` i prefiks `» ` przed tekstem
-statusu, w osadzonych panelach osad i party wiersze z
+`player_duchy_id` (K23.2a / K23.3b / K24.1b / K24.2b / K30.3c) — gdy równa się
+`duchy_id` wiersza, ten element dostaje `data-player-duchy=""` i prefiks `» `
+przed tekstem statusu, w osadzonych panelach osad i party wiersze z
 `owner_id == player_duchy_id` dostają `data-player-owned=""`, a w osadzonej
 legendzie wiersz z `owner_id == player_duchy_id` dostaje `data-player-owner=""`
-i prefiks `» `; `None` (domyślnie) → bajt-w-bajt jak bez argumentu;
+i prefiks `» `; gdy `player_duchy_id is not None`, osadza też w `<body>`
+kanoniczny string z `render_player_summary(game, player_duchy_id)` (K30.3c,
+dokładnie jeden `data-player-summary`); `None` (domyślnie) → bajt-w-bajt jak
+bez argumentu (bez `data-player-summary`);
 element `data-result` = `duchy_id` zwycięzcy / `draw` / `ongoing` wg
 `game.is_over` i `game.winner`; zawsze `<p data-result-text="…">` z czytelnym
 tekstem z `_result_text` (`Gra w toku` / `Remis` / `Zwycięstwo: <duchy_id>`) —

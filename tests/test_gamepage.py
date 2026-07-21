@@ -21,6 +21,7 @@ from tbbui.gamepage import render_game_page
 from tbbui.ownerlegend import render_owner_legend
 from tbbui.palette import owner_palette
 from tbbui.partypanel import render_party_panel
+from tbbui.playersummary import render_player_summary
 from tbbui.settlementpanel import render_settlement_panel
 from tbbui.worldsvg import render_world_svg
 
@@ -607,3 +608,21 @@ def test_render_game_page_embeds_battle_report_matching_battle_report_counts():
     html_without_battle = render_game_page(world, game, calendar)
     without_root = ET.fromstring(html_without_battle)
     assert _find_by_attr(without_root, "data-battle-report") == []
+
+
+def test_render_game_page_embeds_canonical_player_summary_when_player_duchy_id_set():
+    """``player_duchy_id`` embeds one canonical ``render_player_summary`` in body."""
+    world, game, calendar = _ongoing_fixture()
+    expected_summary = render_player_summary(game, "north")
+
+    html = render_game_page(world, game, calendar, player_duchy_id="north")
+    assert expected_summary in html, (
+        "page must embed render_player_summary(game, player_duchy_id) output"
+    )
+
+    root = ET.fromstring(html)
+    assert _local(root.tag) == "html"
+    body = next(el for el in root if _local(el.tag) == "body")
+    summary_els = _find_by_attr(root, "data-player-summary")
+    assert len(summary_els) == 1
+    assert summary_els[0] in list(body.iter())
