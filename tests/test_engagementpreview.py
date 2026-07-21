@@ -319,3 +319,150 @@ def test_render_engagement_preview_advantage_flag_and_suffix():
     ]
     assert list(equal_row.attrib.keys()) == expected_keys
     assert list(strong_row.attrib.keys()) == expected_keys
+
+
+def test_render_engagement_preview_adjacent_enemy_party_and_settlement_before_party():
+    """Adjacent enemy parties yield ``data-target-kind="party"`` rows with
+    strength from ``combat_totals((hero, *units))`` and visible text
+    ``…: oddział HP H, atak A, obrona D`` (plus advantage suffix). When the
+    same neighbouring region has both a hostile settlement and a hostile party,
+    the settlement row precedes the party row; inter-region order follows
+    ``world.neighbors``. Party rows use the same ``data-advantage`` rule as
+    settlements (own sum ≥ target sum → ``"true"`` / „ — przewaga").
+    """
+    home = Region("Home")
+    party_only = Region("PartyOnly")
+    both = Region("Both")
+    far = Region("Far")
+
+    hero = Unit()
+    player_party = Party(hero=hero, units=(), owner_id="player")
+    own_hp, own_attack, own_defense = combat_totals((hero,))
+    own_sum = own_hp + own_attack + own_defense
+
+    # Weaker enemy party on PartyOnly → advantage true.
+    enemy_party_hero = Unit()
+    enemy_party = Party(
+        hero=enemy_party_hero, units=(), owner_id="enemy"
+    )
+    party_hp, party_attack, party_defense = combat_totals((enemy_party_hero,))
+    assert own_sum >= party_hp + party_attack + party_defense
+
+    # Hostile settlement + stronger hostile party on Both.
+    both_garrison = (Unit(),)
+    set_hp, set_attack, set_defense = combat_totals(both_garrison)
+    both_party_hero = Unit(training=9)
+    both_party = Party(
+        hero=both_party_hero, units=(), owner_id="enemy"
+    )
+    both_party_hp, both_party_attack, both_party_defense = combat_totals(
+        (both_party_hero,)
+    )
+    assert own_sum < both_party_hp + both_party_attack + both_party_defense
+
+    # Non-adjacent enemy party/settlement on Far must not appear as targets.
+    far_party = Party(hero=Unit(training=4), units=(), owner_id="enemy")
+
+    world = WorldMap(
+        [home, party_only, both, far],
+        [
+            (home, party_only),
+            (home, both),
+            (both, far),
+        ],
+        parties={
+            home: player_party,
+            party_only: enemy_party,
+            both: both_party,
+            far: far_party,
+        },
+        settlements={
+            both: Settlement(
+                "KeepBoth",
+                population=1,
+                owner_id="enemy",
+                garrison=both_garrison,
+            ),
+            # non-adjacent enemy settlement — must not appear
+            far: Settlement(
+                "KeepFar",
+                population=1,
+                owner_id="enemy",
+                garrison=(Unit(training=2),),
+            ),
+        },
+    )
+    assert [r.name for r in world.neighbors(home)] == ["PartyOnly", "Both"]
+
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+
+    xml = render_engagement_preview(world, game, player_duchy_id="player")
+    root = ET.fromstring(xml)
+
+    assert root.attrib.get("data-player-on-map") == "true"
+    assert root.attrib.get("data-own-hp") == str(own_hp)
+
+    rows = list(root)
+    # neighbors order: PartyOnly (party only) → Both (settlement then party)
+    assert [
+        (r.get("data-target-region"), r.get("data-target-kind")) for r in rows
+    ] == [
+        ("PartyOnly", "party"),
+        ("Both", "settlement"),
+        ("Both", "party"),
+    ]
+    assert all(r.get("data-target-region") != "Far" for r in rows)
+    assert all(r.get("data-target-region") != "Home" for r in rows)
+
+    party_only_row = rows[0]
+    assert party_only_row.get("data-target-owner") == "enemy"
+    assert party_only_row.get("data-enemy-hp") == str(party_hp)
+    assert party_only_row.get("data-enemy-attack") == str(party_attack)
+    assert party_only_row.get("data-enemy-defense") == str(party_defense)
+    assert party_only_row.get("data-advantage") == "true"
+    assert (
+        "".join(party_only_row.itertext())
+        == (
+            f"PartyOnly (enemy): oddział HP {party_hp},"
+            f" atak {party_attack}, obrona {party_defense} — przewaga"
+        )
+    )
+
+    both_settlement = rows[1]
+    assert both_settlement.get("data-target-kind") == "settlement"
+    assert both_settlement.get("data-enemy-hp") == str(set_hp)
+    assert both_settlement.get("data-advantage") == (
+        "true" if own_sum >= set_hp + set_attack + set_defense else "false"
+    )
+    set_suffix = (
+        " — przewaga"
+        if own_sum >= set_hp + set_attack + set_defense
+        else " — niekorzystnie"
+    )
+    assert (
+        "".join(both_settlement.itertext())
+        == (
+            f"Both (enemy): garnizon HP {set_hp},"
+            f" atak {set_attack}, obrona {set_defense}{set_suffix}"
+        )
+    )
+
+    both_party_row = rows[2]
+    assert both_party_row.get("data-target-owner") == "enemy"
+    assert both_party_row.get("data-enemy-hp") == str(both_party_hp)
+    assert both_party_row.get("data-enemy-attack") == str(both_party_attack)
+    assert both_party_row.get("data-enemy-defense") == str(both_party_defense)
+    assert both_party_row.get("data-advantage") == "false"
+    assert (
+        "".join(both_party_row.itertext())
+        == (
+            f"Both (enemy): oddział HP {both_party_hp},"
+            f" atak {both_party_attack}, obrona {both_party_defense}"
+            f" — niekorzystnie"
+        )
+    )
