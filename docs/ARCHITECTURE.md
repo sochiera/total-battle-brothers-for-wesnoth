@@ -91,7 +91,10 @@ odczyt tylko `battle.result()`; nierozstrzygnięta (`result() is None`) →
 `ValueError`; bez mutacji `battle`. Oraz: `tbbui.battlereport.attacker_losses(battle)
 -> int` (K46.2a) — czysta liczba poległych atakującego
 (`len(battle.report().attacker.fallen)`); odczyt tylko `battle.report()`;
-nierozstrzygnięta → `ValueError`; bez mutacji `battle`.
+nierozstrzygnięta → `ValueError`; bez mutacji `battle`. Bliźniaczo:
+`tbbui.battlereport.defender_losses(battle) -> int` (K47.1a) — liczba poległych
+broniącego (`len(battle.report().defender.fallen)`); odczyt tylko
+`battle.report()`; nierozstrzygnięta → `ValueError`; bez mutacji `battle`.
 
 **Agregacja siły bojowej (R25.1 / R27.1):** `tbbui.unitstrength.combat_totals(units)
 -> tuple[int, int, int]` — czysty helper `(hp, attack, defense)` = suma
@@ -594,7 +597,7 @@ Etykiety: `POST /order/recruit` → `"Rekrutacja"`, `muster` →
 `"Zebranie oddziału"`, `develop` → `"Rozbudowa"`, marsz ze znanym celem →
 `f"Marsz do {region.name}"`, marsz bez/nieznany cel → `"Marsz"` (K28.1c).
 `POST /order/assault` (K14.2e2 / K15.2b /
-K16.1d-2 / K28.1d / K46.1b / K46.2b / R29.1) ma te same guardy przez
+K16.1d-2 / K28.1d / K46.1b / K46.2b / K47.1b / R29.1) ma te same guardy przez
 `_apply_player_assault_order` → `_resolve_player_duchy()`: jawny `target` →
 `ai.assault_duchy_party_to_recorded` z etykietą
 `f"Szturm na {region.name}"`, auto → `ai.assault_duchy_party_recorded` z
@@ -603,11 +606,11 @@ etykietą `"Szturm"` (oba z `self.rng` i
 `(world, battle)` podmienia `world`, sync `game`, a gdy `battle is not None`
 ustawia `self.last_battle` (init `None`; no-op/guardy nie ustawiają bitwy);
 po wykonaniu `self.last_notice` =
-`f"{label}: {battle_outcome_text(battle)} (straty: {attacker_losses(battle)})"`
-gdy bitwa (K46.1b / K46.2b; wynik z perspektywy atakującego: „zwycięstwo" /
-„porażka" / „remis" oraz liczba poległych atakującego), inaczej
-`f"{label}: brak zmian"` (również przy guardach).
-`POST /order/engage` (K18.1c / K19.1b / K28.1d / K46.1b / K46.2b) — te same guardy i
+`f"{label}: {battle_outcome_text(battle)} (straty: {attacker_losses(battle)}, wróg: {defender_losses(battle)})"`
+gdy bitwa (K46.1b / K46.2b / K47.1b; wynik z perspektywy atakującego:
+„zwycięstwo" / „porażka" / „remis" oraz liczba poległych atakującego i
+broniącego), inaczej `f"{label}: brak zmian"` (również przy guardach).
+`POST /order/engage` (K18.1c / K19.1b / K28.1d / K46.1b / K46.2b / K47.1b) — te same guardy i
 `last_notice` przez `_apply_player_assault_order`; routing `?target=` jak
 szturm (`_order_target_region`): jawny znany region →
 `ai.engage_duchy_party_to_recorded` z etykietą

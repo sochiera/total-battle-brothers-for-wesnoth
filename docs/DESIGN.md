@@ -366,7 +366,8 @@ podsumowanie zmian po turze wisi tylko do kolejnej tury / restartu / rozkazu.
 Komunikat po akcji jest widoczny na stronie i zasila dziennik kampanii:
 rozwój/marsz → „wykonano" / „brak zmian"; szturm/starcie z bitwą → wynik z
 perspektywy gracza-atakującego („zwycięstwo" / „porażka" / „remis") oraz
-liczba własnych strat (`attacker_losses`); no-op/guardy → „brak zmian";
+bilans strat obu stron (własne `attacker_losses`, wroga `defender_losses`);
+no-op/guardy → „brak zmian";
 „Następna tura" → data po turze.
 Wszystkie renderery są czyste i deterministyczne.
 

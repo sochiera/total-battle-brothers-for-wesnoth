@@ -280,6 +280,15 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 - [ ] **K46.2a** `tbbui.battlereport.attacker_losses(battle)` = `len(battle.report().attacker.fallen)`; nierozstrzygnięta bitwa → `ValueError`; czysty, bez mutacji. *(task-223)*
 - [ ] **K46.2b** `_apply_player_assault_order` przy bitwie ustawia `last_notice = f"{label}: {battle_outcome_text(battle)} (straty: {attacker_losses(battle)})"`. *(task-224)*
 
+## Kamień milowy 47 — pełny bilans strat bitwy gracza (obie strony)
+> DESIGN §11: K46 pokazał wynik i **własne** straty rozkazu bitewnego, ale gracz
+> nie widział, ile stracił wróg — bez tego nie oceni opłacalności wymiany. K47
+> dokłada czysty `defender_losses` (K47.1a) wpięty w komunikat obok
+> `attacker_losses` (K47.1b): `... (straty: A, wróg: D)`. Reużywa `HexBattle.report()`
+> i wspólny `_apply_player_assault_order`; rdzeń `tbb` bez zmian.
+- [ ] **K47.1a** `tbbui.battlereport.defender_losses(battle)` = `len(battle.report().defender.fallen)`; nierozstrzygnięta bitwa → `ValueError`; czysty, bez mutacji. *(task-225)*
+- [ ] **K47.1b** `_apply_player_assault_order` przy bitwie ustawia `last_notice = f"{label}: {battle_outcome_text(battle)} (straty: {attacker_losses(battle)}, wróg: {defender_losses(battle)})"`. *(task-226)*
+
 ## Dług/refaktor
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*
 - [x] **R21.1 (refaktor)** Wspólny emiter formularzy celu marsz/szturm/starcie w `serve.py`. *(task-113)*

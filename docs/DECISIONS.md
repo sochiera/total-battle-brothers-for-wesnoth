@@ -253,3 +253,5 @@
 | K46.1b | Wynik bitwy w komunikacie rozkazu | `_apply_player_assault_order` przy bitwie ustawia `last_notice = f"{label}: {battle_outcome_text(battle)}"` (szturm+starcie), zamiast literału „bitwa". |
 | K46.2a | Liczba strat atakującego | `tbbui.battlereport.attacker_losses(battle)` = `len(battle.report().attacker.fallen)`; nierozstrzygnięta → `ValueError`; czysty. |
 | K46.2b | Straty w komunikacie rozkazu | `_apply_player_assault_order` przy bitwie ustawia `last_notice = f"{label}: {battle_outcome_text(battle)} (straty: {attacker_losses(battle)})"`. |
+| K47.1a | Liczba strat broniącego | `tbbui.battlereport.defender_losses(battle)` = `len(battle.report().defender.fallen)`; nierozstrzygnięta → `ValueError`; czysty. |
+| K47.1b | Straty wroga w komunikacie rozkazu | `_apply_player_assault_order` przy bitwie ustawia `last_notice = f"{label}: {battle_outcome_text(battle)} (straty: {attacker_losses(battle)}, wróg: {defender_losses(battle)})"`. |
