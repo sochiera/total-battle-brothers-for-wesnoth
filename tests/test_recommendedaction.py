@@ -13,9 +13,28 @@ from tbbui.engagementpreview import (
     first_advantageous_target,
 )
 from tbbui.gamelookup import player_duchy
+from tbbui import recommendedaction
 from tbbui.recommendedaction import recommended_order, render_recommended_action
 from tbbui.situationreport import net_posture
 from tbbui.threatalert import first_threatened_region, threatened_position_count
+
+
+def test_recommended_order_text_maps_action_and_target_to_description():
+    """``recommended_order_text(action, target_name)`` returns the descriptive
+    half of the advice line only (no ``Zalecany rozkaz: `` prefix) — K42.2a.
+
+    Contract (task-206): ``("assault", R)`` → ``szturmuj osadę <R>``;
+    ``("engage", R)`` → ``zaatakuj oddział <R>``; ``("defend", R)`` →
+    ``broń pozycji <R>``; ``("develop", None)`` → ``rozwijaj księstwo``.
+    Pure and deterministic.
+    """
+    recommended_order_text = recommendedaction.recommended_order_text
+    assert recommended_order_text("assault", "EnemyCamp") == (
+        "szturmuj osadę EnemyCamp"
+    )
+    assert recommended_order_text("engage", "WeakA") == "zaatakuj oddział WeakA"
+    assert recommended_order_text("defend", "Keep") == "broń pozycji Keep"
+    assert recommended_order_text("develop", None) == "rozwijaj księstwo"
 
 
 def test_recommended_order_returns_none_when_player_duchy_missing():

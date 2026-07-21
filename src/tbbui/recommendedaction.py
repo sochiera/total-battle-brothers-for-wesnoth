@@ -12,9 +12,6 @@ from tbbui.gamelookup import player_duchy
 from tbbui.situationreport import net_posture
 from tbbui.threatalert import first_threatened_region, threatened_position_count
 
-_BALANCED_ORDER = "Zalecany rozkaz: rozwijaj księstwo"
-
-
 def recommended_order(
     world: WorldMap,
     game: GameState,
@@ -50,15 +47,21 @@ def recommended_order(
     return "develop", None
 
 
-def _order_visible_text(action: str, target: str | None) -> str:
-    """Map ``recommended_order`` result to the visible recommendation line."""
+def recommended_order_text(action: str, target_name: str | None) -> str:
+    """Descriptive half of the advice line (no ``Zalecany rozkaz: `` prefix).
+
+    ``("assault", R)`` → ``szturmuj osadę <R>``; ``("engage", R)`` →
+    ``zaatakuj oddział <R>``; ``("defend", R)`` → ``broń pozycji <R>``;
+    ``("develop", None)`` → ``rozwijaj księstwo``. Pure and deterministic.
+    Shared by ``render_recommended_action`` and the GameApp button label.
+    """
     if action == "assault":
-        return f"Zalecany rozkaz: szturmuj osadę {target}"
+        return f"szturmuj osadę {target_name}"
     if action == "engage":
-        return f"Zalecany rozkaz: zaatakuj oddział {target}"
+        return f"zaatakuj oddział {target_name}"
     if action == "defend":
-        return f"Zalecany rozkaz: broń pozycji {target}"
-    return _BALANCED_ORDER
+        return f"broń pozycji {target_name}"
+    return "rozwijaj księstwo"
 
 
 def render_recommended_action(
@@ -75,9 +78,9 @@ def render_recommended_action(
     ``data-posture`` from ``situationreport.net_posture(M, N)`` (M =
     ``engagementpreview.advantageous_target_count``, N =
     ``threatalert.threatened_position_count``), then ``data-action`` and
-    visible text from ``recommended_order`` (``assault|engage|defend|develop``
-    and the matching order line). Pure and deterministic: no RNG/IO; does not
-    mutate ``world`` or ``game``.
+    visible text from ``recommended_order`` / ``recommended_order_text``
+    (``assault|engage|defend|develop`` and the matching order line). Pure and
+    deterministic: no RNG/IO; does not mutate ``world`` or ``game``.
     """
     order = recommended_order(world, game, player_duchy_id)
     if order is None:
@@ -88,7 +91,7 @@ def render_recommended_action(
     m = advantageous_target_count(world, game, player_duchy_id)
     n = threatened_position_count(world, game, player_duchy_id)
     posture = net_posture(m, n)
-    text = _order_visible_text(action, target)
+    text = f"Zalecany rozkaz: {recommended_order_text(action, target)}"
     return (
         f'<div data-recommended-action="" data-posture="{posture}" '
         f'data-action="{action}">{text}</div>'
