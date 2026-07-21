@@ -284,6 +284,47 @@ def test_game_app_last_notice_empty_string_renders_empty_data_notice():
     assert notices[0].get("data-notice") == app.last_notice == ""
 
 
+def test_game_app_render_data_notice_body_text_matches_last_notice_after_recruit():
+    """_render puts last_notice in both data-notice attribute and paragraph body.
+
+    Contract (task-148 / K29.1a):
+    - after a recruit that changes world, last_notice == "Rekrutacja: wykonano"
+    - rendered page has exactly one <p data-notice="…"> whose attribute equals
+      that string (as before) and whose body text equals self.last_notice
+      (entities decoded by the parser — visible confirmation in the browser)
+    """
+    north, south = map(Region, ("North", "South"))
+    north_keep = Settlement(
+        "North Keep",
+        3,
+        storage=Resources(0, 1),
+        garrison=(Unit(training=1),),
+        occupied=1,
+        owner_id="north",
+    )
+    south_keep = Settlement("South Keep", 2, owner_id="south")
+    world = WorldMap(
+        (north, south), settlements={north: north_keep, south: south_keep}
+    )
+    game = GameState(
+        (
+            Duchy("north", Unit(), settlements=(north_keep,)),
+            Duchy("south", Unit(), settlements=(south_keep,)),
+        )
+    )
+    calendar = Calendar(year=2, month=3)
+    app = GameApp(world, game, calendar, Rng(11), player_duchy_id="north")
+
+    code, body = app.handle("POST", "/order/recruit")
+    assert code == 200
+    assert app.last_notice == "Rekrutacja: wykonano"
+    root = ET.fromstring(body)
+    notices = _find_by_attr(root, "data-notice")
+    assert len(notices) == 1
+    assert notices[0].get("data-notice") == "Rekrutacja: wykonano"
+    assert notices[0].text == app.last_notice
+
+
 def test_game_app_post_turn_sets_last_notice_with_calendar_date_after_turn():
     """POST /turn after an executed turn sets last_notice from post-turn calendar (K28.1e).
 

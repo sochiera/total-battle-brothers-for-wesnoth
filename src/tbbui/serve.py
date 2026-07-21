@@ -369,7 +369,7 @@ class GameApp:
         notice_value = escape(self.last_notice, quote=True)
         extras = (
             f'<span data-player="{player_value}"></span>'
-            f'<p data-notice="{notice_value}"></p>'
+            f'<p data-notice="{notice_value}">{notice_value}</p>'
             f"{_TURN_FORM}{_RECRUIT_FORM}{_MUSTER_FORM}"
             f"{_DEVELOP_FORM}"
             f"{_MARCH_SECTION_HEADER}{self._march_forms()}"
