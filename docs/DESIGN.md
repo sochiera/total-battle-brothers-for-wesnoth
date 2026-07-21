@@ -420,6 +420,11 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   inaczej `"false"` (sufiks „ — niekorzystnie"). Gracz bez party na mapie →
   `data-player-on-map="false"` bez wierszy i `data-own-*`; brak gracza lub id
   spoza `game.duchies` → sam pusty korzeń. Czysty, deterministyczny.
+- `render_threat_alert(world, game, player_duchy_id=None)` — fragment
+  `data-threat-alert` ostrzegający o zagrożonych własnych pozycjach (obronna
+  połowa decyzji o walce). Brak gracza lub id spoza `game.duchies`
+  (`player_duchy(...) is None`) → sam pusty korzeń `<div data-threat-alert="">`
+  bez `data-threats`, bez tekstu i bez dzieci. Czysty, deterministyczny.
 - `render_party_panel(world, player_duchy_id=None)` — fragment `data-party-panel`
   z wierszem `data-party-row` (= nazwa regionu) na party w kolejności
   `world.regions`; `data-owner`/`data-size` (liczba podkomendnych)/`data-hp`/
