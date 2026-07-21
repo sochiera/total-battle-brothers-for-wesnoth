@@ -4520,10 +4520,12 @@ def test_get_recommended_order_button_label_uses_recommended_order_text():
     assert order is not None
     action, region = order
     assert region is None
+    # no party on map → muster before balanced develop (K48.1c)
+    assert action == "muster"
     expected_plain = (
         f"Wykonaj zalecenie: {recommended_order_text(action, region)}"
     )
-    assert expected_plain == "Wykonaj zalecenie: rozwijaj księstwo"
+    assert expected_plain == "Wykonaj zalecenie: zbierz oddział"
 
     app = GameApp(
         world, game, Calendar(year=1, month=1), Rng(1), player_duchy_id="north"

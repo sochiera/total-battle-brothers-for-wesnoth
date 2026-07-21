@@ -158,6 +158,59 @@ def test_recommended_order_text_muster_returns_zbierz_oddzial():
     assert recommended_order_text("muster", None) == "zbierz oddział"
 
 
+def test_recommended_order_muster_before_posture_when_player_can_muster():
+    """``recommended_order`` returns ``("muster", None)`` when
+    ``player_can_muster`` is True — priority BEFORE posture (K48.1c).
+
+    Even if net posture would be defensive (N>M → defend), muster wins.
+    Pure: no world/game mutation.
+    """
+    player_can_muster = recommendedaction.player_can_muster
+    keep = Region("Keep")
+    enemy_camp = Region("EnemyCamp")
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+    # Defensive world: no player party, free own settlement → can muster;
+    # enemy party threatens keep → N>M → posture would be defensive/defend.
+    world = WorldMap(
+        [keep, enemy_camp],
+        [(keep, enemy_camp)],
+        parties={
+            enemy_camp: Party(hero=Unit(), units=(), owner_id="enemy"),
+        },
+        settlements={
+            keep: Settlement("KeepS", population=2, owner_id="player"),
+        },
+    )
+    assert player_can_muster(world, game, "player") is True
+    m = advantageous_target_count(world, game, "player")
+    n = threatened_position_count(world, game, "player")
+    assert net_posture(m, n) == "defensive"
+    assert first_threatened_region(world, game, "player") is not None
+
+    regions_before = world.regions
+    parties_before = {r: world.party_at(r) for r in world.regions}
+    settlements_before = {
+        r: world.settlement_at(r) for r in world.regions
+    }
+    duchies_before = game.duchies
+
+    assert recommended_order(world, game, "player") == ("muster", None)
+
+    assert world.regions == regions_before
+    assert {
+        r: world.party_at(r) for r in world.regions
+    } == parties_before
+    assert {
+        r: world.settlement_at(r) for r in world.regions
+    } == settlements_before
+    assert game.duchies == duchies_before
+
+
 def test_recommended_order_returns_none_when_player_duchy_missing():
     """``recommended_order(world, game, player_duchy_id)`` returns ``None``
     when ``player_duchy(game, player_duchy_id) is None`` — i.e. no player
@@ -296,11 +349,13 @@ def test_recommended_order_defensive_defend_and_balanced_develop():
         )
     )
 
-    # defensive: N>M — enemy party threatens keep settlement
+    # defensive: N>M — enemy party threatens keep; player party already
+    # fielded so player_can_muster is False (posture path, not K48.1c muster)
     defensive_world = WorldMap(
         [keep, enemy_camp],
         [(keep, enemy_camp)],
         parties={
+            keep: Party(hero=Unit(), units=(), owner_id="player"),
             enemy_camp: Party(hero=Unit(), units=(), owner_id="enemy"),
         },
         settlements={
@@ -459,12 +514,13 @@ def test_render_recommended_action_data_posture_and_order_text_from_m_vs_n():
     )
     _assert_recommended(balanced_world, "balanced")
 
-    # defensive: N>M — enemy party threatens keep settlement; player has no
-    # party so M=0, N=1; first threatened region is Keep
+    # defensive: N>M — enemy party threatens keep; player party fielded so
+    # player_can_muster is False (posture path, not K48.1c muster)
     defensive_world = WorldMap(
         [keep, enemy_camp],
         [(keep, enemy_camp)],
         parties={
+            keep: Party(hero=Unit(), units=(), owner_id="player"),
             enemy_camp: Party(hero=Unit(), units=(), owner_id="enemy"),
         },
         settlements={
@@ -548,11 +604,12 @@ def test_render_recommended_action_data_action_after_posture_from_kind():
     )
     _assert_action(balanced_world, "balanced", "develop")
 
-    # defensive → defend
+    # defensive → defend (player party fielded → can_muster False)
     defensive_world = WorldMap(
         [keep, enemy_camp],
         [(keep, enemy_camp)],
         parties={
+            keep: Party(hero=Unit(), units=(), owner_id="player"),
             enemy_camp: Party(hero=Unit(), units=(), owner_id="enemy"),
         },
         settlements={

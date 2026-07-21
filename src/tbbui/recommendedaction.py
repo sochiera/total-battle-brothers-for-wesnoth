@@ -57,10 +57,12 @@ def recommended_order(
 ) -> tuple[str, str | None] | None:
     """Return machine decision ``(action, target_region_name)`` for the player.
 
-    ``action`` ∈ ``{"assault", "engage", "defend", "develop"}``; ``target`` is
-    the region name, or ``None`` for ``develop``. Returns ``None`` when
-    ``player_duchy(game, player_duchy_id) is None`` (no player or id not in
-    ``game.duchies``). Same posture/target rules as
+    ``action`` ∈ ``{"muster", "assault", "engage", "defend", "develop"}``;
+    ``target`` is the region name, or ``None`` for ``muster``/``develop``.
+    Returns ``None`` when ``player_duchy(game, player_duchy_id) is None``
+    (no player or id not in ``game.duchies``). When
+    ``player_can_muster(...)`` is True, returns ``("muster", None)`` before
+    posture (K48.1c). Otherwise same posture/target rules as
     ``render_recommended_action``. Pure and deterministic: no RNG/IO; does not
     mutate ``world`` or ``game``.
     """
@@ -68,6 +70,9 @@ def recommended_order(
         return None
 
     assert player_duchy_id is not None
+    if player_can_muster(world, game, player_duchy_id):
+        return "muster", None
+
     m = advantageous_target_count(world, game, player_duchy_id)
     n = threatened_position_count(world, game, player_duchy_id)
     posture = net_posture(m, n)
@@ -120,8 +125,8 @@ def render_recommended_action(
     ``engagementpreview.advantageous_target_count``, N =
     ``threatalert.threatened_position_count``), then ``data-action`` and
     visible text from ``recommended_order`` / ``recommended_order_text``
-    (``assault|engage|defend|develop`` and the matching order line). Pure and
-    deterministic: no RNG/IO; does not mutate ``world`` or ``game``.
+    (``muster|assault|engage|defend|develop`` and the matching order line).
+    Pure and deterministic: no RNG/IO; does not mutate ``world`` or ``game``.
     """
     order = recommended_order(world, game, player_duchy_id)
     if order is None:
