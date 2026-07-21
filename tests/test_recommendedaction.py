@@ -211,6 +211,69 @@ def test_recommended_order_muster_before_posture_when_player_can_muster():
     assert game.duchies == duchies_before
 
 
+def test_render_recommended_action_muster_data_action_and_text_keeps_posture():
+    """``render_recommended_action`` when ``recommended_order`` is
+    ``("muster", None)``: root has ``data-action="muster"`` and text
+    ``Zalecany rozkaz: zbierz oddział``; ``data-posture`` still equals
+    ``net_posture(M, N)`` (M/N counts unchanged) — K48.1c.
+
+    Scenario: can muster True and defensive M/N so posture would be defend
+    if muster did not win the order. Pure: no world/game mutation.
+    """
+    player_can_muster = recommendedaction.player_can_muster
+    keep = Region("Keep")
+    enemy_camp = Region("EnemyCamp")
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+    world = WorldMap(
+        [keep, enemy_camp],
+        [(keep, enemy_camp)],
+        parties={
+            enemy_camp: Party(hero=Unit(), units=(), owner_id="enemy"),
+        },
+        settlements={
+            keep: Settlement("KeepS", population=2, owner_id="player"),
+        },
+    )
+    assert player_can_muster(world, game, "player") is True
+    assert recommended_order(world, game, "player") == ("muster", None)
+    m = advantageous_target_count(world, game, "player")
+    n = threatened_position_count(world, game, "player")
+    expected_posture = net_posture(m, n)
+    assert expected_posture == "defensive"
+
+    regions_before = world.regions
+    parties_before = {r: world.party_at(r) for r in world.regions}
+    settlements_before = {
+        r: world.settlement_at(r) for r in world.regions
+    }
+    duchies_before = game.duchies
+
+    root = ET.fromstring(
+        render_recommended_action(world, game, player_duchy_id="player")
+    )
+    assert root.tag == "div"
+    assert root.attrib.get("data-recommended-action") == ""
+    assert root.attrib.get("data-posture") == expected_posture
+    assert root.attrib.get("data-posture") == net_posture(m, n)
+    assert root.attrib.get("data-action") == "muster"
+    assert root.text == "Zalecany rozkaz: zbierz oddział"
+    assert list(root) == []
+
+    assert world.regions == regions_before
+    assert {
+        r: world.party_at(r) for r in world.regions
+    } == parties_before
+    assert {
+        r: world.settlement_at(r) for r in world.regions
+    } == settlements_before
+    assert game.duchies == duchies_before
+
+
 def test_recommended_order_returns_none_when_player_duchy_missing():
     """``recommended_order(world, game, player_duchy_id)`` returns ``None``
     when ``player_duchy(game, player_duchy_id) is None`` — i.e. no player
