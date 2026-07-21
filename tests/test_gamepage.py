@@ -753,3 +753,35 @@ def test_render_game_page_has_document_title_in_head_before_body():
 
     bodies = [el for el in root if _local(el.tag) == "body"]
     assert len(bodies) == 1
+
+
+def test_render_game_page_emits_visible_page_title_h1_as_first_body_child():
+    """Exactly one ``<h1 data-page-title="">Total Battle Brothers</h1>`` is first in ``<body>``, before map SVG."""
+    world, game, calendar = _ongoing_fixture()
+    expected_svg = render_world_svg(world)
+    expected_h1 = '<h1 data-page-title="">Total Battle Brothers</h1>'
+
+    html = render_game_page(world, game, calendar)
+    root = ET.fromstring(html)
+
+    body = next(el for el in root if _local(el.tag) == "body")
+    body_children = list(body)
+    assert len(body_children) >= 1
+
+    first = body_children[0]
+    assert _local(first.tag) == "h1"
+    assert first.get("data-page-title") == ""
+    assert (first.text or "").strip() == "Total Battle Brothers"
+
+    page_titles = _find_by_attr(root, "data-page-title")
+    assert len(page_titles) == 1
+    assert page_titles[0] is first
+
+    all_h1 = [el for el in root.iter() if _local(el.tag) == "h1"]
+    assert len(all_h1) == 1
+
+    assert html.count(expected_h1) == 1
+    assert expected_svg in html
+    assert html.index(expected_h1) < html.index(expected_svg), (
+        "page title h1 must precede the embedded world map SVG in <body>"
+    )

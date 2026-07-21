@@ -377,7 +377,9 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   Czysty, deterministyczny.
 - `render_game_page(world, game, calendar, battle=None, player_duchy_id=None)` —
   dokument z `<html>` → `<head><title>Total Battle Brothers</title></head>`
-  (K32.1a, stały tytuł) → `<body>`; SVG mapy, kalendarz (`data-calendar` +
+  (K32.1a, stały tytuł) → `<body>` zaczynające się od
+  `<h1 data-page-title="">Total Battle Brothers</h1>` (K32.1b, stały nagłówek
+  strony) → SVG mapy, kalendarz (`data-calendar` +
   widoczny tekst `Rok N, miesiąc M`), panel księstw (`data-duchy` +
   `data-hero`/`data-heir` (`"true"`/`"false"` z `Duchy.has_hero` /
   `heir is not None`) + tekst statusu

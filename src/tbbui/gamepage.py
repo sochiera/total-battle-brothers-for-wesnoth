@@ -55,11 +55,13 @@ def render_game_page(
 
     Root ``<html>`` has exactly one ``<head>`` with
     ``<title>Total Battle Brothers</title>`` (K32.1a) immediately before
-    ``<body>``. Embeds the strategic map SVG from ``render_world_svg``, the
-    owner-color legend from ``render_owner_legend(world, player_duchy_id)``, a
-    visible settlements section header
-    (``<h2 data-panel-section="settlements">Osady</h2>``, K27.3a) immediately
-    before the settlement panel from
+    ``<body>``. First child of ``<body>`` is a visible page title
+    ``<h1 data-page-title="">Total Battle Brothers</h1>`` (K32.1b; constant,
+    independent of ``player_duchy_id`` / ``battle``), then the strategic map
+    SVG from ``render_world_svg``, the owner-color legend from
+    ``render_owner_legend(world, player_duchy_id)``, a visible settlements
+    section header (``<h2 data-panel-section="settlements">Osady</h2>``,
+    K27.3a) immediately before the settlement panel from
     ``render_settlement_panel(world, player_duchy_id)``, a visible parties
     section header (``<h2 data-panel-section="parties">Oddziały</h2>``,
     K27.3b) immediately before the party panel from
@@ -141,10 +143,13 @@ def render_game_page(
     parties_header = '<h2 data-panel-section="parties">Oddziały</h2>'
     duchies_header = '<h2 data-panel-section="duchies">Księstwa</h2>'
 
+    page_title = '<h1 data-page-title="">Total Battle Brothers</h1>'
+
     return (
         "<html>"
         "<head><title>Total Battle Brothers</title></head>"
         "<body>"
+        f"{page_title}"
         f"{map_svg}"
         f"{owner_legend}"
         f"{player_summary}"
