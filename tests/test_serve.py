@@ -276,6 +276,55 @@ def test_game_app_last_notice_empty_string_renders_empty_data_notice():
     assert notices[0].get("data-notice") == app.last_notice == ""
 
 
+def test_game_app_post_order_recruit_sets_last_notice_wykonano_then_brak_zmian():
+    """POST /order/recruit sets last_notice via the "Rekrutacja" label.
+
+    Contract (task-144 / K28.1b):
+    - a recruit that changes world sets last_notice == "Rekrutacja: wykonano"
+      and the rendered page carries <p data-notice="Rekrutacja: wykonano">
+    - a subsequent recruit with insufficient gold (world unchanged) sets
+      last_notice == "Rekrutacja: brak zmian"
+    """
+    north, south = map(Region, ("North", "South"))
+    north_keep = Settlement(
+        "North Keep",
+        3,
+        storage=Resources(0, 1),
+        garrison=(Unit(training=1),),
+        occupied=1,
+        owner_id="north",
+    )
+    south_keep = Settlement("South Keep", 2, owner_id="south")
+    world = WorldMap(
+        (north, south), settlements={north: north_keep, south: south_keep}
+    )
+    game = GameState(
+        (
+            Duchy("north", Unit(), settlements=(north_keep,)),
+            Duchy("south", Unit(), settlements=(south_keep,)),
+        )
+    )
+    calendar = Calendar(year=2, month=3)
+    app = GameApp(world, game, calendar, Rng(11), player_duchy_id="north")
+
+    code, body = app.handle("POST", "/order/recruit")
+    assert code == 200
+    assert app.last_notice == "Rekrutacja: wykonano"
+    assert app.world.settlement_at(north).storage.gold == 0
+    root = ET.fromstring(body)
+    notices = _find_by_attr(root, "data-notice")
+    assert len(notices) == 1
+    assert notices[0].get("data-notice") == "Rekrutacja: wykonano"
+
+    code2, body2 = app.handle("POST", "/order/recruit")
+    assert code2 == 200
+    assert app.last_notice == "Rekrutacja: brak zmian"
+    root2 = ET.fromstring(body2)
+    notices2 = _find_by_attr(root2, "data-notice")
+    assert len(notices2) == 1
+    assert notices2[0].get("data-notice") == "Rekrutacja: brak zmian"
+
+
 def test_game_app_render_forwards_player_duchy_id_to_data_player_duchy():
     """GameApp._render passes self.player_duchy_id into render_game_page.
 

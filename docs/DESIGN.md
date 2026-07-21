@@ -390,10 +390,13 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   `player_duchy_id` do `render_game_page` (`data-player-duchy` na wierszu gracza).
   CLI `python -m tbbui serve` ustawia `player_duchy_id="player"`.
 - Wspólny warunek rozkazu: ustawiony gracz, gra nie `is_over`, księstwo w
-  `game.duchies` → `_apply_player_order` + `sync_from_world`; inaczej no-op;
-  zawsze `(200, strona)`.
+  `game.duchies` → `_apply_player_order(transition, label)` + `sync_from_world`;
+  inaczej no-op; zawsze `(200, strona)`. Po próbie `last_notice` =
+  `"{label}: wykonano"` gdy `world` się zmienił, inaczej `"{label}: brak zmian"`
+  (w tym przy guardach).
 - `POST /order/recruit|muster|develop` → `recruit_duchy_unit` /
-  `muster_duchy_party` / `develop_duchy_settlement`.
+  `muster_duchy_party` / `develop_duchy_settlement` z etykietami
+  `"Rekrutacja"` / `"Zebranie oddziału"` / `"Rozbudowa"`.
 - `POST /order/march` / `?target=<region>` — parse `target` przez
   `_order_target_region` (`parse_qs`, dopasowanie `Region.name`); znany target →
   `march_duchy_party_to`; brak/nieznany → `march_duchy_party`.

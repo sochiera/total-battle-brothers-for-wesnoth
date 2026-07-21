@@ -191,7 +191,8 @@ czystą metodę `handle(method, path) -> (kod_http, treść)` — bez gniazda HT
 (K23.2b — panel księstw z `data-player-duchy` przy wierszu gracza) plus znacznik
 `data-player` (wartość `player_duchy_id` lub `""` gdy `None`), slot komunikatu
 rozkazu `<p data-notice="{last_notice}"></p>` (K28.1a — `GameApp.last_notice`
-inicjalizowane na `""`; treść HTML-bezpieczna przez `html.escape`) oraz formularze
+inicjalizowane na `""`; treść HTML-bezpieczna przez `html.escape`; K28.1b —
+`_apply_player_order` ustawia skutek rozkazu rozwoju) oraz formularze
 `<form method="post" action="/turn">`,
 `<form method="post" action="/order/recruit">`,
 `<form method="post" action="/order/muster">`,
@@ -225,15 +226,21 @@ AI tego księstwa — K14.1a); gdy `game.is_over` przed żądaniem, no-op (stan 
 zmian, wciąż `200`). Rozkazy gracza `POST /order/recruit` (K14.2a),
 `POST /order/muster` (K14.2b), `POST /order/develop` (K14.2c),
 `POST /order/march` (K14.2d2 / K15.1b) idzie wspólnym helperem
-`_apply_player_order(transition)`: gdy `player_duchy_id` ustawiony, gra nie
-jest `is_over` i księstwo gracza istnieje w `game.duchies`, stosuje
-`transition(world, player_duchy)` (`ai.recruit_duchy_unit` /
-`ai.muster_duchy_party` / `ai.develop_duchy_settlement` / dla marszu: wspólne
+`_apply_player_order(transition, label)` (K28.1b): gdy `player_duchy_id`
+ustawiony, gra nie jest `is_over` i księstwo gracza istnieje w
+`game.duchies`, stosuje `transition(world, player_duchy)`
+(`ai.recruit_duchy_unit` / `ai.muster_duchy_party` /
+`ai.develop_duchy_settlement` / dla marszu: wspólne
 `_order_target_region(query)` — niepusty, URL-dekodowany `target` dopasowany
 do `world.regions` po nazwie → `ai.march_duchy_party_to`; brak/pusty/nieznany
 `target` → fallback `ai.march_duchy_party`), podmienia `world` i
 re-synchronizuje `game = game.sync_from_world(world)`; w przeciwnym razie
-no-op; zawsze `(200, strona)`. `POST /order/assault` (K14.2e2 / K15.2b /
+no-op; zawsze `(200, strona)`. Po próbie ustawia `self.last_notice` na
+`f"{label}: wykonano"` gdy nowy `world !=` poprzedni, inaczej
+`f"{label}: brak zmian"` (również przy odrzuceniu przez guardy). Etykiety:
+`POST /order/recruit` → `"Rekrutacja"`, `muster` → `"Zebranie oddziału"`,
+`develop` → `"Rozbudowa"`; marsz przekazuje etykietę
+(`"Marsz"` / `f"Marsz do {name}"` — kontrakt K28.1c). `POST /order/assault` (K14.2e2 / K15.2b /
 K16.1d-2) ma te same guardy przez `_apply_player_assault_order`: jawny
 `target` → `ai.assault_duchy_party_to_recorded`, auto →
 `ai.assault_duchy_party_recorded` (oba z `self.rng` i
