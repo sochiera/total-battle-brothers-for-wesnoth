@@ -18,6 +18,7 @@ from tbb.turn import Calendar
 from tbb.unit import Unit
 from tbb.world import Region, WorldMap
 from tbbui.battlesvg import render_battle_svg
+from tbbui.recommendedaction import recommended_order
 from tbbui.serve import GameApp, recommended_order_path
 from tbbui.turnsummary import render_turn_summary
 
@@ -99,10 +100,17 @@ def _has_post_form(html: str, action_path: str) -> bool:
 
 
 def _form_submit_button_text(html: str, action_path: str) -> str | None:
-    """Text of the first submit button inside the POST form for ``action_path``."""
+    """Text of the first submit button inside the POST form for ``action_path``.
+
+    Skips ``data-recommended-order`` forms (K42.1c): when the advice is
+    ``develop``, that form reuses bare ``/order/develop`` and must not mask the
+    section order button label.
+    """
     root = ET.fromstring(html)
     for el in root.iter():
         if _local(el.tag) != "form":
+            continue
+        if el.get("data-recommended-order") is not None:
             continue
         method = (el.get("method") or "").lower()
         action = el.get("action") or ""
@@ -3722,4 +3730,47 @@ def test_recommended_order_path_develop():
     Contract: ``"develop"`` → ``"/order/develop"``. Pure, deterministic, no IO.
     """
     assert recommended_order_path("develop") == "/order/develop"
+
+
+def test_get_embeds_one_recommended_order_form_before_develop_section():
+    """GET / embeds exactly one ``data-recommended-order`` form before develop (K42.1c).
+
+    Contract (task-205): with ``player_duchy_id`` set, game not ``is_over``, and
+    ``recommended_order(world, game, player_duchy_id) is not None``, GET /
+    contains exactly one ``<form>`` with attribute ``data-recommended-order=""``,
+    placed before the header ``<h2 data-order-section="develop">``.
+    """
+    world, game = _ongoing_world_game()
+    assert not game.is_over
+    order = recommended_order(world, game, "north")
+    assert order is not None
+
+    app = GameApp(
+        world, game, Calendar(year=1, month=1), Rng(1), player_duchy_id="north"
+    )
+    code, body = app.handle("GET", "/")
+    assert code == 200
+
+    root = ET.fromstring(body)
+    rec_forms = [
+        el
+        for el in root.iter()
+        if _local(el.tag) == "form" and el.get("data-recommended-order") is not None
+    ]
+    assert len(rec_forms) == 1, (
+        f"expected exactly one data-recommended-order form, found {len(rec_forms)}"
+    )
+    assert rec_forms[0].get("data-recommended-order") == ""
+    assert (rec_forms[0].get("method") or "").lower() == "post"
+
+    develop_header = '<h2 data-order-section="develop">'
+    form_marker = 'data-recommended-order=""'
+    form_pos = body.find(form_marker)
+    header_pos = body.find(develop_header)
+    assert form_pos != -1, "data-recommended-order=\"\" missing from GET / body"
+    assert header_pos != -1, "develop section header missing from GET / body"
+    assert form_pos < header_pos, (
+        "data-recommended-order form must appear before "
+        'data-order-section="develop" header'
+    )
 

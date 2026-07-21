@@ -15,6 +15,7 @@ import tbb.settlement as settlement_module
 from tbb.turn import Calendar
 from tbb.world import Region, WorldMap
 from tbbui.gamepage import render_game_page
+from tbbui.recommendedaction import recommended_order
 
 _NEW_GAME_FORM = (
     '<form method="post" action="/new">'
@@ -412,6 +413,31 @@ class GameApp:
                 return self._emit_target_forms("/order/engage", targets)
         return _ENGAGE_FORM
 
+    def _recommended_order_form(self) -> str:
+        """One-click form for the K41 recommendation when player/advice allow (K42.1c).
+
+        Empty string when ``player_duchy_id`` is missing, the game is over, or
+        ``recommended_order`` returns ``None``. Otherwise a single POST form
+        with ``data-recommended-order=""``; ``action`` is
+        ``recommended_order_path(action)`` plus ``?target=quote(region)`` when
+        the recommendation names a region (no target suffix for ``develop``).
+        Button label is a placeholder until K42.2a.
+        """
+        if self.player_duchy_id is None or self.game.is_over:
+            return ""
+        order = recommended_order(self.world, self.game, self.player_duchy_id)
+        if order is None:
+            return ""
+        action, region = order
+        path = recommended_order_path(action)
+        if region is not None:
+            path = f"{path}?target={quote(region)}"
+        return (
+            f'<form method="post" action="{path}" data-recommended-order="">'
+            '<button type="submit">Wykonaj zalecenie</button>'
+            "</form>"
+        )
+
     def _render(self) -> str:
         html = render_game_page(
             self.world,
@@ -432,6 +458,7 @@ class GameApp:
         if not self.game.is_over:
             extras += (
                 f"{_TURN_FORM}"
+                f"{self._recommended_order_form()}"
                 f"{_DEVELOP_SECTION_HEADER}{_recruit_form()}{_MUSTER_FORM}"
                 f"{_DEVELOP_FORM}"
                 f"{_MARCH_SECTION_HEADER}{self._march_forms()}"
