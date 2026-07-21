@@ -399,8 +399,9 @@ def test_render_game_page_settlements_header_precedes_settlement_panel():
     assert [el.get("data-panel-section") for el in headers] == [
         "settlements",
         "parties",
+        "duchies",
     ]
-    assert [el.text for el in headers] == ["Osady", "Oddziały"]
+    assert [el.text for el in headers] == ["Osady", "Oddziały", "Księstwa"]
 
 
 def test_render_game_page_embeds_canonical_party_panel_with_matching_rows():
@@ -444,8 +445,32 @@ def test_render_game_page_parties_header_precedes_party_panel():
     assert [el.get("data-panel-section") for el in headers] == [
         "settlements",
         "parties",
+        "duchies",
     ]
-    assert [el.text for el in headers] == ["Osady", "Oddziały"]
+    assert [el.text for el in headers] == ["Osady", "Oddziały", "Księstwa"]
+
+
+def test_render_game_page_duchies_header_precedes_first_duchy_row():
+    """A single duchies ``<h2>`` sits immediately before the first ``data-duchy`` row."""
+    world, game, calendar = _ongoing_fixture()
+    header = '<h2 data-panel-section="duchies">Księstwa</h2>'
+
+    html = render_game_page(world, game, calendar)
+
+    assert html.count(header) == 1
+    first_duchy_row_start = f'<div data-duchy="{game.duchies[0].duchy_id}"'
+    assert html.index(header) + len(header) == html.index(first_duchy_row_start), (
+        "header must sit directly before the first data-duchy row"
+    )
+
+    root = ET.fromstring(html)
+    headers = _find_by_attr(root, "data-panel-section")
+    assert [el.get("data-panel-section") for el in headers] == [
+        "settlements",
+        "parties",
+        "duchies",
+    ]
+    assert [el.text for el in headers] == ["Osady", "Oddziały", "Księstwa"]
 
 
 def test_render_game_page_embeds_canonical_owner_legend_with_matching_rows():

@@ -51,13 +51,15 @@ def render_game_page(
     K27.3b) immediately before the party panel from
     ``render_party_panel(world, player_duchy_id)``, a calendar stamp
     (``data-year`` / ``data-month`` plus visible text ``Rok N, miesiąc M``),
-    one duchy panel row per ``game.duchies`` (machine ``data-*`` attributes
-    including ``data-hero`` from ``duchy.has_hero`` and ``data-heir`` from
-    ``duchy.heir is not None``, plus human-readable status text with
-    ``, bohater tak|nie, dziedzic tak|nie`` after morale), a machine-readable
-    result marker (``data-result``), and a human-readable result banner
-    (``data-result-text``). When ``battle`` is a ``HexBattle``, also embeds
-    the canonical strings from ``render_battle_svg(battle)`` and
+    a visible duchies section header
+    (``<h2 data-panel-section="duchies">Księstwa</h2>``, K27.3b)
+    immediately before one duchy panel row per ``game.duchies`` (machine
+    ``data-*`` attributes including ``data-hero`` from ``duchy.has_hero`` and
+    ``data-heir`` from ``duchy.heir is not None``, plus human-readable status
+    text with ``, bohater tak|nie, dziedzic tak|nie`` after morale), a
+    machine-readable result marker (``data-result``), and a human-readable
+    result banner (``data-result-text``). When ``battle`` is a ``HexBattle``,
+    also embeds the canonical strings from ``render_battle_svg(battle)`` and
     ``render_battle_report(battle)`` in ``<body>``. Optional
     ``player_duchy_id`` marks the matching ``data-duchy`` row with
     ``data-player-duchy=""`` and a visible ``» `` text prefix, and is
@@ -109,6 +111,7 @@ def render_game_page(
 
     settlements_header = '<h2 data-panel-section="settlements">Osady</h2>'
     parties_header = '<h2 data-panel-section="parties">Oddziały</h2>'
+    duchies_header = '<h2 data-panel-section="duchies">Księstwa</h2>'
 
     return (
         "<html><body>"
@@ -123,6 +126,7 @@ def render_game_page(
         f'<div data-calendar="" data-year="{calendar.year}"'
         f' data-month="{calendar.month}">'
         f"Rok {calendar.year}, miesiąc {calendar.month}</div>"
+        f"{duchies_header}"
         f"{''.join(duchy_parts)}"
         f'<div data-result="{result}"></div>'
         f'<p data-result-text="{result_text}">{result_text}</p>'

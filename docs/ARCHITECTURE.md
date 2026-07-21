@@ -149,12 +149,14 @@ stringi z `render_battle_svg(battle)` (`tbbui.battlesvg`) oraz
 nagłówki sekcji
 `<h2 data-panel-section="settlements">Osady</h2>` (K27.3a) bezpośrednio przed
 kanonicznym stringiem z `render_settlement_panel(world, player_duchy_id)`
-(K22.1c / K23.3b) oraz
+(K22.1c / K23.3b),
 `<h2 data-panel-section="parties">Oddziały</h2>` (K27.3b) bezpośrednio przed
 kanonicznym stringiem z
-`render_party_panel(world, player_duchy_id)` (K22.2b / K24.1b); gdy
-`None` (domyślnie) wynik jest identyczny bajt-w-bajt jak bez argumentu; element
-`data-calendar` z `data-year` / `data-month` z podanego `Calendar` oraz
+`render_party_panel(world, player_duchy_id)` (K22.2b / K24.1b) oraz
+`<h2 data-panel-section="duchies">Księstwa</h2>` (K27.3b) bezpośrednio przed
+pierwszym wierszem `data-duchy` (kolejność: settlements, parties, duchies);
+gdy `None` (domyślnie) wynik jest identyczny bajt-w-bajt jak bez argumentu;
+element `data-calendar` z `data-year` / `data-month` z podanego `Calendar` oraz
 widocznym tekstem `Rok N, miesiąc M` (K21.1a, zgodnym z atrybutami); po jednym
 elemencie `data-duchy` (= `duchy_id`) na każde `game.duchies` z `data-morale`,
 `data-settlements` i `data-parties` (liczby), `data-hero` / `data-heir`

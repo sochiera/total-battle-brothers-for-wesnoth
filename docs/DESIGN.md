@@ -378,9 +378,11 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   opcjonalnie SVG bitwy i raport bitwy gdy `battle` podane; osadza też legendę
   właścicieli (`render_owner_legend(world, player_duchy_id)`), nagłówki sekcji
   `<h2 data-panel-section="settlements">Osady</h2>` tuż przed panelem osad
-  (`render_settlement_panel(world, player_duchy_id)`) oraz
+  (`render_settlement_panel(world, player_duchy_id)`),
   `<h2 data-panel-section="parties">Oddziały</h2>` tuż przed panelem party
-  (`render_party_panel(world, player_duchy_id)`).
+  (`render_party_panel(world, player_duchy_id)`) oraz
+  `<h2 data-panel-section="duchies">Księstwa</h2>` tuż przed pierwszym wierszem
+  `data-duchy` (kolejność nagłówków: settlements, parties, duchies).
 
 **GameApp / rozkazy gracza:**
 - `GameApp(..., player_duchy_id=None)` — w `POST /turn` woła `run_headless_game`
