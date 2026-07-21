@@ -260,19 +260,25 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > dostał widoczny nagłówek (K44.2a) i komunikat stanu pustego (K44.2b). Wszystkie
 > pozycje (task-212…215) w `BACKLOG-ARCHIVE.md`. Rdzeń `tbb` bez zmian.
 
-## Kamień milowy 45 — dziennik kampanii: najnowsze na wierzchu, objętość i skróty
-> DESIGN §11: K44 zakotwiczył wpisy w czasie, ale dziennik nadal czyta się od
-> najstarszego (gracz przewija na dół po ostatnie zdarzenie), nie widać ile
-> wpisów jest ani że starsze wypadły przy limicie. K45 czyni dziennik czytelnym
-> „na jeden rzut oka": kolejność od najnowszego (K45.1a), znacznik najnowszego
+## Kamień milowy 45 — dziennik kampanii: najnowsze na wierzchu, objętość i skróty — UKOŃCZONY
+> DESIGN §11: dziennik czytany od najnowszego (K45.1a), znacznik najnowszego
 > wpisu (K45.2a), liczba wpisów w nagłówku (K45.3a) oraz nota o obcięciu przy
 > limicie (K45.4a) wpięta w `GameApp` (K45.4b). Reużywa istniejące
-> `order_log`/`ORDER_LOG_LIMIT` — bez nowego backendu rozkazów. Rdzeń `tbb` bez zmian.
-- [ ] **K45.1a** `render_order_log` wyświetla wpisy od najnowszego: dzieci `data-order-log-entry` w kolejności odwrotnej do `entries` (indeks 0 = ostatni element `entries`); `data-count`, escaping, nagłówek i stan pusty bez zmian. *(task-216)*
-- [ ] **K45.2a** Najnowszy (pierwszy) `data-order-log-entry` niesie `data-order-log-latest=""` i poprzedza ciało `<span data-order-log-latest-badge="">najnowszy</span>`; pozostałe wpisy i stan pusty bez tego atrybutu/badge. *(task-217)*
-- [ ] **K45.3a** Nagłówek pokazuje liczbę wpisów: `<h2 data-order-log-header="">Dziennik rozkazów ({N})</h2>` (N = `len(entries)`, także 0); `data-count` i dzieci bez zmian. *(task-218)*
-- [ ] **K45.4a** `render_order_log(entries, at_limit=False)`: przy `at_limit=True` i niepustej sekwencji po ostatnim wpisie (przed `</div>`) dokładnie jedno `<p data-order-log-truncated="">Pokazano ostatnie wpisy</p>`; `at_limit=False` lub pusta sekwencja → brak tego elementu (bajt-w-bajt jak dotąd). *(task-219)*
-- [ ] **K45.4b** `GameApp._render` woła `render_order_log(self.order_log, at_limit=len(self.order_log) >= ORDER_LOG_LIMIT)`; strona ma `data-order-log-truncated` iff dziennik osiągnął `ORDER_LOG_LIMIT`. *(task-220)*
+> `order_log`/`ORDER_LOG_LIMIT`. Pozycje (task-216…220) w `BACKLOG-ARCHIVE.md`.
+> Rdzeń `tbb` bez zmian.
+
+## Kamień milowy 46 — czytelny wynik rozkazu bitewnego gracza (dziennik/komunikat)
+> DESIGN §11: po szturmie/starciu komunikat i dziennik mówiły tylko „bitwa" —
+> gracz nie wiedział, czy wygrał ani jakie poniósł straty. K46 wzbogaca skutek
+> rozkazu bitewnego o wynik z perspektywy atakującego (czysty
+> `battle_outcome_text`, K46.1a) wpięty w komunikat (K46.1b) oraz o liczbę
+> własnych strat (czysty `attacker_losses`, K46.2a) wpiętą w komunikat (K46.2b).
+> Reużywa `HexBattle.report()` i wspólny `_apply_player_assault_order`
+> (szturm + starcie); rdzeń `tbb` bez zmian.
+- [ ] **K46.1a** `tbbui.battlereport.battle_outcome_text(battle)` zwraca z perspektywy atakującego: `ATTACKER_WIN` → `"zwycięstwo"`, `DEFENDER_WIN` → `"porażka"`, `DRAW` → `"remis"`; nierozstrzygnięta bitwa → `ValueError`; czysty, bez mutacji. *(task-221)*
+- [ ] **K46.1b** `_apply_player_assault_order` przy bitwie ustawia `last_notice = f"{label}: {battle_outcome_text(battle)}"` (nie `"{label}: bitwa"`); szturm z celem po zdobyciu → `"Szturm na KeepB: zwycięstwo"`, starcie analogicznie. *(task-222)*
+- [ ] **K46.2a** `tbbui.battlereport.attacker_losses(battle)` = `len(battle.report().attacker.fallen)`; nierozstrzygnięta bitwa → `ValueError`; czysty, bez mutacji. *(task-223)*
+- [ ] **K46.2b** `_apply_player_assault_order` przy bitwie ustawia `last_notice = f"{label}: {battle_outcome_text(battle)} (straty: {attacker_losses(battle)})"`. *(task-224)*
 
 ## Dług/refaktor
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*

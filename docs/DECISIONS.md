@@ -249,3 +249,7 @@
 | K45.3a | Liczba wpisów w nagłówku dziennika | `render_order_log` renderuje nagłówek `<h2 data-order-log-header="">Dziennik rozkazów ({N})</h2>` z `N=len(entries)` (także 0); `data-count`, wpisy i stan pusty bez zmian. |
 | K45.4a | Nota o obcięciu dziennika (renderer) | `render_order_log(entries, at_limit=False)`: przy `at_limit=True` i niepustej sekwencji po ostatnim wpisie `<p data-order-log-truncated="">Pokazano ostatnie wpisy</p>`; `at_limit=False` lub pusta → brak elementu (bajt-w-bajt jak dotąd). |
 | K45.4b | GameApp sygnalizuje obcięty dziennik | `GameApp._render` woła `render_order_log(self.order_log, at_limit=len(self.order_log) >= ORDER_LOG_LIMIT)`; strona ma `data-order-log-truncated` iff dziennik osiągnął limit. |
+| K46.1a | Tekst wyniku bitwy (atakujący) | `tbbui.battlereport.battle_outcome_text(battle)` z perspektywy atakującego: `ATTACKER_WIN`→„zwycięstwo", `DEFENDER_WIN`→„porażka", `DRAW`→„remis"; nierozstrzygnięta → `ValueError`; czysty. |
+| K46.1b | Wynik bitwy w komunikacie rozkazu | `_apply_player_assault_order` przy bitwie ustawia `last_notice = f"{label}: {battle_outcome_text(battle)}"` (szturm+starcie), zamiast literału „bitwa". |
+| K46.2a | Liczba strat atakującego | `tbbui.battlereport.attacker_losses(battle)` = `len(battle.report().attacker.fallen)`; nierozstrzygnięta → `ValueError`; czysty. |
+| K46.2b | Straty w komunikacie rozkazu | `_apply_player_assault_order` przy bitwie ustawia `last_notice = f"{label}: {battle_outcome_text(battle)} (straty: {attacker_losses(battle)})"`. |

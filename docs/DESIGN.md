@@ -363,8 +363,10 @@ prymitywy `ai.*` (bez osobnej logiki walki w UI):
 Gdy gra jest skończona: bez tury i bez rozkazów (POST no-opy). Po szturmie /
 starciu wisi ostatnia bitwa do kolejnej tury lub rozkazu nie-bitewnego;
 podsumowanie zmian po turze wisi tylko do kolejnej tury / restartu / rozkazu.
-Komunikat po akcji (wykonano / brak zmian / bitwa / data po turze) jest
-widoczny na stronie. Wszystkie renderery są czyste i deterministyczne.
+Komunikat po akcji jest widoczny na stronie i zasila dziennik kampanii:
+rozwój/marsz → „wykonano" / „brak zmian"; szturm/starcie z bitwą → wynik z
+perspektywy gracza-atakującego („zwycięstwo" / „porażka" / „remis") z liczbą
+własnych strat; „Następna tura" → data po turze. Wszystkie renderery są czyste i deterministyczne.
 
 ## 12. Otwarte pytania (nadal)
 - **Krzywe filarów:** różne parametry stromości per filar oraz wpływ budynków/

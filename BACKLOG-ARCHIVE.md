@@ -432,3 +432,10 @@
 - [x] **K44.1b** `GameApp._append_order_log` dokłada `format_log_entry(notice, self.calendar)` (wpis z prefiksem daty); `data-notice` i limit bez zmian. *(task-213)*
 - [x] **K44.2a** `render_order_log` osadza pierwszy nagłówek `<h2 data-order-log-header>Dziennik rozkazów</h2>`; `data-count`/wpisy bez zmian. *(task-214)*
 - [x] **K44.2b** `render_order_log` dla pustej sekwencji dokłada `<p data-order-log-empty>Brak rozkazów w tej kampanii</p>`; niepusta → brak elementu. *(task-215)*
+
+## Kamień milowy 45 — dziennik kampanii: najnowsze na wierzchu, objętość i skróty — UKOŃCZONY
+- [x] **K45.1a** `render_order_log` wypisuje `data-order-log-entry` w kolejności `reversed(entries)` (najnowszy pierwszy); `data-count`, escaping, nagłówek i stan pusty bez zmian. *(task-216)*
+- [x] **K45.2a** Najnowszy (pierwszy) wpis niesie `data-order-log-latest=""` i badge `<span data-order-log-latest-badge="">najnowszy</span>` przed ciałem; pozostałe bez tego. *(task-217)*
+- [x] **K45.3a** Nagłówek `<h2 data-order-log-header="">Dziennik rozkazów ({N})</h2>` (N=`len(entries)`, także 0); `data-count`/dzieci bez zmian. *(task-218)*
+- [x] **K45.4a** `render_order_log(entries, at_limit=False)`: `at_limit=True` + niepusta → jedno `<p data-order-log-truncated="">Pokazano ostatnie wpisy</p>` po ostatnim wpisie; inaczej brak (bajt-w-bajt jak dotąd). *(task-219)*
+- [x] **K45.4b** `GameApp._render` woła `render_order_log(self.order_log, at_limit=len(self.order_log) >= ORDER_LOG_LIMIT)`; `data-order-log-truncated` iff dziennik osiągnął limit. *(task-220)*
