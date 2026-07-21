@@ -149,6 +149,34 @@ def threatened_position_count(
     return len(_threatened_rows(world, player_duchy_id))
 
 
+def first_threatened_region(
+    world: WorldMap,
+    game: GameState,
+    player_duchy_id: str | None,
+) -> str | None:
+    """Return the region name of the first threatened own position.
+
+    Same rule and order as ``threatened_position_count`` / threat-alert rows:
+    ``world.regions``, settlement before party in the same region. Unknown
+    player (``player_duchy(...) is None``) or no threatened positions →
+    ``None``. Pure and deterministic: no RNG/IO; does not mutate ``world``
+    or ``game``.
+    """
+    if player_duchy(game, player_duchy_id) is None:
+        return None
+    assert player_duchy_id is not None
+    for region in world.regions:
+        if _first_hostile_neighbor(world, region, player_duchy_id) is None:
+            continue
+        settlement = world.settlement_at(region)
+        if settlement is not None and settlement.owner_id == player_duchy_id:
+            return region.name
+        party = world.party_at(region)
+        if party is not None and party.owner_id == player_duchy_id:
+            return region.name
+    return None
+
+
 def render_threat_alert(
     world: WorldMap,
     game: GameState,

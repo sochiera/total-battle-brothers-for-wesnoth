@@ -8,7 +8,11 @@ from tbb.party import Party
 from tbb.settlement import Settlement
 from tbb.unit import Unit
 from tbb.world import Region, WorldMap
-from tbbui.threatalert import render_threat_alert
+from tbbui.threatalert import (
+    first_threatened_region,
+    render_threat_alert,
+    threatened_position_count,
+)
 from tbbui.unitstrength import combat_totals
 
 
@@ -533,3 +537,143 @@ def test_render_threat_alert_row_data_defensible():
     ]
     for row in (hold_row, equal_row, weak_row):
         assert list(row.attrib.keys()) == expected_keys
+
+
+def test_first_threatened_region_first_own_threatened_position_or_none():
+    """``first_threatened_region(world, game, player_duchy_id)`` returns the
+    region name of the first threatened own position — same rule and order as
+    ``threatened_position_count`` / threat-alert rows: ``world.regions`` order,
+    settlement before party in the same region. Unknown player
+    (``player_duchy(...) is None``) or no threatened positions → ``None``.
+    Pure (no world/game mutation).
+    """
+    home = Region("Home")
+    keep = Region("Keep")
+    fort = Region("Fort")
+    safe = Region("Safe")
+    bandit_camp = Region("BanditCamp")
+    enemy_camp = Region("EnemyCamp")
+    ally_camp = Region("AllyCamp")
+
+    # world.regions order of threats (settlement before party):
+    # Home party (BanditCamp) → Keep settlement (EnemyCamp) → Fort settlement
+    # then Fort party (BanditCamp); Safe has only same-owner neighbor → no threat.
+    # First threatened region name is therefore "Home".
+    world = WorldMap(
+        [home, keep, fort, safe, bandit_camp, enemy_camp, ally_camp],
+        [
+            (home, bandit_camp),
+            (keep, enemy_camp),
+            (fort, bandit_camp),
+            (safe, ally_camp),
+        ],
+        parties={
+            home: Party(hero=Unit(), units=(), owner_id="player"),
+            fort: Party(hero=Unit(), units=(), owner_id="player"),
+            safe: Party(hero=Unit(), units=(), owner_id="player"),
+            bandit_camp: Party(hero=Unit(), units=(), owner_id="bandit"),
+            enemy_camp: Party(hero=Unit(), units=(), owner_id="enemy"),
+            ally_camp: Party(hero=Unit(), units=(), owner_id="player"),
+        },
+        settlements={
+            keep: Settlement("KeepS", population=2, owner_id="player"),
+            fort: Settlement("FortS", population=2, owner_id="player"),
+        },
+    )
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("bandit", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+
+    alert = ET.fromstring(
+        render_threat_alert(world, game, player_duchy_id="player")
+    )
+    rows = [
+        el
+        for el in alert
+        if el.get("data-threatened-region") is not None
+    ]
+    assert [
+        (r.get("data-threatened-region"), r.get("data-threatened-kind"))
+        for r in rows
+    ] == [
+        ("Home", "party"),
+        ("Keep", "settlement"),
+        ("Fort", "settlement"),
+        ("Fort", "party"),
+    ]
+    assert threatened_position_count(world, game, "player") == len(rows)
+
+    regions_before = world.regions
+    parties_before = {r: world.party_at(r) for r in world.regions}
+    settlements_before = {r: world.settlement_at(r) for r in world.regions}
+    duchies_before = game.duchies
+
+    assert first_threatened_region(world, game, "player") == "Home"
+
+    # Unknown / missing player → None
+    assert first_threatened_region(world, game, None) is None
+    assert first_threatened_region(world, game, "missing") is None
+
+    # Known player, no threatened positions → None
+    safe_only = WorldMap(
+        [safe, ally_camp],
+        [(safe, ally_camp)],
+        parties={
+            safe: Party(hero=Unit(), units=(), owner_id="player"),
+            ally_camp: Party(hero=Unit(), units=(), owner_id="player"),
+        },
+        settlements={},
+    )
+    assert threatened_position_count(safe_only, game, "player") == 0
+    assert first_threatened_region(safe_only, game, "player") is None
+
+    # Settlement-only threat earlier in world.regions wins over a later party.
+    keep_first = WorldMap(
+        [keep, home, enemy_camp],
+        [(keep, enemy_camp), (home, enemy_camp)],
+        parties={
+            home: Party(hero=Unit(), units=(), owner_id="player"),
+            enemy_camp: Party(hero=Unit(), units=(), owner_id="enemy"),
+        },
+        settlements={
+            keep: Settlement("KeepS", population=2, owner_id="player"),
+        },
+    )
+    assert threatened_position_count(keep_first, game, "player") == 2
+    assert first_threatened_region(keep_first, game, "player") == "Keep"
+
+    # Same region: settlement before party — region name is still that region.
+    fort_only = WorldMap(
+        [fort, bandit_camp],
+        [(fort, bandit_camp)],
+        parties={
+            fort: Party(hero=Unit(), units=(), owner_id="player"),
+            bandit_camp: Party(hero=Unit(), units=(), owner_id="bandit"),
+        },
+        settlements={
+            fort: Settlement("FortS", population=2, owner_id="player"),
+        },
+    )
+    fort_alert = ET.fromstring(
+        render_threat_alert(fort_only, game, player_duchy_id="player")
+    )
+    fort_rows = [
+        el
+        for el in fort_alert
+        if el.get("data-threatened-region") is not None
+    ]
+    assert [
+        (r.get("data-threatened-region"), r.get("data-threatened-kind"))
+        for r in fort_rows
+    ] == [("Fort", "settlement"), ("Fort", "party")]
+    assert first_threatened_region(fort_only, game, "player") == "Fort"
+
+    assert world.regions is regions_before
+    assert game.duchies is duchies_before
+    for r in world.regions:
+        assert world.party_at(r) is parties_before[r]
+        assert world.settlement_at(r) is settlements_before[r]

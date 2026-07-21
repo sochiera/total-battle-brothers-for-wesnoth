@@ -463,8 +463,9 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   offensive → pierwszy korzystny cel z `first_advantageous_target`
   (`Zalecany rozkaz: szturmuj osadę <region>` gdy `kind=="settlement"`,
   `zaatakuj oddział <region>` gdy `kind=="party"`; postawa ofensywna ⇒ M≥1);
-  defensive → `broń się`; balanced → `rozwijaj księstwo`. Czysty,
-  deterministyczny.
+  defensive → pierwsza zagrożona własna pozycja z `first_threatened_region`
+  (`broń pozycji <region>`; postawa defensywna ⇒ N≥1); balanced →
+  `rozwijaj księstwo`. Czysty, deterministyczny.
 - `render_party_panel(world, player_duchy_id=None)` — fragment `data-party-panel`
   z wierszem `data-party-row` (= nazwa regionu) na party w kolejności
   `world.regions`; `data-owner`/`data-size` (liczba podkomendnych)/`data-hp`/

@@ -247,6 +247,13 @@ mutacji `world`/`game`; rdzeń bez zmian.
 — `len(_threatened_rows(...))` przy znanym graczu, inaczej `0`; wspólne źródło
 `N` dla `render_threat_alert` i `render_situation_report`.
 
+**Pierwsza zagrożona pozycja (K41.1c):**
+`tbbui.threatalert.first_threatened_region(world, game, player_duchy_id) ->
+str | None` — nazwa regionu pierwszej zagrożonej własnej pozycji (ta sama
+reguła i kolejność co `threatened_position_count` / wiersze alertu:
+`world.regions`, osada przed party); brak gracza / brak zagrożeń → `None`.
+Wspólne źródło tekstu defensywnego w `render_recommended_action`.
+
 **Skrót sytuacji HTML (K40.1a / K40.1b / K40.2a):**
 `tbbui.situationreport.render_situation_report(world, game, player_duchy_id=None) -> str`
 — parsowalny fragment z korzeniem `<div data-situation-report="">`. Gdy
@@ -265,7 +272,7 @@ ofensywna|defensywna|zrównoważona`. Czyste, deterministyczne, bez mutacji
 deterministyczna. Wspólne źródło `data-net-posture` w `render_situation_report`
 oraz `data-posture` w `render_recommended_action`.
 
-**Zalecany rozkaz HTML (K41.1a / K41.1b):**
+**Zalecany rozkaz HTML (K41.1a / K41.1b / K41.1c):**
 `tbbui.recommendedaction.render_recommended_action(world, game, player_duchy_id=None) -> str`
 — parsowalny fragment z korzeniem `<div data-recommended-action="">`. Gdy
 `player_duchy(...) is None` → sam pusty korzeń (bez `data-posture`, bez tekstu,
@@ -273,9 +280,10 @@ bez dzieci). Przy znanym graczu: `data-posture` = `net_posture(M, N)` (M =
 `advantageous_target_count`, N = `threatened_position_count`) i tekst: przy
 `offensive` z `first_advantageous_target` —
 `Zalecany rozkaz: szturmuj osadę <region>` (`kind=="settlement"`) lub
-`zaatakuj oddział <region>` (`kind=="party"`); przy `defensive` /
-`balanced` — `broń się` / `rozwijaj księstwo`. Czyste, deterministyczne, bez
-mutacji `world`/`game`; rdzeń bez zmian.
+`zaatakuj oddział <region>` (`kind=="party"`); przy `defensive` z
+`first_threatened_region` — `broń pozycji <region>` (postawa defensywna ⇒ N≥1);
+przy `balanced` — `rozwijaj księstwo`. Czyste, deterministyczne, bez mutacji
+`world`/`game`; rdzeń bez zmian.
 
 **Lokalizacja party na mapie (R37.1):**
 `tbbui.maplookup.first_party_region(world, owner_id) -> Region | None` — pierwszy

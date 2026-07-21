@@ -57,8 +57,9 @@ def test_render_recommended_action_data_posture_and_order_text_from_m_vs_n():
     ``"offensive"`` when M>N, ``"defensive"`` when N>M, ``"balanced"`` when
     M==N. Visible text: balanced → ``Zalecany rozkaz: rozwijaj księstwo``;
     offensive → first advantageous target named (``szturmuj osadę <region>``
-    or ``zaatakuj oddział <region>``); defensive → ``Zalecany rozkaz:
-    broń się``. Pure and deterministic (no world/game mutation).
+    or ``zaatakuj oddział <region>``); defensive → first threatened region
+    (``broń pozycji <region>`` via ``first_threatened_region``). Pure and
+    deterministic (no world/game mutation).
     """
     home = Region("Home")
     keep = Region("Keep")
@@ -71,7 +72,6 @@ def test_render_recommended_action_data_posture_and_order_text_from_m_vs_n():
     )
 
     order_text = {
-        "defensive": "Zalecany rozkaz: broń się",
         "balanced": "Zalecany rozkaz: rozwijaj księstwo",
     }
 
@@ -125,7 +125,7 @@ def test_render_recommended_action_data_posture_and_order_text_from_m_vs_n():
     _assert_recommended(balanced_world, "balanced")
 
     # defensive: N>M — enemy party threatens keep settlement; player has no
-    # party so M=0, N=1
+    # party so M=0, N=1; first threatened region is Keep
     defensive_world = WorldMap(
         [keep, enemy_camp],
         [(keep, enemy_camp)],
@@ -136,7 +136,11 @@ def test_render_recommended_action_data_posture_and_order_text_from_m_vs_n():
             keep: Settlement("KeepS", population=2, owner_id="player"),
         },
     )
-    _assert_recommended(defensive_world, "defensive")
+    _assert_recommended(
+        defensive_world,
+        "defensive",
+        text="Zalecany rozkaz: broń pozycji Keep",
+    )
 
     # offensive: M>N — player party next to weak enemy settlement only
     # (hostile party required for N; settlement alone is an opportunity for M)
