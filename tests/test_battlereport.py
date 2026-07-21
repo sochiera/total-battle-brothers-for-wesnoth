@@ -13,6 +13,7 @@ from tbb.unit import Unit
 from tbbui.battlereport import (
     attacker_losses,
     battle_outcome_text,
+    defender_losses,
     render_battle_report,
 )
 
@@ -232,3 +233,14 @@ def test_attacker_losses_raises_on_unfinished_and_does_not_mutate():
     assert first == second == len(finished.report().attacker.fallen)
     assert finished.result() is result_before
     assert dict(finished.units) == finished_units_before
+
+
+def test_defender_losses_returns_fallen_defender_count():
+    """K47.1a: defender_losses == len(battle.report().defender.fallen)."""
+    win = _finished_attacker_win_battle()
+    loss = _finished_defender_win_battle()
+    draw = _finished_draw_battle()
+
+    assert defender_losses(win) == len(win.report().defender.fallen) == 1
+    assert defender_losses(loss) == len(loss.report().defender.fallen) == 0
+    assert defender_losses(draw) == len(draw.report().defender.fallen) == 1
