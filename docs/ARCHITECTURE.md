@@ -210,13 +210,15 @@ bez party → `data-player-on-map="false"` bez wierszy; brak/nieznany gracz → 
 pusty korzeń. Osadzony w `render_game_page` zaraz po `data-hero-chase` (K37.1c).
 Czyste, deterministyczne, bez mutacji `world`/`game`; rdzeń bez zmian.
 
-**Alert zagrożonych pozycji HTML (K39.1a, przyrost pustego korzenia):**
+**Alert zagrożonych pozycji HTML (K39.1a):**
 `tbbui.threatalert.render_threat_alert(world, game, player_duchy_id=None) -> str`
 — parsowalny fragment z korzeniem `<div data-threat-alert="">`. Gdy
 `player_duchy(game, player_duchy_id) is None` (`player_duchy_id` `None` lub
 spoza `game.duchies`) → sam pusty korzeń (bez `data-threats`, bez tekstu, bez
-dzieci). Czyste, deterministyczne, bez mutacji `world`/`game`; rdzeń bez zmian.
-Licznik zagrożonych pozycji — kolejne przyrosty K39.1a.
+dzieci). Przy znanym graczu: `data-threats="N"` i tekst `Zagrożone pozycje: N`
+(`N` = własne osady/party, osobno, z ≥1 sąsiednim party o jawnym wrogim
+`owner_id`; bez wierszy). Czyste, deterministyczne, bez mutacji `world`/`game`;
+rdzeń bez zmian.
 
 **Lokalizacja party na mapie (R37.1):**
 `tbbui.maplookup.first_party_region(world, owner_id) -> Region | None` — pierwszy
