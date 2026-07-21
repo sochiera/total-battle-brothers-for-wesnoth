@@ -128,16 +128,22 @@ jest `None` albo spoza `game.duchies` — sam pusty korzeń (bez
 `data-enemies-remaining`, bez wierszy i bez tekstu). Czyste, deterministyczne,
 bez mutacji `game`; rdzeń bez zmian.
 
-**Podsumowanie zmian po turze HTML (K38.1a):**
+**Podsumowanie zmian po turze HTML (K38.1a–b):**
 `tbbui.turnsummary.render_turn_summary(before, after) -> str` — parsowalny
 fragment XML z korzeniem `<div data-turn-summary="">`. `before: GameState |
 None`, `after: GameState`. Gdy `before is None` — sam pusty korzeń (bez
-`data-changed`, bez tekstu). Gdy `before` jest `GameState`, korzeń niesie
-`data-changed="true|false"`: `true` gdy istnieje księstwo dopasowane po
-`duchy_id` różniące się między `before` a `after` w `len(settlements)` lub
-`has_hero`; oraz widoczny tekst `Zmiany w tej turze: tak|nie` zgodny z flagą.
-Bez wierszy per-księstwo (K38.1b). Czyste, deterministyczne, bez mutacji
-`before`/`after`; rdzeń bez zmian.
+`data-changed`, bez `data-change-count`, bez tekstu i dzieci). Gdy `before`
+jest `GameState`, korzeń niesie `data-changed="true|false"` oraz
+`data-change-count="N"`: `N` = liczba księstw dopasowanych po `duchy_id`
+różniących się między `before` a `after` w `(len(settlements), has_hero)`;
+`data-changed="true"` iff `N > 0`; widoczny tekst `Zmiany w tej turze: tak|nie`
+zgodny z flagą. Na każde zmienione księstwo (kolejność `after.duchies`) —
+dziecko `<div data-turn-duchy="<id>" data-settlements-before data-settlements-after
+data-hero-before data-hero-after>` z tekstem
+`<id>: osady A→B, bohater <tak|nie>→<tak|nie>` (`hero-*` z `Duchy.has_hero`);
+księstwa bez zmian nie dają wiersza; `data-change-count` = liczba dzieci
+`data-turn-duchy`. Czyste, deterministyczne, bez mutacji `before`/`after`;
+rdzeń bez zmian.
 
 **Podpowiedź następnego kroku HTML (K34.1a):**
 `tbbui.nextobjective.render_next_objective(game, player_duchy_id=None) -> str`
@@ -487,7 +493,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │       ├── herolocator.py  # HTML lista pościgu wrogich bohaterów (K35.1)
 │       ├── herochase.py   # HTML dystans marszu do wrogich bohaterów (K36.1)
 │       ├── engagementpreview.py # HTML podgląd siły celu szturmu (K37.1)
-│       ├── turnsummary.py # HTML flaga zmian po turze (K38.1a)
+│       ├── turnsummary.py # HTML podsumowanie zmian po turze (K38.1a–b)
 │       ├── maplookup.py    # czysty helper: pierwszy region party właściciela (R37.1)
 │       ├── nextobjective.py # HTML podpowiedź następnego kroku (K34.1)
 │       ├── ownerlegend.py  # HTML legenda właścicieli (owner_id → kolor palety)
@@ -527,7 +533,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │   ├── test_herolocator.py # HTML lista pościgu wrogich bohaterów (tbbui, K35.1)
 │   ├── test_herochase.py # HTML dystans marszu do wrogich bohaterów (tbbui, K36.1)
 │   ├── test_engagementpreview.py # HTML podgląd siły celu szturmu (tbbui, K37.1)
-│   ├── test_turnsummary.py # HTML flaga zmian po turze (tbbui, K38.1a)
+│   ├── test_turnsummary.py # HTML podsumowanie zmian po turze (tbbui, K38.1a–b)
 │   ├── test_ui_maplookup.py # helper lokalizacji party właściciela (tbbui, R37.1)
 │   ├── test_nextobjective.py # HTML podpowiedź następnego kroku (tbbui, K34.1)
 │   ├── test_ownerlegend.py # HTML legenda właścicieli (tbbui, K23.1)
