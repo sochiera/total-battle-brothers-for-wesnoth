@@ -15,22 +15,23 @@ from tbbui.threatalert import first_threatened_region, threatened_position_count
 _BALANCED_ORDER = "Zalecany rozkaz: rozwijaj księstwo"
 
 
-def _offensive_order_text(
+def _offensive_action_and_text(
     world: WorldMap,
     game: GameState,
     player_duchy_id: str,
-) -> str:
-    """Name the first advantageous assault/engage target for offensive posture.
+) -> tuple[str, str]:
+    """Action id and visible text for the first advantageous offensive target.
 
     Offensive posture implies M≥1, so a target exists. Settlement →
-    ``szturmuj osadę <region>``; party → ``zaatakuj oddział <region>``.
+    (``assault``, ``szturmuj osadę <region>``); party →
+    (``engage``, ``zaatakuj oddział <region>``).
     """
     target = first_advantageous_target(world, game, player_duchy_id)
     assert target is not None
     region, kind = target
     if kind == "settlement":
-        return f"Zalecany rozkaz: szturmuj osadę {region}"
-    return f"Zalecany rozkaz: zaatakuj oddział {region}"
+        return "assault", f"Zalecany rozkaz: szturmuj osadę {region}"
+    return "engage", f"Zalecany rozkaz: zaatakuj oddział {region}"
 
 
 def _defensive_order_text(
@@ -56,11 +57,13 @@ def render_recommended_action(
 
     Root is ``<div data-recommended-action="">``. When ``player_duchy_id`` is
     ``None`` or not in ``game.duchies`` (``player_duchy(...) is None``), returns
-    a bare empty root with no ``data-posture``, no visible text, and no children.
-    When the player is known, the root carries ``data-posture`` from
-    ``situationreport.net_posture(M, N)`` (M =
+    a bare empty root with no ``data-posture``, no ``data-action``, no visible
+    text, and no children. When the player is known, the root carries
+    ``data-posture`` from ``situationreport.net_posture(M, N)`` (M =
     ``engagementpreview.advantageous_target_count``, N =
-    ``threatalert.threatened_position_count``) and visible text:
+    ``threatalert.threatened_position_count``), then ``data-action``
+    (``assault|engage`` for offensive by target kind, ``defend`` for
+    defensive, ``develop`` for balanced), and visible text:
     offensive → ``Zalecany rozkaz: szturmuj osadę <region>`` or
     ``zaatakuj oddział <region>`` from ``first_advantageous_target``;
     defensive → ``broń pozycji <region>`` from ``first_threatened_region``;
@@ -75,12 +78,14 @@ def render_recommended_action(
     n = threatened_position_count(world, game, player_duchy_id)
     posture = net_posture(m, n)
     if posture == "offensive":
-        text = _offensive_order_text(world, game, player_duchy_id)
+        action, text = _offensive_action_and_text(world, game, player_duchy_id)
     elif posture == "defensive":
-        text = _defensive_order_text(world, game, player_duchy_id)
+        action, text = "defend", _defensive_order_text(
+            world, game, player_duchy_id
+        )
     else:
-        text = _BALANCED_ORDER
+        action, text = "develop", _BALANCED_ORDER
     return (
-        f'<div data-recommended-action="" data-posture="{posture}">'
-        f"{text}</div>"
+        f'<div data-recommended-action="" data-posture="{posture}" '
+        f'data-action="{action}">{text}</div>'
     )

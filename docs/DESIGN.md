@@ -457,15 +457,17 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
 - `render_recommended_action(world, game, player_duchy_id=None)` — fragment
   `data-recommended-action` z jednym zalecanym rozkazem z postawy netto. Brak
   gracza lub id spoza `game.duchies` (`player_duchy(...) is None`) → sam pusty
-  korzeń `<div data-recommended-action="">` (bez `data-posture`/tekstu). Przy
-  znanym graczu korzeń niesie `data-posture` = `net_posture(M, N)` (M =
-  `advantageous_target_count`, N = `threatened_position_count`) i tekst:
-  offensive → pierwszy korzystny cel z `first_advantageous_target`
-  (`Zalecany rozkaz: szturmuj osadę <region>` gdy `kind=="settlement"`,
-  `zaatakuj oddział <region>` gdy `kind=="party"`; postawa ofensywna ⇒ M≥1);
-  defensive → pierwsza zagrożona własna pozycja z `first_threatened_region`
-  (`broń pozycji <region>`; postawa defensywna ⇒ N≥1); balanced →
-  `rozwijaj księstwo`. Czysty, deterministyczny.
+  korzeń `<div data-recommended-action="">` (bez `data-posture`/`data-action`/
+  tekstu). Przy znanym graczu korzeń niesie `data-posture` = `net_posture(M, N)`
+  (M = `advantageous_target_count`, N = `threatened_position_count`), zaraz po
+  nim `data-action` (`assault`/`engage` przy ofensywnej wg `kind` z
+  `first_advantageous_target`, `defend` przy defensywnej, `develop` przy
+  zrównoważonej) i tekst: offensive → pierwszy korzystny cel z
+  `first_advantageous_target` (`Zalecany rozkaz: szturmuj osadę <region>` gdy
+  `kind=="settlement"`, `zaatakuj oddział <region>` gdy `kind=="party"`;
+  postawa ofensywna ⇒ M≥1); defensive → pierwsza zagrożona własna pozycja z
+  `first_threatened_region` (`broń pozycji <region>`; postawa defensywna ⇒ N≥1);
+  balanced → `rozwijaj księstwo`. Czysty, deterministyczny.
 - `render_party_panel(world, player_duchy_id=None)` — fragment `data-party-panel`
   z wierszem `data-party-row` (= nazwa regionu) na party w kolejności
   `world.regions`; `data-owner`/`data-size` (liczba podkomendnych)/`data-hp`/

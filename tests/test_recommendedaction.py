@@ -8,7 +8,10 @@ from tbb.party import Party
 from tbb.settlement import Settlement
 from tbb.unit import Unit
 from tbb.world import Region, WorldMap
-from tbbui.engagementpreview import advantageous_target_count
+from tbbui.engagementpreview import (
+    advantageous_target_count,
+    first_advantageous_target,
+)
 from tbbui.recommendedaction import render_recommended_action
 from tbbui.situationreport import net_posture
 from tbbui.threatalert import threatened_position_count
@@ -158,4 +161,100 @@ def test_render_recommended_action_data_posture_and_order_text_from_m_vs_n():
         offensive_world,
         "offensive",
         text="Zalecany rozkaz: szturmuj osadę EnemyCamp",
+    )
+
+
+def test_render_recommended_action_data_action_after_posture_from_kind():
+    """Known player: root carries ``data-action`` immediately after
+    ``data-posture``. Mapping: balanced → ``"develop"``; defensive →
+    ``"defend"``; offensive with ``first_advantageous_target`` kind
+    ``"settlement"`` → ``"assault"``, kind ``"party"`` → ``"engage"``.
+    """
+    home = Region("Home")
+    keep = Region("Keep")
+    enemy_camp = Region("EnemyCamp")
+    weak_a = Region("WeakA")
+    weak_b = Region("WeakB")
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+
+    def _assert_action(
+        world: WorldMap,
+        expected_posture: str,
+        expected_action: str,
+        *,
+        target_kind: str | None = None,
+    ) -> None:
+        m = advantageous_target_count(world, game, "player")
+        n = threatened_position_count(world, game, "player")
+        assert net_posture(m, n) == expected_posture
+        if expected_posture == "offensive":
+            target = first_advantageous_target(world, game, "player")
+            assert target is not None
+            assert target[1] == target_kind
+
+        root = ET.fromstring(
+            render_recommended_action(world, game, player_duchy_id="player")
+        )
+        keys = list(root.attrib.keys())
+        posture_i = keys.index("data-posture")
+        action_i = keys.index("data-action")
+        assert action_i == posture_i + 1
+        assert root.attrib["data-posture"] == expected_posture
+        assert root.attrib["data-action"] == expected_action
+
+    # balanced → develop
+    balanced_world = WorldMap(
+        [home],
+        [],
+        parties={home: Party(hero=Unit(), units=(), owner_id="player")},
+        settlements={},
+    )
+    _assert_action(balanced_world, "balanced", "develop")
+
+    # defensive → defend
+    defensive_world = WorldMap(
+        [keep, enemy_camp],
+        [(keep, enemy_camp)],
+        parties={
+            enemy_camp: Party(hero=Unit(), units=(), owner_id="enemy"),
+        },
+        settlements={
+            keep: Settlement("KeepS", population=2, owner_id="player"),
+        },
+    )
+    _assert_action(defensive_world, "defensive", "defend")
+
+    # offensive + settlement kind → assault
+    assault_world = WorldMap(
+        [home, enemy_camp],
+        [(home, enemy_camp)],
+        parties={home: Party(hero=Unit(), units=(), owner_id="player")},
+        settlements={
+            enemy_camp: Settlement(
+                "EnemyS", population=2, owner_id="enemy"
+            ),
+        },
+    )
+    _assert_action(
+        assault_world, "offensive", "assault", target_kind="settlement"
+    )
+
+    # offensive + party kind → engage (two weak hostile parties: M=2 > N=1)
+    engage_world = WorldMap(
+        [home, weak_a, weak_b],
+        [(home, weak_a), (home, weak_b)],
+        parties={
+            home: Party(hero=Unit(), units=(), owner_id="player"),
+            weak_a: Party(hero=Unit(), units=(), owner_id="enemy"),
+            weak_b: Party(hero=Unit(), units=(), owner_id="enemy"),
+        },
+        settlements={},
+    )
+    _assert_action(
+        engage_world, "offensive", "engage", target_kind="party"
     )
