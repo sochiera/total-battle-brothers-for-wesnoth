@@ -403,6 +403,23 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   `data-in-reach=""` i sufiks „ — w zasięgu". Wrogowie bez `has_hero` lub bez
   party na mapie bez wiersza. Brak gracza lub id spoza `game.duchies` → sam
   pusty korzeń. Czysty, deterministyczny.
+- `render_engagement_preview(world, game, player_duchy_id=None)` — fragment
+  `data-engagement-preview` z porównaniem siły party gracza z sąsiednimi wrogimi
+  celami (decyzja „atakować czy nie"). Przy graczu w `game.duchies` z party na
+  mapie (pierwszy region w `world.regions` z `party_at.owner_id == player`):
+  korzeń niesie `data-player-on-map="true"` oraz `data-own-hp`/`data-own-attack`/
+  `data-own-defense` = `combat_totals((party.hero, *party.units))`. Na każdy
+  sąsiedni (kolejność `world.neighbors(region_gracza)`) region z jawnym wrogim
+  celem powstaje wiersz `<div data-target-region="…" data-target-owner="…"
+  data-target-kind="settlement|party" data-enemy-hp/attack/defense
+  data-advantage="true|false">`: dla osady siła = `combat_totals(garrison)` i
+  tekst `<region> (<owner>): garnizon HP H, atak A, obrona D`, dla party siła =
+  `combat_totals(hero+units)` i tekst `… oddział HP H, atak A, obrona D`;
+  w regionie z osadą i party wiersz osady poprzedza party. `data-advantage="true"`
+  gdy suma własnych statystyk ≥ suma statystyk celu (sufiks „ — przewaga"),
+  inaczej `"false"` (sufiks „ — niekorzystnie"). Gracz bez party na mapie →
+  `data-player-on-map="false"` bez wierszy i `data-own-*`; brak gracza lub id
+  spoza `game.duchies` → sam pusty korzeń. Czysty, deterministyczny.
 - `render_party_panel(world, player_duchy_id=None)` — fragment `data-party-panel`
   z wierszem `data-party-row` (= nazwa regionu) na party w kolejności
   `world.regions`; `data-owner`/`data-size` (liczba podkomendnych)/`data-hp`/
@@ -444,7 +461,9 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   `render_enemy_hero_locator(world, game, player_duchy_id)` (K35.1b, dokładnie
   jeden `data-hero-locator`), a zaraz po lokatorze kanoniczny
   `render_hero_chase(world, game, player_duchy_id)` (K36.1c, dokładnie jeden
-  `data-hero-chase`); `None` → bajt-w-bajt jak dotąd. Przy
+  `data-hero-chase`), a zaraz po pościgu kanoniczny
+  `render_engagement_preview(world, game, player_duchy_id)` (K37.1c, dokładnie
+  jeden `data-engagement-preview`); `None` → bajt-w-bajt jak dotąd. Przy
   `player_duchy_id is not None` osadza też
   `<p data-player-result-text>` z wynikiem z perspektywy gracza (`Gra w toku` /
   `Zwycięstwo Twojego księstwa` / `Porażka Twojego księstwa` / `Remis` wg

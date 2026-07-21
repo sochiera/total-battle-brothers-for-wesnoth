@@ -197,17 +197,24 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > celu (K35.1a–b; task-172…173). Pozycje w `BACKLOG-ARCHIVE.md`. Rdzeń `tbb`
 > bez zmian.
 
-## Kamień milowy 36 — pościg za wrogim bohaterem: dystans marszu do celu
-> DESIGN §6 pkt 5: lokator (K35) mówi GDZIE stoi wrogi bohater, ale nie JAK
-> DALEKO ani czy w zasięgu jednej tury. K36 dokłada rdzeniowy prymityw dystansu
-> w grafie regionów (`ai.region_distance`) i czysty panel pościgu
-> `render_hero_chase` (dystans marszu od party gracza + flaga „w zasięgu" dla
-> sąsiada), osadzony w `render_game_page` po lokatorze. Rdzeń: tylko czysta
-> kwerenda grafu, bez prezentacji.
-- [ ] **K36.1a** Prymityw rdzenia `ai.region_distance(world, start, target)` — BFS dystans grafu regionów. *(task-174)*
-- [ ] **K36.1b** Prymityw `render_hero_chase(world, game, player_duchy_id)` — `data-hero-chase` + wiersze `data-enemy-duchy`/`data-distance`. *(task-175)*
-- [ ] **K36.1c** Osadzenie w `render_game_page` po `data-hero-locator` (bez gracza → bajt-w-bajt jak dotąd). *(task-176)*
-- [ ] **K36.2a** Oznaczenie celu w zasięgu (`data-in-reach` + sufiks „ — w zasięgu" dla dystansu 1). *(task-177)*
+## Kamień milowy 36 — pościg za wrogim bohaterem: dystans marszu do celu — UKOŃCZONY
+> DESIGN §6 pkt 5: rdzeniowy prymityw dystansu w grafie regionów
+> (`ai.region_distance`, K36.1a) i czysty panel pościgu `render_hero_chase`
+> (dystans marszu od party gracza + flaga „w zasięgu" dla sąsiada, K36.1b–c,
+> K36.2a), osadzony w `render_game_page` po lokatorze. Wszystkie pozycje
+> (task-174…177) w `BACKLOG-ARCHIVE.md`. Rdzeń: tylko czysta kwerenda grafu.
+
+## Kamień milowy 37 — świadoma decyzja o walce: podgląd siły celu przed atakiem
+> DESIGN §6 pkt 4–5: pościg (K36) mówi GDZIE i JAK DALEKO stoi wrogi bohater, ale
+> nie CZY warto atakować. K37 dokłada czysty panel `render_engagement_preview`
+> porównujący siłę party gracza z sąsiednimi wrogimi celami (osady i party),
+> z flagą przewagi, osadzony w `render_game_page` po pościgu. Domyka refaktorem
+> R37.1 duplikację lokalizacji party (`first_party_region`). Rdzeń `tbb` bez zmian.
+- [ ] **K37.1a** Prymityw `render_engagement_preview` — `data-engagement-preview`/`data-player-on-map`/`data-own-*` + wiersze sąsiednich wrogich osad (`data-enemy-*`). *(task-178)*
+- [ ] **K37.1b** Flaga przewagi `data-advantage="true|false"` + sufiks „ — przewaga"/„ — niekorzystnie". *(task-179)*
+- [ ] **K37.1c** Osadzenie w `render_game_page` po `data-hero-chase` (bez gracza → bajt-w-bajt jak dotąd). *(task-180)*
+- [ ] **K37.2a** Rozszerzenie o sąsiednie wrogie party (`data-target-kind="party"`; osada przed party w regionie). *(task-181)*
+- [ ] **R37.1 (refaktor)** Wspólny helper `tbbui.maplookup.first_party_region` reużyty przez `herolocator`/`herochase`/`engagementpreview` (bez nowych testów paneli). *(task-182)*
 
 ## Dług/refaktor
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*

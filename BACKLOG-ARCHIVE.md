@@ -364,3 +364,9 @@
 ## Kamień milowy 35 — lokalizacja wrogiego bohatera (lista pościgu) — UKOŃCZONY
 - [x] **K35.1a** Prymityw `render_enemy_hero_locator` — `data-hero-locator`/`data-heroes-on-map`, wiersze `data-enemy-duchy`/`data-hero-region`. *(task-172)*
 - [x] **K35.1b** Osadzenie w `render_game_page` po `data-next-objective` (bez gracza → bajt-w-bajt jak dotąd). *(task-173)*
+
+## Kamień milowy 36 — pościg za wrogim bohaterem: dystans marszu do celu — UKOŃCZONY
+- [x] **K36.1a** Prymityw `ai.region_distance(world, start, target)` — BFS dystans grafu regionów. *(task-174)*
+- [x] **K36.1b** Prymityw `render_hero_chase(world, game, player_duchy_id)` — `data-hero-chase` + wiersze `data-enemy-duchy`/`data-distance`. *(task-175)*
+- [x] **K36.1c** Osadzenie w `render_game_page` po `data-hero-locator` (bez gracza → bajt-w-bajt jak dotąd). *(task-176)*
+- [x] **K36.2a** Oznaczenie celu w zasięgu (`data-in-reach` + sufiks „ — w zasięgu" dla dystansu 1). *(task-177)*
