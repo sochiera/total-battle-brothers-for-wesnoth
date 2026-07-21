@@ -22,6 +22,7 @@ from tbbui.battlesvg import render_battle_svg
 from tbbui.orderlog import format_log_entry, render_order_log
 from tbbui.maplookup import first_party_region
 from tbbui.recommendedaction import (
+    recommended_battle_forecast_text,
     recommended_order,
     recommended_order_reason,
     recommended_order_text,
@@ -4922,4 +4923,125 @@ def test_recommended_order_form_embeds_reason_after_button():
     reason_pos = markup.find("data-recommended-order-reason=")
     assert button_pos != -1 and reason_pos != -1
     assert button_pos < reason_pos, "reason must appear after the submit button"
+
+
+def test_recommended_order_form_embeds_forecast_after_reason_when_nonempty():
+    """When one-click form is emitted and forecast text is non-empty, forecast
+    sits after the reason (K51.1e).
+
+    Contract (task-242): for ``_recommended_order_form`` / GET / when the form
+    is present and
+    ``recommended_battle_forecast_text(world, game, player_duchy_id)`` is
+    non-empty, inside ``<form data-recommended-order="">`` after
+    ``<p data-recommended-order-reason=…>`` there is exactly one
+    ``<p data-recommended-order-forecast="{text}">{text}</p>`` — same value in
+    attribute and body (``html.escape(..., quote=True)``). Form
+    ``method``/``action``/``data-recommended-order``, button label, and reason
+    path stay as before.
+    """
+    from html import escape
+
+    home = Region("Home")
+    enemy_camp = Region("EnemyCamp")
+    world = WorldMap(
+        [home, enemy_camp],
+        [(home, enemy_camp)],
+        parties={home: Party(hero=Unit(), units=(), owner_id="player")},
+        settlements={
+            enemy_camp: Settlement(
+                "EnemyS", population=2, owner_id="enemy"
+            ),
+        },
+    )
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+    assert not game.is_over
+    order = recommended_order(world, game, "player")
+    assert order is not None
+    action, region = order
+    assert action == "assault"
+    assert region == enemy_camp.name
+    reason = recommended_order_reason(world, game, "player")
+    assert reason != ""
+    forecast = recommended_battle_forecast_text(world, game, "player")
+    assert forecast != ""
+    escaped_reason = escape(reason, quote=True)
+    escaped_forecast = escape(forecast, quote=True)
+    expected_action = f"/order/assault?target={quote(region)}"
+    expected_label = f"Wykonaj zalecenie: {recommended_order_text(action, region)}"
+
+    app = GameApp(
+        world, game, Calendar(year=1, month=1), Rng(1), player_duchy_id="player"
+    )
+    code, body = app.handle("GET", "/")
+    assert code == 200
+
+    root = ET.fromstring(body)
+    rec_forms = [
+        el
+        for el in root.iter()
+        if _local(el.tag) == "form" and el.get("data-recommended-order") is not None
+    ]
+    assert len(rec_forms) == 1
+    form = rec_forms[0]
+    assert form.get("data-recommended-order") == ""
+    assert (form.get("method") or "").lower() == "post"
+    assert form.get("action") == expected_action
+
+    # Direct children: button, reason <p>, forecast <p>
+    children = list(form)
+    assert len(children) == 3, (
+        f"expected button + reason + forecast, got {len(children)}: "
+        f"{[_local(c.tag) for c in children]}"
+    )
+    assert _local(children[0].tag) == "button"
+    assert "".join(children[0].itertext()).strip() == expected_label
+    assert _local(children[1].tag) == "p"
+    reason_el = children[1]
+    assert reason_el.get("data-recommended-order-reason") == escaped_reason
+    assert (reason_el.text or "") == reason
+    assert _local(children[2].tag) == "p"
+    forecast_el = children[2]
+    assert forecast_el.get("data-recommended-order-forecast") == escaped_forecast
+    assert (forecast_el.text or "") == forecast
+    assert forecast_el.get("data-recommended-order-forecast") == (
+        forecast_el.text or ""
+    )
+
+    forecast_ps = [
+        el
+        for el in form.iter()
+        if _local(el.tag) == "p"
+        and el.get("data-recommended-order-forecast") is not None
+    ]
+    assert len(forecast_ps) == 1
+
+    form_html = re.search(
+        r'<form\b[^>]*\bdata-recommended-order=""[^>]*>.*?</form>',
+        body,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    assert form_html is not None
+    markup = form_html.group(0)
+    assert f'<button type="submit">{escape(expected_label)}</button>' in markup
+    assert f'data-recommended-order-reason="{escaped_reason}"' in markup
+    assert (
+        f'<p data-recommended-order-reason="{escaped_reason}">'
+        f"{escaped_reason}</p>"
+    ) in markup
+    assert f'data-recommended-order-forecast="{escaped_forecast}"' in markup
+    assert (
+        f'<p data-recommended-order-forecast="{escaped_forecast}">'
+        f"{escaped_forecast}</p>"
+    ) in markup
+    reason_pos = markup.find("data-recommended-order-reason=")
+    forecast_pos = markup.find("data-recommended-order-forecast=")
+    assert reason_pos != -1 and forecast_pos != -1
+    assert reason_pos < forecast_pos, (
+        "forecast must appear after the reason paragraph"
+    )
 

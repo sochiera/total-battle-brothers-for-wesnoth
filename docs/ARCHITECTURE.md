@@ -386,7 +386,7 @@ nad `recommended_battle_forecast`, bez mutacji.
 Osadzony w `render_game_page` zaraz po `data-situation-report` (K41.3a).
 Czyste, deterministyczne, bez mutacji `world`/`game`; rdzeń bez zmian.
 
-**Zalecany rozkaz w jeden klik w GameApp (K42.1b / K42.1c / K42.2a / K48.1c / K48.1d / K49.1c / K50.1c):**
+**Zalecany rozkaz w jeden klik w GameApp (K42.1b / K42.1c / K42.2a / K48.1c / K48.1d / K49.1c / K50.1c / K51.1e):**
 `tbbui.serve.recommended_order_path(action) -> str` — czysta mapa akcji na
 istniejącą trasę POST: `assault`→`/order/assault`, `engage`→`/order/engage`,
 `defend`→`/order/march` (obrona zagrożonej pozycji = marsz party tam),
@@ -402,7 +402,12 @@ przycisk niesie `Wykonaj zalecenie: {recommended_order_text(action, target)}`
 (escapowany); po przycisku dokładnie jedno
 `<p data-recommended-order-reason="{reason}">{reason}</p>` z
 `recommended_order_reason` (`html.escape(..., quote=True)` na atrybucie i
-ciele) — K50.1c. Brak `data-recommended-order` (i uzasadnienia) przy
+ciele) — K50.1c; gdy `recommended_battle_forecast_text` jest niepuste, zaraz
+po uzasadnieniu dokładnie jedno
+`<p data-recommended-order-forecast="{text}">{text}</p>` (ta sama wartość w
+atrybucie i ciele, `html.escape(..., quote=True)`) — K51.1e; pusta prognoza
+(`muster`/`march`/`develop`) → brak elementu forecast. Brak
+`data-recommended-order` (oraz uzasadnienia i prognozy) przy
 `player_duchy_id=None`, `is_over` lub `recommended_order(...) is None`.
 Reużywa istniejące trasy `/order/*` (bez nowego backendu rozkazów); dla
 `muster` ten sam `POST /order/muster` co rozkaz z sekcji rozwoju
