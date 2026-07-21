@@ -470,10 +470,12 @@ czystą metodę `handle(method, path) -> (kod_http, treść)` — bez gniazda HT
 Opcjonalny `seed` jest przechowywany na app (restart `POST /new` w K31.1a); domyślnie `None`.
 `GameApp.previous_game: GameState | None` (K38.2a) — init `None`; `_render` woła
 `render_game_page(..., previous_game=self.previous_game)` (podsumowanie tury w stronie).
-`GameApp.order_log: list[str]` (K43.1b) — init `[]`; `GET /` i nieznane trasy (404)
+`GameApp.order_log: list[str]` (K43.1b / K43.2a) — init `[]`; `GET /` i nieznane trasy (404)
 nie mutują listy (ten sam obiekt listy). Każdy znany `POST` (`/turn`, `/order/*`,
 `/new`) dokłada dokładnie raz bieżący `last_notice` na koniec listy po obsłużeniu
-trasy; `POST /new` najpierw `order_log.clear()`, potem append wpisu nowej gry.
+trasy, po czym przycina listę do ostatnich `ORDER_LOG_LIMIT` wpisów (placeholder
+`10`; najstarsze wypadają in-place); `POST /new` najpierw `order_log.clear()`,
+potem append + trim wpisu nowej gry. Stała: `tbbui.serve.ORDER_LOG_LIMIT`.
 `_render` (K43.1c) osadza w extras `<body>` dokładnie jeden kanoniczny wynik
 `orderlog.render_order_log(self.order_log)` (obok `data-notice`), niezależnie od
 `game.is_over` — dziennik nie jest ukrywany z sekcjami rozkazów.

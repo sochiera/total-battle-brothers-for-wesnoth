@@ -18,6 +18,8 @@ from tbbui.gamepage import render_game_page
 from tbbui.orderlog import render_order_log
 from tbbui.recommendedaction import recommended_order, recommended_order_text
 
+ORDER_LOG_LIMIT = 10
+
 _NEW_GAME_FORM = (
     '<form method="post" action="/new">'
     '<button type="submit">Nowa gra</button>'
@@ -162,6 +164,13 @@ class GameApp:
         self.last_notice = ""
         self.order_log: list[str] = []
 
+    def _append_order_log(self, notice: str) -> None:
+        """Append notice and keep only the last ``ORDER_LOG_LIMIT`` entries."""
+        self.order_log.append(notice)
+        overflow = len(self.order_log) - ORDER_LOG_LIMIT
+        if overflow > 0:
+            del self.order_log[:overflow]
+
     def handle(self, method: str, path: str) -> tuple[int, str]:
         """Route one request; return ``(http_status, body)`` without sockets."""
         route, _, query = path.partition("?")
@@ -178,7 +187,7 @@ class GameApp:
                 self.last_notice = "Nowa gra: rok 1, miesiąc 1"
             else:
                 self.last_notice = "Nowa gra: brak zmian"
-            self.order_log.append(self.last_notice)
+            self._append_order_log(self.last_notice)
             return 200, self._render()
         if method == "POST" and route == "/turn":
             self.last_battle = None
@@ -200,25 +209,25 @@ class GameApp:
             else:
                 self.previous_game = None
                 self.last_notice = "Następna tura: gra zakończona"
-            self.order_log.append(self.last_notice)
+            self._append_order_log(self.last_notice)
             return 200, self._render()
         if method == "POST" and route == "/order/recruit":
             self.last_battle = None
             self.previous_game = None
             self._apply_player_order(ai.recruit_duchy_unit, "Rekrutacja")
-            self.order_log.append(self.last_notice)
+            self._append_order_log(self.last_notice)
             return 200, self._render()
         if method == "POST" and route == "/order/muster":
             self.last_battle = None
             self.previous_game = None
             self._apply_player_order(ai.muster_duchy_party, "Zebranie oddziału")
-            self.order_log.append(self.last_notice)
+            self._append_order_log(self.last_notice)
             return 200, self._render()
         if method == "POST" and route == "/order/develop":
             self.last_battle = None
             self.previous_game = None
             self._apply_player_order(ai.develop_duchy_settlement, "Rozbudowa")
-            self.order_log.append(self.last_notice)
+            self._append_order_log(self.last_notice)
             return 200, self._render()
         if method == "POST" and route == "/order/march":
             self.last_battle = None
@@ -233,7 +242,7 @@ class GameApp:
                 )
             else:
                 self._apply_player_order(ai.march_duchy_party, "Marsz")
-            self.order_log.append(self.last_notice)
+            self._append_order_log(self.last_notice)
             return 200, self._render()
         if method == "POST" and route == "/order/assault":
             self.previous_game = None
@@ -260,7 +269,7 @@ class GameApp:
                     ),
                     "Szturm",
                 )
-            self.order_log.append(self.last_notice)
+            self._append_order_log(self.last_notice)
             return 200, self._render()
         if method == "POST" and route == "/order/engage":
             self.previous_game = None
@@ -287,7 +296,7 @@ class GameApp:
                     ),
                     "Starcie",
                 )
-            self.order_log.append(self.last_notice)
+            self._append_order_log(self.last_notice)
             return 200, self._render()
         return 404, "Not Found"
 

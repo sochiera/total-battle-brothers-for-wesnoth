@@ -566,6 +566,44 @@ def test_game_app_get_embeds_order_log_when_is_over():
     assert not _has_post_turn_form(body2)
 
 
+def test_game_app_order_log_never_exceeds_order_log_limit():
+    """serve.ORDER_LOG_LIMIT caps order_log length after many POSTs (K43.2a).
+
+    Contract (task-211 / K43.2a):
+    - ``tbbui.serve.ORDER_LOG_LIMIT`` exists as an int constant (placeholder 10)
+    - after a series of known POST requests exceeding the limit,
+      ``len(GameApp.order_log)`` never exceeds ``ORDER_LOG_LIMIT``
+    """
+    from tbbui import serve as serve_mod
+
+    assert hasattr(serve_mod, "ORDER_LOG_LIMIT")
+    assert isinstance(serve_mod.ORDER_LOG_LIMIT, int)
+    assert serve_mod.ORDER_LOG_LIMIT == 10
+    limit = serve_mod.ORDER_LOG_LIMIT
+
+    world, game = _ongoing_world_game()
+    app = GameApp(
+        world, game, Calendar(year=1, month=1), Rng(1), player_duchy_id="north"
+    )
+    assert app.order_log == []
+
+    for n in range(1, limit + 1):
+        code, _ = app.handle("POST", "/turn")
+        assert code == 200
+        assert len(app.order_log) == n
+        assert len(app.order_log) <= limit
+
+    overflow = 3
+    for _ in range(overflow):
+        code, _ = app.handle("POST", "/turn")
+        assert code == 200
+        assert len(app.order_log) == limit
+        assert len(app.order_log) <= limit
+
+    assert len(app.order_log) == limit
+    assert len(app.order_log) == serve_mod.ORDER_LOG_LIMIT
+
+
 def test_game_app_last_notice_empty_string_renders_empty_data_notice():
     """GameApp exposes last_notice, rendered as one <p data-notice> in extras.
 
