@@ -1087,6 +1087,169 @@ def test_game_app_post_new_with_seed_resets_party_state():
     assert app.rng.randint(0, 10_000) == probe.randint(0, 10_000)
 
 
+def test_game_app_post_new_with_seed_clears_last_battle_and_sets_notice():
+    """POST /new with seed set zeros last_battle and sets last_notice (K31.1a).
+
+    Contract (task-157 / K31.1a):
+    - POST /new with app.seed set → last_battle is None
+    - last_notice == "Nowa gra: rok 1, miesiąc 1"
+    - returned page embeds that notice in <p data-notice>
+    - returns (200, page)
+    """
+    start, keep_a_region, keep_b_region = map(
+        Region, ("Start", "KeepA", "KeepB")
+    )
+    party = Party(Unit(training=5, equipment=6), owner_id="north")
+    keep_a = Settlement(
+        "Keep A", population=1, garrison=(Unit(equipment=1),), owner_id="south"
+    )
+    keep_b = Settlement(
+        "Keep B", population=1, garrison=(Unit(equipment=1),), owner_id="south"
+    )
+    world = WorldMap(
+        (start, keep_a_region, keep_b_region),
+        ((start, keep_a_region), (start, keep_b_region)),
+        settlements={keep_a_region: keep_a, keep_b_region: keep_b},
+        parties={start: party},
+    )
+    game = GameState(
+        (
+            Duchy("north", party.hero, parties=(party,), morale=10),
+            Duchy("south", Unit(), settlements=(keep_a, keep_b), morale=-5),
+        )
+    )
+    calendar = Calendar(year=2, month=3)
+    seed = 11
+    app = GameApp(
+        world, game, calendar, Rng(seed), player_duchy_id="north", seed=seed
+    )
+
+    code_assault, body_assault = app.handle("POST", "/order/assault?target=KeepB")
+    assert code_assault == 200
+    assert app.last_battle is not None
+    prior_battle = app.last_battle
+    assert render_battle_svg(prior_battle) in body_assault
+
+    code, body = app.handle("POST", "/new")
+    assert code == 200
+    assert isinstance(body, str)
+    assert body.strip() != ""
+    root = ET.fromstring(body)
+    assert _local(root.tag) == "html"
+
+    assert app.last_battle is None
+    assert app.last_notice == "Nowa gra: rok 1, miesiąc 1"
+    notices = _find_by_attr(root, "data-notice")
+    assert len(notices) == 1
+    assert notices[0].get("data-notice") == "Nowa gra: rok 1, miesiąc 1"
+    assert notices[0].text == "Nowa gra: rok 1, miesiąc 1"
+    assert render_battle_svg(prior_battle) not in body
+
+
+def test_game_app_post_new_without_seed_is_noop_state():
+    """POST /new when seed is None is a state no-op with notice (K31.1a).
+
+    Contract (task-157 / K31.1a):
+    - seed is None → world/game/calendar unchanged; last_battle unchanged
+    - last_notice == "Nowa gra: brak zmian"
+    - returns (200, page)
+    """
+    start, keep_a_region, keep_b_region = map(
+        Region, ("Start", "KeepA", "KeepB")
+    )
+    party = Party(Unit(training=5, equipment=6), owner_id="north")
+    keep_a = Settlement(
+        "Keep A", population=1, garrison=(Unit(equipment=1),), owner_id="south"
+    )
+    keep_b = Settlement(
+        "Keep B", population=1, garrison=(Unit(equipment=1),), owner_id="south"
+    )
+    world = WorldMap(
+        (start, keep_a_region, keep_b_region),
+        ((start, keep_a_region), (start, keep_b_region)),
+        settlements={keep_a_region: keep_a, keep_b_region: keep_b},
+        parties={start: party},
+    )
+    game = GameState(
+        (
+            Duchy("north", party.hero, parties=(party,), morale=10),
+            Duchy("south", Unit(), settlements=(keep_a, keep_b), morale=-5),
+        )
+    )
+    calendar = Calendar(year=2, month=3)
+    app = GameApp(
+        world, game, calendar, Rng(11), player_duchy_id="north", seed=None
+    )
+
+    # Real battle so last_battle is non-None and still renderable after no-op.
+    code_assault, _ = app.handle("POST", "/order/assault?target=KeepB")
+    assert code_assault == 200
+    assert app.last_battle is not None
+    world_after = app.world
+    game_after = app.game
+    calendar_after = app.calendar
+    rng_after = app.rng
+    battle_before = app.last_battle
+
+    code, body = app.handle("POST", "/new")
+    assert code == 200
+    assert isinstance(body, str)
+    assert body.strip() != ""
+    root = ET.fromstring(body)
+    assert _local(root.tag) == "html"
+
+    assert app.world is world_after
+    assert app.game is game_after
+    assert app.calendar is calendar_after
+    assert app.rng is rng_after
+    assert app.last_battle is battle_before
+    assert app.player_duchy_id == "north"
+    assert app.seed is None
+    assert app.last_notice == "Nowa gra: brak zmian"
+    notices = _find_by_attr(root, "data-notice")
+    assert len(notices) == 1
+    assert notices[0].get("data-notice") == "Nowa gra: brak zmian"
+    assert notices[0].text == "Nowa gra: brak zmian"
+    assert render_battle_svg(battle_before) in body
+
+
+def test_game_app_post_new_same_seed_converges_get_bodies():
+    """Two GameApps with same seed after POST /new yield identical GET / (K31.1a).
+
+    Contract (task-157 / K31.1a):
+    - two apps constructed with the same seed, after arbitrary prior handle
+      sequences, both POST /new then GET / → identical response bodies
+    """
+    seed = 73
+
+    wa, ga = _ongoing_world_game()
+    a = GameApp(
+        wa, ga, Calendar(year=4, month=9), Rng(1), player_duchy_id="north", seed=seed
+    )
+    code_a_turn, _ = a.handle("POST", "/turn")
+    assert code_a_turn == 200
+    code_a_new, _ = a.handle("POST", "/new")
+    assert code_a_new == 200
+
+    wb, gb = _ongoing_world_game()
+    b = GameApp(
+        wb, gb, Calendar(year=2, month=3), Rng(999), player_duchy_id="north", seed=seed
+    )
+    # Different prior path than app a (recruit then turn).
+    code_b_recruit, _ = b.handle("POST", "/order/recruit")
+    assert code_b_recruit == 200
+    code_b_turn, _ = b.handle("POST", "/turn")
+    assert code_b_turn == 200
+    code_b_new, _ = b.handle("POST", "/new")
+    assert code_b_new == 200
+
+    code_get_a, body_a = a.handle("GET", "/")
+    code_get_b, body_b = b.handle("GET", "/")
+    assert code_get_a == 200
+    assert code_get_b == 200
+    assert body_a == body_b
+
+
 def test_tbbui_serve_builds_game_app_with_player_duchy_id(monkeypatch):
     """python -m tbbui serve creates GameApp with player_duchy_id='player'.
 
