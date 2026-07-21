@@ -51,7 +51,12 @@ def _run_serve(args: list[str]) -> int:
     port = int(args[0]) if args else 0
     world, initial_game = game.create_headless_game()
     app = GameApp(
-        world, initial_game, Calendar(), Rng(HEADLESS_SEED), player_duchy_id="player"
+        world,
+        initial_game,
+        Calendar(),
+        Rng(HEADLESS_SEED),
+        player_duchy_id="player",
+        seed=HEADLESS_SEED,
     )
     server = make_server(app, host=DEFAULT_SERVE_HOST, port=port)
     host, bound_port = server.server_address[:2]

@@ -317,8 +317,8 @@ zachowane; routing query w `GameApp.handle`), ustawia status i
 (port `0` = efemeryczny); nie woła `serve_forever`. CLI:
 `python -m tbbui serve [port]` tworzy świeżą deterministyczną partię
 (`create_headless_game` + `Rng(73)` + `Calendar()`), `GameApp` z
-`player_duchy_id="player"` (single-player) i `make_server`, potem
-`serve_forever()`.
+`player_duchy_id="player"` i `seed=HEADLESS_SEED` (K31.1c — restart
+`POST /new`) oraz `make_server`, potem `serve_forever()`.
 
 ## 2. Struktura katalogów
 ```

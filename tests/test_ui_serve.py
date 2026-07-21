@@ -144,3 +144,44 @@ def test_dispatch_passes_full_path_with_query_over_real_socket():
     # query only takes effect if _dispatch handed the full path to handle.
     assert app.world.party_at(step_far) is party
     assert app.world.party_at(step_near) is None
+
+
+def test_tbbui_serve_builds_game_app_with_headless_seed(monkeypatch):
+    """python -m tbbui serve constructs GameApp with seed=HEADLESS_SEED (K31.1c).
+
+    Contract (task-159 / K31.1c):
+    - ``_run_serve`` / CLI ``python -m tbbui serve`` builds
+      ``GameApp(..., player_duchy_id="player", seed=HEADLESS_SEED)``
+    - remaining construction (Calendar(), Rng(HEADLESS_SEED), make_server
+      lifecycle) is unchanged so POST /new can reset the preview party
+    """
+    from tbbui.__main__ import HEADLESS_SEED, main
+
+    captured: dict = {}
+
+    class _FakeServer:
+        server_address = ("127.0.0.1", 8765)
+
+        def serve_forever(self) -> None:
+            raise KeyboardInterrupt
+
+        def server_close(self) -> None:
+            captured["closed"] = True
+
+    def fake_make_server(app, host="127.0.0.1", port=0):
+        captured["app"] = app
+        captured["host"] = host
+        captured["port"] = port
+        return _FakeServer()
+
+    monkeypatch.setattr("tbbui.__main__.make_server", fake_make_server)
+
+    code = main(["serve"])
+    assert code == 0
+    app = captured["app"]
+    assert isinstance(app, GameApp)
+    assert app.player_duchy_id == "player"
+    assert app.seed == HEADLESS_SEED
+    assert HEADLESS_SEED == 73
+    assert captured["closed"] is True
+    assert captured["host"] == "127.0.0.1"
