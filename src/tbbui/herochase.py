@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from tbb.ai import region_distance
 from tbb.game import GameState
-from tbb.world import Region, WorldMap
+from tbb.world import WorldMap
+from tbbui.maplookup import first_party_region
 
 
 def render_hero_chase(
@@ -37,14 +38,7 @@ def render_hero_chase(
     if player is None:
         return '<div data-hero-chase=""></div>'
 
-    def party_region(duchy_id: str) -> Region | None:
-        for region in world.regions:
-            party = world.party_at(region)
-            if party is not None and party.owner_id == duchy_id:
-                return region
-        return None
-
-    player_region = party_region(player_duchy_id)
+    player_region = first_party_region(world, player_duchy_id)
     if player_region is None:
         return (
             '<div data-hero-chase="" data-player-on-map="false"></div>'
@@ -54,7 +48,7 @@ def render_hero_chase(
     for d in game.duchies:
         if d.duchy_id == player_duchy_id or not d.has_hero:
             continue
-        enemy_region = party_region(d.duchy_id)
+        enemy_region = first_party_region(world, d.duchy_id)
         if enemy_region is None:
             continue
         distance = region_distance(world, player_region, enemy_region)
@@ -81,3 +75,4 @@ def render_hero_chase(
         f' data-player-on-map="true"'
         f">{"".join(rows)}</div>"
     )
+

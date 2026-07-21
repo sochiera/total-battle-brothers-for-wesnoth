@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from tbb.game import GameState
-from tbb.world import Region, WorldMap
+from tbb.world import WorldMap
+from tbbui.maplookup import first_party_region
 from tbbui.unitstrength import combat_totals
 
 
@@ -46,7 +47,7 @@ def render_engagement_preview(
     if player is None:
         return '<div data-engagement-preview=""></div>'
 
-    player_region = _first_party_region(world, player_duchy_id)
+    player_region = first_party_region(world, player_duchy_id)
     if player_region is None:
         return (
             '<div data-engagement-preview=""'
@@ -139,11 +140,3 @@ def _target_row(
         f">{text}</div>"
     )
 
-
-def _first_party_region(world: WorldMap, owner_id: str) -> Region | None:
-    """Return the first region in ``world.regions`` whose party has *owner_id*."""
-    for region in world.regions:
-        party = world.party_at(region)
-        if party is not None and party.owner_id == owner_id:
-            return region
-    return None

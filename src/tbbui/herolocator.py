@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from tbb.game import GameState
 from tbb.world import WorldMap
+from tbbui.maplookup import first_party_region
 
 
 def render_enemy_hero_locator(
@@ -33,23 +34,16 @@ def render_enemy_hero_locator(
     if player is None:
         return '<div data-hero-locator=""></div>'
 
-    def hero_region(duchy_id: str) -> str | None:
-        for region in world.regions:
-            party = world.party_at(region)
-            if party is not None and party.owner_id == duchy_id:
-                return region.name
-        return None
-
     rows: list[str] = []
     on_map = 0
     for d in game.duchies:
         if d.duchy_id == player_duchy_id or not d.has_hero:
             continue
-        region_name = hero_region(d.duchy_id)
-        if region_name is not None:
+        region = first_party_region(world, d.duchy_id)
+        if region is not None:
             on_map += 1
-            region_attr = region_name
-            row_text = f"{d.duchy_id}: bohater w {region_name}"
+            region_attr = region.name
+            row_text = f"{d.duchy_id}: bohater w {region.name}"
         else:
             region_attr = ""
             row_text = f"{d.duchy_id}: bohater niewystawiony"
@@ -63,3 +57,4 @@ def render_enemy_hero_locator(
         f' data-heroes-on-map="{on_map}"'
         f">{"".join(rows)}</div>"
     )
+
