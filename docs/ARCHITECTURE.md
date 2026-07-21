@@ -140,6 +140,21 @@ brak niepokonanych → `Cel osiągnięty: wszyscy wrogowie pokonani`; suma
 (`H` = liczba niepokonanych z `has_hero`). Czyste, deterministyczne, bez
 mutacji `game`; rdzeń bez zmian.
 
+**Lokator wrogiego bohatera HTML (K35.1a):**
+`tbbui.herolocator.render_enemy_hero_locator(world, game, player_duchy_id=None)
+-> str` — parsowalny fragment z korzeniem `<div data-hero-locator="">`. Gdy
+`player_duchy_id` wskazuje księstwo w `game.duchies`, korzeń niesie
+`data-heroes-on-map="K"` (`K` = liczba wrogich księstw z `has_hero`, których
+party stoi na mapie: istnieje region z `world.party_at(region).owner_id ==
+duchy_id`) oraz po jednym dziecku `<div data-enemy-duchy="<id>"
+data-hero-region="<region|">` na wroga z `has_hero` (kolejność
+`game.duchies`; wrogowie bez bohatera bez wiersza). Region = pierwszy w
+`world.regions` o zgodnym `owner_id`; tekst `<id>: bohater w <region>` albo
+przy braku party na mapie `data-hero-region=""` i `<id>: bohater
+niewystawiony`. Gdy `player_duchy_id` jest `None` albo spoza `game.duchies` —
+sam pusty korzeń (bez `data-heroes-on-map`, bez wierszy i bez tekstu).
+Czyste, deterministyczne, bez mutacji `world`/`game`; rdzeń bez zmian.
+
 **Panel party HTML (K22.2a / K24.1a / K25.1a / K25.1b / K27.1a):** `tbbui.partypanel.render_party_panel(world,
 player_duchy_id=None) -> str` — parsowalny fragment XML z korzeniem
 `<div data-party-panel="">`; po jednym `<div data-party-row="<region.name>">`
@@ -407,6 +422,8 @@ game/                     # katalog projektu (repo root dla tej gry)
 │       ├── settlementpanel.py # HTML panel osad (zasoby + populacja + garnizon)
 │       ├── partypanel.py   # HTML panel party (właściciel + siła oddziału)
 │       ├── victoryprogress.py # HTML panel postępu do celu (wrogowie do pokonania)
+│       ├── herolocator.py  # HTML lista pościgu wrogich bohaterów (K35.1)
+│       ├── nextobjective.py # HTML podpowiedź następnego kroku (K34.1)
 │       ├── ownerlegend.py  # HTML legenda właścicieli (owner_id → kolor palety)
 │       ├── layout.py     # deterministyczny layout regionów WorldMap → (col, row)
 │       ├── palette.py    # paleta kolorów właścicieli (owner_id → fill)
@@ -441,6 +458,8 @@ game/                     # katalog projektu (repo root dla tej gry)
 │   ├── test_settlementpanel.py # HTML panel osad (tbbui, K22.1)
 │   ├── test_partypanel.py  # HTML panel party (tbbui, K22.2)
 │   ├── test_victoryprogress.py # HTML panel postępu do celu (tbbui, K33.1)
+│   ├── test_herolocator.py # HTML lista pościgu wrogich bohaterów (tbbui, K35.1)
+│   ├── test_nextobjective.py # HTML podpowiedź następnego kroku (tbbui, K34.1)
 │   ├── test_ownerlegend.py # HTML legenda właścicieli (tbbui, K23.1)
 │   ├── test_gamepage.py  # HTML strony partii (tbbui)
 │   ├── test_ui_main.py   # CLI snapshot partii (python -m tbbui)

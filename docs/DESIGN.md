@@ -376,6 +376,17 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   `<id>: osady N, bohater tak|nie` (sufiks ` — pokonany` gdy `is_defeated`).
   Brak gracza lub id spoza `game.duchies` → sam pusty korzeń. Czysty,
   deterministyczny.
+- `render_enemy_hero_locator(world, game, player_duchy_id=None)` — fragment
+  `data-hero-locator` z lokalizacją wrogich bohaterów na mapie. Przy graczu w
+  `game.duchies`: korzeń niesie `data-heroes-on-map` (liczba wrogich księstw z
+  `has_hero`, których party stoi na mapie — region z `world.party_at` o
+  `owner_id == duchy_id`), a per wrogie księstwo z `has_hero` (kolejność
+  `game.duchies`) dziecko `<div data-enemy-duchy="<id>" data-hero-region="…">`
+  z regionem (pierwszy w `world.regions` o zgodnym `owner_id`) i tekstem
+  `<id>: bohater w <region>` albo `data-hero-region=""` i
+  `<id>: bohater niewystawiony` gdy party brak na mapie; wrogowie bez
+  `has_hero` bez wiersza. Brak gracza lub id spoza `game.duchies` → sam pusty
+  korzeń. Czysty, deterministyczny.
 - `render_party_panel(world, player_duchy_id=None)` — fragment `data-party-panel`
   z wierszem `data-party-row` (= nazwa regionu) na party w kolejności
   `world.regions`; `data-owner`/`data-size` (liczba podkomendnych)/`data-hp`/
