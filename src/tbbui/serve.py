@@ -11,6 +11,7 @@ from tbb.driver import run_headless_game
 from tbb.duchy import Duchy
 from tbb.game import GameState
 from tbb.rng import Rng
+import tbb.settlement as settlement_module
 from tbb.turn import Calendar
 from tbb.world import Region, WorldMap
 from tbbui.gamepage import render_game_page
@@ -21,11 +22,15 @@ _TURN_FORM = (
     "</form>"
 )
 
-_RECRUIT_FORM = (
-    '<form method="post" action="/order/recruit">'
-    '<button type="submit">Rekrutuj</button>'
-    "</form>"
-)
+
+def _recruit_form() -> str:
+    """POST /order/recruit form; label cost from core ``RECRUIT_GOLD_COST`` (K30.2a)."""
+    cost = settlement_module.RECRUIT_GOLD_COST
+    return (
+        '<form method="post" action="/order/recruit">'
+        f'<button type="submit">Rekrutuj (koszt złota: {cost})</button>'
+        "</form>"
+    )
 
 _MUSTER_FORM = (
     '<form method="post" action="/order/muster">'
@@ -375,7 +380,7 @@ class GameApp:
             f'<span data-player="{player_value}"></span>'
             f'<p data-notice="{notice_value}">{notice_value}</p>'
             f"{_TURN_FORM}"
-            f"{_DEVELOP_SECTION_HEADER}{_RECRUIT_FORM}{_MUSTER_FORM}"
+            f"{_DEVELOP_SECTION_HEADER}{_recruit_form()}{_MUSTER_FORM}"
             f"{_DEVELOP_FORM}"
             f"{_MARCH_SECTION_HEADER}{self._march_forms()}"
             f"{_ASSAULT_SECTION_HEADER}{self._assault_forms()}"

@@ -195,7 +195,8 @@ rozkazu `<p data-notice="{escape(last_notice)}">{escape(last_notice)}</p>`
 escapowana wartość w atrybucie i w widocznym ciele akapitu; `html.escape`;
 K28.1b — `_apply_player_order` ustawia skutek rozkazu rozwoju) oraz formularze
 `<form method="post" action="/turn">` (przycisk `Następna tura`),
-`<form method="post" action="/order/recruit">` (`Rekrutuj`),
+`<form method="post" action="/order/recruit">` (`Rekrutuj (koszt złota: N)`
+z `tbb.settlement.RECRUIT_GOLD_COST`, K30.2a),
 `<form method="post" action="/order/muster">` (`Zbierz oddział`),
 `<form method="post" action="/order/develop">` (`Rozbuduj osadę`)
 (K29.2a — polskie etykiety `<button>`; `action`/`method` bez zmian),

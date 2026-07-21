@@ -12,6 +12,7 @@ from tbb.game import GameState
 from tbb.party import Party
 from tbb.resources import Resources
 from tbb.rng import Rng
+import tbb.settlement as settlement_module
 from tbb.settlement import Settlement
 from tbb.turn import Calendar
 from tbb.unit import Unit
@@ -146,9 +147,10 @@ def _finished_world_game() -> tuple[WorldMap, GameState]:
 def test_game_app_get_polish_labels_turn_and_development_order_buttons():
     """GET /: turn + development-order forms use Polish button labels (K29.2a).
 
-    Contract (task-149 / K29.2a):
+    Contract (task-149 / K29.2a; K30.2a extends recruit label with gold cost):
     - form action=/turn submit button text is ``Następna tura``
-    - form action=/order/recruit → ``Rekrutuj``
+    - form action=/order/recruit → ``Rekrutuj (koszt złota: N)``
+      (N = ``tbb.settlement.RECRUIT_GOLD_COST``)
     - form action=/order/muster → ``Zbierz oddział``
     - form action=/order/develop → ``Rozbuduj osadę``
     - form method/action paths unchanged (still POST to those actions)
@@ -164,7 +166,10 @@ def test_game_app_get_polish_labels_turn_and_development_order_buttons():
     assert _has_post_muster_form(body)
     assert _has_post_develop_form(body)
     assert _form_submit_button_text(body, "/turn") == "Następna tura"
-    assert _form_submit_button_text(body, "/order/recruit") == "Rekrutuj"
+    cost = settlement_module.RECRUIT_GOLD_COST
+    assert _form_submit_button_text(body, "/order/recruit") == (
+        f"Rekrutuj (koszt złota: {cost})"
+    )
     assert _form_submit_button_text(body, "/order/muster") == "Zbierz oddział"
     assert _form_submit_button_text(body, "/order/develop") == "Rozbuduj osadę"
 
@@ -1150,8 +1155,9 @@ def test_game_app_order_recruit_form_noop_and_determinism():
     code_get, body_get = app.handle("GET", "/")
     assert code_get == 200
     assert _has_post_recruit_form(body_get)
-    assert re.search(
-        r"<button\b[^>]*>\s*Rekrutuj\s*</button>", body_get, flags=re.IGNORECASE
+    cost = settlement_module.RECRUIT_GOLD_COST
+    assert _form_submit_button_text(body_get, "/order/recruit") == (
+        f"Rekrutuj (koszt złota: {cost})"
     )
 
     # No-op: player_duchy_id is None — state frozen, still 200 + page.
@@ -2014,6 +2020,42 @@ def test_game_app_render_develop_order_section_header_before_recruit():
     assault_pos = body.index(assault_header)
     engage_pos = body.index(engage_header)
     assert develop_pos < march_pos < assault_pos < engage_pos
+
+
+def test_game_app_recruit_button_shows_gold_cost_from_settlement_constant(
+    monkeypatch,
+):
+    """GET /: recruit submit label is Rekrutuj (koszt złota: N) from core (K30.2a).
+
+    Contract (task-153 / K30.2a):
+    - form action=/order/recruit submit button text is
+      ``Rekrutuj (koszt złota: N)`` where N is ``tbb.settlement.RECRUIT_GOLD_COST``
+      (value read from that constant, not a bare ``Rekrutuj`` / template literal)
+    - when ``RECRUIT_GOLD_COST`` is monkeypatched to another value, the button
+      text shows that new value (proof the label is driven by the core constant)
+    - form still POSTs to ``/order/recruit`` (action/method unchanged)
+    """
+    world, game = _ongoing_world_game()
+    app = GameApp(
+        world, game, Calendar(year=1, month=1), Rng(1), player_duchy_id="north"
+    )
+
+    code, body = app.handle("GET", "/")
+    assert code == 200
+    assert _has_post_recruit_form(body)
+    cost = settlement_module.RECRUIT_GOLD_COST
+    assert _form_submit_button_text(body, "/order/recruit") == (
+        f"Rekrutuj (koszt złota: {cost})"
+    )
+
+    patched_cost = cost + 7
+    monkeypatch.setattr(settlement_module, "RECRUIT_GOLD_COST", patched_cost)
+    code2, body2 = app.handle("GET", "/")
+    assert code2 == 200
+    assert _has_post_recruit_form(body2)
+    assert _form_submit_button_text(body2, "/order/recruit") == (
+        f"Rekrutuj (koszt złota: {patched_cost})"
+    )
 
 
 def test_game_app_render_order_section_headers_precede_their_forms():
