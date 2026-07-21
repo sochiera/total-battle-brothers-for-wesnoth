@@ -24,17 +24,24 @@ def render_order_log(entries: Sequence[str]) -> str:
     Root is ``<div data-order-log="" data-count="N">`` where ``N`` is
     ``len(entries)`` (header is not counted). First child is always
     ``<h2 data-order-log-header="">Dziennik rozkazów</h2>`` (also for empty
-    sequence). Each entry then becomes one
-    ``<div data-order-log-entry="">`` with body ``html.escape(entry, quote=True)``
-    (input order preserved). Pure and deterministic: no RNG/IO; does not mutate
-    ``entries``.
+    sequence). When ``entries`` is empty, the header is followed by exactly one
+    ``<p data-order-log-empty="">Brak rozkazów w tej kampanii</p>`` and no
+    entry children; when non-empty that empty-state node is omitted and each
+    entry becomes one ``<div data-order-log-entry="">`` with body
+    ``html.escape(entry, quote=True)`` (input order preserved). Pure and
+    deterministic: no RNG/IO; does not mutate ``entries``.
     """
     count = len(entries)
     header = '<h2 data-order-log-header="">Dziennik rozkazów</h2>'
-    entry_children = "".join(
-        f'<div data-order-log-entry="">{html.escape(entry, quote=True)}</div>'
-        for entry in entries
-    )
-    return (
-        f'<div data-order-log="" data-count="{count}">{header}{entry_children}</div>'
-    )
+    if count == 0:
+        body = (
+            f'{header}'
+            f'<p data-order-log-empty="">Brak rozkazów w tej kampanii</p>'
+        )
+    else:
+        entry_children = "".join(
+            f'<div data-order-log-entry="">{html.escape(entry, quote=True)}</div>'
+            for entry in entries
+        )
+        body = f"{header}{entry_children}"
+    return f'<div data-order-log="" data-count="{count}">{body}</div>'

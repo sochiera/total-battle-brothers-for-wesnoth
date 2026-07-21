@@ -149,3 +149,41 @@ def test_render_order_log_is_pure_deterministic_and_escapes_special_chars():
     for child, entry in zip(children, entries, strict=True):
         # After XML parse, text content is the original entry (entities decoded).
         assert "".join(child.itertext()) == entry
+
+
+def test_render_order_log_empty_embeds_empty_state_paragraph_after_header():
+    """K44.2b: empty ``entries`` → after the K44.2a header exactly one
+    ``<p data-order-log-empty="">Brak rozkazów w tej kampanii</p>`` and zero
+    ``data-order-log-entry`` children; ``data-count="0"``.
+    """
+    xml = render_order_log(())
+    root = ET.fromstring(xml)
+    children = list(root)
+
+    assert root.attrib.get("data-count") == "0"
+
+    headers = [
+        c
+        for c in children
+        if c.tag == "h2" and c.attrib.get("data-order-log-header") == ""
+    ]
+    assert len(headers) == 1
+    assert children[0] is headers[0]
+
+    empty_msgs = [
+        c
+        for c in children
+        if c.tag == "p" and c.attrib.get("data-order-log-empty") == ""
+    ]
+    assert len(empty_msgs) == 1
+    assert children[1] is empty_msgs[0]
+    assert "".join(empty_msgs[0].itertext()) == "Brak rozkazów w tej kampanii"
+    assert (
+        '<p data-order-log-empty="">Brak rozkazów w tej kampanii</p>' in xml
+    )
+
+    entry_children = [
+        c for c in children if c.attrib.get("data-order-log-entry") == ""
+    ]
+    assert entry_children == []
+    assert len(children) == 2
