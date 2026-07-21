@@ -59,7 +59,6 @@ def render_engagement_preview(
         if settlement is not None:
             owner = settlement.owner_id
             if is_hostile_owner(owner, player_duchy_id):
-                assert owner is not None
                 enemy_hp, enemy_attack, enemy_defense = combat_totals(
                     settlement.garrison
                 )
@@ -80,7 +79,6 @@ def render_engagement_preview(
         if enemy_party is not None:
             owner = enemy_party.owner_id
             if is_hostile_owner(owner, player_duchy_id):
-                assert owner is not None
                 enemy_hp, enemy_attack, enemy_defense = combat_totals(
                     (enemy_party.hero, *enemy_party.units)
                 )
