@@ -337,20 +337,23 @@ inaczej postawa: `assault` (ofensywna, `kind=="settlement"`) / `engage`
 po `data-situation-report` (K41.3a). Czyste, deterministyczne, bez mutacji
 `world`/`game`; rdzeń bez zmian.
 
-**Zalecany rozkaz w jeden klik w GameApp (K42.1b / K42.1c / K42.2a / K48.1c):**
+**Zalecany rozkaz w jeden klik w GameApp (K42.1b / K42.1c / K42.2a / K48.1c / K48.1d):**
 `tbbui.serve.recommended_order_path(action) -> str` — czysta mapa akcji na
 istniejącą trasę POST: `assault`→`/order/assault`, `engage`→`/order/engage`,
 `defend`→`/order/march` (obrona zagrożonej pozycji = marsz party tam),
-`develop`→`/order/develop`, `muster`→`/order/muster`. GameApp w `GET /` extras (prywatny
+`develop`→`/order/develop`, `muster`→`/order/muster` (K48.1d — domknięcie
+pętli rada→akcja dla zbiórki). GameApp w `GET /` extras (prywatny
 `_recommended_order_form`) — przy ustawionym `player_duchy_id`, grze nie
 `is_over` i `recommended_order(...) is not None` — osadza dokładnie jeden
 `<form method="post" action="{recommended_order_path(action)}[?target=quote(region)]"
 data-recommended-order="">` przed `_DEVELOP_SECTION_HEADER`; sufiks `?target=`
-tylko gdy `recommended_order` zwraca region (brak przy `develop`); przycisk niesie
-`Wykonaj zalecenie: {recommended_order_text(action, target)}` (escapowany). Brak
-`data-recommended-order` przy `player_duchy_id=None`, `is_over` lub
-`recommended_order(...) is None`. Reużywa istniejące trasy `/order/*` (bez nowego
-backendu rozkazów).
+tylko gdy `recommended_order` zwraca region (brak przy `develop` / `muster`);
+przycisk niesie `Wykonaj zalecenie: {recommended_order_text(action, target)}`
+(escapowany). Brak `data-recommended-order` przy `player_duchy_id=None`,
+`is_over` lub `recommended_order(...) is None`. Reużywa istniejące trasy
+`/order/*` (bez nowego backendu rozkazów); dla `muster` ten sam
+`POST /order/muster` co rozkaz z sekcji rozwoju (`ai.muster_duchy_party`,
+K14.2b / K48.1d).
 
 **Lokalizacja party na mapie (R37.1):**
 `tbbui.maplookup.first_party_region(world, owner_id) -> Region | None` — pierwszy
@@ -586,7 +589,8 @@ przy no-op `is_over` → `"Następna tura: gra zakończona"`.
 `POST /order/*` (recruit/muster/develop/march/assault/engage) zeruje
 `previous_game` (K38.2a — dziennik nie wisi po innym działaniu gracza).
 Rozkazy gracza `POST /order/recruit` (K14.2a),
-`POST /order/muster` (K14.2b), `POST /order/develop` (K14.2c),
+`POST /order/muster` (K14.2b / K48.1d — ta sama trasa z formularza
+`data-recommended-order` gdy rada to `muster`), `POST /order/develop` (K14.2c),
 `POST /order/march` (K14.2d2 / K15.1b) idzie wspólnym helperem
 `_apply_player_order(transition, label)` (K28.1b / R29.1): guard księstwa
 przez `_resolve_player_duchy() -> Duchy | None` (`None` gdy `is_over`, brak

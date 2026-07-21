@@ -20,6 +20,7 @@ from tbb.world import Region, WorldMap
 from tbbui.battlereport import attacker_losses, battle_outcome_text, defender_losses
 from tbbui.battlesvg import render_battle_svg
 from tbbui.orderlog import format_log_entry, render_order_log
+from tbbui.maplookup import first_party_region
 from tbbui.recommendedaction import recommended_order, recommended_order_text
 from tbbui.serve import GameApp, recommended_order_path
 from tbbui.turnsummary import render_turn_summary
@@ -4354,6 +4355,99 @@ def test_recommended_order_path_develop():
     Contract: ``"develop"`` → ``"/order/develop"``. Pure, deterministic, no IO.
     """
     assert recommended_order_path("develop") == "/order/develop"
+
+
+def test_recommended_order_path_muster():
+    """``recommended_order_path("muster")`` → ``"/order/muster"`` (K48.1d).
+
+    Contract (task-230): maps muster advice onto the existing player muster
+    POST route; other K42.1b mappings (assault/engage/defend/develop) unchanged.
+    Pure, deterministic, no IO.
+    """
+    assert recommended_order_path("muster") == "/order/muster"
+    assert recommended_order_path("assault") == "/order/assault"
+    assert recommended_order_path("engage") == "/order/engage"
+    assert recommended_order_path("defend") == "/order/march"
+    assert recommended_order_path("develop") == "/order/develop"
+
+
+def test_get_recommended_muster_form_then_post_reuses_order_muster():
+    """K48.1d: GET muster advice form + POST /order/muster reuses existing route.
+
+    Contract (task-230):
+    - with ``player_duchy_id="player"``, hero, own settlement, no party on map:
+      GET / embeds exactly one
+      ``<form method="post" action="/order/muster" data-recommended-order="">``
+      whose submit button is html-escaped
+      ``Wykonaj zalecenie: zbierz oddział``
+    - subsequent ``POST /order/muster`` reuses ``ai.muster_duchy_party`` (no new
+      backend): ``first_party_region(app.world, "player") is not None`` and
+      ``app.last_notice == "Zebranie oddziału: wykonano"``
+    """
+    from html import escape
+
+    keep = Region("Keep")
+    enemy_camp = Region("EnemyCamp")
+    hero = Unit(training=3)
+    keep_s = Settlement("KeepS", population=2, owner_id="player")
+    world = WorldMap(
+        [keep, enemy_camp],
+        [(keep, enemy_camp)],
+        settlements={keep: keep_s},
+    )
+    game = GameState(
+        (
+            Duchy("player", hero, settlements=(keep_s,)),
+            Duchy("enemy", Unit()),
+        )
+    )
+    assert not game.is_over
+    assert recommended_order(world, game, "player") == ("muster", None)
+    assert first_party_region(world, "player") is None
+    assert recommended_order_path("muster") == "/order/muster"
+
+    app = GameApp(
+        world, game, Calendar(year=1, month=1), Rng(1), player_duchy_id="player"
+    )
+    code_get, body_get = app.handle("GET", "/")
+    assert code_get == 200
+
+    root_get = ET.fromstring(body_get)
+    rec_forms = [
+        el
+        for el in root_get.iter()
+        if _local(el.tag) == "form" and el.get("data-recommended-order") is not None
+    ]
+    assert len(rec_forms) == 1, (
+        f"expected exactly one data-recommended-order form, found {len(rec_forms)}"
+    )
+    form = rec_forms[0]
+    assert form.get("data-recommended-order") == ""
+    assert (form.get("method") or "").lower() == "post"
+    assert form.get("action") == "/order/muster"
+    buttons = [c for c in form.iter() if _local(c.tag) == "button"]
+    assert len(buttons) >= 1
+    expected_label = "Wykonaj zalecenie: zbierz oddział"
+    assert "".join(buttons[0].itertext()).strip() == expected_label
+    form_html = re.search(
+        r'<form\b[^>]*\bdata-recommended-order=""[^>]*>.*?</form>',
+        body_get,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    assert form_html is not None
+    assert (
+        f'<button type="submit">{escape(expected_label)}</button>'
+        in form_html.group(0)
+    )
+
+    code_post, body_post = app.handle("POST", "/order/muster")
+    assert code_post == 200
+    assert isinstance(body_post, str)
+    assert first_party_region(app.world, "player") is not None
+    assert app.last_notice == "Zebranie oddziału: wykonano"
+    notices = _find_by_attr(ET.fromstring(body_post), "data-notice")
+    assert len(notices) == 1
+    assert notices[0].get("data-notice") == "Zebranie oddziału: wykonano"
 
 
 def test_get_embeds_one_recommended_order_form_before_develop_section():
