@@ -30,11 +30,21 @@ def _first_hostile_neighbor(
 def _strength_attrs_and_suffix(
     own_units, enemy_party: Party
 ) -> tuple[str, str]:
-    """Return (HTML attrs fragment, visible text suffix) for own vs enemy strength."""
+    """Return (HTML attrs fragment, visible text suffix) for own vs enemy strength.
+
+    Includes ``data-defensible`` (after ``data-enemy-defense``) and a final
+    verdict suffix: own sum (HP+attack+defense) ≥ enemy sum → true /
+    `` — obronisz się``; otherwise false / `` — przewaga wroga``.
+    """
     own_hp, own_attack, own_defense = combat_totals(own_units)
     enemy_hp, enemy_attack, enemy_defense = combat_totals(
         (enemy_party.hero, *enemy_party.units)
     )
+    own_sum = own_hp + own_attack + own_defense
+    enemy_sum = enemy_hp + enemy_attack + enemy_defense
+    defensible = own_sum >= enemy_sum
+    defensible_attr = "true" if defensible else "false"
+    verdict = " — obronisz się" if defensible else " — przewaga wroga"
     attrs = (
         f' data-own-hp="{own_hp}"'
         f' data-own-attack="{own_attack}"'
@@ -42,12 +52,14 @@ def _strength_attrs_and_suffix(
         f' data-enemy-hp="{enemy_hp}"'
         f' data-enemy-attack="{enemy_attack}"'
         f' data-enemy-defense="{enemy_defense}"'
+        f' data-defensible="{defensible_attr}"'
     )
     suffix = (
         f" · siła obronna: HP {own_hp}, atak {own_attack},"
         f" obrona {own_defense}"
         f" · siła wroga: HP {enemy_hp}, atak {enemy_attack},"
         f" obrona {enemy_defense}"
+        f"{verdict}"
     )
     return attrs, suffix
 
@@ -139,8 +151,11 @@ def render_threat_alert(
     order, plus ``data-own-hp`` / ``data-own-attack`` / ``data-own-defense``
     (settlement garrison or party hero+units via ``combat_totals``) and
     ``data-enemy-hp`` / ``data-enemy-attack`` / ``data-enemy-defense`` (hostile
-    party), with matching text suffix. ``N`` equals the number of emitted rows.
-    Pure and deterministic: no RNG/IO; does not mutate ``world`` or ``game``.
+    party), then ``data-defensible`` (``"true"`` when own HP+attack+defense ≥
+    enemy sum, else ``"false"``), with matching strength text suffix and
+    final `` — obronisz się`` / `` — przewaga wroga``. ``N`` equals the number
+    of emitted rows. Pure and deterministic: no RNG/IO; does not mutate
+    ``world`` or ``game``.
     """
     if player_duchy(game, player_duchy_id) is None:
         return '<div data-threat-alert=""></div>'

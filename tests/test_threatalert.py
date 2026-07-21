@@ -258,6 +258,12 @@ def test_render_threat_alert_rows_per_threatened_position():
         assert row.get("data-enemy-hp") is not None
         assert row.get("data-enemy-attack") is not None
         assert row.get("data-enemy-defense") is not None
+        # K39.2b: final verdict suffix after the K39.2a strength clause.
+        defensible = row.get("data-defensible")
+        assert defensible in ("true", "false")
+        verdict = (
+            " — obronisz się" if defensible == "true" else " — przewaga wroga"
+        )
         assert text == (
             f"{prefix}"
             f" · siła obronna: HP {row.get('data-own-hp')},"
@@ -266,6 +272,7 @@ def test_render_threat_alert_rows_per_threatened_position():
             f" · siła wroga: HP {row.get('data-enemy-hp')},"
             f" atak {row.get('data-enemy-attack')},"
             f" obrona {row.get('data-enemy-defense')}"
+            f"{verdict}"
         )
 
 
@@ -353,12 +360,18 @@ def test_render_threat_alert_row_own_and_enemy_combat_totals():
     assert home_row.get("data-enemy-hp") == str(enemy_hp)
     assert home_row.get("data-enemy-attack") == str(enemy_atk)
     assert home_row.get("data-enemy-defense") == str(enemy_def)
+    party_sum = party_hp + party_atk + party_def
+    enemy_sum = enemy_hp + enemy_atk + enemy_def
+    home_verdict = (
+        " — obronisz się" if party_sum >= enemy_sum else " — przewaga wroga"
+    )
     assert "".join(home_row.itertext()) == (
         f"Oddział Home: zagrożenie od enemy z EnemyCamp"
         f" · siła obronna: HP {party_hp}, atak {party_atk},"
         f" obrona {party_def}"
         f" · siła wroga: HP {enemy_hp}, atak {enemy_atk},"
         f" obrona {enemy_def}"
+        f"{home_verdict}"
     )
 
     assert keep_row.get("data-own-hp") == str(garrison_hp)
@@ -367,10 +380,156 @@ def test_render_threat_alert_row_own_and_enemy_combat_totals():
     assert keep_row.get("data-enemy-hp") == str(enemy_hp)
     assert keep_row.get("data-enemy-attack") == str(enemy_atk)
     assert keep_row.get("data-enemy-defense") == str(enemy_def)
+    garrison_sum = garrison_hp + garrison_atk + garrison_def
+    keep_verdict = (
+        " — obronisz się"
+        if garrison_sum >= enemy_sum
+        else " — przewaga wroga"
+    )
     assert "".join(keep_row.itertext()) == (
         f"Osada Keep: zagrożenie od enemy z EnemyCamp"
         f" · siła obronna: HP {garrison_hp}, atak {garrison_atk},"
         f" obrona {garrison_def}"
         f" · siła wroga: HP {enemy_hp}, atak {enemy_atk},"
         f" obrona {enemy_def}"
+        f"{keep_verdict}"
     )
+
+
+def test_render_threat_alert_row_data_defensible():
+    """Each ``data-threatened-region`` row gets ``data-defensible`` after
+    ``data-enemy-defense``: ``"true"`` and text suffix `` — obronisz się`` when
+    own sum (Ho+Ao+Do) is ``>=`` enemy sum (He+Ae+De); ``"false"`` and
+    `` — przewaga wroga`` when own sum is strictly lower. Equality counts as
+    defensible. Suffix follows the K39.2a strength clause.
+    """
+    hold = Region("Hold")
+    equal = Region("Equal")
+    weak = Region("Weak")
+    enemy_camp = Region("EnemyCamp")
+
+    # Strong garrison: own sum > enemy sum → defensible true
+    strong_garrison = (
+        Unit(training=5),
+        Unit(training=4),
+        Unit(equipment=3),
+    )
+    # Equal garrison: own sum == enemy sum → defensible true
+    equal_garrison = (Unit(training=3),)
+    # Weak garrison: own sum < enemy sum → defensible false
+    weak_garrison = ()
+
+    enemy_hero = Unit(training=3)
+    enemy_units = ()
+
+    strong_hp, strong_atk, strong_def = combat_totals(strong_garrison)
+    equal_hp, equal_atk, equal_def = combat_totals(equal_garrison)
+    weak_hp, weak_atk, weak_def = combat_totals(weak_garrison)
+    enemy_hp, enemy_atk, enemy_def = combat_totals((enemy_hero, *enemy_units))
+    enemy_sum = enemy_hp + enemy_atk + enemy_def
+
+    assert strong_hp + strong_atk + strong_def > enemy_sum
+    assert equal_hp + equal_atk + equal_def == enemy_sum
+    assert weak_hp + weak_atk + weak_def < enemy_sum
+
+    world = WorldMap(
+        [hold, equal, weak, enemy_camp],
+        [
+            (hold, enemy_camp),
+            (equal, enemy_camp),
+            (weak, enemy_camp),
+        ],
+        parties={
+            enemy_camp: Party(
+                hero=enemy_hero,
+                units=enemy_units,
+                owner_id="enemy",
+            ),
+        },
+        settlements={
+            hold: Settlement(
+                "HoldS",
+                population=6,
+                owner_id="player",
+                garrison=strong_garrison,
+            ),
+            equal: Settlement(
+                "EqualS",
+                population=3,
+                owner_id="player",
+                garrison=equal_garrison,
+            ),
+            weak: Settlement(
+                "WeakS",
+                population=1,
+                owner_id="player",
+                garrison=weak_garrison,
+            ),
+        },
+    )
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+
+    xml = render_threat_alert(world, game, player_duchy_id="player")
+    root = ET.fromstring(xml)
+    rows = [
+        el
+        for el in root
+        if el.get("data-threatened-region") is not None
+    ]
+    assert [
+        r.get("data-threatened-region") for r in rows
+    ] == ["Hold", "Equal", "Weak"]
+    hold_row, equal_row, weak_row = rows
+
+    strength_clause = (
+        lambda ho, ao, do, he, ae, de: (
+            f" · siła obronna: HP {ho}, atak {ao}, obrona {do}"
+            f" · siła wroga: HP {he}, atak {ae}, obrona {de}"
+        )
+    )
+
+    # Own sum > enemy sum → defensible
+    assert hold_row.get("data-defensible") == "true"
+    assert "".join(hold_row.itertext()) == (
+        f"Osada Hold: zagrożenie od enemy z EnemyCamp"
+        f"{strength_clause(strong_hp, strong_atk, strong_def, enemy_hp, enemy_atk, enemy_def)}"
+        f" — obronisz się"
+    )
+
+    # Equality counts as defensible
+    assert equal_row.get("data-defensible") == "true"
+    assert "".join(equal_row.itertext()) == (
+        f"Osada Equal: zagrożenie od enemy z EnemyCamp"
+        f"{strength_clause(equal_hp, equal_atk, equal_def, enemy_hp, enemy_atk, enemy_def)}"
+        f" — obronisz się"
+    )
+
+    # Own sum strictly lower → not defensible
+    assert weak_row.get("data-defensible") == "false"
+    assert "".join(weak_row.itertext()) == (
+        f"Osada Weak: zagrożenie od enemy z EnemyCamp"
+        f"{strength_clause(weak_hp, weak_atk, weak_def, enemy_hp, enemy_atk, enemy_def)}"
+        f" — przewaga wroga"
+    )
+
+    # ``data-defensible`` follows ``data-enemy-defense``; other attrs keep order.
+    expected_keys = [
+        "data-threatened-region",
+        "data-threatened-kind",
+        "data-enemy-region",
+        "data-enemy-owner",
+        "data-own-hp",
+        "data-own-attack",
+        "data-own-defense",
+        "data-enemy-hp",
+        "data-enemy-attack",
+        "data-enemy-defense",
+        "data-defensible",
+    ]
+    for row in (hold_row, equal_row, weak_row):
+        assert list(row.attrib.keys()) == expected_keys
