@@ -3774,3 +3774,129 @@ def test_get_embeds_one_recommended_order_form_before_develop_section():
         'data-order-section="develop" header'
     )
 
+
+def test_get_recommended_order_form_action_matches_path_and_target():
+    """GET / recommended form ``action`` follows path + optional ``?target=`` (K42.1c).
+
+    Contract (task-205): ``action`` is ``recommended_order_path(action)`` with
+    suffix ``?target=<quote(region)>`` when ``recommended_order`` returns a
+    region name, and without ``?target=`` when region is ``None`` (``develop``).
+    """
+    # develop → region None: bare path, no ?target=
+    world, game = _ongoing_world_game()
+    assert not game.is_over
+    order = recommended_order(world, game, "north")
+    assert order is not None
+    action, region = order
+    assert region is None
+    expected_bare = recommended_order_path(action)
+    assert "?" not in expected_bare
+
+    app = GameApp(
+        world, game, Calendar(year=1, month=1), Rng(1), player_duchy_id="north"
+    )
+    code, body = app.handle("GET", "/")
+    assert code == 200
+    root = ET.fromstring(body)
+    rec_forms = [
+        el
+        for el in root.iter()
+        if _local(el.tag) == "form" and el.get("data-recommended-order") is not None
+    ]
+    assert len(rec_forms) == 1
+    assert rec_forms[0].get("action") == expected_bare
+    assert "?target=" not in (rec_forms[0].get("action") or "")
+
+    # region named (assault): path + ?target=quote(region)
+    home = Region("Home")
+    enemy_camp = Region("EnemyCamp")
+    assault_game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+    assault_world = WorldMap(
+        [home, enemy_camp],
+        [(home, enemy_camp)],
+        parties={home: Party(hero=Unit(), units=(), owner_id="player")},
+        settlements={
+            enemy_camp: Settlement(
+                "EnemyS", population=2, owner_id="enemy"
+            ),
+        },
+    )
+    assert not assault_game.is_over
+    assault_order = recommended_order(assault_world, assault_game, "player")
+    assert assault_order is not None
+    assault_action, assault_region = assault_order
+    assert assault_region is not None
+    expected_with_target = (
+        f"{recommended_order_path(assault_action)}?target={quote(assault_region)}"
+    )
+
+    assault_app = GameApp(
+        assault_world,
+        assault_game,
+        Calendar(year=1, month=1),
+        Rng(1),
+        player_duchy_id="player",
+    )
+    code2, body2 = assault_app.handle("GET", "/")
+    assert code2 == 200
+    root2 = ET.fromstring(body2)
+    rec_forms2 = [
+        el
+        for el in root2.iter()
+        if _local(el.tag) == "form" and el.get("data-recommended-order") is not None
+    ]
+    assert len(rec_forms2) == 1
+    assert rec_forms2[0].get("action") == expected_with_target
+
+
+def test_get_omits_recommended_order_when_no_player_over_or_no_advice():
+    """GET / has no ``data-recommended-order`` when advice form is barred (K42.1c).
+
+    Contract (task-205): when ``player_duchy_id is None``, the game is
+    ``is_over``, or ``recommended_order(...) is None``, GET / contains no
+    ``data-recommended-order``.
+    """
+    world, game = _ongoing_world_game()
+    assert not game.is_over
+
+    # player_duchy_id is None
+    none_app = GameApp(world, game, Calendar(year=1, month=1), Rng(1))
+    assert none_app.player_duchy_id is None
+    code, body = none_app.handle("GET", "/")
+    assert code == 200
+    assert "data-recommended-order" not in body
+    root = ET.fromstring(body)
+    assert [
+        el
+        for el in root.iter()
+        if _local(el.tag) == "form" and el.get("data-recommended-order") is not None
+    ] == []
+
+    # game is_over
+    finished_world, finished_game = _finished_world_game()
+    assert finished_game.is_over
+    over_app = GameApp(
+        finished_world,
+        finished_game,
+        Calendar(year=1, month=1),
+        Rng(1),
+        player_duchy_id="north",
+    )
+    code2, body2 = over_app.handle("GET", "/")
+    assert code2 == 200
+    assert "data-recommended-order" not in body2
+
+    # recommended_order(...) is None — player id not in game.duchies
+    assert recommended_order(world, game, "ghost") is None
+    ghost_app = GameApp(
+        world, game, Calendar(year=1, month=1), Rng(1), player_duchy_id="ghost"
+    )
+    code3, body3 = ghost_app.handle("GET", "/")
+    assert code3 == 200
+    assert "data-recommended-order" not in body3
+
