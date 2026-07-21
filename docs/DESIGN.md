@@ -393,9 +393,20 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   `data-duchy` (kolejność nagłówków: settlements, parties, duchies). Przy
   `player_duchy_id is not None` osadza też kanoniczny
   `render_player_summary(game, player_duchy_id)` (K30.3c); `None` → bajt-w-bajt
-  jak dotąd.
+  jak dotąd. Przy `player_duchy_id is not None` osadza też
+  `<p data-player-result-text>` z wynikiem z perspektywy gracza (`Gra w toku` /
+  `Zwycięstwo Twojego księstwa` / `Porażka Twojego księstwa` / `Remis` wg
+  `game.is_over`/`game.winner`); `None` → element nieobecny (K31.2a).
 
 **GameApp / rozkazy gracza:**
+- `GameApp(..., seed=None)` — opcjonalny seed restartu. `POST /new`: gdy
+  `seed is not None` podmienia stan na świeżą `create_headless_game()` +
+  `Rng(seed)` + `Calendar()` (zachowuje `player_duchy_id`), zeruje
+  `last_battle`, `last_notice` = `"Nowa gra: rok 1, miesiąc 1"`; gdy `seed is
+  None` — no-op stanu, `last_notice` = `"Nowa gra: brak zmian"`; zawsze
+  `(200, strona)`. `GET /` emituje `<form action="/new">` (przycisk „Nowa gra")
+  przed `/turn`, niezależnie od stanu gry (K31.1a–b). CLI `python -m tbbui
+  serve` przekazuje `seed=HEADLESS_SEED` (K31.1c).
 - `GameApp(..., player_duchy_id=None)` — w `POST /turn` woła `run_headless_game`
   z `max_turns=1` i tym id; `GET /` ma `data-player` oraz (K23.2b) przekazuje
   `player_duchy_id` do `render_game_page` (`data-player-duchy` na wierszu gracza).
@@ -586,6 +597,16 @@ przez `combat_totals` → K30.3b) osadzony w `render_game_page` przy ustawionym
 panel rozkazów w `serve.py`: nagłówek sekcji `<h2 data-order-section="develop">`
 (K30.1a) i koszt złota na przycisku rekrutacji z `RECRUIT_GOLD_COST` (K30.2a).
 Rdzeń `tbb` bez zmian; dane z istniejących `GameState`/`Duchy`/`Settlement`.
+
+**PLAN K31 (grywalna pełna partia w przeglądarce):** K14–K30 dały graczowi
+sprawczość, orientację i czytelne decyzje, ale po zakończeniu partii nie da się
+zagrać ponownie bez restartu procesu, a banner wyniku (`Zwycięstwo: <id>`) nie
+mówi, czy wygrał *gracz*. K31 domyka pętlę §6: restart `POST /new` (`GameApp`
+z opcjonalnym `seed`, K31.1a) z przyciskiem „Nowa gra" w `GET /` (K31.1b) i
+wpięciem `seed=HEADLESS_SEED` w CLI serve (K31.1c), oraz czytelny wynik z
+perspektywy gracza `<p data-player-result-text>` w `render_game_page` (K31.2a;
+`None` → bajt-w-bajt jak dotąd). Rdzeń `tbb` bez zmian; restart reużywa
+`create_headless_game`/`Rng`/`Calendar`.
 
 ## 12. Otwarte pytania (nadal)
 - **Krzywe filarów:** różne parametry stromości per filar oraz wpływ budynków/

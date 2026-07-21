@@ -317,3 +317,13 @@
 - [x] **K29.2a** Polskie etykiety przycisków tury i rozwoju (`Następna tura`/`Rekrutuj`/`Zbierz oddział`/`Rozbuduj osadę`). *(task-149)*
 - [x] **K29.2b** Polskie etykiety bare przycisków marsz/szturm/starcie (`Marsz`/`Szturm`/`Starcie`). *(task-150)*
 - [x] **R29.1 (refaktor)** Wspólny guard `_resolve_player_duchy()` w `serve.py`; bez nowych testów. *(task-151)*
+
+## Kamień milowy 30 — świadome decyzje gracza: podsumowanie księstwa + czytelny panel rozkazów — UKOŃCZONY
+> Czysty prymityw `render_player_summary` (gospodarka K30.3a, siła K30.3b)
+> osadzony w `render_game_page` (K30.3c); nagłówek sekcji „Rozwój" (K30.1a) i
+> koszt złota na przycisku rekrutacji (K30.2a). Rdzeń `tbb` bez zmian.
+- [x] **K30.1a** Nagłówek sekcji `<h2 data-order-section="develop">Rozwój</h2>` nad rozkazami recruit/muster/develop. *(task-152)*
+- [x] **K30.2a** Koszt złota na przycisku „Rekrutuj" z `tbb.settlement.RECRUIT_GOLD_COST`. *(task-153)*
+- [x] **K30.3a** Panel podsumowania księstwa gracza — gospodarka (`render_player_summary`: osady/oddziały/złoto/pszenica). *(task-154)*
+- [x] **K30.3b** Panel podsumowania — łączna siła bojowa oddziałów (reużycie `combat_totals`). *(task-155)*
+- [x] **K30.3c** Osadzenie podsumowania w `render_game_page` (bez gracza → bajt-w-bajt jak dotąd). *(task-156)*

@@ -159,21 +159,25 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > (task-148…151) w `BACKLOG-ARCHIVE.md`. Rdzeń `tbb`, `render_game_page` i
 > routing bez zmian.
 
-## Kamień milowy 30 — świadome decyzje gracza: podsumowanie księstwa + czytelny panel rozkazów
-> DESIGN §11 (PLAN K30): K22–K27 pokazały stan per osada/oddział, ale gracz nie
-> widzi **zagregowanego** stanu własnego księstwa (łączne złoto/pszenica, liczba
-> osad/oddziałów, łączna siła bojowa) — musi sumować w głowie przed decyzją o
-> rekrutacji i walce (§6 pkt 2). Nie zna też kosztu rekrutacji ani nie odróżnia
-> bloku rozkazów rozwoju od wojskowych. K30 dokłada czysty prymityw
-> `render_player_summary` (gospodarka → K30.3a, siła → K30.3b) osadzony w
-> `render_game_page` (K30.3c) oraz czytelniejszy panel rozkazów: nagłówek sekcji
-> „Rozwój" (K30.1a) i koszt złota na przycisku rekrutacji (K30.2a). Rdzeń `tbb`
-> bez zmian; dane z istniejących `GameState`/`Duchy`/`Settlement`.
-- [ ] **K30.1a** Nagłówek sekcji `<h2 data-order-section="develop">Rozwój</h2>` nad rozkazami recruit/muster/develop. *(task-152)*
-- [ ] **K30.2a** Koszt złota na przycisku „Rekrutuj" z `tbb.settlement.RECRUIT_GOLD_COST`. *(task-153)*
-- [ ] **K30.3a** Panel podsumowania księstwa gracza — gospodarka (`render_player_summary`: osady/oddziały/złoto/pszenica). *(task-154)*
-- [ ] **K30.3b** Panel podsumowania — łączna siła bojowa oddziałów (reużycie `combat_totals`). *(task-155)*
-- [ ] **K30.3c** Osadzenie podsumowania w `render_game_page` (bez gracza → bajt-w-bajt jak dotąd). *(task-156)*
+## Kamień milowy 30 — świadome decyzje gracza: podsumowanie księstwa + czytelny panel rozkazów — UKOŃCZONY
+> DESIGN §11 (PLAN K30): czysty prymityw `render_player_summary` (gospodarka →
+> K30.3a, siła → K30.3b) osadzony w `render_game_page` (K30.3c) oraz czytelniejszy
+> panel rozkazów: nagłówek sekcji „Rozwój" (K30.1a) i koszt złota na przycisku
+> rekrutacji (K30.2a). Wszystkie pozycje (task-152…156) w `BACKLOG-ARCHIVE.md`.
+> Rdzeń `tbb` bez zmian.
+
+## Kamień milowy 31 — grywalna pełna partia w przeglądarce: nowa gra + wynik z perspektywy gracza
+> DESIGN §11 (PLAN K31): K14–K30 dały graczowi sprawczość, orientację i decyzje,
+> ale po zakończeniu partii nie da się zagrać ponownie bez restartu procesu, a
+> banner wyniku (`Zwycięstwo: <id>`) nie mówi, czy wygrał *gracz*. K31 domyka
+> pętlę §6: restart `POST /new` (K31.1a) z przyciskiem „Nowa gra" (K31.1b) i
+> wpięciem seedu w CLI serve (K31.1c), oraz czytelny wynik z perspektywy gracza
+> w `render_game_page` (K31.2a). Rdzeń `tbb` bez zmian; reużywa
+> `create_headless_game`/`Rng`/`Calendar` i istniejący `GameState`.
+- [ ] **K31.1a** Restart partii przez `POST /new` (GameApp `seed`; reset do świeżej deterministycznej gry). *(task-157)*
+- [ ] **K31.1b** Przycisk „Nowa gra" w `GET /` (`<form action="/new">`). *(task-158)*
+- [ ] **K31.1c** CLI `python -m tbbui serve` przekazuje `seed=HEADLESS_SEED` do `GameApp`. *(task-159)*
+- [ ] **K31.2a** Wynik gry z perspektywy gracza w `render_game_page` (`data-player-result-text`). *(task-160)*
 
 ## Dług/refaktor
 - [x] **R21.1 (refaktor)** Wspólny emiter formularzy celu marsz/szturm/starcie w `serve.py`. *(task-113)*
