@@ -18,7 +18,7 @@ from tbb.turn import Calendar
 from tbb.unit import Unit
 from tbb.world import Region, WorldMap
 from tbbui.battlesvg import render_battle_svg
-from tbbui.orderlog import render_order_log
+from tbbui.orderlog import format_log_entry, render_order_log
 from tbbui.recommendedaction import recommended_order, recommended_order_text
 from tbbui.serve import GameApp, recommended_order_path
 from tbbui.turnsummary import render_turn_summary
@@ -377,14 +377,14 @@ def test_game_app_order_log_starts_empty_and_get_does_not_append():
 
 
 def test_game_app_post_turn_and_orders_append_last_notice_to_order_log():
-    """POST /turn and each POST /order/* append last_notice once to order_log (K43.1b).
+    """POST /turn and each POST /order/* append one date-anchored entry (K43.1b/K44.1b).
 
-    Contract (task-209 / K43.1b):
+    Contract (task-209 / K43.1b + task-213 / K44.1b):
     - after POST /turn, order_log grows by exactly one entry and order_log[-1]
-      equals the current last_notice
+      equals format_log_entry(last_notice, calendar)
     - after each of POST /order/recruit|muster|develop|march|assault|engage,
-      same: exactly one new entry equal to last_notice (prefix of the log is
-      the previous contents — no rewrite, no double-append)
+      same: exactly one new anchored entry (prefix of the log is the previous
+      contents — no rewrite, no double-append)
     """
     world, game = _ongoing_world_game()
     app = GameApp(
@@ -408,17 +408,18 @@ def test_game_app_post_turn_and_orders_append_last_notice_to_order_log():
         assert app.last_notice != ""
         assert len(app.order_log) == len(before) + 1
         assert app.order_log[:-1] == before
-        assert app.order_log[-1] == app.last_notice
+        assert app.order_log[-1] == format_log_entry(app.last_notice, app.calendar)
 
 
 def test_game_app_post_new_resets_order_log_to_single_start_notice():
-    """POST /new clears order_log to a single entry equal to last_notice (K43.1b).
+    """POST /new clears order_log to a single date-anchored start entry (K43.1b/K44.1b).
 
-    Contract (task-209 / K43.1b):
+    Contract (task-209 / K43.1b + task-213 / K44.1b):
     - after prior POST actions have filled order_log with multiple entries,
-      POST /new leaves order_log as exactly one element equal to last_notice
-    - with seed set: that entry is ``"Nowa gra: rok 1, miesiąc 1"``
-    - without seed: that entry is ``"Nowa gra: brak zmian"``
+      POST /new leaves order_log as exactly one format_log_entry(last_notice, calendar)
+    - with seed set: last_notice is ``"Nowa gra: rok 1, miesiąc 1"``; log entry
+      is that string with calendar date prefix
+    - without seed: last_notice is ``"Nowa gra: brak zmian"``; log entry anchored
     - prior log contents are discarded (not appended to)
     """
     world, game = _ongoing_world_game()
@@ -439,8 +440,9 @@ def test_game_app_post_new_resets_order_log_to_single_start_notice():
     code_new, _ = app.handle("POST", "/new")
     assert code_new == 200
     assert app.last_notice == "Nowa gra: rok 1, miesiąc 1"
-    assert app.order_log == [app.last_notice]
-    assert app.order_log == ["Nowa gra: rok 1, miesiąc 1"]
+    expected_new = format_log_entry(app.last_notice, app.calendar)
+    assert app.order_log == [expected_new]
+    assert app.order_log == ["Rok 1, miesiąc 1 — Nowa gra: rok 1, miesiąc 1"]
 
     # Without seed: still a single start entry; prior multi-entry log discarded.
     world2, game2 = _ongoing_world_game()
@@ -455,8 +457,10 @@ def test_game_app_post_new_resets_order_log_to_single_start_notice():
     code_new2, _ = app_no_seed.handle("POST", "/new")
     assert code_new2 == 200
     assert app_no_seed.last_notice == "Nowa gra: brak zmian"
-    assert app_no_seed.order_log == [app_no_seed.last_notice]
-    assert app_no_seed.order_log == ["Nowa gra: brak zmian"]
+    # seed is None → calendar unchanged after prior turn (year 1, month 2).
+    expected_no_seed = format_log_entry(app_no_seed.last_notice, app_no_seed.calendar)
+    assert app_no_seed.order_log == [expected_no_seed]
+    assert app_no_seed.order_log == ["Rok 1, miesiąc 2 — Nowa gra: brak zmian"]
     assert app_no_seed.order_log != prior
 
 
@@ -545,7 +549,8 @@ def test_game_app_get_embeds_order_log_when_is_over():
     assert code_t == 200
     assert app.game.is_over
     assert len(app.order_log) == 1
-    assert app.order_log[-1] == app.last_notice == "Następna tura: gra zakończona"
+    assert app.last_notice == "Następna tura: gra zakończona"
+    assert app.order_log[-1] == format_log_entry(app.last_notice, app.calendar)
 
     code2, body2 = app.handle("GET", "/")
     assert code2 == 200
@@ -605,13 +610,13 @@ def test_game_app_order_log_never_exceeds_order_log_limit():
 
 
 def test_game_app_order_log_overflow_drops_oldest_keeps_last_n_chronological():
-    """On overflow, oldest order_log entries drop; log is last N notices (K43.2a).
+    """On overflow, oldest order_log entries drop; log is last N anchored (K43.2a/K44.1b).
 
-    Contract (task-211 / K43.2a):
+    Contract (task-211 / K43.2a + task-213 / K44.1b):
     - after ``ORDER_LOG_LIMIT + k`` known POST requests that each append one
-      notice, ``order_log`` equals exactly the last ``ORDER_LOG_LIMIT`` notices
-      in chronological order (not the first ones)
-    - ``order_log[-1]`` equals the current ``last_notice``
+      date-anchored entry, ``order_log`` equals exactly the last
+      ``ORDER_LOG_LIMIT`` anchored entries in chronological order
+    - ``order_log[-1]`` equals ``format_log_entry(last_notice, calendar)``
     """
     from tbbui import serve as serve_mod
 
@@ -625,19 +630,70 @@ def test_game_app_order_log_overflow_drops_oldest_keeps_last_n_chronological():
     )
     assert app.order_log == []
 
-    all_notices: list[str] = []
+    all_entries: list[str] = []
     for _ in range(total):
         code, _ = app.handle("POST", "/turn")
         assert code == 200
-        all_notices.append(app.last_notice)
+        all_entries.append(format_log_entry(app.last_notice, app.calendar))
 
-    assert len(all_notices) == total
+    assert len(all_entries) == total
     assert len(app.order_log) == limit
-    assert app.order_log == all_notices[-limit:]
-    assert app.order_log[-1] == app.last_notice
-    # Oldest k notices are gone (not present as a prefix of the capped log).
-    assert app.order_log != all_notices[:limit]
-    assert all_notices[0] not in app.order_log
+    assert app.order_log == all_entries[-limit:]
+    assert app.order_log[-1] == format_log_entry(app.last_notice, app.calendar)
+    # Oldest k entries are gone (not present as a prefix of the capped log).
+    assert app.order_log != all_entries[:limit]
+    assert all_entries[0] not in app.order_log
+
+
+def test_game_app_order_log_entries_anchored_with_calendar_date_not_raw_notice():
+    """POST /order/* and POST /turn append format_log_entry, not raw notice (K44.1b).
+
+    Contract (task-213 / K44.1b):
+    - after POST /order/recruit, calendar is unchanged; order_log[-1] equals
+      format_log_entry(last_notice, calendar) and starts with
+      f"Rok {calendar.year}, miesiąc {calendar.month} — "
+    - last_notice itself stays raw (no date prefix); data-notice attribute and
+      body still show that raw last_notice
+    - after POST /turn, order_log[-1] uses the calendar *after* the turn
+      (same format_log_entry contract with the post-turn self.calendar)
+    """
+    world, game = _ongoing_world_game()
+    app = GameApp(
+        world, game, Calendar(year=4, month=9), Rng(17), player_duchy_id="north"
+    )
+    cal_before = app.calendar
+    assert (cal_before.year, cal_before.month) == (4, 9)
+
+    code_r, body_r = app.handle("POST", "/order/recruit")
+    assert code_r == 200
+    assert app.last_notice != ""
+    assert not app.last_notice.startswith("Rok ")
+    assert (app.calendar.year, app.calendar.month) == (4, 9)
+    expected_recruit = format_log_entry(app.last_notice, app.calendar)
+    assert expected_recruit == f"Rok 4, miesiąc 9 — {app.last_notice}"
+    assert app.order_log[-1] == expected_recruit
+    assert app.order_log[-1] != app.last_notice
+    root_r = ET.fromstring(body_r)
+    notices_r = _find_by_attr(root_r, "data-notice")
+    assert len(notices_r) == 1
+    assert notices_r[0].get("data-notice") == app.last_notice
+    assert (notices_r[0].text or "") == app.last_notice
+
+    code_t, body_t = app.handle("POST", "/turn")
+    assert code_t == 200
+    assert app.last_notice != ""
+    assert not app.last_notice.startswith("Rok ")
+    # Turn advances calendar by one month; log prefix uses post-turn calendar.
+    assert (app.calendar.year, app.calendar.month) == (4, 10)
+    expected_turn = format_log_entry(app.last_notice, app.calendar)
+    assert expected_turn == f"Rok 4, miesiąc 10 — {app.last_notice}"
+    assert app.order_log[-1] == expected_turn
+    assert app.order_log[-1] != app.last_notice
+    root_t = ET.fromstring(body_t)
+    notices_t = _find_by_attr(root_t, "data-notice")
+    assert len(notices_t) == 1
+    assert notices_t[0].get("data-notice") == app.last_notice
+    assert (notices_t[0].text or "") == app.last_notice
 
 
 def test_game_app_last_notice_empty_string_renders_empty_data_notice():

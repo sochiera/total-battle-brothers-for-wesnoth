@@ -473,12 +473,15 @@ czystą metodę `handle(method, path) -> (kod_http, treść)` — bez gniazda HT
 Opcjonalny `seed` jest przechowywany na app (restart `POST /new` w K31.1a); domyślnie `None`.
 `GameApp.previous_game: GameState | None` (K38.2a) — init `None`; `_render` woła
 `render_game_page(..., previous_game=self.previous_game)` (podsumowanie tury w stronie).
-`GameApp.order_log: list[str]` (K43.1b / K43.2a) — init `[]`; `GET /` i nieznane trasy (404)
-nie mutują listy (ten sam obiekt listy). Każdy znany `POST` (`/turn`, `/order/*`,
-`/new`) dokłada dokładnie raz bieżący `last_notice` na koniec listy po obsłużeniu
-trasy, po czym przycina listę do ostatnich `ORDER_LOG_LIMIT` wpisów (placeholder
-`10`; najstarsze wypadają in-place); `POST /new` najpierw `order_log.clear()`,
-potem append + trim wpisu nowej gry. Stała: `tbbui.serve.ORDER_LOG_LIMIT`.
+`GameApp.order_log: list[str]` (K43.1b / K43.2a / K44.1b) — init `[]`; `GET /` i nieznane
+trasy (404) nie mutują listy (ten sam obiekt listy). Każdy znany `POST` (`/turn`,
+`/order/*`, `/new`) woła `_append_order_log(last_notice)` raz po obsłużeniu trasy:
+dokłada `orderlog.format_log_entry(notice, self.calendar)` (wpis z prefiksem daty
+bieżącego `self.calendar` — po turze data już po awansie), NIE surowe `notice`;
+`last_notice` i slot `data-notice` zostają bez prefiksu. Po append lista jest
+przycinana do ostatnich `ORDER_LOG_LIMIT` wpisów (placeholder `10`; najstarsze
+wypadają in-place). `POST /new` najpierw `order_log.clear()`, potem append + trim
+zakotwiczonego wpisu nowej gry. Stała: `tbbui.serve.ORDER_LOG_LIMIT`.
 `_render` (K43.1c) osadza w extras `<body>` dokładnie jeden kanoniczny wynik
 `orderlog.render_order_log(self.order_log)` (obok `data-notice`), niezależnie od
 `game.is_over` — dziennik nie jest ukrywany z sekcjami rozkazów.
@@ -489,7 +492,7 @@ potem append + trim wpisu nowej gry. Stała: `tbbui.serve.ORDER_LOG_LIMIT`.
 `last_battle`, ustawia `last_notice` = `"Nowa gra: rok 1, miesiąc 1"` (`player_duchy_id`
 bez zmian); gdy `seed is None` — no-op stanu (`world`/`game`/`calendar`/`rng`/
 `last_battle` bez zmian), `last_notice` = `"Nowa gra: brak zmian"`; potem
-`order_log.append(last_notice)`; zawsze `(200, strona)`.
+`_append_order_log(last_notice)`; zawsze `(200, strona)`.
 `GET /` → `(200, strona)` z `render_game_page(..., player_duchy_id=self.player_duchy_id,
 previous_game=self.previous_game)`
 (K23.2b — panel księstw z `data-player-duchy` przy wierszu gracza; K38.2a — dziennik

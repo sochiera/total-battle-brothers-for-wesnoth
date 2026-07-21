@@ -15,7 +15,7 @@ import tbb.settlement as settlement_module
 from tbb.turn import Calendar
 from tbb.world import Region, WorldMap
 from tbbui.gamepage import render_game_page
-from tbbui.orderlog import render_order_log
+from tbbui.orderlog import format_log_entry, render_order_log
 from tbbui.recommendedaction import recommended_order, recommended_order_text
 
 ORDER_LOG_LIMIT = 10
@@ -165,8 +165,8 @@ class GameApp:
         self.order_log: list[str] = []
 
     def _append_order_log(self, notice: str) -> None:
-        """Append notice and keep only the last ``ORDER_LOG_LIMIT`` entries."""
-        self.order_log.append(notice)
+        """Append date-anchored notice; keep only last ``ORDER_LOG_LIMIT`` entries."""
+        self.order_log.append(format_log_entry(notice, self.calendar))
         overflow = len(self.order_log) - ORDER_LOG_LIMIT
         if overflow > 0:
             del self.order_log[:overflow]
