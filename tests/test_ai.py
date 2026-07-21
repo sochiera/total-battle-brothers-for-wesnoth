@@ -202,6 +202,57 @@ def test_region_distance_is_zero_when_start_equals_target():
     assert ai.region_distance(world, start, start) == 0
 
 
+def test_region_distance_is_one_for_direct_neighbor():
+    """ai.region_distance returns 1 when target is a direct neighbor of start."""
+    start = Region("Start")
+    neighbor = Region("Neighbor")
+    world = WorldMap([start, neighbor], [(start, neighbor)])
+
+    assert ai.region_distance(world, start, neighbor) == 1
+
+
+def test_region_distance_is_shortest_path_and_ignores_party_occupancy():
+    """BFS edge count ignores parties; blocked middle region still counts as distance 2."""
+    start, middle, target = map(Region, ("Start", "Middle", "Target"))
+    party = _party("Occupant")
+    world = WorldMap(
+        [start, middle, target],
+        [(start, middle), (middle, target)],
+        parties={middle: party},
+    )
+
+    assert ai.region_distance(world, start, target) == 2
+    assert world.party_at(middle) is party
+
+
+def test_region_distance_returns_none_when_no_path():
+    """ai.region_distance returns None for disconnected graph components."""
+    start = Region("Start")
+    island = Region("Island")
+    world = WorldMap([start, island], [])
+
+    assert ai.region_distance(world, start, island) is None
+
+
+@pytest.mark.parametrize("outside_argument", ["start", "target"])
+def test_region_distance_rejects_regions_outside_map_without_mutation(outside_argument):
+    """Regions outside world.regions raise ValueError; map is not mutated."""
+    start, neighbor = Region("Start"), Region("Neighbor")
+    party = _party("Hero")
+    world = WorldMap([start, neighbor], [(start, neighbor)], parties={start: party})
+    before = dict(world.parties)
+    arguments = {
+        "start": Region("Outside") if outside_argument == "start" else start,
+        "target": Region("Outside") if outside_argument == "target" else neighbor,
+    }
+
+    with pytest.raises(ValueError):
+        ai.region_distance(world, arguments["start"], arguments["target"])
+
+    assert dict(world.parties) == before
+    assert world.party_at(start) is party
+
+
 def test_march_moves_exactly_one_step_and_preserves_input_and_party():
     start, step, target = map(Region, ("Start", "Step", "Target"))
     party = _owned_party("Hero")
