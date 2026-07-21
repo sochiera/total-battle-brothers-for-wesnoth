@@ -626,3 +626,15 @@ def test_render_game_page_embeds_canonical_player_summary_when_player_duchy_id_s
     summary_els = _find_by_attr(root, "data-player-summary")
     assert len(summary_els) == 1
     assert summary_els[0] in list(body.iter())
+
+
+def test_render_game_page_omits_player_summary_when_player_duchy_id_none():
+    """Default / explicit ``player_duchy_id=None``: no ``data-player-summary``."""
+    world, game, calendar = _ongoing_fixture()
+    baseline_html = render_game_page(world, game, calendar)
+
+    assert render_game_page(world, game, calendar, player_duchy_id=None) == baseline_html
+
+    root = ET.fromstring(baseline_html)
+    assert _find_by_attr(root, "data-player-summary") == []
+    assert "data-player-summary" not in baseline_html
