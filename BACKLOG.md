@@ -172,17 +172,23 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > perspektywy gracza w `render_game_page` (K31.2a). Wszystkie pozycje
 > (task-157…160) w `BACKLOG-ARCHIVE.md`. Rdzeń `tbb` bez zmian.
 
-## Kamień milowy 32 — dokończenie ramy strony i czytelnego końca gry
-> DESIGN §11: K31 domknął pętlę (restart + wynik gracza), ale strona nadal nie ma
-> tytułu/ramy ani komunikatu celu, a po zakończeniu partii pokazuje bezużyteczne
-> formularze rozkazów. K32 dokłada tytuł dokumentu (K32.1a), widoczny nagłówek
-> strony (K32.1b) i linię celu gry (K32.1c) w `render_game_page` oraz ukrycie
-> tury i rozkazów w `GET /` po `is_over`, zostawiając tylko „Nowa gra" (K32.2a).
+## Kamień milowy 32 — dokończenie ramy strony i czytelnego końca gry — UKOŃCZONY
+> DESIGN §11: tytuł dokumentu (K32.1a), widoczny nagłówek strony (K32.1b) i linia
+> celu (K32.1c) w `render_game_page` oraz ukrycie tury/rozkazów w `GET /` po
+> `is_over` (K32.2a). Wszystkie pozycje (task-161…164) w `BACKLOG-ARCHIVE.md`.
 > Rdzeń `tbb` bez zmian.
-- [ ] **K32.1a** Tytuł dokumentu `<head><title>Total Battle Brothers</title></head>` w `render_game_page`. *(task-161)*
-- [ ] **K32.1b** Widoczny nagłówek strony `<h1 data-page-title>` na początku `<body>`. *(task-162)*
-- [ ] **K32.1c** Linia celu gry `<p data-objective>` pod nagłówkiem. *(task-163)*
-- [ ] **K32.2a** `GET /` ukrywa turę i sekcje rozkazów gdy `game.is_over` (zostaje „Nowa gra"). *(task-164)*
+
+## Kamień milowy 33 — czytelny postęp do celu (warunki zwycięstwa na oczach gracza)
+> DESIGN §11 (PLAN K33): objective (K32.1c) mówi „odbierz AI wszystkie osady i
+> pokonaj jego bohatera", ale gracz nie ma prostego licznika niepokonanych wrogów
+> ani ich stanu. K33 dokłada czysty prymityw `render_victory_progress`: licznik
+> `data-enemies-remaining` (K33.1a), wiersze per-wróg `data-enemy-duchy`
+> (osady/bohater, K33.1b), flagę `data-defeated` z sufiksem „— pokonany" (K33.2a),
+> osadzony w `render_game_page` przy `player_duchy_id` (K33.1c). Rdzeń `tbb` bez zmian.
+- [ ] **K33.1a** Prymityw `render_victory_progress(game, player_duchy_id)` — licznik `data-enemies-remaining` + tekst. *(task-165)*
+- [ ] **K33.1b** Wiersze per-wróg `data-enemy-duchy` (`data-settlements`/`data-hero` + tekst). *(task-166)*
+- [ ] **K33.1c** Osadzenie panelu w `render_game_page` (bez gracza → bajt-w-bajt jak dotąd). *(task-167)*
+- [ ] **K33.2a** Flaga `data-defeated` + sufiks „— pokonany" w wierszu wroga. *(task-168)*
 
 ## Dług/refaktor
 - [x] **R21.1 (refaktor)** Wspólny emiter formularzy celu marsz/szturm/starcie w `serve.py`. *(task-113)*

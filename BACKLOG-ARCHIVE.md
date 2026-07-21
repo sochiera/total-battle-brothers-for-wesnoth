@@ -337,3 +337,12 @@
 - [x] **K31.1b** Przycisk „Nowa gra" w `GET /` (`<form action="/new">`). *(task-158)*
 - [x] **K31.1c** CLI `python -m tbbui serve` przekazuje `seed=HEADLESS_SEED` do `GameApp`. *(task-159)*
 - [x] **K31.2a** Wynik gry z perspektywy gracza w `render_game_page` (`data-player-result-text`). *(task-160)*
+
+## Kamień milowy 32 — dokończenie ramy strony i czytelnego końca gry — UKOŃCZONY
+> DESIGN §11: tytuł dokumentu, widoczny nagłówek strony i linia celu w
+> `render_game_page` oraz ukrycie tury/rozkazów w `GET /` po `is_over`
+> (zostaje „Nowa gra"). Rdzeń `tbb` bez zmian.
+- [x] **K32.1a** Tytuł dokumentu `<head><title>Total Battle Brothers</title></head>` w `render_game_page`. *(task-161)*
+- [x] **K32.1b** Widoczny nagłówek strony `<h1 data-page-title>` na początku `<body>`. *(task-162)*
+- [x] **K32.1c** Linia celu gry `<p data-objective>` pod nagłówkiem. *(task-163)*
+- [x] **K32.2a** `GET /` ukrywa turę i sekcje rozkazów gdy `game.is_over` (zostaje „Nowa gra"). *(task-164)*

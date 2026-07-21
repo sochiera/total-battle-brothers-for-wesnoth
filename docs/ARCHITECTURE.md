@@ -112,6 +112,21 @@ argumentu. Obok atrybutów widoczny tekst
 (nazwa1, …) · ranni: W` (nawias z nazwami tylko gdy `B>0`) zgodny z atrybutami.
 Czyste, deterministyczne, bez mutacji `world`; rdzeń bez zmian.
 
+**Panel postępu do celu HTML (K33.1a / K33.1b / K33.2a):**
+`tbbui.victoryprogress.render_victory_progress(game, player_duchy_id=None) ->
+str` — parsowalny fragment XML z korzeniem `<div data-victory-progress="">`.
+Gdy `player_duchy_id` wskazuje księstwo w `game.duchies`, korzeń niesie
+`data-enemies-remaining="N"` (`N` = liczba księstw z `duchy_id !=
+player_duchy_id` i `not is_defeated`) oraz widoczny tekst
+`Wrogów do pokonania: N`, a po jednym dziecku
+`<div data-enemy-duchy="<duchy_id>">` na wrogie księstwo w kolejności
+`game.duchies` z atrybutami `data-settlements` (`len(settlements)`), `data-hero`
+(`true`/`false` z `has_hero`), `data-defeated` (`true`/`false` z `is_defeated`)
+i tekstem `<duchy_id>: osady N, bohater tak|nie` (sufiks ` — pokonany` gdy
+`is_defeated`). Gdy `player_duchy_id` jest `None` albo spoza `game.duchies` —
+sam pusty korzeń (bez atrybutów i wierszy). Czyste, deterministyczne, bez
+mutacji `game`; rdzeń bez zmian.
+
 **Panel party HTML (K22.2a / K24.1a / K25.1a / K25.1b / K27.1a):** `tbbui.partypanel.render_party_panel(world,
 player_duchy_id=None) -> str` — parsowalny fragment XML z korzeniem
 `<div data-party-panel="">`; po jednym `<div data-party-row="<region.name>">`
@@ -153,7 +168,7 @@ HP H, atak A, obrona D` zgodny z atrybutami. Gdy `player_duchy_id` jest
 liczbowych i bez tekstu). Czyste, deterministyczne, bez mutacji `game`;
 rdzeń bez zmian.
 
-**Strona HTML partii (V13.4a / K16.1a / K17.1b / K20.1a / K20.1b / K21.1a / K22.1c / K22.2b / K23.1b / K23.2a / K23.3b / K24.1b / K24.2b / K26.2a–b / K27.3a–b / K30.3c / K31.2a / K32.1a / K32.1b / K32.1c):** `tbbui.gamepage.render_game_page(world,
+**Strona HTML partii (V13.4a / K16.1a / K17.1b / K20.1a / K20.1b / K21.1a / K22.1c / K22.2b / K23.1b / K23.2a / K23.3b / K24.1b / K24.2b / K26.2a–b / K27.3a–b / K30.3c / K31.2a / K32.1a / K32.1b / K32.1c / K33.1c):** `tbbui.gamepage.render_game_page(world,
 game, calendar, battle=None, player_duchy_id=None) -> str` — parsowalny HTML z korzeniem `<html>`;
 dokładnie jeden `<head>` z `<title>Total Battle Brothers</title>` (K32.1a)
 bezpośrednio przed `<body>` (tytuł stały, niezależny od `player_duchy_id` /
@@ -194,7 +209,9 @@ przed tekstem statusu, w osadzonych panelach osad i party wiersze z
 legendzie wiersz z `owner_id == player_duchy_id` dostaje `data-player-owner=""`
 i prefiks `» `; gdy `player_duchy_id is not None`, osadza też w `<body>`
 kanoniczny string z `render_player_summary(game, player_duchy_id)` (K30.3c,
-dokładnie jeden `data-player-summary`) oraz dokładnie jeden
+dokładnie jeden `data-player-summary`), zaraz po nim kanoniczny string z
+`render_victory_progress(game, player_duchy_id)` (K33.1c, dokładnie jeden
+`data-victory-progress`) oraz dokładnie jeden
 `<p data-player-result-text="…">…</p>` z `_player_result_text` (K31.2a:
 `Gra w toku` / `Zwycięstwo Twojego księstwa` / `Porażka Twojego księstwa` /
 `Remis` wg `game.is_over` i `game.winner` względem `player_duchy_id`); `None`
@@ -373,6 +390,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │       ├── unitstrength.py # czysta agregacja siły/rannych sekwencji Unit (R25.1/R27.1)
 │       ├── settlementpanel.py # HTML panel osad (zasoby + populacja + garnizon)
 │       ├── partypanel.py   # HTML panel party (właściciel + siła oddziału)
+│       ├── victoryprogress.py # HTML panel postępu do celu (wrogowie do pokonania)
 │       ├── ownerlegend.py  # HTML legenda właścicieli (owner_id → kolor palety)
 │       ├── layout.py     # deterministyczny layout regionów WorldMap → (col, row)
 │       ├── palette.py    # paleta kolorów właścicieli (owner_id → fill)
@@ -406,6 +424,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │   ├── test_battlereport.py  # HTML raport bitwy (tbbui, K17.1a)
 │   ├── test_settlementpanel.py # HTML panel osad (tbbui, K22.1)
 │   ├── test_partypanel.py  # HTML panel party (tbbui, K22.2)
+│   ├── test_victoryprogress.py # HTML panel postępu do celu (tbbui, K33.1)
 │   ├── test_ownerlegend.py # HTML legenda właścicieli (tbbui, K23.1)
 │   ├── test_gamepage.py  # HTML strony partii (tbbui)
 │   ├── test_ui_main.py   # CLI snapshot partii (python -m tbbui)

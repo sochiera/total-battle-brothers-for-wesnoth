@@ -366,6 +366,16 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   tekst `Twoje księstwo: osady N, oddziały M · pszenica W, złoto G · siła
   oddziałów: HP H, atak A, obrona D`. Brak gracza lub id spoza `game.duchies` →
   sam pusty korzeń. Czysty, deterministyczny.
+- `render_victory_progress(game, player_duchy_id=None)` — fragment
+  `data-victory-progress` z postępem do celu z perspektywy gracza. Przy graczu
+  w `game.duchies`: korzeń niesie `data-enemies-remaining` (liczba wrogów
+  `duchy_id != player` z `not is_defeated`) i tekst „Wrogów do pokonania: N",
+  a per wrogie księstwo (kolejność `game.duchies`) dziecko
+  `<div data-enemy-duchy="<id>">` z `data-settlements`/`data-hero`
+  (`Duchy.has_hero`)/`data-defeated` (`Duchy.is_defeated`) i tekstem
+  `<id>: osady N, bohater tak|nie` (sufiks ` — pokonany` gdy `is_defeated`).
+  Brak gracza lub id spoza `game.duchies` → sam pusty korzeń. Czysty,
+  deterministyczny.
 - `render_party_panel(world, player_duchy_id=None)` — fragment `data-party-panel`
   z wierszem `data-party-row` (= nazwa regionu) na party w kolejności
   `world.regions`; `data-owner`/`data-size` (liczba podkomendnych)/`data-hp`/
@@ -399,7 +409,9 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   `<h2 data-panel-section="duchies">Księstwa</h2>` tuż przed pierwszym wierszem
   `data-duchy` (kolejność nagłówków: settlements, parties, duchies). Przy
   `player_duchy_id is not None` osadza też kanoniczny
-  `render_player_summary(game, player_duchy_id)` (K30.3c); `None` → bajt-w-bajt
+  `render_player_summary(game, player_duchy_id)` (K30.3c) oraz zaraz po nim
+  kanoniczny `render_victory_progress(game, player_duchy_id)` (K33.1c, dokładnie
+  jeden `data-victory-progress`); `None` → bajt-w-bajt
   jak dotąd. Przy `player_duchy_id is not None` osadza też
   `<p data-player-result-text>` z wynikiem z perspektywy gracza (`Gra w toku` /
   `Zwycięstwo Twojego księstwa` / `Porażka Twojego księstwa` / `Remis` wg
@@ -616,6 +628,16 @@ wpięciem `seed=HEADLESS_SEED` w CLI serve (K31.1c), oraz czytelny wynik z
 perspektywy gracza `<p data-player-result-text>` w `render_game_page` (K31.2a;
 `None` → bajt-w-bajt jak dotąd). Rdzeń `tbb` bez zmian; restart reużywa
 `create_headless_game`/`Rng`/`Calendar`.
+
+**PLAN K33 (czytelny postęp do celu):** objective (K32.1c) mówi „odbierz AI
+wszystkie osady i pokonaj jego bohatera", ale gracz nie ma prostego licznika
+niepokonanych wrogów ani ich stanu — musi skanować neutralną listę księstw. K33
+dokłada czysty prymityw `tbbui.victoryprogress.render_victory_progress`: licznik
+`data-enemies-remaining` (K33.1a), wiersze per-wróg `data-enemy-duchy`
+(osady/bohater, K33.1b) i flagę `data-defeated` z sufiksem „— pokonany"
+(K33.2a), osadzony w `render_game_page` przy ustawionym `player_duchy_id`
+(K33.1c; `None` → bajt-w-bajt jak dotąd). Rdzeń `tbb` bez zmian; dane z
+istniejących `GameState`/`Duchy`.
 
 ## 12. Otwarte pytania (nadal)
 - **Krzywe filarów:** różne parametry stromości per filar oraz wpływ budynków/
