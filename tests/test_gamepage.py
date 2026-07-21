@@ -749,6 +749,21 @@ def test_render_game_page_omits_next_objective_when_player_duchy_id_none():
     assert "data-next-objective" not in baseline_html
 
 
+def test_render_game_page_omits_enemy_hero_locator_when_player_duchy_id_none():
+    """Default / explicit ``player_duchy_id=None``: no ``data-hero-locator``.
+
+    Default and explicit None are byte-for-byte identical (no hero locator).
+    """
+    world, game, calendar = _ongoing_fixture()
+    baseline_html = render_game_page(world, game, calendar)
+
+    assert render_game_page(world, game, calendar, player_duchy_id=None) == baseline_html
+
+    root = ET.fromstring(baseline_html)
+    assert _find_by_attr(root, "data-hero-locator") == []
+    assert "data-hero-locator" not in baseline_html
+
+
 def test_render_game_page_omits_player_summary_when_player_duchy_id_none():
     """Default / explicit ``player_duchy_id=None``: no ``data-player-summary``."""
     world, game, calendar = _ongoing_fixture()
