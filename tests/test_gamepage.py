@@ -23,6 +23,7 @@ from tbbui.palette import owner_palette
 from tbbui.partypanel import render_party_panel
 from tbbui.playersummary import render_player_summary
 from tbbui.settlementpanel import render_settlement_panel
+from tbbui.engagementpreview import render_engagement_preview
 from tbbui.herochase import render_hero_chase
 from tbbui.herolocator import render_enemy_hero_locator
 from tbbui.nextobjective import render_next_objective
@@ -747,6 +748,43 @@ def test_render_game_page_embeds_canonical_hero_chase_after_hero_locator():
     chase_els = _find_by_attr(root, "data-hero-chase")
     assert len(chase_els) == 1
     assert chase_els[0] in list(body.iter())
+
+
+def test_render_game_page_embeds_canonical_engagement_preview_after_hero_chase():
+    """``player_duchy_id`` embeds one canonical ``render_engagement_preview`` after chase.
+
+    Exactly one ``data-engagement-preview`` in ``<body>``; string equals
+    ``render_engagement_preview(world, game, player_duchy_id)`` and sits
+    immediately after the embedded ``render_hero_chase`` output
+    (``data-hero-chase`` before ``data-engagement-preview``).
+    """
+    world, game, calendar = _ongoing_fixture()
+    expected_chase = render_hero_chase(world, game, "north")
+    expected_preview = render_engagement_preview(world, game, "north")
+
+    html = render_game_page(world, game, calendar, player_duchy_id="north")
+
+    assert expected_preview in html, (
+        "page must embed render_engagement_preview(world, game, player_duchy_id) "
+        "output"
+    )
+    assert html.count(expected_preview) == 1
+    assert html.index(expected_chase) + len(expected_chase) == html.index(
+        expected_preview
+    ), "engagement preview must sit directly after the embedded hero chase"
+
+    root = ET.fromstring(html)
+    assert _local(root.tag) == "html"
+    body = next(el for el in root if _local(el.tag) == "body")
+    preview_els = _find_by_attr(root, "data-engagement-preview")
+    assert len(preview_els) == 1
+    assert preview_els[0] in list(body.iter())
+    chase_els = _find_by_attr(root, "data-hero-chase")
+    assert len(chase_els) == 1
+    body_order = list(body.iter())
+    assert body_order.index(chase_els[0]) < body_order.index(
+        preview_els[0]
+    ), "data-hero-chase must precede data-engagement-preview in body"
 
 
 def test_render_game_page_omits_hero_chase_when_player_duchy_id_none():

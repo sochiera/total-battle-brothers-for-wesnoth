@@ -8,6 +8,7 @@ from tbb.turn import Calendar
 from tbb.world import WorldMap
 from tbbui.battlereport import render_battle_report
 from tbbui.battlesvg import render_battle_svg
+from tbbui.engagementpreview import render_engagement_preview
 from tbbui.herochase import render_hero_chase
 from tbbui.herolocator import render_enemy_hero_locator
 from tbbui.nextobjective import render_next_objective
@@ -104,11 +105,14 @@ def render_game_page(
     ``render_enemy_hero_locator(world, game, player_duchy_id)`` (K35.1b,
     exactly one ``data-hero-locator``), immediately after that the canonical
     string from ``render_hero_chase(world, game, player_duchy_id)`` (K36.1c,
-    exactly one ``data-hero-chase``), and a player-perspective result line
-    (``<p data-player-result-text>``, K31.2a); ``None`` (default) omits those
-    markers, the summary, the victory progress, the next-objective hint, the
-    hero locator, the hero chase, and the player result. Pure and
-    deterministic: no RNG/IO; inputs (including ``battle``) are not mutated.
+    exactly one ``data-hero-chase``), immediately after that the canonical
+    string from ``render_engagement_preview(world, game, player_duchy_id)``
+    (K37.1c, exactly one ``data-engagement-preview``), and a player-perspective
+    result line (``<p data-player-result-text>``, K31.2a); ``None`` (default)
+    omits those markers, the summary, the victory progress, the next-objective
+    hint, the hero locator, the hero chase, the engagement preview, and the
+    player result. Pure and deterministic: no RNG/IO; inputs (including
+    ``battle``) are not mutated.
     """
     map_svg = render_world_svg(world)
     owner_legend = render_owner_legend(world, player_duchy_id)
@@ -120,6 +124,9 @@ def render_game_page(
         next_objective = render_next_objective(game, player_duchy_id)
         hero_locator = render_enemy_hero_locator(world, game, player_duchy_id)
         hero_chase = render_hero_chase(world, game, player_duchy_id)
+        engagement_preview = render_engagement_preview(
+            world, game, player_duchy_id
+        )
         player_result_text = _player_result_text(game, player_duchy_id)
         player_result_html = (
             f'<p data-player-result-text="{player_result_text}">'
@@ -131,6 +138,7 @@ def render_game_page(
         next_objective = ""
         hero_locator = ""
         hero_chase = ""
+        engagement_preview = ""
         player_result_html = ""
     result = _result_value(game)
     result_text = _result_text(game)
@@ -191,6 +199,7 @@ def render_game_page(
         f"{next_objective}"
         f"{hero_locator}"
         f"{hero_chase}"
+        f"{engagement_preview}"
         f"{battle_svg}"
         f"{battle_report}"
         f"{settlements_header}"
