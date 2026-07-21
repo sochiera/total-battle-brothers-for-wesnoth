@@ -474,7 +474,7 @@ class GameApp:
         extras = (
             f'<span data-player="{player_value}"></span>'
             f'<p data-notice="{notice_value}">{notice_value}</p>'
-            f"{render_order_log(self.order_log)}"
+            f"{render_order_log(self.order_log, at_limit=len(self.order_log) >= ORDER_LOG_LIMIT)}"
             f"{_NEW_GAME_FORM}"
         )
         # K32.2a: when finished, omit turn and all order sections.

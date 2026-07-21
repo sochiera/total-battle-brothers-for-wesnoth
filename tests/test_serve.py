@@ -647,6 +647,65 @@ def test_game_app_order_log_overflow_drops_oldest_keeps_last_n_chronological():
     assert all_entries[0] not in app.order_log
 
 
+def test_game_app_render_order_log_at_limit_flag_from_order_log_length():
+    """GameApp._render passes at_limit when order_log hits ORDER_LOG_LIMIT (K45.4b).
+
+    Contract (task-220 / K45.4b):
+    - ``_render`` embeds
+      ``render_order_log(self.order_log, at_limit=len(self.order_log) >= ORDER_LOG_LIMIT)``
+      byte-for-byte in the page body
+    - when ``len(order_log) < ORDER_LOG_LIMIT``, the page has no
+      ``data-order-log-truncated`` node
+    - when ``len(order_log) == ORDER_LOG_LIMIT`` after a series of POSTs that
+      fill the journal, the page has exactly one ``data-order-log-truncated``
+    """
+    from tbbui import serve as serve_mod
+
+    limit = serve_mod.ORDER_LOG_LIMIT
+    world, game = _ongoing_world_game()
+    app = GameApp(
+        world, game, Calendar(year=1, month=1), Rng(1), player_duchy_id="north"
+    )
+
+    # Below limit: no truncation note; fragment matches at_limit=False path.
+    below = limit - 1
+    for _ in range(below):
+        code, _ = app.handle("POST", "/turn")
+        assert code == 200
+    assert len(app.order_log) == below
+    assert len(app.order_log) < limit
+
+    code_below, body_below = app.handle("GET", "/")
+    assert code_below == 200
+    at_limit_below = len(app.order_log) >= limit
+    assert at_limit_below is False
+    expected_below = render_order_log(app.order_log, at_limit=at_limit_below)
+    assert expected_below in body_below
+    root_below = ET.fromstring(body_below)
+    truncated_below = _find_by_attr(root_below, "data-order-log-truncated")
+    assert truncated_below == []
+    assert "data-order-log-truncated" not in body_below
+
+    # At limit: exactly one truncation note; fragment matches at_limit=True.
+    for _ in range(limit - below):
+        code, _ = app.handle("POST", "/turn")
+        assert code == 200
+    assert len(app.order_log) == limit
+
+    code_full, body_full = app.handle("GET", "/")
+    assert code_full == 200
+    at_limit_full = len(app.order_log) >= limit
+    assert at_limit_full is True
+    expected_full = render_order_log(app.order_log, at_limit=at_limit_full)
+    assert expected_full in body_full
+    # Without the flag the capped journal would not carry the truncation note.
+    assert render_order_log(app.order_log) not in body_full
+    root_full = ET.fromstring(body_full)
+    truncated_full = _find_by_attr(root_full, "data-order-log-truncated")
+    assert len(truncated_full) == 1
+    assert body_full.count("data-order-log-truncated") == 1
+
+
 def test_game_app_order_log_entries_anchored_with_calendar_date_not_raw_notice():
     """POST /order/* and POST /turn append format_log_entry, not raw notice (K44.1b).
 

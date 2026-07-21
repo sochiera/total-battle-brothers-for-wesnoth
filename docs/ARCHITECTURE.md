@@ -495,9 +495,11 @@ bieżącego `self.calendar` — po turze data już po awansie), NIE surowe `noti
 przycinana do ostatnich `ORDER_LOG_LIMIT` wpisów (placeholder `10`; najstarsze
 wypadają in-place). `POST /new` najpierw `order_log.clear()`, potem append + trim
 zakotwiczonego wpisu nowej gry. Stała: `tbbui.serve.ORDER_LOG_LIMIT`.
-`_render` (K43.1c) osadza w extras `<body>` dokładnie jeden kanoniczny wynik
-`orderlog.render_order_log(self.order_log)` (obok `data-notice`), niezależnie od
-`game.is_over` — dziennik nie jest ukrywany z sekcjami rozkazów.
+`_render` (K43.1c / K45.4b) osadza w extras `<body>` dokładnie jeden kanoniczny
+wynik `orderlog.render_order_log(self.order_log, at_limit=len(self.order_log) >= ORDER_LOG_LIMIT)`
+(obok `data-notice`), niezależnie od `game.is_over` — dziennik nie jest ukrywany
+z sekcjami rozkazów; nota `data-order-log-truncated` pojawia się iff dziennik
+osiągnął `ORDER_LOG_LIMIT`.
 `handle` rozdziela ścieżkę od query (`path.partition("?")`) na początku routingu.
 `POST /new` (K31.1a): zawsze zeruje `previous_game` i czyści `order_log`; gdy
 `seed is not None` podmienia `world`/`game` na świeże
@@ -515,8 +517,9 @@ rozkazu `<p data-notice="{escape(last_notice)}">{escape(last_notice)}</p>`
 (K28.1a / K29.1a — `GameApp.last_notice` inicjalizowane na `""`; ta sama
 escapowana wartość w atrybucie i w widocznym ciele akapitu; `html.escape`;
 K28.1b — `_apply_player_order` ustawia skutek rozkazu rozwoju), kanoniczny
-`render_order_log(self.order_log)` (K43.1c — dokładnie jeden `data-order-log`
-w extras, także gdy `is_over`) oraz formularze
+`render_order_log(self.order_log, at_limit=len(self.order_log) >= ORDER_LOG_LIMIT)`
+(K43.1c / K45.4b — dokładnie jeden `data-order-log` w extras, także gdy
+`is_over`; flaga `at_limit` steruje notą o obcięciu) oraz formularze
 `<form method="post" action="/new">` (przycisk `Nowa gra`, K31.1b — zawsze w
 extras, niezależnie od `is_over` i `player_duchy_id`). Przy `game.is_over`
 extras kończy się na `/new` — bez `/turn`, bez `/order/*` i bez
