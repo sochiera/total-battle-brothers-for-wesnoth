@@ -5,6 +5,7 @@ from xml.etree import ElementTree as ET
 from tbb.party import Party
 from tbb.unit import Unit
 from tbb.world import Region, WorldMap
+from tbb.wound import BRUISE, MAIMED
 from tbbui.partypanel import render_party_panel
 
 
@@ -136,6 +137,33 @@ def test_render_party_panel_marks_player_owned_row_when_duchy_id_given():
     row_a, row_b = root.findall("div")
     assert row_a.attrib["data-player-owned"] == ""
     assert "data-player-owned" not in row_b.attrib
+
+
+def test_render_party_panel_row_carries_wounded_count_and_text_suffix():
+    """``data-wounded`` counts units among (hero, *units) with a non-empty
+    ``wounds`` tuple, and the visible text gains a trailing `` · ranni: W``
+    suffix after the strength suffix.
+    """
+    a = Region("A")
+    world = WorldMap(
+        [a],
+        [],
+        parties={
+            a: Party(
+                hero=Unit(wounds=(BRUISE,)),
+                units=(Unit(wounds=(MAIMED,)), Unit()),
+                owner_id="north",
+            ),
+        },
+    )
+
+    xml = render_party_panel(world)
+    root = ET.fromstring(xml)
+
+    row_a = root.findall("div")[0]
+    assert row_a.attrib["data-wounded"] == "2"
+    text = "".join(row_a.itertext())
+    assert text.rstrip().endswith("· ranni: 2")
 
 
 def test_render_party_panel_empty_root_when_no_parties():

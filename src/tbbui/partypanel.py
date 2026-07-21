@@ -15,8 +15,10 @@ def render_party_panel(
     per region that has a party, in ``world.regions`` order. Each row carries
     ``data-owner`` / ``data-size`` / ``data-hp`` / ``data-attack`` /
     ``data-defense`` (sums of ``Unit.hp`` / ``Unit.damage`` / ``Unit.defense``
-    over hero and subordinates) and visible text matching those attributes,
-    including the `` · siła: HP H, atak A, obrona D`` suffix. When
+    over hero and subordinates), ``data-wounded`` (count of units among
+    ``(hero, *units)`` with a non-empty ``wounds`` tuple) and visible text
+    matching those attributes, including the
+    `` · siła: HP H, atak A, obrona D · ranni: W`` suffix. When
     ``player_duchy_id`` is not ``None``, rows whose ``owner_id`` matches get
     ``data-player-owned=""``. Pure and deterministic: no RNG/IO; ``world`` is
     not mutated.
@@ -29,12 +31,13 @@ def render_party_panel(
         owner = party.owner_id or ""
         owner_text = party.owner_id if party.owner_id is not None else "—"
         size = len(party.units)
-        total_hp, total_attack, total_defense = combat_totals(
-            (party.hero, *party.units)
-        )
+        roster = (party.hero, *party.units)
+        total_hp, total_attack, total_defense = combat_totals(roster)
+        wounded = sum(1 for unit in roster if unit.wounds)
         text = (
             f"{region.name} ({owner_text}): bohater + {size} podkomendnych"
             f" · siła: HP {total_hp}, atak {total_attack}, obrona {total_defense}"
+            f" · ranni: {wounded}"
         )
         player_owned = (
             ' data-player-owned=""'
@@ -48,6 +51,7 @@ def render_party_panel(
             f' data-hp="{total_hp}"'
             f' data-attack="{total_attack}"'
             f' data-defense="{total_defense}"'
+            f' data-wounded="{wounded}"'
             f"{player_owned}"
             f">{text}</div>"
         )

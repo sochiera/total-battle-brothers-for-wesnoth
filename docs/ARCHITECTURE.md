@@ -109,15 +109,16 @@ argumentu. Obok atrybutów widoczny tekst
 (nazwa1, …)` (nawias z nazwami tylko gdy `B>0`) zgodny z atrybutami. Czyste,
 deterministyczne, bez mutacji `world`; rdzeń bez zmian.
 
-**Panel party HTML (K22.2a / K24.1a / K25.1a / K25.1b):** `tbbui.partypanel.render_party_panel(world,
+**Panel party HTML (K22.2a / K24.1a / K25.1a / K25.1b / K27.1a):** `tbbui.partypanel.render_party_panel(world,
 player_duchy_id=None) -> str` — parsowalny fragment XML z korzeniem
 `<div data-party-panel="">`; po jednym `<div data-party-row="<region.name>">`
 na region z party w kolejności `world.regions` (region bez party → brak wiersza).
 Atrybuty: `data-owner` (`owner_id` lub `""`), `data-size` (`len(party.units)`),
-`data-hp` / `data-attack` / `data-defense` z `combat_totals((hero, *units))`;
-widoczny tekst
-`<region.name> (<owner_id lub „—">): bohater + N podkomendnych · siła: HP H, atak A, obrona D`
-zgodny z `data-size`/`data-hp`/`data-attack`/`data-defense`. Gdy
+`data-hp` / `data-attack` / `data-defense` z `combat_totals((hero, *units))`,
+`data-wounded` (liczba jednostek spośród `(hero, *units)` z niepustą krotką
+`wounds`); widoczny tekst
+`<region.name> (<owner_id lub „—">): bohater + N podkomendnych · siła: HP H, atak A, obrona D · ranni: W`
+zgodny z `data-size`/`data-hp`/`data-attack`/`data-defense`/`data-wounded`. Gdy
 `player_duchy_id` nie jest `None`, wiersze z `owner_id == player_duchy_id`
 dostają `data-player-owned=""`; `None` (domyślnie) → wynik bajt-w-bajt jak bez
 argumentu. Czyste, deterministyczne, bez mutacji `world`; rdzeń bez zmian.
