@@ -591,7 +591,7 @@ Etykiety: `POST /order/recruit` → `"Rekrutacja"`, `muster` →
 `"Zebranie oddziału"`, `develop` → `"Rozbudowa"`, marsz ze znanym celem →
 `f"Marsz do {region.name}"`, marsz bez/nieznany cel → `"Marsz"` (K28.1c).
 `POST /order/assault` (K14.2e2 / K15.2b /
-K16.1d-2 / K28.1d / R29.1) ma te same guardy przez
+K16.1d-2 / K28.1d / K46.1b / R29.1) ma te same guardy przez
 `_apply_player_assault_order` → `_resolve_player_duchy()`: jawny `target` →
 `ai.assault_duchy_party_to_recorded` z etykietą
 `f"Szturm na {region.name}"`, auto → `ai.assault_duchy_party_recorded` z
@@ -599,9 +599,10 @@ etykietą `"Szturm"` (oba z `self.rng` i
 `morale_by_owner={d.duchy_id: d.morale for d in game.duchies}`); wynik
 `(world, battle)` podmienia `world`, sync `game`, a gdy `battle is not None`
 ustawia `self.last_battle` (init `None`; no-op/guardy nie ustawiają bitwy);
-po wykonaniu `self.last_notice` = `f"{label}: bitwa"` gdy bitwa, inaczej
-`f"{label}: brak zmian"` (również przy guardach).
-`POST /order/engage` (K18.1c / K19.1b / K28.1d) — te same guardy i
+po wykonaniu `self.last_notice` = `f"{label}: {battle_outcome_text(battle)}"`
+gdy bitwa (K46.1b; wynik z perspektywy atakującego: „zwycięstwo" /
+„porażka" / „remis"), inaczej `f"{label}: brak zmian"` (również przy guardach).
+`POST /order/engage` (K18.1c / K19.1b / K28.1d / K46.1b) — te same guardy i
 `last_notice` przez `_apply_player_assault_order`; routing `?target=` jak
 szturm (`_order_target_region`): jawny znany region →
 `ai.engage_duchy_party_to_recorded` z etykietą

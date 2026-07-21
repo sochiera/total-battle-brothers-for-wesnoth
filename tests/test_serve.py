@@ -17,6 +17,7 @@ from tbb.settlement import Settlement
 from tbb.turn import Calendar
 from tbb.unit import Unit
 from tbb.world import Region, WorldMap
+from tbbui.battlereport import battle_outcome_text
 from tbbui.battlesvg import render_battle_svg
 from tbbui.orderlog import format_log_entry, render_order_log
 from tbbui.recommendedaction import recommended_order, recommended_order_text
@@ -1078,13 +1079,102 @@ def test_game_app_post_order_march_with_target_sets_last_notice_with_region_name
     assert notices2[0].get("data-notice") == "Marsz do Target: brak zmian"
 
 
+def test_game_app_post_order_assault_and_engage_last_notice_uses_battle_outcome_text():
+    """Battle orders set last_notice from battle_outcome_text, not literal „bitwa" (K46.1b).
+
+    Contract:
+    - POST /order/assault?target=KeepB that conquers the settlement sets
+      last_notice == "Szturm na KeepB: zwycięstwo" and data-notice matches.
+    - POST /order/engage?target=EnemyB that records a battle sets
+      last_notice == f"Starcie z EnemyB: {battle_outcome_text(app.last_battle)}"
+      (not the literal suffix ``bitwa``); data-notice matches last_notice.
+    No-op paths stay ``"{label}: brak zmian"`` (covered by K28.1d tests).
+    """
+    # --- assault: conquest → "zwycięstwo" ---
+    start, keep_a_region, keep_b_region = map(
+        Region, ("Start", "KeepA", "KeepB")
+    )
+    party = Party(Unit(training=5, equipment=6), owner_id="north")
+    keep_a = Settlement(
+        "Keep A", population=1, garrison=(Unit(equipment=1),), owner_id="south"
+    )
+    keep_b = Settlement(
+        "Keep B", population=1, garrison=(Unit(equipment=1),), owner_id="south"
+    )
+    world = WorldMap(
+        (start, keep_a_region, keep_b_region),
+        ((start, keep_a_region), (start, keep_b_region)),
+        settlements={keep_a_region: keep_a, keep_b_region: keep_b},
+        parties={start: party},
+    )
+    game = GameState(
+        (
+            Duchy("north", party.hero, parties=(party,), morale=10),
+            Duchy("south", Unit(), settlements=(keep_a, keep_b), morale=-5),
+        )
+    )
+    app = GameApp(world, game, Calendar(year=2, month=3), Rng(11), player_duchy_id="north")
+
+    code, body = app.handle("POST", "/order/assault?target=KeepB")
+    assert code == 200
+    assert app.last_battle is not None
+    assert app.last_notice == "Szturm na KeepB: zwycięstwo"
+    notices = _find_by_attr(ET.fromstring(body), "data-notice")
+    assert len(notices) == 1
+    assert notices[0].get("data-notice") == "Szturm na KeepB: zwycięstwo"
+    assert notices[0].get("data-notice") == app.last_notice
+
+    # --- engage: last_notice ends with battle_outcome_text(last_battle) ---
+    start_e, enemy_a, enemy_b = map(Region, ("Start", "EnemyA", "EnemyB"))
+    north_party = Party(Unit(training=5, equipment=6), owner_id="north")
+    south_party_a = Party(Unit(training=1, equipment=1), owner_id="south")
+    south_party_b = Party(Unit(training=1, equipment=1), owner_id="south")
+    engage_world = WorldMap(
+        (start_e, enemy_a, enemy_b),
+        ((start_e, enemy_a), (start_e, enemy_b)),
+        parties={start_e: north_party, enemy_a: south_party_a, enemy_b: south_party_b},
+    )
+    engage_game = GameState(
+        (
+            Duchy("north", north_party.hero, parties=(north_party,), morale=10),
+            Duchy(
+                "south",
+                south_party_a.hero,
+                parties=(south_party_a, south_party_b),
+                morale=-5,
+            ),
+        )
+    )
+    engage_app = GameApp(
+        engage_world,
+        engage_game,
+        Calendar(year=2, month=3),
+        Rng(11),
+        player_duchy_id="north",
+    )
+
+    code_e, body_e = engage_app.handle("POST", "/order/engage?target=EnemyB")
+    assert code_e == 200
+    assert engage_app.last_battle is not None
+    expected_engage = (
+        f"Starcie z EnemyB: {battle_outcome_text(engage_app.last_battle)}"
+    )
+    assert engage_app.last_notice == expected_engage
+    assert not engage_app.last_notice.endswith(": bitwa")
+    notices_e = _find_by_attr(ET.fromstring(body_e), "data-notice")
+    assert len(notices_e) == 1
+    assert notices_e[0].get("data-notice") == expected_engage
+    assert notices_e[0].get("data-notice") == engage_app.last_notice
+
+
 def test_game_app_post_order_assault_with_target_sets_last_notice_bitwa_then_brak_zmian():
-    """POST /order/assault?target=<region> sets last_notice via target-named label (K28.1d).
+    """POST /order/assault?target=<region> sets last_notice via target-named label (K28.1d / K46.1b).
 
     Contract: a known target uses label f"Szturm na {region.name}"; when the
-    recorded assault returns a battle, last_notice == "Szturm na KeepB: bitwa"
-    and the page carries matching data-notice; a subsequent assault that finds
-    no enemy (battle is None) sets last_notice == "Szturm na KeepB: brak zmian".
+    recorded assault returns a battle, last_notice ==
+    f"Szturm na KeepB: {battle_outcome_text(last_battle)}" and the page
+    carries matching data-notice; a subsequent assault that finds no enemy
+    (battle is None) sets last_notice == "Szturm na KeepB: brak zmian".
     last_battle remains set after the hit assault (primitives / return code
     unchanged: 200 + page).
     """
@@ -1119,11 +1209,12 @@ def test_game_app_post_order_assault_with_target_sets_last_notice_bitwa_then_bra
     code, body = app.handle("POST", "/order/assault?target=KeepB")
     assert code == 200
     assert app.last_battle is not None
-    assert app.last_notice == "Szturm na KeepB: bitwa"
+    expected_hit = f"Szturm na KeepB: {battle_outcome_text(app.last_battle)}"
+    assert app.last_notice == expected_hit
     root = ET.fromstring(body)
     notices = _find_by_attr(root, "data-notice")
     assert len(notices) == 1
-    assert notices[0].get("data-notice") == "Szturm na KeepB: bitwa"
+    assert notices[0].get("data-notice") == expected_hit
 
     # KeepB is now owned by the player — re-assaulting it is a no-op (no battle).
     code2, body2 = app.handle("POST", "/order/assault?target=KeepB")
@@ -1136,12 +1227,13 @@ def test_game_app_post_order_assault_with_target_sets_last_notice_bitwa_then_bra
 
 
 def test_game_app_post_order_engage_with_target_sets_last_notice_bitwa_then_brak_zmian():
-    """POST /order/engage?target=<region> sets last_notice via target-named label (K28.1d).
+    """POST /order/engage?target=<region> sets last_notice via target-named label (K28.1d / K46.1b).
 
     Contract: a known target uses label f"Starcie z {region.name}"; when the
-    recorded engage returns a battle, last_notice == "Starcie z EnemyB: bitwa"
-    and the page carries matching data-notice; a subsequent engage that finds
-    no enemy (battle is None) sets last_notice == "Starcie z EnemyB: brak zmian".
+    recorded engage returns a battle, last_notice ==
+    f"Starcie z EnemyB: {battle_outcome_text(last_battle)}" and the page
+    carries matching data-notice; a subsequent engage that finds no enemy
+    (battle is None) sets last_notice == "Starcie z EnemyB: brak zmian".
     """
     start, enemy_a, enemy_b = map(Region, ("Start", "EnemyA", "EnemyB"))
     north_party = Party(Unit(training=5, equipment=6), owner_id="north")
@@ -1171,11 +1263,12 @@ def test_game_app_post_order_engage_with_target_sets_last_notice_bitwa_then_brak
     code, body = app.handle("POST", "/order/engage?target=EnemyB")
     assert code == 200
     assert app.last_battle is not None
-    assert app.last_notice == "Starcie z EnemyB: bitwa"
+    expected_hit = f"Starcie z EnemyB: {battle_outcome_text(app.last_battle)}"
+    assert app.last_notice == expected_hit
     root = ET.fromstring(body)
     notices = _find_by_attr(root, "data-notice")
     assert len(notices) == 1
-    assert notices[0].get("data-notice") == "Starcie z EnemyB: bitwa"
+    assert notices[0].get("data-notice") == expected_hit
 
     # EnemyB now holds the player's party — re-engaging it is a no-op (no battle).
     code2, body2 = app.handle("POST", "/order/engage?target=EnemyB")
@@ -1188,11 +1281,12 @@ def test_game_app_post_order_engage_with_target_sets_last_notice_bitwa_then_brak
 
 
 def test_game_app_post_order_assault_without_target_sets_last_notice_szturm():
-    """POST /order/assault (no/unknown target) uses bare label "Szturm" (K28.1d).
+    """POST /order/assault (no/unknown target) uses bare label "Szturm" (K28.1d / K46.1b).
 
     Contract: missing or unknown ``target`` falls back to auto assault with
-    label "Szturm"; a hit battle sets last_notice == "Szturm: bitwa" (and
-    data-notice); a no-op (no adjacent enemy keep) sets "Szturm: brak zmian".
+    label "Szturm"; a hit battle sets last_notice ==
+    f"Szturm: {battle_outcome_text(last_battle)}" (and data-notice); a no-op
+    (no adjacent enemy keep) sets "Szturm: brak zmian".
     """
     start, keep_region = map(Region, ("Start", "KeepB"))
     party = Party(Unit(training=5, equipment=6), owner_id="north")
@@ -1219,11 +1313,12 @@ def test_game_app_post_order_assault_without_target_sets_last_notice_szturm():
     code, body = app.handle("POST", "/order/assault")
     assert code == 200
     assert app.last_battle is not None
-    assert app.last_notice == "Szturm: bitwa"
+    expected_hit = f"Szturm: {battle_outcome_text(app.last_battle)}"
+    assert app.last_notice == expected_hit
     root = ET.fromstring(body)
     notices = _find_by_attr(root, "data-notice")
     assert len(notices) == 1
-    assert notices[0].get("data-notice") == "Szturm: bitwa"
+    assert notices[0].get("data-notice") == expected_hit
 
     # Unknown target uses the same bare "Szturm" label (auto fallback; keep taken).
     code_u, body_u = app.handle("POST", "/order/assault?target=Nonexistent")
@@ -1251,11 +1346,12 @@ def test_game_app_post_order_assault_without_target_sets_last_notice_szturm():
 
 
 def test_game_app_post_order_engage_without_target_sets_last_notice_starcie():
-    """POST /order/engage (no/unknown target) uses bare label "Starcie" (K28.1d).
+    """POST /order/engage (no/unknown target) uses bare label "Starcie" (K28.1d / K46.1b).
 
     Contract: missing or unknown ``target`` falls back to auto engage with
-    label "Starcie"; a hit battle sets last_notice == "Starcie: bitwa"; a
-    no-op (no adjacent enemy party) sets "Starcie: brak zmian".
+    label "Starcie"; a hit battle sets last_notice ==
+    f"Starcie: {battle_outcome_text(last_battle)}"; a no-op (no adjacent
+    enemy party) sets "Starcie: brak zmian".
     """
     start, target = map(Region, ("Start", "Target"))
     north_party = Party(Unit(training=5, equipment=6), owner_id="north")
@@ -1279,11 +1375,12 @@ def test_game_app_post_order_engage_without_target_sets_last_notice_starcie():
     code, body = app.handle("POST", "/order/engage")
     assert code == 200
     assert app.last_battle is not None
-    assert app.last_notice == "Starcie: bitwa"
+    expected_hit = f"Starcie: {battle_outcome_text(app.last_battle)}"
+    assert app.last_notice == expected_hit
     root = ET.fromstring(body)
     notices = _find_by_attr(root, "data-notice")
     assert len(notices) == 1
-    assert notices[0].get("data-notice") == "Starcie: bitwa"
+    assert notices[0].get("data-notice") == expected_hit
 
     # Unknown target uses the same bare "Starcie" label (auto fallback; no enemy left).
     code_u, body_u = app.handle("POST", "/order/engage?target=Nonexistent")
