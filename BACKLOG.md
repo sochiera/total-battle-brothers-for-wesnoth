@@ -229,7 +229,22 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 - [ ] **K38.2a** `GameApp.previous_game` zapisywany po `POST /turn`, zerowany przez inne rozkazy/`/new`; przewleczony do `render_game_page`. *(task-186)*
 - [ ] **R38.1 (refaktor)** Wspólny helper `tbbui.gamelookup.player_duchy` reużyty przez 6 paneli (bez nowych testów paneli). *(task-187)*
 
+## Kamień milowy 39 — ostrzeżenie o zagrożeniu obronnym (gdzie się bronić)
+> DESIGN §6 pkt 3: `engagementpreview` (K37) mówi GDZIE atakować, ale nic nie
+> ostrzega, GDZIE gracz jest zagrożony. K39 dokłada czysty panel
+> `render_threat_alert` — własne pozycje (osady/party) mające sąsiednie wrogie
+> party, z porównaniem siły obronnej do wroga i flagą „obronisz się", osadzony
+> w `render_game_page` po podglądzie starcia. Rdzeń `tbb` bez zmian.
+- [ ] **K39.1a** Prymityw `render_threat_alert` — korzeń `data-threat-alert`/`data-threats` + tekst „Zagrożone pozycje: N" (bez wierszy). *(task-188)*
+- [ ] **K39.1b** Wiersze per zagrożona pozycja `data-threatened-region` (`data-threatened-kind`, `data-enemy-region`, `data-enemy-owner`) + tekst. *(task-189)*
+- [ ] **K39.1c** Osadzenie w `render_game_page` po `data-engagement-preview` (bez gracza → bajt-w-bajt jak dotąd). *(task-190)*
+- [ ] **K39.2a** Siła obronna własnej pozycji (`data-own-*`) i wroga (`data-enemy-*`) w wierszu + sufiks tekstu. *(task-191)*
+- [ ] **K39.2b** Flaga `data-defensible="true|false"` + sufiks „ — obronisz się"/„ — przewaga wroga". *(task-192)*
+
 ## Dług/refaktor
+- [ ] **R39.1 (refaktor, przyszłe)** Wspólny predykat „wrogie party u sąsiada"
+      (`owner_id is not None` i `!= player`) reużyty przez `engagementpreview`
+      i `threatalert`; podjąć po ustabilizowaniu drugiego konsumenta (K39).
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*
 - [x] **R21.1 (refaktor)** Wspólny emiter formularzy celu marsz/szturm/starcie w `serve.py`. *(task-113)*
 - [x] **R15.1 (refaktor)** Kompaktacja DESIGN.md do stanu obecnego; historia → DECISIONS.md. *(task-094)*
