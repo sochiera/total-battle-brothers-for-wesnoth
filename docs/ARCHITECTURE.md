@@ -335,19 +335,24 @@ bitwy z rozkazu gracza — K16.1d.
 wyjścia (domyślnie `out/game.html`); katalog nadrzędny jest tworzony, gdy nie
 istnieje. Zwraca `0`. Dwa uruchomienia z tym samym seedem dają identyczną treść.
 
-**Routing podglądu (V13.5a / K14.1b / K14.2a–e2 / K15.1b–c / K15.2b–c / K21.2 / K31.1a–b):** `tbbui.serve.GameApp(world, game,
+**Routing podglądu (V13.5a / K14.1b / K14.2a–e2 / K15.1b–c / K15.2b–c / K21.2 / K31.1a–b / K38.2a):** `tbbui.serve.GameApp(world, game,
 calendar, rng, player_duchy_id=None, seed=None)` trzyma stan partii w pamięci i udostępnia
 czystą metodę `handle(method, path) -> (kod_http, treść)` — bez gniazda HTTP.
 Opcjonalny `seed` jest przechowywany na app (restart `POST /new` w K31.1a); domyślnie `None`.
+`GameApp.previous_game: GameState | None` (K38.2a) — init `None`; `_render` woła
+`render_game_page(..., previous_game=self.previous_game)` (podsumowanie tury w stronie).
 `handle` rozdziela ścieżkę od query (`path.partition("?")`) na początku routingu.
-`POST /new` (K31.1a): gdy `seed is not None` podmienia `world`/`game` na świeże
+`POST /new` (K31.1a): zawsze zeruje `previous_game`; gdy `seed is not None` podmienia
+`world`/`game` na świeże
 `create_headless_game()`, `calendar` na `Calendar()`, `rng` na `Rng(seed)`, zeruje
 `last_battle`, ustawia `last_notice` = `"Nowa gra: rok 1, miesiąc 1"` (`player_duchy_id`
 bez zmian); gdy `seed is None` — no-op stanu (`world`/`game`/`calendar`/`rng`/
 `last_battle` bez zmian), `last_notice` = `"Nowa gra: brak zmian"`; zawsze
 `(200, strona)`.
-`GET /` → `(200, strona)` z `render_game_page(..., player_duchy_id=self.player_duchy_id)`
-(K23.2b — panel księstw z `data-player-duchy` przy wierszu gracza) plus znacznik
+`GET /` → `(200, strona)` z `render_game_page(..., player_duchy_id=self.player_duchy_id,
+previous_game=self.previous_game)`
+(K23.2b — panel księstw z `data-player-duchy` przy wierszu gracza; K38.2a — dziennik
+zmian gdy `previous_game` ustawione) plus znacznik
 `data-player` (wartość `player_duchy_id` lub `""` gdy `None`), slot komunikatu
 rozkazu `<p data-notice="{escape(last_notice)}">{escape(last_notice)}</p>`
 (K28.1a / K29.1a — `GameApp.last_notice` inicjalizowane na `""`; ta sama
@@ -392,10 +397,15 @@ obce osady) woła ten sam emiter przy niepustych celach, inaczej bare.
 `POST /turn` → jedna tura przez
 `run_headless_game(..., max_turns=1, calendar=..., player_duchy_id=...)` i
 aktualizacja wewnętrznego stanu (gdy podany `player_duchy_id`, driver pomija
-AI tego księstwa — K14.1a); gdy `game.is_over` przed żądaniem, no-op (stan bez
-zmian, wciąż `200`); w obu przypadkach ustawia `last_notice` (K28.1e): po
+AI tego księstwa — K14.1a); po wykonanej turze `previous_game` = `GameState`
+sprzed tury (K38.2a); gdy `game.is_over` przed żądaniem, no-op (stan bez
+zmian, wciąż `200`) i `previous_game = None`; w obu przypadkach zeruje
+`last_battle` i ustawia `last_notice` (K28.1e): po
 turze `f"Następna tura: rok {calendar.year}, miesiąc {calendar.month}"`,
-przy no-op `is_over` → `"Następna tura: gra zakończona"`. Rozkazy gracza `POST /order/recruit` (K14.2a),
+przy no-op `is_over` → `"Następna tura: gra zakończona"`.
+`POST /order/*` (recruit/muster/develop/march/assault/engage) zeruje
+`previous_game` (K38.2a — dziennik nie wisi po innym działaniu gracza).
+Rozkazy gracza `POST /order/recruit` (K14.2a),
 `POST /order/muster` (K14.2b), `POST /order/develop` (K14.2c),
 `POST /order/march` (K14.2d2 / K15.1b) idzie wspólnym helperem
 `_apply_player_order(transition, label)` (K28.1b / R29.1): guard księstwa

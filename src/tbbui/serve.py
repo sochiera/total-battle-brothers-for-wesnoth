@@ -139,6 +139,7 @@ class GameApp:
         self.player_duchy_id = player_duchy_id
         self.seed = seed
         self.last_battle = None
+        self.previous_game: GameState | None = None
         self.last_notice = ""
 
     def handle(self, method: str, path: str) -> tuple[int, str]:
@@ -147,6 +148,7 @@ class GameApp:
         if method == "GET" and route == "/":
             return 200, self._render()
         if method == "POST" and route == "/new":
+            self.previous_game = None
             if self.seed is not None:
                 self.world, self.game = create_headless_game()
                 self.calendar = Calendar()
@@ -159,6 +161,7 @@ class GameApp:
         if method == "POST" and route == "/turn":
             self.last_battle = None
             if not self.game.is_over:
+                game_before = self.game
                 self.world, self.game, self.calendar = run_headless_game(
                     self.world,
                     self.game,
@@ -167,27 +170,33 @@ class GameApp:
                     calendar=self.calendar,
                     player_duchy_id=self.player_duchy_id,
                 )
+                self.previous_game = game_before
                 self.last_notice = (
                     f"Następna tura: rok {self.calendar.year}, "
                     f"miesiąc {self.calendar.month}"
                 )
             else:
+                self.previous_game = None
                 self.last_notice = "Następna tura: gra zakończona"
             return 200, self._render()
         if method == "POST" and route == "/order/recruit":
             self.last_battle = None
+            self.previous_game = None
             self._apply_player_order(ai.recruit_duchy_unit, "Rekrutacja")
             return 200, self._render()
         if method == "POST" and route == "/order/muster":
             self.last_battle = None
+            self.previous_game = None
             self._apply_player_order(ai.muster_duchy_party, "Zebranie oddziału")
             return 200, self._render()
         if method == "POST" and route == "/order/develop":
             self.last_battle = None
+            self.previous_game = None
             self._apply_player_order(ai.develop_duchy_settlement, "Rozbudowa")
             return 200, self._render()
         if method == "POST" and route == "/order/march":
             self.last_battle = None
+            self.previous_game = None
             target_region = self._order_target_region(query)
             if target_region is not None:
                 self._apply_player_order(
@@ -200,6 +209,7 @@ class GameApp:
                 self._apply_player_order(ai.march_duchy_party, "Marsz")
             return 200, self._render()
         if method == "POST" and route == "/order/assault":
+            self.previous_game = None
             morale_by_owner = {d.duchy_id: d.morale for d in self.game.duchies}
             target_region = self._order_target_region(query)
             if target_region is not None:
@@ -225,6 +235,7 @@ class GameApp:
                 )
             return 200, self._render()
         if method == "POST" and route == "/order/engage":
+            self.previous_game = None
             morale_by_owner = {d.duchy_id: d.morale for d in self.game.duchies}
             target_region = self._order_target_region(query)
             if target_region is not None:
@@ -391,6 +402,7 @@ class GameApp:
             self.calendar,
             battle=self.last_battle,
             player_duchy_id=self.player_duchy_id,
+            previous_game=self.previous_game,
         )
         player_value = self.player_duchy_id if self.player_duchy_id is not None else ""
         notice_value = escape(self.last_notice, quote=True)

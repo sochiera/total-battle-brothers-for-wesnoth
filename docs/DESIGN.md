@@ -479,7 +479,8 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   `game.is_over`/`game.winner`); `None` → element nieobecny (K31.2a).
 
 **GameApp / rozkazy gracza:**
-- `GameApp(..., seed=None)` — opcjonalny seed restartu. `POST /new`: gdy
+- `GameApp(..., seed=None)` — opcjonalny seed restartu. `POST /new`: zawsze
+  zeruje `previous_game`; gdy
   `seed is not None` podmienia stan na świeżą `create_headless_game()` +
   `Rng(seed)` + `Calendar()` (zachowuje `player_duchy_id`), zeruje
   `last_battle`, `last_notice` = `"Nowa gra: rok 1, miesiąc 1"`; gdy `seed is
@@ -490,8 +491,9 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   `/order/*` i bez nagłówków `data-order-section` (K32.2a; POST no-opy bez
   zmian). CLI `python -m tbbui serve` przekazuje `seed=HEADLESS_SEED` (K31.1c).
 - `GameApp(..., player_duchy_id=None)` — w `POST /turn` woła `run_headless_game`
-  z `max_turns=1` i tym id; `GET /` ma `data-player` oraz (K23.2b) przekazuje
-  `player_duchy_id` do `render_game_page` (`data-player-duchy` na wierszu gracza).
+  z `max_turns=1` i tym id; `GET /` ma `data-player` oraz (K23.2b / K38.2a)
+  przekazuje `player_duchy_id` i `previous_game` do `render_game_page`
+  (`data-player-duchy` na wierszu gracza; dziennik zmian gdy `previous_game`).
   CLI `python -m tbbui serve` ustawia `player_duchy_id="player"`.
 - Wspólny warunek rozkazu: ustawiony gracz, gra nie `is_over`, księstwo w
   `game.duchies` → `_apply_player_order(transition, label=None)` +
@@ -527,6 +529,12 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   po szturmie / starciu). `POST /turn` oraz rozkazy nie-bitewne
   (`/order/recruit|muster|develop|march`) zerują `last_battle` (stara bitwa nie
   wisi po innym działaniu gracza); `assault`/`engage` nie zerują przed wykonaniem.
+- `GameApp.previous_game: GameState | None` — init `None`; `_render` przekazuje
+  `previous_game=self.previous_game` do `render_game_page` (dziennik zmian po
+  turze). `POST /turn` przy grze nie `is_over` ustawia `previous_game` na
+  `GameState` sprzed tury; przy no-op `is_over` oraz `POST /new` i
+  `POST /order/*` zerują `previous_game` (K38.2a — jak `last_battle`, nie wisi
+  po innym działaniu gracza niż tura).
 - `POST /turn` ustawia `last_notice`: po wykonanej turze
   `f"Następna tura: rok {calendar.year}, miesiąc {calendar.month}"` (data po
   turze); gdy gra była już `is_over` przed żądaniem —

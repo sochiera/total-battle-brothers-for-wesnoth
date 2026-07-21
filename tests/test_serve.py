@@ -19,6 +19,7 @@ from tbb.unit import Unit
 from tbb.world import Region, WorldMap
 from tbbui.battlesvg import render_battle_svg
 from tbbui.serve import GameApp
+from tbbui.turnsummary import render_turn_summary
 
 
 def _local(tag: str) -> str:
@@ -3588,4 +3589,40 @@ def test_game_app_get_keeps_new_player_and_notice_when_is_over():
     assert len(notices) == 1
     assert _local(notices[0].tag) == "p"
     assert notices[0].get("data-notice") == app.last_notice == ""
+
+
+def test_game_app_post_turn_sets_previous_game_and_embeds_turn_summary():
+    """POST /turn (not is_over) stores pre-turn GameState as previous_game (K38.2a).
+
+    Contract (task-186 / K38.2a):
+    - ``GameApp.previous_game`` is initialized to ``None``
+    - GET / while ``previous_game is None`` → page has no ``data-turn-summary``
+    - POST /turn when game is not ``is_over`` → ``self.previous_game`` is the
+      ``GameState`` object from before the turn
+    - ``_render`` passes it into ``render_game_page``, so the returned page
+      embeds exactly ``render_turn_summary(previous_game, app.game)``
+    """
+    world, game = _ongoing_world_game()
+    calendar = Calendar(year=4, month=9)
+    app = GameApp(world, game, calendar, Rng(17))
+    assert app.previous_game is None
+
+    code_get, body_get = app.handle("GET", "/")
+    assert code_get == 200
+    assert _find_by_attr(ET.fromstring(body_get), "data-turn-summary") == []
+    assert "data-turn-summary" not in body_get
+
+    game_before = app.game
+    code, body = app.handle("POST", "/turn")
+    assert code == 200
+    assert isinstance(body, str)
+    assert _calendar_stamp(body) == (4, 10)
+
+    assert app.previous_game is game_before
+    assert app.previous_game is not app.game
+    expected_summary = render_turn_summary(app.previous_game, app.game)
+    assert expected_summary in body
+    assert body.count(expected_summary) == 1
+    root = ET.fromstring(body)
+    assert len(_find_by_attr(root, "data-turn-summary")) == 1
 
