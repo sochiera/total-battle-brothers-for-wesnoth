@@ -20,6 +20,7 @@ from tbbui.orderlog import format_log_entry, render_order_log
 from tbbui.recommendedaction import (
     _escaped_paragraph,
     recommended_battle_forecast_text,
+    recommended_battle_is_risky,
     recommended_order,
     recommended_order_reason,
     recommended_order_text,
@@ -452,7 +453,10 @@ class GameApp:
 
         Empty string when ``player_duchy_id`` is missing, the game is over, or
         ``recommended_order`` returns ``None``. Otherwise a single POST form
-        with ``data-recommended-order=""``; ``action`` is
+        with ``data-recommended-order=""``; when
+        ``recommended_battle_is_risky`` is ``True``, also empty
+        ``data-recommended-risk=""`` immediately after (K52.1d); ``False`` →
+        omit that attribute (byte-stable). ``action`` is
         ``recommended_order_path(action)`` plus ``?target=quote(region)`` when
         the recommendation names a region (no target suffix for ``develop``).
         Button label is ``Wykonaj zalecenie: {recommended_order_text(...)}``
@@ -483,8 +487,16 @@ class GameApp:
         forecast_html = _escaped_paragraph(
             "recommended-order-forecast", forecast
         )
+        risk_attr = (
+            ' data-recommended-risk=""'
+            if recommended_battle_is_risky(
+                self.world, self.game, self.player_duchy_id
+            )
+            else ""
+        )
         return (
-            f'<form method="post" action="{path}" data-recommended-order="">'
+            f'<form method="post" action="{path}" data-recommended-order=""'
+            f"{risk_attr}>"
             f'<button type="submit">{label}</button>'
             f"{reason_html}"
             f"{forecast_html}"

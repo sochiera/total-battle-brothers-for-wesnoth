@@ -408,10 +408,14 @@ pętli rada→akcja dla zbiórki). GameApp w `GET /` extras (prywatny
 `_recommended_order_form`) — przy ustawionym `player_duchy_id`, grze nie
 `is_over` i `recommended_order(...) is not None` — osadza dokładnie jeden
 `<form method="post" action="{recommended_order_path(action)}[?target=quote(region)]"
-data-recommended-order="">` przed `_DEVELOP_SECTION_HEADER`; sufiks `?target=`
-tylko gdy `recommended_order` zwraca region (brak przy `develop` / `muster`);
-przycisk niesie `Wykonaj zalecenie: {recommended_order_text(action, target)}`
-(escapowany); po przycisku dokładnie jedno
+data-recommended-order="">` przed `_DEVELOP_SECTION_HEADER`; gdy
+`recommended_battle_is_risky(...)` jest `True`, formularz niesie dodatkowo
+pusty `data-recommended-risk=""` bezpośrednio po `data-recommended-order=""`
+— K52.1d; `False` → brak atrybutu (HTML bajt-w-bajt jak dotąd); sufiks
+`?target=` tylko gdy `recommended_order` zwraca region (brak przy `develop` /
+`muster`); przycisk niesie
+`Wykonaj zalecenie: {recommended_order_text(action, target)}` (escapowany); po
+przycisku dokładnie jedno
 `<p data-recommended-order-reason="{reason}">{reason}</p>` z
 `recommended_order_reason` (`html.escape(..., quote=True)` na atrybucie i
 ciele) — K50.1c; gdy `recommended_battle_forecast_text` jest niepuste, zaraz
@@ -419,7 +423,7 @@ po uzasadnieniu dokładnie jedno
 `<p data-recommended-order-forecast="{text}">{text}</p>` (ta sama wartość w
 atrybucie i ciele, `html.escape(..., quote=True)`) — K51.1e; pusta prognoza
 (`muster`/`march`/`develop`) → brak elementu forecast. Brak
-`data-recommended-order` (oraz uzasadnienia i prognozy) przy
+`data-recommended-order` (oraz ryzyka, uzasadnienia i prognozy) przy
 `player_duchy_id=None`, `is_over` lub `recommended_order(...) is None`.
 Reużywa istniejące trasy `/order/*` (bez nowego backendu rozkazów); dla
 `muster` ten sam `POST /order/muster` co rozkaz z sekcji rozwoju
