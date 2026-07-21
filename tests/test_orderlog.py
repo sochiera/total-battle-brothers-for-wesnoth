@@ -88,9 +88,10 @@ def test_render_order_log_first_child_is_visible_header_h2():
 
 
 def test_render_order_log_one_child_per_entry_in_order_with_escaped_body():
-    """One ``<div data-order-log-entry="">`` per entry in input order; body in
-    the raw fragment is ``html.escape(entry, quote=True)``. Empty sequence →
-    ``data-count="0"`` and no entry children (header still present, K44.2a).
+    """One ``<div data-order-log-entry="">`` per entry in reverse input order
+    (K45.1a newest-first); body in the raw fragment is
+    ``html.escape(entry, quote=True)``. Empty sequence → ``data-count="0"`` and
+    no entry children (header still present, K44.2a).
     """
     empty_xml = render_order_log(())
     empty_root = ET.fromstring(empty_xml)
@@ -109,8 +110,9 @@ def test_render_order_log_one_child_per_entry_in_order_with_escaped_body():
     children = [
         c for c in root if c.attrib.get("data-order-log-entry") == ""
     ]
+    expected_order = tuple(reversed(entries))
     assert len(children) == len(entries)
-    for child, entry in zip(children, entries, strict=True):
+    for child, entry in zip(children, expected_order, strict=True):
         assert child.tag == "div"
         assert child.attrib.get("data-order-log-entry") == ""
         # Raw source body is escaped; ElementTree surfaces the human-readable form.
@@ -146,8 +148,9 @@ def test_render_order_log_is_pure_deterministic_and_escapes_special_chars():
         c for c in root if c.attrib.get("data-order-log-entry") == ""
     ]
     assert len(children) == 3
-    for child, entry in zip(children, entries, strict=True):
+    for child, entry in zip(children, reversed(entries), strict=True):
         # After XML parse, text content is the original entry (entities decoded).
+        # Display order is newest-first (K45.1a).
         assert "".join(child.itertext()) == entry
 
 
@@ -216,5 +219,30 @@ def test_render_order_log_nonempty_has_no_empty_state_and_renders_entries():
         c for c in children if c.attrib.get("data-order-log-entry") == ""
     ]
     assert len(entry_children) == len(entries)
-    for child, entry in zip(entry_children, entries, strict=True):
+    for child, entry in zip(entry_children, reversed(entries), strict=True):
+        # Display order is newest-first (K45.1a).
         assert "".join(child.itertext()) == entry
+
+
+def test_render_order_log_entries_newest_first_with_escaped_bodies():
+    """K45.1a: non-empty ``entries`` → ``data-order-log-entry`` children appear
+    in reverse input order (first child = last entry = newest, last child =
+    ``entries[0]``); each body is still ``html.escape(entry, quote=True)``.
+    """
+    entries = ("oldest", 'mid <Keep> & "x"', "newest")
+    xml = render_order_log(entries)
+    root = ET.fromstring(xml)
+    entry_children = [
+        c for c in root if c.attrib.get("data-order-log-entry") == ""
+    ]
+
+    expected_order = tuple(reversed(entries))
+    assert len(entry_children) == len(entries)
+    assert "".join(entry_children[0].itertext()) == entries[-1]
+    assert "".join(entry_children[-1].itertext()) == entries[0]
+    for child, entry in zip(entry_children, expected_order, strict=True):
+        assert child.tag == "div"
+        assert child.attrib.get("data-order-log-entry") == ""
+        assert "".join(child.itertext()) == entry
+        escaped = html.escape(entry, quote=True)
+        assert f'<div data-order-log-entry="">{escaped}</div>' in xml

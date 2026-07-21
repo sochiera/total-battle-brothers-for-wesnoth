@@ -28,7 +28,8 @@ def render_order_log(entries: Sequence[str]) -> str:
     ``<p data-order-log-empty="">Brak rozkazów w tej kampanii</p>`` and no
     entry children; when non-empty that empty-state node is omitted and each
     entry becomes one ``<div data-order-log-entry="">`` with body
-    ``html.escape(entry, quote=True)`` (input order preserved). Pure and
+    ``html.escape(entry, quote=True)`` in reverse input order (newest first:
+    first entry child = ``entries[-1]``, last = ``entries[0]``). Pure and
     deterministic: no RNG/IO; does not mutate ``entries``.
     """
     count = len(entries)
@@ -41,7 +42,7 @@ def render_order_log(entries: Sequence[str]) -> str:
     else:
         entry_children = "".join(
             f'<div data-order-log-entry="">{html.escape(entry, quote=True)}</div>'
-            for entry in entries
+            for entry in reversed(entries)
         )
         body = f"{header}{entry_children}"
     return f'<div data-order-log="" data-count="{count}">{body}</div>'

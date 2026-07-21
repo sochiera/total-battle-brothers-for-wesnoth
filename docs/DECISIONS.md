@@ -244,3 +244,4 @@
 | K44.1b | Zakotwiczenie dziennika w czasie | `GameApp._append_order_log` dokłada `format_log_entry(notice, self.calendar)` (wpis z prefiksem daty); `data-notice` pokazuje surowy `last_notice`, limit `ORDER_LOG_LIMIT` bez zmian. |
 | K44.2a | Widoczny nagłówek dziennika | `render_order_log` osadza pierwszym dzieckiem korzenia `<h2 data-order-log-header>Dziennik rozkazów</h2>`; `data-count` (bez nagłówka) i dzieci `data-order-log-entry` bez zmian. |
 | K44.2b | Stan pusty dziennika | `render_order_log` dla pustej sekwencji dokłada po nagłówku `<p data-order-log-empty>Brak rozkazów w tej kampanii</p>`; niepusta sekwencja → brak tego elementu. |
+| K45.1a | Dziennik od najnowszego | `render_order_log` wypisuje dzieci `data-order-log-entry` w kolejności `reversed(entries)` (najnowszy pierwszy); `data-count`, nagłówek, stan pusty i escapowanie bez zmian. |
