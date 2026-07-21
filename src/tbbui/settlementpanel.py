@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from tbb.world import WorldMap
-from tbbui.unitstrength import combat_totals
+from tbbui.unitstrength import combat_totals, wounded_count
 
 
 def render_settlement_panel(
@@ -44,7 +44,7 @@ def render_settlement_panel(
         garrison_hp, garrison_attack, garrison_defense = combat_totals(
             settlement.garrison
         )
-        garrison_wounded = sum(1 for unit in settlement.garrison if unit.wounds)
+        garrison_wounded = wounded_count(settlement.garrison)
         buildings = len(settlement.active_buildings)
         building_names = ", ".join(b.name for b in settlement.active_buildings)
         buildings_suffix = (

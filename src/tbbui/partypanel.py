@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from tbb.world import WorldMap
-from tbbui.unitstrength import combat_totals
+from tbbui.unitstrength import combat_totals, wounded_count
 
 
 def render_party_panel(
@@ -33,7 +33,7 @@ def render_party_panel(
         size = len(party.units)
         roster = (party.hero, *party.units)
         total_hp, total_attack, total_defense = combat_totals(roster)
-        wounded = sum(1 for unit in roster if unit.wounds)
+        wounded = wounded_count(roster)
         text = (
             f"{region.name} ({owner_text}): bohater + {size} podkomendnych"
             f" · siła: HP {total_hp}, atak {total_attack}, obrona {total_defense}"

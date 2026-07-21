@@ -23,3 +23,11 @@ def combat_totals(units: Iterable[Unit]) -> tuple[int, int, int]:
         total_attack += unit.damage
         total_defense += unit.defense
     return (total_hp, total_attack, total_defense)
+
+
+def wounded_count(units: Iterable[Unit]) -> int:
+    """Return how many *units* have a non-empty ``wounds`` tuple.
+
+    Pure and deterministic: does not mutate inputs; empty sequence yields ``0``.
+    """
+    return sum(1 for unit in units if len(unit.wounds) > 0)

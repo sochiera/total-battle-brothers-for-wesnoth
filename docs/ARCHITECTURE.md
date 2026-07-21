@@ -86,10 +86,12 @@ wynik (`Zwycięstwo atakującego` / `Zwycięstwo broniącego` / `Remis` wg
 `data-fallen`/`data-stunned`/`data-active`). Czyste, deterministyczne,
 bez mutacji `battle`.
 
-**Agregacja siły bojowej (R25.1):** `tbbui.unitstrength.combat_totals(units) ->
-tuple[int, int, int]` — czysty helper `(hp, attack, defense)` = suma
+**Agregacja siły bojowej (R25.1 / R27.1):** `tbbui.unitstrength.combat_totals(units)
+-> tuple[int, int, int]` — czysty helper `(hp, attack, defense)` = suma
 `Unit.hp` / `Unit.damage` / `Unit.defense` po sekwencji jednostek (pusta →
-`(0, 0, 0)`); bez mutacji wejść. Reużywany przez panele party i osad.
+`(0, 0, 0)`); bez mutacji wejść. `tbbui.unitstrength.wounded_count(units) -> int`
+— czysty helper = liczba jednostek z niepustą krotką `wounds` (`len(wounds) > 0`;
+pusta sekwencja → `0`); bez mutacji wejść. Oba reużywane przez panele party i osad.
 
 **Panel osad HTML (K22.1a–b / K23.3a / K25.2a–b / K26.1a–b / K27.2a):** `tbbui.settlementpanel.render_settlement_panel(world, player_duchy_id=None)
 -> str` — parsowalny fragment XML z korzeniem `<div data-settlement-panel="">`;
@@ -101,8 +103,7 @@ kolejności `world.regions` (region bez osady → brak wiersza). Atrybuty wiersz
 `data-garrison-defense` (z `combat_totals(garrison)`; pusty → `0`),
 `data-buildings` (`len(active_buildings)`), `data-building-names` (nazwy
 `active_buildings` złączone `", "`, pusty → `""`) oraz
-`data-garrison-wounded` (liczba jednostek garnizonu z niepustą krotką `wounds`;
-pusty garnizon → `0`). Gdy
+`data-garrison-wounded` (z `wounded_count(garrison)`; pusty garnizon → `0`). Gdy
 `player_duchy_id` nie jest `None`, wiersze z `owner_id == player_duchy_id`
 dostają `data-player-owned=""`; `None` (domyślnie) → wynik bajt-w-bajt jak bez
 argumentu. Obok atrybutów widoczny tekst
@@ -117,8 +118,7 @@ player_duchy_id=None) -> str` — parsowalny fragment XML z korzeniem
 na region z party w kolejności `world.regions` (region bez party → brak wiersza).
 Atrybuty: `data-owner` (`owner_id` lub `""`), `data-size` (`len(party.units)`),
 `data-hp` / `data-attack` / `data-defense` z `combat_totals((hero, *units))`,
-`data-wounded` (liczba jednostek spośród `(hero, *units)` z niepustą krotką
-`wounds`); widoczny tekst
+`data-wounded` z `wounded_count((hero, *units))`; widoczny tekst
 `<region.name> (<owner_id lub „—">): bohater + N podkomendnych · siła: HP H, atak A, obrona D · ranni: W`
 zgodny z `data-size`/`data-hp`/`data-attack`/`data-defense`/`data-wounded`. Gdy
 `player_duchy_id` nie jest `None`, wiersze z `owner_id == player_duchy_id`
@@ -296,7 +296,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │       ├── hexgeom.py    # geometria heksów pointy-top (hex→pixel, narożniki)
 │       ├── battlesvg.py  # SVG pola bitwy heksowej (heksy + znaczniki jednostek)
 │       ├── battlereport.py  # HTML fragment raportu bitwy (wynik + straty)
-│       ├── unitstrength.py # czysta agregacja siły bojowej sekwencji Unit (R25.1)
+│       ├── unitstrength.py # czysta agregacja siły/rannych sekwencji Unit (R25.1/R27.1)
 │       ├── settlementpanel.py # HTML panel osad (zasoby + populacja + garnizon)
 │       ├── partypanel.py   # HTML panel party (właściciel + siła oddziału)
 │       ├── ownerlegend.py  # HTML legenda właścicieli (owner_id → kolor palety)
