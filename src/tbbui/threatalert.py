@@ -131,6 +131,24 @@ def _threatened_rows(world: WorldMap, player_duchy_id: str) -> list[str]:
     return rows
 
 
+def threatened_position_count(
+    world: WorldMap,
+    game: GameState,
+    player_duchy_id: str | None,
+) -> int:
+    """Return the number of own positions threatened by adjacent enemy parties.
+
+    Same rule as ``render_threat_alert`` rows: settlement and party counted
+    separately; neighbor with explicit hostile party. When
+    ``player_duchy(...) is None``, returns ``0``. Pure and deterministic: no
+    RNG/IO; does not mutate ``world`` or ``game``.
+    """
+    if player_duchy(game, player_duchy_id) is None:
+        return 0
+    assert player_duchy_id is not None
+    return len(_threatened_rows(world, player_duchy_id))
+
+
 def render_threat_alert(
     world: WorldMap,
     game: GameState,
@@ -153,9 +171,9 @@ def render_threat_alert(
     ``data-enemy-hp`` / ``data-enemy-attack`` / ``data-enemy-defense`` (hostile
     party), then ``data-defensible`` (``"true"`` when own HP+attack+defense ≥
     enemy sum, else ``"false"``), with matching strength text suffix and
-    final `` — obronisz się`` / `` — przewaga wroga``. ``N`` equals the number
-    of emitted rows. Pure and deterministic: no RNG/IO; does not mutate
-    ``world`` or ``game``.
+    final `` — obronisz się`` / `` — przewaga wroga``. ``N`` equals
+    ``threatened_position_count`` (number of emitted rows). Pure and
+    deterministic: no RNG/IO; does not mutate ``world`` or ``game``.
     """
     if player_duchy(game, player_duchy_id) is None:
         return '<div data-threat-alert=""></div>'
@@ -163,7 +181,7 @@ def render_threat_alert(
     # player_duchy is not None ⇒ player_duchy_id is a known str
     assert player_duchy_id is not None
     rows = _threatened_rows(world, player_duchy_id)
-    n = len(rows)
+    n = len(rows)  # == threatened_position_count for known player
     return (
         f'<div data-threat-alert="" data-threats="{n}">'
         f"Zagrożone pozycje: {n}"

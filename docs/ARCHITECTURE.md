@@ -226,9 +226,22 @@ inaczej `"false"`); tekst wiersza dostaje sufiks
 ` · siła obronna: … · siła wroga: … — obronisz się|przewaga wroga` (kolejność
 `world.regions`, w regionie osada przed party; wróg = pierwsze sąsiednie party
 z jawnym `owner_id != player_duchy_id` w kolejności `world.neighbors`; `N` =
-liczba wierszy). Osadzony w `render_game_page` zaraz po
-`data-engagement-preview` (K39.1c). Czyste, deterministyczne, bez mutacji
-`world`/`game`; rdzeń bez zmian.
+`threatened_position_count` = liczba wierszy). Osadzony w `render_game_page`
+zaraz po `data-engagement-preview` (K39.1c). Czyste, deterministyczne, bez
+mutacji `world`/`game`; rdzeń bez zmian.
+
+**Licznik zagrożonych pozycji (K40.1a):**
+`tbbui.threatalert.threatened_position_count(world, game, player_duchy_id) -> int`
+— `len(_threatened_rows(...))` przy znanym graczu, inaczej `0`; wspólne źródło
+`N` dla `render_threat_alert` i `render_situation_report`.
+
+**Skrót sytuacji HTML (K40.1a):**
+`tbbui.situationreport.render_situation_report(world, game, player_duchy_id=None) -> str`
+— parsowalny fragment z korzeniem `<div data-situation-report="">`. Gdy
+`player_duchy(...) is None` → sam pusty korzeń (bez `data-threatened-count`,
+bez tekstu, bez dzieci). Przy znanym graczu: `data-threatened-count="N"`
+(`threatened_position_count`) i tekst `Sytuacja: zagrożone pozycje N`. Czyste,
+deterministyczne, bez mutacji `world`/`game`; rdzeń bez zmian.
 
 **Lokalizacja party na mapie (R37.1):**
 `tbbui.maplookup.first_party_region(world, owner_id) -> Region | None` — pierwszy
@@ -247,7 +260,8 @@ Reużywany przez `threatalert` (`_first_hostile_neighbor`) i `engagementpreview`
 `None` gdy `player_duchy_id is None`, inaczej pierwsze księstwo w
 `game.duchies` o `duchy_id == player_duchy_id`, inaczej `None`; czysty, bez
 mutacji `game`. Reużywany przez `playersummary`, `nextobjective`,
-`victoryprogress`, `herolocator`, `herochase` i `engagementpreview`.
+`victoryprogress`, `herolocator`, `herochase`, `engagementpreview`,
+`threatalert` i `situationreport`.
 
 **Panel party HTML (K22.2a / K24.1a / K25.1a / K25.1b / K27.1a):** `tbbui.partypanel.render_party_panel(world,
 player_duchy_id=None) -> str` — parsowalny fragment XML z korzeniem
