@@ -419,3 +419,10 @@
 - [x] **K42.1b** Mapa `serve.recommended_order_path(action)`: assault→`/order/assault`, engage→`/order/engage`, defend→`/order/march`, develop→`/order/develop`. *(task-204)*
 - [x] **K42.1c** GameApp osadza jeden `<form data-recommended-order>` w `GET /` (action=path+target, przed `data-order-section="develop"`; guardy gracz/`is_over`/`None`). *(task-205)*
 - [x] **K42.2a** `recommended_order_text(action, target)` + przycisk „Wykonaj zalecenie: <opis>"; `render_recommended_action` reużywa (bajt-w-bajt jak dotąd). *(task-206)*
+
+## Kamień milowy 43 — dziennik rozkazów gracza (pamięć kampanii w podglądzie) — UKOŃCZONY
+- [x] **R43.1 (refaktor)** Kompaktacja DESIGN.md do stanu obecnego: §11 nie powiela per-funkcyjnych kontraktów `data-*` z ARCHITECTURE.md; bez utraty żadnej reguły; bez nowych testów. *(task-207)*
+- [x] **K43.1a** Czysty `orderlog.render_order_log(entries)` → `<div data-order-log data-count=N>` + dzieci `data-order-log-entry` (ciało escapowane). *(task-208)*
+- [x] **K43.1b** `GameApp.order_log` (init `[]`) — każdy POST znaną trasą dokłada `last_notice`; `POST /new` czyści i zapisuje wpis startowy. *(task-209)*
+- [x] **K43.1c** `GameApp._render` osadza jeden `render_order_log(self.order_log)` w `GET /`, także przy `is_over`. *(task-210)*
+- [x] **K43.2a** `serve.ORDER_LOG_LIMIT` (placeholder `10`) — dziennik przycięty do ostatnich N wpisów (najstarsze wypadają). *(task-211)*

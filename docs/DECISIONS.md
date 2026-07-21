@@ -240,3 +240,7 @@
 | K43.1b | Akumulator dziennika w GameApp | `GameApp.order_log: list[str]` init `[]`; każdy znany POST dokłada `last_notice` raz; `POST /new` czyści listę i zapisuje wpis startowy; GET/404 bez mutacji. |
 | K43.1c | Osadzenie dziennika w GET / | `GameApp._render` wstawia w extras body dokładnie jeden `render_order_log(self.order_log)` (obok `data-notice`), niezależnie od `game.is_over`. |
 | K43.2a | Limit długości dziennika rozkazów | `serve.ORDER_LOG_LIMIT` (placeholder `10`); po każdym append `order_log` przycinany in-place do ostatnich N wpisów (najstarsze wypadają). |
+| K44.1a | Format wpisu dziennika z datą | `tbbui.orderlog.format_log_entry(notice, calendar)` = `f"Rok {year}, miesiąc {month} — {notice}"`; czysty, bez escapowania (escaping w renderze), bez mutacji. |
+| K44.1b | Zakotwiczenie dziennika w czasie | `GameApp._append_order_log` dokłada `format_log_entry(notice, self.calendar)` (wpis z prefiksem daty); `data-notice` pokazuje surowy `last_notice`, limit `ORDER_LOG_LIMIT` bez zmian. |
+| K44.2a | Widoczny nagłówek dziennika | `render_order_log` osadza pierwszym dzieckiem korzenia `<h2 data-order-log-header>Dziennik rozkazów</h2>`; `data-count` (bez nagłówka) i dzieci `data-order-log-entry` bez zmian. |
+| K44.2b | Stan pusty dziennika | `render_order_log` dla pustej sekwencji dokłada po nagłówku `<p data-order-log-empty>Brak rozkazów w tej kampanii</p>`; niepusta sekwencja → brak tego elementu. |

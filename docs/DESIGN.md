@@ -343,7 +343,10 @@ właścicieli. Przy wskazanym księstwie gracza: podsumowanie sił, postęp do
 zwycięstwa, podpowiedź celu, lokalizacja i dystans do wrogich bohaterów,
 porównanie sił z sąsiednimi celami, alert zagrożeń własnych pozycji, skrót
 sytuacji (postawa ofensywna/defensywna/zrównoważona) i jeden zalecany rozkaz.
-Teksty na stronie są czytelne dla człowieka (nie tylko atrybuty maszynowe).
+Strona niesie też **dziennik kampanii** — przewijalną, ograniczoną listę ostatnich
+rozkazów i skutków tur; każdy wpis jest zakotwiczony datą (rok/miesiąc), sekcja
+ma nagłówek i czytelny stan pusty. Teksty na stronie są czytelne dla człowieka
+(nie tylko atrybuty maszynowe).
 
 **Sterowanie single-player.** `GameApp` trzyma stan partii; gracz steruje jednym
 księstwem (`player_duchy_id`), AI resztą. CLI `python -m tbbui serve` startuje
