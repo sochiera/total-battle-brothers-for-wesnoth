@@ -638,3 +638,79 @@ def test_render_game_page_omits_player_summary_when_player_duchy_id_none():
     root = ET.fromstring(baseline_html)
     assert _find_by_attr(root, "data-player-summary") == []
     assert "data-player-summary" not in baseline_html
+
+
+def test_render_game_page_player_result_text_from_player_perspective():
+    """With ``player_duchy_id``, one ``data-player-result-text`` mirrors player outcome.
+
+    Covers ongoing / own win / other duchy win / draw; attribute equals body text.
+    """
+    world, game, calendar = _ongoing_fixture()
+    assert not game.is_over
+
+    html = render_game_page(world, game, calendar, player_duchy_id="north")
+    root = ET.fromstring(html)
+    player_results = _find_by_attr(root, "data-player-result-text")
+    assert len(player_results) == 1
+    el = player_results[0]
+    assert _local(el.tag) == "p"
+    assert el.get("data-player-result-text") == "Gra w toku"
+    assert (el.text or "").strip() == "Gra w toku"
+
+    # Player's duchy is the sole winner.
+    won_by_player = GameState(
+        (
+            Duchy(
+                "north",
+                Unit(),
+                morale=7,
+                settlements=(Settlement("North Keep", 3, owner_id="north"),),
+            ),
+            Duchy("south", None, morale=0, settlements=()),
+        )
+    )
+    assert won_by_player.is_over and won_by_player.winner is not None
+    assert won_by_player.winner.duchy_id == "north"
+    win_html = render_game_page(
+        world, won_by_player, calendar, player_duchy_id="north"
+    )
+    win_els = _find_by_attr(ET.fromstring(win_html), "data-player-result-text")
+    assert len(win_els) == 1
+    assert win_els[0].get("data-player-result-text") == "Zwycięstwo Twojego księstwa"
+    assert (win_els[0].text or "").strip() == "Zwycięstwo Twojego księstwa"
+
+    # Another duchy won — player lost.
+    won_by_other = GameState(
+        (
+            Duchy("north", None, morale=0, settlements=()),
+            Duchy(
+                "south",
+                Unit(),
+                morale=3,
+                settlements=(Settlement("South Keep", 4, owner_id="south"),),
+            ),
+        )
+    )
+    assert won_by_other.is_over and won_by_other.winner is not None
+    assert won_by_other.winner.duchy_id == "south"
+    loss_html = render_game_page(
+        world, won_by_other, calendar, player_duchy_id="north"
+    )
+    loss_els = _find_by_attr(ET.fromstring(loss_html), "data-player-result-text")
+    assert len(loss_els) == 1
+    assert loss_els[0].get("data-player-result-text") == "Porażka Twojego księstwa"
+    assert (loss_els[0].text or "").strip() == "Porażka Twojego księstwa"
+
+    # Over without a winner — draw.
+    draw = GameState(
+        (
+            Duchy("north", None, morale=0, settlements=()),
+            Duchy("south", None, morale=0, settlements=()),
+        )
+    )
+    assert draw.is_over and draw.winner is None
+    draw_html = render_game_page(world, draw, calendar, player_duchy_id="north")
+    draw_els = _find_by_attr(ET.fromstring(draw_html), "data-player-result-text")
+    assert len(draw_els) == 1
+    assert draw_els[0].get("data-player-result-text") == "Remis"
+    assert (draw_els[0].text or "").strip() == "Remis"

@@ -33,6 +33,17 @@ def _result_text(game: GameState) -> str:
     return "Remis"
 
 
+def _player_result_text(game: GameState, player_duchy_id: str) -> str:
+    """Result line from the player's perspective (win / loss / draw / ongoing)."""
+    if not game.is_over:
+        return "Gra w toku"
+    if game.winner is None:
+        return "Remis"
+    if game.winner.duchy_id == player_duchy_id:
+        return "Zwycięstwo Twojego księstwa"
+    return "Porażka Twojego księstwa"
+
+
 def render_game_page(
     world: WorldMap,
     game: GameState,
@@ -68,9 +79,10 @@ def render_game_page(
     matching legend / ``data-settlement-row`` / ``data-party-row`` entries
     get player markers; when not ``None``, also embeds the canonical string
     from ``render_player_summary(game, player_duchy_id)`` in ``<body>``
-    (exactly one ``data-player-summary``); ``None`` (default) omits those
-    markers and the summary. Pure and deterministic: no RNG/IO; inputs
-    (including ``battle``) are not mutated.
+    (exactly one ``data-player-summary``) and a player-perspective result
+    line (``<p data-player-result-text>``, K31.2a); ``None`` (default)
+    omits those markers, the summary, and the player result. Pure and
+    deterministic: no RNG/IO; inputs (including ``battle``) are not mutated.
     """
     map_svg = render_world_svg(world)
     owner_legend = render_owner_legend(world, player_duchy_id)
@@ -78,8 +90,14 @@ def render_game_page(
     party_panel = render_party_panel(world, player_duchy_id)
     if player_duchy_id is not None:
         player_summary = render_player_summary(game, player_duchy_id)
+        player_result_text = _player_result_text(game, player_duchy_id)
+        player_result_html = (
+            f'<p data-player-result-text="{player_result_text}">'
+            f"{player_result_text}</p>"
+        )
     else:
         player_summary = ""
+        player_result_html = ""
     result = _result_value(game)
     result_text = _result_text(game)
 
@@ -139,5 +157,6 @@ def render_game_page(
         f"{''.join(duchy_parts)}"
         f'<div data-result="{result}"></div>'
         f'<p data-result-text="{result_text}">{result_text}</p>'
+        f"{player_result_html}"
         "</body></html>"
     )
