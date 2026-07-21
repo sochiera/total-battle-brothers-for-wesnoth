@@ -350,7 +350,11 @@ zalecenie brzmi „maszeruj ku osadzie" zamiast „rozwijaj księstwo"). Zalecen
 niesie też krótkie **uzasadnienie** („dlaczego") czytelne dla człowieka —
 zależne od wybranej akcji (przewaga nad celem, zagrożenie pozycji, brak celów
 w zasięgu itp.) — pokazane zarówno w panelu rady, jak i przy przycisku
-wykonania rady w jeden klik.
+wykonania rady w jeden klik. Dla rozkazu bojowego (szturm/starcie/obrona)
+zalecenie niesie dodatkowo krótką **prognozę siły** („ile") — porównanie siły
+własnej z siłą celu wraz z werdyktem przewaga/ryzyko — również w panelu rady
+i przy przycisku wykonania w jeden klik; dla rady bez bitwy (zbiórka, marsz,
+rozwój) prognozy nie ma.
 Strona niesie też **dziennik kampanii** — przewijalną, ograniczoną listę ostatnich
 rozkazów i skutków tur, czytaną od najnowszego wpisu; każdy wpis jest zakotwiczony
 datą (rok/miesiąc), sekcja ma nagłówek i czytelny stan pusty. Teksty na stronie
