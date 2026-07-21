@@ -1281,6 +1281,82 @@ def test_game_app_get_embeds_exactly_one_new_game_form_with_button():
     assert _form_submit_button_text(body, "/new") == "Nowa gra"
 
 
+def test_game_app_get_new_game_form_between_notice_and_turn():
+    """GET / extras order: data-notice → POST /new → POST /turn (K31.1b).
+
+    Contract (task-158 / K31.1b):
+    - ``<p data-notice>`` appears before the ``/new`` form
+    - the ``/new`` form appears before the ``/turn`` form
+      (document order: data-notice → /new → /turn)
+    """
+    world, game = _ongoing_world_game()
+    app = GameApp(
+        world, game, Calendar(year=1, month=1), Rng(17), player_duchy_id="north"
+    )
+
+    code, body = app.handle("GET", "/")
+    assert code == 200
+
+    notice_marker = 'data-notice="'
+    new_form_open = '<form method="post" action="/new">'
+    turn_form_open = '<form method="post" action="/turn">'
+
+    assert body.count(new_form_open) == 1
+    assert body.count(turn_form_open) == 1
+    notice_pos = body.index(notice_marker)
+    new_pos = body.index(new_form_open)
+    turn_pos = body.index(turn_form_open)
+    assert notice_pos < new_pos < turn_pos
+
+
+def test_game_app_get_new_game_form_present_when_over_and_without_player():
+    """GET / embeds POST /new form when is_over and when player_duchy_id is None (K31.1b).
+
+    Contract (task-158 / K31.1b):
+    - finished game (``game.is_over``) still has exactly one POST /new form
+      with submit button ``Nowa gra``
+    - observer app (``player_duchy_id=None``) still has that form
+    """
+    finished_world, finished_game = _finished_world_game()
+    assert finished_game.is_over
+    finished_app = GameApp(
+        finished_world,
+        finished_game,
+        Calendar(year=1, month=1),
+        Rng(17),
+        player_duchy_id="north",
+    )
+    code_f, body_f = finished_app.handle("GET", "/")
+    assert code_f == 200
+    root_f = ET.fromstring(body_f)
+    new_forms_f = [
+        el
+        for el in root_f.iter()
+        if _local(el.tag) == "form"
+        and (el.get("method") or "").lower() == "post"
+        and (el.get("action") or "") == "/new"
+    ]
+    assert len(new_forms_f) == 1
+    assert _form_submit_button_text(body_f, "/new") == "Nowa gra"
+
+    world, game = _ongoing_world_game()
+    none_app = GameApp(
+        world, game, Calendar(year=1, month=1), Rng(17), player_duchy_id=None
+    )
+    code_n, body_n = none_app.handle("GET", "/")
+    assert code_n == 200
+    root_n = ET.fromstring(body_n)
+    new_forms_n = [
+        el
+        for el in root_n.iter()
+        if _local(el.tag) == "form"
+        and (el.get("method") or "").lower() == "post"
+        and (el.get("action") or "") == "/new"
+    ]
+    assert len(new_forms_n) == 1
+    assert _form_submit_button_text(body_n, "/new") == "Nowa gra"
+
+
 def test_tbbui_serve_builds_game_app_with_player_duchy_id(monkeypatch):
     """python -m tbbui serve creates GameApp with player_duchy_id='player'.
 
