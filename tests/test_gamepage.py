@@ -916,6 +916,21 @@ def test_render_game_page_embeds_canonical_situation_report_after_threat_alert()
     ), "panel order must be engagement-preview → threat-alert → situation-report"
 
 
+def test_render_game_page_omits_situation_report_when_player_duchy_id_none():
+    """Default / explicit ``player_duchy_id=None``: no ``data-situation-report``.
+
+    Default and explicit None are byte-for-byte identical (no situation report).
+    """
+    world, game, calendar = _ongoing_fixture()
+    baseline_html = render_game_page(world, game, calendar)
+
+    assert render_game_page(world, game, calendar, player_duchy_id=None) == baseline_html
+
+    root = ET.fromstring(baseline_html)
+    assert _find_by_attr(root, "data-situation-report") == []
+    assert "data-situation-report" not in baseline_html
+
+
 def test_render_game_page_omits_hero_chase_when_player_duchy_id_none():
     """Default / explicit ``player_duchy_id=None``: no ``data-hero-chase``.
 
