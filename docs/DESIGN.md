@@ -400,8 +400,8 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   `"Rekrutacja"` / `"Zebranie oddziału"` / `"Rozbudowa"`.
 - `POST /order/march` / `?target=<region>` — parse `target` przez
   `_order_target_region` (`parse_qs`, dopasowanie `Region.name`); znany target →
-  `march_duchy_party_to`; brak/nieznany → `march_duchy_party`; bez etykiety
-  notice (K28.1c).
+  `march_duchy_party_to` z etykietą `f"Marsz do {region.name}"`; brak/nieznany
+  → `march_duchy_party` z etykietą `"Marsz"` (K28.1c).
 - `POST /order/assault` / `?target=` — `assault_duchy_party_to_recorded` /
   `assault_duchy_party_recorded` z `morale_by_owner` z `game.duchies` i
   `self.rng`; wynikowa `HexBattle` trafia do `last_battle` (no-op / guardy

@@ -158,16 +158,15 @@ class GameApp:
         if method == "POST" and route == "/order/march":
             self.last_battle = None
             target_region = self._order_target_region(query)
-            # March notices are K28.1c — apply transition without touching
-            # last_notice (no empty-label placeholder).
             if target_region is not None:
                 self._apply_player_order(
                     lambda world, duchy: ai.march_duchy_party_to(
                         world, duchy, target_region
                     ),
+                    f"Marsz do {target_region.name}",
                 )
             else:
-                self._apply_player_order(ai.march_duchy_party)
+                self._apply_player_order(ai.march_duchy_party, "Marsz")
             return 200, self._render()
         if method == "POST" and route == "/order/assault":
             morale_by_owner = {d.duchy_id: d.morale for d in self.game.duchies}
@@ -240,7 +239,7 @@ class GameApp:
         and re-syncs ``game`` from the new map. When ``label`` is set, updates
         ``last_notice`` to ``"{label}: wykonano"`` if ``world`` changed, else
         ``"{label}: brak zmian"`` (including guard rejections). When ``label``
-        is ``None`` (e.g. march until K28.1c), leaves ``last_notice`` unchanged.
+        is ``None``, leaves ``last_notice`` unchanged.
         """
         if self.game.is_over or self.player_duchy_id is None:
             if label is not None:

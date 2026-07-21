@@ -239,8 +239,8 @@ no-op; zawsze `(200, strona)`. Gdy podano `label`, po próbie ustawia
 `self.last_notice` na `f"{label}: wykonano"` gdy nowy `world !=` poprzedni,
 inaczej `f"{label}: brak zmian"` (również przy odrzuceniu przez guardy).
 Etykiety: `POST /order/recruit` → `"Rekrutacja"`, `muster` →
-`"Zebranie oddziału"`, `develop` → `"Rozbudowa"`; trasa marszu woła helper
-bez `label` i nie rusza `last_notice` (komunikat marszu: K28.1c).
+`"Zebranie oddziału"`, `develop` → `"Rozbudowa"`, marsz ze znanym celem →
+`f"Marsz do {region.name}"`, marsz bez/nieznany cel → `"Marsz"` (K28.1c).
 `POST /order/assault` (K14.2e2 / K15.2b /
 K16.1d-2) ma te same guardy przez `_apply_player_assault_order`: jawny
 `target` → `ai.assault_duchy_party_to_recorded`, auto →
