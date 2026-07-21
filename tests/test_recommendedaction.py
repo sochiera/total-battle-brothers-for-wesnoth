@@ -20,6 +20,7 @@ from tbbui import recommendedaction
 from tbbui.recommendedaction import recommended_order, render_recommended_action
 from tbbui.situationreport import net_posture
 from tbbui.threatalert import first_threatened_region, threatened_position_count
+from tbbui.unitstrength import combat_totals
 
 
 def test_player_march_target_none_without_duchy_or_party_name_when_distance_ge_two():
@@ -1519,3 +1520,164 @@ def test_recommended_battle_forecast_none_when_order_none_or_non_offensive():
         None,
     )
     _assert_none(develop_world, "player")
+
+
+def test_recommended_battle_forecast_assault_returns_own_and_enemy_totals():
+    """``recommended_battle_forecast`` for ``assault`` with target ``R``
+    (enemy settlement in region named ``R``) returns
+    ``(own_total, enemy_total)`` where
+    ``own_total = sum(combat_totals((party.hero, *party.units)))`` for the
+    player party at ``first_party_region(world, player_duchy_id)`` and
+    ``enemy_total = sum(combat_totals(settlement.garrison))`` for the
+    settlement in region ``R`` (``sum`` over the ``(hp, attack, defense)``
+    triple) — K51.1a.
+
+    Contract: pure and deterministic (no RNG/IO; does not mutate ``world`` or
+    ``game``); reuses ``recommended_order``, ``first_party_region``, and
+    ``combat_totals``.
+    """
+    recommended_battle_forecast = recommendedaction.recommended_battle_forecast
+    home = Region("Home")
+    enemy_camp = Region("EnemyCamp")
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+
+    hero = Unit(training=3, equipment=2)
+    companion = Unit(training=1)
+    garrison = (Unit(training=1), Unit(equipment=1))
+    own_total = sum(combat_totals((hero, companion)))
+    enemy_total = sum(combat_totals(garrison))
+    assert own_total != enemy_total  # distinct so formula is not accidental
+
+    assault_world = WorldMap(
+        [home, enemy_camp],
+        [(home, enemy_camp)],
+        parties={
+            home: Party(hero=hero, units=(companion,), owner_id="player"),
+        },
+        settlements={
+            enemy_camp: Settlement(
+                "EnemyS",
+                population=2,
+                owner_id="enemy",
+                garrison=garrison,
+            ),
+        },
+    )
+    m = advantageous_target_count(assault_world, game, "player")
+    n = threatened_position_count(assault_world, game, "player")
+    assert net_posture(m, n) == "offensive"
+    order = recommended_order(assault_world, game, "player")
+    assert order == ("assault", enemy_camp.name)
+    origin = first_party_region(assault_world, "player")
+    assert origin is home
+
+    regions_before = assault_world.regions
+    parties_before = {
+        r: assault_world.party_at(r) for r in assault_world.regions
+    }
+    settlements_before = {
+        r: assault_world.settlement_at(r) for r in assault_world.regions
+    }
+    duchies_before = game.duchies
+
+    assert recommended_battle_forecast(assault_world, game, "player") == (
+        own_total,
+        enemy_total,
+    )
+
+    assert assault_world.regions == regions_before
+    assert {
+        r: assault_world.party_at(r) for r in assault_world.regions
+    } == parties_before
+    assert {
+        r: assault_world.settlement_at(r) for r in assault_world.regions
+    } == settlements_before
+    assert game.duchies == duchies_before
+
+
+def test_recommended_battle_forecast_engage_returns_own_and_enemy_totals():
+    """``recommended_battle_forecast`` for ``engage`` with target ``R``
+    (hostile party in region named ``R``) returns
+    ``(own_total, enemy_total)`` where ``own_total`` is as for assault and
+    ``enemy_total = sum(combat_totals((enemy.hero, *enemy.units)))`` for the
+    hostile party in region ``R`` — K51.1a.
+
+    Contract: pure and deterministic (no RNG/IO; does not mutate ``world`` or
+    ``game``); reuses ``recommended_order``, ``first_party_region``, and
+    ``combat_totals``.
+    """
+    recommended_battle_forecast = recommendedaction.recommended_battle_forecast
+    home = Region("Home")
+    weak_a = Region("WeakA")
+    weak_b = Region("WeakB")
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+
+    hero = Unit(training=4, equipment=1)
+    companion = Unit(training=2)
+    enemy_hero = Unit(training=1)
+    enemy_units = (Unit(equipment=1),)
+    own_total = sum(combat_totals((hero, companion)))
+    enemy_total = sum(combat_totals((enemy_hero, *enemy_units)))
+    assert own_total != enemy_total
+
+    # Two weak hostile parties → M=2 > N=1 → offensive engage
+    engage_world = WorldMap(
+        [home, weak_a, weak_b],
+        [(home, weak_a), (home, weak_b)],
+        parties={
+            home: Party(hero=hero, units=(companion,), owner_id="player"),
+            weak_a: Party(
+                hero=enemy_hero, units=enemy_units, owner_id="enemy"
+            ),
+            weak_b: Party(hero=Unit(), units=(), owner_id="enemy"),
+        },
+        settlements={},
+    )
+    m = advantageous_target_count(engage_world, game, "player")
+    n = threatened_position_count(engage_world, game, "player")
+    assert net_posture(m, n) == "offensive"
+    order = recommended_order(engage_world, game, "player")
+    assert order is not None
+    assert order[0] == "engage"
+    target_name = order[1]
+    assert target_name in {weak_a.name, weak_b.name}
+    origin = first_party_region(engage_world, "player")
+    assert origin is home
+
+    target_region = next(r for r in engage_world.regions if r.name == target_name)
+    enemy = engage_world.party_at(target_region)
+    assert enemy is not None
+    expected_enemy_total = sum(combat_totals((enemy.hero, *enemy.units)))
+
+    regions_before = engage_world.regions
+    parties_before = {
+        r: engage_world.party_at(r) for r in engage_world.regions
+    }
+    settlements_before = {
+        r: engage_world.settlement_at(r) for r in engage_world.regions
+    }
+    duchies_before = game.duchies
+
+    assert recommended_battle_forecast(engage_world, game, "player") == (
+        own_total,
+        expected_enemy_total,
+    )
+
+    assert engage_world.regions == regions_before
+    assert {
+        r: engage_world.party_at(r) for r in engage_world.regions
+    } == parties_before
+    assert {
+        r: engage_world.settlement_at(r) for r in engage_world.regions
+    } == settlements_before
+    assert game.duchies == duchies_before
