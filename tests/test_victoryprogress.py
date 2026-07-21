@@ -90,9 +90,10 @@ def test_render_victory_progress_one_row_per_enemy_in_duchies_order():
     ``<div data-enemy-duchy="<id>">`` per other duchy (including defeated), in
     ``game.duchies`` order — never a row for the player's own duchy. Each row
     carries ``data-settlements`` (len of settlements), ``data-hero``
-    (``"true"|"false"`` from ``has_hero``), and visible text
-    ``<id>: osady N, bohater tak|nie``. ``data-enemies-remaining`` still counts
-    only undefeated enemies (K33.1a).
+    (``"true"|"false"`` from ``has_hero``), ``data-defeated`` from
+    ``is_defeated``, and visible text ``<id>: osady N, bohater tak|nie``
+    (plus `` — pokonany`` when defeated — K33.2a). ``data-enemies-remaining``
+    still counts only undefeated enemies (K33.1a).
     """
     # player: north; enemies in order: south (hero, 0 settlements),
     # east (no hero, 1 settlement), west (defeated: no hero, no settlements)
@@ -129,12 +130,73 @@ def test_render_victory_progress_one_row_per_enemy_in_duchies_order():
     assert "north" not in {el.get("data-enemy-duchy") for el in rows}
 
     expected = (
-        ("south", "0", "true", "south: osady 0, bohater tak"),
-        ("east", "1", "false", "east: osady 1, bohater nie"),
-        ("west", "0", "false", "west: osady 0, bohater nie"),
+        ("south", "0", "true", "false", "south: osady 0, bohater tak"),
+        ("east", "1", "false", "false", "east: osady 1, bohater nie"),
+        ("west", "0", "false", "true", "west: osady 0, bohater nie — pokonany"),
     )
-    for el, (duchy_id, settlements, hero, text) in zip(rows, expected, strict=True):
+    for el, (duchy_id, settlements, hero, defeated, text) in zip(
+        rows, expected, strict=True
+    ):
         assert el.get("data-enemy-duchy") == duchy_id
         assert el.attrib["data-settlements"] == settlements
         assert el.attrib["data-hero"] == hero
+        assert el.attrib["data-defeated"] == defeated
         assert "".join(el.itertext()) == text
+
+
+def test_render_victory_progress_enemy_row_data_defeated_and_pokonany_suffix():
+    """K33.2a: each enemy row carries ``data-defeated="true|false"`` matching
+    ``Duchy.is_defeated``; defeated enemies append visible suffix `` — pokonany``
+    after ``bohater tak|nie``; living enemies have no such suffix. Other row
+    attrs/text (``data-settlements``, ``data-hero``, base prefix) and
+    ``data-enemies-remaining`` / row order stay as in K33.1a/b.
+    """
+    # player: north; enemies: south (alive: hero), east (alive: settlement),
+    # west (defeated: no hero, no settlements)
+    game = GameState(
+        (
+            Duchy(
+                "north",
+                Unit(),
+                settlements=(
+                    Settlement("North Keep", population=1, owner_id="north"),
+                ),
+            ),
+            Duchy("south", Unit()),
+            Duchy(
+                "east",
+                None,
+                settlements=(
+                    Settlement("East Keep", population=1, owner_id="east"),
+                ),
+            ),
+            Duchy("west", None),
+        )
+    )
+    by_id = {d.duchy_id: d for d in game.duchies}
+
+    xml = render_victory_progress(game, player_duchy_id="north")
+    root = ET.fromstring(xml)
+
+    assert root.attrib["data-enemies-remaining"] == "2"
+    rows = [el for el in root if el.get("data-enemy-duchy") is not None]
+    assert [el.get("data-enemy-duchy") for el in rows] == ["south", "east", "west"]
+
+    expected = (
+        ("south", "0", "true", "false", "south: osady 0, bohater tak"),
+        ("east", "1", "false", "false", "east: osady 1, bohater nie"),
+        ("west", "0", "false", "true", "west: osady 0, bohater nie — pokonany"),
+    )
+    for el, (duchy_id, settlements, hero, defeated, text) in zip(
+        rows, expected, strict=True
+    ):
+        duchy = by_id[duchy_id]
+        assert duchy.is_defeated is (defeated == "true")
+        assert el.attrib["data-defeated"] == defeated
+        assert el.attrib["data-settlements"] == settlements
+        assert el.attrib["data-hero"] == hero
+        assert "".join(el.itertext()) == text
+        if defeated == "true":
+            assert text.endswith(" — pokonany")
+        else:
+            assert "pokonany" not in text

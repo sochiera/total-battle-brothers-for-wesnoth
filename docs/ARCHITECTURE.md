@@ -112,7 +112,7 @@ argumentu. Obok atrybutów widoczny tekst
 (nazwa1, …) · ranni: W` (nawias z nazwami tylko gdy `B>0`) zgodny z atrybutami.
 Czyste, deterministyczne, bez mutacji `world`; rdzeń bez zmian.
 
-**Panel postępu do celu HTML (K33.1a / K33.1b):**
+**Panel postępu do celu HTML (K33.1a / K33.1b / K33.2a):**
 `tbbui.victoryprogress.render_victory_progress(game, player_duchy_id=None) ->
 str` — parsowalny fragment XML z korzeniem `<div data-victory-progress="">`.
 Gdy `player_duchy_id` wskazuje księstwo w `game.duchies`, korzeń niesie
@@ -120,11 +120,13 @@ Gdy `player_duchy_id` wskazuje księstwo w `game.duchies`, korzeń niesie
 player_duchy_id` i `not is_defeated`) oraz widoczny tekst
 `Wrogów do pokonania: N` zgodny z atrybutem; na każde wrogie księstwo
 (`duchy_id != player`, kolejność `game.duchies`, w tym pokonane) dokłada
-dziecko `<div data-enemy-duchy="<id>" data-settlements="…" data-hero="true|false">`
-z tekstem `<id>: osady N, bohater tak|nie` (`N` = `len(settlements)`,
-`data-hero` z `Duchy.has_hero`). Gdy `player_duchy_id` jest `None` albo spoza
-`game.duchies` — sam pusty korzeń (bez `data-enemies-remaining`, bez wierszy i
-bez tekstu). Czyste, deterministyczne, bez mutacji `game`; rdzeń bez zmian.
+dziecko `<div data-enemy-duchy="<id>" data-settlements="…" data-hero="true|false"
+data-defeated="true|false">` z tekstem `<id>: osady N, bohater tak|nie`
+(`N` = `len(settlements)`, `data-hero` z `Duchy.has_hero`, `data-defeated` z
+`Duchy.is_defeated`; sufiks ` — pokonany` gdy pokonany). Gdy `player_duchy_id`
+jest `None` albo spoza `game.duchies` — sam pusty korzeń (bez
+`data-enemies-remaining`, bez wierszy i bez tekstu). Czyste, deterministyczne,
+bez mutacji `game`; rdzeń bez zmian.
 
 **Panel party HTML (K22.2a / K24.1a / K25.1a / K25.1b / K27.1a):** `tbbui.partypanel.render_party_panel(world,
 player_duchy_id=None) -> str` — parsowalny fragment XML z korzeniem

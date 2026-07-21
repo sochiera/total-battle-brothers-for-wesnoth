@@ -14,10 +14,10 @@ def render_victory_progress(
     a duchy in ``game.duchies``, the root carries ``data-enemies-remaining="N"``
     (``N`` = number of other duchies with ``not is_defeated``) and visible text
     ``Wrogów do pokonania: N``, plus one child ``<div data-enemy-duchy>`` per
-    other duchy in ``game.duchies`` order (settlements/hero state). When
-    ``player_duchy_id`` is ``None`` or not present in ``game.duchies``, returns
-    a bare empty root. Pure and deterministic: no RNG/IO; ``game`` is not
-    mutated.
+    other duchy in ``game.duchies`` order (settlements/hero/defeated state).
+    When ``player_duchy_id`` is ``None`` or not present in ``game.duchies``,
+    returns a bare empty root. Pure and deterministic: no RNG/IO; ``game`` is
+    not mutated.
     """
     if player_duchy_id is None:
         return '<div data-victory-progress=""></div>'
@@ -42,11 +42,15 @@ def render_victory_progress(
         settlements = len(d.settlements)
         hero = "true" if d.has_hero else "false"
         hero_pl = "tak" if d.has_hero else "nie"
+        defeated = "true" if d.is_defeated else "false"
         row_text = f"{d.duchy_id}: osady {settlements}, bohater {hero_pl}"
+        if d.is_defeated:
+            row_text += " — pokonany"
         rows.append(
             f'<div data-enemy-duchy="{d.duchy_id}"'
             f' data-settlements="{settlements}"'
             f' data-hero="{hero}"'
+            f' data-defeated="{defeated}"'
             f">{row_text}</div>"
         )
     return (
