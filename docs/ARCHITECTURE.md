@@ -383,6 +383,12 @@ Czytelny tekst (K51.1c):
 `f"Przewidywana siła: Ty {own} vs wróg {enemy} — {verdict}"` z
 `verdict="przewaga"` przy `own >= enemy`, inaczej `"ryzyko"`; czysty helper
 nad `recommended_battle_forecast`, bez mutacji.
+Predykat ryzyka (K52.1a):
+`recommended_battle_is_risky(world, game, player_duchy_id=None) -> bool` —
+`False` gdy `recommended_battle_forecast(...) is None`; przy prognozie
+`(own, enemy)` zwraca `True` iff `own < enemy` (ten sam próg co werdykt
+`ryzyko` w `recommended_battle_forecast_text`); czysty, bez mutacji,
+deleguje do `recommended_battle_forecast`.
 Osadzony w `render_game_page` zaraz po `data-situation-report` (K41.3a).
 Czyste, deterministyczne, bez mutacji `world`/`game`; rdzeń bez zmian.
 

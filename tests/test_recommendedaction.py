@@ -2280,3 +2280,111 @@ def test_render_recommended_action_embeds_forecast_after_reason_when_nonempty():
             r: world.settlement_at(r) for r in world.regions
         } == settlements_before
         assert game.duchies == duchies_before
+
+
+def test_recommended_battle_is_risky_false_when_forecast_is_none():
+    """``recommended_battle_is_risky(world, game, player_duchy_id=None)``
+    returns ``False`` when
+    ``recommended_battle_forecast(world, game, player_duchy_id) is None``
+    (no player / order ``None`` / action ``muster`` / ``march`` / ``develop``)
+    — K52.1a.
+
+    Contract: pure and deterministic (no RNG/IO; does not mutate ``world`` or
+    ``game``); delegates the forecast decision to ``recommended_battle_forecast``
+    as the sole source of the prediction.
+    """
+    recommended_battle_forecast = recommendedaction.recommended_battle_forecast
+    recommended_battle_is_risky = recommendedaction.recommended_battle_is_risky
+    player_can_muster = recommendedaction.player_can_muster
+    player_march_target = recommendedaction.player_march_target
+    home = Region("Home")
+    keep = Region("Keep")
+    enemy_camp = Region("EnemyCamp")
+    road = Region("Road")
+    far_enemy = Region("FarEnemy")
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+
+    def _assert_not_risky(world: WorldMap, player_duchy_id: str | None) -> None:
+        regions_before = world.regions
+        parties_before = {r: world.party_at(r) for r in world.regions}
+        settlements_before = {
+            r: world.settlement_at(r) for r in world.regions
+        }
+        duchies_before = game.duchies
+
+        assert recommended_battle_forecast(
+            world, game, player_duchy_id
+        ) is None
+        assert recommended_battle_is_risky(
+            world, game, player_duchy_id
+        ) is False
+
+        assert world.regions == regions_before
+        assert {
+            r: world.party_at(r) for r in world.regions
+        } == parties_before
+        assert {
+            r: world.settlement_at(r) for r in world.regions
+        } == settlements_before
+        assert game.duchies == duchies_before
+
+    # recommended_order is None (no player / unknown id) → forecast None → False
+    none_world = WorldMap(
+        [home, enemy_camp],
+        [(home, enemy_camp)],
+        parties={
+            home: Party(hero=Unit(), units=(), owner_id="player"),
+        },
+        settlements={},
+    )
+    for player_duchy_id in (None, "missing"):
+        assert player_duchy(game, player_duchy_id) is None
+        assert recommended_order(none_world, game, player_duchy_id) is None
+        _assert_not_risky(none_world, player_duchy_id)
+
+    # muster → forecast None → False
+    muster_world = WorldMap(
+        [keep, enemy_camp],
+        [(keep, enemy_camp)],
+        parties={
+            enemy_camp: Party(hero=Unit(), units=(), owner_id="enemy"),
+        },
+        settlements={
+            keep: Settlement("KeepS", population=2, owner_id="player"),
+        },
+    )
+    assert player_can_muster(muster_world, game, "player") is True
+    assert recommended_order(muster_world, game, "player") == ("muster", None)
+    _assert_not_risky(muster_world, "player")
+
+    # march → forecast None → False
+    march_world = WorldMap(
+        [home, road, far_enemy],
+        [(home, road), (road, far_enemy)],
+        parties={home: Party(hero=Unit(), units=(), owner_id="player")},
+        settlements={
+            far_enemy: Settlement("FarS", population=2, owner_id="enemy"),
+        },
+    )
+    target = player_march_target(march_world, game, "player")
+    assert target is not None
+    assert recommended_order(march_world, game, "player") == ("march", target)
+    _assert_not_risky(march_world, "player")
+
+    # develop → forecast None → False
+    develop_world = WorldMap(
+        [home],
+        [],
+        parties={home: Party(hero=Unit(), units=(), owner_id="player")},
+        settlements={},
+    )
+    assert recommended_order(develop_world, game, "player") == (
+        "develop",
+        None,
+    )
+    _assert_not_risky(develop_world, "player")

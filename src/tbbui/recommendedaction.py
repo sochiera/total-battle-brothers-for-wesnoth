@@ -221,6 +221,30 @@ def recommended_battle_forecast_text(
     return f"Przewidywana siła: Ty {own} vs wróg {enemy} — {verdict}"
 
 
+def recommended_battle_is_risky(
+    world: WorldMap,
+    game: GameState,
+    player_duchy_id: str | None = None,
+) -> bool:
+    """Return whether the recommended battle has a predicted strength deficit.
+
+    Returns ``False`` when ``recommended_battle_forecast(world, game,
+    player_duchy_id) is None`` (no player / order ``None`` / action
+    ``muster`` / ``march`` / ``develop``). When the forecast is
+    ``(own, enemy)``, returns ``True`` iff ``own < enemy`` (same threshold as
+    the ``ryzyko`` verdict in ``recommended_battle_forecast_text``), otherwise
+    ``False``. Pure and deterministic: no RNG/IO; does not mutate ``world``
+    or ``game``; delegates the forecast decision to
+    ``recommended_battle_forecast`` as the sole source of the prediction
+    (K52.1a).
+    """
+    forecast = recommended_battle_forecast(world, game, player_duchy_id)
+    if forecast is None:
+        return False
+    own, enemy = forecast
+    return own < enemy
+
+
 def _escaped_paragraph(attr: str, text: str) -> str:
     """Return an HTML ``<p data-{attr}="…">…</p>`` or ``""`` if ``text`` is empty.
 
