@@ -398,7 +398,7 @@ deleguje do `recommended_battle_forecast`.
 Osadzony w `render_game_page` zaraz po `data-situation-report` (K41.3a).
 Czyste, deterministyczne, bez mutacji `world`/`game`; rdzeń bez zmian.
 
-**Zalecany rozkaz w jeden klik w GameApp (K42.1b / K42.1c / K42.2a / K48.1c / K48.1d / K49.1c / K50.1c / K51.1e):**
+**Zalecany rozkaz w jeden klik w GameApp (K42.1b / K42.1c / K42.2a / K48.1c / K48.1d / K49.1c / K50.1c / K51.1e / K52.1d / K52.1e):**
 `tbbui.serve.recommended_order_path(action) -> str` — czysta mapa akcji na
 istniejącą trasę POST: `assault`→`/order/assault`, `engage`→`/order/engage`,
 `defend`→`/order/march` (obrona zagrożonej pozycji = marsz party tam),
@@ -422,12 +422,16 @@ ciele) — K50.1c; gdy `recommended_battle_forecast_text` jest niepuste, zaraz
 po uzasadnieniu dokładnie jedno
 `<p data-recommended-order-forecast="{text}">{text}</p>` (ta sama wartość w
 atrybucie i ciele, `html.escape(..., quote=True)`) — K51.1e; pusta prognoza
-(`muster`/`march`/`develop`) → brak elementu forecast. Brak
-`data-recommended-order` (oraz ryzyka, uzasadnienia i prognozy) przy
-`player_duchy_id=None`, `is_over` lub `recommended_order(...) is None`.
-Reużywa istniejące trasy `/order/*` (bez nowego backendu rozkazów); dla
-`muster` ten sam `POST /order/muster` co rozkaz z sekcji rozwoju
-(`ai.muster_duchy_party`, K14.2b / K48.1d).
+(`muster`/`march`/`develop`) → brak elementu forecast; gdy
+`recommended_battle_is_risky(...)` jest `True`, zaraz po forecast dokładnie
+jedno `<p data-recommended-order-caution="{text}">{text}</p>` z
+`text = "Uwaga: przewidywany deficyt siły — rozważ inny rozkaz"` (ten sam
+tekst co K52.1c, `html.escape(..., quote=True)`) — K52.1e; `False` → brak
+elementu. Brak `data-recommended-order` (oraz ryzyka, uzasadnienia, prognozy
+i noty ostrożności) przy `player_duchy_id=None`, `is_over` lub
+`recommended_order(...) is None`. Reużywa istniejące trasy `/order/*` (bez
+nowego backendu rozkazów); dla `muster` ten sam `POST /order/muster` co
+rozkaz z sekcji rozwoju (`ai.muster_duchy_party`, K14.2b / K48.1d).
 
 **Lokalizacja party na mapie (R37.1):**
 `tbbui.maplookup.first_party_region(world, owner_id) -> Region | None` — pierwszy

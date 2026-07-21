@@ -466,6 +466,9 @@ class GameApp:
         When ``recommended_battle_forecast_text`` is non-empty, one
         ``<p data-recommended-order-forecast="{text}">{text}</p>`` follows the
         reason (same escape rule); empty forecast → no forecast element (K51.1e).
+        When risky, one ``<p data-recommended-order-caution="{text}">{text}</p>``
+        with the K52.1c caution text follows the forecast (K52.1e); not risky →
+        omit that element.
         """
         if self.player_duchy_id is None or self.game.is_over:
             return ""
@@ -487,11 +490,16 @@ class GameApp:
         forecast_html = _escaped_paragraph(
             "recommended-order-forecast", forecast
         )
-        risk_attr = (
-            ' data-recommended-risk=""'
-            if recommended_battle_is_risky(
-                self.world, self.game, self.player_duchy_id
+        risky = recommended_battle_is_risky(
+            self.world, self.game, self.player_duchy_id
+        )
+        risk_attr = ' data-recommended-risk=""' if risky else ""
+        caution_html = (
+            _escaped_paragraph(
+                "recommended-order-caution",
+                "Uwaga: przewidywany deficyt siły — rozważ inny rozkaz",
             )
+            if risky
             else ""
         )
         return (
@@ -500,6 +508,7 @@ class GameApp:
             f'<button type="submit">{label}</button>'
             f"{reason_html}"
             f"{forecast_html}"
+            f"{caution_html}"
             "</form>"
         )
 

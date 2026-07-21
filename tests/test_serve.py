@@ -5129,8 +5129,9 @@ def test_recommended_order_form_data_recommended_risk_when_battle_is_risky():
     assert form.get("action") == expected_action
 
     children = list(form)
-    assert len(children) == 3, (
-        f"expected button + reason + forecast, got {len(children)}: "
+    # K52.1e: when risky, form also has caution after forecast (4 children)
+    assert len(children) == 4, (
+        f"expected button + reason + forecast + caution, got {len(children)}: "
         f"{[_local(c.tag) for c in children]}"
     )
     assert _local(children[0].tag) == "button"
@@ -5306,4 +5307,128 @@ def test_recommended_order_form_omits_data_recommended_risk_when_not_risky():
     assert "data-recommended-risk" not in markup2
     assert 'data-recommended-order="">' in markup2
     assert 'data-recommended-order="" data-recommended-risk' not in markup2
+
+
+def test_recommended_order_form_caution_after_forecast_when_battle_is_risky():
+    """When one-click form is emitted and recommended battle is risky, form has
+    exactly one ``data-recommended-order-caution`` paragraph immediately after
+    ``data-recommended-order-forecast`` (K52.1e).
+
+    Contract (task-255): for ``_recommended_order_form`` / GET / when the form
+    is present and
+    ``recommended_battle_is_risky(world, game, player_duchy_id)`` is ``True``,
+    inside ``<form data-recommended-order="">`` immediately after the
+    ``data-recommended-order-forecast`` element there is exactly one
+    ``<p data-recommended-order-caution="{text}">{text}</p>`` with
+    ``text = "Uwaga: przewidywany deficyt siły — rozważ inny rozkaz"``
+    (same value in attribute and body, ``html.escape(..., quote=True)``).
+    Button, reason and forecast stay as before.
+    """
+    from html import escape
+
+    caution_text = "Uwaga: przewidywany deficyt siły — rozważ inny rozkaz"
+    escaped_caution = escape(caution_text, quote=True)
+
+    field = Region("Field")
+    other_n = Region("OtherN")
+    enemy_camp = Region("EnemyCamp")
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+    # own < enemy → risky defend (same fixture shape as K52.1d risky path)
+    field_hero = Unit(training=3, equipment=2)
+    field_units = (Unit(training=1),)
+    field_enemy_hero = Unit(training=20)
+    own_weak = sum(combat_totals((field_hero, *field_units)))
+    enemy_strong = sum(combat_totals((field_enemy_hero,)))
+    assert own_weak < enemy_strong
+
+    world = WorldMap(
+        [field, other_n, enemy_camp],
+        [(field, other_n), (field, enemy_camp)],
+        parties={
+            field: Party(
+                hero=field_hero, units=field_units, owner_id="player"
+            ),
+            enemy_camp: Party(
+                hero=field_enemy_hero, units=(), owner_id="enemy"
+            ),
+        },
+        settlements={},
+    )
+    assert not game.is_over
+    order = recommended_order(world, game, "player")
+    assert order is not None
+    action, region = order
+    assert action == "defend"
+    assert recommended_battle_is_risky(world, game, "player") is True
+    reason = recommended_order_reason(world, game, "player")
+    forecast = recommended_battle_forecast_text(world, game, "player")
+    assert reason != ""
+    assert forecast != ""
+    escaped_reason = escape(reason, quote=True)
+    escaped_forecast = escape(forecast, quote=True)
+    expected_action = recommended_order_path(action)
+    if region is not None:
+        expected_action = f"{expected_action}?target={quote(region)}"
+    expected_label = f"Wykonaj zalecenie: {recommended_order_text(action, region)}"
+
+    app = GameApp(
+        world, game, Calendar(year=1, month=1), Rng(1), player_duchy_id="player"
+    )
+    code, body = app.handle("GET", "/")
+    assert code == 200
+
+    root = ET.fromstring(body)
+    rec_forms = [
+        el
+        for el in root.iter()
+        if _local(el.tag) == "form" and el.get("data-recommended-order") is not None
+    ]
+    assert len(rec_forms) == 1
+    form = rec_forms[0]
+    assert form.get("data-recommended-order") == ""
+    assert (form.get("method") or "").lower() == "post"
+    assert form.get("action") == expected_action
+
+    children = list(form)
+    assert len(children) == 4, (
+        f"expected button + reason + forecast + caution, got {len(children)}: "
+        f"{[_local(c.tag) for c in children]}"
+    )
+    assert _local(children[0].tag) == "button"
+    assert "".join(children[0].itertext()).strip() == expected_label
+    assert _local(children[1].tag) == "p"
+    assert children[1].get("data-recommended-order-reason") == escaped_reason
+    assert (children[1].text or "") == reason
+    assert _local(children[2].tag) == "p"
+    assert children[2].get("data-recommended-order-forecast") == escaped_forecast
+    assert (children[2].text or "") == forecast
+    # caution immediately after forecast: only one, fixed text attr+body
+    assert _local(children[3].tag) == "p"
+    assert children[3].get("data-recommended-order-caution") == escaped_caution
+    assert (children[3].text or "") == caution_text
+
+    form_html = re.search(
+        r'<form\b[^>]*\bdata-recommended-order=""[^>]*>.*?</form>',
+        body,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    assert form_html is not None
+    markup = form_html.group(0)
+    assert f'<button type="submit">{escape(expected_label)}</button>' in markup
+    assert f'data-recommended-order-reason="{escaped_reason}"' in markup
+    assert f'data-recommended-order-forecast="{escaped_forecast}"' in markup
+    assert (
+        f'<p data-recommended-order-caution="{escaped_caution}">'
+        f"{escaped_caution}</p>"
+    ) in markup
+    assert markup.count("data-recommended-order-caution") == 1
+    forecast_pos = markup.find("data-recommended-order-forecast=")
+    caution_pos = markup.find("data-recommended-order-caution=")
+    assert forecast_pos != -1 and caution_pos != -1
+    assert forecast_pos < caution_pos
 
