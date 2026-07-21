@@ -418,3 +418,31 @@ def test_render_order_log_at_limit_true_nonempty_embeds_truncation_note():
     assert len(entry_children) == len(entries)
     assert children.index(entry_children[-1]) < children.index(truncated[0])
     assert xml.endswith(f"{note_literal}</div>")
+
+
+def test_render_order_log_at_limit_true_empty_has_no_truncation_note():
+    """K45.4a: ``render_order_log((), at_limit=True)`` does not embed
+    ``data-order-log-truncated``; empty-state shape matches K44.2b
+    (header + ``data-order-log-empty`` only) byte-for-byte as with default.
+    """
+    baseline = render_order_log(())
+    xml = render_order_log((), at_limit=True)
+
+    assert xml == baseline
+    assert "data-order-log-truncated" not in xml
+
+    root = ET.fromstring(xml)
+    children = list(root)
+    assert root.find(".//*[@data-order-log-truncated]") is None
+    assert root.attrib == {"data-order-log": "", "data-count": "0"}
+    assert len(children) == 2
+    assert children[0].tag == "h2"
+    assert children[0].attrib.get("data-order-log-header") == ""
+    assert "".join(children[0].itertext()) == "Dziennik rozkazów (0)"
+    assert children[1].tag == "p"
+    assert children[1].attrib.get("data-order-log-empty") == ""
+    assert "".join(children[1].itertext()) == "Brak rozkazów w tej kampanii"
+    assert (
+        '<h2 data-order-log-header="">Dziennik rozkazów (0)</h2>'
+        '<p data-order-log-empty="">Brak rozkazów w tej kampanii</p>'
+    ) in xml
