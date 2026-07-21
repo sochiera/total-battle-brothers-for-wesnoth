@@ -53,3 +53,31 @@ def test_render_victory_progress_counts_undefeated_enemies_and_is_pure():
 
     assert game.duchies == duchies_before
     assert game.duchies is duchies_before
+
+
+def test_render_victory_progress_empty_root_when_none_or_unknown_duchy():
+    """When ``player_duchy_id`` is ``None`` or not in ``game.duchies``, return
+    a bare empty root ``<div data-victory-progress=""></div>`` with no
+    ``data-enemies-remaining`` and no visible text.
+    """
+    game = GameState(
+        (
+            Duchy(
+                "north",
+                Unit(),
+                settlements=(
+                    Settlement("North Keep", population=1, owner_id="north"),
+                ),
+            ),
+            Duchy("south", Unit()),
+        )
+    )
+
+    for player_duchy_id in (None, "missing"):
+        xml = render_victory_progress(game, player_duchy_id=player_duchy_id)
+        root = ET.fromstring(xml)
+
+        assert root.tag == "div"
+        assert root.attrib == {"data-victory-progress": ""}
+        assert "".join(root.itertext()) == ""
+        assert "data-enemies-remaining" not in root.attrib
