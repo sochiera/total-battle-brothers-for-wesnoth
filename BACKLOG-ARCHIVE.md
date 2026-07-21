@@ -413,3 +413,9 @@
 - [x] **K41.1c** Zalecenie defensywne z regionem (`threatalert.first_threatened_region`): „broń pozycji <R>". *(task-200)*
 - [x] **K41.2a** Maszynowa flaga `data-action="assault|engage|defend|develop"` po `data-posture`. *(task-201)*
 - [x] **K41.3a** Osadzenie w `render_game_page` po `data-situation-report` (bez gracza → bajt-w-bajt jak dotąd). *(task-202)*
+
+## Kamień milowy 42 — wykonalny zalecany rozkaz (rada w jeden klik) — UKOŃCZONY
+- [x] **K42.1a** Czysty `recommended_order(world, game, player_duchy_id)` → `(action, target|None)|None`; `render_recommended_action` deleguje (bajt-w-bajt jak dotąd). *(task-203)*
+- [x] **K42.1b** Mapa `serve.recommended_order_path(action)`: assault→`/order/assault`, engage→`/order/engage`, defend→`/order/march`, develop→`/order/develop`. *(task-204)*
+- [x] **K42.1c** GameApp osadza jeden `<form data-recommended-order>` w `GET /` (action=path+target, przed `data-order-section="develop"`; guardy gracz/`is_over`/`None`). *(task-205)*
+- [x] **K42.2a** `recommended_order_text(action, target)` + przycisk „Wykonaj zalecenie: <opis>"; `render_recommended_action` reużywa (bajt-w-bajt jak dotąd). *(task-206)*

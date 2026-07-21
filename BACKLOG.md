@@ -237,17 +237,27 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > sytuacji. Wszystkie pozycje (task-198…202) w `BACKLOG-ARCHIVE.md`. Rdzeń `tbb`
 > bez zmian.
 
-## Kamień milowy 42 — wykonalny zalecany rozkaz (rada w jeden klik)
+## Kamień milowy 42 — wykonalny zalecany rozkaz (rada w jeden klik) — UKOŃCZONY
 > DESIGN §11: K41 pokazał zalecany rozkaz, ale gracz musiał go wykonać sam,
-> szukając właściwej sekcji. K42 domyka pętlę rada→akcja: maszynowa decyzja rady
-> (`recommended_order`) → mapa akcji na istniejącą trasę POST
-> (`recommended_order_path`) → jeden formularz `data-recommended-order` w `GET /`
-> z czytelnym przyciskiem „Wykonaj zalecenie: <opis>". Reużywa trasy `/order/*`
-> — bez nowego backendu rozkazów. Rdzeń `tbb` bez zmian.
-- [ ] **K42.1a** Czysty `recommended_order(world, game, player_duchy_id)` → `(action, target|None)|None`; `render_recommended_action` deleguje (bajt-w-bajt jak dotąd). *(task-203)*
-- [ ] **K42.1b** Mapa `serve.recommended_order_path(action)`: assault→`/order/assault`, engage→`/order/engage`, defend→`/order/march`, develop→`/order/develop`. *(task-204)*
-- [ ] **K42.1c** GameApp osadza jeden `<form data-recommended-order>` w `GET /` (action=path+target, przed `data-order-section="develop"`; guardy gracz/`is_over`/`None`). *(task-205)*
-- [ ] **K42.2a** `recommended_order_text(action, target)` + przycisk „Wykonaj zalecenie: <opis>"; `render_recommended_action` reużywa (bajt-w-bajt jak dotąd). *(task-206)*
+> szukając właściwej sekcji. K42 domknął pętlę rada→akcja: maszynowa decyzja rady
+> (`recommended_order`, K42.1a) → mapa akcji na istniejącą trasę POST
+> (`recommended_order_path`, K42.1b) → jeden formularz `data-recommended-order` w
+> `GET /` (K42.1c) z czytelnym przyciskiem „Wykonaj zalecenie: <opis>" (K42.2a).
+> Reużywa trasy `/order/*` — bez nowego backendu rozkazów. Wszystkie pozycje
+> (task-203…206) w `BACKLOG-ARCHIVE.md`. Rdzeń `tbb` bez zmian.
+
+## Kamień milowy 43 — dziennik rozkazów gracza (pamięć kampanii w podglądzie)
+> DESIGN §11: gracz widzi dziś tylko OSTATNI komunikat (`data-notice`), gubi
+> ciągłość kampanii. K43 dokłada przewijalny dziennik ostatnich rozkazów i
+> skutków tur: czysty `render_order_log` (K43.1a) zasilany akumulatorem
+> `GameApp.order_log` (K43.1b), osadzony w `GET /` niezależnie od `is_over`
+> (K43.1c), z limitem ostatnich `ORDER_LOG_LIMIT` wpisów (K43.2a). Reużywa
+> istniejące `last_notice` — bez nowego backendu rozkazów. Rdzeń `tbb` bez zmian.
+- [ ] **R43.1 (refaktor)** Kompaktacja DESIGN.md do stanu obecnego: §11 nie powiela per-funkcyjnych kontraktów `data-*` z ARCHITECTURE.md; bez utraty żadnej reguły; bez nowych testów. *(task-207)*
+- [ ] **K43.1a** Czysty `orderlog.render_order_log(entries)` → `<div data-order-log data-count=N>` + dzieci `data-order-log-entry` (ciało escapowane). *(task-208)*
+- [ ] **K43.1b** `GameApp.order_log` (init `[]`) — każdy POST znaną trasą dokłada `last_notice`; `POST /new` czyści i zapisuje wpis startowy. *(task-209)*
+- [ ] **K43.1c** `GameApp._render` osadza jeden `render_order_log(self.order_log)` w `GET /`, także przy `is_over`. *(task-210)*
+- [ ] **K43.2a** `serve.ORDER_LOG_LIMIT` (placeholder `10`) — dziennik przycięty do ostatnich N wpisów (najstarsze wypadają). *(task-211)*
 
 ## Dług/refaktor
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*
