@@ -278,18 +278,27 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > obok `attacker_losses` (K47.1b): `... (straty: A, wróg: D)`. Wszystkie pozycje
 > (task-225…226) w `BACKLOG-ARCHIVE.md`. Rdzeń `tbb` bez zmian.
 
-## Kamień milowy 48 — zalecenie zebrania oddziału dla gracza bez party
-> DESIGN §11: rada w jeden klik (K41–K42) nigdy nie mówiła graczowi bez party
-> „zbierz oddział" — utykał na „rozwijaj księstwo" i nie wchodził w ofensywę.
-> K48 dokłada czysty predykat `player_can_muster` (K48.1a), tekst rady
-> „zbierz oddział" (K48.1b), priorytet akcji `muster` nad postawą w
+## Kamień milowy 48 — zalecenie zebrania oddziału dla gracza bez party — UKOŃCZONY
+> DESIGN §11: K48 dołożył czysty predykat `player_can_muster` (K48.1a), tekst
+> rady „zbierz oddział" (K48.1b), priorytet akcji `muster` nad postawą w
 > `recommended_order`/renderze (K48.1c) i mapowanie `muster`→`/order/muster`
-> domykające radę w jeden klik (K48.1d). Reużywa `ai.muster_duchy_party` i
-> generyczny `_recommended_order_form`; rdzeń `tbb` bez zmian.
-- [ ] **K48.1a** `tbbui.recommendedaction.player_can_muster(world, game, player_duchy_id)` zwraca `True` iff `gamelookup.player_duchy(game, player_duchy_id) is not None`, księstwo ma bohatera (`Duchy.has_hero`), `maplookup.first_party_region(world, player_duchy_id) is None` (brak party gracza na mapie) oraz istnieje własna osada w regionie bez party (`settlement.owner_id == player_duchy_id and region not in world.parties`, kolejność `world.regions`); inaczej `False`. *(task-227)*
-- [ ] **K48.1b** `tbbui.recommendedaction.recommended_order_text("muster", None)` zwraca `"zbierz oddział"`; pozostałe akcje bez zmian. *(task-228)*
-- [ ] **K48.1c** `recommended_order(...)` zwraca `("muster", None)` gdy `player_can_muster(...)` jest `True`, z priorytetem PRZED postawą; `render_recommended_action` niesie wtedy `data-action="muster"` i tekst `Zalecany rozkaz: zbierz oddział` (`data-posture` z `net_posture(M, N)` bez zmian). *(task-229)*
-- [ ] **K48.1d** `tbbui.serve.recommended_order_path("muster")` = `"/order/muster"`; `GET /` u gracza bez party osadza jeden `<form action="/order/muster" data-recommended-order="">` (`Wykonaj zalecenie: zbierz oddział`), a `POST /order/muster` reużywa `ai.muster_duchy_party` (`last_notice == "Zebranie oddziału: wykonano"`). *(task-230)*
+> domykające radę w jeden klik (K48.1d). Wszystkie pozycje (task-227…230)
+> w `BACKLOG-ARCHIVE.md`. Rdzeń `tbb` bez zmian.
+
+## Kamień milowy 49 — zalecenie marszu ku wrogowi dla bezczynnego party gracza
+> DESIGN §11: rada w jeden klik (K41–K48) mówiła graczowi z party na mapie, ale
+> bez sąsiedniego celu, tylko „rozwijaj księstwo" — nigdy „maszeruj ku wrogowi",
+> więc odległa wroga osada pozostawała poza radą. K49 dokłada czysty cel marszu
+> `player_march_target` (K49.1a), tekst rady „maszeruj ku osadzie" (K49.1b),
+> gałąź akcji `march` w gałęzi zrównoważonej `recommended_order`/renderze przed
+> `develop` (K49.1c) oraz mapowanie `march`→`/order/march` z celem domykające
+> radę w jeden klik (K49.1d). Reużywa `ai.nearest_enemy_settlement` /
+> `ai.region_distance` / `ai.march_duchy_party_to` i generyczny
+> `_recommended_order_form`; rdzeń `tbb` bez zmian.
+- [ ] **K49.1a** `tbbui.recommendedaction.player_march_target(world, game, player_duchy_id)` zwraca `None`, gdy `gamelookup.player_duchy(game, player_duchy_id) is None` albo gdy `maplookup.first_party_region(world, player_duchy_id) is None`; gdy gracz ma party w regionie R i `ai.nearest_enemy_settlement(world, R, player_duchy_id)` istnieje z `ai.region_distance(world, R, target) >= 2`, zwraca `target.name`; inaczej `None`. Czyste, bez mutacji. *(task-231)*
+- [ ] **K49.1b** `tbbui.recommendedaction.recommended_order_text("march", "Północ")` zwraca `"maszeruj ku osadzie Północ"`; pozostałe akcje bez zmian. *(task-232)*
+- [ ] **K49.1c** W gałęzi zrównoważonej `recommended_order(...)` zwraca `("march", target)` gdy `player_march_target(...) is not None` (inaczej `("develop", None)`), po priorytecie muster/ofensywa/obrona; `render_recommended_action` niesie wtedy `data-action="march"` i tekst `Zalecany rozkaz: maszeruj ku osadzie R` (`data-posture` = `"balanced"`). *(task-233)*
+- [ ] **K49.1d** `tbbui.serve.recommended_order_path("march")` = `"/order/march"`; `GET /` u gracza z party bez sąsiedniego celu, z odległą wrogą osadą R, osadza jeden `<form action="/order/march?target=R" data-recommended-order="">` (`Wykonaj zalecenie: maszeruj ku osadzie R`), a `POST /order/march?target=R` reużywa `ai.march_duchy_party_to` (`last_notice == "Marsz do R: wykonano"`). *(task-234)*
 
 ## Dług/refaktor
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*

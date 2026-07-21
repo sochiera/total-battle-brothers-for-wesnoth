@@ -344,7 +344,9 @@ zwycięstwa, podpowiedź celu, lokalizacja i dystans do wrogich bohaterów,
 porównanie sił z sąsiednimi celami, alert zagrożeń własnych pozycji, skrót
 sytuacji (postawa ofensywna/defensywna/zrównoważona) i jeden zalecany rozkaz
 (gdy gracz ma bohatera i osadę do zbiórki, lecz brak party na mapie, zalecenie ma
-priorytet „zbierz oddział" przed radą opartą o postawę).
+priorytet „zbierz oddział" przed radą opartą o postawę; gdy gracz ma party na
+mapie bez sąsiedniego celu i bez zagrożeń, a istnieje odległa wroga osada,
+zalecenie brzmi „maszeruj ku osadzie" zamiast „rozwijaj księstwo").
 Strona niesie też **dziennik kampanii** — przewijalną, ograniczoną listę ostatnich
 rozkazów i skutków tur, czytaną od najnowszego wpisu; każdy wpis jest zakotwiczony
 datą (rok/miesiąc), sekcja ma nagłówek i czytelny stan pusty. Teksty na stronie

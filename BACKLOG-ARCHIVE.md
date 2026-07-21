@@ -449,3 +449,9 @@
 ## Kamień milowy 47 — pełny bilans strat bitwy gracza (obie strony) — UKOŃCZONY
 - [x] **K47.1a** `tbbui.battlereport.defender_losses(battle)` = `len(battle.report().defender.fallen)`; nierozstrzygnięta → `ValueError`; czysty. *(task-225)*
 - [x] **K47.1b** `_apply_player_assault_order` przy bitwie ustawia `last_notice = f"{label}: {battle_outcome_text(battle)} (straty: {attacker_losses(battle)}, wróg: {defender_losses(battle)})"`. *(task-226)*
+
+## Kamień milowy 48 — zalecenie zebrania oddziału dla gracza bez party — UKOŃCZONY
+- [x] **K48.1a** `tbbui.recommendedaction.player_can_muster(world, game, player_duchy_id)` → `True` iff znane księstwo z bohaterem, brak party gracza na mapie i wolna własna osada (jak sukces `ai.muster_duchy_party`); czysty, bez mutacji. *(task-227)*
+- [x] **K48.1b** `tbbui.recommendedaction.recommended_order_text("muster", None)` → `"zbierz oddział"`; pozostałe akcje bez zmian. *(task-228)*
+- [x] **K48.1c** `recommended_order(...)` zwraca `("muster", None)` gdy `player_can_muster(...)` jest `True`, z priorytetem PRZED postawą; `render_recommended_action` niesie `data-action="muster"` i tekst `Zalecany rozkaz: zbierz oddział` (`data-posture` z `net_posture(M, N)` bez zmian). *(task-229)*
+- [x] **K48.1d** `tbbui.serve.recommended_order_path("muster")` = `"/order/muster"`; `GET /` u gracza bez party osadza jeden `<form action="/order/muster" data-recommended-order="">` (`Wykonaj zalecenie: zbierz oddział`), a `POST /order/muster` reużywa `ai.muster_duchy_party` (`last_notice == "Zebranie oddziału: wykonano"`). *(task-230)*
