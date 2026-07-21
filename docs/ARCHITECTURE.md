@@ -153,13 +153,17 @@ HP H, atak A, obrona D` zgodny z atrybutami. Gdy `player_duchy_id` jest
 liczbowych i bez tekstu). Czyste, deterministyczne, bez mutacji `game`;
 rdzeń bez zmian.
 
-**Strona HTML partii (V13.4a / K16.1a / K17.1b / K20.1a / K20.1b / K21.1a / K22.1c / K22.2b / K23.1b / K23.2a / K23.3b / K24.1b / K24.2b / K26.2a–b / K27.3a–b / K30.3c / K31.2a / K32.1a / K32.1b):** `tbbui.gamepage.render_game_page(world,
+**Strona HTML partii (V13.4a / K16.1a / K17.1b / K20.1a / K20.1b / K21.1a / K22.1c / K22.2b / K23.1b / K23.2a / K23.3b / K24.1b / K24.2b / K26.2a–b / K27.3a–b / K30.3c / K31.2a / K32.1a / K32.1b / K32.1c):** `tbbui.gamepage.render_game_page(world,
 game, calendar, battle=None, player_duchy_id=None) -> str` — parsowalny HTML z korzeniem `<html>`;
 dokładnie jeden `<head>` z `<title>Total Battle Brothers</title>` (K32.1a)
 bezpośrednio przed `<body>` (tytuł stały, niezależny od `player_duchy_id` /
 `battle`); pierwszym dzieckiem `<body>` jest widoczny nagłówek
 `<h1 data-page-title="">Total Battle Brothers</h1>` (K32.1b; stały, niezależny
-od `player_duchy_id` / `battle`), potem kanoniczny string z
+od `player_duchy_id` / `battle`), zaraz potem stała linia celu
+`<p data-objective="…">…</p>` (K32.1c; `_OBJECTIVE_TEXT` =
+„Cel: pokonaj księstwo AI — odbierz mu wszystkie osady i pokonaj jego
+bohatera"; ta sama treść w atrybucie i w ciele; niezależna od
+`player_duchy_id` / `game` / `battle`), potem kanoniczny string z
 `render_world_svg(world)`; zawsze osadza też
 kanoniczny string z `render_owner_legend(world, player_duchy_id)` (K23.1b /
 K24.2b, dokładnie jeden `data-owner-legend` w `<body>`); opcjonalny

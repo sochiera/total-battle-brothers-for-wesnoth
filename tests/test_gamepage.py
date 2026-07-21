@@ -785,3 +785,48 @@ def test_render_game_page_emits_visible_page_title_h1_as_first_body_child():
     assert html.index(expected_h1) < html.index(expected_svg), (
         "page title h1 must precede the embedded world map SVG in <body>"
     )
+
+
+def test_render_game_page_emits_objective_line_after_page_title_before_map():
+    """Exactly one ``<p data-objective>`` with fixed win text sits after h1, before map SVG.
+
+    Attribute value equals body text; position is immediately after
+    ``data-page-title`` and before the embedded ``render_world_svg`` output.
+    """
+    world, game, calendar = _ongoing_fixture()
+    expected_svg = render_world_svg(world)
+    expected_text = (
+        "Cel: pokonaj księstwo AI — odbierz mu wszystkie osady "
+        "i pokonaj jego bohatera"
+    )
+    expected_h1 = '<h1 data-page-title="">Total Battle Brothers</h1>'
+    expected_p = f'<p data-objective="{expected_text}">{expected_text}</p>'
+
+    html = render_game_page(world, game, calendar)
+    root = ET.fromstring(html)
+
+    body = next(el for el in root if _local(el.tag) == "body")
+    body_children = list(body)
+    assert len(body_children) >= 2
+
+    h1 = body_children[0]
+    assert _local(h1.tag) == "h1"
+    assert h1.get("data-page-title") == ""
+
+    objective = body_children[1]
+    assert _local(objective.tag) == "p"
+    assert objective.get("data-objective") == expected_text
+    assert (objective.text or "").strip() == expected_text
+
+    objectives = _find_by_attr(root, "data-objective")
+    assert len(objectives) == 1
+    assert objectives[0] is objective
+
+    assert html.count(expected_p) == 1
+    assert expected_svg in html
+    assert html.index(expected_h1) + len(expected_h1) == html.index(expected_p), (
+        "objective line must sit directly after the page title h1"
+    )
+    assert html.index(expected_p) < html.index(expected_svg), (
+        "objective line must precede the embedded world map SVG in <body>"
+    )

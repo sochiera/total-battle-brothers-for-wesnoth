@@ -192,3 +192,4 @@
 | K31.2a | Wynik z perspektywy gracza | `render_game_page` przy `player_duchy_id is not None` dokłada `<p data-player-result-text>`: `Gra w toku` / `Zwycięstwo Twojego księstwa` / `Porażka Twojego księstwa` / `Remis`; `None` → nieobecny (bajt-w-bajt jak dotąd). |
 | K32.1a | Tytuł dokumentu strony partii | `render_game_page` emituje `<head><title>Total Battle Brothers</title></head>` bezpośrednio przed `<body>`; tytuł stały, niezależny od `player_duchy_id` / `battle`. |
 | K32.1b | Widoczny nagłówek strony | `render_game_page`: pierwszym dzieckiem `<body>` jest `<h1 data-page-title="">Total Battle Brothers</h1>` (przed SVG mapy); stały, niezależny od `player_duchy_id` / `battle`. |
+| K32.1c | Linia celu gry | `render_game_page` po h1 i przed SVG mapy emituje stały `<p data-objective="…">…</p>` (`_OBJECTIVE_TEXT`; atrybut = ciało); niezależny od `player_duchy_id` / `game` / `battle`. |

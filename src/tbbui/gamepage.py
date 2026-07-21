@@ -14,6 +14,11 @@ from tbbui.playersummary import render_player_summary
 from tbbui.settlementpanel import render_settlement_panel
 from tbbui.worldsvg import render_world_svg
 
+_OBJECTIVE_TEXT = (
+    "Cel: pokonaj księstwo AI — odbierz mu wszystkie osady "
+    "i pokonaj jego bohatera"
+)
+
 
 def _result_value(game: GameState) -> str:
     """Map game-over state to the ``data-result`` attribute value."""
@@ -57,8 +62,11 @@ def render_game_page(
     ``<title>Total Battle Brothers</title>`` (K32.1a) immediately before
     ``<body>``. First child of ``<body>`` is a visible page title
     ``<h1 data-page-title="">Total Battle Brothers</h1>`` (K32.1b; constant,
-    independent of ``player_duchy_id`` / ``battle``), then the strategic map
-    SVG from ``render_world_svg``, the owner-color legend from
+    independent of ``player_duchy_id`` / ``battle``), then a fixed win-condition
+    line ``<p data-objective="…">…</p>`` (K32.1c; ``_OBJECTIVE_TEXT``, same
+    value in attribute and body text; independent of ``player_duchy_id`` /
+    ``game`` / ``battle``), then the strategic map SVG from
+    ``render_world_svg``, the owner-color legend from
     ``render_owner_legend(world, player_duchy_id)``, a visible settlements
     section header (``<h2 data-panel-section="settlements">Osady</h2>``,
     K27.3a) immediately before the settlement panel from
@@ -144,12 +152,16 @@ def render_game_page(
     duchies_header = '<h2 data-panel-section="duchies">Księstwa</h2>'
 
     page_title = '<h1 data-page-title="">Total Battle Brothers</h1>'
+    objective = (
+        f'<p data-objective="{_OBJECTIVE_TEXT}">{_OBJECTIVE_TEXT}</p>'
+    )
 
     return (
         "<html>"
         "<head><title>Total Battle Brothers</title></head>"
         "<body>"
         f"{page_title}"
+        f"{objective}"
         f"{map_svg}"
         f"{owner_legend}"
         f"{player_summary}"
