@@ -1,4 +1,4 @@
-"""Pure map lookup helpers for owner parties on the strategic map."""
+"""Pure map lookup helpers for parties and owner hostility on the strategic map."""
 
 from __future__ import annotations
 
@@ -20,3 +20,12 @@ def first_party_region(world: WorldMap, owner_id: str) -> Region | None:
         if party is not None and party.owner_id == owner_id:
             return region
     return None
+
+
+def is_hostile_owner(owner_id: str | None, player_duchy_id: str) -> bool:
+    """Return whether *owner_id* is an explicit owner other than the player.
+
+    True when ``owner_id is not None and owner_id != player_duchy_id``.
+    Pure: no IO, no world access.
+    """
+    return owner_id is not None and owner_id != player_duchy_id

@@ -6,6 +6,7 @@ from tbb.game import GameState
 from tbb.party import Party
 from tbb.world import Region, WorldMap
 from tbbui.gamelookup import player_duchy
+from tbbui.maplookup import is_hostile_owner
 from tbbui.unitstrength import combat_totals
 
 
@@ -21,8 +22,7 @@ def _first_hostile_neighbor(
         party = world.party_at(neighbor)
         if party is None:
             continue
-        owner = party.owner_id
-        if owner is not None and owner != player_duchy_id:
+        if is_hostile_owner(party.owner_id, player_duchy_id):
             return neighbor, party
     return None
 

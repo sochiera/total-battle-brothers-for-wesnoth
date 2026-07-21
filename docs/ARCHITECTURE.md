@@ -236,6 +236,12 @@ region w `world.regions` z `party_at(region).owner_id == owner_id` (inaczej
 `None`); czysty, bez mutacji. Reużywany przez `herolocator`, `herochase`
 i `engagementpreview` (region gracza / wroga).
 
+**Wrogi właściciel (R39.1):**
+`tbbui.maplookup.is_hostile_owner(owner_id, player_duchy_id) -> bool` =
+`owner_id is not None and owner_id != player_duchy_id`; czysty, bez IO.
+Reużywany przez `threatalert` (`_first_hostile_neighbor`) i `engagementpreview`
+(osada + party u sąsiada).
+
 **Lokalizacja księstwa gracza (R38.1):**
 `tbbui.gamelookup.player_duchy(game, player_duchy_id) -> Duchy | None` —
 `None` gdy `player_duchy_id is None`, inaczej pierwsze księstwo w
@@ -539,7 +545,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │       ├── engagementpreview.py # HTML podgląd siły celu szturmu (K37.1)
 │       ├── threatalert.py # HTML alert zagrożonych pozycji (K39.1a–c / K39.2a–b)
 │       ├── turnsummary.py # HTML podsumowanie zmian po turze (K38.1a–b)
-│       ├── maplookup.py    # czysty helper: pierwszy region party właściciela (R37.1)
+│       ├── maplookup.py    # czyste helpery mapy: first_party_region (R37.1), is_hostile_owner (R39.1)
 │       ├── gamelookup.py   # czysty helper: księstwo gracza po id (R38.1)
 │       ├── nextobjective.py # HTML podpowiedź następnego kroku (K34.1)
 │       ├── ownerlegend.py  # HTML legenda właścicieli (owner_id → kolor palety)

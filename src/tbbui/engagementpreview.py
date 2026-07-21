@@ -5,7 +5,7 @@ from __future__ import annotations
 from tbb.game import GameState
 from tbb.world import WorldMap
 from tbbui.gamelookup import player_duchy
-from tbbui.maplookup import first_party_region
+from tbbui.maplookup import first_party_region, is_hostile_owner
 from tbbui.unitstrength import combat_totals
 
 
@@ -58,7 +58,8 @@ def render_engagement_preview(
         settlement = world.settlement_at(neighbor)
         if settlement is not None:
             owner = settlement.owner_id
-            if owner is not None and owner != player_duchy_id:
+            if is_hostile_owner(owner, player_duchy_id):
+                assert owner is not None
                 enemy_hp, enemy_attack, enemy_defense = combat_totals(
                     settlement.garrison
                 )
@@ -78,7 +79,8 @@ def render_engagement_preview(
         enemy_party = world.party_at(neighbor)
         if enemy_party is not None:
             owner = enemy_party.owner_id
-            if owner is not None and owner != player_duchy_id:
+            if is_hostile_owner(owner, player_duchy_id):
+                assert owner is not None
                 enemy_hp, enemy_attack, enemy_defense = combat_totals(
                     (enemy_party.hero, *enemy_party.units)
                 )
