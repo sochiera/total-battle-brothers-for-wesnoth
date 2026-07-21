@@ -1126,3 +1126,18 @@ def test_render_game_page_embeds_canonical_turn_summary_after_calendar_when_prev
     assert len(summary_els) == 1
     assert summary_els[0] in list(body.iter())
 
+
+def test_render_game_page_omits_turn_summary_when_previous_game_none():
+    """Default / explicit ``previous_game=None``: no ``data-turn-summary``.
+
+    Default and explicit None are byte-for-byte identical (no turn summary).
+    """
+    world, game, calendar = _ongoing_fixture()
+    baseline_html = render_game_page(world, game, calendar)
+
+    assert render_game_page(world, game, calendar, previous_game=None) == baseline_html
+
+    root = ET.fromstring(baseline_html)
+    assert _find_by_attr(root, "data-turn-summary") == []
+    assert "data-turn-summary" not in baseline_html
+
