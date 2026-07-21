@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from tbb.game import GameState
+from tbbui.gamelookup import player_duchy
 from tbbui.unitstrength import combat_totals
 
 
@@ -22,13 +23,7 @@ def render_player_summary(
     or not present in ``game.duchies``, returns a bare empty root. Pure and
     deterministic: no RNG/IO; ``game`` is not mutated.
     """
-    if player_duchy_id is None:
-        return '<div data-player-summary=""></div>'
-
-    duchy = next(
-        (d for d in game.duchies if d.duchy_id == player_duchy_id),
-        None,
-    )
+    duchy = player_duchy(game, player_duchy_id)
     if duchy is None:
         return '<div data-player-summary=""></div>'
 

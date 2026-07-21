@@ -216,6 +216,13 @@ region w `world.regions` z `party_at(region).owner_id == owner_id` (inaczej
 `None`); czysty, bez mutacji. Reużywany przez `herolocator`, `herochase`
 i `engagementpreview` (region gracza / wroga).
 
+**Lokalizacja księstwa gracza (R38.1):**
+`tbbui.gamelookup.player_duchy(game, player_duchy_id) -> Duchy | None` —
+`None` gdy `player_duchy_id is None`, inaczej pierwsze księstwo w
+`game.duchies` o `duchy_id == player_duchy_id`, inaczej `None`; czysty, bez
+mutacji `game`. Reużywany przez `playersummary`, `nextobjective`,
+`victoryprogress`, `herolocator`, `herochase` i `engagementpreview`.
+
 **Panel party HTML (K22.2a / K24.1a / K25.1a / K25.1b / K27.1a):** `tbbui.partypanel.render_party_panel(world,
 player_duchy_id=None) -> str` — parsowalny fragment XML z korzeniem
 `<div data-party-panel="">`; po jednym `<div data-party-row="<region.name>">`
@@ -510,6 +517,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │       ├── engagementpreview.py # HTML podgląd siły celu szturmu (K37.1)
 │       ├── turnsummary.py # HTML podsumowanie zmian po turze (K38.1a–b)
 │       ├── maplookup.py    # czysty helper: pierwszy region party właściciela (R37.1)
+│       ├── gamelookup.py   # czysty helper: księstwo gracza po id (R38.1)
 │       ├── nextobjective.py # HTML podpowiedź następnego kroku (K34.1)
 │       ├── ownerlegend.py  # HTML legenda właścicieli (owner_id → kolor palety)
 │       ├── layout.py     # deterministyczny layout regionów WorldMap → (col, row)
@@ -550,6 +558,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │   ├── test_engagementpreview.py # HTML podgląd siły celu szturmu (tbbui, K37.1)
 │   ├── test_turnsummary.py # HTML podsumowanie zmian po turze (tbbui, K38.1a–b)
 │   ├── test_ui_maplookup.py # helper lokalizacji party właściciela (tbbui, R37.1)
+│   ├── test_ui_gamelookup.py # helper lokalizacji księstwa gracza (tbbui, R38.1)
 │   ├── test_nextobjective.py # HTML podpowiedź następnego kroku (tbbui, K34.1)
 │   ├── test_ownerlegend.py # HTML legenda właścicieli (tbbui, K23.1)
 │   ├── test_gamepage.py  # HTML strony partii (tbbui)

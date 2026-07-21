@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from tbb.game import GameState
+from tbbui.gamelookup import player_duchy
 
 
 def render_victory_progress(
@@ -19,14 +20,7 @@ def render_victory_progress(
     returns a bare empty root. Pure and deterministic: no RNG/IO; ``game`` is
     not mutated.
     """
-    if player_duchy_id is None:
-        return '<div data-victory-progress=""></div>'
-
-    player = next(
-        (d for d in game.duchies if d.duchy_id == player_duchy_id),
-        None,
-    )
-    if player is None:
+    if player_duchy(game, player_duchy_id) is None:
         return '<div data-victory-progress=""></div>'
 
     n = sum(

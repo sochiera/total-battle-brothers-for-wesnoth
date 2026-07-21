@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from tbb.game import GameState
 from tbb.world import WorldMap
+from tbbui.gamelookup import player_duchy
 from tbbui.maplookup import first_party_region
 from tbbui.unitstrength import combat_totals
 
@@ -37,14 +38,7 @@ def render_engagement_preview(
     bare empty root. Pure and deterministic: no RNG/IO; does not mutate
     ``world`` or ``game``.
     """
-    if player_duchy_id is None:
-        return '<div data-engagement-preview=""></div>'
-
-    player = next(
-        (d for d in game.duchies if d.duchy_id == player_duchy_id),
-        None,
-    )
-    if player is None:
+    if player_duchy(game, player_duchy_id) is None:
         return '<div data-engagement-preview=""></div>'
 
     player_region = first_party_region(world, player_duchy_id)
