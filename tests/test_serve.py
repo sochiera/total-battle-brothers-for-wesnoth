@@ -343,6 +343,38 @@ def test_game_app_player_duchy_id_data_player_and_turn_skips_player_ai(monkeypat
     assert set(take_calls) == {"north", "south"}
 
 
+def test_game_app_order_log_starts_empty_and_get_does_not_append():
+    """GameApp.order_log is [] at init; GET / leaves it unchanged (K43.1b).
+
+    Contract (task-209 / K43.1b):
+    - GameApp(...).order_log is a list equal to [] right after construction
+    - after any GET / (including repeated GETs), order_log is still [] and is
+      the same list object (GET never appends entries)
+    - unknown routes (404) also leave order_log untouched
+    """
+    world, game = _ongoing_world_game()
+    app = GameApp(world, game, Calendar(year=1, month=1), Rng(1), player_duchy_id="north")
+    assert app.order_log == []
+    assert isinstance(app.order_log, list)
+    log_id = id(app.order_log)
+
+    code, _body = app.handle("GET", "/")
+    assert code == 200
+    assert app.order_log == []
+    assert id(app.order_log) == log_id
+
+    code2, _body2 = app.handle("GET", "/")
+    assert code2 == 200
+    assert app.order_log == []
+    assert id(app.order_log) == log_id
+
+    code3, body3 = app.handle("GET", "/nope")
+    assert code3 == 404
+    assert body3 == "Not Found"
+    assert app.order_log == []
+    assert id(app.order_log) == log_id
+
+
 def test_game_app_last_notice_empty_string_renders_empty_data_notice():
     """GameApp exposes last_notice, rendered as one <p data-notice> in extras.
 

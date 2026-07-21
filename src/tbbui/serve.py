@@ -159,6 +159,7 @@ class GameApp:
         self.last_battle = None
         self.previous_game: GameState | None = None
         self.last_notice = ""
+        self.order_log: list[str] = []
 
     def handle(self, method: str, path: str) -> tuple[int, str]:
         """Route one request; return ``(http_status, body)`` without sockets."""

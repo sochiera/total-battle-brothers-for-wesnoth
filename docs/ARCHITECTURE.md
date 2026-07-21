@@ -470,6 +470,8 @@ czystą metodę `handle(method, path) -> (kod_http, treść)` — bez gniazda HT
 Opcjonalny `seed` jest przechowywany na app (restart `POST /new` w K31.1a); domyślnie `None`.
 `GameApp.previous_game: GameState | None` (K38.2a) — init `None`; `_render` woła
 `render_game_page(..., previous_game=self.previous_game)` (podsumowanie tury w stronie).
+`GameApp.order_log: list[str]` (K43.1b) — init `[]`; `GET /` i nieznane trasy (404)
+nie mutują listy (ten sam obiekt listy).
 `handle` rozdziela ścieżkę od query (`path.partition("?")`) na początku routingu.
 `POST /new` (K31.1a): zawsze zeruje `previous_game`; gdy `seed is not None` podmienia
 `world`/`game` na świeże
