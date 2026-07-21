@@ -40,19 +40,19 @@ _DEVELOP_FORM = (
 
 _MARCH_FORM = (
     '<form method="post" action="/order/march">'
-    '<button type="submit">March</button>'
+    '<button type="submit">Marsz</button>'
     "</form>"
 )
 
 _ASSAULT_FORM = (
     '<form method="post" action="/order/assault">'
-    '<button type="submit">Assault</button>'
+    '<button type="submit">Szturm</button>'
     "</form>"
 )
 
 _ENGAGE_FORM = (
     '<form method="post" action="/order/engage">'
-    '<button type="submit">Engage</button>'
+    '<button type="submit">Starcie</button>'
     "</form>"
 )
 

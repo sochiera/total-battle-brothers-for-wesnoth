@@ -205,15 +205,16 @@ a przed grupami marszu/szturmu/starcia po jednym nagłówku
 sekcję marszu (K15.1c: gdy gracz ma party — po jednym
 `<form method="post" action="/order/march?target=<nazwa>">` na region z obcą
 osadą, `quote` na nazwie, przycisk = nazwa; inaczej bare
-`<form method="post" action="/order/march">`) i
+`<form method="post" action="/order/march">` z `<button>Marsz</button>`) i
 sekcję szturmu (K15.2c: ten sam guard i cele `_march_targets` — po jednym
 `<form method="post" action="/order/assault?target=<nazwa>">`; inaczej bare
-`<form method="post" action="/order/assault">`) oraz sekcję starcia
-party↔party (K19.1c: gdy `player_duchy_id` ustawiony, gra nie `is_over` i
-`_engage_targets` niepuste — po jednym
+`<form method="post" action="/order/assault">` z `<button>Szturm</button>`)
+oraz sekcję starcia party↔party (K19.1c: gdy `player_duchy_id` ustawiony,
+gra nie `is_over` i `_engage_targets` niepuste — po jednym
 `<form method="post" action="/order/engage?target=<nazwa>">` na sąsiednią
 wrogą party w kolejności `world.neighbors`; inaczej bare
-`<form method="post" action="/order/engage">`). Wspólny emiter HTML formularzy celu (R16.1 / R21.1): prywatny
+`<form method="post" action="/order/engage">` z `<button>Starcie</button>`)
+(K29.2b — polskie etykiety bare `<button>`; cele nadal `region.name`). Wspólny emiter HTML formularzy celu (R16.1 / R21.1): prywatny
 `GameApp._emit_target_forms(order_path, targets)` buduje pętlę
 `<form action="{path}?target=quote(name)">` + przycisk z nazwą; reużywany przez
 marsz, szturm i starcie. Guardy i dobór celów zostają per sekcja: prywatny

@@ -169,6 +169,30 @@ def test_game_app_get_polish_labels_turn_and_development_order_buttons():
     assert _form_submit_button_text(body, "/order/develop") == "Rozbuduj osadę"
 
 
+def test_game_app_get_polish_labels_bare_march_assault_engage_buttons():
+    """GET /: bare march/assault/engage forms use Polish button labels (K29.2b).
+
+    Contract (task-150 / K29.2b):
+    - bare form action=/order/march submit button text is ``Marsz``
+    - bare form action=/order/assault → ``Szturm``
+    - bare form action=/order/engage → ``Starcie``
+    - form method/action paths unchanged (still POST to those bare actions)
+    - when player has no party, bare forms are present (no per-target alternatives)
+    """
+    world, game = _ongoing_world_game()
+    app = GameApp(
+        world, game, Calendar(year=1, month=1), Rng(1), player_duchy_id="north"
+    )
+    code, body = app.handle("GET", "/")
+    assert code == 200
+    assert _has_post_march_form(body)
+    assert _has_post_assault_form(body)
+    assert _has_post_engage_form(body)
+    assert _form_submit_button_text(body, "/order/march") == "Marsz"
+    assert _form_submit_button_text(body, "/order/assault") == "Szturm"
+    assert _form_submit_button_text(body, "/order/engage") == "Starcie"
+
+
 def test_game_app_handle_get_turn_404_noop_and_determinism():
     """GameApp.handle: GET form, POST one turn, is_over no-op, 404, seed det.
 
@@ -2625,7 +2649,7 @@ def test_game_app_order_engage_form_on_get():
     assert code == 200
     assert _has_post_engage_form(body)
     assert re.search(
-        r"<button\b[^>]*>\s*Engage\s*</button>", body, flags=re.IGNORECASE
+        r"<button\b[^>]*>\s*Starcie\s*</button>", body, flags=re.IGNORECASE
     )
 
 
