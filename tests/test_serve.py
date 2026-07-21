@@ -417,6 +417,50 @@ def test_game_app_post_order_develop_sets_last_notice_wykonano_then_brak_zmian()
     assert notices2[0].get("data-notice") == "Rozbudowa: brak zmian"
 
 
+def test_game_app_post_order_march_without_target_sets_last_notice_marsz():
+    """POST /order/march without a target uses the plain "Marsz" label (K28.1c).
+
+    Contract: missing/empty/unknown target falls back to ai.march_duchy_party
+    with label "Marsz", so a march that changes world sets
+    last_notice == "Marsz: wykonano", and a subsequent no-op march (already
+    adjacent to the enemy) sets last_notice == "Marsz: brak zmian".
+    """
+    start, step, target = map(Region, ("Start", "Step", "Target"))
+    party = Party(Unit(training=4), (Unit(equipment=1),), owner_id="north")
+    enemy_keep = Settlement("Enemy Keep", 2, owner_id="south")
+    world = WorldMap(
+        (start, step, target),
+        ((start, step), (step, target)),
+        settlements={target: enemy_keep},
+        parties={start: party},
+    )
+    game = GameState(
+        (
+            Duchy("north", party.hero, parties=(party,)),
+            Duchy("south", Unit(), settlements=(enemy_keep,)),
+        )
+    )
+    calendar = Calendar(year=2, month=3)
+    app = GameApp(world, game, calendar, Rng(11), player_duchy_id="north")
+    assert app.last_notice == ""
+
+    code, body = app.handle("POST", "/order/march")
+    assert code == 200
+    assert app.last_notice == "Marsz: wykonano"
+    root = ET.fromstring(body)
+    notices = _find_by_attr(root, "data-notice")
+    assert len(notices) == 1
+    assert notices[0].get("data-notice") == "Marsz: wykonano"
+
+    code2, body2 = app.handle("POST", "/order/march")
+    assert code2 == 200
+    assert app.last_notice == "Marsz: brak zmian"
+    root2 = ET.fromstring(body2)
+    notices2 = _find_by_attr(root2, "data-notice")
+    assert len(notices2) == 1
+    assert notices2[0].get("data-notice") == "Marsz: brak zmian"
+
+
 def test_game_app_post_order_march_with_target_sets_last_notice_with_region_name():
     """POST /order/march?target=<region> sets last_notice with a target-named label (K28.1c).
 
