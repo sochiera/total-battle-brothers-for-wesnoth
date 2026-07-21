@@ -431,7 +431,8 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   (kolejność `world.regions`; w regionie osada przed party); zagrażający =
   pierwsze sąsiednie party z jawnym `owner_id != player_duchy_id` w kolejności
   `world.neighbors`; tekst `Osada|Oddział <R>: zagrożenie od <owner> z <E>`;
-  `N` = liczba wierszy (0 → brak dzieci). Czysty, deterministyczny.
+  `N` = liczba wierszy (0 → brak dzieci). Osadzony w stronie partii zaraz po
+  `data-engagement-preview` (K39.1c). Czysty, deterministyczny.
 - `render_party_panel(world, player_duchy_id=None)` — fragment `data-party-panel`
   z wierszem `data-party-row` (= nazwa regionu) na party w kolejności
   `world.regions`; `data-owner`/`data-size` (liczba podkomendnych)/`data-hp`/
@@ -484,7 +485,9 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   `render_hero_chase(world, game, player_duchy_id)` (K36.1c, dokładnie jeden
   `data-hero-chase`), a zaraz po pościgu kanoniczny
   `render_engagement_preview(world, game, player_duchy_id)` (K37.1c, dokładnie
-  jeden `data-engagement-preview`); `None` → bajt-w-bajt jak dotąd. Przy
+  jeden `data-engagement-preview`), a zaraz po podglądzie starcia kanoniczny
+  `render_threat_alert(world, game, player_duchy_id)` (K39.1c, dokładnie jeden
+  `data-threat-alert`); `None` → bajt-w-bajt jak dotąd. Przy
   `player_duchy_id is not None` osadza też
   `<p data-player-result-text>` z wynikiem z perspektywy gracza (`Gra w toku` /
   `Zwycięstwo Twojego księstwa` / `Porażka Twojego księstwa` / `Remis` wg
