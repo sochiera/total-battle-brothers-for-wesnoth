@@ -296,3 +296,24 @@
 - [x] **R27.1 (refaktor)** Wspólny licznik `tbbui.unitstrength.wounded_count`; bez nowych testów. *(task-140)*
 - [x] **K27.3a** Nagłówek sekcji osad na stronie (`<h2 data-panel-section="settlements">Osady</h2>`). *(task-141)*
 - [x] **K27.3b** Nagłówki sekcji party i księstw na stronie (`parties`/`duchies`). *(task-142)*
+
+## Kamień milowy 28 — potwierdzenie skutku rozkazu gracza w podglądzie — UKOŃCZONY
+> Po każdym rozkazie POST `GameApp` ustawia czytelny komunikat `<p data-notice>`
+> na podstawie zmiany stanu (`wykonano`/`brak zmian`) lub powstania bitwy
+> (`bitwa`), z celem w etykiecie; `POST /turn` daje datę po ruchu AI.
+> `render_game_page` i rdzeń `tbb` bez zmian.
+- [x] **K28.1a** Slot komunikatu rozkazu (`GameApp.last_notice`, `<p data-notice>`; świeży GET → pusty). *(task-143)*
+- [x] **K28.1b** Komunikat skutku recruit/muster/develop (`wykonano`/`brak zmian` przez `_apply_player_order(transition, label)`). *(task-144)*
+- [x] **K28.1c** Komunikat skutku marszu z nazwą celu (`Marsz do <region>` / `Marsz`). *(task-145)*
+- [x] **K28.1d** Komunikat skutku szturmu i starcia (`bitwa`/`brak zmian` przez `_apply_player_assault_order(transition, label)`). *(task-146)*
+- [x] **K28.1e** Komunikat następnej tury z datą po ruchu AI (`Następna tura: rok N, miesiąc M`). *(task-147)*
+
+## Kamień milowy 29 — czytelny i zlokalizowany interfejs gracza (grywalny podgląd) — UKOŃCZONY
+> Widoczny tekst komunikatu w ciele `<p data-notice>` (K29.1a) i pełna
+> lokalizacja etykiet przycisków (K29.2a–b); refaktor R29.1 scalił guard
+> księstwa gracza w `_resolve_player_duchy()`. Rdzeń `tbb`, `render_game_page`
+> i routing bez zmian.
+- [x] **K29.1a** Widoczny tekst komunikatu w ciele `<p data-notice>` (jak widoczny kalendarz K21.1a). *(task-148)*
+- [x] **K29.2a** Polskie etykiety przycisków tury i rozwoju (`Następna tura`/`Rekrutuj`/`Zbierz oddział`/`Rozbuduj osadę`). *(task-149)*
+- [x] **K29.2b** Polskie etykiety bare przycisków marsz/szturm/starcie (`Marsz`/`Szturm`/`Starcie`). *(task-150)*
+- [x] **R29.1 (refaktor)** Wspólny guard `_resolve_player_duchy()` w `serve.py`; bez nowych testów. *(task-151)*

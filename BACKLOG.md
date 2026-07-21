@@ -146,32 +146,34 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > panele. Wszystkie pozycje (task-138…142) w `BACKLOG-ARCHIVE.md`. Rdzeń `tbb`
 > bez zmian.
 
-## Kamień milowy 28 — potwierdzenie skutku rozkazu gracza w podglądzie
-> DESIGN §11: strona pokazuje bogaty stan (K22–K27), ale po kliknięciu rozkazu
-> gracz nie dostaje żadnego potwierdzenia, że akcja się zarejestrowała ani czy
-> coś zmieniła (§6 pkt 2–3) — nie może świadomie prowadzić rozwoju i walki.
-> K28 dokłada w `GameApp` (serve.py) czytelny komunikat `<p data-notice>`: po
-> każdym rozkazie POST ustawiany na podstawie tego, czy stan gry się zmienił
-> (`wykonano` / `brak zmian`) lub czy powstała bitwa (`bitwa`), z celem w
-> etykiecie tam, gdzie gracz go wskazał. `render_game_page` i rdzeń `tbb` bez
-> zmian.
-- [x] **K28.1a** Slot komunikatu rozkazu (`GameApp.last_notice`, `<p data-notice>`; świeży GET → pusty). *(task-143)*
-- [x] **K28.1b** Komunikat skutku recruit/muster/develop (`wykonano`/`brak zmian` przez `_apply_player_order(transition, label)`). *(task-144)*
-- [x] **K28.1c** Komunikat skutku marszu z nazwą celu (`Marsz do <region>` / `Marsz`). *(task-145)*
-- [x] **K28.1d** Komunikat skutku szturmu i starcia (`bitwa`/`brak zmian` przez `_apply_player_assault_order(transition, label)`). *(task-146)*
-- [~] **K28.1e** Komunikat następnej tury z datą po ruchu AI (`Następna tura: rok N, miesiąc M`). *(task-147)*
+## Kamień milowy 28 — potwierdzenie skutku rozkazu gracza w podglądzie — UKOŃCZONY
+> DESIGN §11: po każdym rozkazie POST `GameApp` ustawia czytelny komunikat
+> `<p data-notice>` (`wykonano`/`brak zmian`/`bitwa`, z celem w etykiecie) oraz
+> komunikat następnej tury z datą po ruchu AI. Wszystkie pozycje (task-143…147)
+> w `BACKLOG-ARCHIVE.md`. `render_game_page` i rdzeń `tbb` bez zmian.
 
-## Kamień milowy 29 — czytelny i zlokalizowany interfejs gracza (grywalny podgląd)
-> DESIGN §11 (PLAN K29): K28 zapisał skutek rozkazu, ale komunikat żyje tylko w
-> atrybucie `data-notice` (człowiek go nie widzi), a przyciski akcji zostały po
-> angielsku obok polskich nagłówków i komunikatów. K29 dopina czytelność
-> podglądu w przeglądarce: widoczny tekst komunikatu (K29.1a) oraz pełna
-> lokalizacja etykiet przycisków (K29.2a–b). Refaktor R29.1 scala powielony guard
-> księstwa gracza w `serve.py`. Rdzeń `tbb`, `render_game_page` i routing bez zmian.
-- [ ] **K29.1a** Widoczny tekst komunikatu w ciele `<p data-notice>` (jak widoczny kalendarz K21.1a). *(task-148)*
-- [ ] **K29.2a** Polskie etykiety przycisków tury i rozwoju (`Następna tura`/`Rekrutuj`/`Zbierz oddział`/`Rozbuduj osadę`). *(task-149)*
-- [ ] **K29.2b** Polskie etykiety bare przycisków marsz/szturm/starcie (`Marsz`/`Szturm`/`Starcie`). *(task-150)*
-- [ ] **R29.1 (refaktor)** Wspólny guard `_resolve_player_duchy()` w `serve.py`; bez nowych testów. *(task-151)*
+## Kamień milowy 29 — czytelny i zlokalizowany interfejs gracza (grywalny podgląd) — UKOŃCZONY
+> DESIGN §11 (PLAN K29): widoczny tekst komunikatu w ciele `<p data-notice>`
+> (K29.1a) i pełna lokalizacja etykiet przycisków (K29.2a–b); refaktor R29.1
+> scalił guard księstwa gracza w `_resolve_player_duchy()`. Wszystkie pozycje
+> (task-148…151) w `BACKLOG-ARCHIVE.md`. Rdzeń `tbb`, `render_game_page` i
+> routing bez zmian.
+
+## Kamień milowy 30 — świadome decyzje gracza: podsumowanie księstwa + czytelny panel rozkazów
+> DESIGN §11 (PLAN K30): K22–K27 pokazały stan per osada/oddział, ale gracz nie
+> widzi **zagregowanego** stanu własnego księstwa (łączne złoto/pszenica, liczba
+> osad/oddziałów, łączna siła bojowa) — musi sumować w głowie przed decyzją o
+> rekrutacji i walce (§6 pkt 2). Nie zna też kosztu rekrutacji ani nie odróżnia
+> bloku rozkazów rozwoju od wojskowych. K30 dokłada czysty prymityw
+> `render_player_summary` (gospodarka → K30.3a, siła → K30.3b) osadzony w
+> `render_game_page` (K30.3c) oraz czytelniejszy panel rozkazów: nagłówek sekcji
+> „Rozwój" (K30.1a) i koszt złota na przycisku rekrutacji (K30.2a). Rdzeń `tbb`
+> bez zmian; dane z istniejących `GameState`/`Duchy`/`Settlement`.
+- [ ] **K30.1a** Nagłówek sekcji `<h2 data-order-section="develop">Rozwój</h2>` nad rozkazami recruit/muster/develop. *(task-152)*
+- [ ] **K30.2a** Koszt złota na przycisku „Rekrutuj" z `tbb.settlement.RECRUIT_GOLD_COST`. *(task-153)*
+- [ ] **K30.3a** Panel podsumowania księstwa gracza — gospodarka (`render_player_summary`: osady/oddziały/złoto/pszenica). *(task-154)*
+- [ ] **K30.3b** Panel podsumowania — łączna siła bojowa oddziałów (reużycie `combat_totals`). *(task-155)*
+- [ ] **K30.3c** Osadzenie podsumowania w `render_game_page` (bez gracza → bajt-w-bajt jak dotąd). *(task-156)*
 
 ## Dług/refaktor
 - [x] **R21.1 (refaktor)** Wspólny emiter formularzy celu marsz/szturm/starcie w `serve.py`. *(task-113)*

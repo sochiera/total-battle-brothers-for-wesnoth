@@ -358,6 +358,14 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   · ranni: W` (nawias z nazwami tylko gdy `B>0`) zgodny z atrybutami; przy
   `player_duchy_id` wiersze z `owner_id` gracza mają `data-player-owned=""`.
   Czysty, deterministyczny.
+- `render_player_summary(game, player_duchy_id=None)` — fragment
+  `data-player-summary` z zagregowanym stanem księstwa gracza z `game.duchies`
+  (`duchy_id == player_duchy_id`): `data-settlements`/`data-parties` (liczności),
+  `data-gold`/`data-wheat` (sumy `settlement.storage` po osadach),
+  `data-hp`/`data-attack`/`data-defense` (`combat_totals` po wszystkich party) i
+  tekst `Twoje księstwo: osady N, oddziały M · pszenica W, złoto G · siła
+  oddziałów: HP H, atak A, obrona D`. Brak gracza lub id spoza `game.duchies` →
+  sam pusty korzeń. Czysty, deterministyczny.
 - `render_party_panel(world, player_duchy_id=None)` — fragment `data-party-panel`
   z wierszem `data-party-row` (= nazwa regionu) na party w kolejności
   `world.regions`; `data-owner`/`data-size` (liczba podkomendnych)/`data-hp`/
@@ -382,7 +390,10 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   `<h2 data-panel-section="parties">Oddziały</h2>` tuż przed panelem party
   (`render_party_panel(world, player_duchy_id)`) oraz
   `<h2 data-panel-section="duchies">Księstwa</h2>` tuż przed pierwszym wierszem
-  `data-duchy` (kolejność nagłówków: settlements, parties, duchies).
+  `data-duchy` (kolejność nagłówków: settlements, parties, duchies). Przy
+  `player_duchy_id is not None` osadza też kanoniczny
+  `render_player_summary(game, player_duchy_id)` (K30.3c); `None` → bajt-w-bajt
+  jak dotąd.
 
 **GameApp / rozkazy gracza:**
 - `GameApp(..., player_duchy_id=None)` — w `POST /turn` woła `run_headless_game`
@@ -397,7 +408,10 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   `label` `last_notice` bez zmian.
 - `POST /order/recruit|muster|develop` → `recruit_duchy_unit` /
   `muster_duchy_party` / `develop_duchy_settlement` z etykietami
-  `"Rekrutacja"` / `"Zebranie oddziału"` / `"Rozbudowa"`.
+  `"Rekrutacja"` / `"Zebranie oddziału"` / `"Rozbudowa"`. GET `/` poprzedza te
+  trzy formularze nagłówkiem `<h2 data-order-section="develop">Rozwój</h2>`
+  (K30.1a, przed sekcjami march/assault/engage); przycisk rekrutacji niesie koszt
+  złota `Rekrutuj (koszt złota: N)` z `tbb.settlement.RECRUIT_GOLD_COST` (K30.2a).
 - `POST /order/march` / `?target=<region>` — parse `target` przez
   `_order_target_region` (`parse_qs`, dopasowanie `Region.name`); znany target →
   `march_duchy_party_to` z etykietą `f"Marsz do {region.name}"`; brak/nieznany
@@ -561,6 +575,17 @@ polskimi nagłówkami sekcji i komunikatami; przyciski celów nadal pokazują
 `region.name`. Refaktor R29.1 scala powielony guard księstwa gracza w
 `_resolve_player_duchy()`. Routing, atrybuty `data-*`, `render_game_page`
 i rdzeń `tbb` bez zmian.
+
+**PLAN K30 (świadome decyzje gracza):** K22–K27 pokazały stan per osada/oddział,
+ale gracz nie widzi zagregowanego stanu własnego księstwa (łączne złoto/pszenica,
+liczba osad/oddziałów, łączna siła bojowa) ani kosztu rekrutacji, i nie odróżnia
+bloku rozkazów rozwoju od wojskowych (§6 pkt 2). K30 dokłada czysty prymityw
+`tbbui.playersummary.render_player_summary` (gospodarka → K30.3a, siła oddziałów
+przez `combat_totals` → K30.3b) osadzony w `render_game_page` przy ustawionym
+`player_duchy_id` (K30.3c; `None` → bajt-w-bajt jak dotąd) oraz czytelniejszy
+panel rozkazów w `serve.py`: nagłówek sekcji `<h2 data-order-section="develop">`
+(K30.1a) i koszt złota na przycisku rekrutacji z `RECRUIT_GOLD_COST` (K30.2a).
+Rdzeń `tbb` bez zmian; dane z istniejących `GameState`/`Duchy`/`Settlement`.
 
 ## 12. Otwarte pytania (nadal)
 - **Krzywe filarów:** różne parametry stromości per filar oraz wpływ budynków/
