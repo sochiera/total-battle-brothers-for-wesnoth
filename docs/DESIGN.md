@@ -329,291 +329,39 @@ Scenariuszowa kampania/fabuła, multiplayer sieciowy, magia/fantastyka, oddział
 masowe (np. 60 ludzi w jednostce), grafika AAA/dźwięk, edytor map.
 
 ## 11. Warstwa wizualna (`tbbui`)
-Rdzeń zostaje bez importów UI; prezentacja to osobny pakiet **stdlib**:
-deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
-`tbb` nigdy nie importuje `tbbui`.
+Rdzeń `tbb` **nigdy** nie importuje UI. Prezentacja to osobny pakiet **stdlib**:
+deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka.
+Pełne kontrakty render/routingu (`data-*`, emitory HTML, ścieżki POST) —
+`docs/ARCHITECTURE.md` (sekcja prezentacji `tbbui`).
 
-**Render:**
-- `render_world_svg(world)` — węzły `g[data-region]`, etykiety, `<line>` na
-  connections (`data-from`/`data-to`), znaczniki osady/party (`data-settlement` /
-  `data-party` + `data-owner`), `fill` z `owner_palette(world)` (cykliczna paleta;
-  `None` → kolor neutralny).
-- `tbbui.hexgeom` — pointy-top `hex_to_pixel` / `hex_corners`.
-- `render_battle_svg(battle)` — heksy obwiedni zajętych ±1, znaczniki
-  `data-side`/`data-hp`/`data-stunned`.
-- `render_battle_report(battle)` — fragment `data-battle-report` z wynikiem i
-  stratami per strona z `HexBattle.report()`. Obok maszynowych `data-*`: widoczny
-  tekst wyniku (`Zwycięstwo atakującego` / `Zwycięstwo broniącego` / `Remis`)
-  oraz w każdym `data-battle-side` wiersz strat czytelny dla człowieka
-  (`Atakujący/Broniący: polegli N, ogłuszeni M, zdolni K`, zgodny z atrybutami).
-- `render_settlement_panel(world, player_duchy_id=None)` — fragment
-  `data-settlement-panel` z wierszem `data-settlement-row` (= nazwa regionu) na
-  osadę w kolejności `world.regions`; atrybuty `data-owner`/`data-wheat`/
-  `data-gold`/`data-population`/`data-free`/`data-garrison`/
-  `data-garrison-hp`/`data-garrison-attack`/`data-garrison-defense` (sumy
-  `Unit.hp`/`Unit.damage`/`Unit.defense` po garnizonie; pusty → `0`),
-  `data-buildings` (`len(active_buildings)`), `data-building-names` (nazwy
-  `active_buildings` złączone `", "`, pusty → `""`) oraz
-  `data-garrison-wounded` (liczba jednostek garnizonu z niepustą krotką
-  `wounds`; pusty garnizon → `0`) oraz widoczny tekst
-  `<nazwa> (<owner|„—">): pszenica W, złoto G · populacja P (wolne F),
-  garnizon N · siła garnizonu: HP H, atak A, obrona D · budynki: B (nazwa1, …)
-  · ranni: W` (nawias z nazwami tylko gdy `B>0`) zgodny z atrybutami; przy
-  `player_duchy_id` wiersze z `owner_id` gracza mają `data-player-owned=""`.
-  Czysty, deterministyczny.
-- `render_player_summary(game, player_duchy_id=None)` — fragment
-  `data-player-summary` z zagregowanym stanem księstwa gracza z `game.duchies`
-  (`duchy_id == player_duchy_id`): `data-settlements`/`data-parties` (liczności),
-  `data-gold`/`data-wheat` (sumy `settlement.storage` po osadach),
-  `data-hp`/`data-attack`/`data-defense` (`combat_totals` po wszystkich party) i
-  tekst `Twoje księstwo: osady N, oddziały M · pszenica W, złoto G · siła
-  oddziałów: HP H, atak A, obrona D`. Brak gracza lub id spoza `game.duchies` →
-  sam pusty korzeń. Czysty, deterministyczny.
-- `render_victory_progress(game, player_duchy_id=None)` — fragment
-  `data-victory-progress` z postępem do celu z perspektywy gracza. Przy graczu
-  w `game.duchies`: korzeń niesie `data-enemies-remaining` (liczba wrogów
-  `duchy_id != player` z `not is_defeated`) i tekst „Wrogów do pokonania: N",
-  a per wrogie księstwo (kolejność `game.duchies`) dziecko
-  `<div data-enemy-duchy="<id>">` z `data-settlements`/`data-hero`
-  (`Duchy.has_hero`)/`data-defeated` (`Duchy.is_defeated`) i tekstem
-  `<id>: osady N, bohater tak|nie` (sufiks ` — pokonany` gdy `is_defeated`).
-  Brak gracza lub id spoza `game.duchies` → sam pusty korzeń. Czysty,
-  deterministyczny.
-- `render_enemy_hero_locator(world, game, player_duchy_id=None)` — fragment
-  `data-hero-locator` z lokalizacją wrogich bohaterów na mapie. Przy graczu w
-  `game.duchies`: korzeń niesie `data-heroes-on-map` (liczba wrogich księstw z
-  `has_hero`, których party stoi na mapie — region z `world.party_at` o
-  `owner_id == duchy_id`), a per wrogie księstwo z `has_hero` (kolejność
-  `game.duchies`) dziecko `<div data-enemy-duchy="<id>" data-hero-region="…">`
-  z regionem (pierwszy w `world.regions` o zgodnym `owner_id`) i tekstem
-  `<id>: bohater w <region>` albo `data-hero-region=""` i
-  `<id>: bohater niewystawiony` gdy party brak na mapie; wrogowie bez
-  `has_hero` bez wiersza. Brak gracza lub id spoza `game.duchies` → sam pusty
-  korzeń. Czysty, deterministyczny.
-- `render_hero_chase(world, game, player_duchy_id=None)` — fragment
-  `data-hero-chase` z dystansem marszu od party gracza do wrogich bohaterów.
-  Przy graczu w `game.duchies`: korzeń niesie `data-player-on-map` (`"true"` gdy
-  gracz ma party na mapie — pierwszy region w `world.regions` z
-  `party_at.owner_id == player`; inaczej `"false"` i brak wierszy), a per wróg
-  (`duchy_id != player`) z `has_hero`, którego party stoi na mapie (kolejność
-  `game.duchies`) dziecko `<div data-enemy-duchy="<id>" data-distance="<D>">` z
-  `D = ai.region_distance(region_gracza, region_bohatera)` i tekstem
-  `<id>: D pól marszu`; brak drogi (`None`) → `data-distance=""` i
-  `<id>: brak drogi`. Wiersz o `data-distance="1"` (sąsiad) dostaje
-  `data-in-reach=""` i sufiks „ — w zasięgu". Wrogowie bez `has_hero` lub bez
-  party na mapie bez wiersza. Brak gracza lub id spoza `game.duchies` → sam
-  pusty korzeń. Czysty, deterministyczny.
-- `render_engagement_preview(world, game, player_duchy_id=None)` — fragment
-  `data-engagement-preview` z porównaniem siły party gracza z sąsiednimi wrogimi
-  celami (decyzja „atakować czy nie"). Przy graczu w `game.duchies` z party na
-  mapie (pierwszy region w `world.regions` z `party_at.owner_id == player`):
-  korzeń niesie `data-player-on-map="true"` oraz `data-own-hp`/`data-own-attack`/
-  `data-own-defense` = `combat_totals((party.hero, *party.units))`. Na każdy
-  sąsiedni (kolejność `world.neighbors(region_gracza)`) region z jawnym wrogim
-  celem powstaje wiersz `<div data-target-region="…" data-target-owner="…"
-  data-target-kind="settlement|party" data-enemy-hp/attack/defense
-  data-advantage="true|false">`: dla osady siła = `combat_totals(garrison)` i
-  tekst `<region> (<owner>): garnizon HP H, atak A, obrona D`, dla party siła =
-  `combat_totals(hero+units)` i tekst `… oddział HP H, atak A, obrona D`;
-  w regionie z osadą i party wiersz osady poprzedza party. `data-advantage="true"`
-  gdy suma własnych statystyk ≥ suma statystyk celu (sufiks „ — przewaga"),
-  inaczej `"false"` (sufiks „ — niekorzystnie"). Gracz bez party na mapie →
-  `data-player-on-map="false"` bez wierszy i `data-own-*`; brak gracza lub id
-  spoza `game.duchies` → sam pusty korzeń. Czysty, deterministyczny.
-- `render_threat_alert(world, game, player_duchy_id=None)` — fragment
-  `data-threat-alert` ostrzegający o zagrożonych własnych pozycjach (obronna
-  połowa decyzji o walce). Brak gracza lub id spoza `game.duchies`
-  (`player_duchy(...) is None`) → sam pusty korzeń `<div data-threat-alert="">`
-  bez `data-threats`, bez tekstu i bez dzieci. Przy znanym graczu korzeń niesie
-  `data-threats="N"` oraz tekst `Zagrożone pozycje: N`, plus po jednym wierszu
-  `<div data-threatened-region data-threatened-kind="settlement|party"
-  data-enemy-region data-enemy-owner data-own-hp data-own-attack
-  data-own-defense data-enemy-hp data-enemy-attack data-enemy-defense
-  data-defensible>` na każdą zagrożoną własną pozycję (kolejność
-  `world.regions`; w regionie osada przed party); zagrażający = pierwsze
-  sąsiednie party z jawnym `owner_id != player_duchy_id` w kolejności
-  `world.neighbors`; siła obronna = `combat_totals(garrison)` (osada) lub
-  `combat_totals((hero, *units))` (party); siła wroga =
-  `combat_totals((enemy.hero, *enemy.units))`; `data-defensible="true"` gdy
-  Ho+Ao+Do ≥ He+Ae+De, inaczej `"false"`; tekst
-  `Osada|Oddział <R>: zagrożenie od <owner> z <E> · siła obronna: HP Ho, atak Ao,
-  obrona Do · siła wroga: HP He, atak Ae, obrona De — obronisz się|przewaga wroga`;
-  `N` = liczba wierszy (0 → brak dzieci). Osadzony w stronie partii zaraz po
-  `data-engagement-preview` (K39.1c). Czysty, deterministyczny.
-- `render_situation_report(world, game, player_duchy_id=None)` — fragment
-  `data-situation-report` z jednolinijkowym skrótem sytuacji taktycznej. Brak
-  gracza lub id spoza `game.duchies` (`player_duchy(...) is None`) → sam pusty
-  korzeń `<div data-situation-report="">` (bez atrybutów/tekstu). Przy znanym
-  graczu korzeń niesie `data-threatened-count="N"` (liczba zagrożonych własnych
-  pozycji wg reguły `render_threat_alert`, przez wspólne
-  `threatalert.threatened_position_count`), `data-opportunity-count="M"` (liczba
-  sąsiednich wrogich celów party gracza z przewagą wg reguły
-  `render_engagement_preview`, przez `engagementpreview.advantageous_target_count`)
-  oraz `data-net-posture` (`"offensive"` gdy M>N, `"defensive"` gdy N>M,
-  `"balanced"` gdy M==N; przez `situationreport.net_posture`) i tekst
-  `Sytuacja: zagrożone pozycje N, korzystne cele M — postawa:
-  ofensywna|defensywna|zrównoważona`. Osadzony w stronie partii zaraz po
-  `data-threat-alert` (K40.1c). Czysty, deterministyczny.
-- `render_recommended_action(world, game, player_duchy_id=None)` — fragment
-  `data-recommended-action` z jednym zalecanym rozkazem z postawy netto. Brak
-  gracza lub id spoza `game.duchies` (`player_duchy(...) is None`) → sam pusty
-  korzeń `<div data-recommended-action="">` (bez `data-posture`/`data-action`/
-  tekstu). Przy znanym graczu korzeń niesie `data-posture` = `net_posture(M, N)`
-  (M = `advantageous_target_count`, N = `threatened_position_count`), zaraz po
-  nim `data-action` (`assault`/`engage` przy ofensywnej wg `kind` z
-  `first_advantageous_target`, `defend` przy defensywnej, `develop` przy
-  zrównoważonej) i tekst: offensive → pierwszy korzystny cel z
-  `first_advantageous_target` (`Zalecany rozkaz: szturmuj osadę <region>` gdy
-  `kind=="settlement"`, `zaatakuj oddział <region>` gdy `kind=="party"`;
-  postawa ofensywna ⇒ M≥1); defensive → pierwsza zagrożona własna pozycja z
-  `first_threatened_region` (`broń pozycji <region>`; postawa defensywna ⇒ N≥1);
-  balanced → `rozwijaj księstwo`. Osadzony w stronie partii zaraz po
-  `data-situation-report` (K41.3a). Czysty, deterministyczny. Maszynowa decyzja
-  rady jest też dostępna osobno jako `recommended_order(world, game,
-  player_duchy_id) -> (action, target_region | None) | None` (K42.1a; `develop`
-  → target `None`), a opisowa część tekstu jako `recommended_order_text(action,
-  target_name)` (K42.2a); `render_recommended_action` deleguje do obu.
-- `render_party_panel(world, player_duchy_id=None)` — fragment `data-party-panel`
-  z wierszem `data-party-row` (= nazwa regionu) na party w kolejności
-  `world.regions`; `data-owner`/`data-size` (liczba podkomendnych)/`data-hp`/
-  `data-attack`/`data-defense` (sumy `Unit.hp`/`Unit.damage`/`Unit.defense`
-  bohatera i podkomendnych)/`data-wounded` (liczba jednostek spośród
-  `(hero, *units)` z niepustą krotką `wounds`) i tekst
-  `<region> (<owner|„—">): bohater + N podkomendnych · siła: HP H, atak A, obrona D · ranni: W`;
-  przy `player_duchy_id` wiersze z `owner_id` gracza mają `data-player-owned=""`.
-  Czysty, deterministyczny.
-- `render_turn_summary(before, after)` — fragment `data-turn-summary` z flagą i
-  wierszami zmian po turze (K38.1a–b): przy `before is None` pusty korzeń; przy
-  `GameState` `data-changed` / `data-change-count` oraz wiersze `data-turn-duchy`
-  dla księstw różniących się w `len(settlements)` / `has_hero`. Czysty,
-  deterministyczny.
-- `render_game_page(world, game, calendar, battle=None, player_duchy_id=None,
-  previous_game=None)` —
-  dokument z `<html>` → `<head><title>Total Battle Brothers</title></head>`
-  (K32.1a, stały tytuł) → `<body>` zaczynające się od
-  `<h1 data-page-title="">Total Battle Brothers</h1>` (K32.1b, stały nagłówek
-  strony) → stała linia celu
-  `<p data-objective="…">…</p>` (K32.1c: „Cel: pokonaj księstwo AI — odbierz mu
-  wszystkie osady i pokonaj jego bohatera"; atrybut = ciało; niezależna od
-  `player_duchy_id` / `game` / `battle`) → SVG mapy, kalendarz (`data-calendar` +
-  widoczny tekst `Rok N, miesiąc M`); przy `previous_game is not None` zaraz po
-  kalendarzu kanoniczny `render_turn_summary(previous_game, game)` (K38.1c,
-  dokładnie jeden `data-turn-summary`; niezależnie od `player_duchy_id`;
-  `None` → bez podsumowania tury); panel księstw (`data-duchy` +
-  `data-hero`/`data-heir` (`"true"`/`"false"` z `Duchy.has_hero` /
-  `heir is not None`) + tekst statusu
-  `<duchy_id>: osady N, party M, morale K, bohater tak|nie, dziedzic tak|nie`;
-  przy `player_duchy_id` dopasowany wiersz ma `data-player-duchy=""` i prefiks
-  `» `), wynik (`data-result`), banner
-  wyniku (`<p data-result-text>`: `Gra w toku` / `Remis` / `Zwycięstwo: <id>`),
-  opcjonalnie SVG bitwy i raport bitwy gdy `battle` podane; osadza też legendę
-  właścicieli (`render_owner_legend(world, player_duchy_id)`), nagłówki sekcji
-  `<h2 data-panel-section="settlements">Osady</h2>` tuż przed panelem osad
-  (`render_settlement_panel(world, player_duchy_id)`),
-  `<h2 data-panel-section="parties">Oddziały</h2>` tuż przed panelem party
-  (`render_party_panel(world, player_duchy_id)`) oraz
-  `<h2 data-panel-section="duchies">Księstwa</h2>` tuż przed pierwszym wierszem
-  `data-duchy` (kolejność nagłówków: settlements, parties, duchies). Przy
-  `player_duchy_id is not None` osadza też kanoniczny
-  `render_player_summary(game, player_duchy_id)` (K30.3c), zaraz po nim
-  kanoniczny `render_victory_progress(game, player_duchy_id)` (K33.1c, dokładnie
-  jeden `data-victory-progress`), a zaraz po postępie kanoniczny
-  `render_next_objective(game, player_duchy_id)` (K34.1b, dokładnie jeden
-  `data-next-objective`), a zaraz po podpowiedzi kanoniczny
-  `render_enemy_hero_locator(world, game, player_duchy_id)` (K35.1b, dokładnie
-  jeden `data-hero-locator`), a zaraz po lokatorze kanoniczny
-  `render_hero_chase(world, game, player_duchy_id)` (K36.1c, dokładnie jeden
-  `data-hero-chase`), a zaraz po pościgu kanoniczny
-  `render_engagement_preview(world, game, player_duchy_id)` (K37.1c, dokładnie
-  jeden `data-engagement-preview`), a zaraz po podglądzie starcia kanoniczny
-  `render_threat_alert(world, game, player_duchy_id)` (K39.1c, dokładnie jeden
-  `data-threat-alert`), a zaraz po alercie zagrożeń kanoniczny
-  `render_situation_report(world, game, player_duchy_id)` (K40.1c, dokładnie
-  jeden `data-situation-report`), a zaraz po skrócie sytuacji kanoniczny
-  `render_recommended_action(world, game, player_duchy_id)` (K41.3a, dokładnie
-  jeden `data-recommended-action`); `None` → bajt-w-bajt jak dotąd. Przy
-  `player_duchy_id is not None` osadza też
-  `<p data-player-result-text>` z wynikiem z perspektywy gracza (`Gra w toku` /
-  `Zwycięstwo Twojego księstwa` / `Porażka Twojego księstwa` / `Remis` wg
-  `game.is_over`/`game.winner`); `None` → element nieobecny (K31.2a).
+**Widok partii (produkt).** Strona HTML pokazuje: mapę strategiczną (regiony,
+połączenia, osady/party z kolorami właścicieli), kalendarz (rok/miesiąc),
+status księstw (osady, party, morale, bohater, dziedzic), wynik partii
+(w toku / remis / zwycięzca), opcjonalnie ostatnią bitwę gracza (SVG heksów +
+raport strat), panele osad i oddziałów (zasoby, garnizon/siła, ranni), legendę
+właścicieli. Przy wskazanym księstwie gracza: podsumowanie sił, postęp do
+zwycięstwa, podpowiedź celu, lokalizacja i dystans do wrogich bohaterów,
+porównanie sił z sąsiednimi celami, alert zagrożeń własnych pozycji, skrót
+sytuacji (postawa ofensywna/defensywna/zrównoważona) i jeden zalecany rozkaz.
+Teksty na stronie są czytelne dla człowieka (nie tylko atrybuty maszynowe).
 
-**GameApp / rozkazy gracza:**
-- `GameApp(..., seed=None)` — opcjonalny seed restartu. `POST /new`: zawsze
-  zeruje `previous_game`; gdy
-  `seed is not None` podmienia stan na świeżą `create_headless_game()` +
-  `Rng(seed)` + `Calendar()` (zachowuje `player_duchy_id`), zeruje
-  `last_battle`, `last_notice` = `"Nowa gra: rok 1, miesiąc 1"`; gdy `seed is
-  None` — no-op stanu, `last_notice` = `"Nowa gra: brak zmian"`; zawsze
-  `(200, strona)`. `GET /` emituje `<form action="/new">` (przycisk „Nowa gra")
-  niezależnie od stanu gry (K31.1a–b); przy grze w toku — przed `/turn` i
-  sekcjami rozkazów; przy `game.is_over` — bez formularza `/turn`, bez
-  `/order/*` i bez nagłówków `data-order-section` (K32.2a; POST no-opy bez
-  zmian). CLI `python -m tbbui serve` przekazuje `seed=HEADLESS_SEED` (K31.1c).
-- `GameApp(..., player_duchy_id=None)` — w `POST /turn` woła `run_headless_game`
-  z `max_turns=1` i tym id; `GET /` ma `data-player` oraz (K23.2b / K38.2a)
-  przekazuje `player_duchy_id` i `previous_game` do `render_game_page`
-  (`data-player-duchy` na wierszu gracza; dziennik zmian gdy `previous_game`).
-  CLI `python -m tbbui serve` ustawia `player_duchy_id="player"`.
-- Wspólny warunek rozkazu: ustawiony gracz, gra nie `is_over`, księstwo w
-  `game.duchies` → `_apply_player_order(transition, label=None)` +
-  `sync_from_world`; inaczej no-op; zawsze `(200, strona)`. Gdy podano
-  `label`, po próbie `last_notice` = `"{label}: wykonano"` gdy `world` się
-  zmienił, inaczej `"{label}: brak zmian"` (w tym przy guardach); bez
-  `label` `last_notice` bez zmian.
-- `POST /order/recruit|muster|develop` → `recruit_duchy_unit` /
-  `muster_duchy_party` / `develop_duchy_settlement` z etykietami
-  `"Rekrutacja"` / `"Zebranie oddziału"` / `"Rozbudowa"`. GET `/` poprzedza te
-  trzy formularze nagłówkiem `<h2 data-order-section="develop">Rozwój</h2>`
-  (K30.1a, przed sekcjami march/assault/engage); przycisk rekrutacji niesie koszt
-  złota `Rekrutuj (koszt złota: N)` z `tbb.settlement.RECRUIT_GOLD_COST` (K30.2a).
-- `POST /order/march` / `?target=<region>` — parse `target` przez
-  `_order_target_region` (`parse_qs`, dopasowanie `Region.name`); znany target →
-  `march_duchy_party_to` z etykietą `f"Marsz do {region.name}"`; brak/nieznany
-  → `march_duchy_party` z etykietą `"Marsz"` (K28.1c).
-- `POST /order/assault` / `?target=` — przez `_apply_player_assault_order`:
-  znany target → `assault_duchy_party_to_recorded` z etykietą
-  `f"Szturm na {region.name}"`; brak/nieznany → `assault_duchy_party_recorded`
-  z etykietą `"Szturm"`; `morale_by_owner` z `game.duchies` i `self.rng`;
-  wynikowa `HexBattle` trafia do `last_battle`; `last_notice` =
-  `"{label}: bitwa"` gdy bitwa, inaczej `"{label}: brak zmian"` (w tym guardy)
-  (K28.1d).
-- `POST /order/engage` / `?target=` — jak szturm: znany target →
-  `engage_duchy_party_to_recorded` z etykietą `f"Starcie z {region.name}"`,
-  brak/pusty/nieznany → `engage_duchy_party_recorded` z etykietą `"Starcie"`
-  (auto-cel: pierwsze sąsiednie wrogie party); te same guardy i
-  `morale_by_owner` / `self.rng` / `last_notice` bitwa vs brak zmian co szturm
-  (K28.1d). GET `/` ma bare formularz `action="/order/engage"`.
-- `GameApp.last_battle: HexBattle | None` — init `None`; `_render` przekazuje
-  `battle=self.last_battle` do `render_game_page` (SVG + raport bitwy w stronie
-  po szturmie / starciu). `POST /turn` oraz rozkazy nie-bitewne
-  (`/order/recruit|muster|develop|march`) zerują `last_battle` (stara bitwa nie
-  wisi po innym działaniu gracza); `assault`/`engage` nie zerują przed wykonaniem.
-- `GameApp.previous_game: GameState | None` — init `None`; `_render` przekazuje
-  `previous_game=self.previous_game` do `render_game_page` (dziennik zmian po
-  turze). `POST /turn` przy grze nie `is_over` ustawia `previous_game` na
-  `GameState` sprzed tury; przy no-op `is_over` oraz `POST /new` i
-  `POST /order/*` zerują `previous_game` (K38.2a — jak `last_battle`, nie wisi
-  po innym działaniu gracza niż tura).
-- `POST /turn` ustawia `last_notice`: po wykonanej turze
-  `f"Następna tura: rok {calendar.year}, miesiąc {calendar.month}"` (data po
-  turze); gdy gra była już `is_over` przed żądaniem —
-  `"Następna tura: gra zakończona"` (no-op stanu jak dotąd) (K28.1e).
-- `_render` emituje `last_notice` jako `<p data-notice="…">…</p>`: ta sama
-  escapowana treść w atrybucie i w ciele akapitu (widoczna w przeglądarce;
-  pusty komunikat → puste ciało) (K29.1a).
-- Zalecany rozkaz w jeden klik (K42.1b–2a): przy ustawionym gracze, grze nie
-  `is_over` i `recommended_order(...) is not None`, `GET /` osadza dokładnie
-  jeden `<form data-recommended-order>` (przed nagłówkiem
-  `data-order-section="develop"`) z `action = recommended_order_path(action)`
-  (`assault`→`/order/assault`, `engage`→`/order/engage`, `defend`→`/order/march`,
-  `develop`→`/order/develop`) i `?target=<quote(region)>`, gdy `recommended_order`
-  zwraca region (brak sufiksu przy `develop`); przycisk niesie tekst
-  `Wykonaj zalecenie: <recommended_order_text(action, target)>`. Brak formularza
-  przy `player_duchy_id=None`, `is_over` lub `recommended_order(...) is None`.
-- UI celów: gdy gracz ma party na mapie — po jednym formularzu
-  `?target=<quote(nazwa)>` na obcą osadę (kolejność `world.regions`, helper
-  `_march_targets`); bare action nieobecny. Brak party / brak id / gra skończona →
-  pojedynczy bare formularz.
+**Sterowanie single-player.** `GameApp` trzyma stan partii; gracz steruje jednym
+księstwem (`player_duchy_id`), AI resztą. CLI `python -m tbbui serve` startuje
+z `player_duchy_id="player"` i seedem restartu. Rozkazy reużywają czyste
+prymitywy `ai.*` (bez osobnej logiki walki w UI):
+- rozwój: rekrutacja (z widocznym kosztem złota), zebranie oddziału, rozbudowa
+  budynku;
+- marsz / szturm / starcie: gracz wskazuje cel (obca osada lub sąsiednie wrogie
+  party) albo używa wariantu auto, gdy brak jawnego celu;
+- „Następna tura" — jedna tura headless z pominięciem AI gracza;
+- „Nowa gra" — restart ze seedem (gdy podany) albo no-op stanu;
+- zalecenie w jeden klik — ten sam rozkaz co rada sytuacyjna (mapowanie na
+  istniejące ścieżki `/order/*`).
+Gdy gra jest skończona: bez tury i bez rozkazów (POST no-opy). Po szturmie /
+starciu wisi ostatnia bitwa do kolejnej tury lub rozkazu nie-bitewnego;
+podsumowanie zmian po turze wisi tylko do kolejnej tury / restartu / rozkazu.
+Komunikat po akcji (wykonano / brak zmian / bitwa / data po turze) jest
+widoczny na stronie. Wszystkie renderery są czyste i deterministyczne.
 
 ## 12. Otwarte pytania (nadal)
 - **Krzywe filarów:** różne parametry stromości per filar oraz wpływ budynków/
