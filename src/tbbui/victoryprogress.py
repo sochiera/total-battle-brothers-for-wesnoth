@@ -13,9 +13,11 @@ def render_victory_progress(
     Root is ``<div data-victory-progress="">``. When ``player_duchy_id`` matches
     a duchy in ``game.duchies``, the root carries ``data-enemies-remaining="N"``
     (``N`` = number of other duchies with ``not is_defeated``) and visible text
-    ``Wrogów do pokonania: N``. When ``player_duchy_id`` is ``None`` or not
-    present in ``game.duchies``, returns a bare empty root. Pure and
-    deterministic: no RNG/IO; ``game`` is not mutated.
+    ``Wrogów do pokonania: N``, plus one child ``<div data-enemy-duchy>`` per
+    other duchy in ``game.duchies`` order (settlements/hero state). When
+    ``player_duchy_id`` is ``None`` or not present in ``game.duchies``, returns
+    a bare empty root. Pure and deterministic: no RNG/IO; ``game`` is not
+    mutated.
     """
     if player_duchy_id is None:
         return '<div data-victory-progress=""></div>'
@@ -33,8 +35,22 @@ def render_victory_progress(
         if d.duchy_id != player_duchy_id and not d.is_defeated
     )
     text = f"Wrogów do pokonania: {n}"
+    rows: list[str] = []
+    for d in game.duchies:
+        if d.duchy_id == player_duchy_id:
+            continue
+        settlements = len(d.settlements)
+        hero = "true" if d.has_hero else "false"
+        hero_pl = "tak" if d.has_hero else "nie"
+        row_text = f"{d.duchy_id}: osady {settlements}, bohater {hero_pl}"
+        rows.append(
+            f'<div data-enemy-duchy="{d.duchy_id}"'
+            f' data-settlements="{settlements}"'
+            f' data-hero="{hero}"'
+            f">{row_text}</div>"
+        )
     return (
         f'<div data-victory-progress=""'
         f' data-enemies-remaining="{n}"'
-        f">{text}</div>"
+        f">{text}{''.join(rows)}</div>"
     )
