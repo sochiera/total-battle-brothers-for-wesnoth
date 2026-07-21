@@ -236,3 +236,4 @@
 | K42.1c | Formularz zalecenia w `GET /` | GameApp osadza jeden `<form data-recommended-order>` (przed `data-order-section="develop"`) z `action=recommended_order_path` + `?target=quote(region)` gdy region; brak przy `player_duchy_id=None`/`is_over`/`recommended_order=None`. |
 | K42.2a | Etykieta przycisku zalecenia | `recommendedaction.recommended_order_text(action, target)` = opisowa część rady; przycisk niesie `Wykonaj zalecenie: <opis>`, `render_recommended_action` używa go jako źródła tekstu (bajt-w-bajt jak dotąd). |
 | R43.1 | Kompaktacja DESIGN §11 | `docs/DESIGN.md` §11 opisuje warstwę wizualną wyłącznie na poziomie produktu; per-funkcyjne kontrakty `data-*`/render/routing kanonicznie w `docs/ARCHITECTURE.md` (sekcja `tbbui`). |
+| K43.1a | Czysty render dziennika rozkazów | `tbbui.orderlog.render_order_log(entries)` → `<div data-order-log="" data-count="N">` z dziećmi `data-order-log-entry` (ciało `html.escape`); czysty, deterministyczny, bez mutacji. |

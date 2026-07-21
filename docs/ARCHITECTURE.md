@@ -145,6 +145,14 @@ księstwa bez zmian nie dają wiersza; `data-change-count` = liczba dzieci
 `data-turn-duchy`. Czyste, deterministyczne, bez mutacji `before`/`after`;
 rdzeń bez zmian.
 
+**Dziennik rozkazów HTML (K43.1a):**
+`tbbui.orderlog.render_order_log(entries) -> str` — parsowalny fragment XML z
+korzeniem `<div data-order-log="" data-count="N">` (`N = len(entries)`). Na
+każdy wpis (kolejność wejściowa) jedno dziecko
+`<div data-order-log-entry="">` z ciałem `html.escape(entry, quote=True)`;
+pusta sekwencja → sam korzeń z `data-count="0"` bez dzieci. Czyste,
+deterministyczne, bez mutacji `entries`; rdzeń bez zmian.
+
 **Podpowiedź następnego kroku HTML (K34.1a):**
 `tbbui.nextobjective.render_next_objective(game, player_duchy_id=None) -> str`
 — parsowalny fragment z korzeniem `<p data-next-objective="TEXT">TEXT</p>`
