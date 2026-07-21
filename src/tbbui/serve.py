@@ -16,25 +16,25 @@ from tbbui.gamepage import render_game_page
 
 _TURN_FORM = (
     '<form method="post" action="/turn">'
-    '<button type="submit">Next turn</button>'
+    '<button type="submit">Następna tura</button>'
     "</form>"
 )
 
 _RECRUIT_FORM = (
     '<form method="post" action="/order/recruit">'
-    '<button type="submit">Recruit</button>'
+    '<button type="submit">Rekrutuj</button>'
     "</form>"
 )
 
 _MUSTER_FORM = (
     '<form method="post" action="/order/muster">'
-    '<button type="submit">Muster</button>'
+    '<button type="submit">Zbierz oddział</button>'
     "</form>"
 )
 
 _DEVELOP_FORM = (
     '<form method="post" action="/order/develop">'
-    '<button type="submit">Develop settlement</button>'
+    '<button type="submit">Rozbuduj osadę</button>'
     "</form>"
 )
 

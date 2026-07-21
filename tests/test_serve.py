@@ -96,6 +96,22 @@ def _has_post_form(html: str, action_path: str) -> bool:
     )
 
 
+def _form_submit_button_text(html: str, action_path: str) -> str | None:
+    """Text of the first submit button inside the POST form for ``action_path``."""
+    root = ET.fromstring(html)
+    for el in root.iter():
+        if _local(el.tag) != "form":
+            continue
+        method = (el.get("method") or "").lower()
+        action = el.get("action") or ""
+        if method != "post" or action != action_path:
+            continue
+        for child in el.iter():
+            if _local(child.tag) == "button":
+                return "".join(child.itertext()).strip()
+    return None
+
+
 def _ongoing_world_game() -> tuple[WorldMap, GameState]:
     north, south = map(Region, ("North", "South"))
     north_keep = Settlement("North Keep", 2, owner_id="north")
@@ -125,6 +141,32 @@ def _finished_world_game() -> tuple[WorldMap, GameState]:
     )
     assert game.is_over
     return world, game
+
+
+def test_game_app_get_polish_labels_turn_and_development_order_buttons():
+    """GET /: turn + development-order forms use Polish button labels (K29.2a).
+
+    Contract (task-149 / K29.2a):
+    - form action=/turn submit button text is ``Następna tura``
+    - form action=/order/recruit → ``Rekrutuj``
+    - form action=/order/muster → ``Zbierz oddział``
+    - form action=/order/develop → ``Rozbuduj osadę``
+    - form method/action paths unchanged (still POST to those actions)
+    """
+    world, game = _ongoing_world_game()
+    app = GameApp(
+        world, game, Calendar(year=1, month=1), Rng(1), player_duchy_id="north"
+    )
+    code, body = app.handle("GET", "/")
+    assert code == 200
+    assert _has_post_turn_form(body)
+    assert _has_post_recruit_form(body)
+    assert _has_post_muster_form(body)
+    assert _has_post_develop_form(body)
+    assert _form_submit_button_text(body, "/turn") == "Następna tura"
+    assert _form_submit_button_text(body, "/order/recruit") == "Rekrutuj"
+    assert _form_submit_button_text(body, "/order/muster") == "Zbierz oddział"
+    assert _form_submit_button_text(body, "/order/develop") == "Rozbuduj osadę"
 
 
 def test_game_app_handle_get_turn_404_noop_and_determinism():
@@ -1085,7 +1127,7 @@ def test_game_app_order_recruit_form_noop_and_determinism():
     assert code_get == 200
     assert _has_post_recruit_form(body_get)
     assert re.search(
-        r"<button\b[^>]*>\s*Recruit\s*</button>", body_get, flags=re.IGNORECASE
+        r"<button\b[^>]*>\s*Rekrutuj\s*</button>", body_get, flags=re.IGNORECASE
     )
 
     # No-op: player_duchy_id is None — state frozen, still 200 + page.
@@ -1287,7 +1329,7 @@ def test_game_app_order_muster_form_noop_and_determinism():
     assert code_get == 200
     assert _has_post_muster_form(body_get)
     assert re.search(
-        r"<button\b[^>]*>\s*Muster\s*</button>", body_get, flags=re.IGNORECASE
+        r"<button\b[^>]*>\s*Zbierz oddział\s*</button>", body_get, flags=re.IGNORECASE
     )
 
     # No-op: player_duchy_id is None — state frozen, still 200 + page.
@@ -1473,7 +1515,7 @@ def test_game_app_order_develop_form_noop_and_determinism():
     assert code_get == 200
     assert _has_post_develop_form(body_get)
     assert re.search(
-        r"<button\b[^>]*>\s*Develop settlement\s*</button>",
+        r"<button\b[^>]*>\s*Rozbuduj osadę\s*</button>",
         body_get,
         flags=re.IGNORECASE,
     )

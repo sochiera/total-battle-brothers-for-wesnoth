@@ -194,10 +194,11 @@ rozkazu `<p data-notice="{escape(last_notice)}">{escape(last_notice)}</p>`
 (K28.1a / K29.1a — `GameApp.last_notice` inicjalizowane na `""`; ta sama
 escapowana wartość w atrybucie i w widocznym ciele akapitu; `html.escape`;
 K28.1b — `_apply_player_order` ustawia skutek rozkazu rozwoju) oraz formularze
-`<form method="post" action="/turn">`,
-`<form method="post" action="/order/recruit">`,
-`<form method="post" action="/order/muster">`,
-`<form method="post" action="/order/develop">`,
+`<form method="post" action="/turn">` (przycisk `Następna tura`),
+`<form method="post" action="/order/recruit">` (`Rekrutuj`),
+`<form method="post" action="/order/muster">` (`Zbierz oddział`),
+`<form method="post" action="/order/develop">` (`Rozbuduj osadę`)
+(K29.2a — polskie etykiety `<button>`; `action`/`method` bez zmian),
 a przed grupami marszu/szturmu/starcia po jednym nagłówku
 `<h2 data-order-section="march|assault|engage">Marsz|Szturm|Starcie</h2>`
 (K21.2, kolejność marsz→szturm→starcie; formularze/routing bez zmian),

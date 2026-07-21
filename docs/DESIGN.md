@@ -554,12 +554,13 @@ Rdzeń `tbb` bez zmian; dane z istniejących `Settlement`/`Duchy`.
 
 **PLAN K29 (czytelny i zlokalizowany interfejs gracza):** K29.1a domknął
 widoczny tekst komunikatu w ciele `<p data-notice>` (jak kalendarz K21.1a).
-Pozostaje lokalizacja etykiet przycisków: tury i rozwoju (K29.2a:
-`Następna tura`/`Rekrutuj`/`Zbierz oddział`/`Rozbuduj osadę`) oraz bare
-przycisków walki (K29.2b: `Marsz`/`Szturm`/`Starcie`) — spójnie z polskimi
-nagłówkami sekcji i komunikatami; przyciski celów nadal pokazują `region.name`.
-Refaktor R29.1 scala powielony guard księstwa gracza w `_resolve_player_duchy()`.
-Routing, atrybuty `data-*`, `render_game_page` i rdzeń `tbb` bez zmian.
+K29.2a zlokalizował etykiety przycisków tury i rozwoju
+(`Następna tura`/`Rekrutuj`/`Zbierz oddział`/`Rozbuduj osadę`). Pozostaje
+lokalizacja bare przycisków walki (K29.2b: `Marsz`/`Szturm`/`Starcie`) —
+spójnie z polskimi nagłówkami sekcji i komunikatami; przyciski celów nadal
+pokazują `region.name`. Refaktor R29.1 scala powielony guard księstwa gracza
+w `_resolve_player_duchy()`. Routing, atrybuty `data-*`, `render_game_page`
+i rdzeń `tbb` bez zmian.
 
 ## 12. Otwarte pytania (nadal)
 - **Krzywe filarów:** różne parametry stromości per filar oraz wpływ budynków/
