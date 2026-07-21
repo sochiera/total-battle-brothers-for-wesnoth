@@ -354,7 +354,10 @@ wykonania rady w jeden klik. Dla rozkazu bojowego (szturm/starcie/obrona)
 zalecenie niesie dodatkowo krótką **prognozę siły** („ile") — porównanie siły
 własnej z siłą celu wraz z werdyktem przewaga/ryzyko — również w panelu rady
 i przy przycisku wykonania w jeden klik; dla rady bez bitwy (zbiórka, marsz,
-rozwój) prognozy nie ma.
+rozwój) prognozy nie ma. Gdy prognoza wskazuje deficyt siły (werdykt „ryzyko"),
+zalecenie niesie dodatkowo maszynowe **wyróżnienie ryzyka** i czytelną **notę
+ostrożności** — w panelu rady i przy przycisku wykonania w jeden klik — by gracz
+nie wykonał w ciemno przegranej bitwy.
 Strona niesie też **dziennik kampanii** — przewijalną, ograniczoną listę ostatnich
 rozkazów i skutków tur, czytaną od najnowszego wpisu; każdy wpis jest zakotwiczony
 datą (rok/miesiąc), sekcja ma nagłówek i czytelny stan pusty. Teksty na stronie

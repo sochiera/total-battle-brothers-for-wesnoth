@@ -297,34 +297,44 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > (K14/K28, bez nowego backendu). Wszystkie pozycje (task-231…233) w
 > `BACKLOG-ARCHIVE.md`. Rdzeń `tbb` bez zmian.
 
-## Kamień milowy 50 — czytelne uzasadnienie zalecanego rozkazu (dlaczego ta rada)
-> DESIGN §11: K41–K49 dały graczowi jeden zalecany rozkaz i wykonanie go w jeden
-> klik, ale nigdy nie mówiły DLACZEGO — gracz musiał sam zgadywać, skąd rada.
-> K50 dokłada czyste, deterministyczne uzasadnienie zależne od wybranej akcji:
-> prymityw `recommended_order_reason` (K50.1a), jego osadzenie w panelu rady
-> `render_recommended_action` (K50.1b) oraz przy przycisku wykonania rady w jeden
-> klik w `GET /` (K50.1c). Reużywa `recommended_order` jako jedynego źródła
-> `(action, target)`; bez nowego backendu, bez zmiany routingu; rdzeń `tbb` bez
-> zmian.
-- [x] **K50.1a** `tbbui.recommendedaction.recommended_order_reason(world, game, player_duchy_id)` zwraca `""`, gdy `recommended_order(...) is None`; inaczej dokładny tekst per akcja: `muster` → `"Masz bohatera i wolną osadę, lecz żaden oddział nie stoi na mapie"`, `assault` → `f"Twój oddział ma przewagę nad garnizonem osady {target}"`, `engage` → `f"Twój oddział ma przewagę nad wrogim oddziałem w {target}"`, `defend` → `f"Pozycję {target} zagraża sąsiedni wrogi oddział"`, `march` → `f"Brak celów i zagrożeń w zasięgu; najbliższa wroga osada to {target}"`, `develop` → `"Brak zagrożeń i celów w zasięgu — rozwijaj gospodarkę"`. Czyste, bez mutacji, deleguje do `recommended_order`. *(task-235)*
-- [x] **K50.1b** `render_recommended_action` przy znanym graczu po tekście `Zalecany rozkaz: …` osadza jedno dziecko `<p data-recommendation-reason="{reason}">{reason}</p>` (`reason = recommended_order_reason(...)`, `html.escape(quote=True)`); brak gracza → sam pusty korzeń bez zmian; `data-posture`/`data-action` bez zmian. *(task-236)*
-- [~] **K50.1c** `GameApp._recommended_order_form()` przy emitowanym formularzu dokłada po `<button>` jedno `<p data-recommended-order-reason="{reason}">{reason}</p>` (`reason = recommended_order_reason(...)`, `html.escape(quote=True)`); przypadki `""` (brak gracza / `is_over` / rada `None`) bez zmian; `action`/routing bez zmian. *(task-237)*
+## Kamień milowy 50 — czytelne uzasadnienie zalecanego rozkazu (dlaczego ta rada) — UKOŃCZONY
+> DESIGN §11: czyste, deterministyczne uzasadnienie rady zależne od akcji —
+> prymityw `recommended_order_reason` (K50.1a) osadzony w panelu rady (K50.1b)
+> i przy przycisku wykonania w jeden klik (K50.1c). Pozycje (task-235…237)
+> w `BACKLOG-ARCHIVE.md`. Rdzeń `tbb` bez zmian.
 
-## Kamień milowy 51 — przewidywana siła zalecanej bitwy (ryzyko rady)
-> DESIGN §11: K50 dało graczowi „dlaczego" rady, ale nie „ile" — nie widział, jak
-> duża jest przewaga (lub deficyt) zalecanej bitwy przed wykonaniem w jeden klik.
-> K51 dokłada czystą, deterministyczną **prognozę siły**: prymityw
-> `recommended_battle_forecast` liczy `(siła własna, siła wroga)` dla zalecanego
-> rozkazu zaczepnego (K51.1a) i obronnego (K51.1b), helper tekstowy z werdyktem
-> przewaga/ryzyko (K51.1c) oraz jego osadzenie w panelu rady (K51.1d) i przy
-> przycisku wykonania rady w jeden klik (K51.1e). Reużywa `recommended_order`,
-> `first_party_region`, `combat_totals` i regułę sąsiada z `threatalert`; bez
-> nowego backendu, bez zmiany routingu; rdzeń `tbb` bez zmian.
-- [ ] **K51.1a** `tbbui.recommendedaction.recommended_battle_forecast(world, game, player_duchy_id=None) -> tuple[int, int] | None`: `None` gdy `recommended_order(...) is None` lub akcja spoza `{"assault","engage"}`; `assault`/`engage` → `(own_total, enemy_total)` sum `hp+attack+defense` (własna party z `first_party_region` vs garnizon osady / wroga party w regionie celu). Czyste, deleguje do `recommended_order`. *(task-238)*
-- [ ] **K51.1b** `recommended_battle_forecast` dla `defend R` zwraca `(siła własnej pozycji w R — garnizon osady albo party gracza, siła pierwszej sąsiedniej wrogiej party wg `is_hostile_owner`/`world.neighbors`)`; `assault`/`engage` bez zmian; `march`/`develop`/`muster`/brak rady → `None`. *(task-239)*
-- [ ] **K51.1c** `tbbui.recommendedaction.recommended_battle_forecast_text(world, game, player_duchy_id=None) -> str`: `""` gdy prognoza `None`; inaczej `f"Przewidywana siła: Ty {own} vs wróg {enemy} — {verdict}"` (`verdict="przewaga"` gdy `own>=enemy`, inaczej `"ryzyko"`). Czysty. *(task-240)*
-- [ ] **K51.1d** `render_recommended_action` przy niepustej prognozie osadza po `data-recommendation-reason` jedno `<p data-recommended-forecast="{text}">{text}</p>` (`html.escape(quote=True)`); pusta prognoza / brak gracza → brak elementu; `data-posture`/`data-action`/`data-recommendation-reason` bez zmian. *(task-241)*
-- [ ] **K51.1e** `GameApp._recommended_order_form()` przy emitowanym formularzu i niepustej prognozie dokłada po `data-recommended-order-reason` jedno `<p data-recommended-order-forecast="{text}">{text}</p>` (`html.escape(quote=True)`); przypadki `""` (brak gracza / `is_over` / rada `None` / prognoza pusta) bez zmian; `action`/routing bez zmian. *(task-242)*
+## Kamień milowy 51 — przewidywana siła zalecanej bitwy (ryzyko rady) — UKOŃCZONY
+> DESIGN §11: czysta prognoza siły dla rady bojowej — `recommended_battle_forecast`
+> `(own, enemy)` dla szturmu/starcia (K51.1a) i obrony (K51.1b), tekst z werdyktem
+> przewaga/ryzyko (K51.1c) osadzony w panelu rady (K51.1d) i przy przycisku
+> wykonania w jeden klik (K51.1e). Pozycje (task-238…242) w `BACKLOG-ARCHIVE.md`.
+> Rdzeń `tbb` bez zmian.
+
+## Kamień milowy 52 — czytelne wyróżnienie ryzyka rady bitewnej
+> DESIGN §11: K51 pokazało prognozę siły z werdyktem „ryzyko", ale werdykt tonie
+> w jednym zdaniu. K52 wyróżnia radę bojową o przewidywanym deficycie siły —
+> maszynowo i po ludzku — by gracz nie wykonał w ciemno przegranej bitwy: czysty
+> predykat `recommended_battle_is_risky` (K52.1a), flaga `data-recommended-risk`
+> i nota ostrożności w panelu rady (K52.1b–c) oraz przy przycisku wykonania rady
+> w jeden klik (K52.1d–e). Reużywa `recommended_battle_forecast`; bez nowego
+> backendu, bez zmiany routingu; rdzeń `tbb` bez zmian.
+- [ ] **K52.1a** `tbbui.recommendedaction.recommended_battle_is_risky(world, game, player_duchy_id=None) -> bool` zwraca `False`, gdy `recommended_battle_forecast(...) is None`; przy prognozie `(own, enemy)` zwraca `True` iff `own < enemy` (spójnie z werdyktem `ryzyko`); czysty, bez mutacji, deleguje do `recommended_battle_forecast`. *(task-243)*
+- [ ] **K52.1b** Gdy `recommended_battle_is_risky(...)` jest `True`, korzeń `<div data-recommended-action="">` z `render_recommended_action` niesie pusty atrybut `data-recommended-risk=""` po `data-action`; `False` → brak atrybutu, fragment bajt-w-bajt jak dotąd. *(task-244)*
+- [ ] **K52.1c** Gdy `recommended_battle_is_risky(...)` jest `True`, `render_recommended_action` osadza po `data-recommended-forecast` jedno `<p data-recommended-caution="{text}">{text}</p>` (`text = "Uwaga: przewidywany deficyt siły — rozważ inny rozkaz"`, `html.escape(quote=True)`); `False` → brak elementu. *(task-245)*
+- [ ] **K52.1d** Gdy formularz `_recommended_order_form()` jest emitowany i `recommended_battle_is_risky(...)` jest `True`, `<form ... data-recommended-order="">` niesie pusty atrybut `data-recommended-risk=""` po `data-recommended-order=""`; przypadki `""` i `False` → brak atrybutu, formularz jak dotąd. *(task-246)*
+- [ ] **K52.1e** Gdy formularz `_recommended_order_form()` jest emitowany i `recommended_battle_is_risky(...)` jest `True`, po `data-recommended-order-forecast` dokłada jedno `<p data-recommended-order-caution="{text}">{text}</p>` (ten sam tekst co K52.1c, `html.escape(quote=True)`); `False` / brak formularza → brak elementu. *(task-247)*
+
+## Kamień milowy 53 — dług po serii rady bojowej + trening jednostek w maszerującym party
+> Po K52 seria „zalecany rozkaz" (K41–K52) się domyka; ten kamień najpierw
+> sprząta powielony HTML akapitów rady dołożony w K50–K52 (R52.1), potem
+> zaczyna rozstrzygać jedno z otwartych pytań DESIGN §12: jednostki w
+> maszerującym party trenują się razem z leczeniem ran w miesięcznym ticku
+> mapy (T53.1a–b), tak jak dziś garnizon w `tick_settlements`. Uzbrojenie
+> zostaje poza zakresem — party nie ma dostępu do złota/kuźni osady.
+- [ ] **R52.1 (refaktor)** Wspólny helper escapowanego akapitu `<p data-X="…">…</p>` w `tbbui/recommendedaction.py`, reużyty przez `render_recommended_action` i `GameApp._recommended_order_form` (dedup powielenia z K50–K52); bez nowych testów, wynik bajt-w-bajt jak dziś. *(task-248)*
+- [ ] **T53.1a** `tbb.party.Party.tick_training(months=1) -> Party` — czysta metoda treningu hero+units (mirror `tick_wounds`, deleguje do `Unit.train`); jeszcze niepodpięta w `WorldMap.tick_parties`. *(task-249)*
+- [ ] **T53.1b** `WorldMap.tick_parties()` stosuje `party.tick_wounds(1).tick_training(1)` na każdym party; scenariusz bazowy headless i DESIGN §5/§8 zaktualizowane do nowego, faktycznego stanu. *(task-250)*
+
 ## Dług/refaktor
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*
 - [x] **R21.1 (refaktor)** Wspólny emiter formularzy celu marsz/szturm/starcie w `serve.py`. *(task-113)*
