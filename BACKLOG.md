@@ -267,27 +267,29 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > `order_log`/`ORDER_LOG_LIMIT`. Pozycje (task-216…220) w `BACKLOG-ARCHIVE.md`.
 > Rdzeń `tbb` bez zmian.
 
-## Kamień milowy 46 — czytelny wynik rozkazu bitewnego gracza (dziennik/komunikat)
-> DESIGN §11: po szturmie/starciu komunikat i dziennik mówiły tylko „bitwa" —
-> gracz nie wiedział, czy wygrał ani jakie poniósł straty. K46 wzbogaca skutek
-> rozkazu bitewnego o wynik z perspektywy atakującego (czysty
-> `battle_outcome_text`, K46.1a) wpięty w komunikat (K46.1b) oraz o liczbę
-> własnych strat (czysty `attacker_losses`, K46.2a) wpiętą w komunikat (K46.2b).
-> Reużywa `HexBattle.report()` i wspólny `_apply_player_assault_order`
-> (szturm + starcie); rdzeń `tbb` bez zmian.
-- [ ] **K46.1a** `tbbui.battlereport.battle_outcome_text(battle)` zwraca z perspektywy atakującego: `ATTACKER_WIN` → `"zwycięstwo"`, `DEFENDER_WIN` → `"porażka"`, `DRAW` → `"remis"`; nierozstrzygnięta bitwa → `ValueError`; czysty, bez mutacji. *(task-221)*
-- [ ] **K46.1b** `_apply_player_assault_order` przy bitwie ustawia `last_notice = f"{label}: {battle_outcome_text(battle)}"` (nie `"{label}: bitwa"`); szturm z celem po zdobyciu → `"Szturm na KeepB: zwycięstwo"`, starcie analogicznie. *(task-222)*
-- [ ] **K46.2a** `tbbui.battlereport.attacker_losses(battle)` = `len(battle.report().attacker.fallen)`; nierozstrzygnięta bitwa → `ValueError`; czysty, bez mutacji. *(task-223)*
-- [ ] **K46.2b** `_apply_player_assault_order` przy bitwie ustawia `last_notice = f"{label}: {battle_outcome_text(battle)} (straty: {attacker_losses(battle)})"`. *(task-224)*
+## Kamień milowy 46 — czytelny wynik rozkazu bitewnego gracza (dziennik/komunikat) — UKOŃCZONY
+> DESIGN §11: po szturmie/starciu komunikat niósł tylko „bitwa"; K46 dołożył
+> wynik z perspektywy atakującego (`battle_outcome_text`, K46.1a–b) i liczbę
+> własnych strat (`attacker_losses`, K46.2a–b). Wszystkie pozycje (task-221…224)
+> w `BACKLOG-ARCHIVE.md`. Rdzeń `tbb` bez zmian.
 
-## Kamień milowy 47 — pełny bilans strat bitwy gracza (obie strony)
-> DESIGN §11: K46 pokazał wynik i **własne** straty rozkazu bitewnego, ale gracz
-> nie widział, ile stracił wróg — bez tego nie oceni opłacalności wymiany. K47
-> dokłada czysty `defender_losses` (K47.1a) wpięty w komunikat obok
-> `attacker_losses` (K47.1b): `... (straty: A, wróg: D)`. Reużywa `HexBattle.report()`
-> i wspólny `_apply_player_assault_order`; rdzeń `tbb` bez zmian.
-- [ ] **K47.1a** `tbbui.battlereport.defender_losses(battle)` = `len(battle.report().defender.fallen)`; nierozstrzygnięta bitwa → `ValueError`; czysty, bez mutacji. *(task-225)*
-- [ ] **K47.1b** `_apply_player_assault_order` przy bitwie ustawia `last_notice = f"{label}: {battle_outcome_text(battle)} (straty: {attacker_losses(battle)}, wróg: {defender_losses(battle)})"`. *(task-226)*
+## Kamień milowy 47 — pełny bilans strat bitwy gracza (obie strony) — UKOŃCZONY
+> DESIGN §11: K47 dołożył czysty `defender_losses` (K47.1a) wpięty w komunikat
+> obok `attacker_losses` (K47.1b): `... (straty: A, wróg: D)`. Wszystkie pozycje
+> (task-225…226) w `BACKLOG-ARCHIVE.md`. Rdzeń `tbb` bez zmian.
+
+## Kamień milowy 48 — zalecenie zebrania oddziału dla gracza bez party
+> DESIGN §11: rada w jeden klik (K41–K42) nigdy nie mówiła graczowi bez party
+> „zbierz oddział" — utykał na „rozwijaj księstwo" i nie wchodził w ofensywę.
+> K48 dokłada czysty predykat `player_can_muster` (K48.1a), tekst rady
+> „zbierz oddział" (K48.1b), priorytet akcji `muster` nad postawą w
+> `recommended_order`/renderze (K48.1c) i mapowanie `muster`→`/order/muster`
+> domykające radę w jeden klik (K48.1d). Reużywa `ai.muster_duchy_party` i
+> generyczny `_recommended_order_form`; rdzeń `tbb` bez zmian.
+- [ ] **K48.1a** `tbbui.recommendedaction.player_can_muster(world, game, player_duchy_id)` zwraca `True` iff `gamelookup.player_duchy(game, player_duchy_id) is not None`, księstwo ma bohatera (`Duchy.has_hero`), `maplookup.first_party_region(world, player_duchy_id) is None` (brak party gracza na mapie) oraz istnieje własna osada w regionie bez party (`settlement.owner_id == player_duchy_id and region not in world.parties`, kolejność `world.regions`); inaczej `False`. *(task-227)*
+- [ ] **K48.1b** `tbbui.recommendedaction.recommended_order_text("muster", None)` zwraca `"zbierz oddział"`; pozostałe akcje bez zmian. *(task-228)*
+- [ ] **K48.1c** `recommended_order(...)` zwraca `("muster", None)` gdy `player_can_muster(...)` jest `True`, z priorytetem PRZED postawą; `render_recommended_action` niesie wtedy `data-action="muster"` i tekst `Zalecany rozkaz: zbierz oddział` (`data-posture` z `net_posture(M, N)` bez zmian). *(task-229)*
+- [ ] **K48.1d** `tbbui.serve.recommended_order_path("muster")` = `"/order/muster"`; `GET /` u gracza bez party osadza jeden `<form action="/order/muster" data-recommended-order="">` (`Wykonaj zalecenie: zbierz oddział`), a `POST /order/muster` reużywa `ai.muster_duchy_party` (`last_notice == "Zebranie oddziału: wykonano"`). *(task-230)*
 
 ## Dług/refaktor
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*

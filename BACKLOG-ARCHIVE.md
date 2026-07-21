@@ -439,3 +439,13 @@
 - [x] **K45.3a** Nagłówek `<h2 data-order-log-header="">Dziennik rozkazów ({N})</h2>` (N=`len(entries)`, także 0); `data-count`/dzieci bez zmian. *(task-218)*
 - [x] **K45.4a** `render_order_log(entries, at_limit=False)`: `at_limit=True` + niepusta → jedno `<p data-order-log-truncated="">Pokazano ostatnie wpisy</p>` po ostatnim wpisie; inaczej brak (bajt-w-bajt jak dotąd). *(task-219)*
 - [x] **K45.4b** `GameApp._render` woła `render_order_log(self.order_log, at_limit=len(self.order_log) >= ORDER_LOG_LIMIT)`; `data-order-log-truncated` iff dziennik osiągnął limit. *(task-220)*
+
+## Kamień milowy 46 — czytelny wynik rozkazu bitewnego gracza (dziennik/komunikat) — UKOŃCZONY
+- [x] **K46.1a** `tbbui.battlereport.battle_outcome_text(battle)` z perspektywy atakującego: `ATTACKER_WIN`→`"zwycięstwo"`, `DEFENDER_WIN`→`"porażka"`, `DRAW`→`"remis"`; nierozstrzygnięta → `ValueError`; czysty. *(task-221)*
+- [x] **K46.1b** `_apply_player_assault_order` przy bitwie ustawia `last_notice = f"{label}: {battle_outcome_text(battle)}"` (szturm+starcie), zamiast literału „bitwa". *(task-222)*
+- [x] **K46.2a** `tbbui.battlereport.attacker_losses(battle)` = `len(battle.report().attacker.fallen)`; nierozstrzygnięta → `ValueError`; czysty. *(task-223)*
+- [x] **K46.2b** `_apply_player_assault_order` przy bitwie ustawia `last_notice = f"{label}: {battle_outcome_text(battle)} (straty: {attacker_losses(battle)})"`. *(task-224)*
+
+## Kamień milowy 47 — pełny bilans strat bitwy gracza (obie strony) — UKOŃCZONY
+- [x] **K47.1a** `tbbui.battlereport.defender_losses(battle)` = `len(battle.report().defender.fallen)`; nierozstrzygnięta → `ValueError`; czysty. *(task-225)*
+- [x] **K47.1b** `_apply_player_assault_order` przy bitwie ustawia `last_notice = f"{label}: {battle_outcome_text(battle)} (straty: {attacker_losses(battle)}, wróg: {defender_losses(battle)})"`. *(task-226)*

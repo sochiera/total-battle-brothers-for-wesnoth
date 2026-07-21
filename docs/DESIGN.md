@@ -342,7 +342,9 @@ raport strat), panele osad i oddziałów (zasoby, garnizon/siła, ranni), legend
 właścicieli. Przy wskazanym księstwie gracza: podsumowanie sił, postęp do
 zwycięstwa, podpowiedź celu, lokalizacja i dystans do wrogich bohaterów,
 porównanie sił z sąsiednimi celami, alert zagrożeń własnych pozycji, skrót
-sytuacji (postawa ofensywna/defensywna/zrównoważona) i jeden zalecany rozkaz.
+sytuacji (postawa ofensywna/defensywna/zrównoważona) i jeden zalecany rozkaz
+(gdy gracz ma bohatera i osadę do zbiórki, lecz brak party na mapie, zalecenie ma
+priorytet „zbierz oddział" przed radą opartą o postawę).
 Strona niesie też **dziennik kampanii** — przewijalną, ograniczoną listę ostatnich
 rozkazów i skutków tur, czytaną od najnowszego wpisu; każdy wpis jest zakotwiczony
 datą (rok/miesiąc), sekcja ma nagłówek i czytelny stan pusty. Teksty na stronie
