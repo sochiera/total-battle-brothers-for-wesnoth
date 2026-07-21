@@ -326,7 +326,7 @@ player_duchy_id)` istnieje z `ai.region_distance(world, R, target) >= 2`,
 zwraca `target.name`; brak wrogiej osady lub dystans `< 2` → `None`. Czyste,
 deterministyczne, bez mutacji `world`/`game`; rdzeń bez zmian.
 
-**Zalecany rozkaz HTML (K41.1a / K41.1b / K41.1c / K41.2a / K41.3a / K48.1c / K49.1c / K50.1b / K51.1d / K52.1b):**
+**Zalecany rozkaz HTML (K41.1a / K41.1b / K41.1c / K41.2a / K41.3a / K48.1c / K49.1c / K50.1b / K51.1d / K52.1b / K52.1c):**
 `tbbui.recommendedaction.render_recommended_action(world, game, player_duchy_id=None) -> str`
 — parsowalny fragment z korzeniem `<div data-recommended-action="">`. Gdy
 `player_duchy(...) is None` → sam pusty korzeń (bez `data-posture`, bez
@@ -344,7 +344,11 @@ po uzasadnieniu drugie dziecko
 `<p data-recommended-forecast="{text}">{text}</p>` (ta sama wartość w
 atrybucie i ciele, `html.escape(..., quote=True)`); pusta prognoza
 (`muster`/`march`/`develop`) lub brak gracza → brak
-`data-recommended-forecast` — K51.1d.
+`data-recommended-forecast` — K51.1d; gdy `recommended_battle_is_risky(...)`
+jest `True`, zaraz po prognozie trzecie dziecko
+`<p data-recommended-caution="{text}">{text}</p>` z
+`text = "Uwaga: przewidywany deficyt siły — rozważ inny rozkaz"`
+(`html.escape(..., quote=True)`); `False` → brak elementu — K52.1c.
 Maszynowa decyzja: `recommended_order(world, game, player_duchy_id=None) ->
 tuple[str, str | None] | None` (K42.1a / K48.1c / K49.1c) — brak gracza →
 `None`; gdy `player_can_muster(...)` → `("muster", None)` **przed** gałęzią

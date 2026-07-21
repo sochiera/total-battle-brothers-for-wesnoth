@@ -340,7 +340,10 @@ def render_recommended_action(
     element (K51.1d). When ``recommended_battle_is_risky`` is ``True``, the root
     also carries empty ``data-recommended-risk=""`` immediately after
     ``data-action`` (K52.1b); otherwise that attribute is omitted (byte-stable).
-    Pure and deterministic: no RNG/IO; does not mutate ``world`` or ``game``.
+    When risky, a third child ``<p data-recommended-caution="{text}">{text}</p>``
+    with fixed caution text follows the forecast (K52.1c); when not risky that
+    element is omitted. Pure and deterministic: no RNG/IO; does not mutate
+    ``world`` or ``game``.
     """
     order = recommended_order(world, game, player_duchy_id)
     if order is None:
@@ -358,14 +361,20 @@ def render_recommended_action(
         world, game, player_duchy_id
     )
     forecast_html = _escaped_paragraph("recommended-forecast", forecast)
-    risk_attr = (
-        ' data-recommended-risk=""'
-        if recommended_battle_is_risky(world, game, player_duchy_id)
+    risky = recommended_battle_is_risky(world, game, player_duchy_id)
+    risk_attr = ' data-recommended-risk=""' if risky else ""
+    caution_html = (
+        _escaped_paragraph(
+            "recommended-caution",
+            "Uwaga: przewidywany deficyt siły — rozważ inny rozkaz",
+        )
+        if risky
         else ""
     )
     return (
         f'<div data-recommended-action="" data-posture="{posture}" '
         f'data-action="{action}"{risk_attr}>{text}'
         f"{reason_html}"
-        f"{forecast_html}</div>"
+        f"{forecast_html}"
+        f"{caution_html}</div>"
     )

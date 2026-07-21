@@ -1175,6 +1175,7 @@ def test_render_recommended_action_embeds_reason_child_from_recommended_order_re
         # K50.1b: first child is the reason; K51.1d: forecast sibling only
         # for battle orders (assault/engage/defend). Empty forecast for
         # muster/march/develop → exactly one child (reason only).
+        # K52.1c: when battle is risky, caution follows forecast (len 3).
         child = children[0]
         assert child.tag == "p"
         assert child.attrib == {"data-recommendation-reason": escaped}
@@ -1184,8 +1185,10 @@ def test_render_recommended_action_embeds_reason_child_from_recommended_order_re
         assert f'data-recommendation-reason="{escaped}"' in xml
         assert f">{escaped}</p>" in xml or f">{reason}</p>" in xml
         if expected_action in ("assault", "engage", "defend"):
-            assert len(children) == 2
+            assert len(children) in (2, 3)
             assert "data-recommended-forecast" in children[1].attrib
+            if len(children) == 3:
+                assert "data-recommended-caution" in children[2].attrib
         else:
             assert len(children) == 1
 
@@ -1254,15 +1257,17 @@ def test_render_recommended_action_data_posture_and_order_text_from_m_vs_n():
         assert root.text == expected_text
         # K50.1b: first child is the reason. K51.1d: balanced → develop →
         # empty forecast → exactly one child; offensive/defensive battle
-        # orders carry a forecast sibling (len == 2).
+        # orders carry a forecast sibling. K52.1c: risky battle adds caution.
         children = list(root)
         assert children[0].tag == "p"
         assert "data-recommendation-reason" in children[0].attrib
         if expected == "balanced":
             assert len(children) == 1
         else:
-            assert len(children) == 2
+            assert len(children) in (2, 3)
             assert "data-recommended-forecast" in children[1].attrib
+            if len(children) == 3:
+                assert "data-recommended-caution" in children[2].attrib
 
         assert world.regions == regions_before
         assert {
@@ -2250,7 +2255,8 @@ def test_render_recommended_action_embeds_forecast_after_reason_when_nonempty():
         assert root.text == expected_text
 
         children = list(root)
-        assert len(children) == 2
+        # K51.1d: reason + forecast; K52.1c may add caution when risky.
+        assert len(children) in (2, 3)
         reason_child = children[0]
         forecast_child = children[1]
         assert reason_child.tag == "p"
@@ -2271,6 +2277,8 @@ def test_render_recommended_action_embeds_forecast_after_reason_when_nonempty():
         assert (
             f">{escaped_forecast}</p>" in xml or f">{text}</p>" in xml
         )
+        if len(children) == 3:
+            assert "data-recommended-caution" in children[2].attrib
 
         assert world.regions == regions_before
         assert {
@@ -2639,8 +2647,9 @@ def test_render_recommended_action_data_recommended_risk_when_battle_is_risky():
     assert root.text == expected_text
 
     children = list(root)
-    assert len(children) == 2
-    reason_child, forecast_child = children
+    # K52.1b root risk attr; K52.1c adds caution after forecast when risky.
+    assert len(children) == 3
+    reason_child, forecast_child, caution_child = children
     assert reason_child.tag == "p"
     assert reason_child.attrib == {
         "data-recommendation-reason": escaped_reason
@@ -2651,6 +2660,8 @@ def test_render_recommended_action_data_recommended_risk_when_battle_is_risky():
         "data-recommended-forecast": escaped_forecast
     }
     assert forecast_child.text == forecast
+    assert caution_child.tag == "p"
+    assert "data-recommended-caution" in caution_child.attrib
 
     assert world.regions == regions_before
     assert {
@@ -2875,3 +2886,127 @@ def test_render_recommended_action_no_data_recommended_risk_when_not_risky():
     assert equal_root.attrib.get("data-action") == "defend"
     _assert_no_risk_attr(equal_xml)
     assert 'data-action="defend">' in equal_xml
+
+
+def test_render_recommended_action_caution_paragraph_when_battle_is_risky():
+    """When ``recommended_battle_is_risky(world, game, player_duchy_id)`` is
+    ``True``, ``render_recommended_action`` embeds immediately after the
+    ``data-recommended-forecast`` child exactly one
+    ``<p data-recommended-caution="{text}">{text}</p>`` with
+    ``text = "Uwaga: przewidywany deficyt siły — rozważ inny rozkaz"``
+    (same value in attribute and body, ``html.escape(..., quote=True)``)
+    — K52.1c.
+
+    Root, ``data-recommended-risk``, reason and forecast stay present; pure:
+    no world/game mutation.
+    """
+    recommended_battle_is_risky = recommendedaction.recommended_battle_is_risky
+    recommended_order_reason = recommendedaction.recommended_order_reason
+    recommended_order_text = recommendedaction.recommended_order_text
+    recommended_battle_forecast_text = (
+        recommendedaction.recommended_battle_forecast_text
+    )
+    caution_text = (
+        "Uwaga: przewidywany deficyt siły — rozważ inny rozkaz"
+    )
+    escaped_caution = html.escape(caution_text, quote=True)
+
+    field = Region("Field")
+    other_n = Region("OtherN")
+    enemy_camp = Region("EnemyCamp")
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+    # own < enemy → risky defend (same fixture as K52.1b risky path)
+    field_hero = Unit(training=3, equipment=2)
+    field_units = (Unit(training=1),)
+    field_enemy_hero = Unit(training=20)
+    own_weak = sum(combat_totals((field_hero, *field_units)))
+    enemy_strong = sum(combat_totals((field_enemy_hero,)))
+    assert own_weak < enemy_strong
+
+    world = WorldMap(
+        [field, other_n, enemy_camp],
+        [(field, other_n), (field, enemy_camp)],
+        parties={
+            field: Party(
+                hero=field_hero, units=field_units, owner_id="player"
+            ),
+            enemy_camp: Party(
+                hero=field_enemy_hero, units=(), owner_id="enemy"
+            ),
+        },
+        settlements={},
+    )
+    order = recommended_order(world, game, "player")
+    assert order is not None
+    action, target = order
+    assert action == "defend"
+    assert recommended_battle_is_risky(world, game, "player") is True
+
+    m = advantageous_target_count(world, game, "player")
+    n = threatened_position_count(world, game, "player")
+    expected_posture = net_posture(m, n)
+    expected_text = (
+        f"Zalecany rozkaz: {recommended_order_text(action, target)}"
+    )
+    reason = recommended_order_reason(world, game, "player")
+    forecast = recommended_battle_forecast_text(world, game, "player")
+    assert reason != ""
+    assert forecast != ""
+    escaped_reason = html.escape(reason, quote=True)
+    escaped_forecast = html.escape(forecast, quote=True)
+
+    regions_before = world.regions
+    parties_before = {r: world.party_at(r) for r in world.regions}
+    settlements_before = {
+        r: world.settlement_at(r) for r in world.regions
+    }
+    duchies_before = game.duchies
+
+    xml = render_recommended_action(world, game, player_duchy_id="player")
+    root = ET.fromstring(xml)
+
+    assert root.tag == "div"
+    assert root.attrib.get("data-recommended-action") == ""
+    assert root.attrib.get("data-posture") == expected_posture
+    assert root.attrib.get("data-action") == action
+    assert root.attrib.get("data-recommended-risk") == ""
+    assert root.text == expected_text
+
+    children = list(root)
+    assert len(children) == 3
+    reason_child, forecast_child, caution_child = children
+    assert reason_child.tag == "p"
+    assert reason_child.attrib == {
+        "data-recommendation-reason": escaped_reason
+    }
+    assert reason_child.text == reason
+    assert forecast_child.tag == "p"
+    assert forecast_child.attrib == {
+        "data-recommended-forecast": escaped_forecast
+    }
+    assert forecast_child.text == forecast
+    # caution immediately after forecast: only one, fixed text attr+body
+    assert caution_child.tag == "p"
+    assert caution_child.attrib == {
+        "data-recommended-caution": escaped_caution
+    }
+    assert caution_child.text == caution_text
+    assert (
+        f'<p data-recommended-caution="{escaped_caution}">'
+        f"{escaped_caution}</p>"
+    ) in xml
+    assert xml.count("data-recommended-caution") == 1
+
+    assert world.regions == regions_before
+    assert {
+        r: world.party_at(r) for r in world.regions
+    } == parties_before
+    assert {
+        r: world.settlement_at(r) for r in world.regions
+    } == settlements_before
+    assert game.duchies == duchies_before
