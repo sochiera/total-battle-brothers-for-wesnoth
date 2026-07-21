@@ -187,3 +187,34 @@ def test_render_order_log_empty_embeds_empty_state_paragraph_after_header():
     ]
     assert entry_children == []
     assert len(children) == 2
+
+
+def test_render_order_log_nonempty_has_no_empty_state_and_renders_entries():
+    """K44.2b: non-empty ``entries`` → root has no ``data-order-log-empty``;
+    still K44.2a shape: header first, ``len(entries)`` entry children,
+    ``data-count`` equals ``len(entries)``.
+    """
+    entries = ("Marsz: wykonano", "Rekrutacja: ok")
+    xml = render_order_log(entries)
+    root = ET.fromstring(xml)
+    children = list(root)
+
+    assert root.attrib.get("data-count") == str(len(entries))
+    assert root.find(".//*[@data-order-log-empty]") is None
+    assert 'data-order-log-empty' not in xml
+
+    headers = [
+        c
+        for c in children
+        if c.tag == "h2" and c.attrib.get("data-order-log-header") == ""
+    ]
+    assert len(headers) == 1
+    assert children[0] is headers[0]
+    assert "".join(headers[0].itertext()) == "Dziennik rozkazów"
+
+    entry_children = [
+        c for c in children if c.attrib.get("data-order-log-entry") == ""
+    ]
+    assert len(entry_children) == len(entries)
+    for child, entry in zip(entry_children, entries, strict=True):
+        assert "".join(child.itertext()) == entry
