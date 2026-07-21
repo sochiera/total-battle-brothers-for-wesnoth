@@ -15,8 +15,12 @@ _POSTURE_LABELS = {
 }
 
 
-def _net_posture(opportunity_count: int, threatened_count: int) -> str:
-    """Return posture from M (opportunities) vs N (threats)."""
+def net_posture(opportunity_count: int, threatened_count: int) -> str:
+    """Return posture from M (opportunities) vs N (threats).
+
+    ``"offensive"`` when M>N, ``"defensive"`` when N>M, ``"balanced"`` when
+    M==N. Pure and deterministic; no side effects.
+    """
     if opportunity_count > threatened_count:
         return "offensive"
     if threatened_count > opportunity_count:
@@ -39,8 +43,7 @@ def render_situation_report(
     ``data-threatened-count="N"`` (via ``threatalert.threatened_position_count``),
     ``data-opportunity-count="M"`` (via
     ``engagementpreview.advantageous_target_count``), ``data-net-posture``
-    immediately after (``"offensive"`` if M>N, ``"defensive"`` if N>M,
-    ``"balanced"`` if M==N) and visible text
+    immediately after (from public ``net_posture(M, N)``) and visible text
     ``Sytuacja: zagrożone pozycje N, korzystne cele M — postawa:
     ofensywna|defensywna|zrównoważona``. Pure and deterministic: no RNG/IO;
     does not mutate ``world`` or ``game``.
@@ -52,7 +55,7 @@ def render_situation_report(
     assert player_duchy_id is not None
     n = threatened_position_count(world, game, player_duchy_id)
     m = advantageous_target_count(world, game, player_duchy_id)
-    posture = _net_posture(m, n)
+    posture = net_posture(m, n)
     label = _POSTURE_LABELS[posture]
     return (
         f'<div data-situation-report=""'

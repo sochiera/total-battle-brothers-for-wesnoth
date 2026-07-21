@@ -450,9 +450,18 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   sąsiednich wrogich celów party gracza z przewagą wg reguły
   `render_engagement_preview`, przez `engagementpreview.advantageous_target_count`)
   oraz `data-net-posture` (`"offensive"` gdy M>N, `"defensive"` gdy N>M,
-  `"balanced"` gdy M==N) i tekst `Sytuacja: zagrożone pozycje N, korzystne cele
-  M — postawa: ofensywna|defensywna|zrównoważona`. Osadzony w stronie partii
-  zaraz po `data-threat-alert` (K40.1c). Czysty, deterministyczny.
+  `"balanced"` gdy M==N; przez `situationreport.net_posture`) i tekst
+  `Sytuacja: zagrożone pozycje N, korzystne cele M — postawa:
+  ofensywna|defensywna|zrównoważona`. Osadzony w stronie partii zaraz po
+  `data-threat-alert` (K40.1c). Czysty, deterministyczny.
+- `render_recommended_action(world, game, player_duchy_id=None)` — fragment
+  `data-recommended-action` z jednym zalecanym rozkazem z postawy netto. Brak
+  gracza lub id spoza `game.duchies` (`player_duchy(...) is None`) → sam pusty
+  korzeń `<div data-recommended-action="">` (bez `data-posture`/tekstu). Przy
+  znanym graczu korzeń niesie `data-posture` = `net_posture(M, N)` (M =
+  `advantageous_target_count`, N = `threatened_position_count`) i tekst
+  `Zalecany rozkaz: atakuj` (offensive) / `broń się` (defensive) /
+  `rozwijaj księstwo` (balanced). Czysty, deterministyczny.
 - `render_party_panel(world, player_duchy_id=None)` — fragment `data-party-panel`
   z wierszem `data-party-row` (= nazwa regionu) na party w kolejności
   `world.regions`; `data-owner`/`data-size` (liczba podkomendnych)/`data-hp`/

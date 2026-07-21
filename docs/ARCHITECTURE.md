@@ -249,10 +249,25 @@ mutacji `world`/`game`; rdzeń bez zmian.
 bez `data-opportunity-count`, bez `data-net-posture`, bez tekstu, bez dzieci).
 Przy znanym graczu: `data-threatened-count="N"` (`threatened_position_count`),
 `data-opportunity-count="M"` (`advantageous_target_count`), zaraz po nim
-`data-net-posture` (`"offensive"` gdy M>N, `"defensive"` gdy N>M,
-`"balanced"` gdy M==N) i tekst
+`data-net-posture` z publicznego `net_posture(M, N)` i tekst
 `Sytuacja: zagrożone pozycje N, korzystne cele M — postawa:
 ofensywna|defensywna|zrównoważona`. Czyste, deterministyczne, bez mutacji
+`world`/`game`; rdzeń bez zmian.
+
+**Postawa netto (K40.2a / K41.1a):**
+`tbbui.situationreport.net_posture(opportunity_count, threatened_count) -> str`
+— `"offensive"` gdy M>N, `"defensive"` gdy N>M, `"balanced"` gdy M==N; czysta,
+deterministyczna. Wspólne źródło `data-net-posture` w `render_situation_report`
+oraz `data-posture` w `render_recommended_action`.
+
+**Zalecany rozkaz HTML (K41.1a):**
+`tbbui.recommendedaction.render_recommended_action(world, game, player_duchy_id=None) -> str`
+— parsowalny fragment z korzeniem `<div data-recommended-action="">`. Gdy
+`player_duchy(...) is None` → sam pusty korzeń (bez `data-posture`, bez tekstu,
+bez dzieci). Przy znanym graczu: `data-posture` = `net_posture(M, N)` (M =
+`advantageous_target_count`, N = `threatened_position_count`) i tekst
+`Zalecany rozkaz: atakuj|broń się|rozwijaj księstwo` dla
+`offensive|defensive|balanced`. Czyste, deterministyczne, bez mutacji
 `world`/`game`; rdzeń bez zmian.
 
 **Lokalizacja party na mapie (R37.1):**
@@ -273,7 +288,7 @@ Reużywany przez `threatalert` (`_first_hostile_neighbor`) i `engagementpreview`
 `game.duchies` o `duchy_id == player_duchy_id`, inaczej `None`; czysty, bez
 mutacji `game`. Reużywany przez `playersummary`, `nextobjective`,
 `victoryprogress`, `herolocator`, `herochase`, `engagementpreview`,
-`threatalert` i `situationreport`.
+`threatalert`, `situationreport` i `recommendedaction`.
 
 **Panel party HTML (K22.2a / K24.1a / K25.1a / K25.1b / K27.1a):** `tbbui.partypanel.render_party_panel(world,
 player_duchy_id=None) -> str` — parsowalny fragment XML z korzeniem
