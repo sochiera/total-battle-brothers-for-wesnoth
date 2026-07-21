@@ -22,6 +22,27 @@ def test_format_log_entry_prefixes_notice_with_calendar_date():
     )
 
 
+def test_format_log_entry_is_pure_deterministic_and_does_not_escape():
+    """Helper is pure and deterministic: does not escape special characters
+    (escaping is ``render_order_log``'s job), does not mutate ``calendar`` or
+    ``notice``, and yields the same string for the same arguments.
+    """
+    notice = 'szturm <Keep> & "hold"'
+    calendar = Calendar(year=4, month=2)
+    year_before, month_before = calendar.year, calendar.month
+    notice_before = notice
+
+    first = format_log_entry(notice, calendar)
+    second = format_log_entry(notice, calendar)
+
+    assert first == second
+    assert first == 'Rok 4, miesiąc 2 — szturm <Keep> & "hold"'
+    assert "<" in first and "&" in first and '"' in first
+    assert "&lt;" not in first and "&amp;" not in first and "&quot;" not in first
+    assert calendar.year == year_before and calendar.month == month_before
+    assert notice == notice_before
+
+
 def test_render_order_log_root_is_div_with_data_order_log_and_data_count():
     """``render_order_log(entries)`` returns a parsable XML fragment whose root
     is ``<div data-order-log="">`` carrying ``data-count="<len(entries)>"``.
