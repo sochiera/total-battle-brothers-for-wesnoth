@@ -221,6 +221,19 @@ def recommended_battle_forecast_text(
     return f"Przewidywana siła: Ty {own} vs wróg {enemy} — {verdict}"
 
 
+def _escaped_paragraph(attr: str, text: str) -> str:
+    """Return an HTML ``<p data-{attr}="…">…</p>`` or ``""`` if ``text`` is empty.
+
+    Empty ``text`` → ``""``. Otherwise ``html.escape(text, quote=True)`` is used
+    for both the attribute value and the element body. Shared by
+    ``render_recommended_action`` and ``GameApp._recommended_order_form``.
+    """
+    if not text:
+        return ""
+    escaped = html.escape(text, quote=True)
+    return f'<p data-{attr}="{escaped}">{escaped}</p>'
+
+
 def recommended_order_text(action: str, target_name: str | None) -> str:
     """Descriptive half of the advice line (no ``Zalecany rozkaz: `` prefix).
 
@@ -314,20 +327,14 @@ def render_recommended_action(
     posture = net_posture(m, n)
     text = f"Zalecany rozkaz: {recommended_order_text(action, target)}"
     reason = recommended_order_reason(world, game, player_duchy_id)
-    escaped = html.escape(reason, quote=True)
+    reason_html = _escaped_paragraph("recommendation-reason", reason)
     forecast = recommended_battle_forecast_text(
         world, game, player_duchy_id
     )
-    forecast_html = ""
-    if forecast:
-        escaped_forecast = html.escape(forecast, quote=True)
-        forecast_html = (
-            f'<p data-recommended-forecast="{escaped_forecast}">'
-            f"{escaped_forecast}</p>"
-        )
+    forecast_html = _escaped_paragraph("recommended-forecast", forecast)
     return (
         f'<div data-recommended-action="" data-posture="{posture}" '
         f'data-action="{action}">{text}'
-        f'<p data-recommendation-reason="{escaped}">{escaped}</p>'
+        f"{reason_html}"
         f"{forecast_html}</div>"
     )

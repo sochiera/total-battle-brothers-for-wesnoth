@@ -18,6 +18,7 @@ from tbbui.battlereport import attacker_losses, battle_outcome_text, defender_lo
 from tbbui.gamepage import render_game_page
 from tbbui.orderlog import format_log_entry, render_order_log
 from tbbui.recommendedaction import (
+    _escaped_paragraph,
     recommended_battle_forecast_text,
     recommended_order,
     recommended_order_reason,
@@ -475,22 +476,17 @@ class GameApp:
         reason = recommended_order_reason(
             self.world, self.game, self.player_duchy_id
         )
-        escaped_reason = escape(reason, quote=True)
+        reason_html = _escaped_paragraph("recommended-order-reason", reason)
         forecast = recommended_battle_forecast_text(
             self.world, self.game, self.player_duchy_id
         )
-        forecast_html = ""
-        if forecast:
-            escaped_forecast = escape(forecast, quote=True)
-            forecast_html = (
-                f'<p data-recommended-order-forecast="{escaped_forecast}">'
-                f"{escaped_forecast}</p>"
-            )
+        forecast_html = _escaped_paragraph(
+            "recommended-order-forecast", forecast
+        )
         return (
             f'<form method="post" action="{path}" data-recommended-order="">'
             f'<button type="submit">{label}</button>'
-            f'<p data-recommended-order-reason="{escaped_reason}">'
-            f"{escaped_reason}</p>"
+            f"{reason_html}"
             f"{forecast_html}"
             "</form>"
         )
