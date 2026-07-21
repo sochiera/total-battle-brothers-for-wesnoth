@@ -272,7 +272,7 @@ def test_tick_settlements_does_not_mutate_input_and_returns_immutable_mapping():
 
 
 def test_tick_parties_applies_tick_wounds_in_region_order_without_mutating_world():
-    """WorldMap.tick_parties advances temporary wounds for every party."""
+    """WorldMap.tick_parties heals wounds then trains every party (month tick)."""
     north = Region("North")
     empty = Region("Wilds")
     south = Region("South")
@@ -304,8 +304,8 @@ def test_tick_parties_applies_tick_wounds_in_region_order_without_mutating_world
     assert ticked.settlement_at(north) is town
     assert ticked.settlement_at(empty) is None
     assert ticked.party_at(empty) is None
-    assert ticked.party_at(north) == first_party.tick_wounds(1)
-    assert ticked.party_at(south) == second_party.tick_wounds(1)
+    assert ticked.party_at(north) == first_party.tick_wounds(1).tick_training(1)
+    assert ticked.party_at(south) == second_party.tick_wounds(1).tick_training(1)
     assert ticked.party_at(north).hero.wounds[0].duration_months == 1
     assert MAIMED in ticked.party_at(north).hero.wounds
     assert dict(world.parties) == parties_before

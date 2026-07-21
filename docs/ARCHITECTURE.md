@@ -853,16 +853,16 @@ Uruchamiaj z katalogu `game/`.
   w efektywnych statystykach z podłogą na zero. Miesięczny łańcuch
   `WorldMap.tick_settlements()` kończy `Settlement.tick_healing()`, które
   przesuwa czasowe rany całego garnizonu o jeden miesiąc. Osobne przejście
-  `WorldMap.tick_parties()` stosuje `Party.tick_wounds(1)` do każdego party
-  w deterministycznej kolejności `world.regions`; graf, osady i regiony bez
-  party pozostają bez zmian.
+  `WorldMap.tick_parties()` stosuje `Party.tick_wounds(1).tick_training(1)` do
+  każdego party w deterministycznej kolejności `world.regions`; graf, osady i
+  regiony bez party pozostają bez zmian.
 - **Skład party:** `Party` wymaga bohatera `Unit` i kopiuje do krotki maksymalnie
   12 podkomendnych `Unit`; bohater jest osobnym polem i nie wlicza się do limitu.
 - **Postęp treningu:** `Unit.train()` reużywa trójkątną krzywą z `progression`;
   autorytatywny poziom pozostaje w `training`, a reszta nakładu przed następnym
   poziomem w `training_progress`. `Party.tick_training(months=1)` deleguje do
-  `Unit.train` dla hero i każdego podkomendnego (mirror `tick_wounds`); na razie
-  nie jest wołane z `WorldMap.tick_parties()`.
+  `Unit.train` dla hero i każdego podkomendnego (mirror `tick_wounds`); wołane z
+  `WorldMap.tick_parties()` po `tick_wounds(1)`.
 - **Postęp uzbrojenia:** `Unit.equip()` reużywa tę samą trójkątną krzywą;
   autorytatywny poziom pozostaje w `equipment`, a reszta nakładu przed następnym
   poziomem w `equipment_progress`.

@@ -140,7 +140,8 @@ ucieczek. W auto-rozgrywce i resolve mapy: **per strona**
 Kary sumują się; efektywne statystyki ≥ 0. Katalog: **Bruise** (2 mies., −1/−1),
 **Maimed** (trwała, −2/−2). `Unit.tick_wounds(months=1)` starzeje rany czasowe.
 `Settlement.tick_healing()` w łańcuchu miesięcznym; `WorldMap.tick_parties()`
-stosuje `Party.tick_wounds(1)` w kolejności regionów (driver po `tick_settlements`).
+stosuje `Party.tick_wounds(1).tick_training(1)` w kolejności regionów (driver
+po `tick_settlements`).
 
 **0 HP.** Jeden rzut 50/50: śmierć (usunięcie) albo `stunned=True` + Bruise.
 Ogłuszona nie rusza się ani nie atakuje. `Unit.stunned` (domyślnie `False`);
@@ -213,8 +214,9 @@ Trzy niezależne filary: **trening**, **uzbrojenie**, **doświadczenie** (tylko 
   uzbraja jednego o najniższym `equipment` (remis: najwcześniejsza pozycja);
   placeholdery kosztu/inwestycji = `1`.
 
-Jednostki w maszerującym party **nie** trenują/uzbrajają w `tick_settlements`
-(leczenie party: `tick_parties`).
+Jednostki w maszerującym party trenują się w `tick_parties` (upływ czasu, jak
+garnizon); **nie** uzbrajają się (brak dostępu do złota/kuźni osady) ani nie
+przechodzą filaru trening/uzbrojenie w `tick_settlements`.
 
 ## 6. Pętla rozgrywki (MVP)
 Najmniejsza grywalna pętla, single-player vs **jedno** księstwo AI:
@@ -236,7 +238,7 @@ Najmniejsza grywalna pętla, single-player vs **jedno** księstwo AI:
   - `muster(hero)` — garnizon → `Party`; population/occupied −liczba żołnierzy.
   - `absorb_defenders`, `tick_*`, `open_building`.
 - **`Party`** — hero + ≤12 units, `owner_id`; `reconstruct`, `tick_wounds`,
-  `tick_training` (czysta metoda; jeszcze nie w `WorldMap.tick_parties`).
+  `tick_training` (wołane z `WorldMap.tick_parties` po leczeniu ran).
 - **`Duchy`** — jak §3.1; `succeed()`, `is_defeated`, `has_hero`.
 - **`GameState`** — krotka księstw; `sync_from_world(world)` odtwarza
   settlements/parties po `owner_id` w kolejności regionów; `contenders`/`is_over`/`winner`.
@@ -395,5 +397,6 @@ Wszystkie renderery są czyste i deterministyczne.
 - **Strojenie wartości** placeholderów (koszty złota, kary morale, wagi XP, MP).
 - **Semantyka pełna modyfikatorów terenu** w złożonych przypadkach poza wzorem B4.3a.
 - **Granice/kształt planszy bitwy**, amunicja/kary dystansu, typy broni, wycofanie.
-- **Rozwój jednostek w party** na mapie (trening/uzbrojenie poza garnizonem).
+- **Uzbrojenie jednostek w party** na mapie (trening: T53.1b w `tick_parties`;
+  sprzęt nadal tylko w garnizonie).
 - **Pełna maszyna faz `StrategicTurn` w driverze headless** (obecnie `take_duchy_turn`).

@@ -58,6 +58,7 @@
 | W11.3 | Leczenie garnizonu | `Settlement.tick_healing()` po tick_equipment w tick_settlements. |
 | W12.2 | Leczenie party | `WorldMap.tick_parties()` → `Party.tick_wounds(1)` w kolejności regionów; driver po tick_settlements. |
 | T53.1a | Trening party (czysty) | `Party.tick_training(months=1)` → `hero.train` + `units.train`, mirror `tick_wounds`; jeszcze nie w `WorldMap.tick_parties`. |
+| T53.1b | Trening w tick_parties | `WorldMap.tick_parties()` → `tick_wounds(1).tick_training(1)` na każdym party; uzbrojenie party poza zakresem. |
 | BM.1 | resolve_party_battle | Składa start→auto_resolve→apply; ocalali w składzie; MP placeholder 1; morale per strona. |
 | BM.2 | resolve_settlement_battle | Składa szturm→auto_resolve→apply; podbój przy ATTACKER_WIN; ocalali; morale per strona. |
 | K16.1b | Nagrana wersja szturmu | `resolve_settlement_battle_recorded(...) -> (WorldMap, HexBattle)`; `resolve_settlement_battle` deleguje i zwraca tylko mapę. |
