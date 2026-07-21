@@ -406,3 +406,10 @@
 - [x] **K40.1b** `data-opportunity-count` (korzystne cele z przewagą) + rozszerzenie tekstu. *(task-195)*
 - [x] **K40.1c** Osadzenie w `render_game_page` po `data-threat-alert` (bez gracza → bajt-w-bajt jak dotąd). *(task-196)*
 - [x] **K40.2a** Flaga `data-net-posture="offensive|defensive|balanced"` + sufiks postawy. *(task-197)*
+
+## Kamień milowy 41 — zalecany następny rozkaz (rada wykonalna) — UKOŃCZONY
+- [x] **K41.1a** Prymityw `render_recommended_action` — korzeń `data-recommended-action`/`data-posture` + ogólny tekst zalecenia; `situationreport.net_posture` publiczny. *(task-198)*
+- [x] **K41.1b** Zalecenie ofensywne z celem (`engagementpreview.first_advantageous_target`): „szturmuj osadę <R>"/„zaatakuj oddział <R>". *(task-199)*
+- [x] **K41.1c** Zalecenie defensywne z regionem (`threatalert.first_threatened_region`): „broń pozycji <R>". *(task-200)*
+- [x] **K41.2a** Maszynowa flaga `data-action="assault|engage|defend|develop"` po `data-posture`. *(task-201)*
+- [x] **K41.3a** Osadzenie w `render_game_page` po `data-situation-report` (bez gracza → bajt-w-bajt jak dotąd). *(task-202)*

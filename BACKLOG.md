@@ -229,17 +229,25 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > party). Wszystkie pozycje (task-193…197) w `BACKLOG-ARCHIVE.md`. Rdzeń `tbb`
 > bez zmian.
 
-## Kamień milowy 41 — zalecany następny rozkaz (rada wykonalna)
-> DESIGN §11: K33–K40 dały bogate panele i werdykt postawy; K41 zamienia werdykt
+## Kamień milowy 41 — zalecany następny rozkaz (rada wykonalna) — UKOŃCZONY
+> DESIGN §11: K33–K40 dały bogate panele i werdykt postawy; K41 zamienił werdykt
 > w jeden konkretny **zalecany rozkaz** — czysty `render_recommended_action`
 > nazywa cel (szturm/starcie na korzystny cel, obrona zagrożonej pozycji, rozwój)
 > i niesie maszynowe `data-action`, osadzony w `render_game_page` po skrócie
-> sytuacji. Rdzeń `tbb` bez zmian.
-- [ ] **K41.1a** Prymityw `render_recommended_action` — korzeń `data-recommended-action`/`data-posture` + ogólny tekst zalecenia; `situationreport.net_posture` publiczny. *(task-198)*
-- [ ] **K41.1b** Zalecenie ofensywne z celem (`engagementpreview.first_advantageous_target`): „szturmuj osadę <R>"/„zaatakuj oddział <R>". *(task-199)*
-- [ ] **K41.1c** Zalecenie defensywne z regionem (`threatalert.first_threatened_region`): „broń pozycji <R>". *(task-200)*
-- [ ] **K41.2a** Maszynowa flaga `data-action="assault|engage|defend|develop"` po `data-posture`. *(task-201)*
-- [ ] **K41.3a** Osadzenie w `render_game_page` po `data-situation-report` (bez gracza → bajt-w-bajt jak dotąd). *(task-202)*
+> sytuacji. Wszystkie pozycje (task-198…202) w `BACKLOG-ARCHIVE.md`. Rdzeń `tbb`
+> bez zmian.
+
+## Kamień milowy 42 — wykonalny zalecany rozkaz (rada w jeden klik)
+> DESIGN §11: K41 pokazał zalecany rozkaz, ale gracz musiał go wykonać sam,
+> szukając właściwej sekcji. K42 domyka pętlę rada→akcja: maszynowa decyzja rady
+> (`recommended_order`) → mapa akcji na istniejącą trasę POST
+> (`recommended_order_path`) → jeden formularz `data-recommended-order` w `GET /`
+> z czytelnym przyciskiem „Wykonaj zalecenie: <opis>". Reużywa trasy `/order/*`
+> — bez nowego backendu rozkazów. Rdzeń `tbb` bez zmian.
+- [ ] **K42.1a** Czysty `recommended_order(world, game, player_duchy_id)` → `(action, target|None)|None`; `render_recommended_action` deleguje (bajt-w-bajt jak dotąd). *(task-203)*
+- [ ] **K42.1b** Mapa `serve.recommended_order_path(action)`: assault→`/order/assault`, engage→`/order/engage`, defend→`/order/march`, develop→`/order/develop`. *(task-204)*
+- [ ] **K42.1c** GameApp osadza jeden `<form data-recommended-order>` w `GET /` (action=path+target, przed `data-order-section="develop"`; guardy gracz/`is_over`/`None`). *(task-205)*
+- [ ] **K42.2a** `recommended_order_text(action, target)` + przycisk „Wykonaj zalecenie: <opis>"; `render_recommended_action` reużywa (bajt-w-bajt jak dotąd). *(task-206)*
 
 ## Dług/refaktor
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*

@@ -468,7 +468,11 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   postawa ofensywna ⇒ M≥1); defensive → pierwsza zagrożona własna pozycja z
   `first_threatened_region` (`broń pozycji <region>`; postawa defensywna ⇒ N≥1);
   balanced → `rozwijaj księstwo`. Osadzony w stronie partii zaraz po
-  `data-situation-report` (K41.3a). Czysty, deterministyczny.
+  `data-situation-report` (K41.3a). Czysty, deterministyczny. Maszynowa decyzja
+  rady jest też dostępna osobno jako `recommended_order(world, game,
+  player_duchy_id) -> (action, target_region | None) | None` (K42.1a; `develop`
+  → target `None`), a opisowa część tekstu jako `recommended_order_text(action,
+  target_name)` (K42.2a); `render_recommended_action` deleguje do obu.
 - `render_party_panel(world, player_duchy_id=None)` — fragment `data-party-panel`
   z wierszem `data-party-row` (= nazwa regionu) na party w kolejności
   `world.regions`; `data-owner`/`data-size` (liczba podkomendnych)/`data-hp`/
@@ -597,6 +601,15 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
 - `_render` emituje `last_notice` jako `<p data-notice="…">…</p>`: ta sama
   escapowana treść w atrybucie i w ciele akapitu (widoczna w przeglądarce;
   pusty komunikat → puste ciało) (K29.1a).
+- Zalecany rozkaz w jeden klik (K42.1b–2a): przy ustawionym gracze, grze nie
+  `is_over` i `recommended_order(...) is not None`, `GET /` osadza dokładnie
+  jeden `<form data-recommended-order>` (przed nagłówkiem
+  `data-order-section="develop"`) z `action = recommended_order_path(action)`
+  (`assault`→`/order/assault`, `engage`→`/order/engage`, `defend`→`/order/march`,
+  `develop`→`/order/develop`) i `?target=<quote(region)>`, gdy `recommended_order`
+  zwraca region (brak sufiksu przy `develop`); przycisk niesie tekst
+  `Wykonaj zalecenie: <recommended_order_text(action, target)>`. Brak formularza
+  przy `player_duchy_id=None`, `is_over` lub `recommended_order(...) is None`.
 - UI celów: gdy gracz ma party na mapie — po jednym formularzu
   `?target=<quote(nazwa)>` na obcą osadę (kolejność `world.regions`, helper
   `_march_targets`); bare action nieobecny. Brak party / brak id / gra skończona →

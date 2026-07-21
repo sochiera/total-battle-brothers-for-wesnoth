@@ -286,7 +286,29 @@ z `first_advantageous_target` — `Zalecany rozkaz: szturmuj osadę <region>`
 `defensive` z `first_threatened_region` — `broń pozycji <region>` (postawa
 defensywna ⇒ N≥1); przy `balanced` — `rozwijaj księstwo`. Osadzony w
 `render_game_page` zaraz po `data-situation-report` (K41.3a). Czyste,
-deterministyczne, bez mutacji `world`/`game`; rdzeń bez zmian.
+deterministyczne, bez mutacji `world`/`game`; rdzeń bez zmian. Maszynowa
+decyzja rady jest wyłuskana jako `recommended_order(world, game,
+player_duchy_id=None) -> tuple[str, str | None] | None` (K42.1a; `(action,
+target_region_name)`, `develop` → target `None`, brak gracza → `None`), a
+opisowa część tekstu jako `recommended_order_text(action, target_name) -> str`
+(K42.2a: `szturmuj osadę <R>` / `zaatakuj oddział <R>` / `broń pozycji <R>` /
+`rozwijaj księstwo`). `render_recommended_action` deleguje do obu (wyjście
+bajt-w-bajt jak przed refaktorem).
+
+**Zalecany rozkaz w jeden klik w GameApp (K42.1b / K42.1c / K42.2a):**
+`tbbui.serve.recommended_order_path(action) -> str` — czysta mapa akcji na
+istniejącą trasę POST: `assault`→`/order/assault`, `engage`→`/order/engage`,
+`defend`→`/order/march` (obrona zagrożonej pozycji = marsz party tam),
+`develop`→`/order/develop`. GameApp w `GET /` extras (prywatny
+`_recommended_order_form`) — przy ustawionym `player_duchy_id`, grze nie
+`is_over` i `recommended_order(...) is not None` — osadza dokładnie jeden
+`<form method="post" action="{recommended_order_path(action)}[?target=quote(region)]"
+data-recommended-order="">` przed `_DEVELOP_SECTION_HEADER`; sufiks `?target=`
+tylko gdy `recommended_order` zwraca region (brak przy `develop`); przycisk niesie
+`Wykonaj zalecenie: {recommended_order_text(action, target)}` (escapowany). Brak
+`data-recommended-order` przy `player_duchy_id=None`, `is_over` lub
+`recommended_order(...) is None`. Reużywa istniejące trasy `/order/*` (bez nowego
+backendu rozkazów).
 
 **Lokalizacja party na mapie (R37.1):**
 `tbbui.maplookup.first_party_region(world, owner_id) -> Region | None` — pierwszy
