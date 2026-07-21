@@ -297,8 +297,11 @@ def render_recommended_action(
     line), plus exactly one child
     ``<p data-recommendation-reason="{reason}">{reason}</p>`` from
     ``recommended_order_reason`` (``html.escape(..., quote=True)`` on attribute
-    and body). Pure and deterministic: no RNG/IO; does not mutate ``world`` or
-    ``game``.
+    and body). When ``recommended_battle_forecast_text`` is non-empty, a second
+    child ``<p data-recommended-forecast="{text}">{text}</p>`` follows the
+    reason (same escape rule); empty forecast or no player → no forecast
+    element (K51.1d). Pure and deterministic: no RNG/IO; does not mutate
+    ``world`` or ``game``.
     """
     order = recommended_order(world, game, player_duchy_id)
     if order is None:
@@ -312,8 +315,19 @@ def render_recommended_action(
     text = f"Zalecany rozkaz: {recommended_order_text(action, target)}"
     reason = recommended_order_reason(world, game, player_duchy_id)
     escaped = html.escape(reason, quote=True)
+    forecast = recommended_battle_forecast_text(
+        world, game, player_duchy_id
+    )
+    forecast_html = ""
+    if forecast:
+        escaped_forecast = html.escape(forecast, quote=True)
+        forecast_html = (
+            f'<p data-recommended-forecast="{escaped_forecast}">'
+            f"{escaped_forecast}</p>"
+        )
     return (
         f'<div data-recommended-action="" data-posture="{posture}" '
         f'data-action="{action}">{text}'
-        f'<p data-recommendation-reason="{escaped}">{escaped}</p></div>'
+        f'<p data-recommendation-reason="{escaped}">{escaped}</p>'
+        f"{forecast_html}</div>"
     )

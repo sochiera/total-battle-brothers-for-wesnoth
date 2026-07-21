@@ -1172,7 +1172,9 @@ def test_render_recommended_action_embeds_reason_child_from_recommended_order_re
         assert root.text == expected_text
 
         children = list(root)
-        assert len(children) == 1
+        # K50.1b: first child is the reason; optional forecast sibling (K51.1d)
+        # may follow for battle orders (assault/engage/defend).
+        assert len(children) >= 1
         child = children[0]
         assert child.tag == "p"
         assert child.attrib == {"data-recommendation-reason": escaped}
@@ -1181,6 +1183,8 @@ def test_render_recommended_action_embeds_reason_child_from_recommended_order_re
         # Raw fragment must escape reason in attribute (and body source).
         assert f'data-recommendation-reason="{escaped}"' in xml
         assert f">{escaped}</p>" in xml or f">{reason}</p>" in xml
+        if len(children) > 1:
+            assert "data-recommended-forecast" in children[1].attrib
 
         assert world.regions == regions_before
         assert {
@@ -1245,10 +1249,12 @@ def test_render_recommended_action_data_posture_and_order_text_from_m_vs_n():
         assert root.attrib.get("data-posture") == net_posture(m, n)
         expected_text = text if text is not None else order_text[expected]
         assert root.text == expected_text
-        # K50.1b: one reason child; posture/action/text unchanged
-        assert len(list(root)) == 1
-        assert list(root)[0].tag == "p"
-        assert "data-recommendation-reason" in list(root)[0].attrib
+        # K50.1b: first child is the reason; optional forecast sibling (K51.1d)
+        # may follow for battle orders; posture/action/text unchanged.
+        children = list(root)
+        assert len(children) >= 1
+        assert children[0].tag == "p"
+        assert "data-recommendation-reason" in children[0].attrib
 
         assert world.regions == regions_before
         assert {
@@ -2116,3 +2122,153 @@ def test_recommended_battle_forecast_text_formats_own_vs_enemy_with_verdict():
     assert recommended_battle_forecast_text(
         ryzyko_world, game, "player"
     ) == f"Przewidywana siła: Ty {own_weak} vs wróg {enemy_strong} — ryzyko"
+
+
+def test_render_recommended_action_embeds_forecast_after_reason_when_nonempty():
+    """Known player when ``recommended_battle_forecast_text`` is non-empty:
+    after ``<p data-recommendation-reason=…>`` the root embeds exactly one
+    child ``<p data-recommended-forecast="{text}">{text}</p>`` where
+    ``text = recommended_battle_forecast_text(world, game, player_duchy_id)``
+    — same value in attribute and body, ``html.escape(..., quote=True)`` —
+    K51.1d.
+
+    ``data-posture`` / ``data-action`` / ``data-recommendation-reason`` stay
+    from ``net_posture`` / ``recommended_order`` / ``recommended_order_reason``
+    (unchanged). Pure: no world/game mutation.
+    """
+    recommended_order_reason = recommendedaction.recommended_order_reason
+    recommended_order_text = recommendedaction.recommended_order_text
+    recommended_battle_forecast_text = (
+        recommendedaction.recommended_battle_forecast_text
+    )
+    home = Region("Home")
+    keep = Region("Keep")
+    enemy_camp = Region("EnemyCamp")
+    weak_a = Region("WeakA")
+    weak_b = Region("WeakB")
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+
+    scenarios: list[tuple[WorldMap, str]] = [
+        # assault → non-empty forecast
+        (
+            WorldMap(
+                [home, enemy_camp],
+                [(home, enemy_camp)],
+                parties={
+                    home: Party(hero=Unit(), units=(), owner_id="player")
+                },
+                settlements={
+                    enemy_camp: Settlement(
+                        "EnemyS", population=2, owner_id="enemy"
+                    ),
+                },
+            ),
+            "assault",
+        ),
+        # engage → non-empty forecast (M=2 > N=1)
+        (
+            WorldMap(
+                [home, weak_a, weak_b],
+                [(home, weak_a), (home, weak_b)],
+                parties={
+                    home: Party(hero=Unit(), units=(), owner_id="player"),
+                    weak_a: Party(hero=Unit(), units=(), owner_id="enemy"),
+                    weak_b: Party(hero=Unit(), units=(), owner_id="enemy"),
+                },
+                settlements={},
+            ),
+            "engage",
+        ),
+        # defend → non-empty forecast
+        (
+            WorldMap(
+                [keep, enemy_camp],
+                [(keep, enemy_camp)],
+                parties={
+                    keep: Party(hero=Unit(), units=(), owner_id="player"),
+                    enemy_camp: Party(
+                        hero=Unit(), units=(), owner_id="enemy"
+                    ),
+                },
+                settlements={
+                    keep: Settlement(
+                        "KeepS", population=2, owner_id="player"
+                    ),
+                },
+            ),
+            "defend",
+        ),
+    ]
+
+    for world, expected_action in scenarios:
+        order = recommended_order(world, game, "player")
+        assert order is not None
+        action, target = order
+        assert action == expected_action
+        reason = recommended_order_reason(world, game, "player")
+        assert reason != ""
+        text = recommended_battle_forecast_text(world, game, "player")
+        assert text != ""
+        escaped_reason = html.escape(reason, quote=True)
+        escaped_forecast = html.escape(text, quote=True)
+        m = advantageous_target_count(world, game, "player")
+        n = threatened_position_count(world, game, "player")
+        expected_posture = net_posture(m, n)
+        expected_text = (
+            f"Zalecany rozkaz: {recommended_order_text(action, target)}"
+        )
+
+        regions_before = world.regions
+        parties_before = {r: world.party_at(r) for r in world.regions}
+        settlements_before = {
+            r: world.settlement_at(r) for r in world.regions
+        }
+        duchies_before = game.duchies
+
+        xml = render_recommended_action(
+            world, game, player_duchy_id="player"
+        )
+        root = ET.fromstring(xml)
+
+        assert root.tag == "div"
+        assert root.attrib.get("data-recommended-action") == ""
+        assert root.attrib.get("data-posture") == expected_posture
+        assert root.attrib.get("data-action") == action
+        assert root.text == expected_text
+
+        children = list(root)
+        assert len(children) == 2
+        reason_child = children[0]
+        forecast_child = children[1]
+        assert reason_child.tag == "p"
+        assert reason_child.attrib == {
+            "data-recommendation-reason": escaped_reason
+        }
+        assert reason_child.text == reason
+        assert forecast_child.tag == "p"
+        assert forecast_child.attrib == {
+            "data-recommended-forecast": escaped_forecast
+        }
+        assert forecast_child.text == text
+        assert forecast_child.attrib["data-recommended-forecast"] == (
+            forecast_child.text or ""
+        )
+        # Raw fragment must escape forecast in attribute (and body source).
+        assert f'data-recommended-forecast="{escaped_forecast}"' in xml
+        assert (
+            f">{escaped_forecast}</p>" in xml or f">{text}</p>" in xml
+        )
+
+        assert world.regions == regions_before
+        assert {
+            r: world.party_at(r) for r in world.regions
+        } == parties_before
+        assert {
+            r: world.settlement_at(r) for r in world.regions
+        } == settlements_before
+        assert game.duchies == duchies_before
