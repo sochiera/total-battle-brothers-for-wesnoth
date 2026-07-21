@@ -715,6 +715,69 @@ def test_recommended_order_balanced_march_when_player_march_target():
     )
 
 
+def test_render_recommended_action_march_data_action_and_text_keeps_posture():
+    """``render_recommended_action`` when ``recommended_order`` is
+    ``("march", R)``: root has ``data-action="march"`` and text
+    ``Zalecany rozkaz: maszeruj ku osadzie R``; ``data-posture`` still equals
+    ``net_posture(M, N)`` (here ``"balanced"``) — K49.1c.
+
+    Scenario: balanced M==N with distant enemy settlement so
+    ``player_march_target`` is not ``None``. Pure: no world/game mutation.
+    """
+    player_march_target = recommendedaction.player_march_target
+    home = Region("Home")
+    road = Region("Road")
+    far_enemy = Region("FarEnemy")
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+    world = WorldMap(
+        [home, road, far_enemy],
+        [(home, road), (road, far_enemy)],
+        parties={home: Party(hero=Unit(), units=(), owner_id="player")},
+        settlements={
+            far_enemy: Settlement("FarS", population=2, owner_id="enemy"),
+        },
+    )
+    m = advantageous_target_count(world, game, "player")
+    n = threatened_position_count(world, game, "player")
+    expected_posture = net_posture(m, n)
+    assert expected_posture == "balanced"
+    target = player_march_target(world, game, "player")
+    assert target is not None
+    assert recommended_order(world, game, "player") == ("march", target)
+
+    regions_before = world.regions
+    parties_before = {r: world.party_at(r) for r in world.regions}
+    settlements_before = {
+        r: world.settlement_at(r) for r in world.regions
+    }
+    duchies_before = game.duchies
+
+    root = ET.fromstring(
+        render_recommended_action(world, game, player_duchy_id="player")
+    )
+    assert root.tag == "div"
+    assert root.attrib.get("data-recommended-action") == ""
+    assert root.attrib.get("data-posture") == expected_posture
+    assert root.attrib.get("data-posture") == "balanced"
+    assert root.attrib.get("data-action") == "march"
+    assert root.text == f"Zalecany rozkaz: maszeruj ku osadzie {target}"
+    assert list(root) == []
+
+    assert world.regions == regions_before
+    assert {
+        r: world.party_at(r) for r in world.regions
+    } == parties_before
+    assert {
+        r: world.settlement_at(r) for r in world.regions
+    } == settlements_before
+    assert game.duchies == duchies_before
+
+
 def test_render_recommended_action_empty_root_when_none_or_unknown_duchy():
     """When ``player_duchy_id`` is ``None`` or not in ``game.duchies``
     (``player_duchy(...) is None``), return a bare empty root

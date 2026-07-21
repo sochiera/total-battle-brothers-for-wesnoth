@@ -4371,6 +4371,98 @@ def test_recommended_order_path_muster():
     assert recommended_order_path("develop") == "/order/develop"
 
 
+def test_recommended_order_path_march():
+    """``recommended_order_path("march")`` → ``"/order/march"`` (K49.1c).
+
+    Contract: maps balanced-stance march advice onto the existing player
+    march POST route so ``_recommended_order_form`` does not raise KeyError.
+    Other known mappings (assault/engage/defend/develop/muster) unchanged.
+    Pure, deterministic, no IO.
+    """
+    assert recommended_order_path("march") == "/order/march"
+    assert recommended_order_path("assault") == "/order/assault"
+    assert recommended_order_path("engage") == "/order/engage"
+    assert recommended_order_path("defend") == "/order/march"
+    assert recommended_order_path("develop") == "/order/develop"
+    assert recommended_order_path("muster") == "/order/muster"
+
+
+def test_get_recommended_march_form_balanced_with_target():
+    """K49.1c: GET / one-click form for balanced ``("march", R)`` advice.
+
+    Contract (task-233 / review): with ``player_duchy_id="player"``, party on
+    map, no adjacent assault target, distant enemy settlement R (distance ≥ 2)
+    so ``recommended_order`` is ``("march", R)``:
+    - ``recommended_order_path("march")`` is ``"/order/march"``
+    - GET / embeds exactly one
+      ``<form method="post" action="/order/march?target=R" data-recommended-order="">``
+      whose submit button is html-escaped
+      ``Wykonaj zalecenie: maszeruj ku osadzie R``
+    """
+    from html import escape
+
+    home = Region("Home")
+    road = Region("Road")
+    far_enemy = Region("FarEnemy")
+    world = WorldMap(
+        [home, road, far_enemy],
+        [(home, road), (road, far_enemy)],
+        parties={home: Party(hero=Unit(), units=(), owner_id="player")},
+        settlements={
+            far_enemy: Settlement("FarS", population=2, owner_id="enemy"),
+        },
+    )
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+    assert not game.is_over
+    order = recommended_order(world, game, "player")
+    assert order is not None
+    action, region = order
+    assert action == "march"
+    assert region == far_enemy.name
+    assert recommended_order_path("march") == "/order/march"
+    expected_action = f"/order/march?target={quote(region)}"
+
+    app = GameApp(
+        world, game, Calendar(year=1, month=1), Rng(1), player_duchy_id="player"
+    )
+    code_get, body_get = app.handle("GET", "/")
+    assert code_get == 200
+
+    root_get = ET.fromstring(body_get)
+    rec_forms = [
+        el
+        for el in root_get.iter()
+        if _local(el.tag) == "form" and el.get("data-recommended-order") is not None
+    ]
+    assert len(rec_forms) == 1, (
+        f"expected exactly one data-recommended-order form, found {len(rec_forms)}"
+    )
+    form = rec_forms[0]
+    assert form.get("data-recommended-order") == ""
+    assert (form.get("method") or "").lower() == "post"
+    assert form.get("action") == expected_action
+    buttons = [c for c in form.iter() if _local(c.tag) == "button"]
+    assert len(buttons) >= 1
+    expected_label = f"Wykonaj zalecenie: {recommended_order_text(action, region)}"
+    assert expected_label == f"Wykonaj zalecenie: maszeruj ku osadzie {region}"
+    assert "".join(buttons[0].itertext()).strip() == expected_label
+    form_html = re.search(
+        r'<form\b[^>]*\bdata-recommended-order=""[^>]*>.*?</form>',
+        body_get,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    assert form_html is not None
+    assert (
+        f'<button type="submit">{escape(expected_label)}</button>'
+        in form_html.group(0)
+    )
+
+
 def test_get_recommended_muster_form_then_post_reuses_order_muster():
     """K48.1d: GET muster advice form + POST /order/muster reuses existing route.
 
