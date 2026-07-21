@@ -235,12 +235,12 @@ ustawiony, gra nie jest `is_over` i księstwo gracza istnieje w
 do `world.regions` po nazwie → `ai.march_duchy_party_to`; brak/pusty/nieznany
 `target` → fallback `ai.march_duchy_party`), podmienia `world` i
 re-synchronizuje `game = game.sync_from_world(world)`; w przeciwnym razie
-no-op; zawsze `(200, strona)`. Po próbie ustawia `self.last_notice` na
-`f"{label}: wykonano"` gdy nowy `world !=` poprzedni, inaczej
-`f"{label}: brak zmian"` (również przy odrzuceniu przez guardy). Etykiety:
-`POST /order/recruit` → `"Rekrutacja"`, `muster` → `"Zebranie oddziału"`,
-`develop` → `"Rozbudowa"`; trasa marszu też woła helper (wymóg sygnatury)
-z etykietą-placeholderem — treść komunikatu marszu to K28.1c.
+no-op; zawsze `(200, strona)`. Gdy podano `label`, po próbie ustawia
+`self.last_notice` na `f"{label}: wykonano"` gdy nowy `world !=` poprzedni,
+inaczej `f"{label}: brak zmian"` (również przy odrzuceniu przez guardy).
+Etykiety: `POST /order/recruit` → `"Rekrutacja"`, `muster` →
+`"Zebranie oddziału"`, `develop` → `"Rozbudowa"`; trasa marszu woła helper
+bez `label` i nie rusza `last_notice` (komunikat marszu: K28.1c).
 `POST /order/assault` (K14.2e2 / K15.2b /
 K16.1d-2) ma te same guardy przez `_apply_player_assault_order`: jawny
 `target` → `ai.assault_duchy_party_to_recorded`, auto →

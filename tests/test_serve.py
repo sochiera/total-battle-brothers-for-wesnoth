@@ -417,6 +417,57 @@ def test_game_app_post_order_develop_sets_last_notice_wykonano_then_brak_zmian()
     assert notices2[0].get("data-notice") == "Rozbudowa: brak zmian"
 
 
+def test_game_app_post_order_march_preserves_last_notice_and_data_notice():
+    """POST /order/march does not overwrite last_notice (K28.1b / K28.1c).
+
+    March feedback is out of scope for K28.1b. Calling _apply_player_order
+    without a label must leave last_notice (and rendered data-notice) as it
+    was — empty after a fresh app, or a prior develop notice after a prior order.
+    """
+    start, step, target = map(Region, ("Start", "Step", "Target"))
+    party = Party(Unit(training=4), (Unit(equipment=1),), owner_id="north")
+    enemy_keep = Settlement("Enemy Keep", 2, owner_id="south")
+    # capacity=1 so one develop succeeds and sets a known last_notice.
+    home_keep = Settlement("Home", 1, owner_id="north")
+    world = WorldMap(
+        (start, step, target),
+        ((start, step), (step, target)),
+        settlements={start: home_keep, target: enemy_keep},
+        parties={start: party},
+    )
+    game = GameState(
+        (
+            Duchy("north", party.hero, settlements=(home_keep,), parties=(party,)),
+            Duchy("south", Unit(), settlements=(enemy_keep,)),
+        )
+    )
+    calendar = Calendar(year=2, month=3)
+    app = GameApp(world, game, calendar, Rng(11), player_duchy_id="north")
+    assert app.last_notice == ""
+
+    code, body = app.handle("POST", "/order/march")
+    assert code == 200
+    assert app.last_notice == ""
+    root = ET.fromstring(body)
+    notices = _find_by_attr(root, "data-notice")
+    assert len(notices) == 1
+    assert notices[0].get("data-notice") == ""
+    assert not notices[0].get("data-notice", "").startswith(":")
+
+    code_d, _ = app.handle("POST", "/order/develop")
+    assert code_d == 200
+    assert app.last_notice == "Rozbudowa: wykonano"
+    prior = app.last_notice
+
+    code2, body2 = app.handle("POST", "/order/march?target=Target")
+    assert code2 == 200
+    assert app.last_notice == prior == "Rozbudowa: wykonano"
+    root2 = ET.fromstring(body2)
+    notices2 = _find_by_attr(root2, "data-notice")
+    assert len(notices2) == 1
+    assert notices2[0].get("data-notice") == "Rozbudowa: wykonano"
+
+
 def test_game_app_render_forwards_player_duchy_id_to_data_player_duchy():
     """GameApp._render passes self.player_duchy_id into render_game_page.
 

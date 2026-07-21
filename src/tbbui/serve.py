@@ -158,18 +158,16 @@ class GameApp:
         if method == "POST" and route == "/order/march":
             self.last_battle = None
             target_region = self._order_target_region(query)
-            # Label is required by _apply_player_order; user-facing march
-            # notices ("Marsz" / "Marsz do …") are K28.1c — keep a neutral
-            # placeholder so this task does not lock that copy.
+            # March notices are K28.1c — apply transition without touching
+            # last_notice (no empty-label placeholder).
             if target_region is not None:
                 self._apply_player_order(
                     lambda world, duchy: ai.march_duchy_party_to(
                         world, duchy, target_region
                     ),
-                    "",
                 )
             else:
-                self._apply_player_order(ai.march_duchy_party, "")
+                self._apply_player_order(ai.march_duchy_party)
             return 200, self._render()
         if method == "POST" and route == "/order/assault":
             morale_by_owner = {d.duchy_id: d.morale for d in self.game.duchies}
@@ -234,32 +232,36 @@ class GameApp:
                 return region
         return None
 
-    def _apply_player_order(self, transition, label: str) -> None:
+    def _apply_player_order(self, transition, label: str | None = None) -> None:
         """Apply ``transition(world, player_duchy)`` when a player order is legal.
 
         No-op when the game is over, there is no player duchy id, or that
         duchy is absent from ``game.duchies``. On success replaces ``world``
-        and re-syncs ``game`` from the new map. Sets ``last_notice`` to
-        ``"{label}: wykonano"`` when ``world`` changed, else
-        ``"{label}: brak zmian"`` (including guard rejections).
+        and re-syncs ``game`` from the new map. When ``label`` is set, updates
+        ``last_notice`` to ``"{label}: wykonano"`` if ``world`` changed, else
+        ``"{label}: brak zmian"`` (including guard rejections). When ``label``
+        is ``None`` (e.g. march until K28.1c), leaves ``last_notice`` unchanged.
         """
         if self.game.is_over or self.player_duchy_id is None:
-            self.last_notice = f"{label}: brak zmian"
+            if label is not None:
+                self.last_notice = f"{label}: brak zmian"
             return
         player_duchy = next(
             (d for d in self.game.duchies if d.duchy_id == self.player_duchy_id),
             None,
         )
         if player_duchy is None:
-            self.last_notice = f"{label}: brak zmian"
+            if label is not None:
+                self.last_notice = f"{label}: brak zmian"
             return
         previous_world = self.world
         self.world = transition(self.world, player_duchy)
         self.game = self.game.sync_from_world(self.world)
-        if self.world != previous_world:
-            self.last_notice = f"{label}: wykonano"
-        else:
-            self.last_notice = f"{label}: brak zmian"
+        if label is not None:
+            if self.world != previous_world:
+                self.last_notice = f"{label}: wykonano"
+            else:
+                self.last_notice = f"{label}: brak zmian"
 
     def _apply_player_assault_order(self, transition) -> None:
         """Apply recorded assault ``transition(world, duchy) -> (world, battle)``.

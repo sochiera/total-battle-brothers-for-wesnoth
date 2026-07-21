@@ -390,16 +390,18 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   `player_duchy_id` do `render_game_page` (`data-player-duchy` na wierszu gracza).
   CLI `python -m tbbui serve` ustawia `player_duchy_id="player"`.
 - Wspólny warunek rozkazu: ustawiony gracz, gra nie `is_over`, księstwo w
-  `game.duchies` → `_apply_player_order(transition, label)` + `sync_from_world`;
-  inaczej no-op; zawsze `(200, strona)`. Po próbie `last_notice` =
-  `"{label}: wykonano"` gdy `world` się zmienił, inaczej `"{label}: brak zmian"`
-  (w tym przy guardach).
+  `game.duchies` → `_apply_player_order(transition, label=None)` +
+  `sync_from_world`; inaczej no-op; zawsze `(200, strona)`. Gdy podano
+  `label`, po próbie `last_notice` = `"{label}: wykonano"` gdy `world` się
+  zmienił, inaczej `"{label}: brak zmian"` (w tym przy guardach); bez
+  `label` `last_notice` bez zmian.
 - `POST /order/recruit|muster|develop` → `recruit_duchy_unit` /
   `muster_duchy_party` / `develop_duchy_settlement` z etykietami
   `"Rekrutacja"` / `"Zebranie oddziału"` / `"Rozbudowa"`.
 - `POST /order/march` / `?target=<region>` — parse `target` przez
   `_order_target_region` (`parse_qs`, dopasowanie `Region.name`); znany target →
-  `march_duchy_party_to`; brak/nieznany → `march_duchy_party`.
+  `march_duchy_party_to`; brak/nieznany → `march_duchy_party`; bez etykiety
+  notice (K28.1c).
 - `POST /order/assault` / `?target=` — `assault_duchy_party_to_recorded` /
   `assault_duchy_party_recorded` z `morale_by_owner` z `game.duchies` i
   `self.rng`; wynikowa `HexBattle` trafia do `last_battle` (no-op / guardy
