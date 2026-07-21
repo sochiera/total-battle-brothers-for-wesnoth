@@ -10,7 +10,11 @@ from tbb.battle import BattleResult, BattleSide, HexBattle
 from tbb.battlefield import Battlefield
 from tbb.hex import Hex
 from tbb.unit import Unit
-from tbbui.battlereport import battle_outcome_text, render_battle_report
+from tbbui.battlereport import (
+    attacker_losses,
+    battle_outcome_text,
+    render_battle_report,
+)
 
 
 class ControlledRng:
@@ -193,3 +197,14 @@ def test_battle_outcome_text_raises_on_unfinished_and_does_not_mutate():
     assert first == second == "zwycięstwo"
     assert finished.result() is result_before
     assert dict(finished.units) == finished_units_before
+
+
+def test_attacker_losses_returns_fallen_attacker_count():
+    """K46.2a: attacker_losses == len(battle.report().attacker.fallen)."""
+    win = _finished_attacker_win_battle()
+    loss = _finished_defender_win_battle()
+    draw = _finished_draw_battle()
+
+    assert attacker_losses(win) == len(win.report().attacker.fallen) == 0
+    assert attacker_losses(loss) == len(loss.report().attacker.fallen) == 1
+    assert attacker_losses(draw) == len(draw.report().attacker.fallen) == 1

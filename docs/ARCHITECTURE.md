@@ -72,7 +72,7 @@ pointy-top: `hex_to_pixel(hex, size) -> (x, y)` (axial → piksel środka) oraz
 (`data-side`/`data-hp`/`data-stunned`) w środku z `hex_to_pixel`. Czyste,
 deterministyczne, bez mutacji `battle`.
 
-**Raport bitwy HTML (K17.1a / K21.1b / K21.1c / K46.1a):** `tbbui.battlereport.render_battle_report(battle)
+**Raport bitwy HTML (K17.1a / K21.1b / K21.1c / K46.1a / K46.2a):** `tbbui.battlereport.render_battle_report(battle)
 -> str` — parsowalny fragment XML z korzeniem `<div data-battle-report="">`;
 konsumuje `battle.report()` (rdzeń bez zmian). Dziecko
 `<div data-battle-result="…">` z `report.result.value` (`attacker_win` /
@@ -88,7 +88,10 @@ bez mutacji `battle`. Osobno: `tbbui.battlereport.battle_outcome_text(battle)
 -> str` (K46.1a) — czysty helper z perspektywy atakującego:
 `ATTACKER_WIN`→`"zwycięstwo"`, `DEFENDER_WIN`→`"porażka"`, `DRAW`→`"remis"`;
 odczyt tylko `battle.result()`; nierozstrzygnięta (`result() is None`) →
-`ValueError`; bez mutacji `battle`.
+`ValueError`; bez mutacji `battle`. Oraz: `tbbui.battlereport.attacker_losses(battle)
+-> int` (K46.2a) — czysta liczba poległych atakującego
+(`len(battle.report().attacker.fallen)`); odczyt tylko `battle.report()`;
+nierozstrzygnięta → `ValueError`; bez mutacji `battle`.
 
 **Agregacja siły bojowej (R25.1 / R27.1):** `tbbui.unitstrength.combat_totals(units)
 -> tuple[int, int, int]` — czysty helper `(hp, attack, defense)` = suma
@@ -667,7 +670,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │       ├── __main__.py   # CLI: snapshot HTML lub `serve [port]` (python -m tbbui)
 │       ├── hexgeom.py    # geometria heksów pointy-top (hex→pixel, narożniki)
 │       ├── battlesvg.py  # SVG pola bitwy heksowej (heksy + znaczniki jednostek)
-│       ├── battlereport.py  # HTML raport bitwy + battle_outcome_text (K46.1a)
+│       ├── battlereport.py  # HTML raport + battle_outcome_text / attacker_losses (K46.1a/K46.2a)
 │       ├── unitstrength.py # czysta agregacja siły/rannych sekwencji Unit (R25.1/R27.1)
 │       ├── settlementpanel.py # HTML panel osad (zasoby + populacja + garnizon)
 │       ├── partypanel.py   # HTML panel party (właściciel + siła oddziału)

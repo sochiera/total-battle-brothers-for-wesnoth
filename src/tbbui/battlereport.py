@@ -36,6 +36,16 @@ def battle_outcome_text(battle: HexBattle) -> str:
     return _OUTCOME_FROM_ATTACKER[result]
 
 
+def attacker_losses(battle: HexBattle) -> int:
+    """Return the number of fallen attacker units for a finished battle.
+
+    Equals ``len(battle.report().attacker.fallen)``. Raises ``ValueError`` if
+    the battle is unfinished (via ``battle.report()``). Pure: reads only
+    ``battle.report()``; does not mutate ``battle``.
+    """
+    return len(battle.report().attacker.fallen)
+
+
 def _side_div(side: str, report: BattleSideReport) -> str:
     fallen = len(report.fallen)
     stunned = len(report.stunned)
