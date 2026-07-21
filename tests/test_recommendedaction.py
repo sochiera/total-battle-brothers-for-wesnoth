@@ -1949,3 +1949,170 @@ def test_recommended_battle_forecast_text_empty_when_forecast_is_none():
         None,
     )
     _assert_empty(develop_world, "player")
+
+
+def test_recommended_battle_forecast_text_formats_own_vs_enemy_with_verdict():
+    """``recommended_battle_forecast_text`` when forecast is ``(own, enemy)``
+    returns exactly
+    ``f"Przewidywana siła: Ty {own} vs wróg {enemy} — {verdict}"`` with
+    ``verdict = "przewaga"`` when ``own >= enemy``, else ``"ryzyko"`` — K51.1c.
+
+    Contract: pure and deterministic (no RNG/IO; does not mutate ``world`` or
+    ``game``); builds the sentence from ``recommended_battle_forecast``.
+    """
+    recommended_battle_forecast = recommendedaction.recommended_battle_forecast
+    recommended_battle_forecast_text = (
+        recommendedaction.recommended_battle_forecast_text
+    )
+    home = Region("Home")
+    enemy_camp = Region("EnemyCamp")
+    field = Region("Field")
+    other_n = Region("OtherN")
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+
+    def _assert_text(world: WorldMap, own: int, enemy: int) -> None:
+        assert recommended_battle_forecast(world, game, "player") == (
+            own,
+            enemy,
+        )
+        verdict = "przewaga" if own >= enemy else "ryzyko"
+        expected = f"Przewidywana siła: Ty {own} vs wróg {enemy} — {verdict}"
+        regions_before = world.regions
+        parties_before = {r: world.party_at(r) for r in world.regions}
+        settlements_before = {
+            r: world.settlement_at(r) for r in world.regions
+        }
+        duchies_before = game.duchies
+
+        assert (
+            recommended_battle_forecast_text(world, game, "player")
+            == expected
+        )
+
+        assert world.regions == regions_before
+        assert {
+            r: world.party_at(r) for r in world.regions
+        } == parties_before
+        assert {
+            r: world.settlement_at(r) for r in world.regions
+        } == settlements_before
+        assert game.duchies == duchies_before
+
+    # own > enemy → "przewaga" (assault: strong party vs weak garrison)
+    hero = Unit(training=3, equipment=2)
+    companion = Unit(training=1)
+    garrison = (Unit(training=1), Unit(equipment=1))
+    own_strong = sum(combat_totals((hero, companion)))
+    enemy_weak = sum(combat_totals(garrison))
+    assert own_strong > enemy_weak
+
+    przewaga_world = WorldMap(
+        [home, enemy_camp],
+        [(home, enemy_camp)],
+        parties={
+            home: Party(hero=hero, units=(companion,), owner_id="player"),
+        },
+        settlements={
+            enemy_camp: Settlement(
+                "EnemyS",
+                population=2,
+                owner_id="enemy",
+                garrison=garrison,
+            ),
+        },
+    )
+    assert net_posture(
+        advantageous_target_count(przewaga_world, game, "player"),
+        threatened_position_count(przewaga_world, game, "player"),
+    ) == "offensive"
+    assert recommended_order(przewaga_world, game, "player") == (
+        "assault",
+        enemy_camp.name,
+    )
+    _assert_text(przewaga_world, own_strong, enemy_weak)
+    assert recommended_battle_forecast_text(
+        przewaga_world, game, "player"
+    ) == f"Przewidywana siła: Ty {own_strong} vs wróg {enemy_weak} — przewaga"
+
+    # own == enemy → "przewaga" (defend: equal garrison vs adjacent party)
+    keep = Region("Keep")
+    eq_garrison = (Unit(training=2),)
+    eq_enemy_hero = Unit(training=2)
+    own_eq = sum(combat_totals(eq_garrison))
+    enemy_eq = sum(combat_totals((eq_enemy_hero,)))
+    assert own_eq == enemy_eq
+    # Strong own party on keep so enemy is not an advantageous engage target
+    # alone; N>M from threatened settlement+party → defend Keep.
+    equal_world = WorldMap(
+        [keep, enemy_camp],
+        [(keep, enemy_camp)],
+        parties={
+            keep: Party(
+                hero=Unit(training=5, equipment=3),
+                units=(Unit(training=4),),
+                owner_id="player",
+            ),
+            enemy_camp: Party(
+                hero=eq_enemy_hero, units=(), owner_id="enemy"
+            ),
+        },
+        settlements={
+            keep: Settlement(
+                "KeepS",
+                population=2,
+                owner_id="player",
+                garrison=eq_garrison,
+            ),
+        },
+    )
+    assert net_posture(
+        advantageous_target_count(equal_world, game, "player"),
+        threatened_position_count(equal_world, game, "player"),
+    ) == "defensive"
+    assert recommended_order(equal_world, game, "player") == (
+        "defend",
+        keep.name,
+    )
+    _assert_text(equal_world, own_eq, enemy_eq)
+    assert recommended_battle_forecast_text(
+        equal_world, game, "player"
+    ) == f"Przewidywana siła: Ty {own_eq} vs wróg {enemy_eq} — przewaga"
+
+    # own < enemy → "ryzyko" (defend: weak party vs strong neighbor)
+    field_hero = Unit(training=3, equipment=2)
+    field_units = (Unit(training=1),)
+    field_enemy_hero = Unit(training=20)
+    own_weak = sum(combat_totals((field_hero, *field_units)))
+    enemy_strong = sum(combat_totals((field_enemy_hero,)))
+    assert own_weak < enemy_strong
+
+    ryzyko_world = WorldMap(
+        [field, other_n, enemy_camp],
+        [(field, other_n), (field, enemy_camp)],
+        parties={
+            field: Party(
+                hero=field_hero, units=field_units, owner_id="player"
+            ),
+            enemy_camp: Party(
+                hero=field_enemy_hero, units=(), owner_id="enemy"
+            ),
+        },
+        settlements={},
+    )
+    assert net_posture(
+        advantageous_target_count(ryzyko_world, game, "player"),
+        threatened_position_count(ryzyko_world, game, "player"),
+    ) == "defensive"
+    assert recommended_order(ryzyko_world, game, "player") == (
+        "defend",
+        field.name,
+    )
+    _assert_text(ryzyko_world, own_weak, enemy_strong)
+    assert recommended_battle_forecast_text(
+        ryzyko_world, game, "player"
+    ) == f"Przewidywana siła: Ty {own_weak} vs wróg {enemy_strong} — ryzyko"
