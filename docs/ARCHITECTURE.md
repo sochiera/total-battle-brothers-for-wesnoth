@@ -206,6 +206,12 @@ calendar, rng, player_duchy_id=None, seed=None)` trzyma stan partii w pamięci i
 czystą metodę `handle(method, path) -> (kod_http, treść)` — bez gniazda HTTP.
 Opcjonalny `seed` jest przechowywany na app (restart `POST /new` w K31.1a); domyślnie `None`.
 `handle` rozdziela ścieżkę od query (`path.partition("?")`) na początku routingu.
+`POST /new` (K31.1a): gdy `seed is not None` podmienia `world`/`game` na świeże
+`create_headless_game()`, `calendar` na `Calendar()`, `rng` na `Rng(seed)`, zeruje
+`last_battle`, ustawia `last_notice` = `"Nowa gra: rok 1, miesiąc 1"` (`player_duchy_id`
+bez zmian); gdy `seed is None` — no-op stanu (`world`/`game`/`calendar`/`rng`/
+`last_battle` bez zmian), `last_notice` = `"Nowa gra: brak zmian"`; zawsze
+`(200, strona)`.
 `GET /` → `(200, strona)` z `render_game_page(..., player_duchy_id=self.player_duchy_id)`
 (K23.2b — panel księstw z `data-player-duchy` przy wierszu gracza) plus znacznik
 `data-player` (wartość `player_duchy_id` lub `""` gdy `None`), slot komunikatu

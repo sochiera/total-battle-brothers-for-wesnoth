@@ -9,7 +9,7 @@ from urllib.parse import parse_qs, quote, unquote_plus
 from tbb import ai
 from tbb.driver import run_headless_game
 from tbb.duchy import Duchy
-from tbb.game import GameState
+from tbb.game import GameState, create_headless_game
 from tbb.rng import Rng
 import tbb.settlement as settlement_module
 from tbb.turn import Calendar
@@ -139,6 +139,16 @@ class GameApp:
         """Route one request; return ``(http_status, body)`` without sockets."""
         route, _, query = path.partition("?")
         if method == "GET" and route == "/":
+            return 200, self._render()
+        if method == "POST" and route == "/new":
+            if self.seed is not None:
+                self.world, self.game = create_headless_game()
+                self.calendar = Calendar()
+                self.rng = Rng(self.seed)
+                self.last_battle = None
+                self.last_notice = "Nowa gra: rok 1, miesiąc 1"
+            else:
+                self.last_notice = "Nowa gra: brak zmian"
             return 200, self._render()
         if method == "POST" and route == "/turn":
             self.last_battle = None

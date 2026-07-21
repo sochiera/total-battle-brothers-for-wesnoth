@@ -1031,6 +1031,62 @@ def test_game_app_accepts_optional_seed_default_none():
     assert seed_only.player_duchy_id is None
 
 
+def test_game_app_post_new_with_seed_resets_party_state():
+    """POST /new with seed set rebuilds party from create_headless_game (K31.1a).
+
+    Contract (task-157 / K31.1a):
+    - POST /new with app.seed set → (200, page)
+    - world/game replaced with fresh create_headless_game()
+    - calendar replaced with new Calendar() (year 1, month 1)
+    - rng replaced with Rng(seed)
+    - player_duchy_id unchanged
+    """
+    from tbb.game import create_headless_game
+
+    world, game = _ongoing_world_game()
+    calendar = Calendar(year=4, month=9)
+    seed = 73
+    app = GameApp(
+        world,
+        game,
+        calendar,
+        Rng(999),
+        player_duchy_id="north",
+        seed=seed,
+    )
+    # Advance state so reset is observable (not already at headless defaults).
+    code_turn, _ = app.handle("POST", "/turn")
+    assert code_turn == 200
+    assert app.calendar.year != 1 or app.calendar.month != 1
+    assert [r.name for r in app.world.regions] == ["North", "South"]
+
+    code, body = app.handle("POST", "/new")
+    assert code == 200
+    assert isinstance(body, str)
+    assert body.strip() != ""
+    root = ET.fromstring(body)
+    assert _local(root.tag) == "html"
+
+    assert app.player_duchy_id == "north"
+    assert app.seed == seed
+
+    expected_world, expected_game = create_headless_game()
+    assert [r.name for r in app.world.regions] == [
+        r.name for r in expected_world.regions
+    ]
+    assert [d.duchy_id for d in app.game.duchies] == [
+        d.duchy_id for d in expected_game.duchies
+    ]
+    assert app.calendar.year == 1
+    assert app.calendar.month == 1
+    assert _calendar_stamp(body) == (1, 1)
+
+    # Fresh Rng(seed): first draw matches a brand-new Rng(seed).
+    assert isinstance(app.rng, Rng)
+    probe = Rng(seed)
+    assert app.rng.randint(0, 10_000) == probe.randint(0, 10_000)
+
+
 def test_tbbui_serve_builds_game_app_with_player_duchy_id(monkeypatch):
     """python -m tbbui serve creates GameApp with player_duchy_id='player'.
 
