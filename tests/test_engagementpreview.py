@@ -185,14 +185,24 @@ def test_render_engagement_preview_on_map_own_stats_enemy_settlement_and_pure():
     assert all(r.get("data-target-region") != "Far" for r in rows)
     assert all(r.get("data-target-region") != "Home" for r in rows)
 
+    own_sum = own_hp + own_attack + own_defense
+    first_advantage = own_sum >= enemy_hp + enemy_attack + enemy_defense
+    second_advantage = own_sum >= other_hp + other_attack + other_defense
+    first_suffix = " — przewaga" if first_advantage else " — niekorzystnie"
+    second_suffix = " — przewaga" if second_advantage else " — niekorzystnie"
+
     first = rows[0]
     assert first.get("data-target-owner") == "enemy"
     assert first.get("data-enemy-hp") == str(enemy_hp)
     assert first.get("data-enemy-attack") == str(enemy_attack)
     assert first.get("data-enemy-defense") == str(enemy_defense)
+    assert first.get("data-advantage") == ("true" if first_advantage else "false")
     assert (
         "".join(first.itertext())
-        == f"First (enemy): garnizon HP {enemy_hp}, atak {enemy_attack}, obrona {enemy_defense}"
+        == (
+            f"First (enemy): garnizon HP {enemy_hp},"
+            f" atak {enemy_attack}, obrona {enemy_defense}{first_suffix}"
+        )
     )
 
     second = rows[1]
@@ -200,9 +210,13 @@ def test_render_engagement_preview_on_map_own_stats_enemy_settlement_and_pure():
     assert second.get("data-enemy-hp") == str(other_hp)
     assert second.get("data-enemy-attack") == str(other_attack)
     assert second.get("data-enemy-defense") == str(other_defense)
+    assert second.get("data-advantage") == ("true" if second_advantage else "false")
     assert (
         "".join(second.itertext())
-        == f"Second (other): garnizon HP {other_hp}, atak {other_attack}, obrona {other_defense}"
+        == (
+            f"Second (other): garnizon HP {other_hp},"
+            f" atak {other_attack}, obrona {other_defense}{second_suffix}"
+        )
     )
 
     assert world.regions is regions_before
@@ -210,3 +224,98 @@ def test_render_engagement_preview_on_map_own_stats_enemy_settlement_and_pure():
     for r in world.regions:
         assert world.party_at(r) is parties_before[r]
         assert world.settlement_at(r) is settlements_before[r]
+
+
+def test_render_engagement_preview_advantage_flag_and_suffix():
+    """Each target row gets ``data-advantage`` after ``data-enemy-defense``:
+    ``"true"`` and text suffix `` — przewaga`` when own sum (hp+attack+defense)
+    is ``>=`` enemy sum; ``"false"`` and `` — niekorzystnie`` when own sum is
+    strictly lower. Equality counts as advantage.
+    """
+    home = Region("Home")
+    equal_region = Region("EqualKeep")
+    strong_region = Region("StrongKeep")
+
+    # Own party: single default unit → combat sum 10.
+    hero = Unit()
+    party = Party(hero=hero, units=(), owner_id="player")
+    own_hp, own_attack, own_defense = combat_totals((hero,))
+    own_sum = own_hp + own_attack + own_defense
+
+    # Equal enemy garrison (same sum) → advantage true.
+    equal_garrison = (Unit(),)
+    eq_hp, eq_attack, eq_defense = combat_totals(equal_garrison)
+    assert own_sum == eq_hp + eq_attack + eq_defense
+
+    # Stronger enemy garrison → advantage false.
+    strong_garrison = (Unit(training=9),)
+    st_hp, st_attack, st_defense = combat_totals(strong_garrison)
+    assert own_sum < st_hp + st_attack + st_defense
+
+    world = WorldMap(
+        [home, equal_region, strong_region],
+        [(home, equal_region), (home, strong_region)],
+        parties={home: party},
+        settlements={
+            equal_region: Settlement(
+                "KeepEqual",
+                population=1,
+                owner_id="enemy",
+                garrison=equal_garrison,
+            ),
+            strong_region: Settlement(
+                "KeepStrong",
+                population=1,
+                owner_id="enemy",
+                garrison=strong_garrison,
+            ),
+        },
+    )
+    assert [r.name for r in world.neighbors(home)] == ["EqualKeep", "StrongKeep"]
+
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+
+    xml = render_engagement_preview(world, game, player_duchy_id="player")
+    root = ET.fromstring(xml)
+    rows = list(root)
+    assert len(rows) == 2
+
+    equal_row, strong_row = rows
+
+    # Advantage when own strength >= target strength (including equality).
+    assert equal_row.get("data-advantage") == "true"
+    assert (
+        "".join(equal_row.itertext())
+        == (
+            f"EqualKeep (enemy): garnizon HP {eq_hp},"
+            f" atak {eq_attack}, obrona {eq_defense} — przewaga"
+        )
+    )
+
+    # Disadvantage when own strength is strictly lower.
+    assert strong_row.get("data-advantage") == "false"
+    assert (
+        "".join(strong_row.itertext())
+        == (
+            f"StrongKeep (enemy): garnizon HP {st_hp},"
+            f" atak {st_attack}, obrona {st_defense} — niekorzystnie"
+        )
+    )
+
+    # ``data-advantage`` follows ``data-enemy-defense``; other attrs keep order.
+    expected_keys = [
+        "data-target-region",
+        "data-target-owner",
+        "data-target-kind",
+        "data-enemy-hp",
+        "data-enemy-attack",
+        "data-enemy-defense",
+        "data-advantage",
+    ]
+    assert list(equal_row.attrib.keys()) == expected_keys
+    assert list(strong_row.attrib.keys()) == expected_keys

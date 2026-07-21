@@ -24,8 +24,10 @@ def render_engagement_preview(
       ``combat_totals((party.hero, *party.units))``, and one child row per
       neighbouring region (``world.neighbors`` order) whose settlement has an
       explicit ``owner_id != player_duchy_id``:
-      ``data-target-kind="settlement"`` and enemy strength from
-      ``combat_totals(settlement.garrison)``.
+      ``data-target-kind="settlement"``, enemy strength from
+      ``combat_totals(settlement.garrison)``, and ``data-advantage`` after
+      ``data-enemy-defense`` (``"true"`` / suffix „ — przewaga" when own
+      hp+attack+defense ≥ enemy sum; else ``"false"`` / „ — niekorzystnie").
 
     When ``player_duchy_id`` is ``None`` or not in ``game.duchies``, returns a
     bare empty root. Pure and deterministic: no RNG/IO; does not mutate
@@ -51,6 +53,7 @@ def render_engagement_preview(
     party = world.party_at(player_region)
     assert party is not None
     own_hp, own_attack, own_defense = combat_totals((party.hero, *party.units))
+    own_sum = own_hp + own_attack + own_defense
 
     rows: list[str] = []
     for neighbor in world.neighbors(player_region):
@@ -61,9 +64,12 @@ def render_engagement_preview(
         if owner is None or owner == player_duchy_id:
             continue
         enemy_hp, enemy_attack, enemy_defense = combat_totals(settlement.garrison)
+        advantage = own_sum >= enemy_hp + enemy_attack + enemy_defense
+        advantage_attr = "true" if advantage else "false"
+        suffix = " — przewaga" if advantage else " — niekorzystnie"
         text = (
             f"{neighbor.name} ({owner}): garnizon HP {enemy_hp},"
-            f" atak {enemy_attack}, obrona {enemy_defense}"
+            f" atak {enemy_attack}, obrona {enemy_defense}{suffix}"
         )
         rows.append(
             f'<div data-target-region="{neighbor.name}"'
@@ -72,6 +78,7 @@ def render_engagement_preview(
             f' data-enemy-hp="{enemy_hp}"'
             f' data-enemy-attack="{enemy_attack}"'
             f' data-enemy-defense="{enemy_defense}"'
+            f' data-advantage="{advantage_attr}"'
             f">{text}</div>"
         )
 
