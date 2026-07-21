@@ -185,3 +185,51 @@ def test_tbbui_serve_builds_game_app_with_headless_seed(monkeypatch):
     assert HEADLESS_SEED == 73
     assert captured["closed"] is True
     assert captured["host"] == "127.0.0.1"
+
+
+def test_tbbui_serve_post_new_resets_calendar_on_get(monkeypatch):
+    """GameApp from CLI serve: after POST /new, GET / shows Rok 1, miesiąc 1 (K31.1c).
+
+    Contract (task-159 / K31.1c):
+    - ``python -m tbbui serve`` builds a ``GameApp`` with seed so restart works
+    - after advancing the calendar (``POST /turn``), ``POST /new`` then
+      ``GET /`` embeds calendar stamp text ``Rok 1, miesiąc 1`` (reset, not no-op)
+    """
+    from tbbui.__main__ import HEADLESS_SEED, main
+
+    captured: dict = {}
+
+    class _FakeServer:
+        server_address = ("127.0.0.1", 8765)
+
+        def serve_forever(self) -> None:
+            raise KeyboardInterrupt
+
+        def server_close(self) -> None:
+            captured["closed"] = True
+
+    def fake_make_server(app, host="127.0.0.1", port=0):
+        captured["app"] = app
+        return _FakeServer()
+
+    monkeypatch.setattr("tbbui.__main__.make_server", fake_make_server)
+
+    code = main(["serve"])
+    assert code == 0
+    app = captured["app"]
+    assert isinstance(app, GameApp)
+    assert app.seed == HEADLESS_SEED
+
+    # Advance so reset is observable (fresh serve starts at year 1, month 1).
+    turn_code, _ = app.handle("POST", "/turn")
+    assert turn_code == 200
+    assert app.calendar.year != 1 or app.calendar.month != 1
+
+    new_code, _ = app.handle("POST", "/new")
+    assert new_code == 200
+
+    get_code, body = app.handle("GET", "/")
+    assert get_code == 200
+    assert "Rok 1, miesiąc 1" in body
+    assert app.calendar.year == 1
+    assert app.calendar.month == 1
