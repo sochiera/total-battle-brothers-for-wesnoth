@@ -562,6 +562,267 @@ def test_game_app_post_order_assault_with_target_sets_last_notice_bitwa_then_bra
     assert notices2[0].get("data-notice") == "Szturm na KeepB: brak zmian"
 
 
+def test_game_app_post_order_engage_with_target_sets_last_notice_bitwa_then_brak_zmian():
+    """POST /order/engage?target=<region> sets last_notice via target-named label (K28.1d).
+
+    Contract: a known target uses label f"Starcie z {region.name}"; when the
+    recorded engage returns a battle, last_notice == "Starcie z EnemyB: bitwa"
+    and the page carries matching data-notice; a subsequent engage that finds
+    no enemy (battle is None) sets last_notice == "Starcie z EnemyB: brak zmian".
+    """
+    start, enemy_a, enemy_b = map(Region, ("Start", "EnemyA", "EnemyB"))
+    north_party = Party(Unit(training=5, equipment=6), owner_id="north")
+    south_party_a = Party(Unit(training=1, equipment=1), owner_id="south")
+    south_party_b = Party(Unit(training=1, equipment=1), owner_id="south")
+    world = WorldMap(
+        (start, enemy_a, enemy_b),
+        ((start, enemy_a), (start, enemy_b)),
+        parties={start: north_party, enemy_a: south_party_a, enemy_b: south_party_b},
+    )
+    game = GameState(
+        (
+            Duchy("north", north_party.hero, parties=(north_party,), morale=10),
+            Duchy(
+                "south",
+                south_party_a.hero,
+                parties=(south_party_a, south_party_b),
+                morale=-5,
+            ),
+        )
+    )
+    calendar = Calendar(year=2, month=3)
+    app = GameApp(world, game, calendar, Rng(11), player_duchy_id="north")
+    assert app.last_notice == ""
+    assert app.last_battle is None
+
+    code, body = app.handle("POST", "/order/engage?target=EnemyB")
+    assert code == 200
+    assert app.last_battle is not None
+    assert app.last_notice == "Starcie z EnemyB: bitwa"
+    root = ET.fromstring(body)
+    notices = _find_by_attr(root, "data-notice")
+    assert len(notices) == 1
+    assert notices[0].get("data-notice") == "Starcie z EnemyB: bitwa"
+
+    # EnemyB now holds the player's party — re-engaging it is a no-op (no battle).
+    code2, body2 = app.handle("POST", "/order/engage?target=EnemyB")
+    assert code2 == 200
+    assert app.last_notice == "Starcie z EnemyB: brak zmian"
+    root2 = ET.fromstring(body2)
+    notices2 = _find_by_attr(root2, "data-notice")
+    assert len(notices2) == 1
+    assert notices2[0].get("data-notice") == "Starcie z EnemyB: brak zmian"
+
+
+def test_game_app_post_order_assault_without_target_sets_last_notice_szturm():
+    """POST /order/assault (no/unknown target) uses bare label "Szturm" (K28.1d).
+
+    Contract: missing or unknown ``target`` falls back to auto assault with
+    label "Szturm"; a hit battle sets last_notice == "Szturm: bitwa" (and
+    data-notice); a no-op (no adjacent enemy keep) sets "Szturm: brak zmian".
+    """
+    start, keep_region = map(Region, ("Start", "KeepB"))
+    party = Party(Unit(training=5, equipment=6), owner_id="north")
+    keep = Settlement(
+        "Keep B", population=1, garrison=(Unit(equipment=1),), owner_id="south"
+    )
+    world = WorldMap(
+        (start, keep_region),
+        ((start, keep_region),),
+        settlements={keep_region: keep},
+        parties={start: party},
+    )
+    game = GameState(
+        (
+            Duchy("north", party.hero, parties=(party,), morale=10),
+            Duchy("south", Unit(), settlements=(keep,), morale=-5),
+        )
+    )
+    calendar = Calendar(year=2, month=3)
+    seed = 11
+    app = GameApp(world, game, calendar, Rng(seed), player_duchy_id="north")
+    assert app.last_notice == ""
+
+    code, body = app.handle("POST", "/order/assault")
+    assert code == 200
+    assert app.last_battle is not None
+    assert app.last_notice == "Szturm: bitwa"
+    root = ET.fromstring(body)
+    notices = _find_by_attr(root, "data-notice")
+    assert len(notices) == 1
+    assert notices[0].get("data-notice") == "Szturm: bitwa"
+
+    # Unknown target uses the same bare "Szturm" label (auto fallback; keep taken).
+    code_u, body_u = app.handle("POST", "/order/assault?target=Nonexistent")
+    assert code_u == 200
+    assert app.last_notice == "Szturm: brak zmian"
+    notices_u = _find_by_attr(ET.fromstring(body_u), "data-notice")
+    assert len(notices_u) == 1
+    assert notices_u[0].get("data-notice") == "Szturm: brak zmian"
+
+    # Isolated party: auto assault finds nothing → "Szturm: brak zmian".
+    isolated = Region("Isolated")
+    lone_party = Party(Unit(training=5, equipment=6), owner_id="north")
+    lone_world = WorldMap((isolated,), (), parties={isolated: lone_party})
+    lone_game = GameState((Duchy("north", lone_party.hero, parties=(lone_party,)),))
+    lone_app = GameApp(
+        lone_world, lone_game, calendar, Rng(seed), player_duchy_id="north"
+    )
+    code_lone, body_lone = lone_app.handle("POST", "/order/assault")
+    assert code_lone == 200
+    assert lone_app.last_battle is None
+    assert lone_app.last_notice == "Szturm: brak zmian"
+    notices_lone = _find_by_attr(ET.fromstring(body_lone), "data-notice")
+    assert len(notices_lone) == 1
+    assert notices_lone[0].get("data-notice") == "Szturm: brak zmian"
+
+
+def test_game_app_post_order_engage_without_target_sets_last_notice_starcie():
+    """POST /order/engage (no/unknown target) uses bare label "Starcie" (K28.1d).
+
+    Contract: missing or unknown ``target`` falls back to auto engage with
+    label "Starcie"; a hit battle sets last_notice == "Starcie: bitwa"; a
+    no-op (no adjacent enemy party) sets "Starcie: brak zmian".
+    """
+    start, target = map(Region, ("Start", "Target"))
+    north_party = Party(Unit(training=5, equipment=6), owner_id="north")
+    south_party = Party(Unit(training=1, equipment=1), owner_id="south")
+    world = WorldMap(
+        (start, target),
+        ((start, target),),
+        parties={start: north_party, target: south_party},
+    )
+    game = GameState(
+        (
+            Duchy("north", north_party.hero, parties=(north_party,), morale=10),
+            Duchy("south", south_party.hero, parties=(south_party,), morale=-5),
+        )
+    )
+    calendar = Calendar(year=2, month=3)
+    seed = 11
+    app = GameApp(world, game, calendar, Rng(seed), player_duchy_id="north")
+    assert app.last_notice == ""
+
+    code, body = app.handle("POST", "/order/engage")
+    assert code == 200
+    assert app.last_battle is not None
+    assert app.last_notice == "Starcie: bitwa"
+    root = ET.fromstring(body)
+    notices = _find_by_attr(root, "data-notice")
+    assert len(notices) == 1
+    assert notices[0].get("data-notice") == "Starcie: bitwa"
+
+    # Unknown target uses the same bare "Starcie" label (auto fallback; no enemy left).
+    code_u, body_u = app.handle("POST", "/order/engage?target=Nonexistent")
+    assert code_u == 200
+    assert app.last_notice == "Starcie: brak zmian"
+    notices_u = _find_by_attr(ET.fromstring(body_u), "data-notice")
+    assert len(notices_u) == 1
+    assert notices_u[0].get("data-notice") == "Starcie: brak zmian"
+
+    # Isolated party: auto engage finds nothing → "Starcie: brak zmian".
+    isolated = Region("Isolated")
+    lone_party = Party(Unit(training=5, equipment=6), owner_id="north")
+    lone_world = WorldMap((isolated,), (), parties={isolated: lone_party})
+    lone_game = GameState((Duchy("north", lone_party.hero, parties=(lone_party,)),))
+    lone_app = GameApp(
+        lone_world, lone_game, calendar, Rng(seed), player_duchy_id="north"
+    )
+    code_lone, body_lone = lone_app.handle("POST", "/order/engage")
+    assert code_lone == 200
+    assert lone_app.last_battle is None
+    assert lone_app.last_notice == "Starcie: brak zmian"
+    notices_lone = _find_by_attr(ET.fromstring(body_lone), "data-notice")
+    assert len(notices_lone) == 1
+    assert notices_lone[0].get("data-notice") == "Starcie: brak zmian"
+
+
+def test_game_app_post_order_assault_and_engage_guard_rejection_sets_last_notice_brak_zmian():
+    """Guard rejection on assault/engage still sets last_notice (K28.1d).
+
+    Contract (analogous to recruit guards ~K28.1b): when player_duchy_id is
+    None, game is_over, or player duchy is absent from game.duchies, POST
+    /order/assault and POST /order/engage leave world/game/last_battle
+    unchanged but set last_notice to "{label}: brak zmian" with bare labels
+    "Szturm" / "Starcie" (no target), and data-notice matches.
+    """
+    start, target = map(Region, ("Start", "Target"))
+    north_party = Party(Unit(training=5, equipment=6), owner_id="north")
+    south_party = Party(Unit(training=1, equipment=1), owner_id="south")
+    keep = Settlement(
+        "Enemy Keep",
+        population=1,
+        garrison=(Unit(equipment=1),),
+        owner_id="south",
+    )
+    world = WorldMap(
+        (start, target),
+        ((start, target),),
+        settlements={target: keep},
+        parties={start: north_party, target: south_party},
+    )
+    game = GameState(
+        (
+            Duchy("north", north_party.hero, parties=(north_party,), morale=10),
+            Duchy(
+                "south",
+                south_party.hero,
+                parties=(south_party,),
+                settlements=(keep,),
+                morale=-5,
+            ),
+        )
+    )
+    calendar = Calendar(year=2, month=3)
+
+    for path, expected_notice in (
+        ("/order/assault", "Szturm: brak zmian"),
+        ("/order/engage", "Starcie: brak zmian"),
+    ):
+        # No-op: player_duchy_id is None.
+        none_app = GameApp(world, game, calendar, Rng(11), player_duchy_id=None)
+        world_n, game_n = none_app.world, none_app.game
+        code_n, body_n = none_app.handle("POST", path)
+        assert code_n == 200
+        assert none_app.world is world_n
+        assert none_app.game is game_n
+        assert none_app.last_battle is None
+        assert none_app.last_notice == expected_notice
+        notices_n = _find_by_attr(ET.fromstring(body_n), "data-notice")
+        assert len(notices_n) == 1
+        assert notices_n[0].get("data-notice") == expected_notice
+
+        # No-op: game is_over.
+        fin_world, fin_game = _finished_world_game()
+        fin_cal = Calendar(year=5, month=1)
+        fin_app = GameApp(
+            fin_world, fin_game, fin_cal, Rng(3), player_duchy_id="north"
+        )
+        w_f, g_f = fin_app.world, fin_app.game
+        code_f, body_f = fin_app.handle("POST", path)
+        assert code_f == 200
+        assert fin_app.world is w_f
+        assert fin_app.game is g_f
+        assert fin_app.last_battle is None
+        assert fin_app.last_notice == expected_notice
+        notices_f = _find_by_attr(ET.fromstring(body_f), "data-notice")
+        assert len(notices_f) == 1
+        assert notices_f[0].get("data-notice") == expected_notice
+
+        # No-op: player duchy id not present in game.duchies.
+        missing = GameApp(world, game, calendar, Rng(11), player_duchy_id="ghost")
+        w_m, g_m = missing.world, missing.game
+        code_m, body_m = missing.handle("POST", path)
+        assert code_m == 200
+        assert missing.world is w_m
+        assert missing.game is g_m
+        assert missing.last_battle is None
+        assert missing.last_notice == expected_notice
+        notices_m = _find_by_attr(ET.fromstring(body_m), "data-notice")
+        assert len(notices_m) == 1
+        assert notices_m[0].get("data-notice") == expected_notice
+
+
 def test_game_app_render_forwards_player_duchy_id_to_data_player_duchy():
     """GameApp._render passes self.player_duchy_id into render_game_page.
 
