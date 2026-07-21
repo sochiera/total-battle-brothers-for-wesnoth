@@ -246,3 +246,4 @@
 | K44.2b | Stan pusty dziennika | `render_order_log` dla pustej sekwencji dokłada po nagłówku `<p data-order-log-empty>Brak rozkazów w tej kampanii</p>`; niepusta sekwencja → brak tego elementu. |
 | K45.1a | Dziennik od najnowszego | `render_order_log` wypisuje dzieci `data-order-log-entry` w kolejności `reversed(entries)` (najnowszy pierwszy); `data-count`, nagłówek, stan pusty i escapowanie bez zmian. |
 | K45.2a | Znacznik najnowszego wpisu dziennika | Pierwsze (najnowsze) dziecko `data-order-log-entry` ma `data-order-log-latest=""` i badge `<span data-order-log-latest-badge="">najnowszy</span>` przed escaped body; pozostałe wpisy bez tych atrybutów. |
+| K45.3a | Liczba wpisów w nagłówku dziennika | `render_order_log` renderuje nagłówek `<h2 data-order-log-header="">Dziennik rozkazów ({N})</h2>` z `N=len(entries)` (także 0); `data-count`, wpisy i stan pusty bez zmian. |

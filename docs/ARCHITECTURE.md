@@ -145,15 +145,15 @@ księstwa bez zmian nie dają wiersza; `data-change-count` = liczba dzieci
 `data-turn-duchy`. Czyste, deterministyczne, bez mutacji `before`/`after`;
 rdzeń bez zmian.
 
-**Dziennik rozkazów HTML (K43.1a / K44.1a / K44.2a / K44.2b / K45.1a / K45.2a):**
+**Dziennik rozkazów HTML (K43.1a / K44.1a / K44.2a / K44.2b / K45.1a / K45.2a / K45.3a):**
 `tbbui.orderlog.format_log_entry(notice, calendar) -> str` — czysty helper
 `f"Rok {calendar.year}, miesiąc {calendar.month} — {notice}"` (bez escapowania,
 bez mutacji; odczyt tylko `year`/`month`).
 `tbbui.orderlog.render_order_log(entries) -> str` — parsowalny fragment XML z
 korzeniem `<div data-order-log="" data-count="N">` (`N = len(entries)`; nagłówek
 nie jest liczony). Pierwszym dzieckiem zawsze jest
-`<h2 data-order-log-header="">Dziennik rozkazów</h2>` (także dla pustej
-sekwencji). Dla pustej sekwencji po nagłówku dokładnie jedno
+`<h2 data-order-log-header="">Dziennik rozkazów ({N})</h2>` (także dla pustej
+sekwencji z `N=0`). Dla pustej sekwencji po nagłówku dokładnie jedno
 `<p data-order-log-empty="">Brak rozkazów w tej kampanii</p>` i zero dzieci
 `data-order-log-entry` (brak `data-order-log-latest` / badge); dla niepustej
 brak `data-order-log-empty`, a na każdy wpis jedno dziecko

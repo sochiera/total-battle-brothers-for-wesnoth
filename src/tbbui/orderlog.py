@@ -23,8 +23,9 @@ def render_order_log(entries: Sequence[str]) -> str:
 
     Root is ``<div data-order-log="" data-count="N">`` where ``N`` is
     ``len(entries)`` (header is not counted). First child is always
-    ``<h2 data-order-log-header="">Dziennik rozkazów</h2>`` (also for empty
-    sequence). When ``entries`` is empty, the header is followed by exactly one
+    ``<h2 data-order-log-header="">Dziennik rozkazów ({N})</h2>`` (also for
+    empty sequence with ``N=0``). When ``entries`` is empty, the header is
+    followed by exactly one
     ``<p data-order-log-empty="">Brak rozkazów w tej kampanii</p>`` and no
     entry children; when non-empty that empty-state node is omitted and each
     entry becomes one ``<div data-order-log-entry="">`` with body
@@ -36,7 +37,7 @@ def render_order_log(entries: Sequence[str]) -> str:
     deterministic: no RNG/IO; does not mutate ``entries``.
     """
     count = len(entries)
-    header = '<h2 data-order-log-header="">Dziennik rozkazów</h2>'
+    header = f'<h2 data-order-log-header="">Dziennik rozkazów ({count})</h2>'
     if count == 0:
         body = (
             f'{header}'

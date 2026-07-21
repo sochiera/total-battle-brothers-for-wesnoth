@@ -58,10 +58,11 @@ def test_render_order_log_root_is_div_with_data_order_log_and_data_count():
 
 def test_render_order_log_first_child_is_visible_header_h2():
     """Root's first child is exactly one ``<h2 data-order-log-header="">``
-    with body ``Dziennik rozkazów``, before any ``data-order-log-entry``;
-    present for empty sequence as well (K44.2a).
+    with body ``Dziennik rozkazów ({N})`` (K45.3a), before any
+    ``data-order-log-entry``; present for empty sequence as well (K44.2a).
     """
     for entries in ((), ("solo",), ("first", "second")):
+        n = len(entries)
         xml = render_order_log(entries)
         root = ET.fromstring(xml)
         children = list(root)
@@ -73,9 +74,10 @@ def test_render_order_log_first_child_is_visible_header_h2():
         ]
         assert len(headers) == 1
         assert children[0] is headers[0]
-        assert "".join(headers[0].itertext()) == "Dziennik rozkazów"
+        assert "".join(headers[0].itertext()) == f"Dziennik rozkazów ({n})"
         assert (
-            '<h2 data-order-log-header="">Dziennik rozkazów</h2>' in xml
+            f'<h2 data-order-log-header="">Dziennik rozkazów ({n})</h2>'
+            in xml
         )
         # Header precedes every entry child in document order.
         entry_children = [
@@ -230,7 +232,7 @@ def test_render_order_log_nonempty_has_no_empty_state_and_renders_entries():
     ]
     assert len(headers) == 1
     assert children[0] is headers[0]
-    assert "".join(headers[0].itertext()) == "Dziennik rozkazów"
+    assert "".join(headers[0].itertext()) == f"Dziennik rozkazów ({len(entries)})"
 
     entry_children = [
         c for c in children if c.attrib.get("data-order-log-entry") == ""
@@ -344,11 +346,36 @@ def test_render_order_log_empty_has_no_latest_marker_or_badge():
     assert len(children) == 2
     assert children[0].tag == "h2"
     assert children[0].attrib.get("data-order-log-header") == ""
-    assert "".join(children[0].itertext()) == "Dziennik rozkazów"
+    assert "".join(children[0].itertext()) == "Dziennik rozkazów (0)"
     assert children[1].tag == "p"
     assert children[1].attrib.get("data-order-log-empty") == ""
     assert "".join(children[1].itertext()) == "Brak rozkazów w tej kampanii"
     assert (
-        '<h2 data-order-log-header="">Dziennik rozkazów</h2>'
+        '<h2 data-order-log-header="">Dziennik rozkazów (0)</h2>'
         '<p data-order-log-empty="">Brak rozkazów w tej kampanii</p>'
     ) in xml
+
+
+def test_render_order_log_header_includes_entry_count():
+    """K45.3a: header is exactly
+    ``<h2 data-order-log-header="">Dziennik rozkazów ({N})</h2>`` where
+    ``N = len(entries)``, including empty sequence (``N=0``).
+    """
+    for entries in ((), ("solo",), ("first", "second", "third")):
+        n = len(entries)
+        xml = render_order_log(entries)
+        root = ET.fromstring(xml)
+        children = list(root)
+
+        headers = [
+            c
+            for c in children
+            if c.tag == "h2" and c.attrib.get("data-order-log-header") == ""
+        ]
+        assert len(headers) == 1
+        assert children[0] is headers[0]
+        assert "".join(headers[0].itertext()) == f"Dziennik rozkazów ({n})"
+        assert (
+            f'<h2 data-order-log-header="">Dziennik rozkazów ({n})</h2>'
+            in xml
+        )
