@@ -23,6 +23,7 @@ from tbbui.palette import owner_palette
 from tbbui.partypanel import render_party_panel
 from tbbui.playersummary import render_player_summary
 from tbbui.settlementpanel import render_settlement_panel
+from tbbui.herochase import render_hero_chase
 from tbbui.herolocator import render_enemy_hero_locator
 from tbbui.nextobjective import render_next_objective
 from tbbui.victoryprogress import render_victory_progress
@@ -717,6 +718,35 @@ def test_render_game_page_embeds_canonical_enemy_hero_locator_after_next_objecti
     locator_els = _find_by_attr(root, "data-hero-locator")
     assert len(locator_els) == 1
     assert locator_els[0] in list(body.iter())
+
+
+def test_render_game_page_embeds_canonical_hero_chase_after_hero_locator():
+    """``player_duchy_id`` embeds one canonical ``render_hero_chase`` after locator.
+
+    Exactly one ``data-hero-chase`` in ``<body>``; string equals
+    ``render_hero_chase(world, game, player_duchy_id)`` and sits
+    immediately after the embedded ``render_enemy_hero_locator`` output.
+    """
+    world, game, calendar = _ongoing_fixture()
+    expected_locator = render_enemy_hero_locator(world, game, "north")
+    expected_chase = render_hero_chase(world, game, "north")
+
+    html = render_game_page(world, game, calendar, player_duchy_id="north")
+
+    assert expected_chase in html, (
+        "page must embed render_hero_chase(world, game, player_duchy_id) output"
+    )
+    assert html.count(expected_chase) == 1
+    assert html.index(expected_locator) + len(expected_locator) == html.index(
+        expected_chase
+    ), "hero chase must sit directly after the embedded hero locator"
+
+    root = ET.fromstring(html)
+    assert _local(root.tag) == "html"
+    body = next(el for el in root if _local(el.tag) == "body")
+    chase_els = _find_by_attr(root, "data-hero-chase")
+    assert len(chase_els) == 1
+    assert chase_els[0] in list(body.iter())
 
 
 def test_render_game_page_omits_victory_progress_when_player_duchy_id_none():
