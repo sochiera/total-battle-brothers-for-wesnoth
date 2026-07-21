@@ -440,6 +440,19 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   obrona Do · siła wroga: HP He, atak Ae, obrona De — obronisz się|przewaga wroga`;
   `N` = liczba wierszy (0 → brak dzieci). Osadzony w stronie partii zaraz po
   `data-engagement-preview` (K39.1c). Czysty, deterministyczny.
+- `render_situation_report(world, game, player_duchy_id=None)` — fragment
+  `data-situation-report` z jednolinijkowym skrótem sytuacji taktycznej. Brak
+  gracza lub id spoza `game.duchies` (`player_duchy(...) is None`) → sam pusty
+  korzeń `<div data-situation-report="">` (bez atrybutów/tekstu). Przy znanym
+  graczu korzeń niesie `data-threatened-count="N"` (liczba zagrożonych własnych
+  pozycji wg reguły `render_threat_alert`, przez wspólne
+  `threatalert.threatened_position_count`), `data-opportunity-count="M"` (liczba
+  sąsiednich wrogich celów party gracza z przewagą wg reguły
+  `render_engagement_preview`, przez `engagementpreview.advantageous_target_count`)
+  oraz `data-net-posture` (`"offensive"` gdy M>N, `"defensive"` gdy N>M,
+  `"balanced"` gdy M==N) i tekst `Sytuacja: zagrożone pozycje N, korzystne cele
+  M — postawa: ofensywna|defensywna|zrównoważona`. Osadzony w stronie partii
+  zaraz po `data-threat-alert` (K40.1c). Czysty, deterministyczny.
 - `render_party_panel(world, player_duchy_id=None)` — fragment `data-party-panel`
   z wierszem `data-party-row` (= nazwa regionu) na party w kolejności
   `world.regions`; `data-owner`/`data-size` (liczba podkomendnych)/`data-hp`/
@@ -494,7 +507,9 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   `render_engagement_preview(world, game, player_duchy_id)` (K37.1c, dokładnie
   jeden `data-engagement-preview`), a zaraz po podglądzie starcia kanoniczny
   `render_threat_alert(world, game, player_duchy_id)` (K39.1c, dokładnie jeden
-  `data-threat-alert`); `None` → bajt-w-bajt jak dotąd. Przy
+  `data-threat-alert`), a zaraz po alercie zagrożeń kanoniczny
+  `render_situation_report(world, game, player_duchy_id)` (K40.1c, dokładnie
+  jeden `data-situation-report`); `None` → bajt-w-bajt jak dotąd. Przy
   `player_duchy_id is not None` osadza też
   `<p data-player-result-text>` z wynikiem z perspektywy gracza (`Gra w toku` /
   `Zwycięstwo Twojego księstwa` / `Porażka Twojego księstwa` / `Remis` wg

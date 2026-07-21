@@ -204,47 +204,40 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > K36.2a), osadzony w `render_game_page` po lokatorze. Wszystkie pozycje
 > (task-174…177) w `BACKLOG-ARCHIVE.md`. Rdzeń: tylko czysta kwerenda grafu.
 
-## Kamień milowy 37 — świadoma decyzja o walce: podgląd siły celu przed atakiem
-> DESIGN §6 pkt 4–5: pościg (K36) mówi GDZIE i JAK DALEKO stoi wrogi bohater, ale
-> nie CZY warto atakować. K37 dokłada czysty panel `render_engagement_preview`
-> porównujący siłę party gracza z sąsiednimi wrogimi celami (osady i party),
-> z flagą przewagi, osadzony w `render_game_page` po pościgu. Domyka refaktorem
-> R37.1 duplikację lokalizacji party (`first_party_region`). Rdzeń `tbb` bez zmian.
-- [x] **K37.1a** Prymityw `render_engagement_preview` — `data-engagement-preview`/`data-player-on-map`/`data-own-*` + wiersze sąsiednich wrogich osad (`data-enemy-*`). *(task-178)*
-- [x] **K37.1b** Flaga przewagi `data-advantage="true|false"` + sufiks „ — przewaga"/„ — niekorzystnie". *(task-179)*
-- [x] **K37.1c** Osadzenie w `render_game_page` po `data-hero-chase` (bez gracza → bajt-w-bajt jak dotąd). *(task-180)*
-- [x] **K37.2a** Rozszerzenie o sąsiednie wrogie party (`data-target-kind="party"`; osada przed party w regionie). *(task-181)*
-- [~] **R37.1 (refaktor)** Wspólny helper `tbbui.maplookup.first_party_region` reużyty przez `herolocator`/`herochase`/`engagementpreview` (bez nowych testów paneli). *(task-182)*
+## Kamień milowy 37 — świadoma decyzja o walce: podgląd siły celu przed atakiem — UKOŃCZONY
+> DESIGN §6 pkt 4–5: czysty panel `render_engagement_preview` porównujący siłę
+> party gracza z sąsiednimi wrogimi celami (osady i party) z flagą przewagi,
+> osadzony w `render_game_page` po pościgu; refaktor R37.1 scalił lokalizację
+> party (`first_party_region`). Wszystkie pozycje (task-178…182)
+> w `BACKLOG-ARCHIVE.md`. Rdzeń `tbb` bez zmian.
 
-## Kamień milowy 38 — czytelny skutek tury AI (dziennik zmian)
-> DESIGN §6 pkt 5: po „Następnej turze" gracz widzi tylko datę — nie wie, co
-> zrobiło AI (czy stracił osadę, czy wróg stracił bohatera). K38 dokłada czysty
-> panel `render_turn_summary` porównujący `GameState` sprzed i po turze (osady +
-> bohater per księstwo), osadzony w `render_game_page` sterowany `previous_game`,
-> a `GameApp` przewleka stan sprzed tury. Domyka refaktorem R38.1 duplikację
-> lokalizacji księstwa gracza (`player_duchy`). Rdzeń `tbb` bez zmian.
-- [ ] **K38.1a** Prymityw `render_turn_summary(before, after)` — korzeń `data-turn-summary`/`data-changed` + tekst „Zmiany w tej turze: tak|nie" (bez wierszy). *(task-183)*
-- [ ] **K38.1b** Wiersze per-księstwo `data-turn-duchy` (`data-settlements-before/after`, `data-hero-before/after`) + `data-change-count`. *(task-184)*
-- [ ] **K38.1c** Osadzenie w `render_game_page` przez opcjonalny `previous_game` (po `data-calendar`; `None` → bajt-w-bajt jak dotąd). *(task-185)*
-- [ ] **K38.2a** `GameApp.previous_game` zapisywany po `POST /turn`, zerowany przez inne rozkazy/`/new`; przewleczony do `render_game_page`. *(task-186)*
-- [ ] **R38.1 (refaktor)** Wspólny helper `tbbui.gamelookup.player_duchy` reużyty przez 6 paneli (bez nowych testów paneli). *(task-187)*
+## Kamień milowy 38 — czytelny skutek tury AI (dziennik zmian) — UKOŃCZONY
+> DESIGN §6 pkt 5: czysty panel `render_turn_summary` porównujący `GameState`
+> sprzed i po turze (osady + bohater per księstwo), osadzony w `render_game_page`
+> przez `previous_game` (przewlekany przez `GameApp`); refaktor R38.1 scalił
+> lokalizację księstwa gracza (`player_duchy`). Wszystkie pozycje (task-183…187)
+> w `BACKLOG-ARCHIVE.md`. Rdzeń `tbb` bez zmian.
 
-## Kamień milowy 39 — ostrzeżenie o zagrożeniu obronnym (gdzie się bronić)
-> DESIGN §6 pkt 3: `engagementpreview` (K37) mówi GDZIE atakować, ale nic nie
-> ostrzega, GDZIE gracz jest zagrożony. K39 dokłada czysty panel
-> `render_threat_alert` — własne pozycje (osady/party) mające sąsiednie wrogie
-> party, z porównaniem siły obronnej do wroga i flagą „obronisz się", osadzony
-> w `render_game_page` po podglądzie starcia. Rdzeń `tbb` bez zmian.
-- [ ] **K39.1a** Prymityw `render_threat_alert` — korzeń `data-threat-alert`/`data-threats` + tekst „Zagrożone pozycje: N" (bez wierszy). *(task-188)*
-- [ ] **K39.1b** Wiersze per zagrożona pozycja `data-threatened-region` (`data-threatened-kind`, `data-enemy-region`, `data-enemy-owner`) + tekst. *(task-189)*
-- [ ] **K39.1c** Osadzenie w `render_game_page` po `data-engagement-preview` (bez gracza → bajt-w-bajt jak dotąd). *(task-190)*
-- [ ] **K39.2a** Siła obronna własnej pozycji (`data-own-*`) i wroga (`data-enemy-*`) w wierszu + sufiks tekstu. *(task-191)*
-- [ ] **K39.2b** Flaga `data-defensible="true|false"` + sufiks „ — obronisz się"/„ — przewaga wroga". *(task-192)*
+## Kamień milowy 39 — ostrzeżenie o zagrożeniu obronnym (gdzie się bronić) — UKOŃCZONY
+> DESIGN §6 pkt 3: `engagementpreview` (K37) mówi GDZIE atakować; K39 dołożył
+> czysty panel `render_threat_alert` — własne pozycje (osady/party) mające
+> sąsiednie wrogie party, z porównaniem siły obronnej do wroga i flagą
+> „obronisz się", osadzony w `render_game_page` po podglądzie starcia. Wszystkie
+> pozycje (task-188…192) w `BACKLOG-ARCHIVE.md`. Rdzeń `tbb` bez zmian.
+
+## Kamień milowy 40 — skrót sytuacji taktycznej (bronić się czy atakować)
+> DESIGN §6 pkt 3–5: K33–K39 dały bogate panele doradcze; K40 dokłada czysty
+> `render_situation_report` — jednolinijkowy skrót „na jeden rzut oka": liczba
+> zagrożonych pozycji vs liczba korzystnych celów, z werdyktem postawy, osadzony
+> w `render_game_page` po alercie zagrożeń. Poprzedza go refaktor R39.1
+> (wspólny predykat wrogiego party). Rdzeń `tbb` bez zmian.
+- [ ] **R39.1 (refaktor)** Wspólny predykat „wrogie party u sąsiada" `tbbui.maplookup.is_hostile_owner` reużyty przez `threatalert`/`engagementpreview` (bez nowych testów). *(task-193)*
+- [ ] **K40.1a** Prymityw `render_situation_report` — korzeń `data-situation-report`/`data-threatened-count` + tekst „Sytuacja: zagrożone pozycje N". *(task-194)*
+- [ ] **K40.1b** `data-opportunity-count` (korzystne cele z przewagą) + rozszerzenie tekstu. *(task-195)*
+- [ ] **K40.1c** Osadzenie w `render_game_page` po `data-threat-alert` (bez gracza → bajt-w-bajt jak dotąd). *(task-196)*
+- [ ] **K40.2a** Flaga `data-net-posture="offensive|defensive|balanced"` + sufiks postawy. *(task-197)*
 
 ## Dług/refaktor
-- [ ] **R39.1 (refaktor, przyszłe)** Wspólny predykat „wrogie party u sąsiada"
-      (`owner_id is not None` i `!= player`) reużyty przez `engagementpreview`
-      i `threatalert`; podjąć po ustabilizowaniu drugiego konsumenta (K39).
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*
 - [x] **R21.1 (refaktor)** Wspólny emiter formularzy celu marsz/szturm/starcie w `serve.py`. *(task-113)*
 - [x] **R15.1 (refaktor)** Kompaktacja DESIGN.md do stanu obecnego; historia → DECISIONS.md. *(task-094)*

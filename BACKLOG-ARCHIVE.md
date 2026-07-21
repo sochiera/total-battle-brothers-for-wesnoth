@@ -370,3 +370,24 @@
 - [x] **K36.1b** Prymityw `render_hero_chase(world, game, player_duchy_id)` — `data-hero-chase` + wiersze `data-enemy-duchy`/`data-distance`. *(task-175)*
 - [x] **K36.1c** Osadzenie w `render_game_page` po `data-hero-locator` (bez gracza → bajt-w-bajt jak dotąd). *(task-176)*
 - [x] **K36.2a** Oznaczenie celu w zasięgu (`data-in-reach` + sufiks „ — w zasięgu" dla dystansu 1). *(task-177)*
+
+## Kamień milowy 37 — świadoma decyzja o walce: podgląd siły celu przed atakiem — UKOŃCZONY
+- [x] **K37.1a** Prymityw `render_engagement_preview` — `data-engagement-preview`/`data-player-on-map`/`data-own-*` + wiersze sąsiednich wrogich osad (`data-enemy-*`). *(task-178)*
+- [x] **K37.1b** Flaga przewagi `data-advantage="true|false"` + sufiks „ — przewaga"/„ — niekorzystnie". *(task-179)*
+- [x] **K37.1c** Osadzenie w `render_game_page` po `data-hero-chase` (bez gracza → bajt-w-bajt jak dotąd). *(task-180)*
+- [x] **K37.2a** Rozszerzenie o sąsiednie wrogie party (`data-target-kind="party"`; osada przed party w regionie). *(task-181)*
+- [x] **R37.1 (refaktor)** Wspólny helper `tbbui.maplookup.first_party_region` reużyty przez `herolocator`/`herochase`/`engagementpreview` (bez nowych testów paneli). *(task-182)*
+
+## Kamień milowy 38 — czytelny skutek tury AI (dziennik zmian) — UKOŃCZONY
+- [x] **K38.1a** Prymityw `render_turn_summary(before, after)` — korzeń `data-turn-summary`/`data-changed` + tekst „Zmiany w tej turze: tak|nie" (bez wierszy). *(task-183)*
+- [x] **K38.1b** Wiersze per-księstwo `data-turn-duchy` (`data-settlements-before/after`, `data-hero-before/after`) + `data-change-count`. *(task-184)*
+- [x] **K38.1c** Osadzenie w `render_game_page` przez opcjonalny `previous_game` (po `data-calendar`; `None` → bajt-w-bajt jak dotąd). *(task-185)*
+- [x] **K38.2a** `GameApp.previous_game` zapisywany po `POST /turn`, zerowany przez inne rozkazy/`/new`; przewleczony do `render_game_page`. *(task-186)*
+- [x] **R38.1 (refaktor)** Wspólny helper `tbbui.gamelookup.player_duchy` reużyty przez 6 paneli (bez nowych testów paneli). *(task-187)*
+
+## Kamień milowy 39 — ostrzeżenie o zagrożeniu obronnym (gdzie się bronić) — UKOŃCZONY
+- [x] **K39.1a** Prymityw `render_threat_alert` — korzeń `data-threat-alert`/`data-threats` + tekst „Zagrożone pozycje: N" (bez wierszy). *(task-188)*
+- [x] **K39.1b** Wiersze per zagrożona pozycja `data-threatened-region` (`data-threatened-kind`, `data-enemy-region`, `data-enemy-owner`) + tekst. *(task-189)*
+- [x] **K39.1c** Osadzenie w `render_game_page` po `data-engagement-preview` (bez gracza → bajt-w-bajt jak dotąd). *(task-190)*
+- [x] **K39.2a** Siła obronna własnej pozycji (`data-own-*`) i wroga (`data-enemy-*`) w wierszu + sufiks tekstu. *(task-191)*
+- [x] **K39.2b** Flaga `data-defensible="true|false"` + sufiks „ — obronisz się"/„ — przewaga wroga". *(task-192)*
