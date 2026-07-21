@@ -142,6 +142,12 @@ class GameApp:
                     calendar=self.calendar,
                     player_duchy_id=self.player_duchy_id,
                 )
+                self.last_notice = (
+                    f"Następna tura: rok {self.calendar.year}, "
+                    f"miesiąc {self.calendar.month}"
+                )
+            else:
+                self.last_notice = "Następna tura: gra zakończona"
             return 200, self._render()
         if method == "POST" and route == "/order/recruit":
             self.last_battle = None

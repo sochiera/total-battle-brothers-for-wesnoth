@@ -133,7 +133,8 @@ def test_game_app_handle_get_turn_404_noop_and_determinism():
     Contract (task-074 / V13.5a):
     - GET / → (200, page) with form method=post action=/turn
     - POST /turn → exactly one headless turn; calendar/state advance; 200
-    - when game.is_over before request, POST /turn is no-op (200, same state)
+    - when game.is_over before request, POST /turn is no-op on party state
+      (200, calendar/world/game unchanged; K28.1e still sets last_notice)
     - other path/method → 404
     - same seed + same handle sequence → identical bodies and state
     """
@@ -168,17 +169,24 @@ def test_game_app_handle_get_turn_404_noop_and_determinism():
     code_bad_method, _ = app.handle("PUT", "/")
     assert code_bad_method == 404
 
-    # Finished game: POST /turn must not advance calendar or change page body.
+    # Finished game: POST /turn must not advance calendar; notice still set (K28.1e).
     fin_world, fin_game = _finished_world_game()
     fin_cal = Calendar(year=3, month=7)
     finished = GameApp(fin_world, fin_game, fin_cal, Rng(5))
     code_g, page_before = finished.handle("GET", "/")
     assert code_g == 200
     assert _calendar_stamp(page_before) == (3, 7)
+    world_before = finished.world
+    game_before = finished.game
     code_n, page_after = finished.handle("POST", "/turn")
     assert code_n == 200
-    assert page_after == page_before
+    assert finished.world is world_before
+    assert finished.game is game_before
     assert _calendar_stamp(page_after) == (3, 7)
+    assert finished.last_notice == "Następna tura: gra zakończona"
+    notices = _find_by_attr(ET.fromstring(page_after), "data-notice")
+    assert len(notices) == 1
+    assert notices[0].get("data-notice") == "Następna tura: gra zakończona"
 
     # Determinism: two apps, same seed and request sequence → same bodies.
     w1, g1 = _ongoing_world_game()
@@ -274,6 +282,34 @@ def test_game_app_last_notice_empty_string_renders_empty_data_notice():
     notices = _find_by_attr(root, "data-notice")
     assert len(notices) == 1
     assert notices[0].get("data-notice") == app.last_notice == ""
+
+
+def test_game_app_post_turn_sets_last_notice_with_calendar_date_after_turn():
+    """POST /turn after an executed turn sets last_notice from post-turn calendar (K28.1e).
+
+    Contract (task-147 / K28.1e):
+    - when game is not is_over before the request, POST /turn runs one headless
+      turn then sets last_notice to
+      f"Następna tura: rok {calendar.year}, miesiąc {calendar.month}"
+      using the calendar state *after* the turn
+    - returns (200, page); rendered <p data-notice> carries that exact string
+    """
+    world, game = _ongoing_world_game()
+    calendar = Calendar(year=4, month=9)
+    app = GameApp(world, game, calendar, Rng(17))
+    assert app.last_notice == ""
+    assert not app.game.is_over
+
+    code, body = app.handle("POST", "/turn")
+    assert code == 200
+    # One strategic turn advances calendar by one month (4,9 → 4,10).
+    assert (app.calendar.year, app.calendar.month) == (4, 10)
+    expected = f"Następna tura: rok {app.calendar.year}, miesiąc {app.calendar.month}"
+    assert expected == "Następna tura: rok 4, miesiąc 10"
+    assert app.last_notice == expected
+    notices = _find_by_attr(ET.fromstring(body), "data-notice")
+    assert len(notices) == 1
+    assert notices[0].get("data-notice") == expected
 
 
 def test_game_app_post_order_recruit_sets_last_notice_wykonano_then_brak_zmian():

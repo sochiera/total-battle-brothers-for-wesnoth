@@ -420,6 +420,10 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   po szturmie / starciu). `POST /turn` oraz rozkazy nie-bitewne
   (`/order/recruit|muster|develop|march`) zerują `last_battle` (stara bitwa nie
   wisi po innym działaniu gracza); `assault`/`engage` nie zerują przed wykonaniem.
+- `POST /turn` ustawia `last_notice`: po wykonanej turze
+  `f"Następna tura: rok {calendar.year}, miesiąc {calendar.month}"` (data po
+  turze); gdy gra była już `is_over` przed żądaniem —
+  `"Następna tura: gra zakończona"` (no-op stanu jak dotąd) (K28.1e).
 - UI celów: gdy gracz ma party na mapie — po jednym formularzu
   `?target=<quote(nazwa)>` na obcą osadę (kolejność `world.regions`, helper
   `_march_targets`); bare action nieobecny. Brak party / brak id / gra skończona →

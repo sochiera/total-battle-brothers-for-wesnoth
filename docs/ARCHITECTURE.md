@@ -223,7 +223,9 @@ obce osady) woła ten sam emiter przy niepustych celach, inaczej bare.
 `run_headless_game(..., max_turns=1, calendar=..., player_duchy_id=...)` i
 aktualizacja wewnętrznego stanu (gdy podany `player_duchy_id`, driver pomija
 AI tego księstwa — K14.1a); gdy `game.is_over` przed żądaniem, no-op (stan bez
-zmian, wciąż `200`). Rozkazy gracza `POST /order/recruit` (K14.2a),
+zmian, wciąż `200`); w obu przypadkach ustawia `last_notice` (K28.1e): po
+turze `f"Następna tura: rok {calendar.year}, miesiąc {calendar.month}"`,
+przy no-op `is_over` → `"Następna tura: gra zakończona"`. Rozkazy gracza `POST /order/recruit` (K14.2a),
 `POST /order/muster` (K14.2b), `POST /order/develop` (K14.2c),
 `POST /order/march` (K14.2d2 / K15.1b) idzie wspólnym helperem
 `_apply_player_order(transition, label)` (K28.1b): gdy `player_duchy_id`
