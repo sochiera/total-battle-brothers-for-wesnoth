@@ -15,7 +15,7 @@ from tbbui.engagementpreview import (
 from tbbui.gamelookup import player_duchy
 from tbbui.recommendedaction import recommended_order, render_recommended_action
 from tbbui.situationreport import net_posture
-from tbbui.threatalert import threatened_position_count
+from tbbui.threatalert import first_threatened_region, threatened_position_count
 
 
 def test_recommended_order_returns_none_when_player_duchy_missing():
@@ -59,6 +59,154 @@ def test_recommended_order_returns_none_when_player_duchy_missing():
         r: world.settlement_at(r) for r in world.regions
     } == settlements_before
     assert game.duchies == duchies_before
+
+
+def test_recommended_order_offensive_assault_and_engage_from_first_advantageous_target():
+    """Offensive posture: ``recommended_order`` returns
+    ``("assault", <region>)`` when ``first_advantageous_target`` has
+    ``kind=="settlement"``, and ``("engage", <region>)`` when
+    ``kind=="party"`` — same target selection / order as
+    ``render_recommended_action``. Pure: no world/game mutation.
+    """
+    home = Region("Home")
+    enemy_camp = Region("EnemyCamp")
+    weak_a = Region("WeakA")
+    weak_b = Region("WeakB")
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+
+    # offensive + settlement kind → assault (M>N; settlement only, no N from
+    # hostile party)
+    assault_world = WorldMap(
+        [home, enemy_camp],
+        [(home, enemy_camp)],
+        parties={home: Party(hero=Unit(), units=(), owner_id="player")},
+        settlements={
+            enemy_camp: Settlement(
+                "EnemyS", population=2, owner_id="enemy"
+            ),
+        },
+    )
+    m = advantageous_target_count(assault_world, game, "player")
+    n = threatened_position_count(assault_world, game, "player")
+    assert net_posture(m, n) == "offensive"
+    target = first_advantageous_target(assault_world, game, "player")
+    assert target is not None
+    region, kind = target
+    assert kind == "settlement"
+    regions_before = assault_world.regions
+    parties_before = {r: assault_world.party_at(r) for r in assault_world.regions}
+    settlements_before = {
+        r: assault_world.settlement_at(r) for r in assault_world.regions
+    }
+    duchies_before = game.duchies
+    assert recommended_order(assault_world, game, "player") == (
+        "assault",
+        region,
+    )
+    assert assault_world.regions == regions_before
+    assert {
+        r: assault_world.party_at(r) for r in assault_world.regions
+    } == parties_before
+    assert {
+        r: assault_world.settlement_at(r) for r in assault_world.regions
+    } == settlements_before
+    assert game.duchies == duchies_before
+
+    # offensive + party kind → engage (two weak hostile parties: M=2 > N=1)
+    engage_world = WorldMap(
+        [home, weak_a, weak_b],
+        [(home, weak_a), (home, weak_b)],
+        parties={
+            home: Party(hero=Unit(), units=(), owner_id="player"),
+            weak_a: Party(hero=Unit(), units=(), owner_id="enemy"),
+            weak_b: Party(hero=Unit(), units=(), owner_id="enemy"),
+        },
+        settlements={},
+    )
+    m = advantageous_target_count(engage_world, game, "player")
+    n = threatened_position_count(engage_world, game, "player")
+    assert net_posture(m, n) == "offensive"
+    target = first_advantageous_target(engage_world, game, "player")
+    assert target is not None
+    region, kind = target
+    assert kind == "party"
+    assert recommended_order(engage_world, game, "player") == (
+        "engage",
+        region,
+    )
+
+
+def test_recommended_order_defensive_defend_and_balanced_develop():
+    """Defensive posture: ``recommended_order`` returns
+    ``("defend", <region>)`` from ``first_threatened_region``. Balanced
+    posture: ``("develop", None)``. Pure: no world/game mutation.
+    """
+    home = Region("Home")
+    keep = Region("Keep")
+    enemy_camp = Region("EnemyCamp")
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+
+    # defensive: N>M — enemy party threatens keep settlement
+    defensive_world = WorldMap(
+        [keep, enemy_camp],
+        [(keep, enemy_camp)],
+        parties={
+            enemy_camp: Party(hero=Unit(), units=(), owner_id="enemy"),
+        },
+        settlements={
+            keep: Settlement("KeepS", population=2, owner_id="player"),
+        },
+    )
+    m = advantageous_target_count(defensive_world, game, "player")
+    n = threatened_position_count(defensive_world, game, "player")
+    assert net_posture(m, n) == "defensive"
+    threatened = first_threatened_region(defensive_world, game, "player")
+    assert threatened is not None
+    regions_before = defensive_world.regions
+    parties_before = {
+        r: defensive_world.party_at(r) for r in defensive_world.regions
+    }
+    settlements_before = {
+        r: defensive_world.settlement_at(r) for r in defensive_world.regions
+    }
+    duchies_before = game.duchies
+    assert recommended_order(defensive_world, game, "player") == (
+        "defend",
+        threatened,
+    )
+    assert defensive_world.regions == regions_before
+    assert {
+        r: defensive_world.party_at(r) for r in defensive_world.regions
+    } == parties_before
+    assert {
+        r: defensive_world.settlement_at(r) for r in defensive_world.regions
+    } == settlements_before
+    assert game.duchies == duchies_before
+
+    # balanced: M==N==0
+    balanced_world = WorldMap(
+        [home],
+        [],
+        parties={home: Party(hero=Unit(), units=(), owner_id="player")},
+        settlements={},
+    )
+    m = advantageous_target_count(balanced_world, game, "player")
+    n = threatened_position_count(balanced_world, game, "player")
+    assert net_posture(m, n) == "balanced"
+    assert recommended_order(balanced_world, game, "player") == (
+        "develop",
+        None,
+    )
 
 
 def test_render_recommended_action_empty_root_when_none_or_unknown_duchy():
