@@ -291,10 +291,68 @@ def test_render_settlement_panel_rows_carry_active_buildings_count():
         f"Keep A (north): pszenica 5, złoto 3 · populacja 5 (wolne 3), garnizon 2"
         f" · siła garnizonu: HP {expected_hp}"
         f", atak {expected_attack}, obrona {expected_defense}"
-        f" · budynki: 2"
+        f" · budynki: 2 (Farm, Market)"
     )
 
     assert row_b.attrib["data-buildings"] == "0"
+    text_b = "".join(row_b.itertext())
+    assert text_b == (
+        "Keep B (—): pszenica 0, złoto 0 · populacja 1 (wolne 1), garnizon 0"
+        " · siła garnizonu: HP 0, atak 0, obrona 0"
+        " · budynki: 0"
+    )
+
+
+def test_render_settlement_panel_rows_carry_active_building_names():
+    """Each row also carries data-building-names = names of
+    settlement.active_buildings joined by ", " in active_buildings order
+    (empty -> ""), and the visible text appends `` (name1, name2)`` right
+    after the K26.1a `` · budynki: N`` text when N>0, with no parens when
+    N=0. Other attributes/text stay unchanged.
+    """
+    a = Region("A")
+    b = Region("B")
+    world = WorldMap(
+        [a, b],
+        [(a, b)],
+        settlements={
+            a: Settlement(
+                "Keep A",
+                population=5,
+                occupied=2,
+                owner_id="north",
+                storage=Resources(wheat=5, gold=3),
+                garrison=(Unit(), Unit()),
+                active_buildings=(FARM, MARKET),
+            ),
+            b: Settlement(
+                "Keep B",
+                population=1,
+                owner_id=None,
+                storage=Resources(wheat=0, gold=0),
+            ),
+        },
+    )
+
+    xml = render_settlement_panel(world)
+    root = ET.fromstring(xml)
+
+    row_a, row_b = root.findall("div")
+    default_units = (Unit(), Unit())
+    expected_hp = sum(u.hp for u in default_units)
+    expected_attack = sum(u.damage for u in default_units)
+    expected_defense = sum(u.defense for u in default_units)
+
+    assert row_a.attrib["data-building-names"] == "Farm, Market"
+    text_a = "".join(row_a.itertext())
+    assert text_a == (
+        f"Keep A (north): pszenica 5, złoto 3 · populacja 5 (wolne 3), garnizon 2"
+        f" · siła garnizonu: HP {expected_hp}"
+        f", atak {expected_attack}, obrona {expected_defense}"
+        f" · budynki: 2 (Farm, Market)"
+    )
+
+    assert row_b.attrib["data-building-names"] == ""
     text_b = "".join(row_b.itertext())
     assert text_b == (
         "Keep B (—): pszenica 0, złoto 0 · populacja 1 (wolne 1), garnizon 0"

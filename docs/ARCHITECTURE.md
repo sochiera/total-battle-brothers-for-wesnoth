@@ -105,8 +105,9 @@ kolejności `world.regions` (region bez osady → brak wiersza). Atrybuty wiersz
 dostają `data-player-owned=""`; `None` (domyślnie) → wynik bajt-w-bajt jak bez
 argumentu. Obok atrybutów widoczny tekst
 `<Settlement.name> (<owner_id lub „—">): pszenica W, złoto G · populacja P
-(wolne F), garnizon N · siła garnizonu: HP H, atak A, obrona D` zgodny z
-atrybutami. Czyste, deterministyczne, bez mutacji `world`; rdzeń bez zmian.
+(wolne F), garnizon N · siła garnizonu: HP H, atak A, obrona D · budynki: B
+(nazwa1, …)` (nawias z nazwami tylko gdy `B>0`) zgodny z atrybutami. Czyste,
+deterministyczne, bez mutacji `world`; rdzeń bez zmian.
 
 **Panel party HTML (K22.2a / K24.1a / K25.1a / K25.1b):** `tbbui.partypanel.render_party_panel(world,
 player_duchy_id=None) -> str` — parsowalny fragment XML z korzeniem

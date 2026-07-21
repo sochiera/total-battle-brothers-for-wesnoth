@@ -17,12 +17,14 @@ def render_settlement_panel(
     ``data-gold`` / ``data-population`` / ``data-free`` / ``data-garrison`` /
     ``data-garrison-hp`` / ``data-garrison-attack`` / ``data-garrison-defense``
     (sums of ``Unit.hp`` / ``Unit.damage`` / ``Unit.defense`` over the garrison;
-    empty → 0) / ``data-buildings`` (``len(active_buildings)``; none → 0) and
-    visible text matching those attributes, including the
-    `` · siła garnizonu: HP H, atak A, obrona D · budynki: N`` suffix. When
-    ``player_duchy_id`` is not ``None``, rows whose ``owner_id`` matches get
-    ``data-player-owned=""``. Pure and deterministic: no RNG/IO; ``world`` is
-    not mutated.
+    empty → 0) / ``data-buildings`` (``len(active_buildings)``; none → 0) /
+    ``data-building-names`` (building names joined by ``", "`` in
+    ``active_buildings`` order; empty → ``""``) and visible text matching those
+    attributes, including the
+    `` · siła garnizonu: HP H, atak A, obrona D · budynki: N`` suffix and, when
+    N>0, `` (name1, name2)`` after the count. When ``player_duchy_id`` is not
+    ``None``, rows whose ``owner_id`` matches get ``data-player-owned=""``.
+    Pure and deterministic: no RNG/IO; ``world`` is not mutated.
     """
     rows: list[str] = []
     for region in world.regions:
@@ -40,12 +42,18 @@ def render_settlement_panel(
             settlement.garrison
         )
         buildings = len(settlement.active_buildings)
+        building_names = ", ".join(b.name for b in settlement.active_buildings)
+        buildings_suffix = (
+            f" · budynki: {buildings} ({building_names})"
+            if buildings
+            else f" · budynki: {buildings}"
+        )
         text = (
             f"{settlement.name} ({owner_text}): pszenica {wheat}, złoto {gold}"
             f" · populacja {population} (wolne {free}), garnizon {garrison}"
             f" · siła garnizonu: HP {garrison_hp}"
             f", atak {garrison_attack}, obrona {garrison_defense}"
-            f" · budynki: {buildings}"
+            f"{buildings_suffix}"
         )
         player_owned = (
             ' data-player-owned=""'
@@ -64,6 +72,7 @@ def render_settlement_panel(
             f' data-garrison-attack="{garrison_attack}"'
             f' data-garrison-defense="{garrison_defense}"'
             f' data-buildings="{buildings}"'
+            f' data-building-names="{building_names}"'
             f"{player_owned}"
             f">{text}</div>"
         )
