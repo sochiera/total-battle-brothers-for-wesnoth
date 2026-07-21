@@ -23,6 +23,7 @@ from tbbui.palette import owner_palette
 from tbbui.partypanel import render_party_panel
 from tbbui.playersummary import render_player_summary
 from tbbui.settlementpanel import render_settlement_panel
+from tbbui.victoryprogress import render_victory_progress
 from tbbui.worldsvg import render_world_svg
 
 
@@ -626,6 +627,35 @@ def test_render_game_page_embeds_canonical_player_summary_when_player_duchy_id_s
     summary_els = _find_by_attr(root, "data-player-summary")
     assert len(summary_els) == 1
     assert summary_els[0] in list(body.iter())
+
+
+def test_render_game_page_embeds_canonical_victory_progress_after_player_summary():
+    """``player_duchy_id`` embeds one canonical ``render_victory_progress`` right after summary.
+
+    Exactly one ``data-victory-progress`` in ``<body>``; string equals
+    ``render_victory_progress(game, player_duchy_id)`` and sits immediately after
+    the embedded ``render_player_summary`` output.
+    """
+    world, game, calendar = _ongoing_fixture()
+    expected_summary = render_player_summary(game, "north")
+    expected_progress = render_victory_progress(game, "north")
+
+    html = render_game_page(world, game, calendar, player_duchy_id="north")
+
+    assert expected_progress in html, (
+        "page must embed render_victory_progress(game, player_duchy_id) output"
+    )
+    assert html.count(expected_progress) == 1
+    assert html.index(expected_summary) + len(expected_summary) == html.index(
+        expected_progress
+    ), "victory progress must sit directly after the embedded player summary"
+
+    root = ET.fromstring(html)
+    assert _local(root.tag) == "html"
+    body = next(el for el in root if _local(el.tag) == "body")
+    progress_els = _find_by_attr(root, "data-victory-progress")
+    assert len(progress_els) == 1
+    assert progress_els[0] in list(body.iter())
 
 
 def test_render_game_page_omits_player_summary_when_player_duchy_id_none():

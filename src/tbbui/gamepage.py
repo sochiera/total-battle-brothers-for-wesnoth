@@ -12,6 +12,7 @@ from tbbui.ownerlegend import render_owner_legend
 from tbbui.partypanel import render_party_panel
 from tbbui.playersummary import render_player_summary
 from tbbui.settlementpanel import render_settlement_panel
+from tbbui.victoryprogress import render_victory_progress
 from tbbui.worldsvg import render_world_svg
 
 _OBJECTIVE_TEXT = (
@@ -91,10 +92,13 @@ def render_game_page(
     matching legend / ``data-settlement-row`` / ``data-party-row`` entries
     get player markers; when not ``None``, also embeds the canonical string
     from ``render_player_summary(game, player_duchy_id)`` in ``<body>``
-    (exactly one ``data-player-summary``) and a player-perspective result
-    line (``<p data-player-result-text>``, K31.2a); ``None`` (default)
-    omits those markers, the summary, and the player result. Pure and
-    deterministic: no RNG/IO; inputs (including ``battle``) are not mutated.
+    (exactly one ``data-player-summary``), immediately after it the
+    canonical string from ``render_victory_progress(game, player_duchy_id)``
+    (K33.1c, exactly one ``data-victory-progress``), and a
+    player-perspective result line (``<p data-player-result-text>``,
+    K31.2a); ``None`` (default) omits those markers, the summary, the
+    victory progress, and the player result. Pure and deterministic: no
+    RNG/IO; inputs (including ``battle``) are not mutated.
     """
     map_svg = render_world_svg(world)
     owner_legend = render_owner_legend(world, player_duchy_id)
@@ -102,6 +106,7 @@ def render_game_page(
     party_panel = render_party_panel(world, player_duchy_id)
     if player_duchy_id is not None:
         player_summary = render_player_summary(game, player_duchy_id)
+        victory_progress = render_victory_progress(game, player_duchy_id)
         player_result_text = _player_result_text(game, player_duchy_id)
         player_result_html = (
             f'<p data-player-result-text="{player_result_text}">'
@@ -109,6 +114,7 @@ def render_game_page(
         )
     else:
         player_summary = ""
+        victory_progress = ""
         player_result_html = ""
     result = _result_value(game)
     result_text = _result_text(game)
@@ -165,6 +171,7 @@ def render_game_page(
         f"{map_svg}"
         f"{owner_legend}"
         f"{player_summary}"
+        f"{victory_progress}"
         f"{battle_svg}"
         f"{battle_report}"
         f"{settlements_header}"
