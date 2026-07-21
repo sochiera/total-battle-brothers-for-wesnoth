@@ -193,6 +193,15 @@ def test_next_march_step_rejects_regions_outside_map_without_mutation(outside_ar
     assert world.party_at(start) is party
 
 
+def test_region_distance_is_zero_when_start_equals_target():
+    """ai.region_distance returns 0 when start and target are the same region."""
+    start = Region("Start")
+    other = Region("Other")
+    world = WorldMap([start, other], [(start, other)])
+
+    assert ai.region_distance(world, start, start) == 0
+
+
 def test_march_moves_exactly_one_step_and_preserves_input_and_party():
     start, step, target = map(Region, ("Start", "Step", "Target"))
     party = _owned_party("Hero")

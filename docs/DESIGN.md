@@ -266,6 +266,9 @@ w regionie (wymaga osady i wolnego slotu party).
 **Prymitywy wojskowe (czyste, deterministyczne przy ustalonym seedzie):**
 - `nearest_enemy_settlement(world, start, owner_id)` — najbliższa wroga osada
   (różny jawny owner); remis: kolejność regionów; brak → `None`.
+- `region_distance(world, start, target)` — surowy dystans BFS (liczba krawędzi)
+  po `world.neighbors`; nie omija party; `start==target`→`0`, brak drogi→`None`,
+  region spoza mapy→`ValueError`.
 - `next_march_step(world, start, target)` — sąsiad na najkrótszej drodze; omija
   regiony z party; `None` gdy start sąsiaduje z celem lub brak drogi.
 - `march_toward_nearest_enemy(world, position)` — 1 krok, MP=1.

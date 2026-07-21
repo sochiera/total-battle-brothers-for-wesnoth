@@ -161,6 +161,30 @@ def nearest_enemy_settlement(
     return best
 
 
+def region_distance(
+    world: WorldMap, start: Region, target: Region
+) -> int | None:
+    """Return BFS edge distance between regions; ignore party occupancy."""
+    if start not in world.regions or target not in world.regions:
+        raise ValueError("start and target regions must belong to the world map")
+    if start == target:
+        return 0
+
+    distances = {start: 0}
+    pending = deque([start])
+    while pending:
+        current = pending.popleft()
+        for neighbor in world.neighbors(current):
+            if neighbor in distances:
+                continue
+            distance = distances[current] + 1
+            if neighbor == target:
+                return distance
+            distances[neighbor] = distance
+            pending.append(neighbor)
+    return None
+
+
 def next_march_step(
     world: WorldMap, start: Region, target: Region
 ) -> Region | None:
