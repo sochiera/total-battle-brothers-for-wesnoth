@@ -376,8 +376,9 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   `» `), wynik (`data-result`), banner
   wyniku (`<p data-result-text>`: `Gra w toku` / `Remis` / `Zwycięstwo: <id>`),
   opcjonalnie SVG bitwy i raport bitwy gdy `battle` podane; osadza też legendę
-  właścicieli (`render_owner_legend(world, player_duchy_id)`), panel osad
-  (`render_settlement_panel(world, player_duchy_id)`) i panel party
+  właścicieli (`render_owner_legend(world, player_duchy_id)`), nagłówek sekcji
+  `<h2 data-panel-section="settlements">Osady</h2>` tuż przed panelem osad
+  (`render_settlement_panel(world, player_duchy_id)`) oraz panel party
   (`render_party_panel(world, player_duchy_id)`).
 
 **GameApp / rozkazy gracza:**

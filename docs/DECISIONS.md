@@ -170,3 +170,4 @@
 | K27.1a | Panel party — ranni | `render_party_panel`: wiersz party dokłada `data-wounded` (liczba jednostek spośród `(hero, *units)` z niepustą `wounds`) + sufiks tekstu ` · ranni: W`. |
 | K27.2a | Panel osad — ranni w garnizonie | `render_settlement_panel`: wiersz osady dokłada `data-garrison-wounded` (liczba jednostek garnizonu z niepustą `wounds`) + sufiks tekstu ` · ranni: W` po budynkach. |
 | R27.1 | Helper licznika rannych | Wspólny czysty helper `tbbui.unitstrength.wounded_count` liczący jednostki z niepustą `wounds`; reużyty przez panel party i osad; HTML bez zmian. |
+| K27.3a | Nagłówek sekcji osad | `render_game_page` emituje `<h2 data-panel-section="settlements">Osady</h2>` bezpośrednio przed osadzonym panelem osad; panele i reszta strony bez zmian w treści. |

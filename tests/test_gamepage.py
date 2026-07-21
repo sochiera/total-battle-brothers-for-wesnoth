@@ -381,6 +381,25 @@ def test_render_game_page_embeds_canonical_settlement_panel_with_matching_rows()
     ]
 
 
+def test_render_game_page_settlements_header_precedes_settlement_panel():
+    """A single settlements ``<h2>`` sits immediately before the settlement panel."""
+    world, game, calendar = _ongoing_fixture()
+    expected_panel = render_settlement_panel(world)
+    header = '<h2 data-panel-section="settlements">Osady</h2>'
+
+    html = render_game_page(world, game, calendar)
+
+    assert html.count(header) == 1
+    assert html.index(header) + len(header) == html.index(expected_panel), (
+        "header must sit directly before the embedded settlement panel"
+    )
+
+    root = ET.fromstring(html)
+    headers = _find_by_attr(root, "data-panel-section")
+    assert [el.get("data-panel-section") for el in headers] == ["settlements"]
+    assert [el.text for el in headers] == ["Osady"]
+
+
 def test_render_game_page_embeds_canonical_party_panel_with_matching_rows():
     """Page embeds ``render_party_panel(world)`` verbatim; rows match parties."""
     world, game, calendar = _ongoing_fixture()
