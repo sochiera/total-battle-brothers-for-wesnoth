@@ -15,7 +15,7 @@ from tbbui.engagementpreview import (
     first_advantageous_target,
 )
 from tbbui.gamelookup import player_duchy
-from tbbui.maplookup import first_party_region
+from tbbui.maplookup import first_party_region, is_hostile_owner
 from tbbui import recommendedaction
 from tbbui.recommendedaction import recommended_order, render_recommended_action
 from tbbui.situationreport import net_posture
@@ -1403,11 +1403,12 @@ def test_render_recommended_action_data_action_after_posture_from_kind():
     )
 
 
-def test_recommended_battle_forecast_none_when_order_none_or_non_offensive():
+def test_recommended_battle_forecast_none_when_order_none_or_non_battle():
     """``recommended_battle_forecast(world, game, player_duchy_id=None)``
     returns ``None`` when ``recommended_order(world, game, player_duchy_id)``
-    is ``None`` or the action is not in ``{"assault", "engage"}``
-    (``defend`` / ``march`` / ``develop`` / ``muster`` → ``None``) — K51.1a.
+    is ``None`` or the action is non-battle
+    (``march`` / ``develop`` / ``muster`` → ``None``; ``assault`` /
+    ``engage`` / ``defend`` covered elsewhere) — K51.1a / K51.1b.
 
     Contract: pure and deterministic (no RNG/IO; does not mutate ``world`` or
     ``game``); delegates action/target selection to ``recommended_order``.
@@ -1477,23 +1478,6 @@ def test_recommended_battle_forecast_none_when_order_none_or_non_offensive():
     assert recommended_order(muster_world, game, "player") == ("muster", None)
     _assert_none(muster_world, "player")
 
-    # defend → None (party fielded so no muster)
-    defensive_world = WorldMap(
-        [keep, enemy_camp],
-        [(keep, enemy_camp)],
-        parties={
-            keep: Party(hero=Unit(), units=(), owner_id="player"),
-            enemy_camp: Party(hero=Unit(), units=(), owner_id="enemy"),
-        },
-        settlements={
-            keep: Settlement("KeepS", population=2, owner_id="player"),
-        },
-    )
-    order = recommended_order(defensive_world, game, "player")
-    assert order is not None
-    assert order[0] == "defend"
-    _assert_none(defensive_world, "player")
-
     # march → None (balanced + distant enemy settlement)
     march_world = WorldMap(
         [home, road, far_enemy],
@@ -1520,6 +1504,182 @@ def test_recommended_battle_forecast_none_when_order_none_or_non_offensive():
         None,
     )
     _assert_none(develop_world, "player")
+
+
+def test_recommended_battle_forecast_defend_returns_own_and_enemy_totals():
+    """``recommended_battle_forecast`` for ``defend`` with target ``R``
+    returns ``(own_total, enemy_total)`` — K51.1b.
+
+    ``own_total = sum(combat_totals(...))`` of the own position in region
+    ``R``: player settlement garrison when ``R`` has a player-owned
+    settlement, otherwise the player party ``(hero, *units)``.
+    ``enemy_total = sum(combat_totals((enemy.hero, *enemy.units)))`` for the
+    first adjacent hostile party
+    (``maplookup.is_hostile_owner(owner_id, player_duchy_id)``, walk order
+    ``world.neighbors``). Pure: no world/game mutation; reuses
+    ``recommended_order`` and ``combat_totals``.
+    """
+    recommended_battle_forecast = recommendedaction.recommended_battle_forecast
+    keep = Region("Keep")
+    field = Region("Field")
+    enemy_camp = Region("EnemyCamp")
+    other_n = Region("OtherN")
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+
+    # --- settlement-owned R: own = garrison, not party ---
+    garrison = (Unit(training=2), Unit(equipment=1))
+    party_hero = Unit(training=5, equipment=3)  # stronger than garrison
+    party_units = (Unit(training=4),)
+    enemy_hero = Unit(training=1)
+    enemy_units = (Unit(equipment=1),)
+    garrison_total = sum(combat_totals(garrison))
+    party_total = sum(combat_totals((party_hero, *party_units)))
+    enemy_total = sum(combat_totals((enemy_hero, *enemy_units)))
+    assert garrison_total != party_total
+    assert garrison_total != enemy_total
+
+    # Keep (player settlement+party) threatened by EnemyCamp; N>M → defend
+    settlement_world = WorldMap(
+        [keep, enemy_camp],
+        [(keep, enemy_camp)],
+        parties={
+            keep: Party(
+                hero=party_hero, units=party_units, owner_id="player"
+            ),
+            enemy_camp: Party(
+                hero=enemy_hero, units=enemy_units, owner_id="enemy"
+            ),
+        },
+        settlements={
+            keep: Settlement(
+                "KeepS",
+                population=2,
+                owner_id="player",
+                garrison=garrison,
+            ),
+        },
+    )
+    m = advantageous_target_count(settlement_world, game, "player")
+    n = threatened_position_count(settlement_world, game, "player")
+    assert net_posture(m, n) == "defensive"
+    order = recommended_order(settlement_world, game, "player")
+    assert order is not None
+    assert order[0] == "defend"
+    assert order[1] == keep.name
+    threatened = first_threatened_region(settlement_world, game, "player")
+    assert threatened == keep.name
+
+    # first hostile neighbor of Keep is EnemyCamp (neighbors order)
+    first_hostile = None
+    for neighbor in settlement_world.neighbors(keep):
+        p = settlement_world.party_at(neighbor)
+        if p is not None and is_hostile_owner(p.owner_id, "player"):
+            first_hostile = p
+            break
+    assert first_hostile is not None
+    expected_enemy = sum(
+        combat_totals((first_hostile.hero, *first_hostile.units))
+    )
+    assert expected_enemy == enemy_total
+
+    regions_before = settlement_world.regions
+    parties_before = {
+        r: settlement_world.party_at(r) for r in settlement_world.regions
+    }
+    settlements_before = {
+        r: settlement_world.settlement_at(r)
+        for r in settlement_world.regions
+    }
+    duchies_before = game.duchies
+
+    assert recommended_battle_forecast(
+        settlement_world, game, "player"
+    ) == (garrison_total, expected_enemy)
+
+    assert settlement_world.regions == regions_before
+    assert {
+        r: settlement_world.party_at(r) for r in settlement_world.regions
+    } == parties_before
+    assert {
+        r: settlement_world.settlement_at(r)
+        for r in settlement_world.regions
+    } == settlements_before
+    assert game.duchies == duchies_before
+
+    # --- no player settlement at R: own = player party ---
+    # Field (player party only); empty neighbor first in world.regions order,
+    # then a stronger hostile party (N=1 > M=0 → defend). Skips empty slot
+    # when walking world.neighbors for the first hostile.
+    field_hero = Unit(training=3, equipment=2)
+    field_units = (Unit(training=1),)
+    field_enemy_hero = Unit(training=20)
+    field_party_total = sum(combat_totals((field_hero, *field_units)))
+    field_enemy_total = sum(combat_totals((field_enemy_hero,)))
+    assert field_party_total != field_enemy_total
+    assert field_party_total < field_enemy_total
+
+    party_world = WorldMap(
+        [field, other_n, enemy_camp],
+        [(field, other_n), (field, enemy_camp)],
+        parties={
+            field: Party(
+                hero=field_hero, units=field_units, owner_id="player"
+            ),
+            # empty other_n (first neighbor by world.regions order)
+            enemy_camp: Party(
+                hero=field_enemy_hero, units=(), owner_id="enemy"
+            ),
+        },
+        settlements={},
+    )
+    assert list(party_world.neighbors(field)) == [other_n, enemy_camp]
+    assert party_world.party_at(other_n) is None
+    m = advantageous_target_count(party_world, game, "player")
+    n = threatened_position_count(party_world, game, "player")
+    assert net_posture(m, n) == "defensive"
+    order = recommended_order(party_world, game, "player")
+    assert order == ("defend", field.name)
+
+    first_hostile = None
+    for neighbor in party_world.neighbors(field):
+        p = party_world.party_at(neighbor)
+        if p is not None and is_hostile_owner(p.owner_id, "player"):
+            first_hostile = p
+            break
+    assert first_hostile is not None
+    assert first_hostile.owner_id == "enemy"
+    expected_enemy = sum(
+        combat_totals((first_hostile.hero, *first_hostile.units))
+    )
+    assert expected_enemy == field_enemy_total
+
+    regions_before = party_world.regions
+    parties_before = {
+        r: party_world.party_at(r) for r in party_world.regions
+    }
+    settlements_before = {
+        r: party_world.settlement_at(r) for r in party_world.regions
+    }
+    duchies_before = game.duchies
+
+    assert recommended_battle_forecast(party_world, game, "player") == (
+        field_party_total,
+        expected_enemy,
+    )
+
+    assert party_world.regions == regions_before
+    assert {
+        r: party_world.party_at(r) for r in party_world.regions
+    } == parties_before
+    assert {
+        r: party_world.settlement_at(r) for r in party_world.regions
+    } == settlements_before
+    assert game.duchies == duchies_before
 
 
 def test_recommended_battle_forecast_assault_returns_own_and_enemy_totals():

@@ -12,7 +12,7 @@ from tbbui.engagementpreview import (
     first_advantageous_target,
 )
 from tbbui.gamelookup import player_duchy
-from tbbui.maplookup import first_party_region
+from tbbui.maplookup import first_party_region, is_hostile_owner
 from tbbui.situationreport import net_posture
 from tbbui.threatalert import first_threatened_region, threatened_position_count
 from tbbui.unitstrength import combat_totals
@@ -133,34 +133,60 @@ def recommended_battle_forecast(
     game: GameState,
     player_duchy_id: str | None = None,
 ) -> tuple[int, int] | None:
-    """Return ``(own_total, enemy_total)`` for a recommended offensive order.
+    """Return ``(own_total, enemy_total)`` for a recommended battle order.
 
     Scalar combat strength is ``sum(combat_totals(...))`` (``hp+attack+defense``).
     Returns ``None`` when ``recommended_order(world, game, player_duchy_id)`` is
-    ``None`` or the action is not in ``{"assault", "engage"}`` (``defend`` /
-    ``march`` / ``develop`` / ``muster`` → ``None`` on this step). For
-    ``assault`` with target region name ``R``: own strength from the player
-    party at ``first_party_region``, enemy from the settlement garrison in
-    ``R``. For ``engage``: enemy from the hostile party in ``R``. Pure and
-    deterministic: no RNG/IO; does not mutate ``world`` or ``game``; delegates
-    action/target selection to ``recommended_order`` (K51.1a).
+    ``None`` or the action is not in ``{"assault", "engage", "defend"}``
+    (``march`` / ``develop`` / ``muster`` → ``None``). For ``assault`` with
+    target region name ``R``: own strength from the player party at
+    ``first_party_region``, enemy from the settlement garrison in ``R``. For
+    ``engage``: enemy from the hostile party in ``R``. For ``defend`` with
+    target ``R``: own strength from the player settlement garrison in ``R``
+    when present, otherwise the player party there; enemy from the first
+    adjacent hostile party (``is_hostile_owner``, ``world.neighbors`` order —
+    same rule as threat-alert). Pure and deterministic: no RNG/IO; does not
+    mutate ``world`` or ``game``; delegates action/target selection to
+    ``recommended_order`` (K51.1a / K51.1b).
     """
     order = recommended_order(world, game, player_duchy_id)
     if order is None:
         return None
     action, target = order
-    if action not in {"assault", "engage"}:
+    if action not in {"assault", "engage", "defend"}:
         return None
 
     assert player_duchy_id is not None
     assert target is not None
+    target_region = next(r for r in world.regions if r.name == target)
+
+    if action == "defend":
+        settlement = world.settlement_at(target_region)
+        if (
+            settlement is not None
+            and settlement.owner_id == player_duchy_id
+        ):
+            own_total = sum(combat_totals(settlement.garrison))
+        else:
+            party = world.party_at(target_region)
+            assert party is not None
+            own_total = sum(combat_totals((party.hero, *party.units)))
+        enemy = None
+        for neighbor in world.neighbors(target_region):
+            p = world.party_at(neighbor)
+            if p is not None and is_hostile_owner(p.owner_id, player_duchy_id):
+                enemy = p
+                break
+        assert enemy is not None
+        enemy_total = sum(combat_totals((enemy.hero, *enemy.units)))
+        return (own_total, enemy_total)
+
     origin = first_party_region(world, player_duchy_id)
     assert origin is not None
     party = world.party_at(origin)
     assert party is not None
     own_total = sum(combat_totals((party.hero, *party.units)))
 
-    target_region = next(r for r in world.regions if r.name == target)
     if action == "assault":
         settlement = world.settlement_at(target_region)
         assert settlement is not None

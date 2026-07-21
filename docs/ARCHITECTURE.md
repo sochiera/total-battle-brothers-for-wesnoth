@@ -357,17 +357,21 @@ przewagę nad wrogim oddziałem w {target}"`; `defend` → `"Pozycję {target}
 zagraża sąsiedni wrogi oddział"`; `march` → `"Brak celów i zagrożeń w
 zasięgu; najbliższa wroga osada to {target}"`; `develop` → `"Brak zagrożeń i
 celów w zasięgu — rozwijaj gospodarkę"`.
-Prognoza siły bitwy zaczepnej (K51.1a):
+Prognoza siły bitwy (K51.1a / K51.1b):
 `recommended_battle_forecast(world, game, player_duchy_id=None) ->
 tuple[int, int] | None` — `None` gdy `recommended_order(...) is None` albo
-akcja spoza `{"assault", "engage"}` (`defend`/`march`/`develop`/`muster` →
-`None` na tym etapie); dla `assault`/`engage` z celem `R` zwraca
-`(own_total, enemy_total)` gdzie `own_total = sum(combat_totals((hero,
-*units)))` party gracza z `first_party_region`, a `enemy_total` to
-`sum(combat_totals(settlement.garrison))` (assault, osada w regionie `R`)
-albo `sum(combat_totals((enemy.hero, *enemy.units)))` (engage, wroga party
-w `R`); region celu po nazwie w `world.regions`; reużywa `recommended_order` /
-`maplookup.first_party_region` / `unitstrength.combat_totals`.
+akcja spoza `{"assault", "engage", "defend"}` (`march`/`develop`/`muster` →
+`None`); dla `assault`/`engage` z celem `R` zwraca `(own_total, enemy_total)`
+gdzie `own_total = sum(combat_totals((hero, *units)))` party gracza z
+`first_party_region`, a `enemy_total` to `sum(combat_totals(settlement.garrison))`
+(assault, osada w regionie `R`) albo `sum(combat_totals((enemy.hero,
+*enemy.units)))` (engage, wroga party w `R`); dla `defend` z celem `R`:
+`own_total` z garnizonu osady gracza w `R` (gdy jest), inaczej z party gracza
+w `R`; `enemy_total` z pierwszej sąsiedniej wrogiej party
+(`maplookup.is_hostile_owner`, kolejność `world.neighbors` — ta sama reguła
+co alert zagrożeń); region celu po nazwie w `world.regions`; reużywa
+`recommended_order` / `maplookup.first_party_region` /
+`maplookup.is_hostile_owner` / `unitstrength.combat_totals`.
 Osadzony w `render_game_page` zaraz po `data-situation-report` (K41.3a).
 Czyste, deterministyczne, bez mutacji `world`/`game`; rdzeń bez zmian.
 
