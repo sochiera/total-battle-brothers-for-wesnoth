@@ -112,13 +112,24 @@ def test_render_order_log_one_child_per_entry_in_order_with_escaped_body():
     ]
     expected_order = tuple(reversed(entries))
     assert len(children) == len(entries)
-    for child, entry in zip(children, expected_order, strict=True):
+    for index, (child, entry) in enumerate(
+        zip(children, expected_order, strict=True)
+    ):
         assert child.tag == "div"
         assert child.attrib.get("data-order-log-entry") == ""
         # Raw source body is escaped; ElementTree surfaces the human-readable form.
+        # Newest (index 0) carries K45.2a badge before the escaped body.
         escaped = html.escape(entry, quote=True)
-        assert f'<div data-order-log-entry="">{escaped}</div>' in xml
-        assert "".join(child.itertext()) == entry
+        if index == 0:
+            assert (
+                f'<div data-order-log-entry="" data-order-log-latest="">'
+                f'<span data-order-log-latest-badge="">najnowszy</span>'
+                f"{escaped}</div>"
+            ) in xml
+            assert "".join(child.itertext()) == f"najnowszy{entry}"
+        else:
+            assert f'<div data-order-log-entry="">{escaped}</div>' in xml
+            assert "".join(child.itertext()) == entry
 
 
 def test_render_order_log_is_pure_deterministic_and_escapes_special_chars():
@@ -140,18 +151,24 @@ def test_render_order_log_is_pure_deterministic_and_escapes_special_chars():
         "gold &amp; iron",
         'say &quot;hold&quot;',
     ]
+    # Escaped bodies appear in the raw fragment (newest has K45.2a badge wrap).
     for escaped in expected_bodies:
-        assert f'<div data-order-log-entry="">{escaped}</div>' in first
+        assert escaped in first
 
     root = ET.fromstring(first)
     children = [
         c for c in root if c.attrib.get("data-order-log-entry") == ""
     ]
     assert len(children) == 3
-    for child, entry in zip(children, reversed(entries), strict=True):
+    for index, (child, entry) in enumerate(
+        zip(children, reversed(entries), strict=True)
+    ):
         # After XML parse, text content is the original entry (entities decoded).
-        # Display order is newest-first (K45.1a).
-        assert "".join(child.itertext()) == entry
+        # Display order is newest-first (K45.1a); newest also has K45.2a badge.
+        if index == 0:
+            assert "".join(child.itertext()) == f"najnowszy{entry}"
+        else:
+            assert "".join(child.itertext()) == entry
 
 
 def test_render_order_log_empty_embeds_empty_state_paragraph_after_header():
@@ -219,9 +236,15 @@ def test_render_order_log_nonempty_has_no_empty_state_and_renders_entries():
         c for c in children if c.attrib.get("data-order-log-entry") == ""
     ]
     assert len(entry_children) == len(entries)
-    for child, entry in zip(entry_children, reversed(entries), strict=True):
-        # Display order is newest-first (K45.1a).
-        assert "".join(child.itertext()) == entry
+    for index, (child, entry) in enumerate(
+        zip(entry_children, reversed(entries), strict=True)
+    ):
+        # Display order is newest-first (K45.1a); newest has K45.2a badge text.
+        visible = "".join(child.itertext())
+        if index == 0:
+            assert visible == f"najnowszy{entry}"
+        else:
+            assert visible == entry
 
 
 def test_render_order_log_entries_newest_first_with_escaped_bodies():
@@ -238,11 +261,66 @@ def test_render_order_log_entries_newest_first_with_escaped_bodies():
 
     expected_order = tuple(reversed(entries))
     assert len(entry_children) == len(entries)
-    assert "".join(entry_children[0].itertext()) == entries[-1]
+    assert "".join(entry_children[0].itertext()) == f"najnowszy{entries[-1]}"
     assert "".join(entry_children[-1].itertext()) == entries[0]
-    for child, entry in zip(entry_children, expected_order, strict=True):
+    for index, (child, entry) in enumerate(
+        zip(entry_children, expected_order, strict=True)
+    ):
         assert child.tag == "div"
         assert child.attrib.get("data-order-log-entry") == ""
-        assert "".join(child.itertext()) == entry
+        escaped = html.escape(entry, quote=True)
+        if index == 0:
+            assert "".join(child.itertext()) == f"najnowszy{entry}"
+            assert (
+                f'<div data-order-log-entry="" data-order-log-latest="">'
+                f'<span data-order-log-latest-badge="">najnowszy</span>'
+                f"{escaped}</div>"
+            ) in xml
+        else:
+            assert "".join(child.itertext()) == entry
+            assert f'<div data-order-log-entry="">{escaped}</div>' in xml
+
+
+def test_render_order_log_marks_newest_entry_with_latest_attr_and_badge():
+    """K45.2a: non-empty ``entries`` → exactly the first (newest)
+    ``data-order-log-entry`` child carries ``data-order-log-latest=""`` and its
+    body starts with ``<span data-order-log-latest-badge="">najnowszy</span>``
+    before ``html.escape(entry, quote=True)``; other entry children have neither
+    ``data-order-log-latest`` nor ``data-order-log-latest-badge``.
+    """
+    entries = ("oldest", 'mid <Keep> & "x"', "newest")
+    xml = render_order_log(entries)
+    root = ET.fromstring(xml)
+    entry_children = [
+        c for c in root if c.attrib.get("data-order-log-entry") == ""
+    ]
+    assert len(entry_children) == len(entries)
+
+    newest = entry_children[0]
+    assert newest.attrib.get("data-order-log-entry") == ""
+    assert newest.attrib.get("data-order-log-latest") == ""
+    badge = list(newest)
+    assert len(badge) == 1
+    assert badge[0].tag == "span"
+    assert badge[0].attrib.get("data-order-log-latest-badge") == ""
+    assert "".join(badge[0].itertext()) == "najnowszy"
+    # Badge is a literal (not taken from entry text); escaped body follows.
+    newest_escaped = html.escape(entries[-1], quote=True)
+    assert (
+        f'<div data-order-log-entry="" data-order-log-latest="">'
+        f'<span data-order-log-latest-badge="">najnowszy</span>'
+        f"{newest_escaped}</div>"
+    ) in xml
+    # Visible text is badge + entry (XML parse joins them).
+    assert "".join(newest.itertext()) == f"najnowszy{entries[-1]}"
+
+    for older in entry_children[1:]:
+        assert "data-order-log-latest" not in older.attrib
+        assert older.find(".//*[@data-order-log-latest-badge]") is None
+        assert older.find("span[@data-order-log-latest-badge]") is None
+    assert xml.count("data-order-log-latest=") == 1
+    assert xml.count("data-order-log-latest-badge") == 1
+    # Older entries keep plain markup (no badge).
+    for entry in entries[:-1]:
         escaped = html.escape(entry, quote=True)
         assert f'<div data-order-log-entry="">{escaped}</div>' in xml

@@ -29,7 +29,10 @@ def render_order_log(entries: Sequence[str]) -> str:
     entry children; when non-empty that empty-state node is omitted and each
     entry becomes one ``<div data-order-log-entry="">`` with body
     ``html.escape(entry, quote=True)`` in reverse input order (newest first:
-    first entry child = ``entries[-1]``, last = ``entries[0]``). Pure and
+    first entry child = ``entries[-1]``, last = ``entries[0]``). The newest
+    (first) entry also carries ``data-order-log-latest=""`` and a leading
+    literal badge ``<span data-order-log-latest-badge="">najnowszy</span>``
+    before the escaped body; older entries have neither. Pure and
     deterministic: no RNG/IO; does not mutate ``entries``.
     """
     count = len(entries)
@@ -40,9 +43,18 @@ def render_order_log(entries: Sequence[str]) -> str:
             f'<p data-order-log-empty="">Brak rozkazów w tej kampanii</p>'
         )
     else:
-        entry_children = "".join(
-            f'<div data-order-log-entry="">{html.escape(entry, quote=True)}</div>'
-            for entry in reversed(entries)
-        )
-        body = f"{header}{entry_children}"
+        parts: list[str] = []
+        for index, entry in enumerate(reversed(entries)):
+            escaped = html.escape(entry, quote=True)
+            if index == 0:
+                parts.append(
+                    f'<div data-order-log-entry="" data-order-log-latest="">'
+                    f'<span data-order-log-latest-badge="">najnowszy</span>'
+                    f"{escaped}</div>"
+                )
+            else:
+                parts.append(
+                    f'<div data-order-log-entry="">{escaped}</div>'
+                )
+        body = f"{header}{''.join(parts)}"
     return f'<div data-order-log="" data-count="{count}">{body}</div>'

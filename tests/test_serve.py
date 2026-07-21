@@ -566,7 +566,10 @@ def test_game_app_get_embeds_order_log_when_is_over():
         if el.get("data-order-log-entry") is not None
     ]
     assert len(entries) == len(app.order_log) == 1
-    assert (entries[0].text or "") == app.order_log[0]
+    # K45.2a: newest entry has a badge child; entry text is in the badge tail /
+    # joined itertext, not solely entries[0].text.
+    assert app.order_log[0] in "".join(entries[0].itertext())
+    assert "".join(entries[0].itertext()).endswith(app.order_log[0])
     assert not _has_post_turn_form(body2)
 
 
