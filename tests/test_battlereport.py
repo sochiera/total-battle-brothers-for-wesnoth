@@ -244,3 +244,27 @@ def test_defender_losses_returns_fallen_defender_count():
     assert defender_losses(win) == len(win.report().defender.fallen) == 1
     assert defender_losses(loss) == len(loss.report().defender.fallen) == 0
     assert defender_losses(draw) == len(draw.report().defender.fallen) == 1
+
+
+def test_defender_losses_raises_on_unfinished_and_does_not_mutate():
+    """K47.1a: unfinished battle → ValueError; pure, no mutation of battle."""
+    unfinished = HexBattle(Battlefield()).deploy(
+        Unit(), Hex(0, 0), BattleSide.ATTACKER
+    ).deploy(Unit(), Hex(1, 0), BattleSide.DEFENDER)
+    assert unfinished.result() is None
+    units_before = dict(unfinished.units)
+
+    with pytest.raises(ValueError):
+        defender_losses(unfinished)
+
+    assert unfinished.result() is None
+    assert dict(unfinished.units) == units_before
+
+    finished = _finished_attacker_win_battle()
+    result_before = finished.result()
+    finished_units_before = dict(finished.units)
+    first = defender_losses(finished)
+    second = defender_losses(finished)
+    assert first == second == len(finished.report().defender.fallen)
+    assert finished.result() is result_before
+    assert dict(finished.units) == finished_units_before
