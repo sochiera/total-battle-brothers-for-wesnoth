@@ -2,6 +2,7 @@
 
 from xml.etree import ElementTree as ET
 
+from tbb import ai
 from tbb.duchy import Duchy
 from tbb.game import GameState
 from tbb.party import Party
@@ -18,6 +19,115 @@ from tbbui import recommendedaction
 from tbbui.recommendedaction import recommended_order, render_recommended_action
 from tbbui.situationreport import net_posture
 from tbbui.threatalert import first_threatened_region, threatened_position_count
+
+
+def test_player_march_target_none_without_duchy_or_party_name_when_distance_ge_two():
+    """``player_march_target(world, game, player_duchy_id)`` → ``None`` when
+    ``player_duchy(game, player_duchy_id) is None`` or
+    ``first_party_region(world, player_duchy_id) is None``; when the player has
+    a party in region R and ``ai.nearest_enemy_settlement(world, R, id)`` exists
+    with ``ai.region_distance(world, R, target) >= 2``, returns ``target.name``;
+    when the nearest enemy settlement is ``None`` or has distance ``< 2``,
+    returns ``None``. Pure and deterministic: no RNG/IO; does not mutate
+    ``world`` or ``game`` — K49.1a.
+
+    Contract: reuses ``gamelookup.player_duchy``, ``maplookup.first_party_region``,
+    ``ai.nearest_enemy_settlement`` and ``ai.region_distance``.
+    """
+    player_march_target = recommendedaction.player_march_target
+    home = Region("Home")
+    road = Region("Road")
+    far_enemy = Region("FarEnemy")
+    near_enemy = Region("NearEnemy")
+    only_home = Region("OnlyHome")
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+
+    # Distance >= 2: Home — Road — FarEnemy (enemy settlement at FarEnemy)
+    far_world = WorldMap(
+        [home, road, far_enemy],
+        [(home, road), (road, far_enemy)],
+        parties={home: Party(hero=Unit(), units=(), owner_id="player")},
+        settlements={
+            far_enemy: Settlement("FarS", population=2, owner_id="enemy"),
+        },
+    )
+    r = first_party_region(far_world, "player")
+    assert r is home
+    target = ai.nearest_enemy_settlement(far_world, r, "player")
+    assert target is far_enemy
+    assert ai.region_distance(far_world, r, target) >= 2
+
+    regions_before = far_world.regions
+    parties_before = {reg: far_world.party_at(reg) for reg in far_world.regions}
+    settlements_before = {
+        reg: far_world.settlement_at(reg) for reg in far_world.regions
+    }
+    duchies_before = game.duchies
+
+    assert player_march_target(far_world, game, "player") == target.name
+
+    assert far_world.regions == regions_before
+    assert {
+        reg: far_world.party_at(reg) for reg in far_world.regions
+    } == parties_before
+    assert {
+        reg: far_world.settlement_at(reg) for reg in far_world.regions
+    } == settlements_before
+    assert game.duchies == duchies_before
+
+    # player_duchy is None → None
+    for player_duchy_id in (None, "missing"):
+        assert player_duchy(game, player_duchy_id) is None
+        assert player_march_target(far_world, game, player_duchy_id) is None
+
+    # known duchy but no party on the map → None
+    no_party_world = WorldMap(
+        [home, road, far_enemy],
+        [(home, road), (road, far_enemy)],
+        parties={},
+        settlements={
+            far_enemy: Settlement("FarS", population=2, owner_id="enemy"),
+        },
+    )
+    assert player_duchy(game, "player") is not None
+    assert first_party_region(no_party_world, "player") is None
+    assert player_march_target(no_party_world, game, "player") is None
+
+    # nearest enemy settlement is adjacent (distance < 2) → None
+    near_world = WorldMap(
+        [home, near_enemy],
+        [(home, near_enemy)],
+        parties={home: Party(hero=Unit(), units=(), owner_id="player")},
+        settlements={
+            near_enemy: Settlement("NearS", population=2, owner_id="enemy"),
+        },
+    )
+    r_near = first_party_region(near_world, "player")
+    assert r_near is home
+    near_target = ai.nearest_enemy_settlement(near_world, r_near, "player")
+    assert near_target is near_enemy
+    assert ai.region_distance(near_world, r_near, near_target) == 1
+    assert ai.region_distance(near_world, r_near, near_target) < 2
+    assert player_march_target(near_world, game, "player") is None
+
+    # no enemy settlement at all → None
+    alone_world = WorldMap(
+        [only_home],
+        [],
+        parties={only_home: Party(hero=Unit(), units=(), owner_id="player")},
+        settlements={
+            only_home: Settlement("HomeS", population=2, owner_id="player"),
+        },
+    )
+    r_alone = first_party_region(alone_world, "player")
+    assert r_alone is only_home
+    assert ai.nearest_enemy_settlement(alone_world, r_alone, "player") is None
+    assert player_march_target(alone_world, game, "player") is None
 
 
 def test_player_can_muster_true_iff_hero_no_party_and_free_own_settlement():

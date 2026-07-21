@@ -317,6 +317,15 @@ zgodny z sukcesem `ai.muster_duchy_party`. `player_duchy_id=None`/spoza
 `game.duchies`, brak hero, party już na mapie lub brak wolnej własnej osady →
 `False`. Czyste, deterministyczne, bez mutacji `world`/`game`; rdzeń bez zmian.
 
+**Cel marszu ku wrogowi (K49.1a):**
+`tbbui.recommendedaction.player_march_target(world, game, player_duchy_id) ->
+str | None` — `None` gdy `gamelookup.player_duchy(game, player_duchy_id) is
+None` albo `maplookup.first_party_region(world, player_duchy_id) is None`; gdy
+gracz ma party w regionie R i `ai.nearest_enemy_settlement(world, R,
+player_duchy_id)` istnieje z `ai.region_distance(world, R, target) >= 2`,
+zwraca `target.name`; brak wrogiej osady lub dystans `< 2` → `None`. Czyste,
+deterministyczne, bez mutacji `world`/`game`; rdzeń bez zmian.
+
 **Zalecany rozkaz HTML (K41.1a / K41.1b / K41.1c / K41.2a / K41.3a / K48.1c):**
 `tbbui.recommendedaction.render_recommended_action(world, game, player_duchy_id=None) -> str`
 — parsowalny fragment z korzeniem `<div data-recommended-action="">`. Gdy

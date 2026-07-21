@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from tbb import ai
 from tbb.game import GameState
 from tbb.world import WorldMap
 from tbbui.engagementpreview import (
@@ -12,6 +13,36 @@ from tbbui.gamelookup import player_duchy
 from tbbui.maplookup import first_party_region
 from tbbui.situationreport import net_posture
 from tbbui.threatalert import first_threatened_region, threatened_position_count
+
+
+def player_march_target(
+    world: WorldMap,
+    game: GameState,
+    player_duchy_id: str | None,
+) -> str | None:
+    """Return the name of a distant enemy settlement for idle march advice.
+
+    ``None`` when ``player_duchy(game, player_duchy_id) is None`` or
+    ``first_party_region(world, player_duchy_id) is None``. When the player has
+    a party in region R and ``ai.nearest_enemy_settlement(world, R, id)`` exists
+    with ``ai.region_distance(world, R, target) >= 2``, returns ``target.name``;
+    when the nearest enemy settlement is ``None`` or has distance ``< 2``,
+    returns ``None``. Pure and deterministic: no RNG/IO; does not mutate
+    ``world`` or ``game``.
+    """
+    if player_duchy(game, player_duchy_id) is None:
+        return None
+    assert player_duchy_id is not None
+    origin = first_party_region(world, player_duchy_id)
+    if origin is None:
+        return None
+    target = ai.nearest_enemy_settlement(world, origin, player_duchy_id)
+    if target is None:
+        return None
+    distance = ai.region_distance(world, origin, target)
+    if distance is None or distance < 2:
+        return None
+    return target.name
 
 
 def player_can_muster(
