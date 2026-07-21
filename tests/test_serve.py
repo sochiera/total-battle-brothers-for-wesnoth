@@ -255,6 +255,27 @@ def test_game_app_player_duchy_id_data_player_and_turn_skips_player_ai(monkeypat
     assert set(take_calls) == {"north", "south"}
 
 
+def test_game_app_last_notice_empty_string_renders_empty_data_notice():
+    """GameApp exposes last_notice, rendered as one <p data-notice> in extras.
+
+    Contract (task-143 / K28.1a):
+    - GameApp(...).last_notice == "" right after construction
+    - fresh GET / (no prior order) embeds exactly one element with a
+      data-notice attribute, and its value equals self.last_notice ("")
+    """
+    world, game = _ongoing_world_game()
+    calendar = Calendar(year=4, month=9)
+    app = GameApp(world, game, calendar, Rng(17), player_duchy_id="north")
+    assert app.last_notice == ""
+
+    code, body = app.handle("GET", "/")
+    assert code == 200
+    root = ET.fromstring(body)
+    notices = _find_by_attr(root, "data-notice")
+    assert len(notices) == 1
+    assert notices[0].get("data-notice") == app.last_notice == ""
+
+
 def test_game_app_render_forwards_player_duchy_id_to_data_player_duchy():
     """GameApp._render passes self.player_duchy_id into render_game_page.
 

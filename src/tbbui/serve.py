@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import http.server
+from html import escape
 from urllib.parse import parse_qs, quote, unquote_plus
 
 from tbb import ai
@@ -123,6 +124,7 @@ class GameApp:
         self.rng = rng
         self.player_duchy_id = player_duchy_id
         self.last_battle = None
+        self.last_notice = ""
 
     def handle(self, method: str, path: str) -> tuple[int, str]:
         """Route one request; return ``(http_status, body)`` without sockets."""
@@ -333,8 +335,10 @@ class GameApp:
             player_duchy_id=self.player_duchy_id,
         )
         player_value = self.player_duchy_id if self.player_duchy_id is not None else ""
+        notice_value = escape(self.last_notice, quote=True)
         extras = (
             f'<span data-player="{player_value}"></span>'
+            f'<p data-notice="{notice_value}"></p>'
             f"{_TURN_FORM}{_RECRUIT_FORM}{_MUSTER_FORM}"
             f"{_DEVELOP_FORM}"
             f"{_MARCH_SECTION_HEADER}{self._march_forms()}"

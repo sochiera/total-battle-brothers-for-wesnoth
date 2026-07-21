@@ -189,7 +189,9 @@ czystą metodę `handle(method, path) -> (kod_http, treść)` — bez gniazda HT
 `handle` rozdziela ścieżkę od query (`path.partition("?")`) na początku routingu.
 `GET /` → `(200, strona)` z `render_game_page(..., player_duchy_id=self.player_duchy_id)`
 (K23.2b — panel księstw z `data-player-duchy` przy wierszu gracza) plus znacznik
-`data-player` (wartość `player_duchy_id` lub `""` gdy `None`) oraz formularze
+`data-player` (wartość `player_duchy_id` lub `""` gdy `None`), slot komunikatu
+rozkazu `<p data-notice="{last_notice}"></p>` (K28.1a — `GameApp.last_notice`
+inicjalizowane na `""`; treść HTML-bezpieczna przez `html.escape`) oraz formularze
 `<form method="post" action="/turn">`,
 `<form method="post" action="/order/recruit">`,
 `<form method="post" action="/order/muster">`,
