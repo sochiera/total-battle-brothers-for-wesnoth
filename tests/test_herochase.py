@@ -158,3 +158,61 @@ def test_render_hero_chase_on_map_distances_first_source_skip_and_pure():
     assert game.duchies is duchies_before
     for r in world.regions:
         assert world.party_at(r) is parties_before[r]
+
+
+def test_render_hero_chase_in_reach_only_for_distance_one():
+    """Distance 1: ``data-in-reach=""`` + suffix „ — w zasięgu"; other
+    distances (including no path) have neither the attribute nor the suffix.
+    """
+    from tbb import ai
+
+    player_region = Region("Player")
+    adjacent = Region("Adjacent")
+    far = Region("Far")
+    island = Region("Island")
+    world = WorldMap(
+        [player_region, adjacent, far, island],
+        [
+            (player_region, adjacent),
+            (adjacent, far),
+            # island disconnected
+        ],
+        parties={
+            player_region: Party(hero=Unit(), units=(), owner_id="player"),
+            adjacent: Party(hero=Unit(), units=(), owner_id="next_door"),
+            far: Party(hero=Unit(), units=(), owner_id="distant"),
+            island: Party(hero=Unit(), units=(), owner_id="stranded"),
+        },
+    )
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("next_door", Unit()),
+            Duchy("distant", Unit()),
+            Duchy("stranded", Unit()),
+        )
+    )
+    assert ai.region_distance(world, player_region, adjacent) == 1
+    assert ai.region_distance(world, player_region, far) == 2
+    assert ai.region_distance(world, player_region, island) is None
+
+    xml = render_hero_chase(world, game, player_duchy_id="player")
+    root = ET.fromstring(xml)
+    rows = {r.get("data-enemy-duchy"): r for r in root}
+
+    in_reach = rows["next_door"]
+    assert in_reach.get("data-distance") == "1"
+    assert in_reach.get("data-in-reach") == ""
+    assert "".join(in_reach.itertext()) == "next_door: 1 pól marszu — w zasięgu"
+
+    distant = rows["distant"]
+    assert distant.get("data-distance") == "2"
+    assert "data-in-reach" not in distant.attrib
+    assert "".join(distant.itertext()) == "distant: 2 pól marszu"
+    assert " — w zasięgu" not in "".join(distant.itertext())
+
+    stranded = rows["stranded"]
+    assert stranded.get("data-distance") == ""
+    assert "data-in-reach" not in stranded.attrib
+    assert "".join(stranded.itertext()) == "stranded: brak drogi"
+    assert " — w zasięgu" not in "".join(stranded.itertext())
