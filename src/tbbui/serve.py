@@ -8,6 +8,7 @@ from urllib.parse import parse_qs, quote, unquote_plus
 
 from tbb import ai
 from tbb.driver import run_headless_game
+from tbb.duchy import Duchy
 from tbb.game import GameState
 from tbb.rng import Rng
 from tbb.turn import Calendar
@@ -241,6 +242,20 @@ class GameApp:
                 return region
         return None
 
+    def _resolve_player_duchy(self) -> Duchy | None:
+        """Return the player duchy when a player order is legal, else ``None``.
+
+        ``None`` when the game is over, there is no ``player_duchy_id``, or that
+        duchy is absent from ``game.duchies``. Shared by ``_apply_player_order``
+        and ``_apply_player_assault_order`` (R29.1).
+        """
+        if self.game.is_over or self.player_duchy_id is None:
+            return None
+        return next(
+            (d for d in self.game.duchies if d.duchy_id == self.player_duchy_id),
+            None,
+        )
+
     def _apply_player_order(self, transition, label: str | None = None) -> None:
         """Apply ``transition(world, player_duchy)`` when a player order is legal.
 
@@ -251,14 +266,7 @@ class GameApp:
         ``"{label}: brak zmian"`` (including guard rejections). When ``label``
         is ``None``, leaves ``last_notice`` unchanged.
         """
-        if self.game.is_over or self.player_duchy_id is None:
-            if label is not None:
-                self.last_notice = f"{label}: brak zmian"
-            return
-        player_duchy = next(
-            (d for d in self.game.duchies if d.duchy_id == self.player_duchy_id),
-            None,
-        )
+        player_duchy = self._resolve_player_duchy()
         if player_duchy is None:
             if label is not None:
                 self.last_notice = f"{label}: brak zmian"
@@ -275,19 +283,14 @@ class GameApp:
     def _apply_player_assault_order(self, transition, label: str) -> None:
         """Apply recorded assault ``transition(world, duchy) -> (world, battle)``.
 
-        Same guards as ``_apply_player_order``. On success replaces ``world``,
-        re-syncs ``game``, and when ``battle`` is not ``None`` sets
-        ``self.last_battle``. No-op paths leave ``last_battle`` unchanged.
-        Always sets ``last_notice`` to ``"{label}: bitwa"`` when a battle was
-        recorded, else ``"{label}: brak zmian"`` (including guard rejections).
+        Same guards as ``_apply_player_order`` via ``_resolve_player_duchy``.
+        On success replaces ``world``, re-syncs ``game``, and when ``battle``
+        is not ``None`` sets ``self.last_battle``. No-op paths leave
+        ``last_battle`` unchanged. Always sets ``last_notice`` to
+        ``"{label}: bitwa"`` when a battle was recorded, else
+        ``"{label}: brak zmian"`` (including guard rejections).
         """
-        if self.game.is_over or self.player_duchy_id is None:
-            self.last_notice = f"{label}: brak zmian"
-            return
-        player_duchy = next(
-            (d for d in self.game.duchies if d.duchy_id == self.player_duchy_id),
-            None,
-        )
+        player_duchy = self._resolve_player_duchy()
         if player_duchy is None:
             self.last_notice = f"{label}: brak zmian"
             return

@@ -231,9 +231,10 @@ turze `f"Następna tura: rok {calendar.year}, miesiąc {calendar.month}"`,
 przy no-op `is_over` → `"Następna tura: gra zakończona"`. Rozkazy gracza `POST /order/recruit` (K14.2a),
 `POST /order/muster` (K14.2b), `POST /order/develop` (K14.2c),
 `POST /order/march` (K14.2d2 / K15.1b) idzie wspólnym helperem
-`_apply_player_order(transition, label)` (K28.1b): gdy `player_duchy_id`
-ustawiony, gra nie jest `is_over` i księstwo gracza istnieje w
-`game.duchies`, stosuje `transition(world, player_duchy)`
+`_apply_player_order(transition, label)` (K28.1b / R29.1): guard księstwa
+przez `_resolve_player_duchy() -> Duchy | None` (`None` gdy `is_over`, brak
+`player_duchy_id` lub księstwo nieobecne w `game.duchies`); gdy duchy jest,
+stosuje `transition(world, player_duchy)`
 (`ai.recruit_duchy_unit` / `ai.muster_duchy_party` /
 `ai.develop_duchy_settlement` / dla marszu: wspólne
 `_order_target_region(query)` — niepusty, URL-dekodowany `target` dopasowany
@@ -247,8 +248,8 @@ Etykiety: `POST /order/recruit` → `"Rekrutacja"`, `muster` →
 `"Zebranie oddziału"`, `develop` → `"Rozbudowa"`, marsz ze znanym celem →
 `f"Marsz do {region.name}"`, marsz bez/nieznany cel → `"Marsz"` (K28.1c).
 `POST /order/assault` (K14.2e2 / K15.2b /
-K16.1d-2 / K28.1d) ma te same guardy przez
-`_apply_player_assault_order(transition, label)`: jawny `target` →
+K16.1d-2 / K28.1d / R29.1) ma te same guardy przez
+`_apply_player_assault_order` → `_resolve_player_duchy()`: jawny `target` →
 `ai.assault_duchy_party_to_recorded` z etykietą
 `f"Szturm na {region.name}"`, auto → `ai.assault_duchy_party_recorded` z
 etykietą `"Szturm"` (oba z `self.rng` i
