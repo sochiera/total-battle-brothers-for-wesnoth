@@ -604,6 +604,42 @@ def test_game_app_order_log_never_exceeds_order_log_limit():
     assert len(app.order_log) == serve_mod.ORDER_LOG_LIMIT
 
 
+def test_game_app_order_log_overflow_drops_oldest_keeps_last_n_chronological():
+    """On overflow, oldest order_log entries drop; log is last N notices (K43.2a).
+
+    Contract (task-211 / K43.2a):
+    - after ``ORDER_LOG_LIMIT + k`` known POST requests that each append one
+      notice, ``order_log`` equals exactly the last ``ORDER_LOG_LIMIT`` notices
+      in chronological order (not the first ones)
+    - ``order_log[-1]`` equals the current ``last_notice``
+    """
+    from tbbui import serve as serve_mod
+
+    limit = serve_mod.ORDER_LOG_LIMIT
+    k = 4
+    total = limit + k
+
+    world, game = _ongoing_world_game()
+    app = GameApp(
+        world, game, Calendar(year=1, month=1), Rng(1), player_duchy_id="north"
+    )
+    assert app.order_log == []
+
+    all_notices: list[str] = []
+    for _ in range(total):
+        code, _ = app.handle("POST", "/turn")
+        assert code == 200
+        all_notices.append(app.last_notice)
+
+    assert len(all_notices) == total
+    assert len(app.order_log) == limit
+    assert app.order_log == all_notices[-limit:]
+    assert app.order_log[-1] == app.last_notice
+    # Oldest k notices are gone (not present as a prefix of the capped log).
+    assert app.order_log != all_notices[:limit]
+    assert all_notices[0] not in app.order_log
+
+
 def test_game_app_last_notice_empty_string_renders_empty_data_notice():
     """GameApp exposes last_notice, rendered as one <p data-notice> in extras.
 
