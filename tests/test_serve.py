@@ -5155,3 +5155,155 @@ def test_recommended_order_form_data_recommended_risk_when_battle_is_risky():
     assert f'data-recommended-order-reason="{escaped_reason}"' in markup
     assert f'data-recommended-order-forecast="{escaped_forecast}"' in markup
 
+
+def test_recommended_order_form_omits_data_recommended_risk_when_not_risky():
+    """When one-click form is emitted and battle is not risky, form has no
+    ``data-recommended-risk`` (byte-stable vs prior shape) — K52.1d.
+
+    Contract (task-254): for ``_recommended_order_form`` / GET / when the form
+    is present and ``recommended_battle_is_risky(...)`` is ``False`` (non-battle
+    advice or own force not weaker), the ``<form data-recommended-order="">``
+    does not carry ``data-recommended-risk``; markup stays
+    ``data-recommended-order="">`` without the risk attribute. ``action``,
+    button, reason and forecast stay as before.
+    """
+    from html import escape
+
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+
+    # --- non-battle advice (march): forecast empty → not risky ---
+    home = Region("Home")
+    road = Region("Road")
+    far_enemy = Region("FarEnemy")
+    march_world = WorldMap(
+        [home, road, far_enemy],
+        [(home, road), (road, far_enemy)],
+        parties={home: Party(hero=Unit(), units=(), owner_id="player")},
+        settlements={
+            far_enemy: Settlement("FarS", population=2, owner_id="enemy"),
+        },
+    )
+    order = recommended_order(march_world, game, "player")
+    assert order is not None
+    action, region = order
+    assert action == "march"
+    assert recommended_battle_is_risky(march_world, game, "player") is False
+    assert recommended_battle_forecast_text(march_world, game, "player") == ""
+    expected_action = recommended_order_path(action)
+    if region is not None:
+        expected_action = f"{expected_action}?target={quote(region)}"
+    expected_label = f"Wykonaj zalecenie: {recommended_order_text(action, region)}"
+    reason = recommended_order_reason(march_world, game, "player")
+    escaped_reason = escape(reason, quote=True)
+
+    app = GameApp(
+        march_world,
+        game,
+        Calendar(year=1, month=1),
+        Rng(1),
+        player_duchy_id="player",
+    )
+    code, body = app.handle("GET", "/")
+    assert code == 200
+
+    root = ET.fromstring(body)
+    rec_forms = [
+        el
+        for el in root.iter()
+        if _local(el.tag) == "form" and el.get("data-recommended-order") is not None
+    ]
+    assert len(rec_forms) == 1
+    form = rec_forms[0]
+    assert form.get("data-recommended-order") == ""
+    assert form.get("data-recommended-risk") is None
+    assert (form.get("method") or "").lower() == "post"
+    assert form.get("action") == expected_action
+
+    children = list(form)
+    assert len(children) >= 2
+    assert _local(children[0].tag) == "button"
+    assert "".join(children[0].itertext()).strip() == expected_label
+    assert children[1].get("data-recommended-order-reason") == escaped_reason
+    # no forecast element when forecast text is empty
+    assert all(
+        c.get("data-recommended-order-forecast") is None for c in children
+    )
+
+    form_html = re.search(
+        r'<form\b[^>]*\bdata-recommended-order=""[^>]*>.*?</form>',
+        body,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    assert form_html is not None
+    markup = form_html.group(0)
+    assert "data-recommended-risk" not in markup
+    # byte-stable open tag: order attribute closes before '>'
+    assert 'data-recommended-order="">' in markup
+    assert 'data-recommended-order="" data-recommended-risk' not in markup
+    assert f'<button type="submit">{escape(expected_label)}</button>' in markup
+
+    # --- battle advice but own > enemy → not risky (assault advantage) ---
+    field = Region("Field")
+    other_n = Region("OtherN")
+    enemy_camp = Region("EnemyCamp")
+    strong_hero = Unit(training=20, equipment=5)
+    weak_garrison = (Unit(training=1),)
+    own_strong = sum(combat_totals((strong_hero,)))
+    enemy_weak = sum(combat_totals(weak_garrison))
+    assert own_strong > enemy_weak
+
+    assault_world = WorldMap(
+        [field, other_n, enemy_camp],
+        [(field, other_n), (field, enemy_camp)],
+        parties={
+            field: Party(hero=strong_hero, units=(), owner_id="player"),
+        },
+        settlements={
+            enemy_camp: Settlement(
+                "EnemyS",
+                population=2,
+                owner_id="enemy",
+                garrison=weak_garrison,
+            ),
+        },
+    )
+    order2 = recommended_order(assault_world, game, "player")
+    assert order2 is not None
+    assert recommended_battle_is_risky(assault_world, game, "player") is False
+
+    app2 = GameApp(
+        assault_world,
+        game,
+        Calendar(year=1, month=1),
+        Rng(1),
+        player_duchy_id="player",
+    )
+    code2, body2 = app2.handle("GET", "/")
+    assert code2 == 200
+    root2 = ET.fromstring(body2)
+    rec_forms2 = [
+        el
+        for el in root2.iter()
+        if _local(el.tag) == "form" and el.get("data-recommended-order") is not None
+    ]
+    assert len(rec_forms2) == 1
+    form2 = rec_forms2[0]
+    assert form2.get("data-recommended-order") == ""
+    assert form2.get("data-recommended-risk") is None
+
+    form_html2 = re.search(
+        r'<form\b[^>]*\bdata-recommended-order=""[^>]*>.*?</form>',
+        body2,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    assert form_html2 is not None
+    markup2 = form_html2.group(0)
+    assert "data-recommended-risk" not in markup2
+    assert 'data-recommended-order="">' in markup2
+    assert 'data-recommended-order="" data-recommended-risk' not in markup2
+
