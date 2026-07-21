@@ -8,7 +8,10 @@ from tbb.party import Party
 from tbb.settlement import Settlement
 from tbb.unit import Unit
 from tbb.world import Region, WorldMap
-from tbbui.engagementpreview import render_engagement_preview
+from tbbui.engagementpreview import (
+    advantageous_target_count,
+    render_engagement_preview,
+)
 from tbbui.unitstrength import combat_totals
 
 
@@ -466,3 +469,128 @@ def test_render_engagement_preview_adjacent_enemy_party_and_settlement_before_pa
             f" — niekorzystnie"
         )
     )
+
+
+def test_advantageous_target_count_adjacent_with_advantage_and_zero_when_absent():
+    """``advantageous_target_count(world, game, player_duchy_id) -> int`` is the
+    number of adjacent hostile targets (settlement and/or party, same targets as
+    ``render_engagement_preview`` rows) where the player's party has advantage
+    (``own_sum >= enemy_sum``, same rule as ``data-advantage="true"``). Equality
+    counts; strictly weaker targets do not. Unknown player
+    (``player_duchy(...) is None``) or known player with no party on the map
+    → ``0``. Pure (no world/game mutation).
+    """
+    home = Region("Home")
+    equal_region = Region("EqualKeep")
+    strong_region = Region("StrongKeep")
+    weak_party_region = Region("WeakParty")
+    far = Region("Far")
+
+    hero = Unit()
+    player_party = Party(hero=hero, units=(), owner_id="player")
+    own_hp, own_attack, own_defense = combat_totals((hero,))
+    own_sum = own_hp + own_attack + own_defense
+
+    # Equal enemy garrison → advantage (counts).
+    equal_garrison = (Unit(),)
+    eq_hp, eq_attack, eq_defense = combat_totals(equal_garrison)
+    assert own_sum == eq_hp + eq_attack + eq_defense
+
+    # Stronger enemy garrison → no advantage (does not count).
+    strong_garrison = (Unit(training=9),)
+    st_hp, st_attack, st_defense = combat_totals(strong_garrison)
+    assert own_sum < st_hp + st_attack + st_defense
+
+    # Weaker adjacent enemy party → advantage (counts).
+    weak_hero = Unit()
+    weak_party = Party(hero=weak_hero, units=(), owner_id="enemy")
+    w_hp, w_attack, w_defense = combat_totals((weak_hero,))
+    assert own_sum >= w_hp + w_attack + w_defense
+
+    # Non-adjacent equal enemy settlement must not count.
+    far_garrison = (Unit(),)
+
+    world = WorldMap(
+        [home, equal_region, strong_region, weak_party_region, far],
+        [
+            (home, equal_region),
+            (home, strong_region),
+            (home, weak_party_region),
+            (strong_region, far),
+        ],
+        parties={
+            home: player_party,
+            weak_party_region: weak_party,
+        },
+        settlements={
+            equal_region: Settlement(
+                "KeepEqual",
+                population=1,
+                owner_id="enemy",
+                garrison=equal_garrison,
+            ),
+            strong_region: Settlement(
+                "KeepStrong",
+                population=1,
+                owner_id="enemy",
+                garrison=strong_garrison,
+            ),
+            far: Settlement(
+                "KeepFar",
+                population=1,
+                owner_id="enemy",
+                garrison=far_garrison,
+            ),
+        },
+    )
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+
+    # Preview rows: Equal (adv), Strong (no), WeakParty (adv) → M = 2
+    preview = ET.fromstring(
+        render_engagement_preview(world, game, player_duchy_id="player")
+    )
+    advantage_true = [
+        r for r in list(preview) if r.get("data-advantage") == "true"
+    ]
+    assert len(advantage_true) == 2
+
+    regions_before = world.regions
+    parties_before = {r: world.party_at(r) for r in world.regions}
+    settlements_before = {r: world.settlement_at(r) for r in world.regions}
+    duchies_before = game.duchies
+
+    m = advantageous_target_count(world, game, "player")
+    assert m == 2
+    assert m == len(advantage_true)
+
+    # Unknown / missing player → 0
+    assert advantageous_target_count(world, game, None) == 0
+    assert advantageous_target_count(world, game, "missing") == 0
+
+    # Known player, no party on map → 0
+    empty_map = WorldMap(
+        [home, equal_region],
+        [(home, equal_region)],
+        parties={},
+        settlements={
+            equal_region: Settlement(
+                "KeepEqual",
+                population=1,
+                owner_id="enemy",
+                garrison=equal_garrison,
+            ),
+        },
+    )
+    assert advantageous_target_count(empty_map, game, "player") == 0
+
+    assert world.regions is regions_before
+    assert game.duchies is duchies_before
+    for r in world.regions:
+        assert world.party_at(r) is parties_before[r]
+        assert world.settlement_at(r) is settlements_before[r]
+

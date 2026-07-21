@@ -210,6 +210,13 @@ bez party → `data-player-on-map="false"` bez wierszy; brak/nieznany gracz → 
 pusty korzeń. Osadzony w `render_game_page` zaraz po `data-hero-chase` (K37.1c).
 Czyste, deterministyczne, bez mutacji `world`/`game`; rdzeń bez zmian.
 
+**Licznik korzystnych celów (K40.1b):**
+`tbbui.engagementpreview.advantageous_target_count(world, game, player_duchy_id)
+-> int` — liczba sąsiednich wrogich celów (osada/party, ta sama reguła i kolejność
+co wiersze `render_engagement_preview`) z `own_sum >= enemy_sum`; brak gracza
+(`player_duchy(...) is None`) lub brak party gracza na mapie → `0`. Wspólne
+źródło `M` dla `render_situation_report` (`data-opportunity-count`).
+
 **Alert zagrożonych pozycji HTML (K39.1a–c / K39.2a–b):**
 `tbbui.threatalert.render_threat_alert(world, game, player_duchy_id=None) -> str`
 — parsowalny fragment z korzeniem `<div data-threat-alert="">`. Gdy
@@ -235,13 +242,15 @@ mutacji `world`/`game`; rdzeń bez zmian.
 — `len(_threatened_rows(...))` przy znanym graczu, inaczej `0`; wspólne źródło
 `N` dla `render_threat_alert` i `render_situation_report`.
 
-**Skrót sytuacji HTML (K40.1a):**
+**Skrót sytuacji HTML (K40.1a / K40.1b):**
 `tbbui.situationreport.render_situation_report(world, game, player_duchy_id=None) -> str`
 — parsowalny fragment z korzeniem `<div data-situation-report="">`. Gdy
 `player_duchy(...) is None` → sam pusty korzeń (bez `data-threatened-count`,
-bez tekstu, bez dzieci). Przy znanym graczu: `data-threatened-count="N"`
-(`threatened_position_count`) i tekst `Sytuacja: zagrożone pozycje N`. Czyste,
-deterministyczne, bez mutacji `world`/`game`; rdzeń bez zmian.
+bez `data-opportunity-count`, bez tekstu, bez dzieci). Przy znanym graczu:
+`data-threatened-count="N"` (`threatened_position_count`),
+`data-opportunity-count="M"` (`advantageous_target_count`) i tekst
+`Sytuacja: zagrożone pozycje N, korzystne cele M`. Czyste, deterministyczne,
+bez mutacji `world`/`game`; rdzeń bez zmian.
 
 **Lokalizacja party na mapie (R37.1):**
 `tbbui.maplookup.first_party_region(world, owner_id) -> Region | None` — pierwszy

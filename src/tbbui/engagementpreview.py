@@ -3,10 +3,104 @@
 from __future__ import annotations
 
 from tbb.game import GameState
-from tbb.world import WorldMap
+from tbb.world import Region, WorldMap
 from tbbui.gamelookup import player_duchy
 from tbbui.maplookup import first_party_region, is_hostile_owner
 from tbbui.unitstrength import combat_totals
+
+
+def _adjacent_hostile_targets(
+    world: WorldMap,
+    player_region: Region,
+    player_duchy_id: str,
+) -> list[tuple[str, str, str, str, int, int, int]]:
+    """Hostile settlement/party targets adjacent to the player's party region.
+
+    Yields tuples ``(region_name, owner, kind, force_label, hp, attack, defense)``
+    in ``world.neighbors`` order; settlement before party in the same region.
+    """
+    targets: list[tuple[str, str, str, str, int, int, int]] = []
+    for neighbor in world.neighbors(player_region):
+        settlement = world.settlement_at(neighbor)
+        if settlement is not None:
+            owner = settlement.owner_id
+            if is_hostile_owner(owner, player_duchy_id):
+                enemy_hp, enemy_attack, enemy_defense = combat_totals(
+                    settlement.garrison
+                )
+                targets.append(
+                    (
+                        neighbor.name,
+                        owner,
+                        "settlement",
+                        "garnizon",
+                        enemy_hp,
+                        enemy_attack,
+                        enemy_defense,
+                    )
+                )
+
+        enemy_party = world.party_at(neighbor)
+        if enemy_party is not None:
+            owner = enemy_party.owner_id
+            if is_hostile_owner(owner, player_duchy_id):
+                enemy_hp, enemy_attack, enemy_defense = combat_totals(
+                    (enemy_party.hero, *enemy_party.units)
+                )
+                targets.append(
+                    (
+                        neighbor.name,
+                        owner,
+                        "party",
+                        "oddział",
+                        enemy_hp,
+                        enemy_attack,
+                        enemy_defense,
+                    )
+                )
+    return targets
+
+
+def advantageous_target_count(
+    world: WorldMap,
+    game: GameState,
+    player_duchy_id: str | None,
+) -> int:
+    """Return the number of adjacent hostile targets where the player has advantage.
+
+    Same targets and advantage rule as ``render_engagement_preview`` rows:
+    settlement and/or party per neighbouring region; advantage when
+    ``own_sum >= enemy_sum`` (``data-advantage="true"``). When
+    ``player_duchy(...) is None`` or the player has no party on the map,
+    returns ``0``. Pure and deterministic: no RNG/IO; does not mutate
+    ``world`` or ``game``.
+    """
+    if player_duchy(game, player_duchy_id) is None:
+        return 0
+    assert player_duchy_id is not None
+
+    player_region = first_party_region(world, player_duchy_id)
+    if player_region is None:
+        return 0
+
+    party = world.party_at(player_region)
+    assert party is not None
+    own_hp, own_attack, own_defense = combat_totals((party.hero, *party.units))
+    own_sum = own_hp + own_attack + own_defense
+
+    count = 0
+    for (
+        _name,
+        _owner,
+        _kind,
+        _label,
+        enemy_hp,
+        enemy_attack,
+        enemy_defense,
+    ) in _adjacent_hostile_targets(world, player_region, player_duchy_id):
+        if own_sum >= enemy_hp + enemy_attack + enemy_defense:
+            count += 1
+    return count
 
 
 def render_engagement_preview(
@@ -53,47 +147,30 @@ def render_engagement_preview(
     own_hp, own_attack, own_defense = combat_totals((party.hero, *party.units))
     own_sum = own_hp + own_attack + own_defense
 
+    # player_duchy is not None ⇒ player_duchy_id is a known str
+    assert player_duchy_id is not None
     rows: list[str] = []
-    for neighbor in world.neighbors(player_region):
-        settlement = world.settlement_at(neighbor)
-        if settlement is not None:
-            owner = settlement.owner_id
-            if is_hostile_owner(owner, player_duchy_id):
-                enemy_hp, enemy_attack, enemy_defense = combat_totals(
-                    settlement.garrison
-                )
-                rows.append(
-                    _target_row(
-                        neighbor.name,
-                        owner,
-                        "settlement",
-                        "garnizon",
-                        enemy_hp,
-                        enemy_attack,
-                        enemy_defense,
-                        own_sum,
-                    )
-                )
-
-        enemy_party = world.party_at(neighbor)
-        if enemy_party is not None:
-            owner = enemy_party.owner_id
-            if is_hostile_owner(owner, player_duchy_id):
-                enemy_hp, enemy_attack, enemy_defense = combat_totals(
-                    (enemy_party.hero, *enemy_party.units)
-                )
-                rows.append(
-                    _target_row(
-                        neighbor.name,
-                        owner,
-                        "party",
-                        "oddział",
-                        enemy_hp,
-                        enemy_attack,
-                        enemy_defense,
-                        own_sum,
-                    )
-                )
+    for (
+        region_name,
+        owner,
+        kind,
+        force_label,
+        enemy_hp,
+        enemy_attack,
+        enemy_defense,
+    ) in _adjacent_hostile_targets(world, player_region, player_duchy_id):
+        rows.append(
+            _target_row(
+                region_name,
+                owner,
+                kind,
+                force_label,
+                enemy_hp,
+                enemy_attack,
+                enemy_defense,
+                own_sum,
+            )
+        )
 
     return (
         f'<div data-engagement-preview=""'
@@ -133,4 +210,3 @@ def _target_row(
         f' data-advantage="{advantage_attr}"'
         f">{text}</div>"
     )
-
