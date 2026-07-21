@@ -371,14 +371,16 @@ jeden `data-hero-locator`), zaraz po lokatorze kanoniczny string z
 `render_engagement_preview(world, game, player_duchy_id)` (K37.1c, dokładnie
 jeden `data-engagement-preview`), zaraz po podglądzie starcia kanoniczny string
 z `render_threat_alert(world, game, player_duchy_id)` (K39.1c, dokładnie jeden
-`data-threat-alert`) oraz dokładnie jeden
+`data-threat-alert`), zaraz po alercie zagrożeń kanoniczny string z
+`render_situation_report(world, game, player_duchy_id)` (K40.1c, dokładnie jeden
+`data-situation-report`) oraz dokładnie jeden
 `<p data-player-result-text="…">…</p>` z `_player_result_text` (K31.2a:
 `Gra w toku` / `Zwycięstwo Twojego księstwa` / `Porażka Twojego księstwa` /
 `Remis` wg `game.is_over` i `game.winner` względem `player_duchy_id`); `None`
 (domyślnie) → bajt-w-bajt jak bez argumentu (bez `data-player-summary`, bez
 `data-victory-progress`, bez `data-next-objective`, bez `data-hero-locator`,
-bez `data-hero-chase`, bez `data-engagement-preview`, bez `data-threat-alert` i
-bez `data-player-result-text`);
+bez `data-hero-chase`, bez `data-engagement-preview`, bez `data-threat-alert`,
+bez `data-situation-report` i bez `data-player-result-text`);
 element `data-result` = `duchy_id` zwycięzcy / `draw` / `ongoing` wg
 `game.is_over` i `game.winner`; zawsze `<p data-result-text="…">` z czytelnym
 tekstem z `_result_text` (`Gra w toku` / `Remis` / `Zwycięstwo: <duchy_id>`) —

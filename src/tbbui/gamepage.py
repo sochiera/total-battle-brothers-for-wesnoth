@@ -16,6 +16,7 @@ from tbbui.ownerlegend import render_owner_legend
 from tbbui.partypanel import render_party_panel
 from tbbui.playersummary import render_player_summary
 from tbbui.settlementpanel import render_settlement_panel
+from tbbui.situationreport import render_situation_report
 from tbbui.threatalert import render_threat_alert
 from tbbui.turnsummary import render_turn_summary
 from tbbui.victoryprogress import render_victory_progress
@@ -117,12 +118,14 @@ def render_game_page(
     (K37.1c, exactly one ``data-engagement-preview``), immediately after that
     the canonical string from
     ``render_threat_alert(world, game, player_duchy_id)`` (K39.1c, exactly one
-    ``data-threat-alert``), and a player-perspective result line
+    ``data-threat-alert``), immediately after that the canonical string from
+    ``render_situation_report(world, game, player_duchy_id)`` (K40.1c, exactly
+    one ``data-situation-report``), and a player-perspective result line
     (``<p data-player-result-text>``, K31.2a); ``None`` (default) omits those
     markers, the summary, the victory progress, the next-objective hint, the
-    hero locator, the hero chase, the engagement preview, the threat alert, and
-    the player result. Pure and deterministic: no RNG/IO; inputs (including
-    ``battle``) are not mutated.
+    hero locator, the hero chase, the engagement preview, the threat alert, the
+    situation report, and the player result. Pure and deterministic: no RNG/IO;
+    inputs (including ``battle``) are not mutated.
     """
     map_svg = render_world_svg(world)
     owner_legend = render_owner_legend(world, player_duchy_id)
@@ -138,6 +141,9 @@ def render_game_page(
             world, game, player_duchy_id
         )
         threat_alert = render_threat_alert(world, game, player_duchy_id)
+        situation_report = render_situation_report(
+            world, game, player_duchy_id
+        )
         player_result_text = _player_result_text(game, player_duchy_id)
         player_result_html = (
             f'<p data-player-result-text="{player_result_text}">'
@@ -151,6 +157,7 @@ def render_game_page(
         hero_chase = ""
         engagement_preview = ""
         threat_alert = ""
+        situation_report = ""
         player_result_html = ""
     if previous_game is not None:
         turn_summary = render_turn_summary(previous_game, game)
@@ -217,6 +224,7 @@ def render_game_page(
         f"{hero_chase}"
         f"{engagement_preview}"
         f"{threat_alert}"
+        f"{situation_report}"
         f"{battle_svg}"
         f"{battle_report}"
         f"{settlements_header}"
