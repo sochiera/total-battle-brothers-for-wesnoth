@@ -69,3 +69,39 @@ def test_render_player_summary_aggregates_duchy_economy_and_is_pure():
 
     assert game.duchies == duchies_before
     assert game.duchies is duchies_before
+
+
+def test_render_player_summary_empty_root_when_none_or_unknown_duchy():
+    """When ``player_duchy_id`` is ``None`` or not in ``game.duchies``, return
+    a bare empty root ``<div data-player-summary=""></div>`` with no numeric
+    attributes and no visible text.
+    """
+    game = GameState(
+        (
+            Duchy(
+                "north",
+                Unit(),
+                settlements=(
+                    Settlement(
+                        "Keep",
+                        population=1,
+                        owner_id="north",
+                        storage=Resources(wheat=1, gold=1),
+                    ),
+                ),
+                parties=(),
+            ),
+        )
+    )
+
+    for player_duchy_id in (None, "missing"):
+        xml = render_player_summary(game, player_duchy_id=player_duchy_id)
+        root = ET.fromstring(xml)
+
+        assert root.tag == "div"
+        assert root.attrib == {"data-player-summary": ""}
+        assert "".join(root.itertext()) == ""
+        assert "data-settlements" not in root.attrib
+        assert "data-parties" not in root.attrib
+        assert "data-gold" not in root.attrib
+        assert "data-wheat" not in root.attrib
