@@ -310,19 +310,13 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > wykonania w jeden klik (K51.1e). Pozycje (task-238…242) w `BACKLOG-ARCHIVE.md`.
 > Rdzeń `tbb` bez zmian.
 
-## Kamień milowy 52 — czytelne wyróżnienie ryzyka rady bitewnej
-> DESIGN §11: K51 pokazało prognozę siły z werdyktem „ryzyko", ale werdykt tonie
-> w jednym zdaniu. K52 wyróżnia radę bojową o przewidywanym deficycie siły —
-> maszynowo i po ludzku — by gracz nie wykonał w ciemno przegranej bitwy: czysty
-> predykat `recommended_battle_is_risky` (K52.1a), flaga `data-recommended-risk`
-> i nota ostrożności w panelu rady (K52.1b–c) oraz przy przycisku wykonania rady
-> w jeden klik (K52.1d–e). Reużywa `recommended_battle_forecast`; bez nowego
-> backendu, bez zmiany routingu; rdzeń `tbb` bez zmian.
-- [ ] **K52.1a** `tbbui.recommendedaction.recommended_battle_is_risky(world, game, player_duchy_id=None) -> bool` zwraca `False`, gdy `recommended_battle_forecast(...) is None`; przy prognozie `(own, enemy)` zwraca `True` iff `own < enemy` (spójnie z werdyktem `ryzyko`); czysty, bez mutacji, deleguje do `recommended_battle_forecast`. *(task-251)*
-- [ ] **K52.1b** Gdy `recommended_battle_is_risky(...)` jest `True`, korzeń `<div data-recommended-action="">` z `render_recommended_action` niesie pusty atrybut `data-recommended-risk=""` po `data-action`; `False` → brak atrybutu, fragment bajt-w-bajt jak dotąd. *(task-252)*
-- [ ] **K52.1c** Gdy `recommended_battle_is_risky(...)` jest `True`, `render_recommended_action` osadza po `data-recommended-forecast` jedno `<p data-recommended-caution="{text}">{text}</p>` (`text = "Uwaga: przewidywany deficyt siły — rozważ inny rozkaz"`, `html.escape(quote=True)`); `False` → brak elementu. *(task-253)*
-- [ ] **K52.1d** Gdy formularz `_recommended_order_form()` jest emitowany i `recommended_battle_is_risky(...)` jest `True`, `<form ... data-recommended-order="">` niesie pusty atrybut `data-recommended-risk=""` po `data-recommended-order=""`; przypadki `""` i `False` → brak atrybutu, formularz jak dotąd. *(task-254)*
-- [ ] **K52.1e** Gdy formularz `_recommended_order_form()` jest emitowany i `recommended_battle_is_risky(...)` jest `True`, po `data-recommended-order-forecast` dokłada jedno `<p data-recommended-order-caution="{text}">{text}</p>` (ten sam tekst co K52.1c, `html.escape(quote=True)`); `False` / brak formularza → brak elementu. *(task-255)*
+## Kamień milowy 52 — czytelne wyróżnienie ryzyka rady bitewnej — UKOŃCZONY
+> DESIGN §11: K51 pokazało prognozę siły z werdyktem „ryzyko", ale werdykt tonął
+> w jednym zdaniu. K52 wyróżnił radę bojową o przewidywanym deficycie siły —
+> maszynowo i po ludzku — predykat `recommended_battle_is_risky`, flaga
+> `data-recommended-risk` i nota ostrożności w panelu rady oraz przy przycisku
+> wykonania rady w jeden klik. Wszystkie pozycje (task-251…255) w
+> `BACKLOG-ARCHIVE.md`. Rdzeń `tbb` bez zmian.
 
 ## Kamień milowy 53 — dług po serii rady bojowej + trening jednostek w maszerującym party — UKOŃCZONY
 > Po K52 seria „zalecany rozkaz" (K41–K52) się domyka; ten kamień posprzątał
@@ -332,6 +326,17 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > garnizon w `tick_settlements`. Uzbrojenie zostaje poza zakresem — party nie
 > ma dostępu do złota/kuźni osady. Wszystkie pozycje (task-248…250) w
 > `BACKLOG-ARCHIVE.md`.
+
+## Kamień milowy 54 — bramkowanie treningu garnizonu budynkiem (Koszary)
+> DESIGN §12 otwarte pytanie / BACKLOG „Później": dziś trening garnizonu jest
+> bezwarunkową funkcją czasu, mimo że analogiczne uzbrojenie już wymaga
+> czynnego Smith. K54 domyka symetrię: katalog Koszar (G54.1a), AI otwierające
+> je w kolejności rozwoju przed Market (G54.1b), a na końcu realne bramkowanie
+> `Settlement.tick_training()` czynnymi Koszarami (G54.1c) — mirror wzorca
+> `tick_equipment`/Smith.
+- [ ] **G54.1a** `tbb.building.BARRACKS = Building("Barracks", staff=1)` (zerowa produkcja, jak `SMITH`), eksportowany z `tbb/__init__.py`; czysto katalogowe, bez wiązania z AI/treningiem. *(task-256)*
+- [ ] **G54.1b** `_DEVELOPMENT_PRIORITIES == (FARM, SMITH, BARRACKS, MARKET)` — AI (i przycisk „Rozbuduj osadę") otwiera Koszary jako trzeci priorytet, przed Market. *(task-257)*
+- [ ] **G54.1c** `Settlement.tick_training()` jest no-opem bez czynnych Koszar w `active_buildings`; z czynnymi Koszarami trenuje jak dotąd; DESIGN §5 i `tests/test_smoke.py` zaktualizowane do faktycznego wyniku headless, jeśli tempo progresji przesunęło datę bezpiecznika. *(task-258)*
 
 ## Dług/refaktor
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*
@@ -347,10 +352,6 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
       w pętli — duplikacja ~4 linii × 4 funkcje nie blokuje MVP. Podjąć tylko
       gdy pojawi się kolejny konsument tego wzorca.
 - [ ] Bogatszy model ran, terenu, budynków; więcej typów jednostek.
-- [ ] **Bramkowanie treningu budynkiem (§5 „odpowiednie budynki"):** katalog
-      budynku treningowego i wymóg jego czynności w `tick_training` (dziś trening
-      jest bezwarunkową funkcją czasu). Analogicznie polityka AI otwierania
-      kuźni/budynków treningowych.
 - [ ] Balans ekonomii, tempa rozwoju jednostek i krzywych progresji; strojenie AI.
 - [ ] Pełna maszyna faz `StrategicTurn` w headless driverze (routing akcji AI przez
       fazy ruch/bitwy zamiast bezpośredniego `take_duchy_turn`). M8 reużywa tylko

@@ -474,6 +474,13 @@
 - [x] **K51.1d** `render_recommended_action` przy niepustej prognozie osadza po `data-recommendation-reason` jedno `<p data-recommended-forecast="{text}">{text}</p>` (`html.escape(quote=True)`); pusta prognoza / brak gracza → brak elementu. *(task-241)*
 - [x] **K51.1e** `GameApp._recommended_order_form()` przy emitowanym formularzu i niepustej prognozie dokłada po `data-recommended-order-reason` jedno `<p data-recommended-order-forecast="{text}">{text}</p>` (`html.escape(quote=True)`); pusta prognoza / brak formularza → brak elementu. *(task-242)*
 
+## Kamień milowy 52 — czytelne wyróżnienie ryzyka rady bitewnej — UKOŃCZONY
+- [x] **K52.1a** `tbbui.recommendedaction.recommended_battle_is_risky(world, game, player_duchy_id=None) -> bool` → `False` gdy `recommended_battle_forecast(...) is None`; przy prognozie `(own, enemy)` → `True` iff `own < enemy` (spójnie z werdyktem `ryzyko`); czysty, deleguje do `recommended_battle_forecast`. *(task-251)*
+- [x] **K52.1b** Gdy `recommended_battle_is_risky(...)` jest `True`, korzeń `render_recommended_action` niesie pusty `data-recommended-risk=""` po `data-action`; `False` → brak atrybutu (bajt-w-bajt jak dotąd). *(task-252)*
+- [x] **K52.1c** Gdy ryzykowna, `render_recommended_action` osadza po `data-recommended-forecast` jedno `<p data-recommended-caution="{text}">{text}</p>` (`text = "Uwaga: przewidywany deficyt siły — rozważ inny rozkaz"`, `html.escape(quote=True)`); `False` → brak elementu. *(task-253)*
+- [x] **K52.1d** Gdy `_recommended_order_form()` emituje formularz i ryzykowna, `<form … data-recommended-order="">` niesie pusty `data-recommended-risk=""` zaraz po `data-recommended-order=""`; `False`/brak formularza → brak atrybutu. *(task-254)*
+- [x] **K52.1e** Gdy formularz emitowany i ryzykowna, po `data-recommended-order-forecast` jedno `<p data-recommended-order-caution="{text}">{text}</p>` (ten sam tekst co K52.1c); `False`/brak formularza → brak elementu. *(task-255)*
+
 ## Kamień milowy 53 — dług po serii rady bojowej + trening jednostek w maszerującym party — UKOŃCZONY
 - [x] **R52.1 (refaktor)** Wspólny helper escapowanego akapitu `<p data-X="…">…</p>` w `tbbui/recommendedaction.py`, reużyty przez `render_recommended_action` i `GameApp._recommended_order_form` (dedup powielenia z K50–K52); bez nowych testów, wynik bajt-w-bajt jak dziś. *(task-248)*
 - [x] **T53.1a** `tbb.party.Party.tick_training(months=1) -> Party` — czysta metoda treningu hero+units (mirror `tick_wounds`, deleguje do `Unit.train`); jeszcze niepodpięta w `WorldMap.tick_parties`. *(task-249)*
