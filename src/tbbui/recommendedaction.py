@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import html
+
 from tbb import ai
 from tbb.game import GameState
 from tbb.world import WorldMap
@@ -198,7 +200,10 @@ def render_recommended_action(
     ``threatalert.threatened_position_count``), then ``data-action`` and
     visible text from ``recommended_order`` / ``recommended_order_text``
     (``muster|assault|engage|defend|march|develop`` and the matching order
-    line). Pure and deterministic: no RNG/IO; does not mutate ``world`` or
+    line), plus exactly one child
+    ``<p data-recommendation-reason="{reason}">{reason}</p>`` from
+    ``recommended_order_reason`` (``html.escape(..., quote=True)`` on attribute
+    and body). Pure and deterministic: no RNG/IO; does not mutate ``world`` or
     ``game``.
     """
     order = recommended_order(world, game, player_duchy_id)
@@ -211,7 +216,10 @@ def render_recommended_action(
     n = threatened_position_count(world, game, player_duchy_id)
     posture = net_posture(m, n)
     text = f"Zalecany rozkaz: {recommended_order_text(action, target)}"
+    reason = recommended_order_reason(world, game, player_duchy_id)
+    escaped = html.escape(reason, quote=True)
     return (
         f'<div data-recommended-action="" data-posture="{posture}" '
-        f'data-action="{action}">{text}</div>'
+        f'data-action="{action}">{text}'
+        f'<p data-recommendation-reason="{escaped}">{escaped}</p></div>'
     )

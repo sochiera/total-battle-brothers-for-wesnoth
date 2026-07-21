@@ -326,14 +326,18 @@ player_duchy_id)` istnieje z `ai.region_distance(world, R, target) >= 2`,
 zwraca `target.name`; brak wrogiej osady lub dystans `< 2` → `None`. Czyste,
 deterministyczne, bez mutacji `world`/`game`; rdzeń bez zmian.
 
-**Zalecany rozkaz HTML (K41.1a / K41.1b / K41.1c / K41.2a / K41.3a / K48.1c / K49.1c):**
+**Zalecany rozkaz HTML (K41.1a / K41.1b / K41.1c / K41.2a / K41.3a / K48.1c / K49.1c / K50.1b):**
 `tbbui.recommendedaction.render_recommended_action(world, game, player_duchy_id=None) -> str`
 — parsowalny fragment z korzeniem `<div data-recommended-action="">`. Gdy
 `player_duchy(...) is None` → sam pusty korzeń (bez `data-posture`, bez
 `data-action`, bez tekstu, bez dzieci). Przy znanym graczu: `data-posture` =
 `net_posture(M, N)` (M = `advantageous_target_count`, N =
 `threatened_position_count`) — bez zmian przy `muster` / `march`; zaraz po nim
-`data-action` i tekst z `recommended_order` / `recommended_order_text`.
+`data-action` i tekst z `recommended_order` / `recommended_order_text`; po
+tekście dokładnie jedno dziecko
+`<p data-recommendation-reason="{reason}">{reason}</p>` z
+`recommended_order_reason` (`html.escape(..., quote=True)` na atrybucie i
+ciele) — K50.1b.
 Maszynowa decyzja: `recommended_order(world, game, player_duchy_id=None) ->
 tuple[str, str | None] | None` (K42.1a / K48.1c / K49.1c) — brak gracza →
 `None`; gdy `player_can_muster(...)` → `("muster", None)` **przed** gałęzią

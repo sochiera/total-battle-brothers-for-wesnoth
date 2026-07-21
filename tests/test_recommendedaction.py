@@ -1,5 +1,6 @@
 """Tests for the recommended-action presentation primitive (tbbui)."""
 
+import html
 from xml.etree import ElementTree as ET
 
 from tbb import ai
@@ -395,7 +396,10 @@ def test_render_recommended_action_muster_data_action_and_text_keeps_posture():
     assert root.attrib.get("data-posture") == net_posture(m, n)
     assert root.attrib.get("data-action") == "muster"
     assert root.text == "Zalecany rozkaz: zbierz oddział"
-    assert list(root) == []
+    # K50.1b: one reason child; posture/action/text unchanged
+    assert len(list(root)) == 1
+    assert list(root)[0].tag == "p"
+    assert "data-recommendation-reason" in list(root)[0].attrib
 
     assert world.regions == regions_before
     assert {
@@ -974,7 +978,10 @@ def test_render_recommended_action_march_data_action_and_text_keeps_posture():
     assert root.attrib.get("data-posture") == "balanced"
     assert root.attrib.get("data-action") == "march"
     assert root.text == f"Zalecany rozkaz: maszeruj ku osadzie {target}"
-    assert list(root) == []
+    # K50.1b: one reason child; posture/action/text unchanged
+    assert len(list(root)) == 1
+    assert list(root)[0].tag == "p"
+    assert "data-recommendation-reason" in list(root)[0].attrib
 
     assert world.regions == regions_before
     assert {
@@ -1021,6 +1028,167 @@ def test_render_recommended_action_empty_root_when_none_or_unknown_duchy():
         assert "data-posture" not in root.attrib
         assert list(root) == []
         assert "".join(root.itertext()) == ""
+
+
+def test_render_recommended_action_embeds_reason_child_from_recommended_order_reason():
+    """Known player: after visible ``Zalecany rozkaz: …`` the root embeds
+    exactly one child ``<p data-recommendation-reason="{reason}">{reason}</p>``
+    where ``reason = recommended_order_reason(world, game, player_duchy_id)``
+    — same value in attribute and body, ``html.escape(..., quote=True)`` — K50.1b.
+
+    ``data-posture`` / ``data-action`` stay from ``net_posture`` /
+    ``recommended_order`` (unchanged). Pure: no world/game mutation.
+    """
+    recommended_order_reason = recommendedaction.recommended_order_reason
+    recommended_order_text = recommendedaction.recommended_order_text
+    home = Region("Home")
+    keep = Region("Keep")
+    enemy_camp = Region("EnemyCamp")
+    road = Region("Road")
+    far_enemy = Region("FarEnemy")
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+
+    scenarios: list[tuple[WorldMap, str]] = [
+        # develop (balanced, no march target)
+        (
+            WorldMap(
+                [home],
+                [],
+                parties={
+                    home: Party(hero=Unit(), units=(), owner_id="player")
+                },
+                settlements={},
+            ),
+            "develop",
+        ),
+        # muster (before posture)
+        (
+            WorldMap(
+                [keep, enemy_camp],
+                [(keep, enemy_camp)],
+                parties={
+                    enemy_camp: Party(
+                        hero=Unit(), units=(), owner_id="enemy"
+                    ),
+                },
+                settlements={
+                    keep: Settlement(
+                        "KeepS", population=2, owner_id="player"
+                    ),
+                },
+            ),
+            "muster",
+        ),
+        # assault
+        (
+            WorldMap(
+                [home, enemy_camp],
+                [(home, enemy_camp)],
+                parties={
+                    home: Party(hero=Unit(), units=(), owner_id="player")
+                },
+                settlements={
+                    enemy_camp: Settlement(
+                        "EnemyS", population=2, owner_id="enemy"
+                    ),
+                },
+            ),
+            "assault",
+        ),
+        # defend
+        (
+            WorldMap(
+                [keep, enemy_camp],
+                [(keep, enemy_camp)],
+                parties={
+                    keep: Party(hero=Unit(), units=(), owner_id="player"),
+                    enemy_camp: Party(
+                        hero=Unit(), units=(), owner_id="enemy"
+                    ),
+                },
+                settlements={
+                    keep: Settlement(
+                        "KeepS", population=2, owner_id="player"
+                    ),
+                },
+            ),
+            "defend",
+        ),
+        # march (balanced + distant enemy settlement)
+        (
+            WorldMap(
+                [home, road, far_enemy],
+                [(home, road), (road, far_enemy)],
+                parties={
+                    home: Party(hero=Unit(), units=(), owner_id="player")
+                },
+                settlements={
+                    far_enemy: Settlement(
+                        "FarS", population=2, owner_id="enemy"
+                    ),
+                },
+            ),
+            "march",
+        ),
+    ]
+
+    for world, expected_action in scenarios:
+        order = recommended_order(world, game, "player")
+        assert order is not None
+        action, target = order
+        assert action == expected_action
+        reason = recommended_order_reason(world, game, "player")
+        assert reason != ""
+        escaped = html.escape(reason, quote=True)
+        m = advantageous_target_count(world, game, "player")
+        n = threatened_position_count(world, game, "player")
+        expected_posture = net_posture(m, n)
+        expected_text = (
+            f"Zalecany rozkaz: {recommended_order_text(action, target)}"
+        )
+
+        regions_before = world.regions
+        parties_before = {r: world.party_at(r) for r in world.regions}
+        settlements_before = {
+            r: world.settlement_at(r) for r in world.regions
+        }
+        duchies_before = game.duchies
+
+        xml = render_recommended_action(
+            world, game, player_duchy_id="player"
+        )
+        root = ET.fromstring(xml)
+
+        assert root.tag == "div"
+        assert root.attrib.get("data-recommended-action") == ""
+        assert root.attrib.get("data-posture") == expected_posture
+        assert root.attrib.get("data-action") == action
+        assert root.text == expected_text
+
+        children = list(root)
+        assert len(children) == 1
+        child = children[0]
+        assert child.tag == "p"
+        assert child.attrib == {"data-recommendation-reason": escaped}
+        assert child.text == reason
+        assert child.attrib["data-recommendation-reason"] == (child.text or "")
+        # Raw fragment must escape reason in attribute (and body source).
+        assert f'data-recommendation-reason="{escaped}"' in xml
+        assert f">{escaped}</p>" in xml or f">{reason}</p>" in xml
+
+        assert world.regions == regions_before
+        assert {
+            r: world.party_at(r) for r in world.regions
+        } == parties_before
+        assert {
+            r: world.settlement_at(r) for r in world.regions
+        } == settlements_before
+        assert game.duchies == duchies_before
 
 
 def test_render_recommended_action_data_posture_and_order_text_from_m_vs_n():
@@ -1076,7 +1244,10 @@ def test_render_recommended_action_data_posture_and_order_text_from_m_vs_n():
         assert root.attrib.get("data-posture") == net_posture(m, n)
         expected_text = text if text is not None else order_text[expected]
         assert root.text == expected_text
-        assert list(root) == []
+        # K50.1b: one reason child; posture/action/text unchanged
+        assert len(list(root)) == 1
+        assert list(root)[0].tag == "p"
+        assert "data-recommendation-reason" in list(root)[0].attrib
 
         assert world.regions == regions_before
         assert {
