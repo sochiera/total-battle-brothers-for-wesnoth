@@ -266,10 +266,11 @@ def test_game_app_player_duchy_id_data_player_and_turn_skips_player_ai(monkeypat
 def test_game_app_last_notice_empty_string_renders_empty_data_notice():
     """GameApp exposes last_notice, rendered as one <p data-notice> in extras.
 
-    Contract (task-143 / K28.1a):
+    Contract (task-143 / K28.1a + task-148 / K29.1a empty body):
     - GameApp(...).last_notice == "" right after construction
     - fresh GET / (no prior order) embeds exactly one element with a
       data-notice attribute, and its value equals self.last_notice ("")
+    - paragraph body is also empty: (el.text or "") == ""
     """
     world, game = _ongoing_world_game()
     calendar = Calendar(year=4, month=9)
@@ -282,6 +283,7 @@ def test_game_app_last_notice_empty_string_renders_empty_data_notice():
     notices = _find_by_attr(root, "data-notice")
     assert len(notices) == 1
     assert notices[0].get("data-notice") == app.last_notice == ""
+    assert (notices[0].text or "") == ""
 
 
 def test_game_app_render_data_notice_body_text_matches_last_notice_after_recruit():
