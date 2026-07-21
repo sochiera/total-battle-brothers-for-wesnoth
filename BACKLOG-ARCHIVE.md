@@ -356,3 +356,11 @@
 - [x] **K33.1b** Wiersze per-wróg `data-enemy-duchy` (`data-settlements`/`data-hero` + tekst). *(task-166)*
 - [x] **K33.1c** Osadzenie panelu w `render_game_page` (bez gracza → bajt-w-bajt jak dotąd). *(task-167)*
 - [x] **K33.2a** Flaga `data-defeated` + sufiks „— pokonany" w wierszu wroga. *(task-168)*
+
+## Kamień milowy 34 — podpowiedź następnego kroku do zwycięstwa — UKOŃCZONY
+- [x] **K34.1a** Prymityw `render_next_objective(game, player_duchy_id)` — `data-next-objective` + tekst zależny od stanu. *(task-170)*
+- [x] **K34.1b** Osadzenie w `render_game_page` po `data-victory-progress` (bez gracza → bajt-w-bajt jak dotąd). *(task-171)*
+
+## Kamień milowy 35 — lokalizacja wrogiego bohatera (lista pościgu) — UKOŃCZONY
+- [x] **K35.1a** Prymityw `render_enemy_hero_locator` — `data-hero-locator`/`data-heroes-on-map`, wiersze `data-enemy-duchy`/`data-hero-region`. *(task-172)*
+- [x] **K35.1b** Osadzenie w `render_game_page` po `data-next-objective` (bez gracza → bajt-w-bajt jak dotąd). *(task-173)*

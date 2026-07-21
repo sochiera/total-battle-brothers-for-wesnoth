@@ -387,6 +387,19 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   `<id>: bohater niewystawiony` gdy party brak na mapie; wrogowie bez
   `has_hero` bez wiersza. Brak gracza lub id spoza `game.duchies` → sam pusty
   korzeń. Czysty, deterministyczny.
+- `render_hero_chase(world, game, player_duchy_id=None)` — fragment
+  `data-hero-chase` z dystansem marszu od party gracza do wrogich bohaterów.
+  Przy graczu w `game.duchies`: korzeń niesie `data-player-on-map` (`"true"` gdy
+  gracz ma party na mapie — pierwszy region w `world.regions` z
+  `party_at.owner_id == player`; inaczej `"false"` i brak wierszy), a per wróg
+  (`duchy_id != player`) z `has_hero`, którego party stoi na mapie (kolejność
+  `game.duchies`) dziecko `<div data-enemy-duchy="<id>" data-distance="<D>">` z
+  `D = ai.region_distance(region_gracza, region_bohatera)` i tekstem
+  `<id>: D pól marszu`; brak drogi (`None`) → `data-distance=""` i
+  `<id>: brak drogi`. Wiersz o `data-distance="1"` (sąsiad) dostaje
+  `data-in-reach=""` i sufiks „ — w zasięgu". Wrogowie bez `has_hero` lub bez
+  party na mapie bez wiersza. Brak gracza lub id spoza `game.duchies` → sam
+  pusty korzeń. Czysty, deterministyczny.
 - `render_party_panel(world, player_duchy_id=None)` — fragment `data-party-panel`
   z wierszem `data-party-row` (= nazwa regionu) na party w kolejności
   `world.regions`; `data-owner`/`data-size` (liczba podkomendnych)/`data-hp`/
@@ -426,7 +439,9 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   `render_next_objective(game, player_duchy_id)` (K34.1b, dokładnie jeden
   `data-next-objective`), a zaraz po podpowiedzi kanoniczny
   `render_enemy_hero_locator(world, game, player_duchy_id)` (K35.1b, dokładnie
-  jeden `data-hero-locator`); `None` → bajt-w-bajt jak dotąd. Przy
+  jeden `data-hero-locator`), a zaraz po lokatorze kanoniczny
+  `render_hero_chase(world, game, player_duchy_id)` (K36.1c, dokładnie jeden
+  `data-hero-chase`); `None` → bajt-w-bajt jak dotąd. Przy
   `player_duchy_id is not None` osadza też
   `<p data-player-result-text>` z wynikiem z perspektywy gracza (`Gra w toku` /
   `Zwycięstwo Twojego księstwa` / `Porażka Twojego księstwa` / `Remis` wg

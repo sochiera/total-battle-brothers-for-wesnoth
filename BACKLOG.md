@@ -185,26 +185,32 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > `render_game_page` przy `player_duchy_id` (K33.1c). Pozycje (task-165…168)
 > w `BACKLOG-ARCHIVE.md`. Rdzeń `tbb` bez zmian.
 
-## Kamień milowy 34 — podpowiedź następnego kroku do zwycięstwa
-> DESIGN §11: postęp do celu (K33) pokazuje licznik i stan wrogów, ale nie mówi
-> graczowi CO robić dalej (§6 pkt 5). K34 dokłada czysty prymityw
-> `render_next_objective`: jedno zdanie zależne od stanu (odbierz osady / dobij
-> bohaterów / cel osiągnięty), osadzone w `render_game_page` po panelu postępu.
-> Rdzeń `tbb` bez zmian.
-- [ ] **K34.1a** Prymityw `render_next_objective(game, player_duchy_id)` — `data-next-objective` + tekst zależny od stanu. *(task-170)*
-- [ ] **K34.1b** Osadzenie w `render_game_page` po `data-victory-progress` (bez gracza → bajt-w-bajt jak dotąd). *(task-171)*
+## Kamień milowy 34 — podpowiedź następnego kroku do zwycięstwa — UKOŃCZONY
+> DESIGN §11: czysty prymityw `render_next_objective` (jedno zdanie zależne od
+> stanu: odbierz osady / dobij bohaterów / cel osiągnięty) osadzony w
+> `render_game_page` po panelu postępu (K34.1a–b; task-170…171).
+> Pozycje w `BACKLOG-ARCHIVE.md`. Rdzeń `tbb` bez zmian.
 
-## Kamień milowy 35 — lokalizacja wrogiego bohatera (lista pościgu)
-> DESIGN §11: cel wymaga dobicia wrogiego bohatera (§6 pkt 5), ale gracz nie wie
-> gdzie on stoi bez ręcznego skanu panelu oddziałów. K35 dokłada czysty prymityw
-> `render_enemy_hero_locator(world, game, player_duchy_id)`: dla wrogów z
-> bohaterem region ich party (`data-hero-region`) lub „niewystawiony", osadzony
-> w `render_game_page` po podpowiedzi celu. Rdzeń `tbb` bez zmian.
-- [ ] **K35.1a** Prymityw `render_enemy_hero_locator` — `data-hero-locator`/`data-heroes-on-map`, wiersze `data-enemy-duchy`/`data-hero-region`. *(task-172)*
-- [ ] **K35.1b** Osadzenie w `render_game_page` po `data-next-objective` (bez gracza → bajt-w-bajt jak dotąd). *(task-173)*
+## Kamień milowy 35 — lokalizacja wrogiego bohatera (lista pościgu) — UKOŃCZONY
+> DESIGN §11: czysty prymityw `render_enemy_hero_locator` (region party wroga z
+> bohaterem lub „niewystawiony") osadzony w `render_game_page` po podpowiedzi
+> celu (K35.1a–b; task-172…173). Pozycje w `BACKLOG-ARCHIVE.md`. Rdzeń `tbb`
+> bez zmian.
+
+## Kamień milowy 36 — pościg za wrogim bohaterem: dystans marszu do celu
+> DESIGN §6 pkt 5: lokator (K35) mówi GDZIE stoi wrogi bohater, ale nie JAK
+> DALEKO ani czy w zasięgu jednej tury. K36 dokłada rdzeniowy prymityw dystansu
+> w grafie regionów (`ai.region_distance`) i czysty panel pościgu
+> `render_hero_chase` (dystans marszu od party gracza + flaga „w zasięgu" dla
+> sąsiada), osadzony w `render_game_page` po lokatorze. Rdzeń: tylko czysta
+> kwerenda grafu, bez prezentacji.
+- [ ] **K36.1a** Prymityw rdzenia `ai.region_distance(world, start, target)` — BFS dystans grafu regionów. *(task-174)*
+- [ ] **K36.1b** Prymityw `render_hero_chase(world, game, player_duchy_id)` — `data-hero-chase` + wiersze `data-enemy-duchy`/`data-distance`. *(task-175)*
+- [ ] **K36.1c** Osadzenie w `render_game_page` po `data-hero-locator` (bez gracza → bajt-w-bajt jak dotąd). *(task-176)*
+- [ ] **K36.2a** Oznaczenie celu w zasięgu (`data-in-reach` + sufiks „ — w zasięgu" dla dystansu 1). *(task-177)*
 
 ## Dług/refaktor
-- [ ] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*
+- [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*
 - [x] **R21.1 (refaktor)** Wspólny emiter formularzy celu marsz/szturm/starcie w `serve.py`. *(task-113)*
 - [x] **R15.1 (refaktor)** Kompaktacja DESIGN.md do stanu obecnego; historia → DECISIONS.md. *(task-094)*
 - [x] **R16.1 (refaktor)** Wspólny generator formularzy celu marsz/szturm w `serve.py`. *(task-098)*

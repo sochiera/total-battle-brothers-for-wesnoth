@@ -155,6 +155,26 @@ niewystawiony`. Gdy `player_duchy_id` jest `None` albo spoza `game.duchies` —
 sam pusty korzeń (bez `data-heroes-on-map`, bez wierszy i bez tekstu).
 Czyste, deterministyczne, bez mutacji `world`/`game`; rdzeń bez zmian.
 
+**Dystans pościgu HTML (K36.1a–b / K36.2a):** rdzeń dostaje czysty prymityw
+grafu `tbb.ai.region_distance(world, start, target) -> int | None` — BFS po
+`world.neighbors` (deque jak `next_march_step`), liczba krawędzi najkrótszej
+ścieżki; `start==target`→`0`, brak drogi→`None`, region spoza `world.regions`→
+`ValueError`; surowy dystans (NIE omija party, w przeciwieństwie do
+`next_march_step`); nie mutuje mapy.
+`tbbui.herochase.render_hero_chase(world, game, player_duchy_id=None) -> str` —
+parsowalny fragment z korzeniem `<div data-hero-chase="">`. Gdy `player_duchy_id`
+wskazuje księstwo w `game.duchies`: korzeń niesie `data-player-on-map="true|false"`
+(gracz ma party na mapie — pierwszy region w `world.regions` z
+`party_at.owner_id == player`), a przy `"false"` brak wierszy. Przy `"true"` na
+każdego wroga (`duchy_id != player`) z `has_hero`, którego party stoi na mapie
+(kolejność `game.duchies`), dziecko `<div data-enemy-duchy="<id>"
+data-distance="<D>">` z `D = region_distance(region_gracza, region_bohatera)` i
+tekstem `<id>: D pól marszu`; brak drogi (`None`) → `data-distance=""` i
+`<id>: brak drogi`; wiersz o `data-distance="1"` dostaje dodatkowo
+`data-in-reach=""` i sufiks „ — w zasięgu" (K36.2a). Wrogowie bez `has_hero`
+lub bez party na mapie bez wiersza. `player_duchy_id` `None`/spoza `game.duchies`
+→ sam pusty korzeń. Czyste, deterministyczne, bez mutacji `world`/`game`.
+
 **Panel party HTML (K22.2a / K24.1a / K25.1a / K25.1b / K27.1a):** `tbbui.partypanel.render_party_panel(world,
 player_duchy_id=None) -> str` — parsowalny fragment XML z korzeniem
 `<div data-party-panel="">`; po jednym `<div data-party-row="<region.name>">`
@@ -196,7 +216,7 @@ HP H, atak A, obrona D` zgodny z atrybutami. Gdy `player_duchy_id` jest
 liczbowych i bez tekstu). Czyste, deterministyczne, bez mutacji `game`;
 rdzeń bez zmian.
 
-**Strona HTML partii (V13.4a / K16.1a / K17.1b / K20.1a / K20.1b / K21.1a / K22.1c / K22.2b / K23.1b / K23.2a / K23.3b / K24.1b / K24.2b / K26.2a–b / K27.3a–b / K30.3c / K31.2a / K32.1a / K32.1b / K32.1c / K33.1c / K34.1b / K35.1b):** `tbbui.gamepage.render_game_page(world,
+**Strona HTML partii (V13.4a / K16.1a / K17.1b / K20.1a / K20.1b / K21.1a / K22.1c / K22.2b / K23.1b / K23.2a / K23.3b / K24.1b / K24.2b / K26.2a–b / K27.3a–b / K30.3c / K31.2a / K32.1a / K32.1b / K32.1c / K33.1c / K34.1b / K35.1b / K36.1c):** `tbbui.gamepage.render_game_page(world,
 game, calendar, battle=None, player_duchy_id=None) -> str` — parsowalny HTML z korzeniem `<html>`;
 dokładnie jeden `<head>` z `<title>Total Battle Brothers</title>` (K32.1a)
 bezpośrednio przed `<body>` (tytuł stały, niezależny od `player_duchy_id` /
@@ -243,13 +263,15 @@ dokładnie jeden `data-player-summary`), zaraz po nim kanoniczny string z
 `render_next_objective(game, player_duchy_id)` (K34.1b, dokładnie jeden
 `data-next-objective`), zaraz po podpowiedzi kanoniczny string z
 `render_enemy_hero_locator(world, game, player_duchy_id)` (K35.1b, dokładnie
-jeden `data-hero-locator`) oraz dokładnie jeden
+jeden `data-hero-locator`), zaraz po lokatorze kanoniczny string z
+`render_hero_chase(world, game, player_duchy_id)` (K36.1c, dokładnie jeden
+`data-hero-chase`) oraz dokładnie jeden
 `<p data-player-result-text="…">…</p>` z `_player_result_text` (K31.2a:
 `Gra w toku` / `Zwycięstwo Twojego księstwa` / `Porażka Twojego księstwa` /
 `Remis` wg `game.is_over` i `game.winner` względem `player_duchy_id`); `None`
 (domyślnie) → bajt-w-bajt jak bez argumentu (bez `data-player-summary`, bez
-`data-victory-progress`, bez `data-next-objective`, bez `data-hero-locator` i
-bez `data-player-result-text`);
+`data-victory-progress`, bez `data-next-objective`, bez `data-hero-locator`,
+bez `data-hero-chase` i bez `data-player-result-text`);
 element `data-result` = `duchy_id` zwycięzcy / `draw` / `ongoing` wg
 `game.is_over` i `game.winner`; zawsze `<p data-result-text="…">` z czytelnym
 tekstem z `_result_text` (`Gra w toku` / `Remis` / `Zwycięstwo: <duchy_id>`) —
@@ -425,6 +447,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │       ├── partypanel.py   # HTML panel party (właściciel + siła oddziału)
 │       ├── victoryprogress.py # HTML panel postępu do celu (wrogowie do pokonania)
 │       ├── herolocator.py  # HTML lista pościgu wrogich bohaterów (K35.1)
+│       ├── herochase.py   # HTML dystans marszu do wrogich bohaterów (K36.1)
 │       ├── nextobjective.py # HTML podpowiedź następnego kroku (K34.1)
 │       ├── ownerlegend.py  # HTML legenda właścicieli (owner_id → kolor palety)
 │       ├── layout.py     # deterministyczny layout regionów WorldMap → (col, row)
@@ -461,6 +484,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 │   ├── test_partypanel.py  # HTML panel party (tbbui, K22.2)
 │   ├── test_victoryprogress.py # HTML panel postępu do celu (tbbui, K33.1)
 │   ├── test_herolocator.py # HTML lista pościgu wrogich bohaterów (tbbui, K35.1)
+│   ├── test_herochase.py # HTML dystans marszu do wrogich bohaterów (tbbui, K36.1)
 │   ├── test_nextobjective.py # HTML podpowiedź następnego kroku (tbbui, K34.1)
 │   ├── test_ownerlegend.py # HTML legenda właścicieli (tbbui, K23.1)
 │   ├── test_gamepage.py  # HTML strony partii (tbbui)
