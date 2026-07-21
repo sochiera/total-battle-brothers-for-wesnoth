@@ -8,7 +8,7 @@ from tbb.battle import BattleResult, BattleSide, HexBattle
 from tbb.battlefield import Battlefield
 from tbb.hex import Hex
 from tbb.unit import Unit
-from tbbui.battlereport import render_battle_report
+from tbbui.battlereport import battle_outcome_text, render_battle_report
 
 
 class ControlledRng:
@@ -156,3 +156,14 @@ def test_render_battle_report_shows_human_readable_result_text_for_draw():
     result_div = root.find(".//div[@data-battle-result]")
     assert result_div.attrib["data-battle-result"] == BattleResult.DRAW.value
     assert result_div.text == "Remis"
+
+
+def test_battle_outcome_text_maps_result_from_attacker_perspective():
+    """K46.1a: outcome words from the attacker's point of view."""
+    assert (
+        battle_outcome_text(_finished_attacker_win_battle()) == "zwycięstwo"
+    )
+    assert (
+        battle_outcome_text(_finished_defender_win_battle()) == "porażka"
+    )
+    assert battle_outcome_text(_finished_draw_battle()) == "remis"

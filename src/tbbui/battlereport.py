@@ -15,6 +15,26 @@ _SIDE_LABEL = {
     "defender": "Broniący",
 }
 
+_OUTCOME_FROM_ATTACKER = {
+    BattleResult.ATTACKER_WIN: "zwycięstwo",
+    BattleResult.DEFENDER_WIN: "porażka",
+    BattleResult.DRAW: "remis",
+}
+
+
+def battle_outcome_text(battle: HexBattle) -> str:
+    """Map a finished battle's result to a short word from the attacker's view.
+
+    ``ATTACKER_WIN`` → ``"zwycięstwo"``, ``DEFENDER_WIN`` → ``"porażka"``,
+    ``DRAW`` → ``"remis"``. Raises ``ValueError`` if the battle is unfinished
+    (``battle.result() is None``). Pure: reads only ``battle.result()``;
+    does not mutate ``battle``.
+    """
+    result = battle.result()
+    if result is None:
+        raise ValueError("battle is not finished")
+    return _OUTCOME_FROM_ATTACKER[result]
+
 
 def _side_div(side: str, report: BattleSideReport) -> str:
     fallen = len(report.fallen)
