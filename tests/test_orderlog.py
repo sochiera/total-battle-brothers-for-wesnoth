@@ -3,7 +3,23 @@
 import html
 from xml.etree import ElementTree as ET
 
-from tbbui.orderlog import render_order_log
+from tbb.turn import Calendar
+from tbbui.orderlog import format_log_entry, render_order_log
+
+
+def test_format_log_entry_prefixes_notice_with_calendar_date():
+    """``format_log_entry(notice, calendar)`` returns exactly
+    ``f"Rok {calendar.year}, miesiąc {calendar.month} — {notice}"``.
+    """
+    assert format_log_entry("Marsz: wykonano", Calendar()) == (
+        "Rok 1, miesiąc 1 — Marsz: wykonano"
+    )
+    assert format_log_entry("rekrutacja", Calendar(year=3, month=7)) == (
+        "Rok 3, miesiąc 7 — rekrutacja"
+    )
+    assert format_log_entry("", Calendar(year=2, month=13)) == (
+        "Rok 2, miesiąc 13 — "
+    )
 
 
 def test_render_order_log_root_is_div_with_data_order_log_and_data_count():

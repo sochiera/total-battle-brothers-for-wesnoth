@@ -145,7 +145,10 @@ księstwa bez zmian nie dają wiersza; `data-change-count` = liczba dzieci
 `data-turn-duchy`. Czyste, deterministyczne, bez mutacji `before`/`after`;
 rdzeń bez zmian.
 
-**Dziennik rozkazów HTML (K43.1a):**
+**Dziennik rozkazów HTML (K43.1a / K44.1a):**
+`tbbui.orderlog.format_log_entry(notice, calendar) -> str` — czysty helper
+`f"Rok {calendar.year}, miesiąc {calendar.month} — {notice}"` (bez escapowania,
+bez mutacji; odczyt tylko `year`/`month`).
 `tbbui.orderlog.render_order_log(entries) -> str` — parsowalny fragment XML z
 korzeniem `<div data-order-log="" data-count="N">` (`N = len(entries)`). Na
 każdy wpis (kolejność wejściowa) jedno dziecko
