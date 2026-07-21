@@ -12,9 +12,53 @@ from tbbui.engagementpreview import (
     advantageous_target_count,
     first_advantageous_target,
 )
-from tbbui.recommendedaction import render_recommended_action
+from tbbui.gamelookup import player_duchy
+from tbbui.recommendedaction import recommended_order, render_recommended_action
 from tbbui.situationreport import net_posture
 from tbbui.threatalert import threatened_position_count
+
+
+def test_recommended_order_returns_none_when_player_duchy_missing():
+    """``recommended_order(world, game, player_duchy_id)`` returns ``None``
+    when ``player_duchy(game, player_duchy_id) is None`` — i.e. no player
+    (``player_duchy_id is None``) or id not in ``game.duchies``. Pure: does
+    not mutate ``world`` or ``game``.
+    """
+    a = Region("A")
+    b = Region("B")
+    world = WorldMap(
+        [a, b],
+        [(a, b)],
+        parties={
+            a: Party(hero=Unit(), units=(), owner_id="south"),
+        },
+        settlements={},
+    )
+    game = GameState(
+        (
+            Duchy("north", Unit()),
+            Duchy("south", Unit()),
+        )
+    )
+    regions_before = world.regions
+    parties_before = {r: world.party_at(r) for r in world.regions}
+    settlements_before = {
+        r: world.settlement_at(r) for r in world.regions
+    }
+    duchies_before = game.duchies
+
+    for player_duchy_id in (None, "missing"):
+        assert player_duchy(game, player_duchy_id) is None
+        assert recommended_order(world, game, player_duchy_id) is None
+
+    assert world.regions == regions_before
+    assert {
+        r: world.party_at(r) for r in world.regions
+    } == parties_before
+    assert {
+        r: world.settlement_at(r) for r in world.regions
+    } == settlements_before
+    assert game.duchies == duchies_before
 
 
 def test_render_recommended_action_empty_root_when_none_or_unknown_duchy():

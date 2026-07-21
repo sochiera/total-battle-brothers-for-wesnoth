@@ -15,37 +15,50 @@ from tbbui.threatalert import first_threatened_region, threatened_position_count
 _BALANCED_ORDER = "Zalecany rozkaz: rozwijaj księstwo"
 
 
-def _offensive_action_and_text(
+def recommended_order(
     world: WorldMap,
     game: GameState,
-    player_duchy_id: str,
-) -> tuple[str, str]:
-    """Action id and visible text for the first advantageous offensive target.
+    player_duchy_id: str | None = None,
+) -> tuple[str, str | None] | None:
+    """Return machine decision ``(action, target_region_name)`` for the player.
 
-    Offensive posture implies M≥1, so a target exists. Settlement →
-    (``assault``, ``szturmuj osadę <region>``); party →
-    (``engage``, ``zaatakuj oddział <region>``).
+    ``action`` ∈ ``{"assault", "engage", "defend", "develop"}``; ``target`` is
+    the region name, or ``None`` for ``develop``. Returns ``None`` when
+    ``player_duchy(game, player_duchy_id) is None`` (no player or id not in
+    ``game.duchies``). Same posture/target rules as
+    ``render_recommended_action``. Pure and deterministic: no RNG/IO; does not
+    mutate ``world`` or ``game``.
     """
-    target = first_advantageous_target(world, game, player_duchy_id)
-    assert target is not None
-    region, kind = target
-    if kind == "settlement":
-        return "assault", f"Zalecany rozkaz: szturmuj osadę {region}"
-    return "engage", f"Zalecany rozkaz: zaatakuj oddział {region}"
+    if player_duchy(game, player_duchy_id) is None:
+        return None
+
+    assert player_duchy_id is not None
+    m = advantageous_target_count(world, game, player_duchy_id)
+    n = threatened_position_count(world, game, player_duchy_id)
+    posture = net_posture(m, n)
+    if posture == "offensive":
+        target = first_advantageous_target(world, game, player_duchy_id)
+        assert target is not None
+        region, kind = target
+        if kind == "settlement":
+            return "assault", region
+        return "engage", region
+    if posture == "defensive":
+        region = first_threatened_region(world, game, player_duchy_id)
+        assert region is not None
+        return "defend", region
+    return "develop", None
 
 
-def _defensive_order_text(
-    world: WorldMap,
-    game: GameState,
-    player_duchy_id: str,
-) -> str:
-    """Name the first threatened own position for defensive posture.
-
-    Defensive posture implies N≥1, so a region exists.
-    """
-    region = first_threatened_region(world, game, player_duchy_id)
-    assert region is not None
-    return f"Zalecany rozkaz: broń pozycji {region}"
+def _order_visible_text(action: str, target: str | None) -> str:
+    """Map ``recommended_order`` result to the visible recommendation line."""
+    if action == "assault":
+        return f"Zalecany rozkaz: szturmuj osadę {target}"
+    if action == "engage":
+        return f"Zalecany rozkaz: zaatakuj oddział {target}"
+    if action == "defend":
+        return f"Zalecany rozkaz: broń pozycji {target}"
+    return _BALANCED_ORDER
 
 
 def render_recommended_action(
@@ -61,30 +74,21 @@ def render_recommended_action(
     text, and no children. When the player is known, the root carries
     ``data-posture`` from ``situationreport.net_posture(M, N)`` (M =
     ``engagementpreview.advantageous_target_count``, N =
-    ``threatalert.threatened_position_count``), then ``data-action``
-    (``assault|engage`` for offensive by target kind, ``defend`` for
-    defensive, ``develop`` for balanced), and visible text:
-    offensive → ``Zalecany rozkaz: szturmuj osadę <region>`` or
-    ``zaatakuj oddział <region>`` from ``first_advantageous_target``;
-    defensive → ``broń pozycji <region>`` from ``first_threatened_region``;
-    balanced → ``rozwijaj księstwo``. Pure and deterministic: no RNG/IO; does
-    not mutate ``world`` or ``game``.
+    ``threatalert.threatened_position_count``), then ``data-action`` and
+    visible text from ``recommended_order`` (``assault|engage|defend|develop``
+    and the matching order line). Pure and deterministic: no RNG/IO; does not
+    mutate ``world`` or ``game``.
     """
-    if player_duchy(game, player_duchy_id) is None:
+    order = recommended_order(world, game, player_duchy_id)
+    if order is None:
         return '<div data-recommended-action=""></div>'
 
     assert player_duchy_id is not None
+    action, target = order
     m = advantageous_target_count(world, game, player_duchy_id)
     n = threatened_position_count(world, game, player_duchy_id)
     posture = net_posture(m, n)
-    if posture == "offensive":
-        action, text = _offensive_action_and_text(world, game, player_duchy_id)
-    elif posture == "defensive":
-        action, text = "defend", _defensive_order_text(
-            world, game, player_duchy_id
-        )
-    else:
-        action, text = "develop", _BALANCED_ORDER
+    text = _order_visible_text(action, target)
     return (
         f'<div data-recommended-action="" data-posture="{posture}" '
         f'data-action="{action}">{text}</div>'
