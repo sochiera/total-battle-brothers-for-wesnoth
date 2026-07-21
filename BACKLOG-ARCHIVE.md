@@ -346,3 +346,13 @@
 - [x] **K32.1b** Widoczny nagłówek strony `<h1 data-page-title>` na początku `<body>`. *(task-162)*
 - [x] **K32.1c** Linia celu gry `<p data-objective>` pod nagłówkiem. *(task-163)*
 - [x] **K32.2a** `GET /` ukrywa turę i sekcje rozkazów gdy `game.is_over` (zostaje „Nowa gra"). *(task-164)*
+
+## Kamień milowy 33 — czytelny postęp do celu (warunki zwycięstwa na oczach gracza) — UKOŃCZONY
+> DESIGN §11: czysty prymityw `render_victory_progress` (licznik
+> `data-enemies-remaining`, wiersze per-wróg `data-enemy-duchy`, flaga
+> `data-defeated` z sufiksem „— pokonany"), osadzony w `render_game_page` przy
+> `player_duchy_id`. Rdzeń `tbb` bez zmian.
+- [x] **K33.1a** Prymityw `render_victory_progress` — licznik `data-enemies-remaining` + tekst. *(task-165)*
+- [x] **K33.1b** Wiersze per-wróg `data-enemy-duchy` (`data-settlements`/`data-hero` + tekst). *(task-166)*
+- [x] **K33.1c** Osadzenie panelu w `render_game_page` (bez gracza → bajt-w-bajt jak dotąd). *(task-167)*
+- [x] **K33.2a** Flaga `data-defeated` + sufiks „— pokonany" w wierszu wroga. *(task-168)*
