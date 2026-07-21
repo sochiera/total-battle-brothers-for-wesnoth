@@ -284,3 +284,15 @@
 - [x] **K26.1b** Panel osad wymienia nazwy aktywnych budynków (`data-building-names`; przy N>0 tekst ` (nazwa1, nazwa2)`). *(task-135)*
 - [x] **K26.2a** Wiersz księstwa pokazuje obecność bohatera (`data-hero`; tekst `, bohater tak|nie`). *(task-136)*
 - [x] **K26.2b** Wiersz księstwa pokazuje obecność dziedzica (`data-heir`; tekst `, dziedzic tak|nie`). *(task-137)*
+
+## Kamień milowy 27 — czytelna gotowość bojowa (rany) i orientacja w układzie strony — UKOŃCZONY
+> Panel party (K27.1a) i garnizonu osady (K27.2a) dostały liczbę rannych
+> (`data-wounded` / `data-garrison-wounded`) z `Unit.wounds`; refaktor R27.1
+> scalił licznik w `tbbui.unitstrength.wounded_count`; nagłówki sekcji strony
+> (`<h2 data-panel-section="settlements|parties|duchies">`, K27.3a–b) odróżniają
+> panele. Rdzeń `tbb` bez zmian.
+- [x] **K27.1a** Panel party pokazuje liczbę rannych w oddziale (`data-wounded`; sufiks ` · ranni: W`). *(task-138)*
+- [x] **K27.2a** Panel osad pokazuje liczbę rannych w garnizonie (`data-garrison-wounded`; sufiks ` · ranni: W`). *(task-139)*
+- [x] **R27.1 (refaktor)** Wspólny licznik `tbbui.unitstrength.wounded_count`; bez nowych testów. *(task-140)*
+- [x] **K27.3a** Nagłówek sekcji osad na stronie (`<h2 data-panel-section="settlements">Osady</h2>`). *(task-141)*
+- [x] **K27.3b** Nagłówki sekcji party i księstw na stronie (`parties`/`duchies`). *(task-142)*

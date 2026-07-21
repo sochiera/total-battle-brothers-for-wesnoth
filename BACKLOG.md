@@ -137,21 +137,29 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > `data-hero`/`data-heir` (K26.2a–b) z `Duchy`. Wszystkie pozycje
 > (task-134…137) w `BACKLOG-ARCHIVE.md`. Rdzeń `tbb` bez zmian.
 
-## Kamień milowy 27 — czytelna gotowość bojowa (rany) i orientacja w układzie strony
-> DESIGN §11 (PLAN K27): K25 pokazał siłę bojową, ale nie **gotowość** — ilu
-> ludzi niesie czasowe rany, które miną w kolejnych turach (§3.2/§4). Bez tego
-> gracz nie oceni, czy uderzyć teraz, czy poczekać na wyleczenie (§6 pkt 4).
-> K27 dokłada do panelu party (K27.1a) i garnizonu osady (K27.2a) liczbę rannych
-> (`data-wounded` / `data-garrison-wounded`, sufiks ` · ranni: W`) z
-> `Unit.wounds`; po dwóch konsumentach refaktor R27.1 scala licznik w
-> `tbbui.unitstrength.wounded_count`. Osobno K27.3a–b dokłada widoczne nagłówki
-> sekcji strony (`<h2 data-panel-section="settlements|parties|duchies">`) — jak
-> K21.2 dla rozkazów — by człowiek odróżnił panele. Rdzeń `tbb` bez zmian.
-- [ ] **K27.1a** Panel party pokazuje liczbę rannych w oddziale (`data-wounded`; sufiks ` · ranni: W`). *(task-138)*
-- [ ] **K27.2a** Panel osad pokazuje liczbę rannych w garnizonie (`data-garrison-wounded`; sufiks ` · ranni: W`). *(task-139)*
-- [ ] **R27.1 (refaktor)** Wspólny licznik `tbbui.unitstrength.wounded_count`; bez nowych testów. *(task-140)*
-- [ ] **K27.3a** Nagłówek sekcji osad na stronie (`<h2 data-panel-section="settlements">Osady</h2>`). *(task-141)*
-- [ ] **K27.3b** Nagłówki sekcji party i księstw na stronie (`parties`/`duchies`). *(task-142)*
+## Kamień milowy 27 — czytelna gotowość bojowa (rany) i orientacja w układzie strony — UKOŃCZONY
+> DESIGN §11 (PLAN K27): panel party (K27.1a) i garnizonu osady (K27.2a) dostały
+> liczbę rannych (`data-wounded` / `data-garrison-wounded`, sufiks ` · ranni: W`)
+> z `Unit.wounds`; refaktor R27.1 scalił licznik w
+> `tbbui.unitstrength.wounded_count`; nagłówki sekcji strony
+> (`<h2 data-panel-section="settlements|parties|duchies">`, K27.3a–b) odróżniają
+> panele. Wszystkie pozycje (task-138…142) w `BACKLOG-ARCHIVE.md`. Rdzeń `tbb`
+> bez zmian.
+
+## Kamień milowy 28 — potwierdzenie skutku rozkazu gracza w podglądzie
+> DESIGN §11: strona pokazuje bogaty stan (K22–K27), ale po kliknięciu rozkazu
+> gracz nie dostaje żadnego potwierdzenia, że akcja się zarejestrowała ani czy
+> coś zmieniła (§6 pkt 2–3) — nie może świadomie prowadzić rozwoju i walki.
+> K28 dokłada w `GameApp` (serve.py) czytelny komunikat `<p data-notice>`: po
+> każdym rozkazie POST ustawiany na podstawie tego, czy stan gry się zmienił
+> (`wykonano` / `brak zmian`) lub czy powstała bitwa (`bitwa`), z celem w
+> etykiecie tam, gdzie gracz go wskazał. `render_game_page` i rdzeń `tbb` bez
+> zmian.
+- [ ] **K28.1a** Slot komunikatu rozkazu (`GameApp.last_notice`, `<p data-notice>`; świeży GET → pusty). *(task-143)*
+- [ ] **K28.1b** Komunikat skutku recruit/muster/develop (`wykonano`/`brak zmian` przez `_apply_player_order(transition, label)`). *(task-144)*
+- [ ] **K28.1c** Komunikat skutku marszu z nazwą celu (`Marsz do <region>` / `Marsz`). *(task-145)*
+- [ ] **K28.1d** Komunikat skutku szturmu i starcia (`bitwa`/`brak zmian` przez `_apply_player_assault_order(transition, label)`). *(task-146)*
+- [ ] **K28.1e** Komunikat następnej tury z datą po ruchu AI (`Następna tura: rok N, miesiąc M`). *(task-147)*
 
 ## Dług/refaktor
 - [x] **R21.1 (refaktor)** Wspólny emiter formularzy celu marsz/szturm/starcie w `serve.py`. *(task-113)*
