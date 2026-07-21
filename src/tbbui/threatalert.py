@@ -181,7 +181,7 @@ def render_threat_alert(
     # player_duchy is not None ⇒ player_duchy_id is a known str
     assert player_duchy_id is not None
     rows = _threatened_rows(world, player_duchy_id)
-    n = len(rows)  # == threatened_position_count for known player
+    n = threatened_position_count(world, game, player_duchy_id)
     return (
         f'<div data-threat-alert="" data-threats="{n}">'
         f"Zagrożone pozycje: {n}"
