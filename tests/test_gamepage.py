@@ -975,6 +975,21 @@ def test_render_game_page_embeds_canonical_recommended_action_after_situation_re
     ), "data-recommended-action must precede data-duchy rows in body"
 
 
+def test_render_game_page_omits_recommended_action_when_player_duchy_id_none():
+    """Default / explicit ``player_duchy_id=None``: no ``data-recommended-action``.
+
+    Default and explicit None are byte-for-byte identical (no recommended action).
+    """
+    world, game, calendar = _ongoing_fixture()
+    baseline_html = render_game_page(world, game, calendar)
+
+    assert render_game_page(world, game, calendar, player_duchy_id=None) == baseline_html
+
+    root = ET.fromstring(baseline_html)
+    assert _find_by_attr(root, "data-recommended-action") == []
+    assert "data-recommended-action" not in baseline_html
+
+
 def test_render_game_page_omits_hero_chase_when_player_duchy_id_none():
     """Default / explicit ``player_duchy_id=None``: no ``data-hero-chase``.
 
