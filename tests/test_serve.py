@@ -1981,6 +1981,41 @@ def test_game_app_render_engage_forms_one_per_adjacent_enemy_party_region():
     assert "Far" in body
 
 
+def test_game_app_render_develop_order_section_header_before_recruit():
+    """GET / has exactly one develop section header immediately before recruit (K30.1a).
+
+    Contract (task-152 / K30.1a):
+    - with player_duchy_id set, body contains exactly one
+      ``<h2 data-order-section="develop">Rozwój</h2>``
+    - that header appears immediately before the recruit form
+      (``action="/order/recruit"``)
+    - develop header precedes march, assault and engage section headers
+      (order: develop → march → assault → engage)
+    """
+    world, game = _ongoing_world_game()
+    app = GameApp(
+        world, game, Calendar(year=1, month=1), Rng(3), player_duchy_id="north"
+    )
+
+    code, body = app.handle("GET", "/")
+    assert code == 200
+
+    develop_header = '<h2 data-order-section="develop">Rozwój</h2>'
+    march_header = '<h2 data-order-section="march">Marsz</h2>'
+    assault_header = '<h2 data-order-section="assault">Szturm</h2>'
+    engage_header = '<h2 data-order-section="engage">Starcie</h2>'
+    recruit_form_open = '<form method="post" action="/order/recruit">'
+
+    assert body.count(develop_header) == 1
+    assert develop_header + recruit_form_open in body
+
+    develop_pos = body.index(develop_header)
+    march_pos = body.index(march_header)
+    assault_pos = body.index(assault_header)
+    engage_pos = body.index(engage_header)
+    assert develop_pos < march_pos < assault_pos < engage_pos
+
+
 def test_game_app_render_order_section_headers_precede_their_forms():
     """GET / has one h2 header per order section, in order, before its forms (task-112 / K21.2).
 

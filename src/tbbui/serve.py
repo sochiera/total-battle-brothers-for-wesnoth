@@ -57,6 +57,7 @@ _ENGAGE_FORM = (
     "</form>"
 )
 
+_DEVELOP_SECTION_HEADER = '<h2 data-order-section="develop">Rozwój</h2>'
 _MARCH_SECTION_HEADER = '<h2 data-order-section="march">Marsz</h2>'
 _ASSAULT_SECTION_HEADER = '<h2 data-order-section="assault">Szturm</h2>'
 _ENGAGE_SECTION_HEADER = '<h2 data-order-section="engage">Starcie</h2>'
@@ -373,7 +374,8 @@ class GameApp:
         extras = (
             f'<span data-player="{player_value}"></span>'
             f'<p data-notice="{notice_value}">{notice_value}</p>'
-            f"{_TURN_FORM}{_RECRUIT_FORM}{_MUSTER_FORM}"
+            f"{_TURN_FORM}"
+            f"{_DEVELOP_SECTION_HEADER}{_RECRUIT_FORM}{_MUSTER_FORM}"
             f"{_DEVELOP_FORM}"
             f"{_MARCH_SECTION_HEADER}{self._march_forms()}"
             f"{_ASSAULT_SECTION_HEADER}{self._assault_forms()}"

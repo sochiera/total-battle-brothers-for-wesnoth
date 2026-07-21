@@ -199,9 +199,12 @@ K28.1b — `_apply_player_order` ustawia skutek rozkazu rozwoju) oraz formularze
 `<form method="post" action="/order/muster">` (`Zbierz oddział`),
 `<form method="post" action="/order/develop">` (`Rozbuduj osadę`)
 (K29.2a — polskie etykiety `<button>`; `action`/`method` bez zmian),
-a przed grupami marszu/szturmu/starcia po jednym nagłówku
+przed blokiem rozwoju (recruit/muster/develop) nagłówek
+`<h2 data-order-section="develop">Rozwój</h2>` bezpośrednio przed
+`/order/recruit` (K30.1a; stała `_DEVELOP_SECTION_HEADER`), a przed grupami
+marszu/szturmu/starcia po jednym nagłówku
 `<h2 data-order-section="march|assault|engage">Marsz|Szturm|Starcie</h2>`
-(K21.2, kolejność marsz→szturm→starcie; formularze/routing bez zmian),
+(K21.2, kolejność develop→marsz→szturm→starcie; formularze/routing bez zmian),
 sekcję marszu (K15.1c: gdy gracz ma party — po jednym
 `<form method="post" action="/order/march?target=<nazwa>">` na region z obcą
 osadą, `quote` na nazwie, przycisk = nazwa; inaczej bare
