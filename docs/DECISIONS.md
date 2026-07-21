@@ -177,3 +177,7 @@
 | K28.1c | Skutek marszu z celem | `POST /order/march` przez `_apply_player_order`: znany `target` → etykieta `Marsz do {region.name}`, brak/pusty/nieznany → `Marsz`; prymitywy bez zmian. |
 | K28.1d | Skutek szturmu/starcia | `_apply_player_assault_order(transition, label)` ustawia `last_notice` na `{label}: bitwa` / `{label}: brak zmian` (w tym guardy); assault: `Szturm na {name}` / `Szturm`; engage: `Starcie z {name}` / `Starcie`. |
 | K28.1e | Komunikat następnej tury | `POST /turn` ustawia `last_notice` na `Następna tura: rok Y, miesiąc M` (data kalendarza po turze) albo `Następna tura: gra zakończona` gdy `is_over` przed żądaniem; `last_battle` zerowane jak dotąd. |
+| K29.1a | Widoczny komunikat rozkazu | `GameApp._render` renderuje tę samą escapowaną wartość `last_notice` w atrybucie i w ciele akapitu (`<p data-notice="…">…</p>`); pusty komunikat → puste ciało. |
+| K29.2a | Polskie przyciski tury/rozwoju | Etykiety `<button>` formularzy `/turn` i `/order/recruit|muster|develop` zlokalizowane: `Następna tura` / `Rekrutuj` / `Zbierz oddział` / `Rozbuduj osadę`; `action` i routing bez zmian. |
+| K29.2b | Polskie bare przyciski walki | Etykiety bare `<button>` formularzy `/order/march|assault|engage` zlokalizowane: `Marsz` / `Szturm` / `Starcie`; przyciski celów nadal pokazują `region.name`. |
+| R29.1 | Wspólny guard gracza | `GameApp._resolve_player_duchy() -> Duchy | None` scala guard is_over/brak id/nieobecne księstwo; reużyty przez oba `_apply_*`; zachowanie bez zmian. |

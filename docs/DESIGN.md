@@ -549,6 +549,18 @@ re-embeduje zmianę automatycznie; wiersz księstwa jest bezpośrednio w
 `render_game_page`. Dotychczasowe atrybuty/tekst i kolejność wierszy bez zmian.
 Rdzeń `tbb` bez zmian; dane z istniejących `Settlement`/`Duchy`.
 
+**PLAN K29 (czytelny i zlokalizowany interfejs gracza):** K28 zapisał skutek
+rozkazu, ale komunikat żyje tylko w atrybucie `data-notice` (człowiek go nie
+widzi), a przyciski akcji zostały po angielsku obok polskich nagłówków sekcji i
+komunikatów. K29 dopina czytelność podglądu w przeglądarce: `GameApp._render`
+renderuje `last_notice` także jako widoczny tekst w ciele `<p data-notice>`
+(K29.1a, jak widoczny kalendarz K21.1a); etykiety przycisków tury i rozwoju
+(K29.2a: `Następna tura`/`Rekrutuj`/`Zbierz oddział`/`Rozbuduj osadę`) oraz bare
+przycisków walki (K29.2b: `Marsz`/`Szturm`/`Starcie`) zlokalizowane do polskiego
+spójnie z etykietami komunikatów; przyciski celów nadal pokazują `region.name`.
+Refaktor R29.1 scala powielony guard księstwa gracza w `_resolve_player_duchy()`.
+Routing, atrybuty `data-*`, `render_game_page` i rdzeń `tbb` bez zmian.
+
 ## 12. Otwarte pytania (nadal)
 - **Krzywe filarów:** różne parametry stromości per filar oraz wpływ budynków/
   mnożników — strojenie przy balansie (bazowa trójkątna krzywa: U3.2 w DECISIONS).

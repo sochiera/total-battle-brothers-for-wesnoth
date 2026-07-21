@@ -155,11 +155,23 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > (`wykonano` / `brak zmian`) lub czy powstała bitwa (`bitwa`), z celem w
 > etykiecie tam, gdzie gracz go wskazał. `render_game_page` i rdzeń `tbb` bez
 > zmian.
-- [ ] **K28.1a** Slot komunikatu rozkazu (`GameApp.last_notice`, `<p data-notice>`; świeży GET → pusty). *(task-143)*
-- [ ] **K28.1b** Komunikat skutku recruit/muster/develop (`wykonano`/`brak zmian` przez `_apply_player_order(transition, label)`). *(task-144)*
-- [ ] **K28.1c** Komunikat skutku marszu z nazwą celu (`Marsz do <region>` / `Marsz`). *(task-145)*
-- [ ] **K28.1d** Komunikat skutku szturmu i starcia (`bitwa`/`brak zmian` przez `_apply_player_assault_order(transition, label)`). *(task-146)*
-- [ ] **K28.1e** Komunikat następnej tury z datą po ruchu AI (`Następna tura: rok N, miesiąc M`). *(task-147)*
+- [x] **K28.1a** Slot komunikatu rozkazu (`GameApp.last_notice`, `<p data-notice>`; świeży GET → pusty). *(task-143)*
+- [x] **K28.1b** Komunikat skutku recruit/muster/develop (`wykonano`/`brak zmian` przez `_apply_player_order(transition, label)`). *(task-144)*
+- [x] **K28.1c** Komunikat skutku marszu z nazwą celu (`Marsz do <region>` / `Marsz`). *(task-145)*
+- [x] **K28.1d** Komunikat skutku szturmu i starcia (`bitwa`/`brak zmian` przez `_apply_player_assault_order(transition, label)`). *(task-146)*
+- [~] **K28.1e** Komunikat następnej tury z datą po ruchu AI (`Następna tura: rok N, miesiąc M`). *(task-147)*
+
+## Kamień milowy 29 — czytelny i zlokalizowany interfejs gracza (grywalny podgląd)
+> DESIGN §11 (PLAN K29): K28 zapisał skutek rozkazu, ale komunikat żyje tylko w
+> atrybucie `data-notice` (człowiek go nie widzi), a przyciski akcji zostały po
+> angielsku obok polskich nagłówków i komunikatów. K29 dopina czytelność
+> podglądu w przeglądarce: widoczny tekst komunikatu (K29.1a) oraz pełna
+> lokalizacja etykiet przycisków (K29.2a–b). Refaktor R29.1 scala powielony guard
+> księstwa gracza w `serve.py`. Rdzeń `tbb`, `render_game_page` i routing bez zmian.
+- [ ] **K29.1a** Widoczny tekst komunikatu w ciele `<p data-notice>` (jak widoczny kalendarz K21.1a). *(task-148)*
+- [ ] **K29.2a** Polskie etykiety przycisków tury i rozwoju (`Następna tura`/`Rekrutuj`/`Zbierz oddział`/`Rozbuduj osadę`). *(task-149)*
+- [ ] **K29.2b** Polskie etykiety bare przycisków marsz/szturm/starcie (`Marsz`/`Szturm`/`Starcie`). *(task-150)*
+- [ ] **R29.1 (refaktor)** Wspólny guard `_resolve_player_duchy()` w `serve.py`; bez nowych testów. *(task-151)*
 
 ## Dług/refaktor
 - [x] **R21.1 (refaktor)** Wspólny emiter formularzy celu marsz/szturm/starcie w `serve.py`. *(task-113)*
