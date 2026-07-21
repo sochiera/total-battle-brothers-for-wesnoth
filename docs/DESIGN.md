@@ -235,7 +235,8 @@ Najmniejsza grywalna pętla, single-player vs **jedno** księstwo AI:
     `HERO_GOLD_COST` (placeholder `2`), **nie** do garnizonu.
   - `muster(hero)` — garnizon → `Party`; population/occupied −liczba żołnierzy.
   - `absorb_defenders`, `tick_*`, `open_building`.
-- **`Party`** — hero + ≤12 units, `owner_id`; `reconstruct`, `tick_wounds`.
+- **`Party`** — hero + ≤12 units, `owner_id`; `reconstruct`, `tick_wounds`,
+  `tick_training` (czysta metoda; jeszcze nie w `WorldMap.tick_parties`).
 - **`Duchy`** — jak §3.1; `succeed()`, `is_defeated`, `has_hero`.
 - **`GameState`** — krotka księstw; `sync_from_world(world)` odtwarza
   settlements/parties po `owner_id` w kolejności regionów; `contenders`/`is_over`/`winner`.

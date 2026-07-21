@@ -72,3 +72,15 @@ class Party:
             units=tuple(unit.tick_wounds(months) for unit in self.units),
             owner_id=self.owner_id,
         )
+
+    def tick_training(self, months: int = 1) -> "Party":
+        """Return this party after investing ``months`` of training in every member."""
+        if months < 0:
+            raise ValueError("training months cannot be negative")
+        if months == 0:
+            return self
+        return Party(
+            hero=self.hero.train(months),
+            units=tuple(unit.train(months) for unit in self.units),
+            owner_id=self.owner_id,
+        )

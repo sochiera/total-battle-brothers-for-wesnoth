@@ -860,7 +860,9 @@ Uruchamiaj z katalogu `game/`.
   12 podkomendnych `Unit`; bohater jest osobnym polem i nie wlicza się do limitu.
 - **Postęp treningu:** `Unit.train()` reużywa trójkątną krzywą z `progression`;
   autorytatywny poziom pozostaje w `training`, a reszta nakładu przed następnym
-  poziomem w `training_progress`.
+  poziomem w `training_progress`. `Party.tick_training(months=1)` deleguje do
+  `Unit.train` dla hero i każdego podkomendnego (mirror `tick_wounds`); na razie
+  nie jest wołane z `WorldMap.tick_parties()`.
 - **Postęp uzbrojenia:** `Unit.equip()` reużywa tę samą trójkątną krzywą;
   autorytatywny poziom pozostaje w `equipment`, a reszta nakładu przed następnym
   poziomem w `equipment_progress`.

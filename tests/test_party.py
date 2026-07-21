@@ -229,6 +229,24 @@ def test_tick_wounds_zero_is_noop_and_negative_raises():
         party.tick_wounds(-1)
 
 
+def test_tick_training_trains_hero_and_units_and_preserves_owner():
+    """Party.tick_training delegates to Unit.train for hero and each unit."""
+    hero = Unit(training=2, training_progress=0)
+    subordinate = Unit(training=0, training_progress=0, equipment=3)
+    party = Party(hero, (subordinate,), owner_id="north")
+
+    trained = party.tick_training(1)
+
+    assert trained is not party
+    assert trained.owner_id == "north"
+    assert trained.hero == hero.train(1)
+    assert trained.units == (subordinate.train(1),)
+    assert party.hero == hero
+    assert party.units == (subordinate,)
+    assert party.hero.training == 2
+    assert party.units[0].training == 0
+
+
 def test_public_api_exports_party():
     from tbb import Party as PublicParty
 
