@@ -12,11 +12,13 @@ def render_party_panel(
 
     Root is ``<div data-party-panel="">`` with one ``data-party-row`` child
     per region that has a party, in ``world.regions`` order. Each row carries
-    ``data-owner`` / ``data-size`` / ``data-hp`` (sum of ``Unit.hp`` over hero
-    and subordinates) and visible text matching those attributes, including
-    the `` · siła: HP H`` suffix. When ``player_duchy_id`` is not ``None``,
-    rows whose ``owner_id`` matches get ``data-player-owned=""``. Pure and
-    deterministic: no RNG/IO; ``world`` is not mutated.
+    ``data-owner`` / ``data-size`` / ``data-hp`` / ``data-attack`` /
+    ``data-defense`` (sums of ``Unit.hp`` / ``Unit.damage`` / ``Unit.defense``
+    over hero and subordinates) and visible text matching those attributes,
+    including the `` · siła: HP H, atak A, obrona D`` suffix. When
+    ``player_duchy_id`` is not ``None``, rows whose ``owner_id`` matches get
+    ``data-player-owned=""``. Pure and deterministic: no RNG/IO; ``world`` is
+    not mutated.
     """
     rows: list[str] = []
     for region in world.regions:
@@ -26,10 +28,13 @@ def render_party_panel(
         owner = party.owner_id or ""
         owner_text = party.owner_id if party.owner_id is not None else "—"
         size = len(party.units)
-        total_hp = party.hero.hp + sum(u.hp for u in party.units)
+        roster = (party.hero, *party.units)
+        total_hp = sum(u.hp for u in roster)
+        total_attack = sum(u.damage for u in roster)
+        total_defense = sum(u.defense for u in roster)
         text = (
             f"{region.name} ({owner_text}): bohater + {size} podkomendnych"
-            f" · siła: HP {total_hp}"
+            f" · siła: HP {total_hp}, atak {total_attack}, obrona {total_defense}"
         )
         player_owned = (
             ' data-player-owned=""'
@@ -41,6 +46,8 @@ def render_party_panel(
             f' data-owner="{owner}"'
             f' data-size="{size}"'
             f' data-hp="{total_hp}"'
+            f' data-attack="{total_attack}"'
+            f' data-defense="{total_defense}"'
             f"{player_owned}"
             f">{text}</div>"
         )
