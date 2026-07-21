@@ -247,6 +247,36 @@ def test_tick_training_trains_hero_and_units_and_preserves_owner():
     assert party.units[0].training == 0
 
 
+def test_tick_training_zero_is_noop_and_negative_raises():
+    """months == 0 returns the same Party; months < 0 raises ValueError."""
+    hero = Unit(training=2, training_progress=0)
+    subordinate = Unit(training=0, training_progress=0, equipment=3)
+    party = Party(hero, (subordinate,), owner_id="north")
+
+    assert party.tick_training(0) is party
+    assert party.tick_training(0) == party
+    assert party.hero.training == 2
+    assert party.units[0].training == 0
+
+    with pytest.raises(ValueError):
+        party.tick_training(-1)
+
+
+def test_tick_training_empty_units_trains_hero_only():
+    """Party with only a hero keeps units=() and still trains the hero."""
+    hero = Unit(training=1, training_progress=0)
+    party = Party(hero, owner_id="south")
+
+    trained = party.tick_training(1)
+
+    assert trained is not party
+    assert trained.owner_id == "south"
+    assert trained.units == ()
+    assert trained.hero == hero.train(1)
+    assert party.units == ()
+    assert party.hero == hero
+
+
 def test_public_api_exports_party():
     from tbb import Party as PublicParty
 
