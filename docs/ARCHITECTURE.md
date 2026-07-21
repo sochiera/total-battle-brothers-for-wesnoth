@@ -360,7 +360,7 @@ celów w zasięgu — rozwijaj gospodarkę"`. Osadzony w `render_game_page` zara
 po `data-situation-report` (K41.3a). Czyste, deterministyczne, bez mutacji
 `world`/`game`; rdzeń bez zmian.
 
-**Zalecany rozkaz w jeden klik w GameApp (K42.1b / K42.1c / K42.2a / K48.1c / K48.1d / K49.1c):**
+**Zalecany rozkaz w jeden klik w GameApp (K42.1b / K42.1c / K42.2a / K48.1c / K48.1d / K49.1c / K50.1c):**
 `tbbui.serve.recommended_order_path(action) -> str` — czysta mapa akcji na
 istniejącą trasę POST: `assault`→`/order/assault`, `engage`→`/order/engage`,
 `defend`→`/order/march` (obrona zagrożonej pozycji = marsz party tam),
@@ -373,11 +373,14 @@ pętli rada→akcja dla zbiórki). GameApp w `GET /` extras (prywatny
 data-recommended-order="">` przed `_DEVELOP_SECTION_HEADER`; sufiks `?target=`
 tylko gdy `recommended_order` zwraca region (brak przy `develop` / `muster`);
 przycisk niesie `Wykonaj zalecenie: {recommended_order_text(action, target)}`
-(escapowany). Brak `data-recommended-order` przy `player_duchy_id=None`,
-`is_over` lub `recommended_order(...) is None`. Reużywa istniejące trasy
-`/order/*` (bez nowego backendu rozkazów); dla `muster` ten sam
-`POST /order/muster` co rozkaz z sekcji rozwoju (`ai.muster_duchy_party`,
-K14.2b / K48.1d).
+(escapowany); po przycisku dokładnie jedno
+`<p data-recommended-order-reason="{reason}">{reason}</p>` z
+`recommended_order_reason` (`html.escape(..., quote=True)` na atrybucie i
+ciele) — K50.1c. Brak `data-recommended-order` (i uzasadnienia) przy
+`player_duchy_id=None`, `is_over` lub `recommended_order(...) is None`.
+Reużywa istniejące trasy `/order/*` (bez nowego backendu rozkazów); dla
+`muster` ten sam `POST /order/muster` co rozkaz z sekcji rozwoju
+(`ai.muster_duchy_party`, K14.2b / K48.1d).
 
 **Lokalizacja party na mapie (R37.1):**
 `tbbui.maplookup.first_party_region(world, owner_id) -> Region | None` — pierwszy

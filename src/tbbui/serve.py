@@ -17,7 +17,11 @@ from tbb.world import Region, WorldMap
 from tbbui.battlereport import attacker_losses, battle_outcome_text, defender_losses
 from tbbui.gamepage import render_game_page
 from tbbui.orderlog import format_log_entry, render_order_log
-from tbbui.recommendedaction import recommended_order, recommended_order_text
+from tbbui.recommendedaction import (
+    recommended_order,
+    recommended_order_reason,
+    recommended_order_text,
+)
 
 ORDER_LOG_LIMIT = 10
 
@@ -442,7 +446,7 @@ class GameApp:
         return _ENGAGE_FORM
 
     def _recommended_order_form(self) -> str:
-        """One-click form for the K41 recommendation when player/advice allow (K42.1c/K42.2a).
+        """One-click form for the K41 recommendation when player/advice allow.
 
         Empty string when ``player_duchy_id`` is missing, the game is over, or
         ``recommended_order`` returns ``None``. Otherwise a single POST form
@@ -450,7 +454,9 @@ class GameApp:
         ``recommended_order_path(action)`` plus ``?target=quote(region)`` when
         the recommendation names a region (no target suffix for ``develop``).
         Button label is ``Wykonaj zalecenie: {recommended_order_text(...)}``
-        (html-escaped).
+        (html-escaped). After the button: one
+        ``<p data-recommended-order-reason="{reason}">{reason}</p>`` from
+        ``recommended_order_reason`` (``html.escape(..., quote=True)``) — K50.1c.
         """
         if self.player_duchy_id is None or self.game.is_over:
             return ""
@@ -462,9 +468,15 @@ class GameApp:
         if region is not None:
             path = f"{path}?target={quote(region)}"
         label = escape(f"Wykonaj zalecenie: {recommended_order_text(action, region)}")
+        reason = recommended_order_reason(
+            self.world, self.game, self.player_duchy_id
+        )
+        escaped_reason = escape(reason, quote=True)
         return (
             f'<form method="post" action="{path}" data-recommended-order="">'
             f'<button type="submit">{label}</button>'
+            f'<p data-recommended-order-reason="{escaped_reason}">'
+            f"{escaped_reason}</p>"
             "</form>"
         )
 
