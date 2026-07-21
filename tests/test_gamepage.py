@@ -703,6 +703,21 @@ def test_render_game_page_omits_victory_progress_when_player_duchy_id_none():
     assert "data-victory-progress" not in baseline_html
 
 
+def test_render_game_page_omits_next_objective_when_player_duchy_id_none():
+    """Default / explicit ``player_duchy_id=None``: no ``data-next-objective``.
+
+    Default and explicit None are byte-for-byte identical (no next-objective hint).
+    """
+    world, game, calendar = _ongoing_fixture()
+    baseline_html = render_game_page(world, game, calendar)
+
+    assert render_game_page(world, game, calendar, player_duchy_id=None) == baseline_html
+
+    root = ET.fromstring(baseline_html)
+    assert _find_by_attr(root, "data-next-objective") == []
+    assert "data-next-objective" not in baseline_html
+
+
 def test_render_game_page_omits_player_summary_when_player_duchy_id_none():
     """Default / explicit ``player_duchy_id=None``: no ``data-player-summary``."""
     world, game, calendar = _ongoing_fixture()
