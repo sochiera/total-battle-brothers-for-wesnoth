@@ -600,6 +600,121 @@ def test_recommended_order_defensive_defend_and_balanced_develop():
     )
 
 
+def test_recommended_order_balanced_march_when_player_march_target():
+    """Balanced posture: ``recommended_order`` returns ``("march", target)``
+    when ``player_march_target(...) is not None``; when ``None`` still
+    ``("develop", None)`` — K49.1c.
+
+    ``target`` is exactly ``player_march_target(world, game, player_duchy_id)``.
+    Muster / offensive / defensive priority (K48.1c) is unchanged: ``march`` is
+    considered only after those branches (on the balanced path). Pure: no
+    world/game mutation.
+    """
+    player_march_target = recommendedaction.player_march_target
+    home = Region("Home")
+    road = Region("Road")
+    far_enemy = Region("FarEnemy")
+    keep = Region("Keep")
+    enemy_camp = Region("EnemyCamp")
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+
+    # balanced + distant enemy settlement (distance >= 2) → march
+    # Home — Road — FarEnemy; party at Home, enemy settlement at FarEnemy
+    march_world = WorldMap(
+        [home, road, far_enemy],
+        [(home, road), (road, far_enemy)],
+        parties={home: Party(hero=Unit(), units=(), owner_id="player")},
+        settlements={
+            far_enemy: Settlement("FarS", population=2, owner_id="enemy"),
+        },
+    )
+    m = advantageous_target_count(march_world, game, "player")
+    n = threatened_position_count(march_world, game, "player")
+    assert net_posture(m, n) == "balanced"
+    target = player_march_target(march_world, game, "player")
+    assert target is not None
+    assert target == far_enemy.name
+
+    regions_before = march_world.regions
+    parties_before = {r: march_world.party_at(r) for r in march_world.regions}
+    settlements_before = {
+        r: march_world.settlement_at(r) for r in march_world.regions
+    }
+    duchies_before = game.duchies
+
+    assert recommended_order(march_world, game, "player") == ("march", target)
+
+    assert march_world.regions == regions_before
+    assert {
+        r: march_world.party_at(r) for r in march_world.regions
+    } == parties_before
+    assert {
+        r: march_world.settlement_at(r) for r in march_world.regions
+    } == settlements_before
+    assert game.duchies == duchies_before
+
+    # balanced + no march target (no enemy settlement) → still develop
+    alone_world = WorldMap(
+        [home],
+        [],
+        parties={home: Party(hero=Unit(), units=(), owner_id="player")},
+        settlements={},
+    )
+    m = advantageous_target_count(alone_world, game, "player")
+    n = threatened_position_count(alone_world, game, "player")
+    assert net_posture(m, n) == "balanced"
+    assert player_march_target(alone_world, game, "player") is None
+    assert recommended_order(alone_world, game, "player") == ("develop", None)
+
+    # priority unchanged: offensive still wins over march when M>N
+    # (adjacent enemy settlement: distance < 2 so march target is None anyway,
+    # and posture is offensive → assault)
+    assault_world = WorldMap(
+        [home, enemy_camp],
+        [(home, enemy_camp)],
+        parties={home: Party(hero=Unit(), units=(), owner_id="player")},
+        settlements={
+            enemy_camp: Settlement(
+                "EnemyS", population=2, owner_id="enemy"
+            ),
+        },
+    )
+    m = advantageous_target_count(assault_world, game, "player")
+    n = threatened_position_count(assault_world, game, "player")
+    assert net_posture(m, n) == "offensive"
+    assert recommended_order(assault_world, game, "player") == (
+        "assault",
+        enemy_camp.name,
+    )
+
+    # priority unchanged: defensive still wins (party fielded → no muster)
+    defensive_world = WorldMap(
+        [keep, enemy_camp],
+        [(keep, enemy_camp)],
+        parties={
+            keep: Party(hero=Unit(), units=(), owner_id="player"),
+            enemy_camp: Party(hero=Unit(), units=(), owner_id="enemy"),
+        },
+        settlements={
+            keep: Settlement("KeepS", population=2, owner_id="player"),
+        },
+    )
+    m = advantageous_target_count(defensive_world, game, "player")
+    n = threatened_position_count(defensive_world, game, "player")
+    assert net_posture(m, n) == "defensive"
+    threatened = first_threatened_region(defensive_world, game, "player")
+    assert threatened is not None
+    assert recommended_order(defensive_world, game, "player") == (
+        "defend",
+        threatened,
+    )
+
+
 def test_render_recommended_action_empty_root_when_none_or_unknown_duchy():
     """When ``player_duchy_id`` is ``None`` or not in ``game.duchies``
     (``player_duchy(...) is None``), return a bare empty root

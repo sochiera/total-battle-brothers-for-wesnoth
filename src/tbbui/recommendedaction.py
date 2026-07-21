@@ -88,14 +88,15 @@ def recommended_order(
 ) -> tuple[str, str | None] | None:
     """Return machine decision ``(action, target_region_name)`` for the player.
 
-    ``action`` ∈ ``{"muster", "assault", "engage", "defend", "develop"}``;
-    ``target`` is the region name, or ``None`` for ``muster``/``develop``.
-    Returns ``None`` when ``player_duchy(game, player_duchy_id) is None``
-    (no player or id not in ``game.duchies``). When
-    ``player_can_muster(...)`` is True, returns ``("muster", None)`` before
-    posture (K48.1c). Otherwise same posture/target rules as
-    ``render_recommended_action``. Pure and deterministic: no RNG/IO; does not
-    mutate ``world`` or ``game``.
+    ``action`` ∈ ``{"muster", "assault", "engage", "defend", "march",
+    "develop"}``; ``target`` is the region name, or ``None`` for
+    ``muster``/``develop``. Returns ``None`` when
+    ``player_duchy(game, player_duchy_id) is None`` (no player or id not in
+    ``game.duchies``). When ``player_can_muster(...)`` is True, returns
+    ``("muster", None)`` before posture (K48.1c). Offensive/defensive as
+    before; on balanced path, ``("march", player_march_target(...))`` when
+    that target is not ``None``, else ``("develop", None)`` (K49.1c). Pure
+    and deterministic: no RNG/IO; does not mutate ``world`` or ``game``.
     """
     if player_duchy(game, player_duchy_id) is None:
         return None
@@ -118,6 +119,9 @@ def recommended_order(
         region = first_threatened_region(world, game, player_duchy_id)
         assert region is not None
         return "defend", region
+    march_target = player_march_target(world, game, player_duchy_id)
+    if march_target is not None:
+        return "march", march_target
     return "develop", None
 
 
@@ -159,8 +163,9 @@ def render_recommended_action(
     ``engagementpreview.advantageous_target_count``, N =
     ``threatalert.threatened_position_count``), then ``data-action`` and
     visible text from ``recommended_order`` / ``recommended_order_text``
-    (``muster|assault|engage|defend|develop`` and the matching order line).
-    Pure and deterministic: no RNG/IO; does not mutate ``world`` or ``game``.
+    (``muster|assault|engage|defend|march|develop`` and the matching order
+    line). Pure and deterministic: no RNG/IO; does not mutate ``world`` or
+    ``game``.
     """
     order = recommended_order(world, game, player_duchy_id)
     if order is None:

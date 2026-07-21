@@ -82,6 +82,7 @@ _RECOMMENDED_ORDER_PATHS = {
     "assault": "/order/assault",
     "engage": "/order/engage",
     "defend": "/order/march",
+    "march": "/order/march",
     "develop": "/order/develop",
     "muster": "/order/muster",
 }
@@ -91,8 +92,9 @@ def recommended_order_path(action: str) -> str:
     """Map recommendation machine action to an existing POST order route.
 
     Pure and deterministic: ``assault``/``engage``/``develop``/``muster`` keep
-    their names; ``defend`` reuses ``/order/march`` (move the party to the
-    threatened position). Unknown actions raise ``KeyError``.
+    their names; ``defend`` and ``march`` reuse ``/order/march`` (defend =
+    move to a threatened position; march = approach a distant enemy
+    settlement). Unknown actions raise ``KeyError``.
     """
     return _RECOMMENDED_ORDER_PATHS[action]
 

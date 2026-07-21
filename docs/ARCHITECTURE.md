@@ -326,30 +326,32 @@ player_duchy_id)` istnieje z `ai.region_distance(world, R, target) >= 2`,
 zwraca `target.name`; brak wrogiej osady lub dystans `< 2` → `None`. Czyste,
 deterministyczne, bez mutacji `world`/`game`; rdzeń bez zmian.
 
-**Zalecany rozkaz HTML (K41.1a / K41.1b / K41.1c / K41.2a / K41.3a / K48.1c):**
+**Zalecany rozkaz HTML (K41.1a / K41.1b / K41.1c / K41.2a / K41.3a / K48.1c / K49.1c):**
 `tbbui.recommendedaction.render_recommended_action(world, game, player_duchy_id=None) -> str`
 — parsowalny fragment z korzeniem `<div data-recommended-action="">`. Gdy
 `player_duchy(...) is None` → sam pusty korzeń (bez `data-posture`, bez
 `data-action`, bez tekstu, bez dzieci). Przy znanym graczu: `data-posture` =
 `net_posture(M, N)` (M = `advantageous_target_count`, N =
-`threatened_position_count`) — bez zmian przy `muster`; zaraz po nim
+`threatened_position_count`) — bez zmian przy `muster` / `march`; zaraz po nim
 `data-action` i tekst z `recommended_order` / `recommended_order_text`.
 Maszynowa decyzja: `recommended_order(world, game, player_duchy_id=None) ->
-tuple[str, str | None] | None` (K42.1a / K48.1c) — brak gracza → `None`; gdy
-`player_can_muster(...)` → `("muster", None)` **przed** gałęzią postawy;
-inaczej postawa: `assault` (ofensywna, `kind=="settlement"`) / `engage`
-(ofensywna, `kind=="party"`) z `first_advantageous_target`; `defend` z
-`first_threatened_region` (defensywna ⇒ N≥1); `develop` gdy zrównoważona
-(target `None`). Tekst: `recommended_order_text` (K42.2a / K48.1b / K49.1b:
-`szturmuj osadę <R>` / `zaatakuj oddział <R>` / `broń pozycji <R>` /
+tuple[str, str | None] | None` (K42.1a / K48.1c / K49.1c) — brak gracza →
+`None`; gdy `player_can_muster(...)` → `("muster", None)` **przed** gałęzią
+postawy; inaczej postawa: `assault` (ofensywna, `kind=="settlement"`) /
+`engage` (ofensywna, `kind=="party"`) z `first_advantageous_target`; `defend`
+z `first_threatened_region` (defensywna ⇒ N≥1); zrównoważona: gdy
+`player_march_target(...) is not None` → `("march", target)` (K49.1c), inaczej
+`("develop", None)`. Tekst: `recommended_order_text` (K42.2a / K48.1b /
+K49.1b: `szturmuj osadę <R>` / `zaatakuj oddział <R>` / `broń pozycji <R>` /
 `maszeruj ku osadzie <R>` / `zbierz oddział` / `rozwijaj księstwo`). Osadzony
 w `render_game_page` zaraz po `data-situation-report` (K41.3a). Czyste,
 deterministyczne, bez mutacji `world`/`game`; rdzeń bez zmian.
 
-**Zalecany rozkaz w jeden klik w GameApp (K42.1b / K42.1c / K42.2a / K48.1c / K48.1d):**
+**Zalecany rozkaz w jeden klik w GameApp (K42.1b / K42.1c / K42.2a / K48.1c / K48.1d / K49.1c):**
 `tbbui.serve.recommended_order_path(action) -> str` — czysta mapa akcji na
 istniejącą trasę POST: `assault`→`/order/assault`, `engage`→`/order/engage`,
 `defend`→`/order/march` (obrona zagrożonej pozycji = marsz party tam),
+`march`→`/order/march` (marsz ku odległej wrogiej osadzie z K49.1c),
 `develop`→`/order/develop`, `muster`→`/order/muster` (K48.1d — domknięcie
 pętli rada→akcja dla zbiórki). GameApp w `GET /` extras (prywatny
 `_recommended_order_form`) — przy ustawionym `player_duchy_id`, grze nie
