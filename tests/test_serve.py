@@ -17,7 +17,7 @@ from tbb.settlement import Settlement
 from tbb.turn import Calendar
 from tbb.unit import Unit
 from tbb.world import Region, WorldMap
-from tbbui.battlereport import attacker_losses, battle_outcome_text
+from tbbui.battlereport import attacker_losses, battle_outcome_text, defender_losses
 from tbbui.battlesvg import render_battle_svg
 from tbbui.orderlog import format_log_entry, render_order_log
 from tbbui.recommendedaction import recommended_order, recommended_order_text
@@ -1080,18 +1080,18 @@ def test_game_app_post_order_march_with_target_sets_last_notice_with_region_name
 
 
 def test_game_app_post_order_assault_and_engage_last_notice_uses_battle_outcome_text():
-    """Battle orders set last_notice from battle_outcome_text, not literal „bitwa" (K46.1b / K46.2b).
+    """Battle orders set last_notice from battle_outcome_text, not literal „bitwa" (K46.1b / K46.2b / K47.1b).
 
     Contract:
     - POST /order/assault?target=KeepB that conquers the settlement sets
-      last_notice == f"Szturm na KeepB: zwycięstwo (straty: {attacker_losses(...)})"
+      last_notice == f"Szturm na KeepB: zwycięstwo (straty: {attacker_losses(...)}, wróg: {defender_losses(...)})"
       and data-notice matches.
     - POST /order/engage?target=EnemyB that records a battle sets
-      last_notice == f"Starcie z EnemyB: {battle_outcome_text(...)} (straty: {attacker_losses(...)})"
+      last_notice == f"Starcie z EnemyB: {battle_outcome_text(...)} (straty: {attacker_losses(...)}, wróg: {defender_losses(...)})"
       (not the literal suffix ``bitwa``); data-notice matches last_notice.
     No-op paths stay ``"{label}: brak zmian"`` (covered by K28.1d tests).
     """
-    # --- assault: conquest → "zwycięstwo" + straty ---
+    # --- assault: conquest → "zwycięstwo" + straty obu stron ---
     start, keep_a_region, keep_b_region = map(
         Region, ("Start", "KeepA", "KeepB")
     )
@@ -1120,7 +1120,8 @@ def test_game_app_post_order_assault_and_engage_last_notice_uses_battle_outcome_
     assert code == 200
     assert app.last_battle is not None
     expected_assault = (
-        f"Szturm na KeepB: zwycięstwo (straty: {attacker_losses(app.last_battle)})"
+        f"Szturm na KeepB: zwycięstwo (straty: {attacker_losses(app.last_battle)}, "
+        f"wróg: {defender_losses(app.last_battle)})"
     )
     assert app.last_notice == expected_assault
     notices = _find_by_attr(ET.fromstring(body), "data-notice")
@@ -1128,7 +1129,7 @@ def test_game_app_post_order_assault_and_engage_last_notice_uses_battle_outcome_
     assert notices[0].get("data-notice") == expected_assault
     assert notices[0].get("data-notice") == app.last_notice
 
-    # --- engage: last_notice carries battle_outcome_text + attacker_losses ---
+    # --- engage: last_notice carries battle_outcome_text + straty obu stron ---
     start_e, enemy_a, enemy_b = map(Region, ("Start", "EnemyA", "EnemyB"))
     north_party = Party(Unit(training=5, equipment=6), owner_id="north")
     south_party_a = Party(Unit(training=1, equipment=1), owner_id="south")
@@ -1162,7 +1163,8 @@ def test_game_app_post_order_assault_and_engage_last_notice_uses_battle_outcome_
     assert engage_app.last_battle is not None
     expected_engage = (
         f"Starcie z EnemyB: {battle_outcome_text(engage_app.last_battle)} "
-        f"(straty: {attacker_losses(engage_app.last_battle)})"
+        f"(straty: {attacker_losses(engage_app.last_battle)}, "
+        f"wróg: {defender_losses(engage_app.last_battle)})"
     )
     assert engage_app.last_notice == expected_engage
     assert not engage_app.last_notice.endswith(": bitwa")
@@ -1173,10 +1175,11 @@ def test_game_app_post_order_assault_and_engage_last_notice_uses_battle_outcome_
 
 
 def test_game_app_post_order_assault_last_notice_includes_attacker_losses():
-    """POST /order/assault?target=KeepB appends own losses to last_notice (K46.2b).
+    """POST /order/assault?target=KeepB appends own losses to last_notice (K46.2b / K47.1b).
 
     Contract: after a conquering assault, last_notice ==
-    f"Szturm na KeepB: zwycięstwo (straty: {attacker_losses(app.last_battle)})"
+    f"Szturm na KeepB: zwycięstwo (straty: {attacker_losses(app.last_battle)}, "
+    f"wróg: {defender_losses(app.last_battle)})"
     and the page ``data-notice`` matches that exact string. No-op / guard
     paths keep ``"{label}: brak zmian"`` (covered elsewhere).
     """
@@ -1208,7 +1211,55 @@ def test_game_app_post_order_assault_last_notice_includes_attacker_losses():
     assert code == 200
     assert app.last_battle is not None
     expected = (
-        f"Szturm na KeepB: zwycięstwo (straty: {attacker_losses(app.last_battle)})"
+        f"Szturm na KeepB: zwycięstwo (straty: {attacker_losses(app.last_battle)}, "
+        f"wróg: {defender_losses(app.last_battle)})"
+    )
+    assert app.last_notice == expected
+    notices = _find_by_attr(ET.fromstring(body), "data-notice")
+    assert len(notices) == 1
+    assert notices[0].get("data-notice") == expected
+    assert notices[0].get("data-notice") == app.last_notice
+
+
+def test_game_app_post_order_assault_last_notice_includes_defender_losses():
+    """POST /order/assault?target=KeepB appends enemy losses to last_notice (K47.1b).
+
+    Contract: after a conquering assault, last_notice ==
+    f"Szturm na KeepB: zwycięstwo (straty: {attacker_losses(app.last_battle)}, "
+    f"wróg: {defender_losses(app.last_battle)})"
+    and the page ``data-notice`` matches that exact string. No-op / guard
+    paths keep ``"{label}: brak zmian"`` (covered elsewhere).
+    """
+    start, keep_a_region, keep_b_region = map(
+        Region, ("Start", "KeepA", "KeepB")
+    )
+    party = Party(Unit(training=5, equipment=6), owner_id="north")
+    keep_a = Settlement(
+        "Keep A", population=1, garrison=(Unit(equipment=1),), owner_id="south"
+    )
+    keep_b = Settlement(
+        "Keep B", population=1, garrison=(Unit(equipment=1),), owner_id="south"
+    )
+    world = WorldMap(
+        (start, keep_a_region, keep_b_region),
+        ((start, keep_a_region), (start, keep_b_region)),
+        settlements={keep_a_region: keep_a, keep_b_region: keep_b},
+        parties={start: party},
+    )
+    game = GameState(
+        (
+            Duchy("north", party.hero, parties=(party,), morale=10),
+            Duchy("south", Unit(), settlements=(keep_a, keep_b), morale=-5),
+        )
+    )
+    app = GameApp(world, game, Calendar(year=2, month=3), Rng(11), player_duchy_id="north")
+
+    code, body = app.handle("POST", "/order/assault?target=KeepB")
+    assert code == 200
+    assert app.last_battle is not None
+    expected = (
+        f"Szturm na KeepB: zwycięstwo (straty: {attacker_losses(app.last_battle)}, "
+        f"wróg: {defender_losses(app.last_battle)})"
     )
     assert app.last_notice == expected
     notices = _find_by_attr(ET.fromstring(body), "data-notice")
@@ -1218,11 +1269,11 @@ def test_game_app_post_order_assault_last_notice_includes_attacker_losses():
 
 
 def test_game_app_post_order_assault_with_target_sets_last_notice_bitwa_then_brak_zmian():
-    """POST /order/assault?target=<region> sets last_notice via target-named label (K28.1d / K46.1b / K46.2b).
+    """POST /order/assault?target=<region> sets last_notice via target-named label (K28.1d / K46.1b / K46.2b / K47.1b).
 
     Contract: a known target uses label f"Szturm na {region.name}"; when the
     recorded assault returns a battle, last_notice ==
-    f"Szturm na KeepB: {battle_outcome_text(last_battle)} (straty: {attacker_losses(last_battle)})"
+    f"Szturm na KeepB: {battle_outcome_text(last_battle)} (straty: {attacker_losses(last_battle)}, wróg: {defender_losses(last_battle)})"
     and the page carries matching data-notice; a subsequent assault that finds
     no enemy (battle is None) sets last_notice == "Szturm na KeepB: brak zmian".
     last_battle remains set after the hit assault (primitives / return code
@@ -1261,7 +1312,7 @@ def test_game_app_post_order_assault_with_target_sets_last_notice_bitwa_then_bra
     assert app.last_battle is not None
     expected_hit = (
         f"Szturm na KeepB: {battle_outcome_text(app.last_battle)} "
-        f"(straty: {attacker_losses(app.last_battle)})"
+        f"(straty: {attacker_losses(app.last_battle)}, wróg: {defender_losses(app.last_battle)})"
     )
     assert app.last_notice == expected_hit
     root = ET.fromstring(body)
@@ -1280,11 +1331,11 @@ def test_game_app_post_order_assault_with_target_sets_last_notice_bitwa_then_bra
 
 
 def test_game_app_post_order_engage_with_target_sets_last_notice_bitwa_then_brak_zmian():
-    """POST /order/engage?target=<region> sets last_notice via target-named label (K28.1d / K46.1b / K46.2b).
+    """POST /order/engage?target=<region> sets last_notice via target-named label (K28.1d / K46.1b / K46.2b / K47.1b).
 
     Contract: a known target uses label f"Starcie z {region.name}"; when the
     recorded engage returns a battle, last_notice ==
-    f"Starcie z EnemyB: {battle_outcome_text(last_battle)} (straty: {attacker_losses(last_battle)})"
+    f"Starcie z EnemyB: {battle_outcome_text(last_battle)} (straty: {attacker_losses(last_battle)}, wróg: {defender_losses(last_battle)})"
     and the page carries matching data-notice; a subsequent engage that finds
     no enemy (battle is None) sets last_notice == "Starcie z EnemyB: brak zmian".
     """
@@ -1318,7 +1369,7 @@ def test_game_app_post_order_engage_with_target_sets_last_notice_bitwa_then_brak
     assert app.last_battle is not None
     expected_hit = (
         f"Starcie z EnemyB: {battle_outcome_text(app.last_battle)} "
-        f"(straty: {attacker_losses(app.last_battle)})"
+        f"(straty: {attacker_losses(app.last_battle)}, wróg: {defender_losses(app.last_battle)})"
     )
     assert app.last_notice == expected_hit
     root = ET.fromstring(body)
@@ -1337,11 +1388,11 @@ def test_game_app_post_order_engage_with_target_sets_last_notice_bitwa_then_brak
 
 
 def test_game_app_post_order_assault_without_target_sets_last_notice_szturm():
-    """POST /order/assault (no/unknown target) uses bare label "Szturm" (K28.1d / K46.1b / K46.2b).
+    """POST /order/assault (no/unknown target) uses bare label "Szturm" (K28.1d / K46.1b / K46.2b / K47.1b).
 
     Contract: missing or unknown ``target`` falls back to auto assault with
     label "Szturm"; a hit battle sets last_notice ==
-    f"Szturm: {battle_outcome_text(last_battle)} (straty: {attacker_losses(last_battle)})"
+    f"Szturm: {battle_outcome_text(last_battle)} (straty: {attacker_losses(last_battle)}, wróg: {defender_losses(last_battle)})"
     (and data-notice); a no-op (no adjacent enemy keep) sets "Szturm: brak zmian".
     """
     start, keep_region = map(Region, ("Start", "KeepB"))
@@ -1371,7 +1422,7 @@ def test_game_app_post_order_assault_without_target_sets_last_notice_szturm():
     assert app.last_battle is not None
     expected_hit = (
         f"Szturm: {battle_outcome_text(app.last_battle)} "
-        f"(straty: {attacker_losses(app.last_battle)})"
+        f"(straty: {attacker_losses(app.last_battle)}, wróg: {defender_losses(app.last_battle)})"
     )
     assert app.last_notice == expected_hit
     root = ET.fromstring(body)
@@ -1405,11 +1456,11 @@ def test_game_app_post_order_assault_without_target_sets_last_notice_szturm():
 
 
 def test_game_app_post_order_engage_without_target_sets_last_notice_starcie():
-    """POST /order/engage (no/unknown target) uses bare label "Starcie" (K28.1d / K46.1b / K46.2b).
+    """POST /order/engage (no/unknown target) uses bare label "Starcie" (K28.1d / K46.1b / K46.2b / K47.1b).
 
     Contract: missing or unknown ``target`` falls back to auto engage with
     label "Starcie"; a hit battle sets last_notice ==
-    f"Starcie: {battle_outcome_text(last_battle)} (straty: {attacker_losses(last_battle)})";
+    f"Starcie: {battle_outcome_text(last_battle)} (straty: {attacker_losses(last_battle)}, wróg: {defender_losses(last_battle)})";
     a no-op (no adjacent enemy party) sets "Starcie: brak zmian".
     """
     start, target = map(Region, ("Start", "Target"))
@@ -1436,7 +1487,7 @@ def test_game_app_post_order_engage_without_target_sets_last_notice_starcie():
     assert app.last_battle is not None
     expected_hit = (
         f"Starcie: {battle_outcome_text(app.last_battle)} "
-        f"(straty: {attacker_losses(app.last_battle)})"
+        f"(straty: {attacker_losses(app.last_battle)}, wróg: {defender_losses(app.last_battle)})"
     )
     assert app.last_notice == expected_hit
     root = ET.fromstring(body)
