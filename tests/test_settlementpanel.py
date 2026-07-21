@@ -95,9 +95,57 @@ def test_render_settlement_panel_rows_carry_population_and_garrison():
     assert row_a.attrib["data-garrison"] == "2"
 
     text = "".join(row_a.itertext())
-    assert (
-        text
-        == "Keep A (north): pszenica 5, złoto 3 · populacja 5 (wolne 3), garnizon 2"
+    assert text.startswith(
+        "Keep A (north): pszenica 5, złoto 3 · populacja 5 (wolne 3), garnizon 2"
+    )
+
+
+def test_render_settlement_panel_rows_carry_garrison_hp():
+    """Each row also carries data-garrison-hp = sum of Unit.hp across the
+    garrison, and the visible text appends `` · siła garnizonu: HP H`` after
+    the K25.1a text, leaving the other attributes/text unchanged. Empty
+    garrison yields data-garrison-hp="0".
+    """
+    a = Region("A")
+    b = Region("B")
+    world = WorldMap(
+        [a, b],
+        [(a, b)],
+        settlements={
+            a: Settlement(
+                "Keep A",
+                population=5,
+                occupied=2,
+                owner_id="north",
+                storage=Resources(wheat=5, gold=3),
+                garrison=(Unit(), Unit()),
+            ),
+            b: Settlement(
+                "Keep B",
+                population=1,
+                owner_id=None,
+                storage=Resources(wheat=0, gold=0),
+            ),
+        },
+    )
+
+    xml = render_settlement_panel(world)
+    root = ET.fromstring(xml)
+
+    row_a, row_b = root.findall("div")
+    expected_hp = sum(u.hp for u in (Unit(), Unit()))
+    assert row_a.attrib["data-garrison-hp"] == str(expected_hp)
+    text_a = "".join(row_a.itertext())
+    assert text_a == (
+        f"Keep A (north): pszenica 5, złoto 3 · populacja 5 (wolne 3), garnizon 2"
+        f" · siła garnizonu: HP {expected_hp}"
+    )
+
+    assert row_b.attrib["data-garrison-hp"] == "0"
+    text_b = "".join(row_b.itertext())
+    assert text_b == (
+        "Keep B (—): pszenica 0, złoto 0 · populacja 1 (wolne 1), garnizon 0"
+        " · siła garnizonu: HP 0"
     )
 
 

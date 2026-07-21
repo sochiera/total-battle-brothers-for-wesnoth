@@ -13,8 +13,10 @@ def render_settlement_panel(
     Root is ``<div data-settlement-panel="">`` with one
     ``data-settlement-row`` child per region that has a settlement, in
     ``world.regions`` order. Each row carries ``data-owner`` / ``data-wheat`` /
-    ``data-gold`` / ``data-population`` / ``data-free`` / ``data-garrison`` and
-    visible text matching those attributes. When ``player_duchy_id`` is not
+    ``data-gold`` / ``data-population`` / ``data-free`` / ``data-garrison`` /
+    ``data-garrison-hp`` (sum of ``Unit.hp`` over the garrison; empty → 0) and
+    visible text matching those attributes, including the
+    `` · siła garnizonu: HP H`` suffix. When ``player_duchy_id`` is not
     ``None``, rows whose ``owner_id`` matches get ``data-player-owned=""``.
     Pure and deterministic: no RNG/IO; ``world`` is not mutated.
     """
@@ -30,9 +32,11 @@ def render_settlement_panel(
         population = settlement.population
         free = settlement.free
         garrison = len(settlement.garrison)
+        garrison_hp = sum(u.hp for u in settlement.garrison)
         text = (
             f"{settlement.name} ({owner_text}): pszenica {wheat}, złoto {gold}"
             f" · populacja {population} (wolne {free}), garnizon {garrison}"
+            f" · siła garnizonu: HP {garrison_hp}"
         )
         player_owned = (
             ' data-player-owned=""'
@@ -47,6 +51,7 @@ def render_settlement_panel(
             f' data-population="{population}"'
             f' data-free="{free}"'
             f' data-garrison="{garrison}"'
+            f' data-garrison-hp="{garrison_hp}"'
             f"{player_owned}"
             f">{text}</div>"
         )
