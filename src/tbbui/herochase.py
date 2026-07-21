@@ -21,9 +21,11 @@ def render_hero_chase(
     duchy with ``has_hero`` whose party occupies a region (``game.duchies``
     order). Distance is ``ai.region_distance`` from the player's first map
     region to the enemy's first map region; no path → empty ``data-distance``
-    and „brak drogi” text. When ``player_duchy_id`` is ``None`` or not in
-    ``game.duchies``, returns a bare empty root. Pure and deterministic: no
-    RNG/IO; does not mutate ``world`` or ``game``.
+    and „brak drogi” text. A row with distance ``1`` also gets
+    ``data-in-reach=""`` and the suffix „ — w zasięgu". When
+    ``player_duchy_id`` is ``None`` or not in ``game.duchies``, returns a
+    bare empty root. Pure and deterministic: no RNG/IO; does not mutate
+    ``world`` or ``game``.
     """
     if player_duchy_id is None:
         return '<div data-hero-chase=""></div>'
@@ -59,12 +61,19 @@ def render_hero_chase(
         if distance is None:
             distance_attr = ""
             row_text = f"{d.duchy_id}: brak drogi"
+            in_reach_attr = ""
         else:
             distance_attr = str(distance)
             row_text = f"{d.duchy_id}: {distance} pól marszu"
+            if distance == 1:
+                in_reach_attr = ' data-in-reach=""'
+                row_text = f"{row_text} — w zasięgu"
+            else:
+                in_reach_attr = ""
         rows.append(
             f'<div data-enemy-duchy="{d.duchy_id}"'
             f' data-distance="{distance_attr}"'
+            f"{in_reach_attr}"
             f">{row_text}</div>"
         )
     return (
