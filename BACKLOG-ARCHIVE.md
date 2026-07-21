@@ -265,3 +265,13 @@
 - [x] **K24.1b** Przewleczenie `player_duchy_id` do panelu party w `render_game_page`. *(task-126)*
 - [x] **K24.2a** Legenda wyróżnia kolor gracza (`render_owner_legend(..., player_duchy_id=None)`, `data-player-owner` + prefiks `» `). *(task-127)*
 - [x] **K24.2b** Przewleczenie `player_duchy_id` do legendy w `render_game_page`. *(task-128)*
+
+## Kamień milowy 25 — czytelna siła bojowa w podglądzie (decyzje o walce) — UKOŃCZONY
+> Zagregowana siła bojowa (HP + atak + obrona) w panelach party i osad z
+> istniejących `Unit`; refaktor R25.1 scalił agregację w
+> `tbbui.unitstrength.combat_totals`. Rdzeń `tbb` bez zmian.
+- [x] **K25.1a** Panel party pokazuje siłę (HP) oddziału (`data-hp` = suma `Unit.hp` po bohaterze+podkomendnych; sufiks ` · siła: HP H`). *(task-129)*
+- [x] **K25.1b** Panel party pokazuje atak i obronę oddziału (`data-attack`/`data-defense`; sufiks `, atak A, obrona D`). *(task-130)*
+- [x] **K25.2a** Panel osad pokazuje siłę (HP) garnizonu (`data-garrison-hp`; sufiks ` · siła garnizonu: HP H`). *(task-131)*
+- [x] **K25.2b** Panel osad pokazuje atak i obronę garnizonu (`data-garrison-attack`/`data-garrison-defense`; sufiks `, atak A, obrona D`). *(task-132)*
+- [x] **R25.1 (refaktor)** Wspólny helper agregacji siły bojowej sekwencji `Unit` (`combat_totals`) reużyty przez oba panele. *(task-133)*

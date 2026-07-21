@@ -91,14 +91,16 @@ tuple[int, int, int]` — czysty helper `(hp, attack, defense)` = suma
 `Unit.hp` / `Unit.damage` / `Unit.defense` po sekwencji jednostek (pusta →
 `(0, 0, 0)`); bez mutacji wejść. Reużywany przez panele party i osad.
 
-**Panel osad HTML (K22.1a–b / K23.3a / K25.2a–b):** `tbbui.settlementpanel.render_settlement_panel(world, player_duchy_id=None)
+**Panel osad HTML (K22.1a–b / K23.3a / K25.2a–b / K26.1a–b):** `tbbui.settlementpanel.render_settlement_panel(world, player_duchy_id=None)
 -> str` — parsowalny fragment XML z korzeniem `<div data-settlement-panel="">`;
 po jednym `<div data-settlement-row="<region.name>">` na region z osadą w
 kolejności `world.regions` (region bez osady → brak wiersza). Atrybuty wiersza:
 `data-owner` (`owner_id` lub `""`), `data-wheat`/`data-gold` (`storage`),
 `data-population`/`data-free`/`data-garrison` (`population`/`free`/
 `len(garrison)`), `data-garrison-hp` / `data-garrison-attack` /
-`data-garrison-defense` (z `combat_totals(garrison)`; pusty → `0`). Gdy
+`data-garrison-defense` (z `combat_totals(garrison)`; pusty → `0`),
+`data-buildings` (`len(active_buildings)`) i `data-building-names` (nazwy
+`active_buildings` złączone `", "`, pusty → `""`). Gdy
 `player_duchy_id` nie jest `None`, wiersze z `owner_id == player_duchy_id`
 dostają `data-player-owned=""`; `None` (domyślnie) → wynik bajt-w-bajt jak bez
 argumentu. Obok atrybutów widoczny tekst
@@ -132,7 +134,7 @@ prefiks `» ` przed tekstem; id spoza palety → żaden wiersz nieoznaczony; `No
 korzeń (bez wierszy). Czyste, deterministyczne, bez mutacji `world`; rdzeń bez
 zmian.
 
-**Strona HTML partii (V13.4a / K16.1a / K17.1b / K20.1a / K20.1b / K21.1a / K22.1c / K22.2b / K23.1b / K23.2a / K23.3b / K24.1b / K24.2b):** `tbbui.gamepage.render_game_page(world,
+**Strona HTML partii (V13.4a / K16.1a / K17.1b / K20.1a / K20.1b / K21.1a / K22.1c / K22.2b / K23.1b / K23.2a / K23.3b / K24.1b / K24.2b / K26.2a–b):** `tbbui.gamepage.render_game_page(world,
 game, calendar, battle=None, player_duchy_id=None) -> str` — parsowalny HTML z korzeniem `<html>`;
 osadza kanoniczny string z `render_world_svg(world)`; zawsze osadza też
 kanoniczny string z `render_owner_legend(world, player_duchy_id)` (K23.1b /
@@ -146,8 +148,10 @@ K23.3b) i `render_party_panel(world, player_duchy_id)` (K22.2b / K24.1b); gdy
 `data-calendar` z `data-year` / `data-month` z podanego `Calendar` oraz
 widocznym tekstem `Rok N, miesiąc M` (K21.1a, zgodnym z atrybutami); po jednym
 elemencie `data-duchy` (= `duchy_id`) na każde `game.duchies` z `data-morale`,
-`data-settlements` i `data-parties` (liczby) oraz widocznym tekstem
-`<duchy_id>: osady N, party M, morale K` (zgodnym z atrybutami); opcjonalny
+`data-settlements` i `data-parties` (liczby), `data-hero` / `data-heir`
+(`"true"`/`"false"` z `Duchy.has_hero` / `heir is not None`) oraz widocznym
+tekstem `<duchy_id>: osady N, party M, morale K, bohater tak|nie, dziedzic tak|nie`
+(zgodnym z atrybutami); opcjonalny
 `player_duchy_id` (K23.2a / K23.3b / K24.1b / K24.2b) — gdy równa się `duchy_id`
 wiersza, ten element dostaje `data-player-duchy=""` i prefiks `» ` przed tekstem
 statusu, w osadzonych panelach osad i party wiersze z

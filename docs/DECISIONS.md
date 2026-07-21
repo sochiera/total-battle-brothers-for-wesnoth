@@ -163,3 +163,7 @@
 | K25.2a | Panel osad — HP garnizonu | `render_settlement_panel`: wiersz osady dokłada `data-garrison-hp` (Σ`Unit.hp` po garnizonie; pusty → 0) + sufiks ` · siła garnizonu: HP H`. |
 | K25.2b | Panel osad — atak/obrona garnizonu | Wiersz osady dokłada `data-garrison-attack` (Σ`damage`) / `data-garrison-defense` (Σ`defense`) + sufiks `, atak A, obrona D`. |
 | R25.1 | Helper agregacji siły | Wspólny czysty helper `tbbui` liczący `(hp, attack, defense)` sekwencji `Unit`, reużyty przez panel party i osad; HTML bez zmian. |
+| K26.1a | Panel osad — liczba budynków | `render_settlement_panel`: wiersz osady dokłada `data-buildings` (`len(active_buildings)`) + sufiks ` · budynki: N`. |
+| K26.1b | Panel osad — nazwy budynków | Wiersz osady dokłada `data-building-names` (nazwy `active_buildings` złączone `", "`, pusty → `""`); przy N>0 tekst dostaje ` (nazwa1, nazwa2)`. |
+| K26.2a | Wiersz księstwa — bohater | `render_game_page`: element `data-duchy` dokłada `data-hero` (`"true"`/`"false"` z `duchy.has_hero`) + tekst `, bohater tak|nie` po `morale K`. |
+| K26.2b | Wiersz księstwa — dziedzic | Element `data-duchy` dokłada `data-heir` (`"true"`/`"false"` z `duchy.heir is not None`) + tekst `, dziedzic tak|nie` po części o bohaterze. |

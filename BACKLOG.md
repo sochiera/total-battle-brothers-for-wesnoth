@@ -123,18 +123,26 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > `render_game_page`. Nowe argumenty domyślnie `None` → bajt-w-bajt jak dziś.
 > Wszystkie pozycje (task-125…128) w `BACKLOG-ARCHIVE.md`. Rdzeń `tbb` bez zmian.
 
-## Kamień milowy 25 — czytelna siła bojowa w podglądzie (decyzje o walce)
+## Kamień milowy 25 — czytelna siła bojowa w podglądzie (decyzje o walce) — UKOŃCZONY
 > DESIGN §11 (PLAN K25): K22–K24 pokazały gospodarkę, liczności i tożsamość, ale
-> nie **realną siłę bojową** — gracz nie oceni, czy oddział wygra starcie ani czy
-> garnizon obroni osadę (§6 pkt 2). K25 dokłada do paneli zagregowaną siłę
+> nie **realną siłę bojową**. K25 dołożył do paneli zagregowaną siłę
 > (HP + atak + obrona) party (K25.1a–b) i garnizonu (K25.2a–b) z istniejących
-> `Unit`; po dwóch konsumentach refaktor R25.1 scala agregację. Rdzeń `tbb` bez
-> zmian; panele osadzone w `render_game_page` re-embedują zmianę automatycznie.
-- [ ] **K25.1a** Panel party pokazuje siłę (HP) oddziału (`data-hp` = suma `Unit.hp` po bohaterze+podkomendnych; sufiks ` · siła: HP H`). *(task-129)*
-- [ ] **K25.1b** Panel party pokazuje atak i obronę oddziału (`data-attack`/`data-defense`; sufiks `, atak A, obrona D`). *(task-130)*
-- [ ] **K25.2a** Panel osad pokazuje siłę (HP) garnizonu (`data-garrison-hp`; sufiks ` · siła garnizonu: HP H`). *(task-131)*
-- [ ] **K25.2b** Panel osad pokazuje atak i obronę garnizonu (`data-garrison-attack`/`data-garrison-defense`; sufiks `, atak A, obrona D`). *(task-132)*
-- [ ] **R25.1 (refaktor)** Wspólny helper agregacji siły bojowej sekwencji `Unit` reużyty przez oba panele; bez nowych testów. *(task-133)*
+> `Unit`; po dwóch konsumentach refaktor R25.1 scalił agregację w
+> `tbbui.unitstrength.combat_totals`. Wszystkie pozycje (task-129…133) w
+> `BACKLOG-ARCHIVE.md`. Rdzeń `tbb` bez zmian.
+
+## Kamień milowy 26 — czytelny stan strukturalno-dynastyczny (budynki + władza)
+> DESIGN §11 (PLAN K26): K22–K25 pokazały gospodarkę, siłę i tożsamość, ale gracz
+> nie widzi **aktywnych budynków** osady (co dołoży `develop` — §6 pkt 2) ani
+> **obecności bohatera/dziedzica** księstwa (ciągłość władzy — §3.1). K26 dokłada
+> do panelu osad liczbę i nazwy budynków (K26.1a–b) z `Settlement.active_buildings`,
+> a do wiersza księstwa flagi `data-hero`/`data-heir` (K26.2a–b) z `Duchy`.
+> Rdzeń `tbb` bez zmian; panel osad osadzony w `render_game_page` re-embeduje
+> zmianę automatycznie.
+- [ ] **K26.1a** Panel osad pokazuje liczbę aktywnych budynków (`data-buildings` = `len(active_buildings)`; sufiks ` · budynki: N`). *(task-134)*
+- [ ] **K26.1b** Panel osad wymienia nazwy aktywnych budynków (`data-building-names`; przy N>0 tekst ` (nazwa1, nazwa2)`). *(task-135)*
+- [ ] **K26.2a** Wiersz księstwa pokazuje obecność bohatera (`data-hero`; tekst `, bohater tak|nie`). *(task-136)*
+- [ ] **K26.2b** Wiersz księstwa pokazuje obecność dziedzica (`data-heir`; tekst `, dziedzic tak|nie`). *(task-137)*
 
 ## Dług/refaktor
 - [x] **R21.1 (refaktor)** Wspólny emiter formularzy celu marsz/szturm/starcie w `serve.py`. *(task-113)*

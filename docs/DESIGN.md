@@ -348,9 +348,12 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   osadę w kolejności `world.regions`; atrybuty `data-owner`/`data-wheat`/
   `data-gold`/`data-population`/`data-free`/`data-garrison`/
   `data-garrison-hp`/`data-garrison-attack`/`data-garrison-defense` (sumy
-  `Unit.hp`/`Unit.damage`/`Unit.defense` po garnizonie; pusty → `0`) i widoczny
-  tekst `<nazwa> (<owner|„—">): pszenica W, złoto G · populacja P (wolne F),
-  garnizon N · siła garnizonu: HP H, atak A, obrona D` zgodny z atrybutami; przy
+  `Unit.hp`/`Unit.damage`/`Unit.defense` po garnizonie; pusty → `0`),
+  `data-buildings` (`len(active_buildings)`) i `data-building-names` (nazwy
+  `active_buildings` złączone `", "`, pusty → `""`) oraz widoczny tekst
+  `<nazwa> (<owner|„—">): pszenica W, złoto G · populacja P (wolne F),
+  garnizon N · siła garnizonu: HP H, atak A, obrona D · budynki: B (nazwa1, …)`
+  (nawias z nazwami tylko gdy `B>0`) zgodny z atrybutami; przy
   `player_duchy_id` wiersze z `owner_id` gracza mają `data-player-owned=""`.
   Czysty, deterministyczny.
 - `render_party_panel(world, player_duchy_id=None)` — fragment `data-party-panel`
@@ -363,8 +366,11 @@ deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka. Rdzeń
   Czysty, deterministyczny.
 - `render_game_page(world, game, calendar, battle=None, player_duchy_id=None)` —
   SVG mapy, kalendarz (`data-calendar` + widoczny tekst `Rok N, miesiąc M`),
-  panel księstw (`data-duchy` + tekst statusu; przy `player_duchy_id` dopasowany
-  wiersz ma `data-player-duchy=""` i prefiks `» `), wynik (`data-result`), banner
+  panel księstw (`data-duchy` + `data-hero`/`data-heir` (`"true"`/`"false"` z
+  `Duchy.has_hero` / `heir is not None`) + tekst statusu
+  `<duchy_id>: osady N, party M, morale K, bohater tak|nie, dziedzic tak|nie`;
+  przy `player_duchy_id` dopasowany wiersz ma `data-player-duchy=""` i prefiks
+  `» `), wynik (`data-result`), banner
   wyniku (`<p data-result-text>`: `Gra w toku` / `Remis` / `Zwycięstwo: <id>`),
   opcjonalnie SVG bitwy i raport bitwy gdy `battle` podane; osadza też legendę
   właścicieli (`render_owner_legend(world, player_duchy_id)`), panel osad
@@ -511,6 +517,18 @@ atak A, obrona D`). Refaktor R25.1 scala agregację w jeden helper po dwóch
 konsumentach. Dotychczasowe atrybuty/tekst i kolejność wierszy bez zmian; panele
 osadzone w `render_game_page` re-embedują zmianę automatycznie. Rdzeń `tbb` bez
 zmian.
+
+**PLAN K26 (czytelny stan strukturalno-dynastyczny):** K22–K25 pokazały
+gospodarkę, siłę i tożsamość, ale gracz nadal nie widzi **aktywnych budynków**
+osady (nie oceni, co dołoży rozkaz `develop` — §6 pkt 2) ani **obecności
+bohatera/dziedzica** księstwa (ciągłość władzy i `is_defeated` — §3.1). K26
+dokłada do panelu osad liczbę (`data-buildings`, K26.1a) i nazwy
+(`data-building-names`, K26.1b) aktywnych budynków z `Settlement.active_buildings`,
+a do wiersza księstwa na stronie flagi `data-hero` (K26.2a) i `data-heir`
+(K26.2b) z `Duchy.has_hero` / `heir`. Panel osad osadzony w `render_game_page`
+re-embeduje zmianę automatycznie; wiersz księstwa jest bezpośrednio w
+`render_game_page`. Dotychczasowe atrybuty/tekst i kolejność wierszy bez zmian.
+Rdzeń `tbb` bez zmian; dane z istniejących `Settlement`/`Duchy`.
 
 ## 12. Otwarte pytania (nadal)
 - **Krzywe filarów:** różne parametry stromości per filar oraz wpływ budynków/
