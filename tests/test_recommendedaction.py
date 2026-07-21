@@ -1400,3 +1400,122 @@ def test_render_recommended_action_data_action_after_posture_from_kind():
     _assert_action(
         engage_world, "offensive", "engage", target_kind="party"
     )
+
+
+def test_recommended_battle_forecast_none_when_order_none_or_non_offensive():
+    """``recommended_battle_forecast(world, game, player_duchy_id=None)``
+    returns ``None`` when ``recommended_order(world, game, player_duchy_id)``
+    is ``None`` or the action is not in ``{"assault", "engage"}``
+    (``defend`` / ``march`` / ``develop`` / ``muster`` → ``None``) — K51.1a.
+
+    Contract: pure and deterministic (no RNG/IO; does not mutate ``world`` or
+    ``game``); delegates action/target selection to ``recommended_order``.
+    """
+    recommended_battle_forecast = recommendedaction.recommended_battle_forecast
+    player_can_muster = recommendedaction.player_can_muster
+    player_march_target = recommendedaction.player_march_target
+    home = Region("Home")
+    keep = Region("Keep")
+    enemy_camp = Region("EnemyCamp")
+    road = Region("Road")
+    far_enemy = Region("FarEnemy")
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+
+    def _assert_none(world: WorldMap, player_duchy_id: str | None) -> None:
+        regions_before = world.regions
+        parties_before = {r: world.party_at(r) for r in world.regions}
+        settlements_before = {
+            r: world.settlement_at(r) for r in world.regions
+        }
+        duchies_before = game.duchies
+
+        assert recommended_battle_forecast(
+            world, game, player_duchy_id
+        ) is None
+
+        assert world.regions == regions_before
+        assert {
+            r: world.party_at(r) for r in world.regions
+        } == parties_before
+        assert {
+            r: world.settlement_at(r) for r in world.regions
+        } == settlements_before
+        assert game.duchies == duchies_before
+
+    # recommended_order is None (no player / unknown id) → None
+    none_world = WorldMap(
+        [home, enemy_camp],
+        [(home, enemy_camp)],
+        parties={
+            home: Party(hero=Unit(), units=(), owner_id="player"),
+        },
+        settlements={},
+    )
+    for player_duchy_id in (None, "missing"):
+        assert player_duchy(game, player_duchy_id) is None
+        assert recommended_order(none_world, game, player_duchy_id) is None
+        _assert_none(none_world, player_duchy_id)
+
+    # muster → None (can muster; posture would be defensive)
+    muster_world = WorldMap(
+        [keep, enemy_camp],
+        [(keep, enemy_camp)],
+        parties={
+            enemy_camp: Party(hero=Unit(), units=(), owner_id="enemy"),
+        },
+        settlements={
+            keep: Settlement("KeepS", population=2, owner_id="player"),
+        },
+    )
+    assert player_can_muster(muster_world, game, "player") is True
+    assert recommended_order(muster_world, game, "player") == ("muster", None)
+    _assert_none(muster_world, "player")
+
+    # defend → None (party fielded so no muster)
+    defensive_world = WorldMap(
+        [keep, enemy_camp],
+        [(keep, enemy_camp)],
+        parties={
+            keep: Party(hero=Unit(), units=(), owner_id="player"),
+            enemy_camp: Party(hero=Unit(), units=(), owner_id="enemy"),
+        },
+        settlements={
+            keep: Settlement("KeepS", population=2, owner_id="player"),
+        },
+    )
+    order = recommended_order(defensive_world, game, "player")
+    assert order is not None
+    assert order[0] == "defend"
+    _assert_none(defensive_world, "player")
+
+    # march → None (balanced + distant enemy settlement)
+    march_world = WorldMap(
+        [home, road, far_enemy],
+        [(home, road), (road, far_enemy)],
+        parties={home: Party(hero=Unit(), units=(), owner_id="player")},
+        settlements={
+            far_enemy: Settlement("FarS", population=2, owner_id="enemy"),
+        },
+    )
+    target = player_march_target(march_world, game, "player")
+    assert target is not None
+    assert recommended_order(march_world, game, "player") == ("march", target)
+    _assert_none(march_world, "player")
+
+    # develop → None (balanced, no march target)
+    develop_world = WorldMap(
+        [home],
+        [],
+        parties={home: Party(hero=Unit(), units=(), owner_id="player")},
+        settlements={},
+    )
+    assert recommended_order(develop_world, game, "player") == (
+        "develop",
+        None,
+    )
+    _assert_none(develop_world, "player")

@@ -15,6 +15,7 @@ from tbbui.gamelookup import player_duchy
 from tbbui.maplookup import first_party_region
 from tbbui.situationreport import net_posture
 from tbbui.threatalert import first_threatened_region, threatened_position_count
+from tbbui.unitstrength import combat_totals
 
 
 def player_march_target(
@@ -125,6 +126,50 @@ def recommended_order(
     if march_target is not None:
         return "march", march_target
     return "develop", None
+
+
+def recommended_battle_forecast(
+    world: WorldMap,
+    game: GameState,
+    player_duchy_id: str | None = None,
+) -> tuple[int, int] | None:
+    """Return ``(own_total, enemy_total)`` for a recommended offensive order.
+
+    Scalar combat strength is ``sum(combat_totals(...))`` (``hp+attack+defense``).
+    Returns ``None`` when ``recommended_order(world, game, player_duchy_id)`` is
+    ``None`` or the action is not in ``{"assault", "engage"}`` (``defend`` /
+    ``march`` / ``develop`` / ``muster`` → ``None`` on this step). For
+    ``assault`` with target region name ``R``: own strength from the player
+    party at ``first_party_region``, enemy from the settlement garrison in
+    ``R``. For ``engage``: enemy from the hostile party in ``R``. Pure and
+    deterministic: no RNG/IO; does not mutate ``world`` or ``game``; delegates
+    action/target selection to ``recommended_order`` (K51.1a).
+    """
+    order = recommended_order(world, game, player_duchy_id)
+    if order is None:
+        return None
+    action, target = order
+    if action not in {"assault", "engage"}:
+        return None
+
+    assert player_duchy_id is not None
+    assert target is not None
+    origin = first_party_region(world, player_duchy_id)
+    assert origin is not None
+    party = world.party_at(origin)
+    assert party is not None
+    own_total = sum(combat_totals((party.hero, *party.units)))
+
+    target_region = next(r for r in world.regions if r.name == target)
+    if action == "assault":
+        settlement = world.settlement_at(target_region)
+        assert settlement is not None
+        enemy_total = sum(combat_totals(settlement.garrison))
+    else:
+        enemy = world.party_at(target_region)
+        assert enemy is not None
+        enemy_total = sum(combat_totals((enemy.hero, *enemy.units)))
+    return (own_total, enemy_total)
 
 
 def recommended_order_text(action: str, target_name: str | None) -> str:
