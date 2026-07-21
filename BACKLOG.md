@@ -318,22 +318,20 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > i nota ostrożności w panelu rady (K52.1b–c) oraz przy przycisku wykonania rady
 > w jeden klik (K52.1d–e). Reużywa `recommended_battle_forecast`; bez nowego
 > backendu, bez zmiany routingu; rdzeń `tbb` bez zmian.
-- [ ] **K52.1a** `tbbui.recommendedaction.recommended_battle_is_risky(world, game, player_duchy_id=None) -> bool` zwraca `False`, gdy `recommended_battle_forecast(...) is None`; przy prognozie `(own, enemy)` zwraca `True` iff `own < enemy` (spójnie z werdyktem `ryzyko`); czysty, bez mutacji, deleguje do `recommended_battle_forecast`. *(task-243)*
-- [ ] **K52.1b** Gdy `recommended_battle_is_risky(...)` jest `True`, korzeń `<div data-recommended-action="">` z `render_recommended_action` niesie pusty atrybut `data-recommended-risk=""` po `data-action`; `False` → brak atrybutu, fragment bajt-w-bajt jak dotąd. *(task-244)*
-- [ ] **K52.1c** Gdy `recommended_battle_is_risky(...)` jest `True`, `render_recommended_action` osadza po `data-recommended-forecast` jedno `<p data-recommended-caution="{text}">{text}</p>` (`text = "Uwaga: przewidywany deficyt siły — rozważ inny rozkaz"`, `html.escape(quote=True)`); `False` → brak elementu. *(task-245)*
-- [ ] **K52.1d** Gdy formularz `_recommended_order_form()` jest emitowany i `recommended_battle_is_risky(...)` jest `True`, `<form ... data-recommended-order="">` niesie pusty atrybut `data-recommended-risk=""` po `data-recommended-order=""`; przypadki `""` i `False` → brak atrybutu, formularz jak dotąd. *(task-246)*
-- [ ] **K52.1e** Gdy formularz `_recommended_order_form()` jest emitowany i `recommended_battle_is_risky(...)` jest `True`, po `data-recommended-order-forecast` dokłada jedno `<p data-recommended-order-caution="{text}">{text}</p>` (ten sam tekst co K52.1c, `html.escape(quote=True)`); `False` / brak formularza → brak elementu. *(task-247)*
+- [ ] **K52.1a** `tbbui.recommendedaction.recommended_battle_is_risky(world, game, player_duchy_id=None) -> bool` zwraca `False`, gdy `recommended_battle_forecast(...) is None`; przy prognozie `(own, enemy)` zwraca `True` iff `own < enemy` (spójnie z werdyktem `ryzyko`); czysty, bez mutacji, deleguje do `recommended_battle_forecast`. *(task-251)*
+- [ ] **K52.1b** Gdy `recommended_battle_is_risky(...)` jest `True`, korzeń `<div data-recommended-action="">` z `render_recommended_action` niesie pusty atrybut `data-recommended-risk=""` po `data-action`; `False` → brak atrybutu, fragment bajt-w-bajt jak dotąd. *(task-252)*
+- [ ] **K52.1c** Gdy `recommended_battle_is_risky(...)` jest `True`, `render_recommended_action` osadza po `data-recommended-forecast` jedno `<p data-recommended-caution="{text}">{text}</p>` (`text = "Uwaga: przewidywany deficyt siły — rozważ inny rozkaz"`, `html.escape(quote=True)`); `False` → brak elementu. *(task-253)*
+- [ ] **K52.1d** Gdy formularz `_recommended_order_form()` jest emitowany i `recommended_battle_is_risky(...)` jest `True`, `<form ... data-recommended-order="">` niesie pusty atrybut `data-recommended-risk=""` po `data-recommended-order=""`; przypadki `""` i `False` → brak atrybutu, formularz jak dotąd. *(task-254)*
+- [ ] **K52.1e** Gdy formularz `_recommended_order_form()` jest emitowany i `recommended_battle_is_risky(...)` jest `True`, po `data-recommended-order-forecast` dokłada jedno `<p data-recommended-order-caution="{text}">{text}</p>` (ten sam tekst co K52.1c, `html.escape(quote=True)`); `False` / brak formularza → brak elementu. *(task-255)*
 
-## Kamień milowy 53 — dług po serii rady bojowej + trening jednostek w maszerującym party
-> Po K52 seria „zalecany rozkaz" (K41–K52) się domyka; ten kamień najpierw
-> sprząta powielony HTML akapitów rady dołożony w K50–K52 (R52.1), potem
-> zaczyna rozstrzygać jedno z otwartych pytań DESIGN §12: jednostki w
-> maszerującym party trenują się razem z leczeniem ran w miesięcznym ticku
-> mapy (T53.1a–b), tak jak dziś garnizon w `tick_settlements`. Uzbrojenie
-> zostaje poza zakresem — party nie ma dostępu do złota/kuźni osady.
-- [ ] **R52.1 (refaktor)** Wspólny helper escapowanego akapitu `<p data-X="…">…</p>` w `tbbui/recommendedaction.py`, reużyty przez `render_recommended_action` i `GameApp._recommended_order_form` (dedup powielenia z K50–K52); bez nowych testów, wynik bajt-w-bajt jak dziś. *(task-248)*
-- [ ] **T53.1a** `tbb.party.Party.tick_training(months=1) -> Party` — czysta metoda treningu hero+units (mirror `tick_wounds`, deleguje do `Unit.train`); jeszcze niepodpięta w `WorldMap.tick_parties`. *(task-249)*
-- [ ] **T53.1b** `WorldMap.tick_parties()` stosuje `party.tick_wounds(1).tick_training(1)` na każdym party; scenariusz bazowy headless i DESIGN §5/§8 zaktualizowane do nowego, faktycznego stanu. *(task-250)*
+## Kamień milowy 53 — dług po serii rady bojowej + trening jednostek w maszerującym party — UKOŃCZONY
+> Po K52 seria „zalecany rozkaz" (K41–K52) się domyka; ten kamień posprzątał
+> powielony HTML akapitów rady dołożony w K50–K52 (R52.1) i rozstrzygnął jedno
+> z otwartych pytań DESIGN §12: jednostki w maszerującym party trenują się
+> razem z leczeniem ran w miesięcznym ticku mapy (T53.1a–b), tak jak dziś
+> garnizon w `tick_settlements`. Uzbrojenie zostaje poza zakresem — party nie
+> ma dostępu do złota/kuźni osady. Wszystkie pozycje (task-248…250) w
+> `BACKLOG-ARCHIVE.md`.
 
 ## Dług/refaktor
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*

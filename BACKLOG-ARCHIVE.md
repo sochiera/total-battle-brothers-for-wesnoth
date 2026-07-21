@@ -473,3 +473,8 @@
 - [x] **K51.1c** `recommended_battle_forecast_text(...)` → `""` gdy prognoza `None`; inaczej `f"Przewidywana siła: Ty {own} vs wróg {enemy} — {verdict}"` (`przewaga` gdy `own>=enemy`, inaczej `ryzyko`); czysty. *(task-240)*
 - [x] **K51.1d** `render_recommended_action` przy niepustej prognozie osadza po `data-recommendation-reason` jedno `<p data-recommended-forecast="{text}">{text}</p>` (`html.escape(quote=True)`); pusta prognoza / brak gracza → brak elementu. *(task-241)*
 - [x] **K51.1e** `GameApp._recommended_order_form()` przy emitowanym formularzu i niepustej prognozie dokłada po `data-recommended-order-reason` jedno `<p data-recommended-order-forecast="{text}">{text}</p>` (`html.escape(quote=True)`); pusta prognoza / brak formularza → brak elementu. *(task-242)*
+
+## Kamień milowy 53 — dług po serii rady bojowej + trening jednostek w maszerującym party — UKOŃCZONY
+- [x] **R52.1 (refaktor)** Wspólny helper escapowanego akapitu `<p data-X="…">…</p>` w `tbbui/recommendedaction.py`, reużyty przez `render_recommended_action` i `GameApp._recommended_order_form` (dedup powielenia z K50–K52); bez nowych testów, wynik bajt-w-bajt jak dziś. *(task-248)*
+- [x] **T53.1a** `tbb.party.Party.tick_training(months=1) -> Party` — czysta metoda treningu hero+units (mirror `tick_wounds`, deleguje do `Unit.train`); jeszcze niepodpięta w `WorldMap.tick_parties`. *(task-249)*
+- [x] **T53.1b** `WorldMap.tick_parties()` stosuje `party.tick_wounds(1).tick_training(1)` na każdym party; scenariusz bazowy headless i DESIGN §5/§8 zaktualizowane do nowego, faktycznego stanu. *(task-250)*
