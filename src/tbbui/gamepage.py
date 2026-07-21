@@ -47,18 +47,19 @@ def render_game_page(
     the party panel from ``render_party_panel(world, player_duchy_id)``, a
     calendar stamp (``data-year`` / ``data-month`` plus visible text
     ``Rok N, miesiąc M``), one duchy panel row per ``game.duchies`` (machine
-    ``data-*`` attributes plus human-readable status text), a
-    machine-readable result marker (``data-result``), and a human-readable
-    result banner (``data-result-text``). When ``battle`` is a ``HexBattle``,
-    also embeds the canonical strings from ``render_battle_svg(battle)`` and
-    ``render_battle_report(battle)`` in ``<body>``. Optional
-    ``player_duchy_id`` marks the matching ``data-duchy`` row with
-    ``data-player-duchy=""`` and a visible ``» `` text prefix, and is
-    forwarded to the owner legend, settlement panel, and party panel so
-    matching legend / ``data-settlement-row`` / ``data-party-row`` entries
-    get player markers; ``None`` (default) leaves the page byte-for-byte
-    unchanged. Pure and deterministic: no RNG/IO; inputs (including
-    ``battle``) are not mutated.
+    ``data-*`` attributes including ``data-hero`` from ``duchy.has_hero``,
+    plus human-readable status text with ``, bohater tak|nie`` after
+    morale), a machine-readable result marker (``data-result``), and a
+    human-readable result banner (``data-result-text``). When ``battle`` is
+    a ``HexBattle``, also embeds the canonical strings from
+    ``render_battle_svg(battle)`` and ``render_battle_report(battle)`` in
+    ``<body>``. Optional ``player_duchy_id`` marks the matching
+    ``data-duchy`` row with ``data-player-duchy=""`` and a visible ``» ``
+    text prefix, and is forwarded to the owner legend, settlement panel,
+    and party panel so matching legend / ``data-settlement-row`` /
+    ``data-party-row`` entries get player markers; ``None`` (default)
+    leaves the page byte-for-byte unchanged. Pure and deterministic: no
+    RNG/IO; inputs (including ``battle``) are not mutated.
     """
     map_svg = render_world_svg(world)
     owner_legend = render_owner_legend(world, player_duchy_id)
@@ -70,19 +71,23 @@ def render_game_page(
     duchy_parts: list[str] = []
     for duchy in game.duchies:
         is_player = player_duchy_id is not None and duchy.duchy_id == player_duchy_id
+        hero_label = "tak" if duchy.has_hero else "nie"
         status_text = (
             f"{duchy.duchy_id}: osady {len(duchy.settlements)}, "
-            f"party {len(duchy.parties)}, morale {duchy.morale}"
+            f"party {len(duchy.parties)}, morale {duchy.morale}, "
+            f"bohater {hero_label}"
         )
         if is_player:
             status_text = f"» {status_text}"
         player_attr = ' data-player-duchy=""' if is_player else ""
+        hero_attr = "true" if duchy.has_hero else "false"
         duchy_parts.append(
             "<div"
             f' data-duchy="{duchy.duchy_id}"'
             f' data-morale="{duchy.morale}"'
             f' data-settlements="{len(duchy.settlements)}"'
             f' data-parties="{len(duchy.parties)}"'
+            f' data-hero="{hero_attr}"'
             f"{player_attr}"
             f">{status_text}</div>"
         )

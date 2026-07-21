@@ -226,15 +226,52 @@ def test_render_game_page_duchy_panel_has_human_readable_status_text():
 
     for duchy in game.duchies:
         el = by_id[duchy.duchy_id]
+        hero_label = "tak" if duchy.has_hero else "nie"
         expected_text = (
             f"{duchy.duchy_id}: osady {len(duchy.settlements)}, "
-            f"party {len(duchy.parties)}, morale {duchy.morale}"
+            f"party {len(duchy.parties)}, morale {duchy.morale}, "
+            f"bohater {hero_label}"
         )
         assert (el.text or "").strip() == expected_text
         # Machine-readable attributes remain unchanged alongside the new text.
         assert el.get("data-morale") == str(duchy.morale)
         assert el.get("data-settlements") == str(len(duchy.settlements))
         assert el.get("data-parties") == str(len(duchy.parties))
+        assert el.get("data-hero") == ("true" if duchy.has_hero else "false")
+
+
+def test_render_game_page_duchy_panel_shows_hero_presence():
+    """``data-duchy`` gets ``data-hero`` flag and text suffix from ``has_hero``."""
+    north_r = Region("north")
+    south_r = Region("south")
+    n_keep = Settlement("North Keep", 3, owner_id="north")
+    s_keep = Settlement("South Keep", 4, owner_id="south")
+    world = WorldMap(
+        (north_r, south_r),
+        ((north_r, south_r),),
+        settlements={north_r: n_keep, south_r: s_keep},
+    )
+    game = GameState(
+        (
+            Duchy("north", Unit(), morale=7, settlements=(n_keep,)),
+            Duchy("south", None, morale=3, settlements=(s_keep,)),
+        )
+    )
+    calendar = Calendar(year=4, month=9)
+
+    html = render_game_page(world, game, calendar)
+    root = ET.fromstring(html)
+
+    duchy_els = _find_by_attr(root, "data-duchy")
+    by_id = {el.get("data-duchy"): el for el in duchy_els}
+
+    north_el = by_id["north"]
+    assert north_el.get("data-hero") == "true"
+    assert ", bohater tak" in (north_el.text or "")
+
+    south_el = by_id["south"]
+    assert south_el.get("data-hero") == "false"
+    assert ", bohater nie" in (south_el.text or "")
 
 
 def test_render_game_page_optional_battle_slot_embeds_svg_and_defaults_unchanged():
