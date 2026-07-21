@@ -238,3 +238,4 @@
 | R43.1 | Kompaktacja DESIGN §11 | `docs/DESIGN.md` §11 opisuje warstwę wizualną wyłącznie na poziomie produktu; per-funkcyjne kontrakty `data-*`/render/routing kanonicznie w `docs/ARCHITECTURE.md` (sekcja `tbbui`). |
 | K43.1a | Czysty render dziennika rozkazów | `tbbui.orderlog.render_order_log(entries)` → `<div data-order-log="" data-count="N">` z dziećmi `data-order-log-entry` (ciało `html.escape`); czysty, deterministyczny, bez mutacji. |
 | K43.1b | Akumulator dziennika w GameApp | `GameApp.order_log: list[str]` init `[]`; każdy znany POST dokłada `last_notice` raz; `POST /new` czyści listę i zapisuje wpis startowy; GET/404 bez mutacji. |
+| K43.1c | Osadzenie dziennika w GET / | `GameApp._render` wstawia w extras body dokładnie jeden `render_order_log(self.order_log)` (obok `data-notice`), niezależnie od `game.is_over`. |

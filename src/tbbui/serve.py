@@ -15,6 +15,7 @@ import tbb.settlement as settlement_module
 from tbb.turn import Calendar
 from tbb.world import Region, WorldMap
 from tbbui.gamepage import render_game_page
+from tbbui.orderlog import render_order_log
 from tbbui.recommendedaction import recommended_order, recommended_order_text
 
 _NEW_GAME_FORM = (
@@ -464,6 +465,7 @@ class GameApp:
         extras = (
             f'<span data-player="{player_value}"></span>'
             f'<p data-notice="{notice_value}">{notice_value}</p>'
+            f"{render_order_log(self.order_log)}"
             f"{_NEW_GAME_FORM}"
         )
         # K32.2a: when finished, omit turn and all order sections.

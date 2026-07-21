@@ -18,6 +18,7 @@ from tbb.turn import Calendar
 from tbb.unit import Unit
 from tbb.world import Region, WorldMap
 from tbbui.battlesvg import render_battle_svg
+from tbbui.orderlog import render_order_log
 from tbbui.recommendedaction import recommended_order, recommended_order_text
 from tbbui.serve import GameApp, recommended_order_path
 from tbbui.turnsummary import render_turn_summary
@@ -457,6 +458,52 @@ def test_game_app_post_new_resets_order_log_to_single_start_notice():
     assert app_no_seed.order_log == [app_no_seed.last_notice]
     assert app_no_seed.order_log == ["Nowa gra: brak zmian"]
     assert app_no_seed.order_log != prior
+
+
+def test_game_app_get_embeds_exactly_one_render_order_log_in_body():
+    """GET / embeds exactly one orderlog.render_order_log(self.order_log) in body (K43.1c).
+
+    Contract (task-210 / K43.1c):
+    - GET / HTML contains exactly one element with a data-order-log attribute
+    - the page body embeds the canonical string
+      ``orderlog.render_order_log(self.order_log)`` byte-for-byte (substring of
+      the body inside ``<body>`` / extras of ``_render``)
+    - holds for empty ``order_log`` at init and after POSTs that grow the log
+    """
+    world, game = _ongoing_world_game()
+    app = GameApp(
+        world, game, Calendar(year=1, month=1), Rng(1), player_duchy_id="north"
+    )
+    assert app.order_log == []
+
+    code, body = app.handle("GET", "/")
+    assert code == 200
+    expected_empty = render_order_log(app.order_log)
+    assert expected_empty == '<div data-order-log="" data-count="0"></div>'
+    assert expected_empty in body
+    root = ET.fromstring(body)
+    logs = _find_by_attr(root, "data-order-log")
+    assert len(logs) == 1
+    assert logs[0].get("data-count") == "0"
+    body_el = next(el for el in root.iter() if _local(el.tag) == "body")
+    assert any(el.get("data-order-log") is not None for el in body_el.iter())
+
+    code_t, _ = app.handle("POST", "/turn")
+    assert code_t == 200
+    code_r, _ = app.handle("POST", "/order/recruit")
+    assert code_r == 200
+    assert len(app.order_log) == 2
+
+    code2, body2 = app.handle("GET", "/")
+    assert code2 == 200
+    expected = render_order_log(app.order_log)
+    assert expected in body2
+    root2 = ET.fromstring(body2)
+    logs2 = _find_by_attr(root2, "data-order-log")
+    assert len(logs2) == 1
+    assert logs2[0].get("data-count") == str(len(app.order_log))
+    body2_el = next(el for el in root2.iter() if _local(el.tag) == "body")
+    assert any(el.get("data-order-log") is not None for el in body2_el.iter())
 
 
 def test_game_app_last_notice_empty_string_renders_empty_data_notice():

@@ -474,6 +474,9 @@ Opcjonalny `seed` jest przechowywany na app (restart `POST /new` w K31.1a); domy
 nie mutują listy (ten sam obiekt listy). Każdy znany `POST` (`/turn`, `/order/*`,
 `/new`) dokłada dokładnie raz bieżący `last_notice` na koniec listy po obsłużeniu
 trasy; `POST /new` najpierw `order_log.clear()`, potem append wpisu nowej gry.
+`_render` (K43.1c) osadza w extras `<body>` dokładnie jeden kanoniczny wynik
+`orderlog.render_order_log(self.order_log)` (obok `data-notice`), niezależnie od
+`game.is_over` — dziennik nie jest ukrywany z sekcjami rozkazów.
 `handle` rozdziela ścieżkę od query (`path.partition("?")`) na początku routingu.
 `POST /new` (K31.1a): zawsze zeruje `previous_game` i czyści `order_log`; gdy
 `seed is not None` podmienia `world`/`game` na świeże
@@ -490,11 +493,13 @@ zmian gdy `previous_game` ustawione) plus znacznik
 rozkazu `<p data-notice="{escape(last_notice)}">{escape(last_notice)}</p>`
 (K28.1a / K29.1a — `GameApp.last_notice` inicjalizowane na `""`; ta sama
 escapowana wartość w atrybucie i w widocznym ciele akapitu; `html.escape`;
-K28.1b — `_apply_player_order` ustawia skutek rozkazu rozwoju) oraz formularze
+K28.1b — `_apply_player_order` ustawia skutek rozkazu rozwoju), kanoniczny
+`render_order_log(self.order_log)` (K43.1c — dokładnie jeden `data-order-log`
+w extras, także gdy `is_over`) oraz formularze
 `<form method="post" action="/new">` (przycisk `Nowa gra`, K31.1b — zawsze w
 extras, niezależnie od `is_over` i `player_duchy_id`). Przy `game.is_over`
 extras kończy się na `/new` — bez `/turn`, bez `/order/*` i bez
-`data-order-section` (K32.2a; routing POST bez zmian). Przy grze w toku dalej:
+`data-order-section` (K32.2a; routing POST bez zmian; dziennik zostaje). Przy grze w toku dalej:
 `<form method="post" action="/turn">` (przycisk `Następna tura`),
 `<form method="post" action="/order/recruit">` (`Rekrutuj (koszt złota: N)`
 z `tbb.settlement.RECRUIT_GOLD_COST`, K30.2a),
