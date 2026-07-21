@@ -14,7 +14,7 @@ from tbb.rng import Rng
 import tbb.settlement as settlement_module
 from tbb.turn import Calendar
 from tbb.world import Region, WorldMap
-from tbbui.battlereport import battle_outcome_text
+from tbbui.battlereport import attacker_losses, battle_outcome_text
 from tbbui.gamepage import render_game_page
 from tbbui.orderlog import format_log_entry, render_order_log
 from tbbui.recommendedaction import recommended_order, recommended_order_text
@@ -361,9 +361,9 @@ class GameApp:
         On success replaces ``world``, re-syncs ``game``, and when ``battle``
         is not ``None`` sets ``self.last_battle``. No-op paths leave
         ``last_battle`` unchanged. Always sets ``last_notice`` to
-        ``f"{label}: {battle_outcome_text(battle)}"`` when a battle was
-        recorded (K46.1b), else ``"{label}: brak zmian"`` (including
-        guard rejections).
+        ``f"{label}: {battle_outcome_text(battle)} (straty: {attacker_losses(battle)})"``
+        when a battle was recorded (K46.1b / K46.2b), else
+        ``"{label}: brak zmian"`` (including guard rejections).
         """
         player_duchy = self._resolve_player_duchy()
         if player_duchy is None:
@@ -372,7 +372,10 @@ class GameApp:
         self.world, battle = transition(self.world, player_duchy)
         if battle is not None:
             self.last_battle = battle
-            self.last_notice = f"{label}: {battle_outcome_text(battle)}"
+            self.last_notice = (
+                f"{label}: {battle_outcome_text(battle)} "
+                f"(straty: {attacker_losses(battle)})"
+            )
         else:
             self.last_notice = f"{label}: brak zmian"
         self.game = self.game.sync_from_world(self.world)
