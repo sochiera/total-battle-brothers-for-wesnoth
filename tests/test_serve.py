@@ -483,7 +483,6 @@ def test_game_app_get_embeds_exactly_one_render_order_log_in_body():
     code, body = app.handle("GET", "/")
     assert code == 200
     expected_empty = render_order_log(app.order_log)
-    assert expected_empty == '<div data-order-log="" data-count="0"></div>'
     assert expected_empty in body
     root = ET.fromstring(body)
     logs = _find_by_attr(root, "data-order-log")

@@ -56,22 +56,59 @@ def test_render_order_log_root_is_div_with_data_order_log_and_data_count():
         assert root.attrib.get("data-count") == str(len(entries))
 
 
+def test_render_order_log_first_child_is_visible_header_h2():
+    """Root's first child is exactly one ``<h2 data-order-log-header="">``
+    with body ``Dziennik rozkazów``, before any ``data-order-log-entry``;
+    present for empty sequence as well (K44.2a).
+    """
+    for entries in ((), ("solo",), ("first", "second")):
+        xml = render_order_log(entries)
+        root = ET.fromstring(xml)
+        children = list(root)
+
+        headers = [
+            c
+            for c in children
+            if c.tag == "h2" and c.attrib.get("data-order-log-header") == ""
+        ]
+        assert len(headers) == 1
+        assert children[0] is headers[0]
+        assert "".join(headers[0].itertext()) == "Dziennik rozkazów"
+        assert (
+            '<h2 data-order-log-header="">Dziennik rozkazów</h2>' in xml
+        )
+        # Header precedes every entry child in document order.
+        entry_children = [
+            c
+            for c in children
+            if c.attrib.get("data-order-log-entry") == ""
+        ]
+        if entry_children:
+            assert children.index(headers[0]) < children.index(entry_children[0])
+
+
 def test_render_order_log_one_child_per_entry_in_order_with_escaped_body():
     """One ``<div data-order-log-entry="">`` per entry in input order; body in
     the raw fragment is ``html.escape(entry, quote=True)``. Empty sequence →
-    bare root ``<div data-order-log="" data-count="0"></div>`` with no children.
+    ``data-count="0"`` and no entry children (header still present, K44.2a).
     """
     empty_xml = render_order_log(())
     empty_root = ET.fromstring(empty_xml)
     assert empty_root.tag == "div"
     assert empty_root.attrib == {"data-order-log": "", "data-count": "0"}
-    assert list(empty_root) == []
-    assert empty_xml == '<div data-order-log="" data-count="0"></div>'
+    empty_entries = [
+        c
+        for c in empty_root
+        if c.attrib.get("data-order-log-entry") == ""
+    ]
+    assert empty_entries == []
 
     entries = ("march north", "assault Keep", "recruit")
     xml = render_order_log(entries)
     root = ET.fromstring(xml)
-    children = list(root)
+    children = [
+        c for c in root if c.attrib.get("data-order-log-entry") == ""
+    ]
     assert len(children) == len(entries)
     for child, entry in zip(children, entries, strict=True):
         assert child.tag == "div"
@@ -105,7 +142,9 @@ def test_render_order_log_is_pure_deterministic_and_escapes_special_chars():
         assert f'<div data-order-log-entry="">{escaped}</div>' in first
 
     root = ET.fromstring(first)
-    children = list(root)
+    children = [
+        c for c in root if c.attrib.get("data-order-log-entry") == ""
+    ]
     assert len(children) == 3
     for child, entry in zip(children, entries, strict=True):
         # After XML parse, text content is the original entry (entities decoded).

@@ -145,16 +145,17 @@ księstwa bez zmian nie dają wiersza; `data-change-count` = liczba dzieci
 `data-turn-duchy`. Czyste, deterministyczne, bez mutacji `before`/`after`;
 rdzeń bez zmian.
 
-**Dziennik rozkazów HTML (K43.1a / K44.1a):**
+**Dziennik rozkazów HTML (K43.1a / K44.1a / K44.2a):**
 `tbbui.orderlog.format_log_entry(notice, calendar) -> str` — czysty helper
 `f"Rok {calendar.year}, miesiąc {calendar.month} — {notice}"` (bez escapowania,
 bez mutacji; odczyt tylko `year`/`month`).
 `tbbui.orderlog.render_order_log(entries) -> str` — parsowalny fragment XML z
-korzeniem `<div data-order-log="" data-count="N">` (`N = len(entries)`). Na
-każdy wpis (kolejność wejściowa) jedno dziecko
-`<div data-order-log-entry="">` z ciałem `html.escape(entry, quote=True)`;
-pusta sekwencja → sam korzeń z `data-count="0"` bez dzieci. Czyste,
-deterministyczne, bez mutacji `entries`; rdzeń bez zmian.
+korzeniem `<div data-order-log="" data-count="N">` (`N = len(entries)`; nagłówek
+nie jest liczony). Pierwszym dzieckiem zawsze jest
+`<h2 data-order-log-header="">Dziennik rozkazów</h2>` (także dla pustej
+sekwencji). Na każdy wpis (kolejność wejściowa) jedno dziecko
+`<div data-order-log-entry="">` z ciałem `html.escape(entry, quote=True)`.
+Czyste, deterministyczne, bez mutacji `entries`; rdzeń bez zmian.
 
 **Podpowiedź następnego kroku HTML (K34.1a):**
 `tbbui.nextobjective.render_next_objective(game, player_duchy_id=None) -> str`

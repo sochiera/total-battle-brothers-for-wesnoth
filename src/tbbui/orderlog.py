@@ -22,15 +22,19 @@ def render_order_log(entries: Sequence[str]) -> str:
     """Return a parsable HTML fragment listing order-log text entries.
 
     Root is ``<div data-order-log="" data-count="N">`` where ``N`` is
-    ``len(entries)``. Each entry becomes one child
+    ``len(entries)`` (header is not counted). First child is always
+    ``<h2 data-order-log-header="">Dziennik rozkazów</h2>`` (also for empty
+    sequence). Each entry then becomes one
     ``<div data-order-log-entry="">`` with body ``html.escape(entry, quote=True)``
-    (input order preserved). Empty sequence → bare root with ``data-count="0"``
-    and no children. Pure and deterministic: no RNG/IO; does not mutate
+    (input order preserved). Pure and deterministic: no RNG/IO; does not mutate
     ``entries``.
     """
     count = len(entries)
-    children = "".join(
+    header = '<h2 data-order-log-header="">Dziennik rozkazów</h2>'
+    entry_children = "".join(
         f'<div data-order-log-entry="">{html.escape(entry, quote=True)}</div>'
         for entry in entries
     )
-    return f'<div data-order-log="" data-count="{count}">{children}</div>'
+    return (
+        f'<div data-order-log="" data-count="{count}">{header}{entry_children}</div>'
+    )
