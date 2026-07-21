@@ -324,3 +324,31 @@ def test_render_order_log_marks_newest_entry_with_latest_attr_and_badge():
     for entry in entries[:-1]:
         escaped = html.escape(entry, quote=True)
         assert f'<div data-order-log-entry="">{escaped}</div>' in xml
+
+
+def test_render_order_log_empty_has_no_latest_marker_or_badge():
+    """K45.2a: empty ``entries`` → root has neither ``data-order-log-latest``
+    nor ``data-order-log-latest-badge``; ``data-count``, header and empty-state
+    paragraph are unchanged (same as K44.2a/K44.2b).
+    """
+    xml = render_order_log(())
+    root = ET.fromstring(xml)
+    children = list(root)
+
+    assert "data-order-log-latest" not in xml
+    assert "data-order-log-latest-badge" not in xml
+    assert root.find(".//*[@data-order-log-latest]") is None
+    assert root.find(".//*[@data-order-log-latest-badge]") is None
+
+    assert root.attrib == {"data-order-log": "", "data-count": "0"}
+    assert len(children) == 2
+    assert children[0].tag == "h2"
+    assert children[0].attrib.get("data-order-log-header") == ""
+    assert "".join(children[0].itertext()) == "Dziennik rozkazów"
+    assert children[1].tag == "p"
+    assert children[1].attrib.get("data-order-log-empty") == ""
+    assert "".join(children[1].itertext()) == "Brak rozkazów w tej kampanii"
+    assert (
+        '<h2 data-order-log-header="">Dziennik rozkazów</h2>'
+        '<p data-order-log-empty="">Brak rozkazów w tej kampanii</p>'
+    ) in xml
