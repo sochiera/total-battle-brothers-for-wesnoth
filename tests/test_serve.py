@@ -3707,3 +3707,19 @@ def test_recommended_order_path_assault_and_engage():
     assert recommended_order_path("assault") == "/order/assault"
     assert recommended_order_path("engage") == "/order/engage"
 
+
+def test_recommended_order_path_defend_to_march():
+    """``recommended_order_path("defend")`` reuses march (K42.1b).
+
+    Contract: defend threatened position = march party there → ``"/order/march"``.
+    """
+    assert recommended_order_path("defend") == "/order/march"
+
+
+def test_recommended_order_path_develop():
+    """``recommended_order_path("develop")`` maps to develop order route (K42.1b).
+
+    Contract: ``"develop"`` → ``"/order/develop"``. Pure, deterministic, no IO.
+    """
+    assert recommended_order_path("develop") == "/order/develop"
+
