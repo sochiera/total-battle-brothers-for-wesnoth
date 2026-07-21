@@ -256,3 +256,4 @@
 | K47.1a | Liczba strat broniącego | `tbbui.battlereport.defender_losses(battle)` = `len(battle.report().defender.fallen)`; nierozstrzygnięta → `ValueError`; czysty. |
 | K47.1b | Straty wroga w komunikacie rozkazu | `_apply_player_assault_order` przy bitwie ustawia `last_notice = f"{label}: {battle_outcome_text(battle)} (straty: {attacker_losses(battle)}, wróg: {defender_losses(battle)})"`. |
 | K48.1a | Predykat „gracz może zebrać oddział" | `tbbui.recommendedaction.player_can_muster(world, game, player_duchy_id)` → `True` iff znane księstwo z bohaterem, brak party gracza na mapie i wolna własna osada (jak sukces `ai.muster_duchy_party`); czysty, bez mutacji. |
+| K48.1b | Tekst rady „zbierz oddział" | `recommended_order_text("muster", None)` → `"zbierz oddział"`; pozostałe akcje bez zmian. |

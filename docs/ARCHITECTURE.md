@@ -336,9 +336,10 @@ decyzja rady jest wyłuskana jako `recommended_order(world, game,
 player_duchy_id=None) -> tuple[str, str | None] | None` (K42.1a; `(action,
 target_region_name)`, `develop` → target `None`, brak gracza → `None`), a
 opisowa część tekstu jako `recommended_order_text(action, target_name) -> str`
-(K42.2a: `szturmuj osadę <R>` / `zaatakuj oddział <R>` / `broń pozycji <R>` /
-`rozwijaj księstwo`). `render_recommended_action` deleguje do obu (wyjście
-bajt-w-bajt jak przed refaktorem).
+(K42.2a / K48.1b: `szturmuj osadę <R>` / `zaatakuj oddział <R>` /
+`broń pozycji <R>` / `zbierz oddział` przy `muster` / `rozwijaj księstwo`).
+`render_recommended_action` deleguje do obu (wyjście bajt-w-bajt jak przed
+refaktorem).
 
 **Zalecany rozkaz w jeden klik w GameApp (K42.1b / K42.1c / K42.2a):**
 `tbbui.serve.recommended_order_path(action) -> str` — czysta mapa akcji na

@@ -146,6 +146,18 @@ def test_recommended_order_text_maps_action_and_target_to_description():
     assert recommended_order_text("develop", None) == "rozwijaj księstwo"
 
 
+def test_recommended_order_text_muster_returns_zbierz_oddzial():
+    """``recommended_order_text("muster", None)`` → ``"zbierz oddział"`` — K48.1b.
+
+    Contract (task-228): new ``muster`` branch with target ``None``; descriptive
+    half only (no ``Zalecany rozkaz: `` prefix). Other actions stay covered by
+    ``test_recommended_order_text_maps_action_and_target_to_description``.
+    Pure and deterministic.
+    """
+    recommended_order_text = recommendedaction.recommended_order_text
+    assert recommended_order_text("muster", None) == "zbierz oddział"
+
+
 def test_recommended_order_returns_none_when_player_duchy_missing():
     """``recommended_order(world, game, player_duchy_id)`` returns ``None``
     when ``player_duchy(game, player_duchy_id) is None`` — i.e. no player
