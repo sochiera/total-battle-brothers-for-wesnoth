@@ -2552,3 +2552,111 @@ def test_recommended_battle_is_risky_true_iff_own_less_than_enemy():
     )
     _assert_risk(ryzyko_world, own_weak, enemy_strong)
     assert recommended_battle_is_risky(ryzyko_world, game, "player") is True
+
+
+def test_render_recommended_action_data_recommended_risk_when_battle_is_risky():
+    """When ``recommended_battle_is_risky(world, game, player_duchy_id)`` is
+    ``True``, the root ``<div data-recommended-action="">`` from
+    ``render_recommended_action`` carries an empty attribute
+    ``data-recommended-risk=""`` immediately after ``data-action="{action}"``
+    — K52.1b.
+
+    ``data-posture``, ``data-action``, visible text and children (reason,
+    forecast) stay unchanged. Pure: no world/game mutation.
+    """
+    recommended_battle_is_risky = recommendedaction.recommended_battle_is_risky
+    recommended_order_reason = recommendedaction.recommended_order_reason
+    recommended_order_text = recommendedaction.recommended_order_text
+    recommended_battle_forecast_text = (
+        recommendedaction.recommended_battle_forecast_text
+    )
+    field = Region("Field")
+    other_n = Region("OtherN")
+    enemy_camp = Region("EnemyCamp")
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+    # own < enemy → risky defend (same fixture shape as K52.1a ryzyko path)
+    field_hero = Unit(training=3, equipment=2)
+    field_units = (Unit(training=1),)
+    field_enemy_hero = Unit(training=20)
+    own_weak = sum(combat_totals((field_hero, *field_units)))
+    enemy_strong = sum(combat_totals((field_enemy_hero,)))
+    assert own_weak < enemy_strong
+
+    world = WorldMap(
+        [field, other_n, enemy_camp],
+        [(field, other_n), (field, enemy_camp)],
+        parties={
+            field: Party(
+                hero=field_hero, units=field_units, owner_id="player"
+            ),
+            enemy_camp: Party(
+                hero=field_enemy_hero, units=(), owner_id="enemy"
+            ),
+        },
+        settlements={},
+    )
+    order = recommended_order(world, game, "player")
+    assert order is not None
+    action, target = order
+    assert action == "defend"
+    assert recommended_battle_is_risky(world, game, "player") is True
+
+    m = advantageous_target_count(world, game, "player")
+    n = threatened_position_count(world, game, "player")
+    expected_posture = net_posture(m, n)
+    expected_text = (
+        f"Zalecany rozkaz: {recommended_order_text(action, target)}"
+    )
+    reason = recommended_order_reason(world, game, "player")
+    forecast = recommended_battle_forecast_text(world, game, "player")
+    assert reason != ""
+    assert forecast != ""
+    escaped_reason = html.escape(reason, quote=True)
+    escaped_forecast = html.escape(forecast, quote=True)
+
+    regions_before = world.regions
+    parties_before = {r: world.party_at(r) for r in world.regions}
+    settlements_before = {
+        r: world.settlement_at(r) for r in world.regions
+    }
+    duchies_before = game.duchies
+
+    xml = render_recommended_action(world, game, player_duchy_id="player")
+    root = ET.fromstring(xml)
+
+    assert root.tag == "div"
+    assert root.attrib.get("data-recommended-action") == ""
+    assert root.attrib.get("data-posture") == expected_posture
+    assert root.attrib.get("data-action") == action
+    assert root.attrib.get("data-recommended-risk") == ""
+    # empty attribute sits immediately after data-action in the raw fragment
+    assert f'data-action="{action}" data-recommended-risk=""' in xml
+    assert root.text == expected_text
+
+    children = list(root)
+    assert len(children) == 2
+    reason_child, forecast_child = children
+    assert reason_child.tag == "p"
+    assert reason_child.attrib == {
+        "data-recommendation-reason": escaped_reason
+    }
+    assert reason_child.text == reason
+    assert forecast_child.tag == "p"
+    assert forecast_child.attrib == {
+        "data-recommended-forecast": escaped_forecast
+    }
+    assert forecast_child.text == forecast
+
+    assert world.regions == regions_before
+    assert {
+        r: world.party_at(r) for r in world.regions
+    } == parties_before
+    assert {
+        r: world.settlement_at(r) for r in world.regions
+    } == settlements_before
+    assert game.duchies == duchies_before

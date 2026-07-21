@@ -337,8 +337,10 @@ def render_recommended_action(
     and body). When ``recommended_battle_forecast_text`` is non-empty, a second
     child ``<p data-recommended-forecast="{text}">{text}</p>`` follows the
     reason (same escape rule); empty forecast or no player → no forecast
-    element (K51.1d). Pure and deterministic: no RNG/IO; does not mutate
-    ``world`` or ``game``.
+    element (K51.1d). When ``recommended_battle_is_risky`` is ``True``, the root
+    also carries empty ``data-recommended-risk=""`` immediately after
+    ``data-action`` (K52.1b); otherwise that attribute is omitted (byte-stable).
+    Pure and deterministic: no RNG/IO; does not mutate ``world`` or ``game``.
     """
     order = recommended_order(world, game, player_duchy_id)
     if order is None:
@@ -356,9 +358,14 @@ def render_recommended_action(
         world, game, player_duchy_id
     )
     forecast_html = _escaped_paragraph("recommended-forecast", forecast)
+    risk_attr = (
+        ' data-recommended-risk=""'
+        if recommended_battle_is_risky(world, game, player_duchy_id)
+        else ""
+    )
     return (
         f'<div data-recommended-action="" data-posture="{posture}" '
-        f'data-action="{action}">{text}'
+        f'data-action="{action}"{risk_attr}>{text}'
         f"{reason_html}"
         f"{forecast_html}</div>"
     )
