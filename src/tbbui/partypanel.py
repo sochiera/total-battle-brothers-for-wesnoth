@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from tbb.world import WorldMap
+from tbbui.unitstrength import combat_totals
 
 
 def render_party_panel(
@@ -28,10 +29,9 @@ def render_party_panel(
         owner = party.owner_id or ""
         owner_text = party.owner_id if party.owner_id is not None else "—"
         size = len(party.units)
-        roster = (party.hero, *party.units)
-        total_hp = sum(u.hp for u in roster)
-        total_attack = sum(u.damage for u in roster)
-        total_defense = sum(u.defense for u in roster)
+        total_hp, total_attack, total_defense = combat_totals(
+            (party.hero, *party.units)
+        )
         text = (
             f"{region.name} ({owner_text}): bohater + {size} podkomendnych"
             f" · siła: HP {total_hp}, atak {total_attack}, obrona {total_defense}"

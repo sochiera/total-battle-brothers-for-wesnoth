@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from tbb.world import WorldMap
+from tbbui.unitstrength import combat_totals
 
 
 def render_settlement_panel(
@@ -34,9 +35,9 @@ def render_settlement_panel(
         population = settlement.population
         free = settlement.free
         garrison = len(settlement.garrison)
-        garrison_hp = sum(u.hp for u in settlement.garrison)
-        garrison_attack = sum(u.damage for u in settlement.garrison)
-        garrison_defense = sum(u.defense for u in settlement.garrison)
+        garrison_hp, garrison_attack, garrison_defense = combat_totals(
+            settlement.garrison
+        )
         text = (
             f"{settlement.name} ({owner_text}): pszenica {wheat}, złoto {gold}"
             f" · populacja {population} (wolne {free}), garnizon {garrison}"
