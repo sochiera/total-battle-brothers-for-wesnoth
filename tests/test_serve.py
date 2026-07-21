@@ -410,6 +410,55 @@ def test_game_app_post_turn_and_orders_append_last_notice_to_order_log():
         assert app.order_log[-1] == app.last_notice
 
 
+def test_game_app_post_new_resets_order_log_to_single_start_notice():
+    """POST /new clears order_log to a single entry equal to last_notice (K43.1b).
+
+    Contract (task-209 / K43.1b):
+    - after prior POST actions have filled order_log with multiple entries,
+      POST /new leaves order_log as exactly one element equal to last_notice
+    - with seed set: that entry is ``"Nowa gra: rok 1, miesiąc 1"``
+    - without seed: that entry is ``"Nowa gra: brak zmian"``
+    - prior log contents are discarded (not appended to)
+    """
+    world, game = _ongoing_world_game()
+    app = GameApp(
+        world,
+        game,
+        Calendar(year=1, month=1),
+        Rng(1),
+        player_duchy_id="north",
+        seed=42,
+    )
+    code_t, _ = app.handle("POST", "/turn")
+    assert code_t == 200
+    code_r, _ = app.handle("POST", "/order/recruit")
+    assert code_r == 200
+    assert len(app.order_log) >= 2
+
+    code_new, _ = app.handle("POST", "/new")
+    assert code_new == 200
+    assert app.last_notice == "Nowa gra: rok 1, miesiąc 1"
+    assert app.order_log == [app.last_notice]
+    assert app.order_log == ["Nowa gra: rok 1, miesiąc 1"]
+
+    # Without seed: still a single start entry; prior multi-entry log discarded.
+    world2, game2 = _ongoing_world_game()
+    app_no_seed = GameApp(
+        world2, game2, Calendar(year=1, month=1), Rng(1), player_duchy_id="north"
+    )
+    code_t2, _ = app_no_seed.handle("POST", "/turn")
+    assert code_t2 == 200
+    assert len(app_no_seed.order_log) == 1
+    prior = list(app_no_seed.order_log)
+
+    code_new2, _ = app_no_seed.handle("POST", "/new")
+    assert code_new2 == 200
+    assert app_no_seed.last_notice == "Nowa gra: brak zmian"
+    assert app_no_seed.order_log == [app_no_seed.last_notice]
+    assert app_no_seed.order_log == ["Nowa gra: brak zmian"]
+    assert app_no_seed.order_log != prior
+
+
 def test_game_app_last_notice_empty_string_renders_empty_data_notice():
     """GameApp exposes last_notice, rendered as one <p data-notice> in extras.
 
