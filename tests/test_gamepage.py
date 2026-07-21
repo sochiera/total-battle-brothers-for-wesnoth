@@ -787,6 +787,21 @@ def test_render_game_page_embeds_canonical_engagement_preview_after_hero_chase()
     ), "data-hero-chase must precede data-engagement-preview in body"
 
 
+def test_render_game_page_omits_engagement_preview_when_player_duchy_id_none():
+    """Default / explicit ``player_duchy_id=None``: no ``data-engagement-preview``.
+
+    Default and explicit None are byte-for-byte identical (no engagement preview).
+    """
+    world, game, calendar = _ongoing_fixture()
+    baseline_html = render_game_page(world, game, calendar)
+
+    assert render_game_page(world, game, calendar, player_duchy_id=None) == baseline_html
+
+    root = ET.fromstring(baseline_html)
+    assert _find_by_attr(root, "data-engagement-preview") == []
+    assert "data-engagement-preview" not in baseline_html
+
+
 def test_render_game_page_omits_hero_chase_when_player_duchy_id_none():
     """Default / explicit ``player_duchy_id=None``: no ``data-hero-chase``.
 
