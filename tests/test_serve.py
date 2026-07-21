@@ -506,6 +506,66 @@ def test_game_app_get_embeds_exactly_one_render_order_log_in_body():
     assert any(el.get("data-order-log") is not None for el in body2_el.iter())
 
 
+def test_game_app_get_embeds_order_log_when_is_over():
+    """GET / still embeds order log when game.is_over (K43.1c).
+
+    Contract (task-210 / K43.1c):
+    - finished game (``game.is_over`` is True): GET / still has exactly one
+      ``data-order-log`` in ``<body>`` (not hidden with turn/order sections)
+    - after POST actions that append to ``order_log`` while finished, GET /
+      embeds ``render_order_log(self.order_log)`` byte-for-byte and entry
+      count/text match the log
+    """
+    fin_world, fin_game = _finished_world_game()
+    assert fin_game.is_over
+    app = GameApp(
+        fin_world,
+        fin_game,
+        Calendar(year=1, month=1),
+        Rng(17),
+        player_duchy_id="north",
+    )
+    assert app.order_log == []
+
+    code, body = app.handle("GET", "/")
+    assert code == 200
+    assert app.game.is_over
+    expected_empty = render_order_log(app.order_log)
+    assert expected_empty in body
+    root = ET.fromstring(body)
+    logs = _find_by_attr(root, "data-order-log")
+    assert len(logs) == 1
+    assert logs[0].get("data-count") == "0"
+    body_el = next(el for el in root.iter() if _local(el.tag) == "body")
+    assert any(el.get("data-order-log") is not None for el in body_el.iter())
+    # Order forms stay hidden (K32.2a); journal must not share that gate.
+    assert not _has_post_turn_form(body)
+
+    code_t, _ = app.handle("POST", "/turn")
+    assert code_t == 200
+    assert app.game.is_over
+    assert len(app.order_log) == 1
+    assert app.order_log[-1] == app.last_notice == "Następna tura: gra zakończona"
+
+    code2, body2 = app.handle("GET", "/")
+    assert code2 == 200
+    assert app.game.is_over
+    expected = render_order_log(app.order_log)
+    assert expected in body2
+    root2 = ET.fromstring(body2)
+    logs2 = _find_by_attr(root2, "data-order-log")
+    assert len(logs2) == 1
+    assert logs2[0].get("data-count") == "1"
+    entries = [
+        el
+        for el in logs2[0]
+        if el.get("data-order-log-entry") is not None
+    ]
+    assert len(entries) == len(app.order_log) == 1
+    assert (entries[0].text or "") == app.order_log[0]
+    assert not _has_post_turn_form(body2)
+
+
 def test_game_app_last_notice_empty_string_renders_empty_data_notice():
     """GameApp exposes last_notice, rendered as one <p data-notice> in extras.
 
