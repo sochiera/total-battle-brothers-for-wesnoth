@@ -3541,3 +3541,51 @@ def test_game_app_get_hides_turn_and_orders_when_is_over():
     )
     assert 'data-order-section="' not in body
 
+
+def test_game_app_get_keeps_new_player_and_notice_when_is_over():
+    """When game.is_over, GET / still has /new, data-player and data-notice (K32.2a).
+
+    Contract (task-164 / K32.2a):
+    - finished game (``game.is_over``): GET / body has exactly one form
+      ``method=post action="/new"`` with submit button ``Nowa gra``
+    - body still has a ``data-player`` marker equal to ``player_duchy_id``
+    - body still has exactly one ``<p data-notice>`` (attribute matches
+      ``self.last_notice``, including the empty default)
+    """
+    fin_world, fin_game = _finished_world_game()
+    assert fin_game.is_over
+    app = GameApp(
+        fin_world,
+        fin_game,
+        Calendar(year=1, month=1),
+        Rng(17),
+        player_duchy_id="north",
+    )
+    assert app.last_notice == ""
+
+    code, body = app.handle("GET", "/")
+    assert code == 200
+    assert isinstance(body, str)
+    root = ET.fromstring(body)
+    assert _local(root.tag) == "html"
+
+    new_forms = [
+        el
+        for el in root.iter()
+        if _local(el.tag) == "form"
+        and (el.get("method") or "").lower() == "post"
+        and (el.get("action") or "") == "/new"
+    ]
+    assert len(new_forms) == 1
+    assert _has_post_form(body, "/new")
+    assert _form_submit_button_text(body, "/new") == "Nowa gra"
+
+    players = _find_by_attr(root, "data-player")
+    assert len(players) == 1
+    assert players[0].get("data-player") == "north"
+
+    notices = _find_by_attr(root, "data-notice")
+    assert len(notices) == 1
+    assert _local(notices[0].tag) == "p"
+    assert notices[0].get("data-notice") == app.last_notice == ""
+
