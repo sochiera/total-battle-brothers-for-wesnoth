@@ -242,15 +242,18 @@ mutacji `world`/`game`; rdzeń bez zmian.
 — `len(_threatened_rows(...))` przy znanym graczu, inaczej `0`; wspólne źródło
 `N` dla `render_threat_alert` i `render_situation_report`.
 
-**Skrót sytuacji HTML (K40.1a / K40.1b):**
+**Skrót sytuacji HTML (K40.1a / K40.1b / K40.2a):**
 `tbbui.situationreport.render_situation_report(world, game, player_duchy_id=None) -> str`
 — parsowalny fragment z korzeniem `<div data-situation-report="">`. Gdy
 `player_duchy(...) is None` → sam pusty korzeń (bez `data-threatened-count`,
-bez `data-opportunity-count`, bez tekstu, bez dzieci). Przy znanym graczu:
-`data-threatened-count="N"` (`threatened_position_count`),
-`data-opportunity-count="M"` (`advantageous_target_count`) i tekst
-`Sytuacja: zagrożone pozycje N, korzystne cele M`. Czyste, deterministyczne,
-bez mutacji `world`/`game`; rdzeń bez zmian.
+bez `data-opportunity-count`, bez `data-net-posture`, bez tekstu, bez dzieci).
+Przy znanym graczu: `data-threatened-count="N"` (`threatened_position_count`),
+`data-opportunity-count="M"` (`advantageous_target_count`), zaraz po nim
+`data-net-posture` (`"offensive"` gdy M>N, `"defensive"` gdy N>M,
+`"balanced"` gdy M==N) i tekst
+`Sytuacja: zagrożone pozycje N, korzystne cele M — postawa:
+ofensywna|defensywna|zrównoważona`. Czyste, deterministyczne, bez mutacji
+`world`/`game`; rdzeń bez zmian.
 
 **Lokalizacja party na mapie (R37.1):**
 `tbbui.maplookup.first_party_region(world, owner_id) -> Region | None` — pierwszy

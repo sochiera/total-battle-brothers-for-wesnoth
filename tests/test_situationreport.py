@@ -54,11 +54,11 @@ def test_render_situation_report_empty_root_when_none_or_unknown_duchy():
 def test_render_situation_report_threatened_count_and_label():
     """Known player: root has ``data-threatened-count="N"``,
     ``data-opportunity-count="M"`` and visible text
-    ``Sytuacja: zagrożone pozycje N, korzystne cele M``. ``N`` counts own
-    positions (player settlement and/or party, separately per region and kind)
-    that have ≥1 neighbor with ``party_at(neighbor).owner_id`` set and
-    ``!= player_duchy_id`` — same rule as ``render_threat_alert``. ``M`` is
-    ``advantageous_target_count``. Pure (no world/game mutation).
+    ``Sytuacja: zagrożone pozycje N, korzystne cele M — postawa: …``.
+    ``N`` counts own positions (player settlement and/or party, separately per
+    region and kind) that have ≥1 neighbor with ``party_at(neighbor).owner_id``
+    set and ``!= player_duchy_id`` — same rule as ``render_threat_alert``.
+    ``M`` is ``advantageous_target_count``. Pure (no world/game mutation).
     """
     home = Region("Home")
     keep = Region("Keep")
@@ -125,8 +125,15 @@ def test_render_situation_report_threatened_count_and_label():
     assert root.attrib.get("data-situation-report") == ""
     assert root.attrib.get("data-threatened-count") == str(expected_n)
     assert root.attrib.get("data-opportunity-count") == str(expected_m)
+    if expected_m > expected_n:
+        posture_label = "ofensywna"
+    elif expected_n > expected_m:
+        posture_label = "defensywna"
+    else:
+        posture_label = "zrównoważona"
     assert root.text == (
         f"Sytuacja: zagrożone pozycje {expected_n}, korzystne cele {expected_m}"
+        f" — postawa: {posture_label}"
     )
     assert list(root) == []
 
@@ -180,7 +187,16 @@ def test_render_situation_report_count_from_threatened_position_count():
     root = ET.fromstring(xml)
     assert root.attrib.get("data-threatened-count") == str(n)
     assert root.attrib.get("data-opportunity-count") == str(m)
-    assert root.text == f"Sytuacja: zagrożone pozycje {n}, korzystne cele {m}"
+    if m > n:
+        posture_label = "ofensywna"
+    elif n > m:
+        posture_label = "defensywna"
+    else:
+        posture_label = "zrównoważona"
+    assert root.text == (
+        f"Sytuacja: zagrożone pozycje {n}, korzystne cele {m}"
+        f" — postawa: {posture_label}"
+    )
 
     # Same N as threat-alert root attribute (shared source, not HTML scrape)
     alert_root = ET.fromstring(
@@ -214,7 +230,10 @@ def test_render_situation_report_count_from_threatened_position_count():
     )
     assert zero.attrib.get("data-threatened-count") == "0"
     assert zero.attrib.get("data-opportunity-count") == "0"
-    assert zero.text == "Sytuacja: zagrożone pozycje 0, korzystne cele 0"
+    assert zero.text == (
+        "Sytuacja: zagrożone pozycje 0, korzystne cele 0"
+        " — postawa: zrównoważona"
+    )
 
     assert world.regions == regions_before
     assert {r: world.party_at(r) for r in world.regions} == parties_before
@@ -222,3 +241,128 @@ def test_render_situation_report_count_from_threatened_position_count():
         r: world.settlement_at(r) for r in world.regions
     } == settlements_before
     assert game.duchies == duchies_before
+
+
+def test_render_situation_report_net_posture_from_m_vs_n():
+    """Known player: root has ``data-net-posture`` immediately after
+    ``data-opportunity-count`` — ``"offensive"`` when M>N, ``"defensive"``
+    when N>M, ``"balanced"`` when M==N (M=``advantageous_target_count``,
+    N=``threatened_position_count``). Visible text ends with
+    `` — postawa: ofensywna`` / `` — postawa: defensywna`` /
+    `` — postawa: zrównoważona`` matching the attribute. Empty root
+    (``player_duchy(...) is None``) still omits ``data-net-posture`` and
+    text. Pure (no world/game mutation).
+    """
+    home = Region("Home")
+    keep = Region("Keep")
+    enemy_camp = Region("EnemyCamp")
+    game = GameState(
+        (
+            Duchy("player", Unit()),
+            Duchy("enemy", Unit()),
+        )
+    )
+
+    def _assert_posture(world: WorldMap, expected: str, label: str) -> None:
+        n = threatened_position_count(world, game, "player")
+        m = advantageous_target_count(world, game, "player")
+        if expected == "offensive":
+            assert m > n, f"{expected}: need M>N, got M={m} N={n}"
+        elif expected == "defensive":
+            assert n > m, f"{expected}: need N>M, got M={m} N={n}"
+        else:
+            assert m == n, f"{expected}: need M==N, got M={m} N={n}"
+
+        regions_before = world.regions
+        parties_before = {r: world.party_at(r) for r in world.regions}
+        settlements_before = {
+            r: world.settlement_at(r) for r in world.regions
+        }
+        duchies_before = game.duchies
+
+        root = ET.fromstring(
+            render_situation_report(world, game, player_duchy_id="player")
+        )
+        keys = list(root.attrib.keys())
+        assert "data-opportunity-count" in keys
+        assert "data-net-posture" in keys
+        assert keys.index("data-net-posture") == keys.index(
+            "data-opportunity-count"
+        ) + 1
+        assert root.attrib.get("data-net-posture") == expected
+        assert root.attrib.get("data-threatened-count") == str(n)
+        assert root.attrib.get("data-opportunity-count") == str(m)
+        assert root.text == (
+            f"Sytuacja: zagrożone pozycje {n}, korzystne cele {m}"
+            f" — postawa: {label}"
+        )
+        assert list(root) == []
+
+        assert world.regions == regions_before
+        assert {
+            r: world.party_at(r) for r in world.regions
+        } == parties_before
+        assert {
+            r: world.settlement_at(r) for r in world.regions
+        } == settlements_before
+        assert game.duchies == duchies_before
+
+    # balanced: M==N==0 (isolated player party, no hostiles)
+    balanced_world = WorldMap(
+        [home],
+        [],
+        parties={home: Party(hero=Unit(), units=(), owner_id="player")},
+        settlements={},
+    )
+    _assert_posture(balanced_world, "balanced", "zrównoważona")
+
+    # defensive: N>M — enemy party threatens keep settlement; player has no
+    # party so M=0, N=1
+    defensive_world = WorldMap(
+        [keep, enemy_camp],
+        [(keep, enemy_camp)],
+        parties={
+            enemy_camp: Party(hero=Unit(), units=(), owner_id="enemy"),
+        },
+        settlements={
+            keep: Settlement("KeepS", population=2, owner_id="player"),
+        },
+    )
+    _assert_posture(defensive_world, "defensive", "defensywna")
+
+    # offensive: M>N — player party next to weak enemy settlement only
+    # (hostile party required for N; settlement alone is an opportunity for M)
+    # Default Unit totals give advantage over empty garrison.
+    offensive_world = WorldMap(
+        [home, enemy_camp],
+        [(home, enemy_camp)],
+        parties={home: Party(hero=Unit(), units=(), owner_id="player")},
+        settlements={
+            enemy_camp: Settlement(
+                "EnemyS", population=2, owner_id="enemy"
+            ),
+        },
+    )
+    _assert_posture(offensive_world, "offensive", "ofensywna")
+
+    # empty root: no data-net-posture even when map has threats/opportunities
+    mixed = WorldMap(
+        [home, keep, enemy_camp],
+        [(home, enemy_camp), (keep, enemy_camp)],
+        parties={
+            home: Party(hero=Unit(), units=(), owner_id="player"),
+            enemy_camp: Party(hero=Unit(), units=(), owner_id="enemy"),
+        },
+        settlements={
+            keep: Settlement("KeepS", population=2, owner_id="player"),
+        },
+    )
+    for player_duchy_id in (None, "missing"):
+        empty = ET.fromstring(
+            render_situation_report(
+                mixed, game, player_duchy_id=player_duchy_id
+            )
+        )
+        assert empty.attrib == {"data-situation-report": ""}
+        assert "data-net-posture" not in empty.attrib
+        assert "".join(empty.itertext()) == ""

@@ -8,6 +8,21 @@ from tbbui.engagementpreview import advantageous_target_count
 from tbbui.gamelookup import player_duchy
 from tbbui.threatalert import threatened_position_count
 
+_POSTURE_LABELS = {
+    "offensive": "ofensywna",
+    "defensive": "defensywna",
+    "balanced": "zrównoważona",
+}
+
+
+def _net_posture(opportunity_count: int, threatened_count: int) -> str:
+    """Return posture from M (opportunities) vs N (threats)."""
+    if opportunity_count > threatened_count:
+        return "offensive"
+    if threatened_count > opportunity_count:
+        return "defensive"
+    return "balanced"
+
 
 def render_situation_report(
     world: WorldMap,
@@ -19,12 +34,16 @@ def render_situation_report(
     Root is ``<div data-situation-report="">``. When ``player_duchy_id`` is
     ``None`` or not in ``game.duchies`` (``player_duchy(...) is None``), returns
     a bare empty root with no ``data-threatened-count``, no
-    ``data-opportunity-count``, no visible text, and no children. When the
-    player is known, the root carries ``data-threatened-count="N"`` (via
-    ``threatalert.threatened_position_count``), ``data-opportunity-count="M"``
-    (via ``engagementpreview.advantageous_target_count``) and visible text
-    ``Sytuacja: zagrożone pozycje N, korzystne cele M``. Pure and
-    deterministic: no RNG/IO; does not mutate ``world`` or ``game``.
+    ``data-opportunity-count``, no ``data-net-posture``, no visible text, and no
+    children. When the player is known, the root carries
+    ``data-threatened-count="N"`` (via ``threatalert.threatened_position_count``),
+    ``data-opportunity-count="M"`` (via
+    ``engagementpreview.advantageous_target_count``), ``data-net-posture``
+    immediately after (``"offensive"`` if M>N, ``"defensive"`` if N>M,
+    ``"balanced"`` if M==N) and visible text
+    ``Sytuacja: zagrożone pozycje N, korzystne cele M — postawa:
+    ofensywna|defensywna|zrównoważona``. Pure and deterministic: no RNG/IO;
+    does not mutate ``world`` or ``game``.
     """
     if player_duchy(game, player_duchy_id) is None:
         return '<div data-situation-report=""></div>'
@@ -33,9 +52,13 @@ def render_situation_report(
     assert player_duchy_id is not None
     n = threatened_position_count(world, game, player_duchy_id)
     m = advantageous_target_count(world, game, player_duchy_id)
+    posture = _net_posture(m, n)
+    label = _POSTURE_LABELS[posture]
     return (
         f'<div data-situation-report=""'
         f' data-threatened-count="{n}"'
-        f' data-opportunity-count="{m}">'
-        f"Sytuacja: zagrożone pozycje {n}, korzystne cele {m}</div>"
+        f' data-opportunity-count="{m}"'
+        f' data-net-posture="{posture}">'
+        f"Sytuacja: zagrożone pozycje {n}, korzystne cele {m}"
+        f" — postawa: {label}</div>"
     )
