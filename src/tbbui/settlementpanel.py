@@ -28,7 +28,9 @@ def render_settlement_panel(
     ``data-garrison-wounded``) and visible text matching those
     attributes, including the
     `` · siła garnizonu: HP H, atak A, obrona D · budynki: N`` suffix and, when
-    N>0, `` (name1, name2)`` after the count, then `` · ranni: W``. When
+    N>0, `` (name1, name2)`` after the count, then `` · ranni: W``, then
+    `` · trening: gotowy`` when training is ready, else
+    `` · trening: wstrzymany (brak Koszar)``. When
     ``player_duchy_id`` is not ``None``, rows whose ``owner_id`` matches get
     ``data-player-owned=""``. Pure and deterministic: no RNG/IO; ``world`` is
     not mutated.
@@ -49,8 +51,12 @@ def render_settlement_panel(
             settlement.garrison
         )
         garrison_wounded = wounded_count(settlement.garrison)
-        training_ready = (
-            "true" if BARRACKS in settlement.active_buildings else "false"
+        has_barracks = BARRACKS in settlement.active_buildings
+        training_ready = "true" if has_barracks else "false"
+        training_suffix = (
+            " · trening: gotowy"
+            if has_barracks
+            else " · trening: wstrzymany (brak Koszar)"
         )
         buildings = len(settlement.active_buildings)
         building_names = ", ".join(b.name for b in settlement.active_buildings)
@@ -66,6 +72,7 @@ def render_settlement_panel(
             f", atak {garrison_attack}, obrona {garrison_defense}"
             f"{buildings_suffix}"
             f" · ranni: {garrison_wounded}"
+            f"{training_suffix}"
         )
         player_owned = (
             ' data-player-owned=""'

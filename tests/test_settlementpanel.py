@@ -148,6 +148,7 @@ def test_render_settlement_panel_rows_carry_garrison_hp():
         f", atak {expected_attack}, obrona {expected_defense}"
         f" · budynki: 0"
         f" · ranni: 0"
+        f" · trening: wstrzymany (brak Koszar)"
     )
 
     assert row_b.attrib["data-garrison-hp"] == "0"
@@ -157,6 +158,7 @@ def test_render_settlement_panel_rows_carry_garrison_hp():
         " · siła garnizonu: HP 0, atak 0, obrona 0"
         " · budynki: 0"
         " · ranni: 0"
+        " · trening: wstrzymany (brak Koszar)"
     )
 
 
@@ -206,6 +208,7 @@ def test_render_settlement_panel_rows_carry_garrison_attack_and_defense():
         f", atak {expected_attack}, obrona {expected_defense}"
         f" · budynki: 0"
         f" · ranni: 0"
+        f" · trening: wstrzymany (brak Koszar)"
     )
 
     assert row_b.attrib["data-garrison-attack"] == "0"
@@ -216,6 +219,7 @@ def test_render_settlement_panel_rows_carry_garrison_attack_and_defense():
         " · siła garnizonu: HP 0, atak 0, obrona 0"
         " · budynki: 0"
         " · ranni: 0"
+        " · trening: wstrzymany (brak Koszar)"
     )
 
 
@@ -299,6 +303,7 @@ def test_render_settlement_panel_rows_carry_active_buildings_count():
         f", atak {expected_attack}, obrona {expected_defense}"
         f" · budynki: 2 (Farm, Market)"
         f" · ranni: 0"
+        f" · trening: wstrzymany (brak Koszar)"
     )
 
     assert row_b.attrib["data-buildings"] == "0"
@@ -308,6 +313,7 @@ def test_render_settlement_panel_rows_carry_active_buildings_count():
         " · siła garnizonu: HP 0, atak 0, obrona 0"
         " · budynki: 0"
         " · ranni: 0"
+        " · trening: wstrzymany (brak Koszar)"
     )
 
 
@@ -359,6 +365,7 @@ def test_render_settlement_panel_rows_carry_active_building_names():
         f", atak {expected_attack}, obrona {expected_defense}"
         f" · budynki: 2 (Farm, Market)"
         f" · ranni: 0"
+        f" · trening: wstrzymany (brak Koszar)"
     )
 
     assert row_b.attrib["data-building-names"] == ""
@@ -368,6 +375,7 @@ def test_render_settlement_panel_rows_carry_active_building_names():
         " · siła garnizonu: HP 0, atak 0, obrona 0"
         " · budynki: 0"
         " · ranni: 0"
+        " · trening: wstrzymany (brak Koszar)"
     )
 
 
@@ -418,6 +426,7 @@ def test_render_settlement_panel_rows_carry_garrison_wounded_count():
         f", atak {expected_attack}, obrona {expected_defense}"
         f" · budynki: 2 (Farm, Market)"
         f" · ranni: 2"
+        f" · trening: wstrzymany (brak Koszar)"
     )
 
     assert row_b.attrib["data-garrison-wounded"] == "0"
@@ -427,6 +436,7 @@ def test_render_settlement_panel_rows_carry_garrison_wounded_count():
         " · siła garnizonu: HP 0, atak 0, obrona 0"
         " · budynki: 0"
         " · ranni: 0"
+        " · trening: wstrzymany (brak Koszar)"
     )
 
 
@@ -506,6 +516,7 @@ def test_render_settlement_panel_rows_carry_training_ready_flag():
         f", atak {expected_attack_a}, obrona {expected_defense_a}"
         f" · budynki: 3 (Farm, Barracks, Market)"
         f" · ranni: 0"
+        f" · trening: gotowy"
     )
 
     garrison_b = (Unit(), Unit(), Unit())
@@ -519,4 +530,69 @@ def test_render_settlement_panel_rows_carry_training_ready_flag():
         f", atak {expected_attack_b}, obrona {expected_defense_b}"
         f" · budynki: 2 (Farm, Market)"
         f" · ranni: 0"
+        f" · trening: wstrzymany (brak Koszar)"
     )
+
+
+def test_render_settlement_panel_rows_append_training_ready_text_suffix():
+    """Visible row text ends with `` · trening: gotowy`` when BARRACKS is in
+    active_buildings, else `` · trening: wstrzymany (brak Koszar)``, appended
+    after the existing `` · ranni: W`` suffix. The suffix matches
+    data-training-ready on the same row (true ↔ gotowy, false ↔ wstrzymany).
+    """
+    a = Region("A")
+    b = Region("B")
+    world = WorldMap(
+        [a, b],
+        [(a, b)],
+        settlements={
+            a: Settlement(
+                "Keep A",
+                population=5,
+                occupied=2,
+                owner_id="north",
+                storage=Resources(wheat=5, gold=3),
+                garrison=(Unit(wounds=(BRUISE,)), Unit()),
+                active_buildings=(FARM, BARRACKS, MARKET),
+            ),
+            b: Settlement(
+                "Keep B",
+                population=1,
+                owner_id="south",
+                storage=Resources(wheat=0, gold=0),
+                active_buildings=(FARM, MARKET),
+            ),
+        },
+    )
+
+    xml = render_settlement_panel(world)
+    root = ET.fromstring(xml)
+
+    row_a, row_b = root.findall("div")
+    garrison_a = (Unit(wounds=(BRUISE,)), Unit())
+    expected_hp_a = sum(u.hp for u in garrison_a)
+    expected_attack_a = sum(u.damage for u in garrison_a)
+    expected_defense_a = sum(u.defense for u in garrison_a)
+
+    assert row_a.attrib["data-training-ready"] == "true"
+    text_a = "".join(row_a.itertext())
+    assert text_a == (
+        f"Keep A (north): pszenica 5, złoto 3 · populacja 5 (wolne 3), garnizon 2"
+        f" · siła garnizonu: HP {expected_hp_a}"
+        f", atak {expected_attack_a}, obrona {expected_defense_a}"
+        f" · budynki: 3 (Farm, Barracks, Market)"
+        f" · ranni: 1"
+        f" · trening: gotowy"
+    )
+    assert text_a.endswith(" · ranni: 1 · trening: gotowy")
+
+    assert row_b.attrib["data-training-ready"] == "false"
+    text_b = "".join(row_b.itertext())
+    assert text_b == (
+        "Keep B (south): pszenica 0, złoto 0 · populacja 1 (wolne 1), garnizon 0"
+        " · siła garnizonu: HP 0, atak 0, obrona 0"
+        " · budynki: 2 (Farm, Market)"
+        " · ranni: 0"
+        " · trening: wstrzymany (brak Koszar)"
+    )
+    assert text_b.endswith(" · ranni: 0 · trening: wstrzymany (brak Koszar)")

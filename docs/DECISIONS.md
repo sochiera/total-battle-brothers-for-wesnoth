@@ -282,3 +282,4 @@
 | G54.1b | AI otwiera Koszary w kolejności rozwoju | `_DEVELOPMENT_PRIORITIES = (FARM, SMITH, BARRACKS, MARKET)` — Koszary trzecim priorytetem przed Market; `develop_duchy_settlement` bez zmiany sygnatury. |
 | G54.1c | Bramkowanie treningu garnizonu Koszarami | `Settlement.tick_training()` no-op gdy `BARRACKS not in active_buildings`; z czynnymi Koszarami trenuje jak dotąd (bez wymogu obsady/złota). |
 | K55.1a | Flaga gotowości treningu w panelu osad | `render_settlement_panel`: wiersz osady dokłada `data-training-ready="true|false"` (`BARRACKS in active_buildings`) zaraz po `data-garrison-wounded`; tekst bez zmian; `BARRACKS` z `tbb`. |
+| K55.1b | Tekst gotowości treningu w panelu osad | Widoczny sufiks wiersza ` · trening: gotowy` / ` · trening: wstrzymany (brak Koszar)` po ` · ranni: W`, spójny z `data-training-ready`. |
