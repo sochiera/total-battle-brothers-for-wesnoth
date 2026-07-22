@@ -522,3 +522,10 @@
 - [x] **K60.1a** `tbbui.economyalert.render_economy_alert` — korzeń `data-economy-alert` + `data-starving-settlements="N"` (osady z `consumption.wheat > production.wheat`); pusty korzeń dla nieznanego gracza; ARCHITECTURE. *(task-284)*
 - [x] **K60.1b** widoczny tekst `Osady na deficycie pszenicy: N` spójny z licznikiem; ARCHITECTURE, DESIGN §11, DECISIONS `K60.1b`. *(task-285)*
 - [x] **K60.1c** osadzenie `render_economy_alert` w `render_game_page` zaraz po `data-player-summary`, przed `data-victory-progress`; ARCHITECTURE. *(task-286)*
+
+## Kamień milowy 61 — alert gospodarczy: które osady głodują i ostrzeżenie — UKOŃCZONY
+- [x] **K61.1a** wiersze `<div data-starving-settlement="<name>" data-wheat-deficit="D">` per osada z `consumption.wheat > production.wheat` (kolejność `duchy.settlements`); korzeń/tekst/`data-starving-settlements` bez zmian; ARCHITECTURE. *(task-287)*
+- [x] **K61.1b** widoczny tekst wiersza `<name>: deficyt D pszenicy/mies.` spójny z atrybutami; ARCHITECTURE, DESIGN §11, DECISIONS `K61.1b`. *(task-288)*
+- [x] **K61.2a** `data-total-wheat-deficit="D"` na korzeniu zaraz po `data-starving-settlements` (suma deficytów po głodujących osadach; 0 gdy brak); tekst bez zmian; ARCHITECTURE. *(task-289)*
+- [x] **K61.2b** sufiks nagłówka ` (łączny deficyt: D pszenicy/mies.)` gdy `N>0`, spójny z `data-total-wheat-deficit`; ARCHITECTURE, DESIGN §11, DECISIONS `K61.2b`. *(task-290)*
+- [x] **K61.3a** flaga `data-economy-critical=""` (po `data-total-wheat-deficit`) i nota `data-economy-caution` gdy `N>0`; brak przy `N==0`; ARCHITECTURE, DESIGN §11, DECISIONS `K61.3a`. *(task-291)*

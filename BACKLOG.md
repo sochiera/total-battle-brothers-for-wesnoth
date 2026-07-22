@@ -50,17 +50,11 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > osadzenie w `render_game_page` po `data-player-summary`). Szczegóły w
 > `BACKLOG-ARCHIVE.md`.
 
-## Kamień milowy 61 — alert gospodarczy: które osady głodują i ostrzeżenie
-> DESIGN §11: alert (K60) liczy głodujące osady, lecz nie mówi KTÓRE głodują ani
-> jak głęboko — gracz nie może zareagować (dobudować Farmę, przesunąć populację).
-> `render_economy_alert` dokłada wiersze per osada z deficytem, łączny deficyt
-> księstwa i flagę/notę krytyczności. Wszystko w `economyalert.py` (osadzenie
-> gotowe z K60.1c — delegacja podchwytuje nowe dzieci/atrybuty).
-- [ ] **K61.1a** wiersze `<div data-starving-settlement="<name>" data-wheat-deficit="D">` per osada z `consumption.wheat > production.wheat` (kolejność `duchy.settlements`); korzeń/tekst/`data-starving-settlements` bez zmian; pusty korzeń dla nieznanego gracza; ARCHITECTURE. *(task-287)*
-- [ ] **K61.1b** widoczny tekst wiersza `<name>: deficyt D pszenicy/mies.` spójny z atrybutami; ARCHITECTURE, DESIGN §11, DECISIONS `K61.1b`. *(task-288)*
-- [ ] **K61.2a** `data-total-wheat-deficit="D"` na korzeniu zaraz po `data-starving-settlements` (suma deficytów po głodujących osadach; 0 gdy brak); tekst bez zmian; pusty korzeń dla nieznanego gracza; ARCHITECTURE. *(task-289)*
-- [ ] **K61.2b** sufiks nagłówka ` (łączny deficyt: D pszenicy/mies.)` gdy `N>0`, spójny z `data-total-wheat-deficit`; ARCHITECTURE, DESIGN §11, DECISIONS `K61.2b`. *(task-290)*
-- [ ] **K61.3a** flaga `data-economy-critical=""` (po `data-total-wheat-deficit`) i nota `data-economy-caution` gdy `N>0`; brak przy `N==0`; ARCHITECTURE, DESIGN §11, DECISIONS `K61.3a`. *(task-291)*
+> **Kamień 61 — UKOŃCZONE.** Alert gospodarczy: wiersze per głodująca osada
+> (`data-starving-settlement` / `data-wheat-deficit` + tekst `<name>: deficyt D
+> pszenicy/mies.`), łączny deficyt księstwa (`data-total-wheat-deficit` + sufiks
+> nagłówka) oraz flaga i nota krytyczności (`data-economy-critical` /
+> `data-economy-caution`). Szczegóły w `BACKLOG-ARCHIVE.md`.
 
 ## Kamień milowy 63 — most stanu gry do klienta Godota (snapshot JSON) — PRIORYTET
 > **Zmiana zakresu (brief, DECISIONS G63.0):** docelowy klient to natywna gra
@@ -70,11 +64,21 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > serializujący publiczny stan rdzenia do json-serializowalnych słowników. To
 > fundament, którego Godot będzie konsumentem; rdzeń `tbb` pozostaje jedynym
 > źródłem reguł i nie zależy od mostu.
-- [ ] **G63.1a** `tbbbridge.snapshot.settlement_state(settlement) -> dict` (czysty, json-serializowalny słownik osady); ARCHITECTURE (nowa sekcja `tbbbridge`), DECISIONS `G63.1a`. *(task-296)*
+- [x] **G63.1a** `tbbbridge.snapshot.settlement_state(settlement) -> dict` (czysty, json-serializowalny słownik osady); ARCHITECTURE (nowa sekcja `tbbbridge`), DECISIONS `G63.1a`. *(task-296)*
 - [x] **G63.1b** `tbbbridge.snapshot.party_state(party) -> dict` (owner/size/hp/attack/defense/wounded z `unitstrength`); ARCHITECTURE, DECISIONS `G63.1b`. *(task-297)*
 - [x] **G63.1c** `tbbbridge.snapshot.map_state(world) -> dict` (regiony z `col`/`row` z `layout_world`, osada/party, `connections`); ARCHITECTURE, DECISIONS `G63.1c`. *(task-298)*
-- [ ] **G63.1d** `tbbbridge.snapshot.game_state(world, game, calendar, player_duchy_id=None) -> dict` (calendar/duchies/map/result); ARCHITECTURE, DECISIONS `G63.1d`. *(task-299)*
-- [ ] **G63.2a** `tbbbridge.snapshot.save_state(...)` + CLI `python -m tbbbridge [path]` (deterministyczny JSON, seed 73); ARCHITECTURE, DESIGN §11, DECISIONS `G63.2a`. *(task-300)*
+- [ ] **G63.1d** `tbbbridge.snapshot.game_state(world, game, calendar, player_duchy_id=None) -> dict` (calendar/duchies/map/result); re-issue po review-fail task-299 (rdzeń bez zmian); ARCHITECTURE, DECISIONS `G63.1d`. *(task-301)*
+- [ ] **G63.2a** `tbbbridge.snapshot.save_state(world, game, calendar, path, player_duchy_id=None)` — deterministyczny JSON do pliku (`indent=2`, `ensure_ascii=False`, końcowy `\n`); ARCHITECTURE, DECISIONS `G63.2a`. *(task-302)*
+- [ ] **G63.2b** CLI `python -m tbbbridge [path]` — headless (seed 73, `player`) → `out/state.json`, bajt-w-bajt deterministyczny; ARCHITECTURE, DESIGN §11, DECISIONS `G63.2a`. *(task-303)*
+
+## Kamień milowy 64 — most: snapshot bitwy heksowej do JSON
+> DESIGN §11: Godot ma renderować i rozegrać bitwę taktyczną z tego samego
+> testowalnego kontraktu co reszta mostu. `tbbbridge.snapshot` dostaje
+> `battle_state(battle)` (lustro danych czytanych już przez `tbbui.battlesvg`)
+> oraz opcjonalne osadzenie bitwy w `game_state`, by Godot dostał jeden korzeń
+> stanu także w trakcie bitwy. Rdzeń `tbb` bez zmian.
+- [ ] **G64.1a** `tbbbridge.snapshot.battle_state(battle) -> dict` (`hexes` per zajęty heks: `q`/`r`/`terrain`/`side`/`hp`/`stunned`, + `result`); ARCHITECTURE, DECISIONS `G64.1a`. *(task-304)*
+- [ ] **G64.1b** `game_state(..., battle=None)` — przy `battle` osadza `battle_state` jako ostatni klucz `battle`; `None` → bajt-w-bajt jak dotąd; ARCHITECTURE, DECISIONS `G64.1b`. *(task-305)*
 
 ## Dług/refaktor
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*
