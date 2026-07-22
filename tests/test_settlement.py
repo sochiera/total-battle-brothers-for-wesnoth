@@ -7,6 +7,7 @@ import pytest
 
 import tbb.settlement as settlement_module
 from tbb import (
+    BARRACKS,
     BRUISE,
     MAIMED,
     Building,
@@ -711,7 +712,13 @@ def test_tick_training_gives_every_unit_the_exported_months_and_keeps_order(
 ):
     assert settlement_module.TRAINING_MONTHS_PER_TURN == 1
     units = (Unit(), Unit(training=2, training_progress=1, equipment=3))
-    original = Settlement("A", population=2, occupied=2, garrison=units)
+    original = Settlement(
+        "A",
+        population=2,
+        occupied=2,
+        active_buildings=(BARRACKS,),
+        garrison=units,
+    )
 
     trained = original.tick_training()
 
@@ -722,7 +729,11 @@ def test_tick_training_gives_every_unit_the_exported_months_and_keeps_order(
     assert original.garrison == units
 
     after_three_turns = Settlement(
-        "B", population=1, occupied=1, garrison=(Unit(),)
+        "B",
+        population=1,
+        occupied=1,
+        active_buildings=(BARRACKS,),
+        garrison=(Unit(),),
     )
     for _ in range(3):
         after_three_turns = after_three_turns.tick_training()
@@ -745,7 +756,7 @@ def test_tick_training_empty_garrison_is_noop_and_other_state_is_pure_rng_free()
         "A",
         population=5,
         occupied=3,
-        active_buildings=(SMITH,),
+        active_buildings=(BARRACKS, SMITH),
         storage=Resources(7, 9),
         capacity=8,
         garrison=units,
@@ -762,8 +773,46 @@ def test_tick_training_empty_garrison_is_noop_and_other_state_is_pure_rng_free()
         trained.active_buildings,
         trained.capacity,
         trained.owner_id,
-    ) == (5, 3, Resources(7, 9), (SMITH,), 8, "north")
+    ) == (5, 3, Resources(7, 9), (BARRACKS, SMITH), 8, "north")
     assert original.garrison == units
+    assert random.getstate() == rng_state
+
+
+@pytest.mark.parametrize(
+    "active_buildings",
+    [
+        (),
+        (SMITH,),
+        (MARKET, FARM),
+    ],
+    ids=(
+        "no-active-buildings",
+        "active-smith-not-barracks",
+        "active-non-barracks-buildings",
+    ),
+)
+def test_tick_training_is_noop_without_barracks(active_buildings):
+    """Without BARRACKS, tick_training leaves garrison unchanged (replace(self))."""
+    units = (Unit(), Unit(training=2, training_progress=1, equipment=3))
+    original = Settlement(
+        "A",
+        population=5,
+        occupied=3,
+        active_buildings=active_buildings,
+        storage=Resources(7, 9),
+        capacity=8,
+        garrison=units,
+        owner_id="north",
+    )
+
+    rng_state = random.getstate()
+    ticked = original.tick_training()
+
+    assert ticked == original
+    assert ticked is not original
+    assert ticked.garrison == units
+    assert original.garrison == units
+    assert original.tick_training() == ticked
     assert random.getstate() == rng_state
 
 

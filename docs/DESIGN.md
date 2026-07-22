@@ -181,7 +181,7 @@ bieżącego `GameState` przed każdym `take_duchy_turn`.
   `output`; cała populacja je **1 pszenicę / mieszkaniec / miesiąc**; bilans
   podłogowany na zero. Katalog: **Farm** (`wheat=3`, `staff=1`), **Market**
   (`gold=2`, `staff=1`), **Smith** (output zerowy — uzbrojenie), **Barracks**
-  (output zerowy — bramka treningu; jeszcze bez efektu w `tick_training`).
+  (output zerowy — bramka treningu garnizonu).
 - **Urodzenia** (`tick_growth` po ekonomii): +1 wolnej populacji gdy
   `storage.wheat > 0` i poniżej `capacity` (`None` = bez limitu); głód nie rośnie.
 - **Imigracja** (`tick_immigration` po growth): +1 gdy `gold > 0` i `wheat > 0`
@@ -209,8 +209,10 @@ Trzy niezależne filary: **trening**, **uzbrojenie**, **doświadczenie** (tylko 
 `level(inv) = (isqrt(8·inv + 1) − 1) // 2`.
 - `Unit.train(months)` / `Unit.equip(investment)` — postęp resztkowy
   `training_progress` / `equipment_progress`; 0 = no-op, ujemne = błąd.
-- `Settlement.tick_training()`: `TRAINING_MONTHS_PER_TURN` (placeholder `1`) na
-  każdego w garnizonie.
+- `Settlement.tick_training()`: przy czynnych Koszarach (`BARRACKS`) daje
+  `TRAINING_MONTHS_PER_TURN` (placeholder `1`) każdemu w garnizonie; bez Koszar
+  no-op (mirror bramki budynkiem jak `tick_equipment`/Smith — bez wymogu
+  obsady/złota).
 - `Settlement.tick_equipment()`: przy Smith + garnizon + `EQUIP_GOLD_COST` złota
   uzbraja jednego o najniższym `equipment` (remis: najwcześniejsza pozycja);
   placeholdery kosztu/inwestycji = `1`.

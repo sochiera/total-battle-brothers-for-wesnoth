@@ -5,6 +5,7 @@ from dataclasses import FrozenInstanceError, replace
 import pytest
 
 from tbb import (
+    BARRACKS,
     BattleResult,
     BattleSide,
     Battlefield,
@@ -137,7 +138,7 @@ def test_tick_settlements_trains_and_equips_garrison_with_current_production():
         "Oakrest",
         population=3,
         occupied=3,
-        active_buildings=(MARKET, SMITH),
+        active_buildings=(MARKET, SMITH, BARRACKS),
         storage=Resources(wheat=3, gold=0),
         capacity=3,
         garrison=(recruit,),

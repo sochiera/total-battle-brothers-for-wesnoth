@@ -3,7 +3,7 @@
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
 
-from tbb.building import Building, SMITH
+from tbb.building import BARRACKS, Building, SMITH
 from tbb.party import Party
 from tbb.resources import Resources
 from tbb.unit import Unit
@@ -84,7 +84,12 @@ class Settlement:
         return replace(self, population=self.population + immigration)
 
     def tick_training(self) -> "Settlement":
-        """Return the settlement after one monthly garrison training tick."""
+        """Return the settlement after one monthly garrison training tick.
+
+        Requires active Barracks (building gate only; no staff/gold check).
+        """
+        if BARRACKS not in self.active_buildings:
+            return replace(self)
         return replace(
             self,
             garrison=tuple(

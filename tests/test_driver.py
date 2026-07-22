@@ -5,7 +5,7 @@ from dataclasses import replace
 import tbb.ai as ai
 
 from tbb.ai import take_duchy_turn
-from tbb.building import FARM
+from tbb.building import BARRACKS, FARM
 from tbb.driver import resolve_hero_survival, run_headless_game
 from tbb.duchy import SUCCESSION_MORALE_PENALTY, Duchy
 from tbb.game import GameState, create_headless_game
@@ -26,6 +26,7 @@ def test_monthly_tick_precedes_recruitment_and_syncs_the_grown_settlement():
         "North Keep",
         2,
         occupied=1,
+        active_buildings=(BARRACKS,),
         storage=Resources(wheat=3, gold=1),
         capacity=3,
         garrison=(veteran,),
@@ -584,6 +585,7 @@ def _development_scenario():
         "Development Keep",
         1,
         occupied=1,
+        active_buildings=(BARRACKS,),
         storage=Resources(wheat=4, gold=0),
         capacity=1,
         garrison=(Unit(),),
