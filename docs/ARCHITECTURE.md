@@ -65,8 +65,20 @@ jest obecne; w przeciwnym razie `None`. `connections` to lista
 Funkcja jest czysta, deterministyczna i bez mutacji `world`; wynik przechodzi
 przez `json.dumps`.
 
-Kolejne funkcje kontraktu (`game_state`, `save_state` + CLI)
-opisują odpowiednie zadania G63.1d–G63.2a.
+`game_state(world, game, calendar, player_duchy_id=None)` (G63.1d) zwraca
+dict z kluczami w kolejności: `calendar`, `duchies`, `map`, `result`.
+`calendar` to `{"year": calendar.year, "month": calendar.month}`;
+`duchies` to lista statusów księstw z `game.duchies`, każdy z kluczami
+`id`, `morale`, `settlements`, `parties`, `has_hero`, `has_heir`, `is_defeated`;
+`map` to `map_state(world)`; `result` to `{"is_over": game.is_over,
+"winner": winner_id_lub_None, "player_result": ...}`. `player_result` jest
+`None` gdy `player_duchy_id is None`, `"ongoing"` gdy gra trwa, `"draw"` gdy
+`game.is_over` i brak zwycięzcy, `"victory"` gdy `game.winner.duchy_id ==
+player_duchy_id`, w przeciwnym razie `"defeat"`. Funkcja jest czysta,
+deterministyczna, bez mutacji wejść; wynik przechodzi przez `json.dumps`.
+
+Kolejne funkcje kontraktu (`save_state` + CLI) opisują odpowiednie zadania
+G63.2a–G63.2b.
 
 ### Prezentacja (pakiet `tbbui`, Kamień 13)
 Warstwa render/UI jest **poza rdzeniem**. `python -m tbb` nadal uruchamia

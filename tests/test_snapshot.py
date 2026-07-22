@@ -5,9 +5,12 @@ import json
 
 import tbbui.unitstrength
 from tbb import BRUISE, BARRACKS, FARM, MARKET, Resources, Settlement, Unit
+from tbb.duchy import Duchy
+from tbb.game import GameState
 from tbb.party import Party
+from tbb.turn import Calendar
 from tbb.world import Region, WorldMap
-from tbbbridge.snapshot import party_state, settlement_state
+from tbbbridge.snapshot import map_state, party_state, settlement_state
 from tbbui.layout import layout_world
 
 
@@ -210,3 +213,160 @@ def test_map_state_returns_pure_json_serializable_dict_with_contract_keys_and_va
     # Contract: the whole result is json-serializable and world is not mutated.
     json.dumps(state)
     assert world is before
+
+
+def _duchy_settlement(owner: str, name: str) -> Settlement:
+    """A minimal settlement owned by the given duchy, for duchy/state fixtures."""
+    return Settlement(name=name, population=1, owner_id=owner)
+
+
+def _duchy_party(owner: str) -> Party:
+    """A minimal one-unit party owned by the given duchy."""
+    return Party(hero=Unit(), units=(), owner_id=owner)
+
+
+def _game_world() -> WorldMap:
+    """A small two-region world carrying a player settlement for the map root."""
+    home = Region("Home")
+    border = Region("Border")
+    settlement = Settlement(
+        name="Home Keep", population=3, owner_id="player",
+        storage=Resources(wheat=2, gold=2), garrison=(Unit(),),
+    )
+    return WorldMap(
+        regions=(home, border),
+        connections=((home, border),),
+        settlements={home: settlement},
+    )
+
+
+def _rich_player_duchy() -> Duchy:
+    """A player duchy exercising every projected duchy field distinctively."""
+    hero = Unit(equipment=1)
+    heir = Unit(training=1)
+    return Duchy(
+        duchy_id="player",
+        hero=hero,
+        morale=4,
+        heir=heir,
+        settlements=(_duchy_settlement("player", "Home Keep"),
+                     _duchy_settlement("player", "Outpost")),
+        parties=(_duchy_party("player"),),
+    )
+
+
+def _ai_duchy(*, alive: bool) -> Duchy:
+    """An AI duchy; alive keeps a hero, otherwise it is defeated."""
+    if alive:
+        return Duchy(duchy_id="ai", hero=Unit(), settlements=())
+    return Duchy(duchy_id="ai", hero=None, settlements=())
+
+
+def _defeated_player_duchy() -> Duchy:
+    return Duchy(duchy_id="player", hero=None, settlements=())
+
+
+def test_game_state_composes_calendar_duchies_map_and_result_per_contract():
+    from tbbbridge.snapshot import game_state
+
+    world = _game_world()
+    calendar = Calendar(year=2, month=7)
+
+    # --- Scenario 1: victory (player is the sole contender). ---
+    player = _rich_player_duchy()
+    ai = _ai_duchy(alive=False)
+    game = GameState((player, ai))
+
+    # Capture pre-call scalars/lengths to detect mutation without deepcopy.
+    caps = {
+        "calendar": (calendar.year, calendar.month),
+        "player": {
+            "morale": player.morale,
+            "has_heir": player.heir is not None,
+            "settlements": len(player.settlements),
+            "parties": len(player.parties),
+        },
+        "game": len(game.duchies),
+    }
+
+    state = game_state(world, game, calendar, player_duchy_id="player")
+
+    # Contract: top-level keys exactly in order calendar, duchies, map, result.
+    assert list(state.keys()) == ["calendar", "duchies", "map", "result"]
+
+    # Contract: calendar sub-dict with exactly year, month sourced from input.
+    assert list(state["calendar"].keys()) == ["year", "month"]
+    assert state["calendar"] == {"year": calendar.year, "month": calendar.month}
+
+    # Contract: map is exactly map_state(world) (reuse, no reimplementation).
+    assert state["map"] == map_state(world)
+
+    # Contract: duchies mirror game.duchies order; each entry has the
+    # prescribed key order and values sourced from the duchy's public API.
+    assert [d["id"] for d in state["duchies"]] == [d.duchy_id for d in game.duchies]
+    assert list(state["duchies"][0].keys()) == [
+        "id", "morale", "settlements", "parties",
+        "has_hero", "has_heir", "is_defeated",
+    ]
+    player_entry = state["duchies"][0]
+    assert player_entry["id"] == player.duchy_id
+    assert player_entry["morale"] == player.morale
+    assert player_entry["settlements"] == len(player.settlements)
+    assert player_entry["parties"] == len(player.parties)
+    assert player_entry["has_hero"] == player.has_hero
+    assert player_entry["has_heir"] == (player.heir is not None)
+    assert player_entry["is_defeated"] == player.is_defeated
+    ai_entry = state["duchies"][1]
+    assert ai_entry["is_defeated"] is True
+    assert ai_entry["has_hero"] is False
+    assert ai_entry["has_heir"] is False
+
+    # Contract: result has exactly is_over, winner, player_result in order.
+    assert list(state["result"].keys()) == ["is_over", "winner", "player_result"]
+    assert state["result"]["is_over"] is game.is_over
+    assert state["result"]["winner"] == game.winner.duchy_id
+    assert state["result"]["player_result"] == "victory"
+
+    # Contract: the whole snapshot is json-serializable.
+    json.dumps(state)
+
+    # Contract: no mutation of world/game/calendar (compare fields, no deepcopy).
+    assert (calendar.year, calendar.month) == caps["calendar"]
+    assert player.morale == caps["player"]["morale"]
+    assert (player.heir is not None) == caps["player"]["has_heir"]
+    assert len(player.settlements) == caps["player"]["settlements"]
+    assert len(player.parties) == caps["player"]["parties"]
+    assert len(game.duchies) == caps["game"]
+
+    # --- Scenario 2: defeat (player defeated, AI is the winner). ---
+    game_defeat = GameState((_defeated_player_duchy(), _ai_duchy(alive=True)))
+    state_defeat = game_state(world, game_defeat, calendar,
+                              player_duchy_id="player")
+    assert state_defeat["result"]["is_over"] is True
+    assert state_defeat["result"]["winner"] == "ai"
+    assert state_defeat["result"]["player_result"] == "defeat"
+
+    # --- Scenario 3: draw (both defeated -> no winner, game over). ---
+    game_draw = GameState((_defeated_player_duchy(), _ai_duchy(alive=False)))
+    state_draw = game_state(world, game_draw, calendar,
+                            player_duchy_id="player")
+    assert state_draw["result"]["is_over"] is True
+    assert state_draw["result"]["winner"] is None
+    assert state_draw["result"]["player_result"] == "draw"
+
+    # --- Scenario 4: ongoing (both alive, no winner yet). ---
+    game_ongoing = GameState((
+        Duchy(duchy_id="player", hero=Unit(),
+              settlements=(_duchy_settlement("player", "Home"),)),
+        _ai_duchy(alive=True),
+    ))
+    state_ongoing = game_state(world, game_ongoing, calendar,
+                               player_duchy_id="player")
+    assert state_ongoing["result"]["is_over"] is False
+    assert state_ongoing["result"]["winner"] is None
+    assert state_ongoing["result"]["player_result"] == "ongoing"
+
+    # --- Scenario 5: player_duchy_id None -> player_result None. ---
+    state_none = game_state(world, game_ongoing, calendar, player_duchy_id=None)
+    assert state_none["result"]["player_result"] is None
+    json.dumps(state_none)

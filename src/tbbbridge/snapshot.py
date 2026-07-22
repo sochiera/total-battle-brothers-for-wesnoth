@@ -3,8 +3,11 @@
 import json
 from typing import Any
 
+from tbb.duchy import Duchy
+from tbb.game import GameState
 from tbb.party import Party
 from tbb.settlement import Settlement
+from tbb.turn import Calendar
 from tbb.world import WorldMap
 from tbbui.layout import layout_world
 from tbbui.unitstrength import combat_totals, wounded_count
@@ -132,6 +135,63 @@ def map_state(world: WorldMap) -> dict[str, Any]:
     state: dict[str, Any] = {
         "regions": regions,
         "connections": connections,
+    }
+    _assert_json_serializable(state)
+    return state
+
+
+def _duchy_state(duchy: Duchy) -> dict[str, Any]:
+    """Json-serializowalny status jednego księstwa."""
+    return {
+        "id": duchy.duchy_id,
+        "morale": duchy.morale,
+        "settlements": len(duchy.settlements),
+        "parties": len(duchy.parties),
+        "has_hero": duchy.has_hero,
+        "has_heir": duchy.heir is not None,
+        "is_defeated": duchy.is_defeated,
+    }
+
+
+def _player_result(game: GameState, player_duchy_id: str | None) -> str | None:
+    """Wynik z perspektywy gracza."""
+    if player_duchy_id is None:
+        return None
+    if not game.is_over:
+        return "ongoing"
+    if game.winner is None:
+        return "draw"
+    if game.winner.duchy_id == player_duchy_id:
+        return "victory"
+    return "defeat"
+
+
+def game_state(
+    world: WorldMap,
+    game: GameState,
+    calendar: Calendar,
+    player_duchy_id: str | None = None,
+) -> dict[str, Any]:
+    """Zwróć json-serializowalny snapshot pełnego stanu gry.
+
+    Funkcja jest czysta, deterministyczna i bez mutacji wejść; wynik przechodzi
+    przez `json.dumps`.
+
+    Klucze wyniku dokładnie w kolejności:
+      calendar -> {"year": calendar.year, "month": calendar.month}
+      duchies  -> lista statusów księstw (kolejność game.duchies)
+      map      -> map_state(world)
+      result   -> {"is_over": ..., "winner": ..., "player_result": ...}
+    """
+    state: dict[str, Any] = {
+        "calendar": {"year": calendar.year, "month": calendar.month},
+        "duchies": [_duchy_state(duchy) for duchy in game.duchies],
+        "map": map_state(world),
+        "result": {
+            "is_over": game.is_over,
+            "winner": game.winner.duchy_id if game.winner is not None else None,
+            "player_result": _player_result(game, player_duchy_id),
+        },
     }
     _assert_json_serializable(state)
     return state
