@@ -497,17 +497,21 @@ prefiks `» ` przed tekstem; id spoza palety → żaden wiersz nieoznaczony; `No
 korzeń (bez wierszy). Czyste, deterministyczne, bez mutacji `world`; rdzeń bez
 zmian.
 
-**Podsumowanie księstwa gracza HTML (K30.3a / K30.3b):**
+**Podsumowanie księstwa gracza HTML (K30.3a / K30.3b / K58.1a):**
 `tbbui.playersummary.render_player_summary(game, player_duchy_id=None) -> str`
 — parsowalny fragment XML z korzeniem `<div data-player-summary="">`. Gdy
 `player_duchy_id` wskazuje księstwo w `game.duchies`, korzeń ma atrybuty
 `data-settlements` / `data-parties` (= `len` osad / oddziałów księstwa),
 `data-gold` / `data-wheat` (sumy `settlement.storage.gold` / `.wheat` po
-osadach), `data-hp` / `data-attack` / `data-defense` (z
+osadach), zaraz po `data-wheat`: `data-wheat-production` /
+`data-wheat-consumption` (sumy `settlement.production.wheat` /
+`settlement.consumption.wheat` po `duchy.settlements`; księstwo bez osad →
+`0`/`0`), potem `data-hp` / `data-attack` / `data-defense` (z
 `combat_totals` po bohaterze i podkomendnych każdej party z `duchy.parties`)
 oraz widoczny tekst
 `Twoje księstwo: osady N, oddziały M · pszenica W, złoto G · siła oddziałów:
-HP H, atak A, obrona D` zgodny z atrybutami. Gdy `player_duchy_id` jest
+HP H, atak A, obrona D` zgodny z atrybutami (tekst bez sufiksu gospodarki
+miesięcznej — K58.1a to atrybuty maszynowe). Gdy `player_duchy_id` jest
 `None` albo spoza `game.duchies` — sam pusty korzeń (bez atrybutów
 liczbowych i bez tekstu). Czyste, deterministyczne, bez mutacji `game`;
 rdzeń bez zmian.

@@ -2,6 +2,7 @@
 
 from xml.etree import ElementTree as ET
 
+from tbb.building import FARM, MARKET
 from tbb.duchy import Duchy
 from tbb.game import GameState
 from tbb.party import Party
@@ -184,3 +185,102 @@ def test_render_player_summary_aggregates_party_combat_strength():
         f" · siła oddziałów: HP {expected_hp}, atak {expected_attack},"
         f" obrona {expected_defense}"
     )
+
+
+def test_render_player_summary_carries_aggregated_monthly_wheat_economy_attributes():
+    """When ``player_duchy_id`` matches a duchy in ``game.duchies``, the root
+    carries ``data-wheat-production`` / ``data-wheat-consumption`` as sums of
+    ``settlement.production.wheat`` / ``settlement.consumption.wheat`` over
+    ``duchy.settlements`` (other duchies ignored), immediately after
+    ``data-wheat`` and before ``data-hp``. Visible text is unchanged (no
+    economy suffix). Pure: does not mutate ``game``. Duchy with no settlements
+    yields both sums ``0``.
+    """
+    s1 = Settlement(
+        "Keep A",
+        population=5,
+        occupied=2,
+        owner_id="north",
+        storage=Resources(wheat=5, gold=3),
+        garrison=(Unit(), Unit()),
+        active_buildings=(FARM, MARKET),
+    )
+    s2 = Settlement(
+        "Keep B",
+        population=2,
+        owner_id="north",
+        storage=Resources(wheat=2, gold=7),
+    )
+    other = Settlement(
+        "South Keep",
+        population=99,
+        owner_id="south",
+        storage=Resources(wheat=99, gold=99),
+        active_buildings=(FARM,),
+    )
+    hero = Unit()
+    party = Party(hero=hero, units=(), owner_id="north")
+    game = GameState(
+        (
+            Duchy(
+                "north",
+                Unit(),
+                settlements=(s1, s2),
+                parties=(party,),
+            ),
+            Duchy(
+                "south",
+                Unit(),
+                settlements=(other,),
+                parties=(),
+            ),
+            Duchy("empty", Unit(), settlements=(), parties=()),
+        )
+    )
+    duchies_before = game.duchies
+    storage_s1_before = s1.storage
+    storage_s2_before = s2.storage
+
+    assert s1.production == Resources(wheat=3, gold=2)
+    assert s1.consumption == Resources(wheat=5, gold=0)
+    assert s2.production == Resources(wheat=0, gold=0)
+    assert s2.consumption == Resources(wheat=2, gold=0)
+    expected_prod = s1.production.wheat + s2.production.wheat  # 3
+    expected_cons = s1.consumption.wheat + s2.consumption.wheat  # 7
+    expected_hp, expected_attack, expected_defense = combat_totals((hero,))
+
+    xml = render_player_summary(game, player_duchy_id="north")
+    root = ET.fromstring(xml)
+
+    assert root.attrib["data-wheat"] == "7"
+    assert root.attrib["data-wheat-production"] == str(expected_prod)
+    assert root.attrib["data-wheat-consumption"] == str(expected_cons)
+    assert root.attrib["data-hp"] == str(expected_hp)
+
+    # Attribute order: immediately after data-wheat, before data-hp.
+    assert (
+        f' data-wheat="7" data-wheat-production="{expected_prod}"'
+        f' data-wheat-consumption="{expected_cons}" data-hp="{expected_hp}"'
+    ) in xml
+
+    # Visible text unchanged (K58.1a is machine attrs only).
+    assert "".join(root.itertext()) == (
+        "Twoje księstwo: osady 2, oddziały 1 · pszenica 7, złoto 10"
+        f" · siła oddziałów: HP {expected_hp}, atak {expected_attack},"
+        f" obrona {expected_defense}"
+    )
+
+    # Pure: no mutation of game / settlement storage.
+    assert game.duchies == duchies_before
+    assert game.duchies is duchies_before
+    assert s1.storage == storage_s1_before
+    assert s2.storage == storage_s2_before
+
+    empty_xml = render_player_summary(game, player_duchy_id="empty")
+    empty_root = ET.fromstring(empty_xml)
+    assert empty_root.attrib["data-wheat-production"] == "0"
+    assert empty_root.attrib["data-wheat-consumption"] == "0"
+    assert (
+        ' data-wheat="0" data-wheat-production="0"'
+        ' data-wheat-consumption="0" data-hp='
+    ) in empty_xml
