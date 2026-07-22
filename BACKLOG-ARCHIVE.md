@@ -505,3 +505,11 @@
 - [x] **K57.1b** widoczny sufiks ` · produkcja/mies.: +Pw pszenicy, +Pg złota · konsumpcja: Cw pszenicy` spójny z atrybutami; ARCHITECTURE, DESIGN §11, DECISIONS `K57.1b`. *(task-273)*
 - [x] **K57.2a** `data-wheat-surplus="true|false"` (= `production.wheat >= consumption.wheat`) w każdym `data-settlement-row`, zaraz po `data-wheat-consumption`; tekst bez zmian. *(task-274)*
 - [x] **K57.2b** widoczny sufiks ` · bilans pszenicy: nadwyżka` / ` · bilans pszenicy: deficyt` spójny z flagą; ARCHITECTURE, DESIGN §11, DECISIONS `K57.2b`. *(task-275)*
+
+## Kamień milowy 58 — zbiorcza gospodarka pszenicy księstwa w podsumowaniu gracza — UKOŃCZONY
+- [x] **K58.1a** `data-wheat-production` / `data-wheat-consumption` (sumy po osadach księstwa) w korzeniu `data-player-summary`, zaraz po `data-wheat`; tekst bez zmian. *(task-276)*
+- [x] **K58.1b** widoczny sufiks ` · produkcja/mies.: +Pw pszenicy · konsumpcja: Cw pszenicy` spójny z atrybutami; ARCHITECTURE, DESIGN §11, DECISIONS `K58.1b`. *(task-277)*
+- [x] **K58.2a** `data-wheat-surplus="true|false"` (= suma `production.wheat` `>=` suma `consumption.wheat`) w korzeniu `data-player-summary`, zaraz po `data-wheat-consumption`; tekst bez zmian. *(task-278)*
+- [x] **K58.2b** widoczny sufiks ` · bilans pszenicy: nadwyżka` / ` · bilans pszenicy: deficyt` spójny z flagą; ARCHITECTURE, DESIGN §11, DECISIONS `K58.2b`. *(task-279)*
+- [x] **K58.3a** `data-wheat-net="<int ze znakiem>"` (= suma `production.wheat` − suma `consumption.wheat`) w korzeniu `data-player-summary`, zaraz po `data-wheat-surplus`; tekst bez zmian. *(task-280)*
+- [x] **K58.3b** widoczny sufiks ` · saldo pszenicy/mies.: {net:+d}` spójny z atrybutem; ARCHITECTURE, DESIGN §11, DECISIONS `K58.3b`. *(task-281)*
