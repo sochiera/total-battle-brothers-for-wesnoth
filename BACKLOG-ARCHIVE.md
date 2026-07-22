@@ -499,3 +499,9 @@
 - [x] **K56.1a** `data-equip-ready="true|false"` (= `SMITH in active_buildings`) w każdym `data-settlement-row`, zaraz po `data-training-ready`; tekst bez zmian. *(task-269)*
 - [x] **K56.1b** widoczny sufiks ` · uzbrojenie: gotowe` / ` · uzbrojenie: wstrzymane (brak Kuźni)` spójny z flagą; ARCHITECTURE (panel osad), DESIGN §11 i DECISIONS `K56.1b`. *(task-270)*
 - [x] **R56.1 (refaktor)** wspólny lokalny helper gotowości bramkowanej budynkiem (flaga + sufiks) w `settlementpanel.py`, reużyty przez trening/`BARRACKS` i uzbrojenie/`SMITH`; bez nowych testów, wynik bajt-w-bajt. *(task-271)*
+
+## Kamień milowy 57 — czytelny bilans ekonomiczny osady w panelu — UKOŃCZONY
+- [x] **K57.1a** `data-wheat-production` / `data-gold-production` / `data-wheat-consumption` w każdym `data-settlement-row`, zaraz po `data-equip-ready`; tekst bez zmian. *(task-272)*
+- [x] **K57.1b** widoczny sufiks ` · produkcja/mies.: +Pw pszenicy, +Pg złota · konsumpcja: Cw pszenicy` spójny z atrybutami; ARCHITECTURE, DESIGN §11, DECISIONS `K57.1b`. *(task-273)*
+- [x] **K57.2a** `data-wheat-surplus="true|false"` (= `production.wheat >= consumption.wheat`) w każdym `data-settlement-row`, zaraz po `data-wheat-consumption`; tekst bez zmian. *(task-274)*
+- [x] **K57.2b** widoczny sufiks ` · bilans pszenicy: nadwyżka` / ` · bilans pszenicy: deficyt` spójny z flagą; ARCHITECTURE, DESIGN §11, DECISIONS `K57.2b`. *(task-275)*

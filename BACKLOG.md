@@ -29,23 +29,23 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > refaktor R56.1 (wspólny helper gotowości bramkowanej budynkiem). Szczegóły w
 > `BACKLOG-ARCHIVE.md`.
 
-## Kamień milowy 57 — czytelny bilans ekonomiczny osady w panelu
-> DESIGN §11: panel osad pokazuje zapasy, lecz nie miesięczny przepływ. Gracz
-> planujący rozwój potrzebuje widzieć produkcję, konsumpcję i bilans pszenicy
-> (deficyt = zapowiedź głodu i braku wzrostu). Rdzeń ma już czyste
-> `Settlement.production` / `Settlement.consumption` — panel je tylko odczytuje.
-> Rdzeń `tbb` bez zmian.
-- [ ] **K57.1a** `data-wheat-production` / `data-gold-production` / `data-wheat-consumption` w każdym `data-settlement-row`, zaraz po `data-equip-ready`; tekst bez zmian. *(task-272)*
-- [ ] **K57.1b** widoczny sufiks ` · produkcja/mies.: +Pw pszenicy, +Pg złota · konsumpcja: Cw pszenicy` spójny z atrybutami; ARCHITECTURE, DESIGN §11, DECISIONS `K57.1b`. *(task-273)*
-- [ ] **K57.2a** `data-wheat-surplus="true|false"` (= `production.wheat >= consumption.wheat`) w każdym `data-settlement-row`, zaraz po `data-wheat-consumption`; tekst bez zmian. *(task-274)*
-- [ ] **K57.2b** widoczny sufiks ` · bilans pszenicy: nadwyżka` / ` · bilans pszenicy: deficyt` spójny z flagą; ARCHITECTURE, DESIGN §11, DECISIONS `K57.2b`. *(task-275)*
+> **Kamień 57 — UKOŃCZONE.** Czytelny bilans ekonomiczny osady w panelu:
+> atrybuty `data-wheat-production` / `data-gold-production` /
+> `data-wheat-consumption` + flaga `data-wheat-surplus` i czytelne sufiksy
+> ` · produkcja/mies.: … · konsumpcja: …` oraz ` · bilans pszenicy:
+> nadwyżka|deficyt`. Szczegóły w `BACKLOG-ARCHIVE.md`.
 
 ## Kamień milowy 58 — zbiorcza gospodarka księstwa w podsumowaniu gracza
 > DESIGN §11: po K57 (przepływ pojedynczej osady) gracz z kilkoma osadami
 > potrzebuje zbiorczego zdrowia gospodarki. `render_player_summary` sumuje już
-> zapasy — K58 dokłada zbiorczą miesięczną produkcję/konsumpcję pszenicy.
-- [ ] **K58.1a** `data-wheat-production` / `data-wheat-consumption` (sumy po osadach księstwa) w korzeniu `data-player-summary`, zaraz po `data-wheat`; tekst bez zmian. *(task-276)*
-- [ ] **K58.1b** widoczny tekst zbiorczej gospodarki księstwa spójny z atrybutami; ARCHITECTURE, DESIGN §11, DECISIONS `K58.1b`. *(następny wsad)*
+> zapasy — K58 dokłada zbiorczą miesięczną produkcję/konsumpcję, bilans i saldo
+> pszenicy księstwa.
+- [x] **K58.1a** `data-wheat-production` / `data-wheat-consumption` (sumy po osadach księstwa) w korzeniu `data-player-summary`, zaraz po `data-wheat`; tekst bez zmian. *(task-276)*
+- [ ] **K58.1b** widoczny sufiks ` · produkcja/mies.: +Pw pszenicy · konsumpcja: Cw pszenicy` spójny z atrybutami; ARCHITECTURE, DESIGN §11, DECISIONS `K58.1b`. *(task-277)*
+- [ ] **K58.2a** `data-wheat-surplus="true|false"` (= suma `production.wheat` `>=` suma `consumption.wheat`) w korzeniu `data-player-summary`, zaraz po `data-wheat-consumption`; tekst bez zmian. *(task-278)*
+- [ ] **K58.2b** widoczny sufiks ` · bilans pszenicy: nadwyżka` / ` · bilans pszenicy: deficyt` spójny z flagą; ARCHITECTURE, DESIGN §11, DECISIONS `K58.2b`. *(task-279)*
+- [ ] **K58.3a** `data-wheat-net="<int ze znakiem>"` (= suma `production.wheat` − suma `consumption.wheat`) w korzeniu `data-player-summary`, zaraz po `data-wheat-surplus`; tekst bez zmian. *(task-280)*
+- [ ] **K58.3b** widoczny sufiks ` · saldo pszenicy/mies.: {net:+d}` spójny z atrybutem; ARCHITECTURE, DESIGN §11, DECISIONS `K58.3b`. *(task-281)*
 
 ## Dług/refaktor
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*
