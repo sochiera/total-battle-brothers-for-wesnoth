@@ -103,7 +103,7 @@ broniącego (`len(battle.report().defender.fallen)`); odczyt tylko
 — czysty helper = liczba jednostek z niepustą krotką `wounds` (`len(wounds) > 0`;
 pusta sekwencja → `0`); bez mutacji wejść. Oba reużywane przez panele party i osad.
 
-**Panel osad HTML (K22.1a–b / K23.3a / K25.2a–b / K26.1a–b / K27.2a / K55.1a–b / K56.1a–b / K57.1a–b / K57.2a):** `tbbui.settlementpanel.render_settlement_panel(world, player_duchy_id=None)
+**Panel osad HTML (K22.1a–b / K23.3a / K25.2a–b / K26.1a–b / K27.2a / K55.1a–b / K56.1a–b / K57.1a–b / K57.2a–b):** `tbbui.settlementpanel.render_settlement_panel(world, player_duchy_id=None)
 -> str` — parsowalny fragment XML z korzeniem `<div data-settlement-panel="">`;
 po jednym `<div data-settlement-row="<region.name>">` na region z osadą w
 kolejności `world.regions` (region bez osady → brak wiersza). Atrybuty wiersza:
@@ -130,12 +130,14 @@ argumentu. Obok atrybutów widoczny tekst
 (wolne F), garnizon N · siła garnizonu: HP H, atak A, obrona D · budynki: B
 (nazwa1, …) · ranni: W · trening: gotowy|wstrzymany (brak Koszar) ·
 uzbrojenie: gotowe|wstrzymane (brak Kuźni) · produkcja/mies.: +Pw pszenicy,
-+Pg złota · konsumpcja: Cw pszenicy` (nawias z nazwami tylko gdy `B>0`;
++Pg złota · konsumpcja: Cw pszenicy · bilans pszenicy: nadwyżka|deficyt`
+(nawias z nazwami tylko gdy `B>0`;
 sufiks treningu spójny z `data-training-ready`: `true` ↔ „gotowy", `false` ↔
 „wstrzymany (brak Koszar)"; sufiks uzbrojenia spójny z `data-equip-ready`:
 `true` ↔ „gotowe", `false` ↔ „wstrzymane (brak Kuźni)"; Pw/Pg/Cw = te same
 liczby co `data-wheat-production` / `data-gold-production` /
-`data-wheat-consumption`).
+`data-wheat-consumption`; sufiks bilansu spójny z `data-wheat-surplus`:
+`true` ↔ „nadwyżka", `false` ↔ „deficyt").
 Czyste, deterministyczne, bez mutacji `world`; rdzeń bez zmian.
 
 **Panel postępu do celu HTML (K33.1a / K33.1b / K33.2a):**

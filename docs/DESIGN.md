@@ -348,7 +348,7 @@ raport strat), panele osad i oddziałów (zasoby, garnizon/siła, ranni, czyteln
 gotowość treningu garnizonu: gotowy / wstrzymany przy braku Koszar; czytelna
 gotowość uzbrojenia garnizonu: gotowe / wstrzymane przy braku Kuźni; czytelna
 miesięczna produkcja i konsumpcja osady: `+Pw` pszenicy, `+Pg` złota /
-`Cw` pszenicy konsumpcji), legendę
+`Cw` pszenicy konsumpcji; czytelny bilans pszenicy: nadwyżka / deficyt), legendę
 właścicieli. Przy wskazanym księstwie gracza: podsumowanie sił, postęp do
 zwycięstwa, podpowiedź celu, lokalizacja i dystans do wrogich bohaterów,
 porównanie sił z sąsiednimi celami, alert zagrożeń własnych pozycji, skrót

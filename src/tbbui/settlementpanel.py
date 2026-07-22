@@ -65,7 +65,9 @@ def render_settlement_panel(
     `` · uzbrojenie: wstrzymane (brak Kuźni)``, then
     `` · produkcja/mies.: +Pw pszenicy, +Pg złota · konsumpcja: Cw pszenicy``
     (Pw/Pg/Cw = production wheat/gold and consumption wheat, same numbers as
-    the machine attributes). When
+    the machine attributes), then
+    `` · bilans pszenicy: nadwyżka`` when surplus is true, else
+    `` · bilans pszenicy: deficyt``. When
     ``player_duchy_id`` is not ``None``, rows whose ``owner_id`` matches get
     ``data-player-owned=""``. Pure and deterministic: no RNG/IO; ``world`` is
     not mutated.
@@ -106,9 +108,15 @@ def render_settlement_panel(
         wheat_surplus = (
             "true" if wheat_production >= wheat_consumption else "false"
         )
+        surplus_suffix = (
+            " · bilans pszenicy: nadwyżka"
+            if wheat_surplus == "true"
+            else " · bilans pszenicy: deficyt"
+        )
         economy_suffix = (
             f" · produkcja/mies.: +{wheat_production} pszenicy,"
             f" +{gold_production} złota · konsumpcja: {wheat_consumption} pszenicy"
+            f"{surplus_suffix}"
         )
         buildings = len(settlement.active_buildings)
         building_names = ", ".join(b.name for b in settlement.active_buildings)
