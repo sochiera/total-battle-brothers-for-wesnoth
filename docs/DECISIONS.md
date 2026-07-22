@@ -293,3 +293,4 @@
 | K58.3b | Tekst salda pszenicy w podsumowaniu gracza | Widoczny sufiks ` · saldo pszenicy/mies.: {net:+d}` po bilansie w `render_player_summary`, spójny z `data-wheat-net` (zawsze ze znakiem). |
 | K59.1a | Produkcja złota księstwa (atrybut) | `render_player_summary`: korzeń dokłada `data-gold-production` (= suma `production.gold` po osadach) zaraz po `data-wheat-production`, przed `data-wheat-consumption`; tekst bez zmian w tym kroku. |
 | K59.1b | Tekst produkcji złota księstwa | Widoczna grupa produkcji w `render_player_summary`: `produkcja/mies.: +Pw pszenicy, +Pg złota` (przed ` · konsumpcja: …`), spójna z `data-wheat-production` / `data-gold-production`. |
+| K60.1b | Tekst alertu gospodarczego | `render_economy_alert` przy znanym graczu niesie widoczny tekst `Osady na deficycie pszenicy: N` spójny z `data-starving-settlements`; brak gracza → pusty korzeń bez tekstu. |

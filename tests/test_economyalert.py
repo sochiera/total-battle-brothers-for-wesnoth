@@ -147,3 +147,65 @@ def test_render_economy_alert_counts_starving_settlements_for_known_player():
     assert (
         tuple(s.storage for s in game.duchies[0].settlements) == storage_before
     )
+
+
+def test_render_economy_alert_visible_text_matches_starving_count():
+    """When ``player_duchy_id`` matches a duchy, the root carries visible text
+    ``Osady na deficycie pszenicy: N`` where ``N`` equals
+    ``data-starving-settlements`` (count of settlements with
+    ``consumption.wheat > production.wheat``). Pure: no game mutation.
+    """
+    starving = Settlement(
+        "Starving Farm",
+        population=5,
+        occupied=1,
+        owner_id="north",
+        storage=Resources(wheat=1, gold=0),
+        active_buildings=(FARM,),
+    )
+    surplus = Settlement(
+        "Surplus Keep",
+        population=1,
+        occupied=1,
+        owner_id="north",
+        storage=Resources(wheat=10, gold=0),
+        active_buildings=(FARM,),
+    )
+    no_farm = Settlement(
+        "Hungry Hamlet",
+        population=2,
+        owner_id="north",
+        storage=Resources(wheat=0, gold=0),
+    )
+    assert starving.consumption.wheat > starving.production.wheat
+    assert not (surplus.consumption.wheat > surplus.production.wheat)
+    assert no_farm.consumption.wheat > no_farm.production.wheat
+
+    game = GameState(
+        (
+            Duchy(
+                "north",
+                Unit(),
+                settlements=(starving, surplus, no_farm),
+                parties=(),
+            ),
+        )
+    )
+    duchies_before = game.duchies
+    storage_before = tuple(s.storage for s in game.duchies[0].settlements)
+
+    expected_n = 2  # starving + no_farm
+
+    xml = render_economy_alert(game, player_duchy_id="north")
+    root = ET.fromstring(xml)
+
+    assert root.attrib.get("data-starving-settlements") == str(expected_n)
+    assert "".join(root.itertext()) == (
+        f"Osady na deficycie pszenicy: {expected_n}"
+    )
+
+    assert game.duchies == duchies_before
+    assert game.duchies is duchies_before
+    assert (
+        tuple(s.storage for s in game.duchies[0].settlements) == storage_before
+    )
