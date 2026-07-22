@@ -467,3 +467,55 @@ def test_save_state_writes_deterministic_byte_identical_file_round_tripping_game
             "save_state powinien wymagać istniejącego katalogu docelowego"
         )
     assert not missing.parent.exists()
+
+
+def test_main_without_positional_argument_writes_default_out_state_json(
+    monkeypatch, tmp_path
+):
+    """G63.2b-2: main([]) / main() / main(None) → domyślna ścieżka out/state.json.
+
+    Kontrakt: przy braku argumentu pozycyjnego main zapisuje snapshot do domyślnej
+    ścieżki ``out/state.json`` względem katalogu bieżącego, tworząc katalog
+    ``out/`` gdy go brak; zwraca ``0``. Test przez ``monkeypatch.chdir(tmp_path)``,
+    sprawdza istnienie i parsowalność ``tmp_path / "out" / "state.json"``,
+    bez podprocesu. Warianty: ``main([])``, ``main()`` (domyślny argv=None →
+    ``sys.argv[1:]``) oraz ``main(None)``.
+    """
+    from tbbbridge.__main__ import main
+
+    monkeypatch.chdir(tmp_path)
+    # Brak katalogu out/ przed wywołaniem.
+    assert not (tmp_path / "out").exists()
+
+    rc = main([])
+
+    out_path = tmp_path / "out" / "state.json"
+    assert rc == 0
+    assert out_path.exists()
+    snapshot = json.loads(out_path.read_text(encoding="utf-8"))
+    assert list(snapshot.keys()) == ["calendar", "duchies", "map", "result"]
+
+    # Wariant main() (argv=None → sys.argv[1:]; tu puste) — osobny katalog roboczy.
+    other = tmp_path / "via_default_call"
+    other.mkdir()
+    monkeypatch.chdir(other)
+    monkeypatch.setattr("sys.argv", ["tbbbridge"])  # sys.argv[1:] == []
+
+    rc_default = main()
+
+    out_default = other / "out" / "state.json"
+    assert rc_default == 0
+    assert out_default.exists()
+    json.loads(out_default.read_text(encoding="utf-8"))
+
+    # Wariant main(None) — argv None traktowane jak brak argumentu.
+    other2 = tmp_path / "via_none"
+    other2.mkdir()
+    monkeypatch.chdir(other2)
+
+    rc_none = main(None)
+
+    out_none = other2 / "out" / "state.json"
+    assert rc_none == 0
+    assert out_none.exists()
+    json.loads(out_none.read_text(encoding="utf-8"))
