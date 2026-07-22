@@ -111,6 +111,24 @@ uruchomienia z tym samym seedem `73` dają deterministyczne wyjście bajt-w-bajt
 ponieważ `save_state` jest deterministyczne, a cała losowość płynie z
 `run_headless_game(Rng(73))`.
 
+### Most poleceń (G65)
+
+Most `tbbbridge` daje również kanał **IN** — uchwyt sesji, przez który
+klient Godot steruje partią bez duplikowania logiki reguł. Rdzeń `tbb`
+nie importuje sesji ani mostu.
+
+`Session(world, game, calendar, rng, player_duchy_id, seed)` (G65.1a) to
+uchwyt sesji z polami do odczytu: `world: WorldMap`, `game: GameState`,
+`calendar: Calendar`, `rng: Rng`, `player_duchy_id: str | None`, `seed: int`.
+Metoda `Session.snapshot() -> dict` zwraca
+`game_state(session.world, session.game, session.calendar, session.player_duchy_id)`;
+jest czysta, nie mutuje sesji, a wynik przechodzi przez `json.dumps`.
+
+`new_session(seed: int = 73, player_duchy_id: str | None = "player") -> Session`
+(G65.1a) buduje świeżą sesję: `create_headless_game()` + `Calendar()` +
+`Rng(seed)`. Domyślne argumenty odpowiadają standardowej partii gracza
+`"player"` z seedem `73`.
+
 ### Prezentacja (pakiet `tbbui`, Kamień 13)
 Warstwa render/UI jest **poza rdzeniem**. `python -m tbb` nadal uruchamia
 deterministyczną partię headless. Obserwowalny UI buduje **osobny pakiet**
