@@ -287,3 +287,4 @@
 | K56.1b | Tekst gotowości uzbrojenia w panelu osad | Widoczny sufiks wiersza ` · uzbrojenie: gotowe` / ` · uzbrojenie: wstrzymane (brak Kuźni)` po ` · trening: …`, spójny z `data-equip-ready`. |
 | K57.1b | Tekst miesięcznej gospodarki w panelu osad | Widoczny sufiks wiersza ` · produkcja/mies.: +Pw pszenicy, +Pg złota · konsumpcja: Cw pszenicy` po ` · uzbrojenie: …`, spójny z `data-wheat-production` / `data-gold-production` / `data-wheat-consumption`. |
 | K57.2b | Tekst bilansu pszenicy w panelu osad | Widoczny sufiks wiersza ` · bilans pszenicy: nadwyżka` / ` · bilans pszenicy: deficyt` po sufiksie konsumpcji, spójny z `data-wheat-surplus`. |
+| K58.1b | Tekst miesięcznej gospodarki w podsumowaniu gracza | Widoczny sufiks ` · produkcja/mies.: +Pw pszenicy · konsumpcja: Cw pszenicy` po ` · siła oddziałów: …` w `render_player_summary`, spójny z `data-wheat-production` / `data-wheat-consumption`. |

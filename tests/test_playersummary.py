@@ -75,6 +75,7 @@ def test_render_player_summary_aggregates_duchy_economy_and_is_pure():
         "Twoje księstwo: osady 2, oddziały 1 · pszenica 7, złoto 10"
         f" · siła oddziałów: HP {expected_hp}, atak {expected_attack},"
         f" obrona {expected_defense}"
+        f" · produkcja/mies.: +0 pszenicy · konsumpcja: 2 pszenicy"
     )
 
     assert game.duchies == duchies_before
@@ -184,6 +185,7 @@ def test_render_player_summary_aggregates_party_combat_strength():
         "Twoje księstwo: osady 1, oddziały 2 · pszenica 4, złoto 6"
         f" · siła oddziałów: HP {expected_hp}, atak {expected_attack},"
         f" obrona {expected_defense}"
+        f" · produkcja/mies.: +0 pszenicy · konsumpcja: 1 pszenicy"
     )
 
 
@@ -192,9 +194,9 @@ def test_render_player_summary_carries_aggregated_monthly_wheat_economy_attribut
     carries ``data-wheat-production`` / ``data-wheat-consumption`` as sums of
     ``settlement.production.wheat`` / ``settlement.consumption.wheat`` over
     ``duchy.settlements`` (other duchies ignored), immediately after
-    ``data-wheat`` and before ``data-hp``. Visible text is unchanged (no
-    economy suffix). Pure: does not mutate ``game``. Duchy with no settlements
-    yields both sums ``0``.
+    ``data-wheat`` and before ``data-hp``. Visible text carries the matching
+    monthly economy suffix (K58.1b). Pure: does not mutate ``game``. Duchy
+    with no settlements yields both sums ``0``.
     """
     s1 = Settlement(
         "Keep A",
@@ -263,11 +265,13 @@ def test_render_player_summary_carries_aggregated_monthly_wheat_economy_attribut
         f' data-wheat-consumption="{expected_cons}" data-hp="{expected_hp}"'
     ) in xml
 
-    # Visible text unchanged (K58.1a is machine attrs only).
+    # Visible text includes monthly economy suffix (K58.1b); attrs still match.
     assert "".join(root.itertext()) == (
         "Twoje księstwo: osady 2, oddziały 1 · pszenica 7, złoto 10"
         f" · siła oddziałów: HP {expected_hp}, atak {expected_attack},"
         f" obrona {expected_defense}"
+        f" · produkcja/mies.: +{expected_prod} pszenicy"
+        f" · konsumpcja: {expected_cons} pszenicy"
     )
 
     # Pure: no mutation of game / settlement storage.
@@ -284,3 +288,97 @@ def test_render_player_summary_carries_aggregated_monthly_wheat_economy_attribut
         ' data-wheat="0" data-wheat-production="0"'
         ' data-wheat-consumption="0" data-hp='
     ) in empty_xml
+
+
+def test_render_player_summary_appends_monthly_wheat_economy_text_suffix():
+    """When ``player_duchy_id`` matches a duchy, visible text ends with
+    `` · produkcja/mies.: +Pw pszenicy · konsumpcja: Cw pszenicy`` immediately
+    after the existing `` · siła oddziałów: …`` segment, where ``Pw`` /
+    ``Cw`` match ``data-wheat-production`` / ``data-wheat-consumption``
+    (sums of ``settlement.production.wheat`` / ``settlement.consumption.wheat``
+    over ``duchy.settlements``). Other duchies ignored. Pure: no mutation.
+    """
+    s1 = Settlement(
+        "Keep A",
+        population=5,
+        occupied=2,
+        owner_id="north",
+        storage=Resources(wheat=5, gold=3),
+        garrison=(Unit(), Unit()),
+        active_buildings=(FARM, MARKET),
+    )
+    s2 = Settlement(
+        "Keep B",
+        population=2,
+        owner_id="north",
+        storage=Resources(wheat=2, gold=7),
+    )
+    other = Settlement(
+        "South Keep",
+        population=99,
+        owner_id="south",
+        storage=Resources(wheat=99, gold=99),
+        active_buildings=(FARM,),
+    )
+    hero = Unit()
+    party = Party(hero=hero, units=(), owner_id="north")
+    game = GameState(
+        (
+            Duchy(
+                "north",
+                Unit(),
+                settlements=(s1, s2),
+                parties=(party,),
+            ),
+            Duchy(
+                "south",
+                Unit(),
+                settlements=(other,),
+                parties=(),
+            ),
+        )
+    )
+    duchies_before = game.duchies
+    storage_s1_before = s1.storage
+    storage_s2_before = s2.storage
+
+    assert s1.production == Resources(wheat=3, gold=2)
+    assert s1.consumption == Resources(wheat=5, gold=0)
+    assert s2.production == Resources(wheat=0, gold=0)
+    assert s2.consumption == Resources(wheat=2, gold=0)
+    expected_prod = s1.production.wheat + s2.production.wheat  # 3
+    expected_cons = s1.consumption.wheat + s2.consumption.wheat  # 7
+    expected_hp, expected_attack, expected_defense = combat_totals((hero,))
+
+    xml = render_player_summary(game, player_duchy_id="north")
+    root = ET.fromstring(xml)
+
+    assert root.attrib["data-wheat-production"] == str(expected_prod)
+    assert root.attrib["data-wheat-consumption"] == str(expected_cons)
+
+    text = "".join(root.itertext())
+    economy_suffix = (
+        f" · produkcja/mies.: +{expected_prod} pszenicy"
+        f" · konsumpcja: {expected_cons} pszenicy"
+    )
+    assert text.endswith(economy_suffix)
+    assert text == (
+        "Twoje księstwo: osady 2, oddziały 1 · pszenica 7, złoto 10"
+        f" · siła oddziałów: HP {expected_hp}, atak {expected_attack},"
+        f" obrona {expected_defense}"
+        f"{economy_suffix}"
+    )
+    # Suffix is after siła oddziałów and matches machine attrs.
+    assert (
+        f" · siła oddziałów: HP {expected_hp}, atak {expected_attack},"
+        f" obrona {expected_defense}{economy_suffix}"
+    ) in text
+    assert (
+        f"+{root.attrib['data-wheat-production']} pszenicy"
+        f" · konsumpcja: {root.attrib['data-wheat-consumption']} pszenicy"
+    ) in text
+
+    assert game.duchies == duchies_before
+    assert game.duchies is duchies_before
+    assert s1.storage == storage_s1_before
+    assert s2.storage == storage_s2_before

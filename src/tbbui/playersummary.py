@@ -22,9 +22,11 @@ def render_player_summary(
     ``data-attack`` / ``data-defense`` from ``combat_totals`` over every unit
     (hero + subordinates) of each party in ``duchy.parties``, and visible text
     ``Twoje księstwo: osady N, oddziały M · pszenica W, złoto G · siła
-    oddziałów: HP H, atak A, obrona D``. When ``player_duchy_id`` is ``None``
-    or not present in ``game.duchies``, returns a bare empty root. Pure and
-    deterministic: no RNG/IO; ``game`` is not mutated.
+    oddziałów: HP H, atak A, obrona D · produkcja/mies.: +Pw pszenicy ·
+    konsumpcja: Cw pszenicy`` (Pw/Cw match the production/consumption
+    attributes). When ``player_duchy_id`` is ``None`` or not present in
+    ``game.duchies``, returns a bare empty root. Pure and deterministic: no
+    RNG/IO; ``game`` is not mutated.
     """
     duchy = player_duchy(game, player_duchy_id)
     if duchy is None:
@@ -47,6 +49,8 @@ def render_player_summary(
         f" · pszenica {wheat}, złoto {gold}"
         f" · siła oddziałów: HP {total_hp}, atak {total_attack},"
         f" obrona {total_defense}"
+        f" · produkcja/mies.: +{wheat_production} pszenicy"
+        f" · konsumpcja: {wheat_consumption} pszenicy"
     )
     return (
         f'<div data-player-summary=""'
