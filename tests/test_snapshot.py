@@ -372,6 +372,34 @@ def test_game_state_composes_calendar_duchies_map_and_result_per_contract():
     json.dumps(state_none)
 
 
+def test_main_writes_snapshot_to_explicit_path_creating_parent_directory_and_returns_zero(
+    tmp_path,
+):
+    """G63.2b-1: tbbbridge.__main__.main([path]) rozgrywa headless + zapisuje snapshot.
+
+    Kontrakt: main(argv=[path]) zwraca 0, tworzy katalog nadrzędny path,
+    zapisuje plik parsujący się json.loads, klucze najwyższego poziomu to
+    dokładnie ["calendar", "duchies", "map", "result"], a
+    result["player_result"] należy do {"ongoing", "victory", "defeat", "draw"}.
+    """
+    from tbbbridge.__main__ import main
+
+    out_path = tmp_path / "nested" / "state.json"
+
+    rc = main([str(out_path)])
+
+    assert rc == 0
+    assert out_path.exists()
+    snapshot = json.loads(out_path.read_text(encoding="utf-8"))
+    assert list(snapshot.keys()) == ["calendar", "duchies", "map", "result"]
+    assert snapshot["result"]["player_result"] in {
+        "ongoing",
+        "victory",
+        "defeat",
+        "draw",
+    }
+
+
 def test_save_state_writes_deterministic_byte_identical_file_round_tripping_game_state_without_mutating_inputs(
     tmp_path,
 ):
