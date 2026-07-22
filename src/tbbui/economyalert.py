@@ -19,8 +19,10 @@ def render_economy_alert(
     ``consumption.wheat > production.wheat`` (strict greater-than; equal
     balance does not count), ``data-total-wheat-deficit="D"`` immediately after
     it where ``D`` is the sum of ``(consumption.wheat - production.wheat)`` over
-    those starving settlements (``0`` when none), visible text
-    ``Osady na deficycie pszenicy: N`` matching that count, and one child
+    those starving settlements (``0`` when none), visible header text matching
+    that count (``Osady na deficycie pszenicy: N`` when ``N==0``; when
+    ``N>0`` the same plus suffix `` (łączny deficyt: D pszenicy/mies.)``
+    consistent with ``data-total-wheat-deficit``), and one child
     ``<div data-starving-settlement="<name>" data-wheat-deficit="D">…</div>``
     per starving settlement in ``duchy.settlements`` order, where
     ``name`` is ``html.escape(settlement.name, quote=True)``,
@@ -50,6 +52,8 @@ def render_economy_alert(
             )
     n = len(rows)
     text = f"Osady na deficycie pszenicy: {n}"
+    if n > 0:
+        text += f" (łączny deficyt: {total_deficit} pszenicy/mies.)"
     return (
         f'<div data-economy-alert=""'
         f' data-starving-settlements="{n}"'

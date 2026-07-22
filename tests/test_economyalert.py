@@ -152,9 +152,10 @@ def test_render_economy_alert_counts_starving_settlements_for_known_player():
 
 def test_render_economy_alert_visible_text_matches_starving_count():
     """When ``player_duchy_id`` matches a duchy, the root carries visible text
-    ``Osady na deficycie pszenicy: N`` where ``N`` equals
+    starting with ``Osady na deficycie pszenicy: N`` where ``N`` equals
     ``data-starving-settlements`` (count of settlements with
-    ``consumption.wheat > production.wheat``). Pure: no game mutation.
+    ``consumption.wheat > production.wheat``). When ``N>0`` the header also
+    carries the total-deficit suffix (K61.2b). Pure: no game mutation.
     """
     starving = Settlement(
         "Starving Farm",
@@ -196,13 +197,20 @@ def test_render_economy_alert_visible_text_matches_starving_count():
     storage_before = tuple(s.storage for s in game.duchies[0].settlements)
 
     expected_n = 2  # starving + no_farm
+    expected_total = (
+        (starving.consumption.wheat - starving.production.wheat)
+        + (no_farm.consumption.wheat - no_farm.production.wheat)
+    )
 
     xml = render_economy_alert(game, player_duchy_id="north")
     root = ET.fromstring(xml)
 
     assert root.attrib.get("data-starving-settlements") == str(expected_n)
     # Header text only (direct root text); row bodies are covered by K61.1b.
-    assert root.text == f"Osady na deficycie pszenicy: {expected_n}"
+    assert root.text == (
+        f"Osady na deficycie pszenicy: {expected_n}"
+        f" (łączny deficyt: {expected_total} pszenicy/mies.)"
+    )
 
     assert game.duchies == duchies_before
     assert game.duchies is duchies_before
@@ -561,6 +569,83 @@ def test_render_economy_alert_total_wheat_deficit_on_root():
     ]
     assert root_zero.attrib["data-starving-settlements"] == "0"
     assert root_zero.attrib["data-total-wheat-deficit"] == "0"
+
+    assert game.duchies == duchies_before
+    assert game.duchies is duchies_before
+    assert (
+        tuple(s.storage for s in game.duchies[0].settlements) == storage_before
+    )
+
+
+def test_render_economy_alert_header_suffix_total_deficit_when_starving():
+    """When N > 0 (starving settlements exist), root header text is
+    ``Osady na deficycie pszenicy: N (łączny deficyt: D pszenicy/mies.)``,
+    consistent with ``data-starving-settlements`` (N) and
+    ``data-total-wheat-deficit`` (D). The suffix is root text before
+    ``data-starving-settlement`` children. Pure: no game mutation.
+    """
+    # starving: cons 5 > prod 3 → d=2
+    starving_farm = Settlement(
+        "Starving Farm",
+        population=5,
+        occupied=1,
+        owner_id="north",
+        storage=Resources(wheat=1, gold=0),
+        active_buildings=(FARM,),
+    )
+    # surplus: not starving
+    surplus = Settlement(
+        "Surplus Keep",
+        population=1,
+        occupied=1,
+        owner_id="north",
+        storage=Resources(wheat=10, gold=0),
+        active_buildings=(FARM,),
+    )
+    # starving no farm: cons 2 > prod 0 → d=2
+    no_farm = Settlement(
+        "Hungry Hamlet",
+        population=2,
+        owner_id="north",
+        storage=Resources(wheat=0, gold=0),
+    )
+
+    d_farm = (
+        starving_farm.consumption.wheat - starving_farm.production.wheat
+    )
+    d_no_farm = no_farm.consumption.wheat - no_farm.production.wheat
+    assert d_farm > 0
+    assert d_no_farm > 0
+    expected_total = d_farm + d_no_farm
+    expected_n = 2
+    assert expected_n > 0
+
+    game = GameState(
+        (
+            Duchy(
+                "north",
+                Unit(),
+                settlements=(starving_farm, surplus, no_farm),
+                parties=(),
+            ),
+        )
+    )
+    duchies_before = game.duchies
+    storage_before = tuple(s.storage for s in game.duchies[0].settlements)
+
+    xml = render_economy_alert(game, player_duchy_id="north")
+    root = ET.fromstring(xml)
+
+    assert root.attrib.get("data-starving-settlements") == str(expected_n)
+    assert root.attrib.get("data-total-wheat-deficit") == str(expected_total)
+    # Header text only (direct root text); rows stay as K61.1b children.
+    assert root.text == (
+        f"Osady na deficycie pszenicy: {expected_n}"
+        f" (łączny deficyt: {expected_total} pszenicy/mies.)"
+    )
+    children = list(root)
+    assert len(children) == expected_n
+    assert all("data-starving-settlement" in c.attrib for c in children)
 
     assert game.duchies == duchies_before
     assert game.duchies is duchies_before
