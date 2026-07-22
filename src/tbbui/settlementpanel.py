@@ -32,7 +32,9 @@ def render_settlement_panel(
     `` · siła garnizonu: HP H, atak A, obrona D · budynki: N`` suffix and, when
     N>0, `` (name1, name2)`` after the count, then `` · ranni: W``, then
     `` · trening: gotowy`` when training is ready, else
-    `` · trening: wstrzymany (brak Koszar)``. When
+    `` · trening: wstrzymany (brak Koszar)``, then
+    `` · uzbrojenie: gotowe`` when equip is ready, else
+    `` · uzbrojenie: wstrzymane (brak Kuźni)``. When
     ``player_duchy_id`` is not ``None``, rows whose ``owner_id`` matches get
     ``data-player-owned=""``. Pure and deterministic: no RNG/IO; ``world`` is
     not mutated.
@@ -60,8 +62,12 @@ def render_settlement_panel(
             if has_barracks
             else " · trening: wstrzymany (brak Koszar)"
         )
-        equip_ready = (
-            "true" if SMITH in settlement.active_buildings else "false"
+        has_smith = SMITH in settlement.active_buildings
+        equip_ready = "true" if has_smith else "false"
+        equip_suffix = (
+            " · uzbrojenie: gotowe"
+            if has_smith
+            else " · uzbrojenie: wstrzymane (brak Kuźni)"
         )
         buildings = len(settlement.active_buildings)
         building_names = ", ".join(b.name for b in settlement.active_buildings)
@@ -78,6 +84,7 @@ def render_settlement_panel(
             f"{buildings_suffix}"
             f" · ranni: {garrison_wounded}"
             f"{training_suffix}"
+            f"{equip_suffix}"
         )
         player_owned = (
             ' data-player-owned=""'

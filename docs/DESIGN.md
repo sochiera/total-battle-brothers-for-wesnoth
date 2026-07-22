@@ -345,7 +345,8 @@ połączenia, osady/party z kolorami właścicieli), kalendarz (rok/miesiąc),
 status księstw (osady, party, morale, bohater, dziedzic), wynik partii
 (w toku / remis / zwycięzca), opcjonalnie ostatnią bitwę gracza (SVG heksów +
 raport strat), panele osad i oddziałów (zasoby, garnizon/siła, ranni, czytelna
-gotowość treningu garnizonu: gotowy / wstrzymany przy braku Koszar), legendę
+gotowość treningu garnizonu: gotowy / wstrzymany przy braku Koszar; czytelna
+gotowość uzbrojenia garnizonu: gotowe / wstrzymane przy braku Kuźni), legendę
 właścicieli. Przy wskazanym księstwie gracza: podsumowanie sił, postęp do
 zwycięstwa, podpowiedź celu, lokalizacja i dystans do wrogich bohaterów,
 porównanie sił z sąsiednimi celami, alert zagrożeń własnych pozycji, skrót

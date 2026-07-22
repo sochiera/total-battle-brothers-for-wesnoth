@@ -284,3 +284,4 @@
 | K55.1a | Flaga gotowości treningu w panelu osad | `render_settlement_panel`: wiersz osady dokłada `data-training-ready="true|false"` (`BARRACKS in active_buildings`) zaraz po `data-garrison-wounded`; tekst bez zmian; `BARRACKS` z `tbb`. |
 | K55.1b | Tekst gotowości treningu w panelu osad | Widoczny sufiks wiersza ` · trening: gotowy` / ` · trening: wstrzymany (brak Koszar)` po ` · ranni: W`, spójny z `data-training-ready`. |
 | K56.1a | Flaga gotowości uzbrojenia w panelu osad | `render_settlement_panel`: wiersz osady dokłada `data-equip-ready="true|false"` (`SMITH in active_buildings`) zaraz po `data-training-ready`; tekst bez zmian; `SMITH` z `tbb`. |
+| K56.1b | Tekst gotowości uzbrojenia w panelu osad | Widoczny sufiks wiersza ` · uzbrojenie: gotowe` / ` · uzbrojenie: wstrzymane (brak Kuźni)` po ` · trening: …`, spójny z `data-equip-ready`. |
