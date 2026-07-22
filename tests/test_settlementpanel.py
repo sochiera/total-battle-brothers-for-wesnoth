@@ -518,17 +518,19 @@ def test_render_settlement_panel_rows_carry_training_ready_flag():
     assert row_b.attrib["data-training-ready"] == "false"
 
     # Attribute order: immediately after data-garrison-wounded; equip-ready
-    # (K56.1a) then monthly economy attrs (K57.1a) before optional player-owned.
+    # (K56.1a) then monthly economy attrs (K57.1a) + wheat-surplus (K57.2a)
+    # before optional player-owned.
     assert (
         ' data-garrison-wounded="0" data-training-ready="true"'
         ' data-equip-ready="false" data-wheat-production="3"'
         ' data-gold-production="2" data-wheat-consumption="5"'
-        ' data-player-owned=""'
+        ' data-wheat-surplus="false" data-player-owned=""'
     ) in xml
     assert (
         ' data-garrison-wounded="0" data-training-ready="false"'
         ' data-equip-ready="false" data-wheat-production="3"'
         ' data-gold-production="2" data-wheat-consumption="10"'
+        ' data-wheat-surplus="false"'
     ) in xml
     # No-barracks row must not get true merely from larger garrison/population.
     assert 'data-settlement-row="B"' in xml
@@ -679,17 +681,19 @@ def test_render_settlement_panel_rows_carry_equip_ready_flag():
     assert row_b.attrib["data-equip-ready"] == "false"
 
     # Attribute order: immediately after data-training-ready; monthly economy
-    # attrs (K57.1a) sit between equip-ready and optional player-owned.
+    # attrs (K57.1a) + wheat-surplus (K57.2a) sit between equip-ready and
+    # optional player-owned.
     assert (
         ' data-training-ready="false" data-equip-ready="true"'
         ' data-wheat-production="3" data-gold-production="2"'
-        ' data-wheat-consumption="5" data-player-owned=""'
+        ' data-wheat-consumption="5" data-wheat-surplus="false"'
+        ' data-player-owned=""'
         in xml
     )
     assert (
         ' data-training-ready="true" data-equip-ready="false"'
         ' data-wheat-production="3" data-gold-production="2"'
-        ' data-wheat-consumption="10"'
+        ' data-wheat-consumption="10" data-wheat-surplus="false"'
         in xml
     )
     # No-smith row must not get true merely from larger garrison/population/gold.
@@ -864,15 +868,17 @@ def test_render_settlement_panel_rows_carry_monthly_economy_attributes():
     assert row_b.attrib["data-gold-production"] == "0"
     assert row_b.attrib["data-wheat-consumption"] == "4"
 
-    # Attribute order: after data-equip-ready, before optional data-player-owned.
+    # Attribute order: after data-equip-ready; wheat-surplus (K57.2a) before
+    # optional data-player-owned.
     assert (
         ' data-equip-ready="false" data-wheat-production="3"'
         ' data-gold-production="2" data-wheat-consumption="5"'
-        ' data-player-owned=""'
+        ' data-wheat-surplus="false" data-player-owned=""'
     ) in xml
     assert (
         ' data-equip-ready="false" data-wheat-production="0"'
         ' data-gold-production="0" data-wheat-consumption="4"'
+        ' data-wheat-surplus="false"'
     ) in xml
     assert 'data-settlement-row="B" data-owner="south"' in xml
     assert 'data-player-owned' not in row_b.attrib
@@ -1001,3 +1007,88 @@ def test_render_settlement_panel_rows_append_monthly_economy_text_suffix():
         " · uzbrojenie: wstrzymane (brak Kuźni)"
         " · produkcja/mies.: +0 pszenicy, +0 złota · konsumpcja: 4 pszenicy"
     )
+
+
+def test_render_settlement_panel_rows_carry_wheat_surplus_flag():
+    """Each row carries data-wheat-surplus="true" when
+    settlement.production.wheat >= settlement.consumption.wheat, else "false",
+    placed immediately after data-wheat-consumption (before optional
+    data-player-owned). Settlement without Farm and with positive population
+    yields "false". Visible text is byte-for-byte the K57.1b economy row (no
+    new surplus/deficit suffix).
+    """
+    a = Region("A")
+    b = Region("B")
+    settlement_a = Settlement(
+        "Keep A",
+        population=1,
+        owner_id="north",
+        storage=Resources(wheat=5, gold=3),
+        active_buildings=(FARM,),
+    )
+    settlement_b = Settlement(
+        "Keep B",
+        population=4,
+        owner_id="south",
+        storage=Resources(wheat=10, gold=7),
+    )
+    world = WorldMap(
+        [a, b],
+        [(a, b)],
+        settlements={a: settlement_a, b: settlement_b},
+    )
+
+    assert settlement_a.production.wheat >= settlement_a.consumption.wheat
+    assert settlement_a.production == Resources(wheat=3, gold=0)
+    assert settlement_a.consumption == Resources(wheat=1, gold=0)
+    assert settlement_b.production.wheat < settlement_b.consumption.wheat
+    assert settlement_b.production == Resources(wheat=0, gold=0)
+    assert settlement_b.consumption == Resources(wheat=4, gold=0)
+
+    xml = render_settlement_panel(world, player_duchy_id="north")
+    root = ET.fromstring(xml)
+
+    row_a, row_b = root.findall("div")
+    assert row_a.attrib["data-wheat-surplus"] == "true"
+    assert row_b.attrib["data-wheat-surplus"] == "false"
+
+    # Attribute order: immediately after data-wheat-consumption, before optional
+    # data-player-owned.
+    assert (
+        ' data-wheat-production="3" data-gold-production="0"'
+        ' data-wheat-consumption="1" data-wheat-surplus="true"'
+        ' data-player-owned=""'
+    ) in xml
+    assert (
+        ' data-wheat-production="0" data-gold-production="0"'
+        ' data-wheat-consumption="4" data-wheat-surplus="false"'
+    ) in xml
+    assert "data-player-owned" not in row_b.attrib
+
+    text_a = "".join(row_a.itertext())
+    assert text_a == (
+        "Keep A (north): pszenica 5, złoto 3 · populacja 1 (wolne 1), garnizon 0"
+        " · siła garnizonu: HP 0, atak 0, obrona 0"
+        " · budynki: 1 (Farm)"
+        " · ranni: 0"
+        " · trening: wstrzymany (brak Koszar)"
+        " · uzbrojenie: wstrzymane (brak Kuźni)"
+        " · produkcja/mies.: +3 pszenicy, +0 złota · konsumpcja: 1 pszenicy"
+    )
+    assert "bilans" not in text_a
+    assert "nadwyżka" not in text_a
+    assert "deficyt" not in text_a
+
+    text_b = "".join(row_b.itertext())
+    assert text_b == (
+        "Keep B (south): pszenica 10, złoto 7 · populacja 4 (wolne 4), garnizon 0"
+        " · siła garnizonu: HP 0, atak 0, obrona 0"
+        " · budynki: 0"
+        " · ranni: 0"
+        " · trening: wstrzymany (brak Koszar)"
+        " · uzbrojenie: wstrzymane (brak Kuźni)"
+        " · produkcja/mies.: +0 pszenicy, +0 złota · konsumpcja: 4 pszenicy"
+    )
+    assert "bilans" not in text_b
+    assert "nadwyżka" not in text_b
+    assert "deficyt" not in text_b

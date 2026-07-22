@@ -52,8 +52,11 @@ def render_settlement_panel(
     ``data-wheat-production`` / ``data-gold-production`` /
     ``data-wheat-consumption`` (from ``settlement.production`` /
     ``settlement.consumption``; no ``tick_economy``; immediately after
-    ``data-equip-ready``, before optional ``data-player-owned``) and visible
-    text matching those attributes, including the
+    ``data-equip-ready``) /
+    ``data-wheat-surplus`` (``"true"`` when
+    ``production.wheat >= consumption.wheat``, else ``"false"``; immediately
+    after ``data-wheat-consumption``, before optional ``data-player-owned``)
+    and visible text matching those attributes, including the
     `` · siła garnizonu: HP H, atak A, obrona D · budynki: N`` suffix and, when
     N>0, `` (name1, name2)`` after the count, then `` · ranni: W``, then
     `` · trening: gotowy`` when training is ready, else
@@ -100,6 +103,9 @@ def render_settlement_panel(
         wheat_production = production.wheat
         gold_production = production.gold
         wheat_consumption = consumption.wheat
+        wheat_surplus = (
+            "true" if wheat_production >= wheat_consumption else "false"
+        )
         economy_suffix = (
             f" · produkcja/mies.: +{wheat_production} pszenicy,"
             f" +{gold_production} złota · konsumpcja: {wheat_consumption} pszenicy"
@@ -146,6 +152,7 @@ def render_settlement_panel(
             f' data-wheat-production="{wheat_production}"'
             f' data-gold-production="{gold_production}"'
             f' data-wheat-consumption="{wheat_consumption}"'
+            f' data-wheat-surplus="{wheat_surplus}"'
             f"{player_owned}"
             f">{text}</div>"
         )
