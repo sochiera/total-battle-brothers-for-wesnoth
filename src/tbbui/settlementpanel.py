@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from tbb import BARRACKS
+from tbb import BARRACKS, SMITH
 from tbb.world import WorldMap
 from tbbui.unitstrength import combat_totals, wounded_count
 
@@ -25,8 +25,10 @@ def render_settlement_panel(
     ``wounds`` tuple; empty garrison → 0) /
     ``data-training-ready`` (``"true"`` when ``BARRACKS`` is in
     ``active_buildings``, else ``"false"``; immediately after
-    ``data-garrison-wounded``) and visible text matching those
-    attributes, including the
+    ``data-garrison-wounded``) /
+    ``data-equip-ready`` (``"true"`` when ``SMITH`` is in ``active_buildings``,
+    else ``"false"``; immediately after ``data-training-ready``) and visible
+    text matching those attributes, including the
     `` · siła garnizonu: HP H, atak A, obrona D · budynki: N`` suffix and, when
     N>0, `` (name1, name2)`` after the count, then `` · ranni: W``, then
     `` · trening: gotowy`` when training is ready, else
@@ -57,6 +59,9 @@ def render_settlement_panel(
             " · trening: gotowy"
             if has_barracks
             else " · trening: wstrzymany (brak Koszar)"
+        )
+        equip_ready = (
+            "true" if SMITH in settlement.active_buildings else "false"
         )
         buildings = len(settlement.active_buildings)
         building_names = ", ".join(b.name for b in settlement.active_buildings)
@@ -94,6 +99,7 @@ def render_settlement_panel(
             f' data-building-names="{building_names}"'
             f' data-garrison-wounded="{garrison_wounded}"'
             f' data-training-ready="{training_ready}"'
+            f' data-equip-ready="{equip_ready}"'
             f"{player_owned}"
             f">{text}</div>"
         )

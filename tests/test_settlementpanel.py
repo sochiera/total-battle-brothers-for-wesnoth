@@ -2,7 +2,7 @@
 
 from xml.etree import ElementTree as ET
 
-from tbb import BARRACKS
+from tbb import BARRACKS, SMITH
 from tbb.building import FARM, MARKET
 from tbb.resources import Resources
 from tbb.settlement import Settlement
@@ -497,9 +497,16 @@ def test_render_settlement_panel_rows_carry_training_ready_flag():
     assert row_a.attrib["data-training-ready"] == "true"
     assert row_b.attrib["data-training-ready"] == "false"
 
-    # Attribute order: immediately after data-garrison-wounded, before player-owned.
-    assert ' data-garrison-wounded="0" data-training-ready="true" data-player-owned=""' in xml
-    assert ' data-garrison-wounded="0" data-training-ready="false"' in xml
+    # Attribute order: immediately after data-garrison-wounded; equip-ready
+    # (K56.1a) sits between training-ready and optional player-owned.
+    assert (
+        ' data-garrison-wounded="0" data-training-ready="true"'
+        ' data-equip-ready="false" data-player-owned=""'
+    ) in xml
+    assert (
+        ' data-garrison-wounded="0" data-training-ready="false"'
+        ' data-equip-ready="false"'
+    ) in xml
     # No-barracks row must not get true merely from larger garrison/population.
     assert 'data-settlement-row="B"' in xml
     assert row_b.attrib["data-garrison"] == "3"
@@ -596,3 +603,87 @@ def test_render_settlement_panel_rows_append_training_ready_text_suffix():
         " · trening: wstrzymany (brak Koszar)"
     )
     assert text_b.endswith(" · ranni: 0 · trening: wstrzymany (brak Koszar)")
+
+
+def test_render_settlement_panel_rows_carry_equip_ready_flag():
+    """Each row carries data-equip-ready="true" when SMITH is in
+    active_buildings, else "false", placed immediately after
+    data-training-ready (before optional data-player-owned). Visible text is
+    unchanged (still ends with the training suffix). Flag depends only on
+    SMITH presence, not population/garrison/gold.
+    """
+    a = Region("A")
+    b = Region("B")
+    world = WorldMap(
+        [a, b],
+        [(a, b)],
+        settlements={
+            a: Settlement(
+                "Keep A",
+                population=5,
+                occupied=2,
+                owner_id="north",
+                storage=Resources(wheat=5, gold=3),
+                garrison=(Unit(), Unit()),
+                active_buildings=(FARM, SMITH, MARKET),
+            ),
+            b: Settlement(
+                "Keep B",
+                population=10,
+                occupied=0,
+                owner_id="south",
+                storage=Resources(wheat=0, gold=99),
+                garrison=(Unit(), Unit(), Unit()),
+                active_buildings=(FARM, BARRACKS, MARKET),
+            ),
+        },
+    )
+
+    xml = render_settlement_panel(world, player_duchy_id="north")
+    root = ET.fromstring(xml)
+
+    row_a, row_b = root.findall("div")
+    assert row_a.attrib["data-equip-ready"] == "true"
+    assert row_b.attrib["data-equip-ready"] == "false"
+
+    # Attribute order: immediately after data-training-ready, before player-owned.
+    assert (
+        ' data-training-ready="false" data-equip-ready="true" data-player-owned=""'
+        in xml
+    )
+    assert ' data-training-ready="true" data-equip-ready="false"' in xml
+    # No-smith row must not get true merely from larger garrison/population/gold.
+    assert 'data-settlement-row="B"' in xml
+    assert row_b.attrib["data-garrison"] == "3"
+    assert row_b.attrib["data-population"] == "10"
+    assert row_b.attrib["data-gold"] == "99"
+
+    garrison_a = (Unit(), Unit())
+    expected_hp_a = sum(u.hp for u in garrison_a)
+    expected_attack_a = sum(u.damage for u in garrison_a)
+    expected_defense_a = sum(u.defense for u in garrison_a)
+    text_a = "".join(row_a.itertext())
+    assert text_a == (
+        f"Keep A (north): pszenica 5, złoto 3 · populacja 5 (wolne 3), garnizon 2"
+        f" · siła garnizonu: HP {expected_hp_a}"
+        f", atak {expected_attack_a}, obrona {expected_defense_a}"
+        f" · budynki: 3 (Farm, Smith, Market)"
+        f" · ranni: 0"
+        f" · trening: wstrzymany (brak Koszar)"
+    )
+    assert text_a.endswith(" · trening: wstrzymany (brak Koszar)")
+
+    garrison_b = (Unit(), Unit(), Unit())
+    expected_hp_b = sum(u.hp for u in garrison_b)
+    expected_attack_b = sum(u.damage for u in garrison_b)
+    expected_defense_b = sum(u.defense for u in garrison_b)
+    text_b = "".join(row_b.itertext())
+    assert text_b == (
+        f"Keep B (south): pszenica 0, złoto 99 · populacja 10 (wolne 10), garnizon 3"
+        f" · siła garnizonu: HP {expected_hp_b}"
+        f", atak {expected_attack_b}, obrona {expected_defense_b}"
+        f" · budynki: 3 (Farm, Barracks, Market)"
+        f" · ranni: 0"
+        f" · trening: gotowy"
+    )
+    assert text_b.endswith(" · trening: gotowy")

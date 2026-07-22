@@ -103,7 +103,7 @@ broniącego (`len(battle.report().defender.fallen)`); odczyt tylko
 — czysty helper = liczba jednostek z niepustą krotką `wounds` (`len(wounds) > 0`;
 pusta sekwencja → `0`); bez mutacji wejść. Oba reużywane przez panele party i osad.
 
-**Panel osad HTML (K22.1a–b / K23.3a / K25.2a–b / K26.1a–b / K27.2a / K55.1a–b):** `tbbui.settlementpanel.render_settlement_panel(world, player_duchy_id=None)
+**Panel osad HTML (K22.1a–b / K23.3a / K25.2a–b / K26.1a–b / K27.2a / K55.1a–b / K56.1a):** `tbbui.settlementpanel.render_settlement_panel(world, player_duchy_id=None)
 -> str` — parsowalny fragment XML z korzeniem `<div data-settlement-panel="">`;
 po jednym `<div data-settlement-row="<region.name>">` na region z osadą w
 kolejności `world.regions` (region bez osady → brak wiersza). Atrybuty wiersza:
@@ -113,9 +113,11 @@ kolejności `world.regions` (region bez osady → brak wiersza). Atrybuty wiersz
 `data-garrison-defense` (z `combat_totals(garrison)`; pusty → `0`),
 `data-buildings` (`len(active_buildings)`), `data-building-names` (nazwy
 `active_buildings` złączone `", "`, pusty → `""`),
-`data-garrison-wounded` (z `wounded_count(garrison)`; pusty garnizon → `0`) oraz
+`data-garrison-wounded` (z `wounded_count(garrison)`; pusty garnizon → `0`),
 `data-training-ready` (`"true"` gdy `BARRACKS in active_buildings`, inaczej
-`"false"`; zaraz po `data-garrison-wounded`). Gdy
+`"false"`; zaraz po `data-garrison-wounded`) oraz `data-equip-ready`
+(`"true"` gdy `SMITH in active_buildings`, inaczej `"false"`; zaraz po
+`data-training-ready`, przed opcjonalnym `data-player-owned`). Gdy
 `player_duchy_id` nie jest `None`, wiersze z `owner_id == player_duchy_id`
 dostają `data-player-owned=""`; `None` (domyślnie) → wynik bajt-w-bajt jak bez
 argumentu. Obok atrybutów widoczny tekst

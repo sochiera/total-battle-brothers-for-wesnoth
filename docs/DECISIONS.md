@@ -283,3 +283,4 @@
 | G54.1c | Bramkowanie treningu garnizonu Koszarami | `Settlement.tick_training()` no-op gdy `BARRACKS not in active_buildings`; z czynnymi Koszarami trenuje jak dotąd (bez wymogu obsady/złota). |
 | K55.1a | Flaga gotowości treningu w panelu osad | `render_settlement_panel`: wiersz osady dokłada `data-training-ready="true|false"` (`BARRACKS in active_buildings`) zaraz po `data-garrison-wounded`; tekst bez zmian; `BARRACKS` z `tbb`. |
 | K55.1b | Tekst gotowości treningu w panelu osad | Widoczny sufiks wiersza ` · trening: gotowy` / ` · trening: wstrzymany (brak Koszar)` po ` · ranni: W`, spójny z `data-training-ready`. |
+| K56.1a | Flaga gotowości uzbrojenia w panelu osad | `render_settlement_panel`: wiersz osady dokłada `data-equip-ready="true|false"` (`SMITH in active_buildings`) zaraz po `data-training-ready`; tekst bez zmian; `SMITH` z `tbb`. |
