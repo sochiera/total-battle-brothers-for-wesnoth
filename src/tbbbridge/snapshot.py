@@ -4,6 +4,7 @@ import json
 import os
 from typing import Any
 
+from tbb.battle import HexBattle
 from tbb.duchy import Duchy
 from tbb.game import GameState
 from tbb.party import Party
@@ -193,6 +194,38 @@ def game_state(
             "winner": game.winner.duchy_id if game.winner is not None else None,
             "player_result": _player_result(game, player_duchy_id),
         },
+    }
+    _assert_json_serializable(state)
+    return state
+
+
+def battle_state(battle: HexBattle) -> dict[str, Any]:
+    """Zwróć json-serializowalny snapshot bitwy heksowej.
+
+    Funkcja jest czysta, deterministyczna i bez mutacji `battle`; wynik
+    przechodzi przez `json.dumps`.
+
+    Klucze wyniku i ich źródła w publicznym API `HexBattle`:
+      hexes  -> lista zajętych heksów `battle.units`, posortowana po (q, r),
+                każdy z kluczami q, r, terrain, side, hp, stunned
+      result -> `battle.result().value` gdy rozstrzygnięta, inaczej `None`
+    """
+    hexes: list[dict[str, Any]] = []
+    for hex_pos in sorted(battle.units.keys(), key=lambda h: (h.q, h.r)):
+        unit = battle.units[hex_pos]
+        hexes.append({
+            "q": hex_pos.q,
+            "r": hex_pos.r,
+            "terrain": battle.battlefield.terrain_at(hex_pos).name,
+            "side": battle.side_at(hex_pos).value,
+            "hp": battle.current_hp_at(hex_pos),
+            "stunned": bool(unit.stunned),
+        })
+
+    result = battle.result()
+    state: dict[str, Any] = {
+        "hexes": hexes,
+        "result": result.value if result is not None else None,
     }
     _assert_json_serializable(state)
     return state

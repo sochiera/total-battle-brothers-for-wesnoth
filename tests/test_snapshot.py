@@ -552,6 +552,121 @@ def test_main_two_runs_to_different_paths_produce_byte_identical_json(tmp_path):
     assert path_a.read_bytes() == path_b.read_bytes()
 
 
+def test_battle_state_returns_pure_json_serializable_dict_with_contract_keys_values_and_ordering():
+    """G64.1a: tbbbridge.snapshot.battle_state(battle) -> dict.
+
+    Kontrakt: słownik z kluczami dokładnie ["hexes", "result"]; hexes to lista
+    po zajętych heksach battle.units, posortowana rosnąco po (hex.q, hex.r);
+    każdy element ma klucze dokładnie ["q", "r", "terrain", "side", "hp",
+    "stunned"] z wartościami q=hex.q, r=hex.r,
+    terrain=battle.battlefield.terrain_at(hex).name, side=battle.side_at(hex).value,
+    hp=battle.current_hp_at(hex), stunned=bool(battle.units[hex].stunned);
+    result=battle.result().value gdy rozstrzygnięta, w przeciwnym razie None.
+    Funkcja czysta, deterministyczna, bez mutacji; wynik przechodzi json.dumps.
+    """
+    from tbb.battle import BattleResult, BattleSide, HexBattle
+    from tbb.battlefield import Battlefield
+    from tbb.hex import Hex
+    from tbb.terrain import FOREST, PLAINS
+    from tbb.unit import Unit
+    from tbbbridge.snapshot import battle_state
+
+    def _battle(both_sides_alive: bool) -> HexBattle:
+        attacker = Unit(training=2)  # hp = 12, distinct values
+        defender = Unit(training=1, equipment=1)  # hp = 11
+        stunned_defender = Unit(training=0, equipment=0, stunned=True)  # hp = 10
+        battlefield = Battlefield({
+            Hex(1, -1): FOREST,
+            Hex(0, 0): PLAINS,
+            Hex(-1, 2): FOREST,
+        })
+        battle = HexBattle(battlefield)
+        # Deploy in non-sorted order to exercise the (q, r) sort.
+        battle = battle.deploy(defender, Hex(0, 0), BattleSide.DEFENDER)
+        battle = battle.deploy(attacker, Hex(1, -1), BattleSide.ATTACKER)
+        battle = battle.deploy(
+            stunned_defender, Hex(-1, 2), BattleSide.DEFENDER
+        )
+        if not both_sides_alive:
+            # Run auto-resolve deterministically to reach a resolved state.
+            # This covers the win/draw path without relying on internal
+            # resolve_defeat ordering details.
+            from tbb.rng import Rng
+
+            rng = Rng(73)
+            battle = battle.auto_resolve(move_points=1, rng=rng)
+            assert battle.result() is not None
+        return battle
+
+    # --- Scenario A: ongoing battle -> result is None. ---
+    battle = _battle(both_sides_alive=True)
+    before = battle  # HexBattle is frozen; reference equality == no mutation.
+
+    state = battle_state(battle)
+
+    # Contract: top-level keys exactly ["hexes", "result"] in order.
+    assert list(state.keys()) == ["hexes", "result"]
+
+    # Contract: hexes sorted ascending by (q, r); deployed in order was
+    # (0,0), (1,-1), (-1,2) -> sorted: (-1,2), (0,0), (1,-1).
+    assert [h["q"] for h in state["hexes"]] == [-1, 0, 1]
+    assert [h["r"] for h in state["hexes"]] == [2, 0, -1]
+
+    # Contract: each hex entry has exactly the prescribed key order.
+    for hex_entry in state["hexes"]:
+        assert list(hex_entry.keys()) == ["q", "r", "terrain", "side", "hp", "stunned"]
+
+    # Contract: value sources from battle's public API.
+    expected_hexes = sorted(battle.units.keys(), key=lambda h: (h.q, h.r))
+    for entry, hex_pos in zip(state["hexes"], expected_hexes):
+        unit = battle.units[hex_pos]
+        assert entry["q"] == hex_pos.q
+        assert entry["r"] == hex_pos.r
+        assert entry["terrain"] == battle.battlefield.terrain_at(hex_pos).name
+        assert entry["side"] == battle.side_at(hex_pos).value
+        assert entry["hp"] == battle.current_hp_at(hex_pos)
+        assert entry["stunned"] is bool(unit.stunned)
+        # stunned must be a real bool (not truthy int/etc.) for JSON fidelity.
+        assert isinstance(entry["stunned"], bool)
+
+    # Spot-check distinct values: attacker at (1,-1) is Tactics-trained on
+    # Forest with full hp 12, side "attacker", not stunned.
+    attacker_entry = state["hexes"][2]
+    assert attacker_entry == {
+        "q": 1, "r": -1, "terrain": "Forest", "side": "attacker",
+        "hp": 12, "stunned": False,
+    }
+    # Stunned defender at (-1,2): stunned True.
+    stunned_entry = state["hexes"][0]
+    assert stunned_entry["stunned"] is True
+    assert stunned_entry["side"] == "defender"
+
+    # Contract: result is None while both sides are active.
+    assert battle.result() is None
+    assert state["result"] is None
+
+    # Contract: whole result is json-serializable (test calls json.dumps).
+    json.dumps(state)
+
+    # Contract: no mutation of battle (frozen dataclass; same identity/equality).
+    assert battle is before
+
+    # --- Scenario B: resolved battle -> result is battle.result().value. ---
+    resolved = _battle(both_sides_alive=False)
+    state_resolved = battle_state(resolved)
+    expected_result = resolved.result()
+    assert expected_result is not None
+    assert state_resolved["result"] == expected_result.value
+    assert state_resolved["result"] in {
+        BattleResult.ATTACKER_WIN.value,
+        BattleResult.DEFENDER_WIN.value,
+        BattleResult.DRAW.value,
+    }
+    # Still json-serializable and top-level keys unchanged.
+    assert list(state_resolved.keys()) == ["hexes", "result"]
+    json.dumps(state_resolved)
+
+
 def test_python_m_tbbbridge_shim_propagates_rc_and_explicit_arg_writes_named_file_not_default(
     tmp_path,
 ):

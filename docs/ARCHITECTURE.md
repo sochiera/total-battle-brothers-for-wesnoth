@@ -77,6 +77,16 @@ dict z kluczami w kolejności: `calendar`, `duchies`, `map`, `result`.
 player_duchy_id`, w przeciwnym razie `"defeat"`. Funkcja jest czysta,
 deterministyczna, bez mutacji wejść; wynik przechodzi przez `json.dumps`.
 
+`battle_state(battle)` (G64.1a) zwraca dict z kluczami w kolejności:
+`hexes`, `result`. `hexes` to lista zajętych heksów `battle.units` posortowana
+rosnąco po `(q, r)`; każdy element ma klucze `q`, `r`, `terrain`, `side`, `hp`,
+`stunned`. Wartości odczytuje się z publicznego API `HexBattle`:
+`hex.q`/`hex.r`, `battle.battlefield.terrain_at(hex).name`,
+`battle.side_at(hex).value`, `battle.current_hp_at(hex)` oraz
+`bool(battle.units[hex].stunned)`. `result` to `battle.result().value` gdy bitwa
+jest rozstrzygnięta, w przeciwnym razie `None`. Funkcja jest czysta,
+deterministyczna, bez mutacji `battle`; wynik przechodzi przez `json.dumps`.
+
 `save_state(world, game, calendar, path, player_duchy_id=None)` (G63.2a) zapisuje
 `game_state(...)` do pliku `path` (`str` lub `os.PathLike`) jako
 `json.dumps(..., indent=2, ensure_ascii=False)` zakończony pojedynczym `"\\n"`,
