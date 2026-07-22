@@ -40,20 +40,27 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > `data-wheat-surplus` / `data-wheat-net` + czytelne sufiksy produkcji,
 > konsumpcji, bilansu i salda). Szczegóły w `BACKLOG-ARCHIVE.md`.
 
-## Kamień milowy 59 — zbiorcza produkcja złota księstwa w podsumowaniu gracza
-> DESIGN §11: po K58 (pszenica księstwa) gracz nie widzi zbiorczej produkcji
-> złota — a to ona napędza rekrutację i uzbrojenie. `render_player_summary`
-> dokłada `data-gold-production` (suma po osadach) i czytelny sufiks.
-- [ ] **K59.1a** `data-gold-production="<int>"` (= suma `production.gold` po osadach) w korzeniu `data-player-summary`, zaraz po `data-wheat-production`, przed `data-wheat-consumption`; tekst bez zmian. *(task-282)*
-- [ ] **K59.1b** widoczny sufiks produkcji rozszerzony o `, +Pg złota` spójny z atrybutem; ARCHITECTURE, DESIGN §11, DECISIONS `K59.1b`. *(task-283)*
+> **Kamień 59 — UKOŃCZONE.** Zbiorcza produkcja złota księstwa w podsumowaniu
+> gracza (`data-gold-production` + grupa tekstu `produkcja/mies.: +Pw pszenicy,
+> +Pg złota`). Szczegóły w `BACKLOG-ARCHIVE.md`.
 
-## Kamień milowy 60 — alert gospodarczy: głodujące osady księstwa
-> DESIGN §11: bilans księstwa mówi „nadwyżka/deficyt", lecz nie ILE osad realnie
-> głoduje (konsumpcja > produkcja) i blokuje wzrost populacji. Nowy wąski panel
-> `render_economy_alert` liczy głodujące osady i osadza się w stronie.
-- [ ] **K60.1a** `tbbui.economyalert.render_economy_alert` — korzeń `data-economy-alert` + `data-starving-settlements="N"` (osady z `consumption.wheat > production.wheat`); pusty korzeń dla nieznanego gracza; ARCHITECTURE. *(task-284)*
-- [ ] **K60.1b** widoczny tekst `Osady na deficycie pszenicy: N` spójny z licznikiem; ARCHITECTURE, DESIGN §11, DECISIONS `K60.1b`. *(task-285)*
-- [ ] **K60.1c** osadzenie `render_economy_alert` w `render_game_page` zaraz po `data-player-summary`, przed `data-victory-progress`; ARCHITECTURE. *(task-286)*
+> **Kamień 60 — UKOŃCZONE.** Alert gospodarczy głodujących osad
+> (`tbbui.economyalert.render_economy_alert`: korzeń `data-economy-alert` +
+> `data-starving-settlements="N"`, tekst `Osady na deficycie pszenicy: N`,
+> osadzenie w `render_game_page` po `data-player-summary`). Szczegóły w
+> `BACKLOG-ARCHIVE.md`.
+
+## Kamień milowy 61 — alert gospodarczy: które osady głodują i ostrzeżenie
+> DESIGN §11: alert (K60) liczy głodujące osady, lecz nie mówi KTÓRE głodują ani
+> jak głęboko — gracz nie może zareagować (dobudować Farmę, przesunąć populację).
+> `render_economy_alert` dokłada wiersze per osada z deficytem, łączny deficyt
+> księstwa i flagę/notę krytyczności. Wszystko w `economyalert.py` (osadzenie
+> gotowe z K60.1c — delegacja podchwytuje nowe dzieci/atrybuty).
+- [ ] **K61.1a** wiersze `<div data-starving-settlement="<name>" data-wheat-deficit="D">` per osada z `consumption.wheat > production.wheat` (kolejność `duchy.settlements`); korzeń/tekst/`data-starving-settlements` bez zmian; pusty korzeń dla nieznanego gracza; ARCHITECTURE. *(task-287)*
+- [ ] **K61.1b** widoczny tekst wiersza `<name>: deficyt D pszenicy/mies.` spójny z atrybutami; ARCHITECTURE, DESIGN §11, DECISIONS `K61.1b`. *(task-288)*
+- [ ] **K61.2a** `data-total-wheat-deficit="D"` na korzeniu zaraz po `data-starving-settlements` (suma deficytów po głodujących osadach; 0 gdy brak); tekst bez zmian; pusty korzeń dla nieznanego gracza; ARCHITECTURE. *(task-289)*
+- [ ] **K61.2b** sufiks nagłówka ` (łączny deficyt: D pszenicy/mies.)` gdy `N>0`, spójny z `data-total-wheat-deficit`; ARCHITECTURE, DESIGN §11, DECISIONS `K61.2b`. *(task-290)*
+- [ ] **K61.3a** flaga `data-economy-critical=""` (po `data-total-wheat-deficit`) i nota `data-economy-caution` gdy `N>0`; brak przy `N==0`; ARCHITECTURE, DESIGN §11, DECISIONS `K61.3a`. *(task-291)*
 
 ## Dług/refaktor
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*

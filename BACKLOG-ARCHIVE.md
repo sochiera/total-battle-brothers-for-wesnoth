@@ -513,3 +513,12 @@
 - [x] **K58.2b** widoczny sufiks ` · bilans pszenicy: nadwyżka` / ` · bilans pszenicy: deficyt` spójny z flagą; ARCHITECTURE, DESIGN §11, DECISIONS `K58.2b`. *(task-279)*
 - [x] **K58.3a** `data-wheat-net="<int ze znakiem>"` (= suma `production.wheat` − suma `consumption.wheat`) w korzeniu `data-player-summary`, zaraz po `data-wheat-surplus`; tekst bez zmian. *(task-280)*
 - [x] **K58.3b** widoczny sufiks ` · saldo pszenicy/mies.: {net:+d}` spójny z atrybutem; ARCHITECTURE, DESIGN §11, DECISIONS `K58.3b`. *(task-281)*
+
+## Kamień milowy 59 — zbiorcza produkcja złota księstwa w podsumowaniu gracza — UKOŃCZONY
+- [x] **K59.1a** `data-gold-production="<int>"` (= suma `production.gold` po osadach) w korzeniu `data-player-summary`, zaraz po `data-wheat-production`, przed `data-wheat-consumption`; tekst bez zmian. *(task-282)*
+- [x] **K59.1b** widoczny sufiks produkcji rozszerzony o `, +Pg złota` spójny z atrybutem; ARCHITECTURE, DESIGN §11, DECISIONS `K59.1b`. *(task-283)*
+
+## Kamień milowy 60 — alert gospodarczy: głodujące osady księstwa — UKOŃCZONY
+- [x] **K60.1a** `tbbui.economyalert.render_economy_alert` — korzeń `data-economy-alert` + `data-starving-settlements="N"` (osady z `consumption.wheat > production.wheat`); pusty korzeń dla nieznanego gracza; ARCHITECTURE. *(task-284)*
+- [x] **K60.1b** widoczny tekst `Osady na deficycie pszenicy: N` spójny z licznikiem; ARCHITECTURE, DESIGN §11, DECISIONS `K60.1b`. *(task-285)*
+- [x] **K60.1c** osadzenie `render_economy_alert` w `render_game_page` zaraz po `data-player-summary`, przed `data-victory-progress`; ARCHITECTURE. *(task-286)*
