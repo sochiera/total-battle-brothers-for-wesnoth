@@ -497,7 +497,7 @@ prefiks `» ` przed tekstem; id spoza palety → żaden wiersz nieoznaczony; `No
 korzeń (bez wierszy). Czyste, deterministyczne, bez mutacji `world`; rdzeń bez
 zmian.
 
-**Podsumowanie księstwa gracza HTML (K30.3a / K30.3b / K58.1a / K58.1b / K58.2a / K58.2b / K58.3a / K58.3b / K59.1a):**
+**Podsumowanie księstwa gracza HTML (K30.3a / K30.3b / K58.1a / K58.1b / K58.2a / K58.2b / K58.3a / K58.3b / K59.1a / K59.1b):**
 `tbbui.playersummary.render_player_summary(game, player_duchy_id=None) -> str`
 — parsowalny fragment XML z korzeniem `<div data-player-summary="">`. Gdy
 `player_duchy_id` wskazuje księstwo w `game.duchies`, korzeń ma atrybuty
@@ -516,15 +516,15 @@ minusa przy deficycie; księstwo bez osad → `"0"`), potem `data-hp` /
 `data-attack` / `data-defense` (z `combat_totals` po bohaterze i
 podkomendnych każdej party z `duchy.parties`) oraz widoczny tekst
 `Twoje księstwo: osady N, oddziały M · pszenica W, złoto G · siła oddziałów:
-HP H, atak A, obrona D · produkcja/mies.: +Pw pszenicy · konsumpcja: Cw
-pszenicy · bilans pszenicy: nadwyżka|deficyt · saldo pszenicy/mies.: {net:+d}`
-zgodny z atrybutami (Pw/Cw = te same liczby co `data-wheat-production` /
-`data-wheat-consumption`; sufiks bilansu spójny z `data-wheat-surplus`:
-`"true"` → nadwyżka, `"false"` → deficyt; saldo zawsze ze znakiem, spójne z
-`int(data-wheat-net)`). Gdy `player_duchy_id`
-jest `None` albo spoza `game.duchies` — sam pusty korzeń (bez atrybutów
-liczbowych i bez tekstu). Czyste, deterministyczne, bez mutacji `game`;
-rdzeń bez zmian.
+HP H, atak A, obrona D · produkcja/mies.: +Pw pszenicy, +Pg złota ·
+konsumpcja: Cw pszenicy · bilans pszenicy: nadwyżka|deficyt · saldo
+pszenicy/mies.: {net:+d}` zgodny z atrybutami (Pw/Pg/Cw = te same liczby co
+`data-wheat-production` / `data-gold-production` / `data-wheat-consumption`;
+sufiks bilansu spójny z `data-wheat-surplus`: `"true"` → nadwyżka,
+`"false"` → deficyt; saldo zawsze ze znakiem, spójne z `int(data-wheat-net)`).
+Gdy `player_duchy_id` jest `None` albo spoza `game.duchies` — sam pusty korzeń
+(bez atrybutów liczbowych i bez tekstu). Czyste, deterministyczne, bez mutacji
+`game`; rdzeń bez zmian.
 
 **Strona HTML partii (V13.4a / K16.1a / K17.1b / K20.1a / K20.1b / K21.1a / K22.1c / K22.2b / K23.1b / K23.2a / K23.3b / K24.1b / K24.2b / K26.2a–b / K27.3a–b / K30.3c / K31.2a / K32.1a / K32.1b / K32.1c / K33.1c / K34.1b / K35.1b / K36.1c / K37.1c / K38.1c / K39.1c):** `tbbui.gamepage.render_game_page(world,
 game, calendar, battle=None, player_duchy_id=None, previous_game=None) -> str` — parsowalny HTML z korzeniem `<html>`;

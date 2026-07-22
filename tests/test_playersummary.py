@@ -75,7 +75,7 @@ def test_render_player_summary_aggregates_duchy_economy_and_is_pure():
         "Twoje księstwo: osady 2, oddziały 1 · pszenica 7, złoto 10"
         f" · siła oddziałów: HP {expected_hp}, atak {expected_attack},"
         f" obrona {expected_defense}"
-        f" · produkcja/mies.: +0 pszenicy · konsumpcja: 2 pszenicy"
+        f" · produkcja/mies.: +0 pszenicy, +0 złota · konsumpcja: 2 pszenicy"
         f" · bilans pszenicy: deficyt"
         f" · saldo pszenicy/mies.: -2"
     )
@@ -187,7 +187,7 @@ def test_render_player_summary_aggregates_party_combat_strength():
         "Twoje księstwo: osady 1, oddziały 2 · pszenica 4, złoto 6"
         f" · siła oddziałów: HP {expected_hp}, atak {expected_attack},"
         f" obrona {expected_defense}"
-        f" · produkcja/mies.: +0 pszenicy · konsumpcja: 1 pszenicy"
+        f" · produkcja/mies.: +0 pszenicy, +0 złota · konsumpcja: 1 pszenicy"
         f" · bilans pszenicy: deficyt"
         f" · saldo pszenicy/mies.: -1"
     )
@@ -278,7 +278,7 @@ def test_render_player_summary_carries_aggregated_monthly_wheat_economy_attribut
         "Twoje księstwo: osady 2, oddziały 1 · pszenica 7, złoto 10"
         f" · siła oddziałów: HP {expected_hp}, atak {expected_attack},"
         f" obrona {expected_defense}"
-        f" · produkcja/mies.: +{expected_prod} pszenicy"
+        f" · produkcja/mies.: +{expected_prod} pszenicy, +2 złota"
         f" · konsumpcja: {expected_cons} pszenicy"
         f" · bilans pszenicy: deficyt"
         f" · saldo pszenicy/mies.: {expected_prod - expected_cons:+d}"
@@ -370,7 +370,7 @@ def test_render_player_summary_appends_monthly_wheat_economy_text_suffix():
 
     text = "".join(root.itertext())
     economy_suffix = (
-        f" · produkcja/mies.: +{expected_prod} pszenicy"
+        f" · produkcja/mies.: +{expected_prod} pszenicy, +2 złota"
         f" · konsumpcja: {expected_cons} pszenicy"
     )
     bilans_suffix = " · bilans pszenicy: deficyt"
@@ -389,7 +389,7 @@ def test_render_player_summary_appends_monthly_wheat_economy_text_suffix():
         f" obrona {expected_defense}{economy_suffix}"
     ) in text
     assert (
-        f"+{root.attrib['data-wheat-production']} pszenicy"
+        f"+{root.attrib['data-wheat-production']} pszenicy, +2 złota"
         f" · konsumpcja: {root.attrib['data-wheat-consumption']} pszenicy"
     ) in text
 
@@ -509,7 +509,7 @@ def test_render_player_summary_carries_aggregated_wheat_surplus_flag():
         "Twoje księstwo: osady 2, oddziały 1 · pszenica 7, złoto 10"
         f" · siła oddziałów: HP {expected_hp}, atak {expected_attack},"
         f" obrona {expected_defense}"
-        f" · produkcja/mies.: +{expected_prod} pszenicy"
+        f" · produkcja/mies.: +{expected_prod} pszenicy, +2 złota"
         f" · konsumpcja: {expected_cons} pszenicy"
         f" · bilans pszenicy: deficyt"
         f" · saldo pszenicy/mies.: {expected_prod - expected_cons:+d}"
@@ -539,7 +539,7 @@ def test_render_player_summary_carries_aggregated_wheat_surplus_flag():
         "Twoje księstwo: osady 1, oddziały 1 · pszenica 4, złoto 1"
         f" · siła oddziałów: HP {surplus_hp}, atak {surplus_attack},"
         f" obrona {surplus_defense}"
-        " · produkcja/mies.: +3 pszenicy · konsumpcja: 1 pszenicy"
+        " · produkcja/mies.: +3 pszenicy, +0 złota · konsumpcja: 1 pszenicy"
         " · bilans pszenicy: nadwyżka"
         " · saldo pszenicy/mies.: +2"
     )
@@ -661,7 +661,7 @@ def test_render_player_summary_appends_wheat_surplus_text_suffix():
     ) in xml
 
     economy_suffix = (
-        f" · produkcja/mies.: +{expected_prod} pszenicy"
+        f" · produkcja/mies.: +{expected_prod} pszenicy, +2 złota"
         f" · konsumpcja: {expected_cons} pszenicy"
     )
     bilans_deficit = " · bilans pszenicy: deficyt"
@@ -698,7 +698,7 @@ def test_render_player_summary_appends_wheat_surplus_text_suffix():
     saldo_surplus = " · saldo pszenicy/mies.: +2"
     surplus_text = "".join(surplus_root.itertext())
     assert surplus_text.endswith(
-        " · produkcja/mies.: +3 pszenicy · konsumpcja: 1 pszenicy"
+        " · produkcja/mies.: +3 pszenicy, +0 złota · konsumpcja: 1 pszenicy"
         + bilans_surplus
         + saldo_surplus
     )
@@ -706,7 +706,7 @@ def test_render_player_summary_appends_wheat_surplus_text_suffix():
         "Twoje księstwo: osady 1, oddziały 1 · pszenica 4, złoto 1"
         f" · siła oddziałów: HP {surplus_hp}, atak {surplus_attack},"
         f" obrona {surplus_defense}"
-        " · produkcja/mies.: +3 pszenicy · konsumpcja: 1 pszenicy"
+        " · produkcja/mies.: +3 pszenicy, +0 złota · konsumpcja: 1 pszenicy"
         f"{bilans_surplus}{saldo_surplus}"
     )
     assert bilans_surplus in surplus_text
@@ -834,7 +834,7 @@ def test_render_player_summary_carries_aggregated_wheat_net_attribute():
         "Twoje księstwo: osady 2, oddziały 1 · pszenica 7, złoto 10"
         f" · siła oddziałów: HP {expected_hp}, atak {expected_attack},"
         f" obrona {expected_defense}"
-        f" · produkcja/mies.: +{expected_prod} pszenicy"
+        f" · produkcja/mies.: +{expected_prod} pszenicy, +2 złota"
         f" · konsumpcja: {expected_cons} pszenicy"
         f" · bilans pszenicy: deficyt"
         f" · saldo pszenicy/mies.: {expected_net:+d}"
@@ -869,7 +869,7 @@ def test_render_player_summary_carries_aggregated_wheat_net_attribute():
         "Twoje księstwo: osady 1, oddziały 1 · pszenica 4, złoto 1"
         f" · siła oddziałów: HP {surplus_hp}, atak {surplus_attack},"
         f" obrona {surplus_defense}"
-        " · produkcja/mies.: +3 pszenicy · konsumpcja: 1 pszenicy"
+        " · produkcja/mies.: +3 pszenicy, +0 złota · konsumpcja: 1 pszenicy"
         " · bilans pszenicy: nadwyżka"
         f" · saldo pszenicy/mies.: {surplus_net:+d}"
     )
@@ -1001,7 +1001,7 @@ def test_render_player_summary_appends_wheat_net_text_suffix():
     ) in xml
 
     economy_suffix = (
-        f" · produkcja/mies.: +{expected_prod} pszenicy"
+        f" · produkcja/mies.: +{expected_prod} pszenicy, +2 złota"
         f" · konsumpcja: {expected_cons} pszenicy"
     )
     bilans_deficit = " · bilans pszenicy: deficyt"
@@ -1042,7 +1042,7 @@ def test_render_player_summary_appends_wheat_net_text_suffix():
     assert saldo_surplus == " · saldo pszenicy/mies.: +2"
     surplus_text = "".join(surplus_root.itertext())
     assert surplus_text.endswith(
-        " · produkcja/mies.: +3 pszenicy · konsumpcja: 1 pszenicy"
+        " · produkcja/mies.: +3 pszenicy, +0 złota · konsumpcja: 1 pszenicy"
         + bilans_surplus
         + saldo_surplus
     )
@@ -1050,7 +1050,7 @@ def test_render_player_summary_appends_wheat_net_text_suffix():
         "Twoje księstwo: osady 1, oddziały 1 · pszenica 4, złoto 1"
         f" · siła oddziałów: HP {surplus_hp}, atak {surplus_attack},"
         f" obrona {surplus_defense}"
-        " · produkcja/mies.: +3 pszenicy · konsumpcja: 1 pszenicy"
+        " · produkcja/mies.: +3 pszenicy, +0 złota · konsumpcja: 1 pszenicy"
         f"{bilans_surplus}{saldo_surplus}"
     )
     assert (
@@ -1167,12 +1167,12 @@ def test_render_player_summary_carries_aggregated_monthly_gold_production_attrib
         f' data-wheat-consumption="{expected_cons}"'
     ) in xml
 
-    # Visible text unchanged (no gold-production suffix in this step — K59.1b).
+    # Visible text includes gold production in the production group (K59.1b).
     assert "".join(root.itertext()) == (
         "Twoje księstwo: osady 2, oddziały 1 · pszenica 7, złoto 10"
         f" · siła oddziałów: HP {expected_hp}, atak {expected_attack},"
         f" obrona {expected_defense}"
-        f" · produkcja/mies.: +{expected_wheat_prod} pszenicy"
+        f" · produkcja/mies.: +{expected_wheat_prod} pszenicy, +{expected_gold_prod} złota"
         f" · konsumpcja: {expected_cons} pszenicy"
         f" · bilans pszenicy: deficyt"
         f" · saldo pszenicy/mies.: {expected_net:+d}"
@@ -1193,3 +1193,141 @@ def test_render_player_summary_carries_aggregated_monthly_gold_production_attrib
         ' data-gold-production="0"'
         ' data-wheat-consumption="0"'
     ) in empty_xml
+
+
+def test_render_player_summary_appends_monthly_gold_production_text_suffix():
+    """When ``player_duchy_id`` matches a duchy, the production group in visible
+    text is ``produkcja/mies.: +Pw pszenicy, +Pg złota`` (gold in the production
+    group, before `` · konsumpcja: …``), where ``Pg`` equals
+    ``data-gold-production`` (sum of ``settlement.production.gold`` over
+    ``duchy.settlements``). Machine attrs (including ``data-gold-production``)
+    unchanged; empty root for ``None``/unknown duchy unchanged. Pure: no
+    mutation.
+    """
+    s1 = Settlement(
+        "Keep A",
+        population=5,
+        occupied=2,
+        owner_id="north",
+        storage=Resources(wheat=5, gold=3),
+        garrison=(Unit(), Unit()),
+        active_buildings=(FARM, MARKET),
+    )
+    s2 = Settlement(
+        "Keep B",
+        population=2,
+        owner_id="north",
+        storage=Resources(wheat=2, gold=7),
+    )
+    other = Settlement(
+        "South Keep",
+        population=99,
+        owner_id="south",
+        storage=Resources(wheat=99, gold=99),
+        active_buildings=(MARKET,),
+    )
+    hero = Unit()
+    party = Party(hero=hero, units=(), owner_id="north")
+    game = GameState(
+        (
+            Duchy(
+                "north",
+                Unit(),
+                settlements=(s1, s2),
+                parties=(party,),
+            ),
+            Duchy(
+                "south",
+                Unit(),
+                settlements=(other,),
+                parties=(),
+            ),
+            Duchy("empty", Unit(), settlements=(), parties=()),
+        )
+    )
+    duchies_before = game.duchies
+    storage_s1_before = s1.storage
+    storage_s2_before = s2.storage
+
+    assert s1.production == Resources(wheat=3, gold=2)
+    assert s1.consumption == Resources(wheat=5, gold=0)
+    assert s2.production == Resources(wheat=0, gold=0)
+    assert s2.consumption == Resources(wheat=2, gold=0)
+    assert other.production.gold == 2  # south Market must not leak into north sum
+    expected_wheat_prod = s1.production.wheat + s2.production.wheat  # 3
+    expected_gold_prod = s1.production.gold + s2.production.gold  # 2
+    expected_cons = s1.consumption.wheat + s2.consumption.wheat  # 7
+    expected_net = expected_wheat_prod - expected_cons  # -4
+    expected_hp, expected_attack, expected_defense = combat_totals((hero,))
+
+    xml = render_player_summary(game, player_duchy_id="north")
+    root = ET.fromstring(xml)
+
+    # Machine attrs unchanged (incl. data-gold-production and order).
+    assert root.attrib["data-wheat-production"] == str(expected_wheat_prod)
+    assert root.attrib["data-gold-production"] == str(expected_gold_prod)
+    assert root.attrib["data-gold-production"] == "2"
+    assert root.attrib["data-wheat-consumption"] == str(expected_cons)
+    assert root.attrib["data-wheat-surplus"] == "false"
+    assert root.attrib["data-wheat-net"] == str(expected_net)
+    assert root.attrib["data-hp"] == str(expected_hp)
+    assert (
+        f' data-wheat-production="{expected_wheat_prod}"'
+        f' data-gold-production="{expected_gold_prod}"'
+        f' data-wheat-consumption="{expected_cons}"'
+    ) in xml
+
+    production_group = (
+        f"produkcja/mies.: +{expected_wheat_prod} pszenicy,"
+        f" +{expected_gold_prod} złota"
+    )
+    economy_suffix = (
+        f" · {production_group}"
+        f" · konsumpcja: {expected_cons} pszenicy"
+    )
+    bilans_suffix = " · bilans pszenicy: deficyt"
+    saldo_suffix = f" · saldo pszenicy/mies.: {expected_net:+d}"
+    text = "".join(root.itertext())
+
+    # Gold sits in the production group, before konsumpcja; matches attr.
+    assert production_group in text
+    assert (
+        f"+{root.attrib['data-wheat-production']} pszenicy,"
+        f" +{root.attrib['data-gold-production']} złota"
+        f" · konsumpcja:"
+    ) in text
+    assert economy_suffix in text
+    assert text.endswith(economy_suffix + bilans_suffix + saldo_suffix)
+    assert text == (
+        "Twoje księstwo: osady 2, oddziały 1 · pszenica 7, złoto 10"
+        f" · siła oddziałów: HP {expected_hp}, atak {expected_attack},"
+        f" obrona {expected_defense}"
+        f"{economy_suffix}{bilans_suffix}{saldo_suffix}"
+    )
+
+    # Pure: no mutation of game / settlement storage.
+    assert game.duchies == duchies_before
+    assert game.duchies is duchies_before
+    assert s1.storage == storage_s1_before
+    assert s2.storage == storage_s2_before
+
+    # Empty duchy: production group shows +0 złota; attrs still "0".
+    empty_xml = render_player_summary(game, player_duchy_id="empty")
+    empty_root = ET.fromstring(empty_xml)
+    assert empty_root.attrib["data-gold-production"] == "0"
+    empty_text = "".join(empty_root.itertext())
+    assert "produkcja/mies.: +0 pszenicy, +0 złota" in empty_text
+    assert (
+        ' data-wheat-production="0"'
+        ' data-gold-production="0"'
+        ' data-wheat-consumption="0"'
+    ) in empty_xml
+
+    # None / unknown: bare empty root unchanged (no numeric attrs, no text).
+    for player_duchy_id in (None, "missing"):
+        bare = ET.fromstring(
+            render_player_summary(game, player_duchy_id=player_duchy_id)
+        )
+        assert bare.attrib == {"data-player-summary": ""}
+        assert "".join(bare.itertext()) == ""
+        assert "data-gold-production" not in bare.attrib
