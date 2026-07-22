@@ -201,9 +201,8 @@ def test_render_economy_alert_visible_text_matches_starving_count():
     root = ET.fromstring(xml)
 
     assert root.attrib.get("data-starving-settlements") == str(expected_n)
-    assert "".join(root.itertext()) == (
-        f"Osady na deficycie pszenicy: {expected_n}"
-    )
+    # Header text only (direct root text); row bodies are covered by K61.1b.
+    assert root.text == f"Osady na deficycie pszenicy: {expected_n}"
 
     assert game.duchies == duchies_before
     assert game.duchies is duchies_before
@@ -311,7 +310,87 @@ def test_render_economy_alert_starving_settlement_rows_with_deficit():
             "data-wheat-deficit": deficit,
         }
         assert list(child) == []
-        assert "".join(child.itertext()) == ""
+        # Visible row body is specified by K61.1b
+        # (test_render_economy_alert_starving_row_visible_text_matches_attrs).
+
+    assert game.duchies == duchies_before
+    assert game.duchies is duchies_before
+    assert (
+        tuple(s.storage for s in game.duchies[0].settlements) == storage_before
+    )
+
+
+def test_render_economy_alert_starving_row_visible_text_matches_attrs():
+    """Each ``data-starving-settlement`` child carries visible body text
+    ``<name>: deficyt D pszenicy/mies.`` consistent with attributes
+    ``data-starving-settlement`` (name) and ``data-wheat-deficit`` (D). Pure:
+    no game mutation.
+    """
+    # starving: cons 5 > prod 3 → D=2
+    starving_farm = Settlement(
+        "Starving Farm",
+        population=5,
+        occupied=1,
+        owner_id="north",
+        storage=Resources(wheat=1, gold=0),
+        active_buildings=(FARM,),
+    )
+    # surplus: no row
+    surplus = Settlement(
+        "Surplus Keep",
+        population=1,
+        occupied=1,
+        owner_id="north",
+        storage=Resources(wheat=10, gold=0),
+        active_buildings=(FARM,),
+    )
+    # starving no farm: cons 2 > prod 0 → D=2
+    no_farm = Settlement(
+        "Hungry Hamlet",
+        population=2,
+        owner_id="north",
+        storage=Resources(wheat=0, gold=0),
+    )
+
+    assert starving_farm.consumption.wheat > starving_farm.production.wheat
+    assert not (surplus.consumption.wheat > surplus.production.wheat)
+    assert no_farm.consumption.wheat > no_farm.production.wheat
+
+    d_farm = (
+        starving_farm.consumption.wheat - starving_farm.production.wheat
+    )
+    d_no_farm = no_farm.consumption.wheat - no_farm.production.wheat
+    assert d_farm > 0
+    assert d_no_farm > 0
+
+    game = GameState(
+        (
+            Duchy(
+                "north",
+                Unit(),
+                settlements=(starving_farm, surplus, no_farm),
+                parties=(),
+            ),
+        )
+    )
+    duchies_before = game.duchies
+    storage_before = tuple(s.storage for s in game.duchies[0].settlements)
+
+    xml = render_economy_alert(game, player_duchy_id="north")
+    root = ET.fromstring(xml)
+
+    children = list(root)
+    assert len(children) == 2
+    expected_rows = (
+        ("Starving Farm", str(d_farm)),
+        ("Hungry Hamlet", str(d_no_farm)),
+    )
+    for child, (name, deficit) in zip(children, expected_rows, strict=True):
+        assert child.attrib.get("data-starving-settlement") == name
+        assert child.attrib.get("data-wheat-deficit") == deficit
+        assert "".join(child.itertext()) == (
+            f"{name}: deficyt {deficit} pszenicy/mies."
+        )
 
     assert game.duchies == duchies_before
     assert game.duchies is duchies_before

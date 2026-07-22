@@ -295,3 +295,4 @@
 | K59.1b | Tekst produkcji złota księstwa | Widoczna grupa produkcji w `render_player_summary`: `produkcja/mies.: +Pw pszenicy, +Pg złota` (przed ` · konsumpcja: …`), spójna z `data-wheat-production` / `data-gold-production`. |
 | K60.1b | Tekst alertu gospodarczego | `render_economy_alert` przy znanym graczu niesie widoczny tekst `Osady na deficycie pszenicy: N` spójny z `data-starving-settlements`; brak gracza → pusty korzeń bez tekstu. |
 | K60.1c | Osadzenie alertu gospodarczego w stronie | `render_game_page` przy `player_duchy_id is not None` osadza jeden `render_economy_alert(game, player_duchy_id)` zaraz po `render_player_summary`, przed `render_victory_progress`; `None` → bajt-w-bajt jak dotąd. |
+| K61.1b | Tekst wiersza głodującej osady | Każde dziecko `data-starving-settlement` w `render_economy_alert` niesie widoczny tekst `<name>: deficyt D pszenicy/mies.` spójny z atrybutami `data-starving-settlement` / `data-wheat-deficit`. |

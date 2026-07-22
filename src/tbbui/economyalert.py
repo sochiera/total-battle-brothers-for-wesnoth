@@ -19,11 +19,12 @@ def render_economy_alert(
     ``consumption.wheat > production.wheat`` (strict greater-than; equal
     balance does not count), visible text ``Osady na deficycie pszenicy: N``
     matching that count, and one child
-    ``<div data-starving-settlement="<name>" data-wheat-deficit="D"></div>``
+    ``<div data-starving-settlement="<name>" data-wheat-deficit="D">…</div>``
     per starving settlement in ``duchy.settlements`` order, where
-    ``name`` is ``html.escape(settlement.name, quote=True)`` and
-    ``D = consumption.wheat - production.wheat`` (positive; no visible child
-    text). Settlements without a wheat deficit produce no row. When
+    ``name`` is ``html.escape(settlement.name, quote=True)``,
+    ``D = consumption.wheat - production.wheat`` (positive), and the child body
+    is ``<name>: deficyt D pszenicy/mies.`` (escaped name, consistent with
+    attributes). Settlements without a wheat deficit produce no row. When
     ``player_duchy_id`` is ``None`` or not present in ``game.duchies``, returns
     a bare empty root (no ``data-starving-settlements``, no text, no children).
     Pure and deterministic: no RNG/IO; ``game`` is not mutated.
@@ -37,9 +38,10 @@ def render_economy_alert(
         deficit = s.consumption.wheat - s.production.wheat
         if deficit > 0:
             name = html.escape(s.name, quote=True)
+            body = f"{name}: deficyt {deficit} pszenicy/mies."
             rows.append(
                 f'<div data-starving-settlement="{name}"'
-                f' data-wheat-deficit="{deficit}"></div>'
+                f' data-wheat-deficit="{deficit}">{body}</div>'
             )
     n = len(rows)
     text = f"Osady na deficycie pszenicy: {n}"
