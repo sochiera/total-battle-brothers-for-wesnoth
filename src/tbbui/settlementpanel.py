@@ -2,9 +2,30 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from tbb import BARRACKS, SMITH
+from tbb.building import Building
 from tbb.world import WorldMap
 from tbbui.unitstrength import combat_totals, wounded_count
+
+
+def _building_gated_ready(
+    active_buildings: Sequence[Building],
+    building: Building,
+    ready_label: str,
+    blocked_label: str,
+) -> tuple[str, str]:
+    """Return (``"true"|"false"``, text suffix) gated on *building* presence.
+
+    Flag is ``"true"`` when *building* is in *active_buildings*, else
+    ``"false"``. Suffix is *ready_label* or *blocked_label* accordingly.
+    """
+    ready = building in active_buildings
+    return (
+        "true" if ready else "false",
+        ready_label if ready else blocked_label,
+    )
 
 
 def render_settlement_panel(
@@ -55,19 +76,17 @@ def render_settlement_panel(
             settlement.garrison
         )
         garrison_wounded = wounded_count(settlement.garrison)
-        has_barracks = BARRACKS in settlement.active_buildings
-        training_ready = "true" if has_barracks else "false"
-        training_suffix = (
-            " · trening: gotowy"
-            if has_barracks
-            else " · trening: wstrzymany (brak Koszar)"
+        training_ready, training_suffix = _building_gated_ready(
+            settlement.active_buildings,
+            BARRACKS,
+            " · trening: gotowy",
+            " · trening: wstrzymany (brak Koszar)",
         )
-        has_smith = SMITH in settlement.active_buildings
-        equip_ready = "true" if has_smith else "false"
-        equip_suffix = (
-            " · uzbrojenie: gotowe"
-            if has_smith
-            else " · uzbrojenie: wstrzymane (brak Kuźni)"
+        equip_ready, equip_suffix = _building_gated_ready(
+            settlement.active_buildings,
+            SMITH,
+            " · uzbrojenie: gotowe",
+            " · uzbrojenie: wstrzymane (brak Kuźni)",
         )
         buildings = len(settlement.active_buildings)
         building_names = ", ".join(b.name for b in settlement.active_buildings)
