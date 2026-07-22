@@ -1,6 +1,7 @@
 """Czysta serializacja stanu rdzenia gry do json-serializowalnych słowników."""
 
 import json
+import os
 from typing import Any
 
 from tbb.duchy import Duchy
@@ -195,3 +196,29 @@ def game_state(
     }
     _assert_json_serializable(state)
     return state
+
+
+def save_state(
+    world: WorldMap,
+    game: GameState,
+    calendar: Calendar,
+    path: str | os.PathLike[str],
+    player_duchy_id: str | None = None,
+) -> None:
+    """Zapisz deterministyczny JSON snapshot pełnego stanu gry do pliku.
+
+    Funkcja jest czysta względem stanu gry — nie mutuje `world`, `game` ani
+    `calendar`. Nie tworzy katalogów docelowych; zapis do nieistniejącego
+    katalogu zakończy się błędem systemowym.
+
+    Format pliku: `json.dumps(game_state(...), indent=2, ensure_ascii=False)`
+    zakończony pojedynczym znakiem "\\n", kodowanie UTF-8.
+    """
+    payload = json.dumps(
+        game_state(world, game, calendar, player_duchy_id),
+        indent=2,
+        ensure_ascii=False,
+    )
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(payload)
+        f.write("\n")

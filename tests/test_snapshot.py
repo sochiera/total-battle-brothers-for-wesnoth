@@ -370,3 +370,72 @@ def test_game_state_composes_calendar_duchies_map_and_result_per_contract():
     state_none = game_state(world, game_ongoing, calendar, player_duchy_id=None)
     assert state_none["result"]["player_result"] is None
     json.dumps(state_none)
+
+
+def test_save_state_writes_deterministic_byte_identical_file_round_tripping_game_state_without_mutating_inputs(
+    tmp_path,
+):
+    """G63.2a: save_state zapisuje deterministyczny JSON do pliku.
+
+    Kontrakt: plik = json.dumps(game_state(...), indent=2, ensure_ascii=False)
+    zakończony pojedynczym "\\n", kodowanie UTF-8; path przyjmuje str lub
+    os.PathLike; dwa wywołania dają bajt-w-bajt identyczny plik; odczytany
+    tekst parsuje się json.loads do game_state(...); bez mutacji wejść i bez
+    tworzenia katalogów.
+    """
+    from tbbbridge.snapshot import game_state, save_state
+
+    world = _game_world()
+    calendar = Calendar(year=2, month=7)
+    game = GameState((_rich_player_duchy(), _ai_duchy(alive=False)))
+
+    # Snapshot wejść do detekcji mutacji (bez deepcopy — porównujemy pola).
+    caps = {
+        "calendar": (calendar.year, calendar.month),
+        "game_duchies": len(game.duchies),
+    }
+
+    expected_json = json.dumps(
+        game_state(world, game, calendar, player_duchy_id="player"),
+        indent=2,
+        ensure_ascii=False,
+    )
+    expected_bytes = (expected_json + "\n").encode("utf-8")
+
+    # --- ścieżka str ---
+    out_str_path = str(tmp_path / "via_str.json")
+    save_state(world, game, calendar, out_str_path, player_duchy_id="player")
+    from pathlib import Path
+
+    assert Path(out_str_path).read_bytes() == expected_bytes
+
+    # --- ścieżka os.PathLike ---
+    out_pl = tmp_path / "via_pathlike.json"
+    save_state(world, game, calendar, out_pl, player_duchy_id="player")
+    assert out_pl.read_bytes() == expected_bytes
+
+    # --- determinizm: drugi zapis bajt-w-bajt identyczny ---
+    out_again = tmp_path / "again.json"
+    save_state(world, game, calendar, out_again, player_duchy_id="player")
+    assert out_again.read_bytes() == Path(out_str_path).read_bytes()
+
+    # --- round-trip: odczytany tekst parsuje się do game_state(...) ---
+    parsed = json.loads(Path(out_str_path).read_text(encoding="utf-8"))
+    assert parsed == game_state(world, game, calendar, player_duchy_id="player")
+
+    # --- brak mutacji wejść ---
+    assert (calendar.year, calendar.month) == caps["calendar"]
+    assert len(game.duchies) == caps["game_duchies"]
+
+    # --- brak tworzenia katalogów: zapis do nieistniejącego podkatalogu
+    # zawodzi (save_state zakłada istniejący katalog docelowy). ---
+    missing = tmp_path / "no_such_dir" / "snap.json"
+    try:
+        save_state(world, game, calendar, missing, player_duchy_id="player")
+    except (FileNotFoundError, NotADirectoryError, OSError):
+        pass
+    else:
+        raise AssertionError(
+            "save_state powinien wymagać istniejącego katalogu docelowego"
+        )
+    assert not missing.parent.exists()

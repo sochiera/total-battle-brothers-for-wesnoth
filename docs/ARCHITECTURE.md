@@ -77,8 +77,14 @@ dict z kluczami w kolejności: `calendar`, `duchies`, `map`, `result`.
 player_duchy_id`, w przeciwnym razie `"defeat"`. Funkcja jest czysta,
 deterministyczna, bez mutacji wejść; wynik przechodzi przez `json.dumps`.
 
-Kolejne funkcje kontraktu (`save_state` + CLI) opisują odpowiednie zadania
-G63.2a–G63.2b.
+`save_state(world, game, calendar, path, player_duchy_id=None)` (G63.2a) zapisuje
+`game_state(...)` do pliku `path` (`str` lub `os.PathLike`) jako
+`json.dumps(..., indent=2, ensure_ascii=False)` zakończony pojedynczym `"\\n"`,
+kodowanie UTF-8. Funkcja reużywa `game_state`, nie mutuje `world`/`game`/`calendar`,
+nie tworzy katalogów docelowych. Dwa wywołania dla tego samego stanu dają
+bajt-w-bajt identyczny plik.
+
+Kolejne funkcje kontraktu (CLI) opisuje zadanie G63.2b.
 
 ### Prezentacja (pakiet `tbbui`, Kamień 13)
 Warstwa render/UI jest **poza rdzeniem**. `python -m tbb` nadal uruchamia
