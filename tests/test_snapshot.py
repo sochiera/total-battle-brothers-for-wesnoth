@@ -519,3 +519,66 @@ def test_main_without_positional_argument_writes_default_out_state_json(
     assert rc_none == 0
     assert out_none.exists()
     json.loads(out_none.read_text(encoding="utf-8"))
+
+
+def test_python_m_tbbbridge_shim_propagates_rc_and_explicit_arg_writes_named_file_not_default(
+    tmp_path,
+):
+    """G63.2b-2: ``python -m tbbbridge [path]`` uruchamia ``main`` i propaguje rc.
+
+    Kontrakt: moduł kończy się blokiem
+    ``if __name__ == "__main__": raise SystemExit(main())``, dzięki czemu
+    realny podproces ``python -m tbbbridge <path>`` woła ``main`` i kończy
+    kodem wyjścia ``0``; jawny ``argv[0]`` zapisuje snapshot do wskazanego
+    pliku, a domyślna ``out/state.json`` **nie** powstaje w cwd podprocesu
+    (brak regresji względem 306). Wariant bez argumentu zapisuje do
+    domyślnej ``out/state.json`` względem cwd podprocesu.
+    """
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    src_dir = str(Path(__file__).resolve().parent.parent / "src")
+    env = {**os.environ, "PYTHONPATH": src_dir}
+
+    # --- Jawny argv[0]: snapshot do wskazanego pliku, bez domyślnej ścieżki. ---
+    workdir_explicit = tmp_path / "explicit"
+    workdir_explicit.mkdir()
+    named_path = workdir_explicit / "snap" / "state.json"
+
+    proc_explicit = subprocess.run(
+        [sys.executable, "-m", "tbbbridge", str(named_path)],
+        cwd=workdir_explicit,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+
+    assert proc_explicit.returncode == 0, (
+        f"python -m tbbbridge <path> powinien zwrócić 0; stderr={proc_explicit.stderr!r}"
+    )
+    assert named_path.exists(), "jawny argv[0] musi zapisać snapshot do wskazanego pliku"
+    snapshot = json.loads(named_path.read_text(encoding="utf-8"))
+    assert list(snapshot.keys()) == ["calendar", "duchies", "map", "result"]
+    # Brak regresji vs 306: domyślna ścieżka NIE powstaje w cwd podprocesu.
+    assert not (workdir_explicit / "out" / "state.json").exists()
+
+    # --- Bez argumentu: snapshot do domyślnej out/state.json względem cwd. ---
+    workdir_default = tmp_path / "default"
+    workdir_default.mkdir()
+
+    proc_default = subprocess.run(
+        [sys.executable, "-m", "tbbbridge"],
+        cwd=workdir_default,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+
+    assert proc_default.returncode == 0, (
+        f"python -m tbbbridge (bez arg) powinien zwrócić 0; stderr={proc_default.stderr!r}"
+    )
+    out_default = workdir_default / "out" / "state.json"
+    assert out_default.exists(), "bez argumentu snapshot idzie do out/state.json"
+    json.loads(out_default.read_text(encoding="utf-8"))

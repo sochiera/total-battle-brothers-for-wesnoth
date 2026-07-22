@@ -86,14 +86,6 @@ bajt-w-bajt identyczny plik.
 
 Kolejne funkcje kontraktu (CLI) opisuje zadanie G63.2b.
 
-`python -m tbbbridge [path]` (G63.2b) — `tbbbridge.__main__.main(argv)` rozgrywa
-deterministyczną partię headless (seed `73`, `player_duchy_id="player"`) i zapisuje
-snapshot do `path`. Przy braku argumentu `path` domyślnie wynosi `out/state.json`;
-`out/` jest tworzone gdy nie istnieje. Moduł kończy się
-`if __name__ == "__main__": raise SystemExit(main())`, więc wywołanie z linii
-poleceń propaguje kod wyjścia `main` (`0` przy sukcesie). Sygnatura pozostaje
-`main(argv: list[str] | None = None) -> int`.
-
 ### Prezentacja (pakiet `tbbui`, Kamień 13)
 Warstwa render/UI jest **poza rdzeniem**. `python -m tbb` nadal uruchamia
 deterministyczną partię headless. Obserwowalny UI buduje **osobny pakiet**
