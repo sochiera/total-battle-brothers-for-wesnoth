@@ -355,8 +355,9 @@ pszenicy: `Cw`; czytelny bilans pszenicy księstwa: nadwyżka / deficyt;
 czytelne saldo miesięczne pszenicy księstwa: `{net:+d}`), alert gospodarczy
 z liczbą osad na deficycie pszenicy (`Osady na deficycie pszenicy: N`) oraz
 — gdy są głodujące osady — łącznym deficytem pszenicy księstwa
-(` (łączny deficyt: D pszenicy/mies.)`), plus wskazaniem głodujących osad
-(`<name>: deficyt D pszenicy/mies.` per osada), postęp do
+(` (łączny deficyt: D pszenicy/mies.)`), ostrzeżeniem o głodzie
+(`Reaguj: część osad głoduje i nie rośnie`), plus wskazaniem głodujących
+osad (`<name>: deficyt D pszenicy/mies.` per osada), postęp do
 zwycięstwa, podpowiedź celu, lokalizacja i dystans do wrogich bohaterów,
 porównanie sił z sąsiednimi celami, alert zagrożeń własnych pozycji, skrót
 sytuacji (postawa ofensywna/defensywna/zrównoważona) i jeden zalecany rozkaz

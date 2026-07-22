@@ -305,7 +305,10 @@ def test_render_economy_alert_starving_settlement_rows_with_deficit():
     xml = render_economy_alert(game, player_duchy_id="north")
     root = ET.fromstring(xml)
 
-    children = list(root)
+    # Settlement rows only (K61.3a may prepend a caution <p> when N>0).
+    children = [
+        c for c in list(root) if "data-starving-settlement" in c.attrib
+    ]
     assert len(children) == 2
     expected_rows = (
         ("Starving Farm", str(d_farm)),
@@ -387,7 +390,10 @@ def test_render_economy_alert_starving_row_visible_text_matches_attrs():
     xml = render_economy_alert(game, player_duchy_id="north")
     root = ET.fromstring(xml)
 
-    children = list(root)
+    # Settlement rows only (K61.3a may prepend a caution <p> when N>0).
+    children = [
+        c for c in list(root) if "data-starving-settlement" in c.attrib
+    ]
     assert len(children) == 2
     expected_rows = (
         ("Starving Farm", str(d_farm)),
@@ -442,7 +448,10 @@ def test_render_economy_alert_escapes_settlement_name_in_attribute():
     assert f'data-starving-settlement="{escaped}"' in xml
 
     root = ET.fromstring(xml)
-    children = list(root)
+    # Settlement row only (K61.3a may prepend a caution <p> when N>0).
+    children = [
+        c for c in list(root) if "data-starving-settlement" in c.attrib
+    ]
     assert len(children) == 1
     assert children[0].attrib == {
         "data-starving-settlement": special_name,
@@ -462,9 +471,10 @@ def test_render_economy_alert_total_wheat_deficit_on_root():
     ``data-starving-settlements``, where ``D`` is the sum of
     ``(consumption.wheat - production.wheat)`` over settlements with
     ``consumption.wheat > production.wheat`` (``0`` when none starve).
-    Attribute order on the root: ``data-economy-alert``,
-    ``data-starving-settlements``, ``data-total-wheat-deficit``. Pure: no
-    game mutation.
+    Attribute order on the root starts with ``data-economy-alert``,
+    ``data-starving-settlements``, ``data-total-wheat-deficit`` (when
+    ``N>0``, K61.3a may append ``data-economy-critical`` after the total).
+    Pure: no game mutation.
     """
     # starving: cons 5 > prod 3 → d=2
     starving_farm = Settlement(
@@ -540,7 +550,10 @@ def test_render_economy_alert_total_wheat_deficit_on_root():
     root = ET.fromstring(xml)
 
     assert root.tag == "div"
-    assert list(root.attrib.keys()) == [
+    # Total deficit sits immediately after starving count; later attrs (e.g.
+    # data-economy-critical from K61.3a) may follow when N>0.
+    keys = list(root.attrib.keys())
+    assert keys[:3] == [
         "data-economy-alert",
         "data-starving-settlements",
         "data-total-wheat-deficit",
@@ -643,7 +656,10 @@ def test_render_economy_alert_header_suffix_total_deficit_when_starving():
         f"Osady na deficycie pszenicy: {expected_n}"
         f" (łączny deficyt: {expected_total} pszenicy/mies.)"
     )
-    children = list(root)
+    # Settlement rows only (K61.3a may prepend a caution <p> when N>0).
+    children = [
+        c for c in list(root) if "data-starving-settlement" in c.attrib
+    ]
     assert len(children) == expected_n
     assert all("data-starving-settlement" in c.attrib for c in children)
 
@@ -699,6 +715,121 @@ def test_render_economy_alert_header_no_suffix_when_none_starving():
     assert root.text == "Osady na deficycie pszenicy: 0"
     assert "łączny deficyt" not in (root.text or "")
     assert list(root) == []
+
+    assert game.duchies == duchies_before
+    assert game.duchies is duchies_before
+    assert (
+        tuple(s.storage for s in game.duchies[0].settlements) == storage_before
+    )
+
+
+def test_render_economy_alert_critical_flag_and_caution_when_starving():
+    """When N > 0, root carries empty ``data-economy-critical=""`` immediately
+    after ``data-total-wheat-deficit``; after header text (and before
+    ``data-starving-settlement`` children) embeds
+    ``<p data-economy-caution="Reaguj: część osad głoduje i nie rośnie">Reaguj:
+    część osad głoduje i nie rośnie</p>`` (``html.escape(quote=True)``). Pure:
+    no game mutation.
+    """
+    # starving: cons 5 > prod 3 → d=2
+    starving_farm = Settlement(
+        "Starving Farm",
+        population=5,
+        occupied=1,
+        owner_id="north",
+        storage=Resources(wheat=1, gold=0),
+        active_buildings=(FARM,),
+    )
+    # surplus: not starving
+    surplus = Settlement(
+        "Surplus Keep",
+        population=1,
+        occupied=1,
+        owner_id="north",
+        storage=Resources(wheat=10, gold=0),
+        active_buildings=(FARM,),
+    )
+    # starving no farm: cons 2 > prod 0 → d=2
+    no_farm = Settlement(
+        "Hungry Hamlet",
+        population=2,
+        owner_id="north",
+        storage=Resources(wheat=0, gold=0),
+    )
+
+    d_farm = (
+        starving_farm.consumption.wheat - starving_farm.production.wheat
+    )
+    d_no_farm = no_farm.consumption.wheat - no_farm.production.wheat
+    assert d_farm > 0
+    assert d_no_farm > 0
+    expected_total = d_farm + d_no_farm
+    expected_n = 2
+    assert expected_n > 0
+
+    caution_text = "Reaguj: część osad głoduje i nie rośnie"
+    caution_escaped = html.escape(caution_text, quote=True)
+
+    game = GameState(
+        (
+            Duchy(
+                "north",
+                Unit(),
+                settlements=(starving_farm, surplus, no_farm),
+                parties=(),
+            ),
+        )
+    )
+    duchies_before = game.duchies
+    storage_before = tuple(s.storage for s in game.duchies[0].settlements)
+
+    xml = render_economy_alert(game, player_duchy_id="north")
+    root = ET.fromstring(xml)
+
+    # Root attributes: critical flag empty, immediately after total deficit.
+    assert list(root.attrib.keys()) == [
+        "data-economy-alert",
+        "data-starving-settlements",
+        "data-total-wheat-deficit",
+        "data-economy-critical",
+    ]
+    assert root.attrib["data-economy-alert"] == ""
+    assert root.attrib["data-starving-settlements"] == str(expected_n)
+    assert root.attrib["data-total-wheat-deficit"] == str(expected_total)
+    assert root.attrib["data-economy-critical"] == ""
+
+    # Header text still on root before children.
+    assert root.text == (
+        f"Osady na deficycie pszenicy: {expected_n}"
+        f" (łączny deficyt: {expected_total} pszenicy/mies.)"
+    )
+
+    children = list(root)
+    # First child: caution <p>; then starving-settlement rows.
+    assert len(children) == 1 + expected_n
+    caution = children[0]
+    assert caution.tag == "p"
+    assert caution.attrib == {"data-economy-caution": caution_text}
+    assert "".join(caution.itertext()) == caution_text
+    assert list(caution) == []
+
+    # Raw fragment uses html.escape(quote=True) on the caution attribute.
+    assert f'data-economy-caution="{caution_escaped}"' in xml
+    assert (
+        f'<p data-economy-caution="{caution_escaped}">{caution_text}</p>'
+        in xml
+    )
+
+    for child, (name, deficit) in zip(
+        children[1:],
+        (
+            ("Starving Farm", str(d_farm)),
+            ("Hungry Hamlet", str(d_no_farm)),
+        ),
+        strict=True,
+    ):
+        assert child.attrib.get("data-starving-settlement") == name
+        assert child.attrib.get("data-wheat-deficit") == deficit
 
     assert game.duchies == duchies_before
     assert game.duchies is duchies_before
