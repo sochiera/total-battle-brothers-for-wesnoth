@@ -53,8 +53,20 @@ z `tbbui.unitstrength.wounded_count((party.hero, *party.units))`
 (bohater jest zawsze wliczany do agregatów). Funkcja jest czysta,
 deterministyczna i bez mutacji wejścia; wynik przechodzi przez `json.dumps`.
 
-Kolejne funkcje kontraktu (`map_state`, `game_state`, `save_state` + CLI)
-opisują odpowiednie zadania G63.1c–G63.2a.
+`map_state(world)` (G63.1c) zwraca `dict` z kluczami w kolejności:
+`regions`, `connections`. `regions` to lista regionów w kolejności
+`world.regions`; każdy element ma klucze `name`, `col`, `row`, `owner`,
+`settlement`, `party`. `(col, row)` pochodzi z
+`tbbui.layout.layout_world(world)`, `settlement` to `settlement_state(...)`
+lub `None`, `party` to `party_state(...)` lub `None`. `owner` regionu to
+`owner_id` osady, gdy osada jest obecna; inaczej `owner_id` party, gdy party
+jest obecne; w przeciwnym razie `None`. `connections` to lista
+`{"from": a.name, "to": b.name}` w kolejności `world.connections`.
+Funkcja jest czysta, deterministyczna i bez mutacji `world`; wynik przechodzi
+przez `json.dumps`.
+
+Kolejne funkcje kontraktu (`game_state`, `save_state` + CLI)
+opisują odpowiednie zadania G63.1d–G63.2a.
 
 ### Prezentacja (pakiet `tbbui`, Kamień 13)
 Warstwa render/UI jest **poza rdzeniem**. `python -m tbb` nadal uruchamia
