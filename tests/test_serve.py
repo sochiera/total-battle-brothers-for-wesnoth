@@ -2445,7 +2445,7 @@ def test_game_app_post_order_develop_applies_develop_and_resyncs():
       player_duchy), replaces self.world, re-syncs
       self.game = self.game.sync_from_world(self.world); returns (200, page)
     - player duchy looked up by duchy_id == player_duchy_id
-    - opens at most one building by priority Farm→Smith→Market
+    - opens at most one building by priority Farm→Smith→Barracks→Market
     """
     from tbb.building import FARM
 

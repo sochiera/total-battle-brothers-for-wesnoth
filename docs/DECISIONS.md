@@ -72,7 +72,7 @@
 | G10.2a | Garnizon po obronie | apply_settlement DEF/DRAW + battle → absorb_defenders(DEFENDER); bez battle garnizon nietknięty. |
 | G10.2b | Garnizon po podboju | ATTACKER_WIN + battle → absorb_defenders potem zmiana owner; bez battle owner się zmienia, garnizon nietknięty. |
 | G10.3 | Koszt rekrutacji | `RECRUIT_GOLD_COST` (placeholder `1`); niedobór złota/populacji → `ValueError`. |
-| G10.4 | Rozwój osady AI | `develop_duchy_settlement`: pierwszy brakujący budynek Farm→Smith→Market przy wolnej populacji; max 1 budynek. |
+| G10.4 | Rozwój osady AI | `develop_duchy_settlement`: pierwszy brakujący budynek Farm→Smith→Market przy wolnej populacji; max 1 budynek. (kolejność rozszerzona w G54.1b o Barracks przed Market) |
 | G10.5 | Polityka tury AI | `take_duchy_turn`: develop → recruit → military action; wynik łańcuchowany. |
 | Kamień 10 | Realne straty i koszty | Domknięte: straty garnizonu (G10.1–2), koszt rekrutacji (G10.3), rozwój AI (G10.4–5). |
 | D6.1a | Model Duchy | Niemutowalny: niepusty `duchy_id`, wymagany `hero`, `morale: int` (domyślnie 0); `duchy_id` = `owner_id` party/osad. |
@@ -279,3 +279,4 @@
 | K52.1d | Maszynowa flaga ryzyka przy przycisku rady w jeden klik | Gdy `_recommended_order_form` emituje formularz i `recommended_battle_is_risky` jest `True`, `<form … data-recommended-order="">` niesie pusty `data-recommended-risk=""` zaraz po `data-recommended-order=""`; `False` / brak formularza → brak atrybutu. |
 | K52.1e | Nota ostrożności przy przycisku rady w jeden klik | Gdy `_recommended_order_form` emituje formularz i `recommended_battle_is_risky` jest `True`, po `data-recommended-order-forecast` jedno `<p data-recommended-order-caution="{text}">{text}</p>` (tekst jak K52.1c, `html.escape(quote=True)`); `False` / brak formularza → brak elementu. |
 | G54.1a | Katalog Koszar | `tbb.building.BARRACKS = Building("Barracks", staff=1)` (output zerowy jak Smith), eksport `tbb.BARRACKS`; czysto katalogowe — bez AI i bez bramki `tick_training`. |
+| G54.1b | AI otwiera Koszary w kolejności rozwoju | `_DEVELOPMENT_PRIORITIES = (FARM, SMITH, BARRACKS, MARKET)` — Koszary trzecim priorytetem przed Market; `develop_duchy_settlement` bez zmiany sygnatury. |

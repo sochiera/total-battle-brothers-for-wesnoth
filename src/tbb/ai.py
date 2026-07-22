@@ -5,13 +5,13 @@ from collections import deque
 import tbb.settlement as settlement_module
 
 from tbb.battle import HexBattle
-from tbb.building import FARM, MARKET, SMITH
+from tbb.building import BARRACKS, FARM, MARKET, SMITH
 from tbb.duchy import Duchy
 from tbb.rng import Rng
 from tbb.world import Region, WorldMap
 
 
-_DEVELOPMENT_PRIORITIES = (FARM, SMITH, MARKET)
+_DEVELOPMENT_PRIORITIES = (FARM, SMITH, BARRACKS, MARKET)
 
 
 def develop_duchy_settlement(world: WorldMap, duchy: Duchy) -> WorldMap:

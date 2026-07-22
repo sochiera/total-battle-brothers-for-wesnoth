@@ -1242,6 +1242,16 @@ def test_recruit_duchy_unit_is_publicly_exported():
     assert tbb.recruit_duchy_unit is recruit_duchy_unit
 
 
+def test_development_priorities_are_farm_smith_barracks_market():
+    """G54.1b: AI opens Barracks third, after Farm and Smith, before Market."""
+    assert ai._DEVELOPMENT_PRIORITIES == (
+        tbb.FARM,
+        tbb.SMITH,
+        tbb.BARRACKS,
+        tbb.MARKET,
+    )
+
+
 def test_develop_duchy_settlement_fulfills_priority_selection_and_purity_contract():
     foreign, unowned, full, first, second = map(
         Region, ("Foreign", "Unowned", "Full", "First", "Second")
@@ -1251,7 +1261,7 @@ def test_develop_duchy_settlement_fulfills_priority_selection_and_purity_contrac
         foreign: Settlement("Foreign", population=1, owner_id="enemy"),
         unowned: Settlement("Unowned", population=1),
         full: Settlement("Full", population=1, occupied=1, owner_id="ai"),
-        first: Settlement("First", population=3, owner_id="ai"),
+        first: Settlement("First", population=4, owner_id="ai"),
         second: Settlement("Second", population=3, owner_id="ai"),
     }
     world_regions = [foreign, unowned, full, first, second]
@@ -1280,10 +1290,17 @@ def test_develop_duchy_settlement_fulfills_priority_selection_and_purity_contrac
 
     with_smith = develop_duchy_settlement(developed, duchy)
     assert with_smith.settlement_at(first).active_buildings == (tbb.FARM, tbb.SMITH)
-    with_market = develop_duchy_settlement(with_smith, duchy)
+    with_barracks = develop_duchy_settlement(with_smith, duchy)
+    assert with_barracks.settlement_at(first).active_buildings == (
+        tbb.FARM,
+        tbb.SMITH,
+        tbb.BARRACKS,
+    )
+    with_market = develop_duchy_settlement(with_barracks, duchy)
     assert with_market.settlement_at(first).active_buildings == (
         tbb.FARM,
         tbb.SMITH,
+        tbb.BARRACKS,
         tbb.MARKET,
     )
 
@@ -1374,9 +1391,9 @@ def test_duchy_turn_recruits_and_marches_when_all_buildings_are_already_open():
     hero = Unit(training=2)
     settlement = Settlement(
         "Home",
-        population=4,
-        occupied=3,
-        active_buildings=(tbb.FARM, tbb.SMITH, tbb.MARKET),
+        population=5,
+        occupied=4,
+        active_buildings=(tbb.FARM, tbb.SMITH, tbb.BARRACKS, tbb.MARKET),
         storage=Resources(0, 1),
         owner_id="ai",
     )

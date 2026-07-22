@@ -79,8 +79,8 @@ Rozpoczęcie bitwy wymaga jawnego właściciela po obu stronach; równe id = soj
 
 **AI rozwoju i tury księstwa.**
 - `develop_duchy_settlement(world, duchy)` — w pierwszej własnej osadzie (kolejność
-  regionów) otwiera pierwszy brakujący budynek **Farm → Smith → Market**, jeśli
-  starczy wolnej populacji; max jeden budynek; brak kandydata = no-op; bez RNG.
+  regionów) otwiera pierwszy brakujący budynek **Farm → Smith → Barracks → Market**,
+  jeśli starczy wolnej populacji; max jeden budynek; brak kandydata = no-op; bez RNG.
 - `take_duchy_turn(world, duchy, rng, morale_by_owner=None)` — stała kolejność:
   **rozwój → rekrutacja → akcja wojskowa**; wynik każdego kroku jest wejściem
   następnego; opcjonalne `morale_by_owner` idzie do akcji wojskowej.
