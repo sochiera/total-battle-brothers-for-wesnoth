@@ -1,5 +1,6 @@
 """Tests for the economy-alert presentation primitive (tbbui)."""
 
+import html
 from xml.etree import ElementTree as ET
 
 from tbb.building import FARM
@@ -311,6 +312,55 @@ def test_render_economy_alert_starving_settlement_rows_with_deficit():
         }
         assert list(child) == []
         assert "".join(child.itertext()) == ""
+
+    assert game.duchies == duchies_before
+    assert game.duchies is duchies_before
+    assert (
+        tuple(s.storage for s in game.duchies[0].settlements) == storage_before
+    )
+
+
+def test_render_economy_alert_escapes_settlement_name_in_attribute():
+    """``data-starving-settlement`` uses ``html.escape(name, quote=True)`` so
+    names with XML-special characters (``"``, ``&``, ``<``) keep the fragment
+    parsable. ElementTree attribute value equals the original name; raw
+    fragment contains the escaped form. Pure: no game mutation.
+    """
+    special_name = 'Hamlet "A" & B <C>'
+    starving = Settlement(
+        special_name,
+        population=2,
+        owner_id="north",
+        storage=Resources(wheat=0, gold=0),
+    )
+    assert starving.consumption.wheat > starving.production.wheat
+    deficit = starving.consumption.wheat - starving.production.wheat
+    assert deficit > 0
+
+    game = GameState(
+        (
+            Duchy(
+                "north",
+                Unit(),
+                settlements=(starving,),
+                parties=(),
+            ),
+        )
+    )
+    duchies_before = game.duchies
+    storage_before = tuple(s.storage for s in game.duchies[0].settlements)
+
+    escaped = html.escape(special_name, quote=True)
+    xml = render_economy_alert(game, player_duchy_id="north")
+    assert f'data-starving-settlement="{escaped}"' in xml
+
+    root = ET.fromstring(xml)
+    children = list(root)
+    assert len(children) == 1
+    assert children[0].attrib == {
+        "data-starving-settlement": special_name,
+        "data-wheat-deficit": str(deficit),
+    }
 
     assert game.duchies == duchies_before
     assert game.duchies is duchies_before

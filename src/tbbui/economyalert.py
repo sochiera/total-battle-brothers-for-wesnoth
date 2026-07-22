@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import html
+
 from tbb.game import GameState
 from tbbui.gamelookup import player_duchy
 
@@ -19,6 +21,7 @@ def render_economy_alert(
     matching that count, and one child
     ``<div data-starving-settlement="<name>" data-wheat-deficit="D"></div>``
     per starving settlement in ``duchy.settlements`` order, where
+    ``name`` is ``html.escape(settlement.name, quote=True)`` and
     ``D = consumption.wheat - production.wheat`` (positive; no visible child
     text). Settlements without a wheat deficit produce no row. When
     ``player_duchy_id`` is ``None`` or not present in ``game.duchies``, returns
@@ -33,8 +36,9 @@ def render_economy_alert(
     for s in duchy.settlements:
         deficit = s.consumption.wheat - s.production.wheat
         if deficit > 0:
+            name = html.escape(s.name, quote=True)
             rows.append(
-                f'<div data-starving-settlement="{s.name}"'
+                f'<div data-starving-settlement="{name}"'
                 f' data-wheat-deficit="{deficit}"></div>'
             )
     n = len(rows)

@@ -536,9 +536,11 @@ korzeń niesie `data-starving-settlements="N"`, gdzie `N` = liczba osad
 widoczny tekst `Osady na deficycie pszenicy: N` spójny z atrybutem, oraz po
 jednym dziecku
 `<div data-starving-settlement="<name>" data-wheat-deficit="D"></div>` na
-głodującą osadę w kolejności `duchy.settlements`, gdzie
-`D = consumption.wheat - production.wheat` (dodatnie; dziecko bez widocznego
-tekstu). Osady bez deficytu nie dają wiersza; przy `N==0` brak dzieci. Gdy
+głodującą osadę w kolejności `duchy.settlements`, gdzie `name` =
+`html.escape(settlement.name, quote=True)` (jak pozostałe atrybuty tekstowe
+tbbui) i `D = consumption.wheat - production.wheat` (dodatnie; dziecko bez
+widocznego tekstu). Osady bez deficytu nie dają wiersza; przy `N==0` brak
+dzieci. Gdy
 `player_duchy_id` jest `None` albo spoza `game.duchies` — sam pusty korzeń
 (bez `data-starving-settlements`, bez tekstu i bez dzieci). Czyste,
 deterministyczne, bez mutacji `game`; rdzeń bez zmian. Reużywa
