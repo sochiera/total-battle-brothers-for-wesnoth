@@ -728,3 +728,84 @@ def test_python_m_tbbbridge_shim_propagates_rc_and_explicit_arg_writes_named_fil
     out_default = workdir_default / "out" / "state.json"
     assert out_default.exists(), "bez argumentu snapshot idzie do out/state.json"
     json.loads(out_default.read_text(encoding="utf-8"))
+
+
+def test_game_state_with_battle_embeds_battle_state_and_none_preserves_prior_output():
+    """G64.1b: game_state(..., battle=None) osadza battle_state.
+
+    Kontrakt:
+    - przy ``battle is not None`` wynik ma klucze dokładnie
+      ``["calendar", "duchies", "map", "result", "battle"]``, gdzie
+      ``state["battle"] == battle_state(battle)``;
+    - przy ``battle is None`` (domyślnie) wynik jest bajt-w-bajt identyczny z
+      wywołaniem bez parametru (klucze
+      ``["calendar", "duchies", "map", "result"]``,
+      ``json.dumps`` równy staremu dla tego samego wejścia);
+    - funkcja pozostaje czysta, deterministyczna, bez mutacji wejść; wynik
+      przechodzi przez ``json.dumps``.
+    """
+    from tbb.battle import BattleSide, HexBattle
+    from tbb.battlefield import Battlefield
+    from tbb.hex import Hex
+    from tbb.terrain import FOREST, PLAINS
+    from tbb.unit import Unit
+    from tbbbridge.snapshot import battle_state, game_state
+
+    world = _game_world()
+    calendar = Calendar(year=2, month=7)
+    game = GameState((_rich_player_duchy(), _ai_duchy(alive=False)))
+
+    # Build a real ongoing HexBattle (both sides active) as a fixture input.
+    attacker = Unit(training=2)
+    defender = Unit(training=1, equipment=1)
+    battlefield = Battlefield({Hex(1, -1): FOREST, Hex(0, 0): PLAINS})
+    battle = HexBattle(battlefield)
+    battle = battle.deploy(defender, Hex(0, 0), BattleSide.DEFENDER)
+    battle = battle.deploy(attacker, Hex(1, -1), BattleSide.ATTACKER)
+    assert battle.result() is None  # ongoing
+
+    battle_before = battle  # frozen dataclass; identity equality ↔ no mutation
+
+    # --- Scenario 1: battle is not None -> last key "battle" == battle_state. ---
+    state = game_state(
+        world, game, calendar, player_duchy_id="player", battle=battle
+    )
+    # Contract: top-level keys exactly the prescribed order, "battle" last.
+    assert list(state.keys()) == [
+        "calendar", "duchies", "map", "result", "battle",
+    ]
+    # Contract: embedded battle equals battle_state(battle) (reuse, not reimplement).
+    assert state["battle"] == battle_state(battle)
+    # Contract: the first four keys/values are unchanged vs the no-battle call.
+    base = game_state(world, game, calendar, player_duchy_id="player")
+    assert state["calendar"] == base["calendar"]
+    assert state["duchies"] == base["duchies"]
+    assert state["map"] == base["map"]
+    assert state["result"] == base["result"]
+    # Contract: whole result is json-serializable.
+    json.dumps(state)
+    # Contract: no mutation of battle (frozen dataclass; identity equality).
+    assert battle is battle_before
+
+    # --- Scenario 2: battle is None -> byte-for-byte identical to pre-task. ---
+    state_none_explicit = game_state(
+        world, game, calendar, player_duchy_id="player", battle=None
+    )
+    assert list(state_none_explicit.keys()) == [
+        "calendar", "duchies", "map", "result",
+    ]
+    assert state_none_explicit == base
+    assert json.dumps(state_none_explicit, sort_keys=True) == json.dumps(
+        base, sort_keys=True
+    )
+
+    # --- Scenario 3: default (no battle kwarg) == battle=None (no regression). ---
+    state_default = game_state(
+        world, game, calendar, player_duchy_id="player"
+    )
+    assert list(state_default.keys()) == [
+        "calendar", "duchies", "map", "result",
+    ]
+    assert json.dumps(state_default, sort_keys=True) == json.dumps(
+        base, sort_keys=True
+    )

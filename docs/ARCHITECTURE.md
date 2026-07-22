@@ -65,8 +65,10 @@ jest obecne; w przeciwnym razie `None`. `connections` to lista
 Funkcja jest czysta, deterministyczna i bez mutacji `world`; wynik przechodzi
 przez `json.dumps`.
 
-`game_state(world, game, calendar, player_duchy_id=None)` (G63.1d) zwraca
-dict z kluczami w kolejności: `calendar`, `duchies`, `map`, `result`.
+`game_state(world, game, calendar, player_duchy_id=None, battle=None)`
+(G63.1d / G64.1b) zwraca dict z kluczami w kolejności:
+`calendar`, `duchies`, `map`, `result` — a gdy `battle is not None`, także
+ostatni klucz `battle`.
 `calendar` to `{"year": calendar.year, "month": calendar.month}`;
 `duchies` to lista statusów księstw z `game.duchies`, każdy z kluczami
 `id`, `morale`, `settlements`, `parties`, `has_hero`, `has_heir`, `is_defeated`;
@@ -74,7 +76,9 @@ dict z kluczami w kolejności: `calendar`, `duchies`, `map`, `result`.
 "winner": winner_id_lub_None, "player_result": ...}`. `player_result` jest
 `None` gdy `player_duchy_id is None`, `"ongoing"` gdy gra trwa, `"draw"` gdy
 `game.is_over` i brak zwycięzcy, `"victory"` gdy `game.winner.duchy_id ==
-player_duchy_id`, w przeciwnym razie `"defeat"`. Funkcja jest czysta,
+player_duchy_id`, w przeciwnym razie `"defeat"`. Gdy `battle is not None`,
+`battle` to `battle_state(battle)`; `None` (domyślnie) zachowuje wynik
+bajt-w-bajt identyczny z wcześniejszą postacią funkcji. Funkcja jest czysta,
 deterministyczna, bez mutacji wejść; wynik przechodzi przez `json.dumps`.
 
 `battle_state(battle)` (G64.1a) zwraca dict z kluczami w kolejności:

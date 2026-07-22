@@ -173,17 +173,23 @@ def game_state(
     game: GameState,
     calendar: Calendar,
     player_duchy_id: str | None = None,
+    battle: HexBattle | None = None,
 ) -> dict[str, Any]:
     """Zwróć json-serializowalny snapshot pełnego stanu gry.
 
     Funkcja jest czysta, deterministyczna i bez mutacji wejść; wynik przechodzi
     przez `json.dumps`.
 
+    Gdy `battle` jest podane, jako ostatni klucz osadzany jest
+    `battle_state(battle)`. Gdy `battle is None` (domyślnie), wynik pozostaje
+    bajt-w-bajt identyczny z wcześniejszą postacią funkcji.
+
     Klucze wyniku dokładnie w kolejności:
       calendar -> {"year": calendar.year, "month": calendar.month}
       duchies  -> lista statusów księstw (kolejność game.duchies)
       map      -> map_state(world)
       result   -> {"is_over": ..., "winner": ..., "player_result": ...}
+      battle   -> battle_state(battle) (tylko gdy battle is not None)
     """
     state: dict[str, Any] = {
         "calendar": {"year": calendar.year, "month": calendar.month},
@@ -195,6 +201,8 @@ def game_state(
             "player_result": _player_result(game, player_duchy_id),
         },
     }
+    if battle is not None:
+        state["battle"] = battle_state(battle)
     _assert_json_serializable(state)
     return state
 
