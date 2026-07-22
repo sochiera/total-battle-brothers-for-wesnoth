@@ -11,6 +11,54 @@ from tbb.unit import Unit
 from tbbui.economyalert import render_economy_alert
 
 
+def test_render_economy_alert_empty_root_when_none_or_unknown_duchy():
+    """When ``player_duchy_id`` is ``None`` or not in ``game.duchies``
+    (``player_duchy(...) is None``), return a bare empty root
+    ``<div data-economy-alert=""></div>`` with no ``data-starving-settlements``,
+    no children, and no visible text. Pure: no game mutation. Does not depend
+    on whether duchies hold starving settlements.
+    """
+    starving = Settlement(
+        "Starving",
+        population=5,
+        occupied=1,
+        owner_id="north",
+        storage=Resources(wheat=0, gold=0),
+        active_buildings=(FARM,),
+    )
+    assert starving.consumption.wheat > starving.production.wheat
+
+    game = GameState(
+        (
+            Duchy(
+                "north",
+                Unit(),
+                settlements=(starving,),
+                parties=(),
+            ),
+            Duchy("south", Unit(), settlements=(), parties=()),
+        )
+    )
+    duchies_before = game.duchies
+    storage_before = tuple(s.storage for s in game.duchies[0].settlements)
+
+    for player_duchy_id in (None, "missing"):
+        xml = render_economy_alert(game, player_duchy_id=player_duchy_id)
+        root = ET.fromstring(xml)
+
+        assert root.tag == "div"
+        assert root.attrib == {"data-economy-alert": ""}
+        assert "data-starving-settlements" not in root.attrib
+        assert list(root) == []
+        assert "".join(root.itertext()) == ""
+
+    assert game.duchies == duchies_before
+    assert game.duchies is duchies_before
+    assert (
+        tuple(s.storage for s in game.duchies[0].settlements) == storage_before
+    )
+
+
 def test_render_economy_alert_counts_starving_settlements_for_known_player():
     """When ``player_duchy_id`` matches a duchy, root is
     ``<div data-economy-alert="">`` with ``data-starving-settlements="N"``
