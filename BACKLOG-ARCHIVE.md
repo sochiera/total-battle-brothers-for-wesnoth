@@ -494,3 +494,8 @@
 ## Kamień milowy 55 — czytelna gotowość treningu garnizonu (Koszary) w panelu osady — UKOŃCZONY
 - [x] **K55.1a** `data-training-ready="true|false"` (= `BARRACKS in active_buildings`) w każdym `data-settlement-row`, zaraz po `data-garrison-wounded`; tekst bez zmian; `BARRACKS` importowany z `tbb` (bez lokalnych duplikatów). *(task-267)*
 - [x] **K55.1b** widoczny sufiks ` · trening: gotowy` / ` · trening: wstrzymany (brak Koszar)` spójny z flagą; ARCHITECTURE (panel osad), DESIGN §11 i DECISIONS `K55.1b`. *(task-268)*
+
+## Kamień milowy 56 — czytelna gotowość uzbrojenia garnizonu (Kuźnia) w panelu osady — UKOŃCZONY
+- [x] **K56.1a** `data-equip-ready="true|false"` (= `SMITH in active_buildings`) w każdym `data-settlement-row`, zaraz po `data-training-ready`; tekst bez zmian. *(task-269)*
+- [x] **K56.1b** widoczny sufiks ` · uzbrojenie: gotowe` / ` · uzbrojenie: wstrzymane (brak Kuźni)` spójny z flagą; ARCHITECTURE (panel osad), DESIGN §11 i DECISIONS `K56.1b`. *(task-270)*
+- [x] **R56.1 (refaktor)** wspólny lokalny helper gotowości bramkowanej budynkiem (flaga + sufiks) w `settlementpanel.py`, reużyty przez trening/`BARRACKS` i uzbrojenie/`SMITH`; bez nowych testów, wynik bajt-w-bajt. *(task-271)*

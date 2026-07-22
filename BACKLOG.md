@@ -24,13 +24,28 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > `data-training-ready` + sufiks ` · trening: …`). Szczegóły w
 > `BACKLOG-ARCHIVE.md`.
 
-## Kamień milowy 56 — czytelna gotowość uzbrojenia garnizonu (Kuźnia) w panelu osady
-> DESIGN §11: symetria do K55 dla uzbrojenia — `tick_equipment` od dawna wymaga
-> czynnej Kuźni (`SMITH`), ale panel tego nie komunikuje. K56 dokłada flagę
-> `data-equip-ready` i czytelny tekst gotowości uzbrojenia. Rdzeń `tbb` bez zmian.
-- [ ] **K56.1a** `data-equip-ready="true|false"` (= `SMITH in active_buildings`) w każdym `data-settlement-row`, zaraz po `data-training-ready`; tekst bez zmian. *(task-269)*
-- [ ] **K56.1b** widoczny sufiks ` · uzbrojenie: gotowe` / ` · uzbrojenie: wstrzymane (brak Kuźni)` spójny z flagą; ARCHITECTURE (panel osad), DESIGN §11 i DECISIONS `K56.1b`. *(task-270)*
-- [ ] **R56.1 (refaktor)** wspólny lokalny helper gotowości bramkowanej budynkiem (flaga + sufiks) w `settlementpanel.py`, reużyty przez trening/`BARRACKS` i uzbrojenie/`SMITH`; bez nowych testów, wynik bajt-w-bajt. *(task-271)*
+> **Kamień 56 — UKOŃCZONE.** Czytelna gotowość uzbrojenia garnizonu (Kuźnia) w
+> panelu osady (flaga `data-equip-ready` + sufiks ` · uzbrojenie: …`) oraz
+> refaktor R56.1 (wspólny helper gotowości bramkowanej budynkiem). Szczegóły w
+> `BACKLOG-ARCHIVE.md`.
+
+## Kamień milowy 57 — czytelny bilans ekonomiczny osady w panelu
+> DESIGN §11: panel osad pokazuje zapasy, lecz nie miesięczny przepływ. Gracz
+> planujący rozwój potrzebuje widzieć produkcję, konsumpcję i bilans pszenicy
+> (deficyt = zapowiedź głodu i braku wzrostu). Rdzeń ma już czyste
+> `Settlement.production` / `Settlement.consumption` — panel je tylko odczytuje.
+> Rdzeń `tbb` bez zmian.
+- [ ] **K57.1a** `data-wheat-production` / `data-gold-production` / `data-wheat-consumption` w każdym `data-settlement-row`, zaraz po `data-equip-ready`; tekst bez zmian. *(task-272)*
+- [ ] **K57.1b** widoczny sufiks ` · produkcja/mies.: +Pw pszenicy, +Pg złota · konsumpcja: Cw pszenicy` spójny z atrybutami; ARCHITECTURE, DESIGN §11, DECISIONS `K57.1b`. *(task-273)*
+- [ ] **K57.2a** `data-wheat-surplus="true|false"` (= `production.wheat >= consumption.wheat`) w każdym `data-settlement-row`, zaraz po `data-wheat-consumption`; tekst bez zmian. *(task-274)*
+- [ ] **K57.2b** widoczny sufiks ` · bilans pszenicy: nadwyżka` / ` · bilans pszenicy: deficyt` spójny z flagą; ARCHITECTURE, DESIGN §11, DECISIONS `K57.2b`. *(task-275)*
+
+## Kamień milowy 58 — zbiorcza gospodarka księstwa w podsumowaniu gracza
+> DESIGN §11: po K57 (przepływ pojedynczej osady) gracz z kilkoma osadami
+> potrzebuje zbiorczego zdrowia gospodarki. `render_player_summary` sumuje już
+> zapasy — K58 dokłada zbiorczą miesięczną produkcję/konsumpcję pszenicy.
+- [ ] **K58.1a** `data-wheat-production` / `data-wheat-consumption` (sumy po osadach księstwa) w korzeniu `data-player-summary`, zaraz po `data-wheat`; tekst bez zmian. *(task-276)*
+- [ ] **K58.1b** widoczny tekst zbiorczej gospodarki księstwa spójny z atrybutami; ARCHITECTURE, DESIGN §11, DECISIONS `K58.1b`. *(następny wsad)*
 
 ## Dług/refaktor
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*
