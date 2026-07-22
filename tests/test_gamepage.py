@@ -1055,6 +1055,33 @@ def test_render_game_page_omits_victory_progress_when_player_duchy_id_none():
     assert "data-victory-progress" not in baseline_html
 
 
+def test_render_game_page_omits_economy_alert_when_player_duchy_id_none():
+    """Default / explicit ``player_duchy_id=None``: no ``data-economy-alert``.
+
+    Default and explicit None are byte-for-byte identical (no economy alert);
+    render is pure (inputs not mutated).
+    """
+    world, game, calendar = _ongoing_fixture()
+    regions_before = world.regions
+    connections_before = world.connections
+    duchies_before = game.duchies
+    year_before = calendar.year
+    month_before = calendar.month
+    baseline_html = render_game_page(world, game, calendar)
+
+    assert render_game_page(world, game, calendar, player_duchy_id=None) == baseline_html
+
+    root = ET.fromstring(baseline_html)
+    assert _find_by_attr(root, "data-economy-alert") == []
+    assert "data-economy-alert" not in baseline_html
+
+    assert world.regions is regions_before
+    assert world.connections is connections_before
+    assert game.duchies is duchies_before
+    assert calendar.year == year_before
+    assert calendar.month == month_before
+
+
 def test_render_game_page_omits_next_objective_when_player_duchy_id_none():
     """Default / explicit ``player_duchy_id=None``: no ``data-next-objective``.
 
