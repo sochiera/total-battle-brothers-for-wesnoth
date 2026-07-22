@@ -529,3 +529,17 @@
 - [x] **K61.2a** `data-total-wheat-deficit="D"` na korzeniu zaraz po `data-starving-settlements` (suma deficytów po głodujących osadach; 0 gdy brak); tekst bez zmian; ARCHITECTURE. *(task-289)*
 - [x] **K61.2b** sufiks nagłówka ` (łączny deficyt: D pszenicy/mies.)` gdy `N>0`, spójny z `data-total-wheat-deficit`; ARCHITECTURE, DESIGN §11, DECISIONS `K61.2b`. *(task-290)*
 - [x] **K61.3a** flaga `data-economy-critical=""` (po `data-total-wheat-deficit`) i nota `data-economy-caution` gdy `N>0`; brak przy `N==0`; ARCHITECTURE, DESIGN §11, DECISIONS `K61.3a`. *(task-291)*
+
+## Kamień milowy 63 — most stanu gry do klienta Godota (snapshot JSON) — UKOŃCZONY
+- [x] **G63.1a** `tbbbridge.snapshot.settlement_state(settlement) -> dict`; ARCHITECTURE, DECISIONS `G63.1a`. *(task-296)*
+- [x] **G63.1b** `tbbbridge.snapshot.party_state(party) -> dict`; ARCHITECTURE, DECISIONS `G63.1b`. *(task-297)*
+- [x] **G63.1c** `tbbbridge.snapshot.map_state(world) -> dict`; ARCHITECTURE, DECISIONS `G63.1c`. *(task-298)*
+- [x] **G63.1d** `tbbbridge.snapshot.game_state(...) -> dict` (calendar/duchies/map/result); ARCHITECTURE, DECISIONS `G63.1d`. *(task-301)*
+- [x] **G63.2a** `tbbbridge.snapshot.save_state(...)` deterministyczny JSON do pliku; ARCHITECTURE, DECISIONS `G63.2a`. *(task-302)*
+- [x] **G63.2b-1** `tbbbridge.__main__.main([path])` — jawna ścieżka headless → snapshot; ARCHITECTURE, DECISIONS `G63.2b-1`. *(task-306)*
+- [x] **G63.2b-2** domyślna ścieżka `out/state.json` + shim `python -m tbbbridge`; ARCHITECTURE, DECISIONS `G63.2b-2`. *(task-307)*
+- [x] **G63.2b-3** determinizm bajt-w-bajt dwóch uruchomień + opis CLI w ARCHITECTURE. *(task-308)*
+
+## Kamień milowy 64 — most: snapshot bitwy heksowej do JSON — UKOŃCZONY
+- [x] **G64.1a** `tbbbridge.snapshot.battle_state(battle) -> dict` (`hexes` per zajęty heks + `result`); ARCHITECTURE, DECISIONS `G64.1a`. *(task-309)*
+- [x] **G64.1b** `game_state(..., battle=None)` osadza `battle_state` jako ostatni klucz; `None` → bajt-w-bajt; ARCHITECTURE, DECISIONS `G64.1b`. *(task-310)*

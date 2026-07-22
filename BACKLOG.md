@@ -69,20 +69,26 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 - [x] **G63.1c** `tbbbridge.snapshot.map_state(world) -> dict` (regiony z `col`/`row` z `layout_world`, osada/party, `connections`); ARCHITECTURE, DECISIONS `G63.1c`. *(task-298)*
 - [x] **G63.1d** `tbbbridge.snapshot.game_state(world, game, calendar, player_duchy_id=None) -> dict` (calendar/duchies/map/result); re-issue po review-fail task-299 (rdzeń bez zmian); ARCHITECTURE, DECISIONS `G63.1d`. *(task-301)*
 - [x] **G63.2a** `tbbbridge.snapshot.save_state(world, game, calendar, path, player_duchy_id=None)` — deterministyczny JSON do pliku (`indent=2`, `ensure_ascii=False`, końcowy `\n`); ARCHITECTURE, DECISIONS `G63.2a`. *(task-302)*
-> **G63.2b — CLI `python -m tbbbridge` — pocięte po `coder_red` (task-303 monolit
-> trzech kryteriów w jednym teście).** Trzy niezależnie zazielenialne przyrosty:
-- [ ] **G63.2b-1** `tbbbridge.__main__.main([path])` — jawna ścieżka: headless (seed 73, `player`) → `save_state` do `path` (kalendarz z drivera), tworzy katalog nadrzędny, rc 0, poprawne klucze snapshotu. *(task-306)*
-- [ ] **G63.2b-2** domyślna ścieżka `out/state.json` przy braku argumentu + shim `if __name__ == "__main__": raise SystemExit(main())` (`python -m tbbbridge [path]`). *(task-307)*
-- [ ] **G63.2b-3** determinizm bajt-w-bajt dwóch uruchomień + opis CLI w `docs/ARCHITECTURE.md` (DECISIONS `G63.2a` już istnieje). *(task-308)*
+> **Kamienie 63–64 — UKOŃCZONE.** Most snapshotu JSON (`tbbbridge.snapshot`:
+> `settlement_state`/`party_state`/`map_state`/`game_state`/`battle_state`,
+> `save_state` + CLI `python -m tbbbridge`, osadzenie bitwy w `game_state`).
+> Pełne streszczenia w `BACKLOG-ARCHIVE.md`.
 
-## Kamień milowy 64 — most: snapshot bitwy heksowej do JSON
-> DESIGN §11: Godot ma renderować i rozegrać bitwę taktyczną z tego samego
-> testowalnego kontraktu co reszta mostu. `tbbbridge.snapshot` dostaje
-> `battle_state(battle)` (lustro danych czytanych już przez `tbbui.battlesvg`)
-> oraz opcjonalne osadzenie bitwy w `game_state`, by Godot dostał jeden korzeń
-> stanu także w trakcie bitwy. Rdzeń `tbb` bez zmian.
-- [ ] **G64.1a** `tbbbridge.snapshot.battle_state(battle) -> dict` (`hexes` per zajęty heks: `q`/`r`/`terrain`/`side`/`hp`/`stunned`, sort `(q,r)`, + `result`); ARCHITECTURE, DECISIONS `G64.1a`. *(task-309)*
-- [ ] **G64.1b** `game_state(..., battle=None)` — przy `battle` osadza `battle_state` jako ostatni klucz `battle`; `None` → bajt-w-bajt jak dotąd; ARCHITECTURE, DECISIONS `G64.1b`. *(task-310)*
+## Kamień milowy 65 — most poleceń: Godot steruje partią przez JSON — PRIORYTET
+> DESIGN §11: komunikacja Godot↔rdzeń jest dwukierunkowa — obok snapshotu OUT
+> (Kamień 63/64) potrzebny jest kanał IN. `tbbbridge.session` daje uchwyt sesji
+> `Session` (world/game/calendar/rng/player_duchy_id/seed) oraz json-owy punkt
+> wejścia `apply_command`, którym Godot posuwa turę i wydaje rozkazy księstwu
+> gracza. Most reużywa czyste prymitywy `ai.*` i driver headless — **żadnej**
+> nowej logiki reguł; rdzeń `tbb` bez zmian.
+- [ ] **G65.1a** `tbbbridge.session.Session` + `new_session(seed=73, player_duchy_id="player")` + `Session.snapshot()`; ARCHITECTURE (podsekcja „Most poleceń”), DECISIONS `G65.0`/`G65.1a`. *(task-311)*
+- [ ] **G65.1b** `Session.next_turn()` — jedna tura `run_headless_game` (RNG współdzielony), `is_over` → no-op; ARCHITECTURE, DECISIONS `G65.1b`. *(task-312)*
+- [ ] **G65.1c** `apply_command(session, {"type": "next_turn"|"new_game"})` — dyspozytor poleceń sterujących; nieznany `type` → `ValueError`; ARCHITECTURE, DECISIONS `G65.1c`. *(task-313)*
+- [ ] **G65.2a** rozkazy gracza bez bitwy `develop`/`recruit`/`muster` (`ai.*` + `sync_from_world`, guardy jak `tbbui.serve`); ARCHITECTURE, DECISIONS `G65.2a`. *(task-314)*
+- [ ] **G65.2b** rozkaz `march` (auto / do wskazanego regionu przez `ai.march_duchy_party[_to]`); ARCHITECTURE, DECISIONS `G65.2b`. *(task-315)*
+> **G65.3 (do zaplanowania w kolejnym wsadzie)** rozkazy bitewne `assault`/`engage`
+> — wymagają RNG, morale i rejestru bitwy w snapshotcie (`game_state(..., battle=)`);
+> pocięte osobno, bo cięższe niż rozkazy niebitewne.
 
 ## Dług/refaktor
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*

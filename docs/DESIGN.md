@@ -342,7 +342,13 @@ przemieszczać armię, rozegrać bitwę oraz zapisać/wczytać stan. Rdzeń `tbb
 pozostaje **jedynym źródłem reguł** — Godot nie duplikuje logiki, a Python nie
 zależy od Godota. Komunikacja Godot↔rdzeń idzie przez **jawny, testowalny
 interfejs: stan gry jako JSON** (pakiet-most `tbbbridge`, snapshot serializowany
-z publicznego API rdzenia; kontrakt w `ARCHITECTURE.md`). Klient HTML/SVG
+z publicznego API rdzenia; kontrakt w `ARCHITECTURE.md`). Kanał jest
+dwukierunkowy: obok snapshotu OUT (`tbbbridge.snapshot`) most daje kanał IN —
+uchwyt sesji `tbbbridge.session.Session` i json-owy punkt wejścia
+`apply_command(session, command)`, którym Godot posuwa turę (`next_turn`),
+zaczyna nową grę (`new_game`) i wydaje rozkazy księstwu gracza (`order`:
+rozwój / rekrutacja / zbiórka / marsz — reużycie prymitywów `ai.*`, bez logiki
+reguł w moście). Klient HTML/SVG
 (`tbbui`) zostaje **wyłącznie jako narzędzie diagnostyczne**, nie jest już
 docelowym klientem gry.
 
