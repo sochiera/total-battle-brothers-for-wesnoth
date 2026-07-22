@@ -25,6 +25,28 @@ to przeciwieństwo szybkiego, izolowanego rdzenia w TDD. Możemy później
 całego silnika. Decyzja jest odwracalna: rdzeń jest czysty, więc prezentację
 (pygame/tekst/most do innego silnika) można dołożyć nad nim.
 
+### Most `tbbbridge` do klienta Godot (G63)
+Docelowy klient gry to natywna gra **Godot 4** na Linux x86_64 (DECISIONS
+G63.0). Rdzeń `tbb` pozostaje jedynym źródłem reguł i **nie importuje** mostu
+ani żadnej warstwy prezentacji. Nowy pakiet `src/tbbbridge/` konsumuje
+**wyłącznie publiczne API rdzenia** i serializuje stan do
+json-serializowalnych słowników, które Godot (oraz zapis stanu) będzie
+konsumował.
+
+`settlement_state(settlement)` (G63.1a) to pierwsza funkcja kontraktu.
+Zwraca `dict` z kluczami w kolejności:
+`name`, `owner`, `wheat`, `gold`, `population`, `free`, `garrison`,
+`buildings`, `wheat_production`, `gold_production`, `wheat_consumption`.
+Wartości odczytuje się z publicznego API `Settlement`:
+`name`, `owner_id`, `storage.wheat`/`.gold`, `population`, `free`,
+`len(garrison)`, `[b.name for b in active_buildings]`,
+`production.wheat`/`.gold`, `consumption.wheat`.
+Funkcja jest czysta, deterministyczna i bez mutacji wejścia; wynik przechodzi
+przez `json.dumps`.
+
+Kolejne funkcje kontraktu (`party_state`, `map_state`, `game_state`,
+`save_state` + CLI) opisują odpowiednie zadania G63.1b–G63.2a.
+
 ### Prezentacja (pakiet `tbbui`, Kamień 13)
 Warstwa render/UI jest **poza rdzeniem**. `python -m tbb` nadal uruchamia
 deterministyczną partię headless. Obserwowalny UI buduje **osobny pakiet**
@@ -825,6 +847,9 @@ game/                     # katalog projektu (repo root dla tej gry)
 │   │   ├── wound.py      # niemutowalne rany czasowe/trwałe i katalog startowy
 │   │   ├── world.py      # niemutowalny graf regionów i rozmieszczenie osad
 │   │   └── rng.py        # seedowalny RNG izolowany od stanu globalnego
+│   ├── tbbbridge/        # pakiet-most: snapshot stanu rdzenia do JSON
+│   │   ├── __init__.py   # publiczne API tbbbridge
+│   │   └── snapshot.py   # czyste serializacje settlement/party/map/game state
 │   └── tbbui/            # pakiet prezentacji (stdlib SVG/HTML); tbb go nie importuje
 │       ├── __init__.py
 │       ├── __main__.py   # CLI: snapshot HTML lub `serve [port]` (python -m tbbui)
