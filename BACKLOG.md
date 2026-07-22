@@ -67,9 +67,13 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 - [x] **G63.1a** `tbbbridge.snapshot.settlement_state(settlement) -> dict` (czysty, json-serializowalny słownik osady); ARCHITECTURE (nowa sekcja `tbbbridge`), DECISIONS `G63.1a`. *(task-296)*
 - [x] **G63.1b** `tbbbridge.snapshot.party_state(party) -> dict` (owner/size/hp/attack/defense/wounded z `unitstrength`); ARCHITECTURE, DECISIONS `G63.1b`. *(task-297)*
 - [x] **G63.1c** `tbbbridge.snapshot.map_state(world) -> dict` (regiony z `col`/`row` z `layout_world`, osada/party, `connections`); ARCHITECTURE, DECISIONS `G63.1c`. *(task-298)*
-- [ ] **G63.1d** `tbbbridge.snapshot.game_state(world, game, calendar, player_duchy_id=None) -> dict` (calendar/duchies/map/result); re-issue po review-fail task-299 (rdzeń bez zmian); ARCHITECTURE, DECISIONS `G63.1d`. *(task-301)*
-- [ ] **G63.2a** `tbbbridge.snapshot.save_state(world, game, calendar, path, player_duchy_id=None)` — deterministyczny JSON do pliku (`indent=2`, `ensure_ascii=False`, końcowy `\n`); ARCHITECTURE, DECISIONS `G63.2a`. *(task-302)*
-- [ ] **G63.2b** CLI `python -m tbbbridge [path]` — headless (seed 73, `player`) → `out/state.json`, bajt-w-bajt deterministyczny; ARCHITECTURE, DESIGN §11, DECISIONS `G63.2a`. *(task-303)*
+- [x] **G63.1d** `tbbbridge.snapshot.game_state(world, game, calendar, player_duchy_id=None) -> dict` (calendar/duchies/map/result); re-issue po review-fail task-299 (rdzeń bez zmian); ARCHITECTURE, DECISIONS `G63.1d`. *(task-301)*
+- [x] **G63.2a** `tbbbridge.snapshot.save_state(world, game, calendar, path, player_duchy_id=None)` — deterministyczny JSON do pliku (`indent=2`, `ensure_ascii=False`, końcowy `\n`); ARCHITECTURE, DECISIONS `G63.2a`. *(task-302)*
+> **G63.2b — CLI `python -m tbbbridge` — pocięte po `coder_red` (task-303 monolit
+> trzech kryteriów w jednym teście).** Trzy niezależnie zazielenialne przyrosty:
+- [ ] **G63.2b-1** `tbbbridge.__main__.main([path])` — jawna ścieżka: headless (seed 73, `player`) → `save_state` do `path` (kalendarz z drivera), tworzy katalog nadrzędny, rc 0, poprawne klucze snapshotu. *(task-306)*
+- [ ] **G63.2b-2** domyślna ścieżka `out/state.json` przy braku argumentu + shim `if __name__ == "__main__": raise SystemExit(main())` (`python -m tbbbridge [path]`). *(task-307)*
+- [ ] **G63.2b-3** determinizm bajt-w-bajt dwóch uruchomień + opis CLI w `docs/ARCHITECTURE.md` (DECISIONS `G63.2a` już istnieje). *(task-308)*
 
 ## Kamień milowy 64 — most: snapshot bitwy heksowej do JSON
 > DESIGN §11: Godot ma renderować i rozegrać bitwę taktyczną z tego samego
@@ -77,8 +81,8 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > `battle_state(battle)` (lustro danych czytanych już przez `tbbui.battlesvg`)
 > oraz opcjonalne osadzenie bitwy w `game_state`, by Godot dostał jeden korzeń
 > stanu także w trakcie bitwy. Rdzeń `tbb` bez zmian.
-- [ ] **G64.1a** `tbbbridge.snapshot.battle_state(battle) -> dict` (`hexes` per zajęty heks: `q`/`r`/`terrain`/`side`/`hp`/`stunned`, + `result`); ARCHITECTURE, DECISIONS `G64.1a`. *(task-304)*
-- [ ] **G64.1b** `game_state(..., battle=None)` — przy `battle` osadza `battle_state` jako ostatni klucz `battle`; `None` → bajt-w-bajt jak dotąd; ARCHITECTURE, DECISIONS `G64.1b`. *(task-305)*
+- [ ] **G64.1a** `tbbbridge.snapshot.battle_state(battle) -> dict` (`hexes` per zajęty heks: `q`/`r`/`terrain`/`side`/`hp`/`stunned`, sort `(q,r)`, + `result`); ARCHITECTURE, DECISIONS `G64.1a`. *(task-309)*
+- [ ] **G64.1b** `game_state(..., battle=None)` — przy `battle` osadza `battle_state` jako ostatni klucz `battle`; `None` → bajt-w-bajt jak dotąd; ARCHITECTURE, DECISIONS `G64.1b`. *(task-310)*
 
 ## Dług/refaktor
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*
