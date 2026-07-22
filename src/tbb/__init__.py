@@ -4,7 +4,7 @@ Ten pakiet zawiera czystą, testowalną logikę gry (strategia + bitwa).
 Nie importuj tu bibliotek prezentacji/UI — patrz docs/ARCHITECTURE.md.
 """
 
-from tbb.building import Building, FARM, MARKET, SMITH
+from tbb.building import BARRACKS, Building, FARM, MARKET, SMITH
 from tbb.ai import (
     assault_nearest_enemy_settlement,
     march_toward_nearest_enemy,
@@ -36,6 +36,7 @@ __version__ = "0.0.1"
 
 __all__ = [
     "Building",
+    "BARRACKS",
     "Battlefield",
     "BattleReport",
     "BattleResult",

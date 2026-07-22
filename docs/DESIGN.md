@@ -180,7 +180,8 @@ bieżącego `GameState` przed każdym `take_duchy_turn`.
 - **Ekonomia miesięczna** (`tick_economy`): aktywny (obsadzony) budynek produkuje
   `output`; cała populacja je **1 pszenicę / mieszkaniec / miesiąc**; bilans
   podłogowany na zero. Katalog: **Farm** (`wheat=3`, `staff=1`), **Market**
-  (`gold=2`, `staff=1`), **Smith** (output zerowy — uzbrojenie).
+  (`gold=2`, `staff=1`), **Smith** (output zerowy — uzbrojenie), **Barracks**
+  (output zerowy — bramka treningu; jeszcze bez efektu w `tick_training`).
 - **Urodzenia** (`tick_growth` po ekonomii): +1 wolnej populacji gdy
   `storage.wheat > 0` i poniżej `capacity` (`None` = bez limitu); głód nie rośnie.
 - **Imigracja** (`tick_immigration` po growth): +1 gdy `gold > 0` i `wheat > 0`

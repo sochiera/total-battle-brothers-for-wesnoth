@@ -21,3 +21,4 @@ class Building:
 SMITH = Building("Smith", staff=1)
 FARM = Building("Farm", staff=1, output=Resources(wheat=3, gold=0))
 MARKET = Building("Market", staff=1, output=Resources(wheat=0, gold=2))
+BARRACKS = Building("Barracks", staff=1)

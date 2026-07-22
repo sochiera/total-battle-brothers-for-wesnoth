@@ -4,7 +4,7 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
-from tbb import Building, FARM, MARKET, Resources, SMITH
+from tbb import BARRACKS, Building, FARM, MARKET, Resources, SMITH
 
 
 def test_building_has_name_and_staff():
@@ -39,3 +39,10 @@ def test_catalog_contains_farm_and_market_with_outputs():
     assert FARM.output == Resources(wheat=3, gold=0)
     assert MARKET.staff == 1
     assert MARKET.output == Resources(wheat=0, gold=2)
+
+
+def test_catalog_contains_barracks_with_one_staff_and_zero_output():
+    assert BARRACKS.name == "Barracks"
+    assert BARRACKS.staff == 1
+    assert BARRACKS.output == Resources(0, 0)
+
