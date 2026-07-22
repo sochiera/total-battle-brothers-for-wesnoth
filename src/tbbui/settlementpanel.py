@@ -48,7 +48,11 @@ def render_settlement_panel(
     ``active_buildings``, else ``"false"``; immediately after
     ``data-garrison-wounded``) /
     ``data-equip-ready`` (``"true"`` when ``SMITH`` is in ``active_buildings``,
-    else ``"false"``; immediately after ``data-training-ready``) and visible
+    else ``"false"``; immediately after ``data-training-ready``) /
+    ``data-wheat-production`` / ``data-gold-production`` /
+    ``data-wheat-consumption`` (from ``settlement.production`` /
+    ``settlement.consumption``; no ``tick_economy``; immediately after
+    ``data-equip-ready``, before optional ``data-player-owned``) and visible
     text matching those attributes, including the
     `` · siła garnizonu: HP H, atak A, obrona D · budynki: N`` suffix and, when
     N>0, `` (name1, name2)`` after the count, then `` · ranni: W``, then
@@ -88,6 +92,11 @@ def render_settlement_panel(
             " · uzbrojenie: gotowe",
             " · uzbrojenie: wstrzymane (brak Kuźni)",
         )
+        production = settlement.production
+        consumption = settlement.consumption
+        wheat_production = production.wheat
+        gold_production = production.gold
+        wheat_consumption = consumption.wheat
         buildings = len(settlement.active_buildings)
         building_names = ", ".join(b.name for b in settlement.active_buildings)
         buildings_suffix = (
@@ -126,6 +135,9 @@ def render_settlement_panel(
             f' data-garrison-wounded="{garrison_wounded}"'
             f' data-training-ready="{training_ready}"'
             f' data-equip-ready="{equip_ready}"'
+            f' data-wheat-production="{wheat_production}"'
+            f' data-gold-production="{gold_production}"'
+            f' data-wheat-consumption="{wheat_consumption}"'
             f"{player_owned}"
             f">{text}</div>"
         )

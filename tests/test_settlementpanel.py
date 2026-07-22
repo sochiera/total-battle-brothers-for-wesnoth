@@ -508,14 +508,17 @@ def test_render_settlement_panel_rows_carry_training_ready_flag():
     assert row_b.attrib["data-training-ready"] == "false"
 
     # Attribute order: immediately after data-garrison-wounded; equip-ready
-    # (K56.1a) sits between training-ready and optional player-owned.
+    # (K56.1a) then monthly economy attrs (K57.1a) before optional player-owned.
     assert (
         ' data-garrison-wounded="0" data-training-ready="true"'
-        ' data-equip-ready="false" data-player-owned=""'
+        ' data-equip-ready="false" data-wheat-production="3"'
+        ' data-gold-production="2" data-wheat-consumption="5"'
+        ' data-player-owned=""'
     ) in xml
     assert (
         ' data-garrison-wounded="0" data-training-ready="false"'
-        ' data-equip-ready="false"'
+        ' data-equip-ready="false" data-wheat-production="3"'
+        ' data-gold-production="2" data-wheat-consumption="10"'
     ) in xml
     # No-barracks row must not get true merely from larger garrison/population.
     assert 'data-settlement-row="B"' in xml
@@ -661,12 +664,20 @@ def test_render_settlement_panel_rows_carry_equip_ready_flag():
     assert row_a.attrib["data-equip-ready"] == "true"
     assert row_b.attrib["data-equip-ready"] == "false"
 
-    # Attribute order: immediately after data-training-ready, before player-owned.
+    # Attribute order: immediately after data-training-ready; monthly economy
+    # attrs (K57.1a) sit between equip-ready and optional player-owned.
     assert (
-        ' data-training-ready="false" data-equip-ready="true" data-player-owned=""'
+        ' data-training-ready="false" data-equip-ready="true"'
+        ' data-wheat-production="3" data-gold-production="2"'
+        ' data-wheat-consumption="5" data-player-owned=""'
         in xml
     )
-    assert ' data-training-ready="true" data-equip-ready="false"' in xml
+    assert (
+        ' data-training-ready="true" data-equip-ready="false"'
+        ' data-wheat-production="3" data-gold-production="2"'
+        ' data-wheat-consumption="10"'
+        in xml
+    )
     # No-smith row must not get true merely from larger garrison/population/gold.
     assert 'data-settlement-row="B"' in xml
     assert row_b.attrib["data-garrison"] == "3"
@@ -777,4 +788,99 @@ def test_render_settlement_panel_rows_append_equip_ready_text_suffix():
     )
     assert text_b.endswith(
         " · trening: gotowy · uzbrojenie: wstrzymane (brak Kuźni)"
+    )
+
+
+def test_render_settlement_panel_rows_carry_monthly_economy_attributes():
+    """Each row carries data-wheat-production / data-gold-production /
+    data-wheat-consumption from settlement.production / .consumption (no world
+    mutation, no tick_economy), immediately after data-equip-ready and before
+    optional data-player-owned. Settlement without active buildings has
+    production 0/0 and consumption equal to population. Visible text is
+    unchanged (no economy text suffix).
+    """
+    a = Region("A")
+    b = Region("B")
+    settlement_a = Settlement(
+        "Keep A",
+        population=5,
+        occupied=2,
+        owner_id="north",
+        storage=Resources(wheat=5, gold=3),
+        garrison=(Unit(), Unit()),
+        active_buildings=(FARM, MARKET),
+    )
+    settlement_b = Settlement(
+        "Keep B",
+        population=4,
+        owner_id="south",
+        storage=Resources(wheat=10, gold=7),
+    )
+    world = WorldMap(
+        [a, b],
+        [(a, b)],
+        settlements={a: settlement_a, b: settlement_b},
+    )
+    settlements_before = world.settlements
+    storage_a_before = settlement_a.storage
+    storage_b_before = settlement_b.storage
+
+    assert settlement_a.production == Resources(wheat=3, gold=2)
+    assert settlement_a.consumption == Resources(wheat=5, gold=0)
+    assert settlement_b.production == Resources(wheat=0, gold=0)
+    assert settlement_b.consumption == Resources(wheat=4, gold=0)
+
+    xml = render_settlement_panel(world, player_duchy_id="north")
+    root = ET.fromstring(xml)
+
+    row_a, row_b = root.findall("div")
+    assert row_a.attrib["data-wheat-production"] == "3"
+    assert row_a.attrib["data-gold-production"] == "2"
+    assert row_a.attrib["data-wheat-consumption"] == "5"
+
+    assert row_b.attrib["data-wheat-production"] == "0"
+    assert row_b.attrib["data-gold-production"] == "0"
+    assert row_b.attrib["data-wheat-consumption"] == "4"
+
+    # Attribute order: after data-equip-ready, before optional data-player-owned.
+    assert (
+        ' data-equip-ready="false" data-wheat-production="3"'
+        ' data-gold-production="2" data-wheat-consumption="5"'
+        ' data-player-owned=""'
+    ) in xml
+    assert (
+        ' data-equip-ready="false" data-wheat-production="0"'
+        ' data-gold-production="0" data-wheat-consumption="4"'
+    ) in xml
+    assert 'data-settlement-row="B" data-owner="south"' in xml
+    assert 'data-player-owned' not in row_b.attrib
+
+    # Pure: no mutation of world / storage (no tick_economy side effects).
+    assert world.settlements == settlements_before
+    assert settlement_a.storage == storage_a_before
+    assert settlement_b.storage == storage_b_before
+
+    garrison_a = (Unit(), Unit())
+    expected_hp_a = sum(u.hp for u in garrison_a)
+    expected_attack_a = sum(u.damage for u in garrison_a)
+    expected_defense_a = sum(u.defense for u in garrison_a)
+    text_a = "".join(row_a.itertext())
+    assert text_a == (
+        f"Keep A (north): pszenica 5, złoto 3 · populacja 5 (wolne 3), garnizon 2"
+        f" · siła garnizonu: HP {expected_hp_a}"
+        f", atak {expected_attack_a}, obrona {expected_defense_a}"
+        f" · budynki: 2 (Farm, Market)"
+        f" · ranni: 0"
+        f" · trening: wstrzymany (brak Koszar)"
+        f" · uzbrojenie: wstrzymane (brak Kuźni)"
+    )
+
+    text_b = "".join(row_b.itertext())
+    assert text_b == (
+        "Keep B (south): pszenica 10, złoto 7 · populacja 4 (wolne 4), garnizon 0"
+        " · siła garnizonu: HP 0, atak 0, obrona 0"
+        " · budynki: 0"
+        " · ranni: 0"
+        " · trening: wstrzymany (brak Koszar)"
+        " · uzbrojenie: wstrzymane (brak Kuźni)"
     )
