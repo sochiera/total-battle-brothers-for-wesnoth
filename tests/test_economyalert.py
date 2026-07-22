@@ -446,3 +446,124 @@ def test_render_economy_alert_escapes_settlement_name_in_attribute():
     assert (
         tuple(s.storage for s in game.duchies[0].settlements) == storage_before
     )
+
+
+def test_render_economy_alert_total_wheat_deficit_on_root():
+    """When ``player_duchy_id`` matches a duchy, root carries
+    ``data-total-wheat-deficit="D"`` immediately after
+    ``data-starving-settlements``, where ``D`` is the sum of
+    ``(consumption.wheat - production.wheat)`` over settlements with
+    ``consumption.wheat > production.wheat`` (``0`` when none starve).
+    Attribute order on the root: ``data-economy-alert``,
+    ``data-starving-settlements``, ``data-total-wheat-deficit``. Pure: no
+    game mutation.
+    """
+    # starving: cons 5 > prod 3 → d=2
+    starving_farm = Settlement(
+        "Starving Farm",
+        population=5,
+        occupied=1,
+        owner_id="north",
+        storage=Resources(wheat=1, gold=0),
+        active_buildings=(FARM,),
+    )
+    # surplus: not counted
+    surplus = Settlement(
+        "Surplus Keep",
+        population=1,
+        occupied=1,
+        owner_id="north",
+        storage=Resources(wheat=10, gold=0),
+        active_buildings=(FARM,),
+    )
+    # balanced: not counted (strict >)
+    balanced = Settlement(
+        "Balanced",
+        population=3,
+        occupied=1,
+        owner_id="north",
+        storage=Resources(wheat=1, gold=0),
+        active_buildings=(FARM,),
+    )
+    # starving no farm: cons 2 > prod 0 → d=2
+    no_farm = Settlement(
+        "Hungry Hamlet",
+        population=2,
+        owner_id="north",
+        storage=Resources(wheat=0, gold=0),
+    )
+    # other duchy starving — must not contribute
+    other = Settlement(
+        "South Keep",
+        population=99,
+        owner_id="south",
+        storage=Resources(wheat=0, gold=0),
+    )
+
+    d_farm = (
+        starving_farm.consumption.wheat - starving_farm.production.wheat
+    )
+    d_no_farm = no_farm.consumption.wheat - no_farm.production.wheat
+    assert d_farm > 0
+    assert d_no_farm > 0
+    expected_total = d_farm + d_no_farm
+    expected_n = 2
+
+    game = GameState(
+        (
+            Duchy(
+                "north",
+                Unit(),
+                settlements=(starving_farm, surplus, balanced, no_farm),
+                parties=(),
+            ),
+            Duchy(
+                "south",
+                Unit(),
+                settlements=(other,),
+                parties=(),
+            ),
+        )
+    )
+    duchies_before = game.duchies
+    storage_before = tuple(s.storage for s in game.duchies[0].settlements)
+
+    xml = render_economy_alert(game, player_duchy_id="north")
+    root = ET.fromstring(xml)
+
+    assert root.tag == "div"
+    assert list(root.attrib.keys()) == [
+        "data-economy-alert",
+        "data-starving-settlements",
+        "data-total-wheat-deficit",
+    ]
+    assert root.attrib["data-economy-alert"] == ""
+    assert root.attrib["data-starving-settlements"] == str(expected_n)
+    assert root.attrib["data-total-wheat-deficit"] == str(expected_total)
+
+    # Zero-deficit case: known player, no starving settlements → D=0
+    full_only = GameState(
+        (
+            Duchy(
+                "north",
+                Unit(),
+                settlements=(surplus, balanced),
+                parties=(),
+            ),
+        )
+    )
+    xml_zero = render_economy_alert(full_only, player_duchy_id="north")
+    root_zero = ET.fromstring(xml_zero)
+    assert list(root_zero.attrib.keys()) == [
+        "data-economy-alert",
+        "data-starving-settlements",
+        "data-total-wheat-deficit",
+    ]
+    assert root_zero.attrib["data-starving-settlements"] == "0"
+    assert root_zero.attrib["data-total-wheat-deficit"] == "0"
+
+    assert game.duchies == duchies_before
+    assert game.duchies is duchies_before
+    assert (
+        tuple(s.storage for s in game.duchies[0].settlements) == storage_before
+    )
