@@ -652,3 +652,56 @@ def test_render_economy_alert_header_suffix_total_deficit_when_starving():
     assert (
         tuple(s.storage for s in game.duchies[0].settlements) == storage_before
     )
+
+
+def test_render_economy_alert_header_no_suffix_when_none_starving():
+    """When N == 0 (known player, no starving settlements), root header text
+    is exactly ``Osady na deficycie pszenicy: 0`` without the total-deficit
+    suffix; no ``data-starving-settlement`` children. Pure: no game mutation.
+    """
+    surplus = Settlement(
+        "Surplus Keep",
+        population=1,
+        occupied=1,
+        owner_id="north",
+        storage=Resources(wheat=10, gold=0),
+        active_buildings=(FARM,),
+    )
+    balanced = Settlement(
+        "Balanced",
+        population=3,
+        occupied=1,
+        owner_id="north",
+        storage=Resources(wheat=1, gold=0),
+        active_buildings=(FARM,),
+    )
+    assert not (surplus.consumption.wheat > surplus.production.wheat)
+    assert not (balanced.consumption.wheat > balanced.production.wheat)
+
+    game = GameState(
+        (
+            Duchy(
+                "north",
+                Unit(),
+                settlements=(surplus, balanced),
+                parties=(),
+            ),
+        )
+    )
+    duchies_before = game.duchies
+    storage_before = tuple(s.storage for s in game.duchies[0].settlements)
+
+    xml = render_economy_alert(game, player_duchy_id="north")
+    root = ET.fromstring(xml)
+
+    assert root.attrib.get("data-starving-settlements") == "0"
+    assert root.attrib.get("data-total-wheat-deficit") == "0"
+    assert root.text == "Osady na deficycie pszenicy: 0"
+    assert "łączny deficyt" not in (root.text or "")
+    assert list(root) == []
+
+    assert game.duchies == duchies_before
+    assert game.duchies is duchies_before
+    assert (
+        tuple(s.storage for s in game.duchies[0].settlements) == storage_before
+    )
