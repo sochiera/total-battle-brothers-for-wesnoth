@@ -44,8 +44,17 @@ Wartości odczytuje się z publicznego API `Settlement`:
 Funkcja jest czysta, deterministyczna i bez mutacji wejścia; wynik przechodzi
 przez `json.dumps`.
 
-Kolejne funkcje kontraktu (`party_state`, `map_state`, `game_state`,
-`save_state` + CLI) opisują odpowiednie zadania G63.1b–G63.2a.
+`party_state(party)` (G63.1b) zwraca `dict` z kluczami w kolejności:
+`owner`, `size`, `hp`, `attack`, `defense`, `wounded`.
+`owner` to `party.owner_id` (może być `None`); `size` to liczba podkomendnych
+`len(party.units)`; siła bojowa `(hp, attack, defense)` pochodzi z
+`tbbui.unitstrength.combat_totals((party.hero, *party.units))`, a liczba rannych
+z `tbbui.unitstrength.wounded_count((party.hero, *party.units))`
+(bohater jest zawsze wliczany do agregatów). Funkcja jest czysta,
+deterministyczna i bez mutacji wejścia; wynik przechodzi przez `json.dumps`.
+
+Kolejne funkcje kontraktu (`map_state`, `game_state`, `save_state` + CLI)
+opisują odpowiednie zadania G63.1c–G63.2a.
 
 ### Prezentacja (pakiet `tbbui`, Kamień 13)
 Warstwa render/UI jest **poza rdzeniem**. `python -m tbb` nadal uruchamia

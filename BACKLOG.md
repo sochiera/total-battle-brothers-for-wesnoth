@@ -71,7 +71,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > fundament, którego Godot będzie konsumentem; rdzeń `tbb` pozostaje jedynym
 > źródłem reguł i nie zależy od mostu.
 - [ ] **G63.1a** `tbbbridge.snapshot.settlement_state(settlement) -> dict` (czysty, json-serializowalny słownik osady); ARCHITECTURE (nowa sekcja `tbbbridge`), DECISIONS `G63.1a`. *(task-296)*
-- [ ] **G63.1b** `tbbbridge.snapshot.party_state(party) -> dict` (owner/size/hp/attack/defense/wounded z `unitstrength`); ARCHITECTURE, DECISIONS `G63.1b`. *(task-297)*
+- [x] **G63.1b** `tbbbridge.snapshot.party_state(party) -> dict` (owner/size/hp/attack/defense/wounded z `unitstrength`); ARCHITECTURE, DECISIONS `G63.1b`. *(task-297)*
 - [ ] **G63.1c** `tbbbridge.snapshot.map_state(world) -> dict` (regiony z `col`/`row` z `layout_world`, osada/party, `connections`); ARCHITECTURE, DECISIONS `G63.1c`. *(task-298)*
 - [ ] **G63.1d** `tbbbridge.snapshot.game_state(world, game, calendar, player_duchy_id=None) -> dict` (calendar/duchies/map/result); ARCHITECTURE, DECISIONS `G63.1d`. *(task-299)*
 - [ ] **G63.2a** `tbbbridge.snapshot.save_state(...)` + CLI `python -m tbbbridge [path]` (deterministyczny JSON, seed 73); ARCHITECTURE, DESIGN §11, DECISIONS `G63.2a`. *(task-300)*
