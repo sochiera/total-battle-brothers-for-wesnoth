@@ -25,10 +25,12 @@ def render_player_summary(
     subordinates) of each party in ``duchy.parties``, and visible text
     ``Twoje księstwo: osady N, oddziały M · pszenica W, złoto G · siła
     oddziałów: HP H, atak A, obrona D · produkcja/mies.: +Pw pszenicy ·
-    konsumpcja: Cw pszenicy`` (Pw/Cw match the production/consumption
-    attributes; no bilans text yet). When ``player_duchy_id`` is ``None`` or
-    not present in ``game.duchies``, returns a bare empty root. Pure and
-    deterministic: no RNG/IO; ``game`` is not mutated.
+    konsumpcja: Cw pszenicy · bilans pszenicy: nadwyżka|deficyt`` (Pw/Cw
+    match the production/consumption attributes; bilans matches
+    ``data-wheat-surplus``: ``true`` → nadwyżka, ``false`` → deficyt).
+    When ``player_duchy_id`` is ``None`` or not present in ``game.duchies``,
+    returns a bare empty root. Pure and deterministic: no RNG/IO; ``game``
+    is not mutated.
     """
     duchy = player_duchy(game, player_duchy_id)
     if duchy is None:
@@ -43,6 +45,7 @@ def render_player_summary(
     wheat_surplus = (
         "true" if wheat_production >= wheat_consumption else "false"
     )
+    bilans_label = "nadwyżka" if wheat_surplus == "true" else "deficyt"
     units = tuple(
         unit
         for party in duchy.parties
@@ -56,6 +59,7 @@ def render_player_summary(
         f" obrona {total_defense}"
         f" · produkcja/mies.: +{wheat_production} pszenicy"
         f" · konsumpcja: {wheat_consumption} pszenicy"
+        f" · bilans pszenicy: {bilans_label}"
     )
     return (
         f'<div data-player-summary=""'

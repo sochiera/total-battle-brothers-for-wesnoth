@@ -497,7 +497,7 @@ prefiks `» ` przed tekstem; id spoza palety → żaden wiersz nieoznaczony; `No
 korzeń (bez wierszy). Czyste, deterministyczne, bez mutacji `world`; rdzeń bez
 zmian.
 
-**Podsumowanie księstwa gracza HTML (K30.3a / K30.3b / K58.1a / K58.1b / K58.2a):**
+**Podsumowanie księstwa gracza HTML (K30.3a / K30.3b / K58.1a / K58.1b / K58.2a / K58.2b):**
 `tbbui.playersummary.render_player_summary(game, player_duchy_id=None) -> str`
 — parsowalny fragment XML z korzeniem `<div data-player-summary="">`. Gdy
 `player_duchy_id` wskazuje księstwo w `game.duchies`, korzeń ma atrybuty
@@ -513,9 +513,10 @@ produkcji `>=` suma konsumpcji, inaczej `"false"`; księstwo bez osad →
 oraz widoczny tekst
 `Twoje księstwo: osady N, oddziały M · pszenica W, złoto G · siła oddziałów:
 HP H, atak A, obrona D · produkcja/mies.: +Pw pszenicy · konsumpcja: Cw
-pszenicy` zgodny z atrybutami (Pw/Cw = te same liczby co
-`data-wheat-production` / `data-wheat-consumption`; bez sufiksu bilansu —
-ten niesie K58.2b). Gdy `player_duchy_id`
+pszenicy · bilans pszenicy: nadwyżka|deficyt` zgodny z atrybutami (Pw/Cw =
+te same liczby co `data-wheat-production` / `data-wheat-consumption`; sufiks
+bilansu spójny z `data-wheat-surplus`: `"true"` → nadwyżka, `"false"` →
+deficyt). Gdy `player_duchy_id`
 jest `None` albo spoza `game.duchies` — sam pusty korzeń (bez atrybutów
 liczbowych i bez tekstu). Czyste, deterministyczne, bez mutacji `game`;
 rdzeń bez zmian.
