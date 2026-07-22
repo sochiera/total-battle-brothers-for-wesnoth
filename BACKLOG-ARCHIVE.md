@@ -485,3 +485,12 @@
 - [x] **R52.1 (refaktor)** Wspólny helper escapowanego akapitu `<p data-X="…">…</p>` w `tbbui/recommendedaction.py`, reużyty przez `render_recommended_action` i `GameApp._recommended_order_form` (dedup powielenia z K50–K52); bez nowych testów, wynik bajt-w-bajt jak dziś. *(task-248)*
 - [x] **T53.1a** `tbb.party.Party.tick_training(months=1) -> Party` — czysta metoda treningu hero+units (mirror `tick_wounds`, deleguje do `Unit.train`); jeszcze niepodpięta w `WorldMap.tick_parties`. *(task-249)*
 - [x] **T53.1b** `WorldMap.tick_parties()` stosuje `party.tick_wounds(1).tick_training(1)` na każdym party; scenariusz bazowy headless i DESIGN §5/§8 zaktualizowane do nowego, faktycznego stanu. *(task-250)*
+
+## Kamień milowy 54 — bramkowanie treningu garnizonu budynkiem (Koszary) — UKOŃCZONY
+- [x] **G54.1a** `tbb.building.BARRACKS = Building("Barracks", staff=1)` (zerowa produkcja, jak `SMITH`), eksportowany z `tbb/__init__.py`; czysto katalogowe, bez wiązania z AI/treningiem. *(task-264)*
+- [x] **G54.1b** `_DEVELOPMENT_PRIORITIES == (FARM, SMITH, BARRACKS, MARKET)` — AI (i przycisk „Rozbuduj osadę") otwiera Koszary jako trzeci priorytet, przed Market. *(task-265)*
+- [x] **G54.1c** `Settlement.tick_training()` jest no-opem bez czynnych Koszar w `active_buildings`; z czynnymi Koszarami trenuje jak dotąd; DESIGN §5 i `tests/test_smoke.py` zaktualizowane do faktycznego wyniku headless. *(task-266)*
+
+## Kamień milowy 55 — czytelna gotowość treningu garnizonu (Koszary) w panelu osady — UKOŃCZONY
+- [x] **K55.1a** `data-training-ready="true|false"` (= `BARRACKS in active_buildings`) w każdym `data-settlement-row`, zaraz po `data-garrison-wounded`; tekst bez zmian; `BARRACKS` importowany z `tbb` (bez lokalnych duplikatów). *(task-267)*
+- [x] **K55.1b** widoczny sufiks ` · trening: gotowy` / ` · trening: wstrzymany (brak Koszar)` spójny z flagą; ARCHITECTURE (panel osad), DESIGN §11 i DECISIONS `K55.1b`. *(task-268)*
