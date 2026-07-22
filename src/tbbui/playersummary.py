@@ -26,9 +26,10 @@ def render_player_summary(
     unit (hero + subordinates) of each party in ``duchy.parties``, and
     visible text ``Twoje księstwo: osady N, oddziały M · pszenica W, złoto G
     · siła oddziałów: HP H, atak A, obrona D · produkcja/mies.: +Pw pszenicy
-    · konsumpcja: Cw pszenicy · bilans pszenicy: nadwyżka|deficyt`` (Pw/Cw
-    match the production/consumption attributes; bilans matches
-    ``data-wheat-surplus``: ``true`` → nadwyżka, ``false`` → deficyt).
+    · konsumpcja: Cw pszenicy · bilans pszenicy: nadwyżka|deficyt
+    · saldo pszenicy/mies.: {net:+d}`` (Pw/Cw match the production/consumption
+    attributes; bilans matches ``data-wheat-surplus``: ``true`` → nadwyżka,
+    ``false`` → deficyt; saldo matches ``data-wheat-net``, always signed).
     When ``player_duchy_id`` is ``None`` or not present in ``game.duchies``,
     returns a bare empty root. Pure and deterministic: no RNG/IO; ``game``
     is not mutated.
@@ -62,6 +63,7 @@ def render_player_summary(
         f" · produkcja/mies.: +{wheat_production} pszenicy"
         f" · konsumpcja: {wheat_consumption} pszenicy"
         f" · bilans pszenicy: {bilans_label}"
+        f" · saldo pszenicy/mies.: {wheat_net:+d}"
     )
     return (
         f'<div data-player-summary=""'

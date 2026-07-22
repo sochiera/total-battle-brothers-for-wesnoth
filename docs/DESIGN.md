@@ -351,7 +351,8 @@ miesięczna produkcja i konsumpcja osady: `+Pw` pszenicy, `+Pg` złota /
 `Cw` pszenicy konsumpcji; czytelny bilans pszenicy: nadwyżka / deficyt), legendę
 właścicieli. Przy wskazanym księstwie gracza: podsumowanie sił (w tym zbiorcza
 miesięczna produkcja i konsumpcja pszenicy księstwa: `+Pw` / `Cw`; czytelny
-bilans pszenicy księstwa: nadwyżka / deficyt), postęp do
+bilans pszenicy księstwa: nadwyżka / deficyt; czytelne saldo miesięczne
+pszenicy księstwa: `{net:+d}`), postęp do
 zwycięstwa, podpowiedź celu, lokalizacja i dystans do wrogich bohaterów,
 porównanie sił z sąsiednimi celami, alert zagrożeń własnych pozycji, skrót
 sytuacji (postawa ofensywna/defensywna/zrównoważona) i jeden zalecany rozkaz
