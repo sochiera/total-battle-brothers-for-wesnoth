@@ -62,6 +62,20 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 - [ ] **K61.2b** sufiks nagłówka ` (łączny deficyt: D pszenicy/mies.)` gdy `N>0`, spójny z `data-total-wheat-deficit`; ARCHITECTURE, DESIGN §11, DECISIONS `K61.2b`. *(task-290)*
 - [ ] **K61.3a** flaga `data-economy-critical=""` (po `data-total-wheat-deficit`) i nota `data-economy-caution` gdy `N>0`; brak przy `N==0`; ARCHITECTURE, DESIGN §11, DECISIONS `K61.3a`. *(task-291)*
 
+## Kamień milowy 63 — most stanu gry do klienta Godota (snapshot JSON) — PRIORYTET
+> **Zmiana zakresu (brief, DECISIONS G63.0):** docelowy klient to natywna gra
+> Godot 4 na Linux, a komunikacja z rdzeniem idzie przez testowalny snapshot
+> JSON. HTML/SVG `tbbui` degradowane do narzędzia diagnostycznego. Zanim powstaną
+> sceny Godota, budujemy w TDD **kontrakt danych**: nowy pakiet-most `tbbbridge`
+> serializujący publiczny stan rdzenia do json-serializowalnych słowników. To
+> fundament, którego Godot będzie konsumentem; rdzeń `tbb` pozostaje jedynym
+> źródłem reguł i nie zależy od mostu.
+- [ ] **G63.1a** `tbbbridge.snapshot.settlement_state(settlement) -> dict` (czysty, json-serializowalny słownik osady); ARCHITECTURE (nowa sekcja `tbbbridge`), DECISIONS `G63.1a`. *(task-296)*
+- [ ] **G63.1b** `tbbbridge.snapshot.party_state(party) -> dict` (owner/size/hp/attack/defense/wounded z `unitstrength`); ARCHITECTURE, DECISIONS `G63.1b`. *(task-297)*
+- [ ] **G63.1c** `tbbbridge.snapshot.map_state(world) -> dict` (regiony z `col`/`row` z `layout_world`, osada/party, `connections`); ARCHITECTURE, DECISIONS `G63.1c`. *(task-298)*
+- [ ] **G63.1d** `tbbbridge.snapshot.game_state(world, game, calendar, player_duchy_id=None) -> dict` (calendar/duchies/map/result); ARCHITECTURE, DECISIONS `G63.1d`. *(task-299)*
+- [ ] **G63.2a** `tbbbridge.snapshot.save_state(...)` + CLI `python -m tbbbridge [path]` (deterministyczny JSON, seed 73); ARCHITECTURE, DESIGN §11, DECISIONS `G63.2a`. *(task-300)*
+
 ## Dług/refaktor
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*
 - [x] **R21.1 (refaktor)** Wspólny emiter formularzy celu marsz/szturm/starcie w `serve.py`. *(task-113)*
@@ -69,6 +83,13 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 - [x] **R16.1 (refaktor)** Wspólny generator formularzy celu marsz/szturm w `serve.py`. *(task-098)*
 
 ## Później (poza MVP)
+- [ ] **K62 (WSTRZYMANE — DECISIONS G63.0)** Rozbudowa alertu gospodarczego HTML
+      (osada priorytetowa + remedium: `data-priority-settlement` /
+      `data-priority-hint` / `data-priority-remedy`). Zaplanowane task-292…295
+      **zdjęte z kolejki i usunięte** — to dalsza polish diagnostycznego klientu
+      HTML, którą brief degraduje na rzecz klienta Godota. Podjąć dopiero, jeśli
+      wróci realna potrzeba tej podpowiedzi (najpewniej już jako element klienta
+      Godota, nie HTML).
 - [ ] **R12.1 (opcjonalny dług)** Wspólna kwerenda własnych osad w `ai.py`:
       generator `_owned_settlements(world, duchy_id)` reużyty przez
       `develop_duchy_settlement`/`raise_duchy_hero`/`recruit_duchy_unit`/

@@ -334,8 +334,20 @@ w regionie (wymaga osady i wolnego slotu party).
 Scenariuszowa kampania/fabuła, multiplayer sieciowy, magia/fantastyka, oddziały
 masowe (np. 60 ludzi w jednostce), grafika AAA/dźwięk, edytor map.
 
-## 11. Warstwa wizualna (`tbbui`)
-Rdzeń `tbb` **nigdy** nie importuje UI. Prezentacja to osobny pakiet **stdlib**:
+## 11. Warstwa wizualna
+
+**Docelowy klient = natywna gra 2D w Godot 4 na Linux x86-64.** Gracz uruchamia
+pojedynczą aplikację (bez terminala/Pythona/Godota-dev) i może zarządzać osadą,
+przemieszczać armię, rozegrać bitwę oraz zapisać/wczytać stan. Rdzeń `tbb`
+pozostaje **jedynym źródłem reguł** — Godot nie duplikuje logiki, a Python nie
+zależy od Godota. Komunikacja Godot↔rdzeń idzie przez **jawny, testowalny
+interfejs: stan gry jako JSON** (pakiet-most `tbbbridge`, snapshot serializowany
+z publicznego API rdzenia; kontrakt w `ARCHITECTURE.md`). Klient HTML/SVG
+(`tbbui`) zostaje **wyłącznie jako narzędzie diagnostyczne**, nie jest już
+docelowym klientem gry.
+
+### 11a. Warstwa diagnostyczna (`tbbui`)
+Rdzeń `tbb` **nigdy** nie importuje UI. Diagnostyka to osobny pakiet **stdlib**:
 deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka.
 Pełne kontrakty render/routingu (`data-*`, emitory HTML, ścieżki POST) —
 `docs/ARCHITECTURE.md` (sekcja prezentacji `tbbui`).
