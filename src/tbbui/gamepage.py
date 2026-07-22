@@ -8,6 +8,7 @@ from tbb.turn import Calendar
 from tbb.world import WorldMap
 from tbbui.battlereport import render_battle_report
 from tbbui.battlesvg import render_battle_svg
+from tbbui.economyalert import render_economy_alert
 from tbbui.engagementpreview import render_engagement_preview
 from tbbui.herochase import render_hero_chase
 from tbbui.herolocator import render_enemy_hero_locator
@@ -106,6 +107,8 @@ def render_game_page(
     get player markers; when not ``None``, also embeds the canonical string
     from ``render_player_summary(game, player_duchy_id)`` in ``<body>``
     (exactly one ``data-player-summary``), immediately after it the
+    canonical string from ``render_economy_alert(game, player_duchy_id)``
+    (K60.1c, exactly one ``data-economy-alert``), immediately after that the
     canonical string from ``render_victory_progress(game, player_duchy_id)``
     (K33.1c, exactly one ``data-victory-progress``), immediately after that
     the canonical string from ``render_next_objective(game, player_duchy_id)``
@@ -125,10 +128,11 @@ def render_game_page(
     from ``render_recommended_action(world, game, player_duchy_id)`` (K41.3a,
     exactly one ``data-recommended-action``), and a player-perspective result
     line (``<p data-player-result-text>``, K31.2a); ``None`` (default) omits
-    those markers, the summary, the victory progress, the next-objective hint,
-    the hero locator, the hero chase, the engagement preview, the threat alert,
-    the situation report, the recommended action, and the player result. Pure
-    and deterministic: no RNG/IO; inputs (including ``battle``) are not mutated.
+    those markers, the summary, the economy alert, the victory progress, the
+    next-objective hint, the hero locator, the hero chase, the engagement
+    preview, the threat alert, the situation report, the recommended action,
+    and the player result. Pure and deterministic: no RNG/IO; inputs
+    (including ``battle``) are not mutated.
     """
     map_svg = render_world_svg(world)
     owner_legend = render_owner_legend(world, player_duchy_id)
@@ -136,6 +140,7 @@ def render_game_page(
     party_panel = render_party_panel(world, player_duchy_id)
     if player_duchy_id is not None:
         player_summary = render_player_summary(game, player_duchy_id)
+        economy_alert = render_economy_alert(game, player_duchy_id)
         victory_progress = render_victory_progress(game, player_duchy_id)
         next_objective = render_next_objective(game, player_duchy_id)
         hero_locator = render_enemy_hero_locator(world, game, player_duchy_id)
@@ -157,6 +162,7 @@ def render_game_page(
         )
     else:
         player_summary = ""
+        economy_alert = ""
         victory_progress = ""
         next_objective = ""
         hero_locator = ""
@@ -225,6 +231,7 @@ def render_game_page(
         f"{map_svg}"
         f"{owner_legend}"
         f"{player_summary}"
+        f"{economy_alert}"
         f"{victory_progress}"
         f"{next_objective}"
         f"{hero_locator}"

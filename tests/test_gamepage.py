@@ -17,6 +17,7 @@ from tbb.unit import Unit
 from tbb.world import Region, WorldMap
 from tbbui.battlereport import render_battle_report
 from tbbui.battlesvg import render_battle_svg
+from tbbui.economyalert import render_economy_alert
 from tbbui.gamepage import render_game_page
 from tbbui.ownerlegend import render_owner_legend
 from tbbui.palette import owner_palette
@@ -637,15 +638,49 @@ def test_render_game_page_embeds_canonical_player_summary_when_player_duchy_id_s
     assert summary_els[0] in list(body.iter())
 
 
-def test_render_game_page_embeds_canonical_victory_progress_after_player_summary():
-    """``player_duchy_id`` embeds one canonical ``render_victory_progress`` right after summary.
+def test_render_game_page_embeds_canonical_economy_alert_after_player_summary():
+    """``player_duchy_id`` embeds one canonical ``render_economy_alert`` after summary.
 
-    Exactly one ``data-victory-progress`` in ``<body>``; string equals
-    ``render_victory_progress(game, player_duchy_id)`` and sits immediately after
-    the embedded ``render_player_summary`` output.
+    Exactly one ``data-economy-alert`` in ``<body>``; string equals
+    ``render_economy_alert(game, player_duchy_id)`` and sits immediately after
+    the embedded ``render_player_summary`` output and immediately before
+    ``render_victory_progress``.
     """
     world, game, calendar = _ongoing_fixture()
     expected_summary = render_player_summary(game, "north")
+    expected_alert = render_economy_alert(game, "north")
+    expected_progress = render_victory_progress(game, "north")
+
+    html = render_game_page(world, game, calendar, player_duchy_id="north")
+
+    assert expected_alert in html, (
+        "page must embed render_economy_alert(game, player_duchy_id) output"
+    )
+    assert html.count(expected_alert) == 1
+    assert html.index(expected_summary) + len(expected_summary) == html.index(
+        expected_alert
+    ), "economy alert must sit directly after the embedded player summary"
+    assert html.index(expected_alert) + len(expected_alert) == html.index(
+        expected_progress
+    ), "economy alert must sit directly before the embedded victory progress"
+
+    root = ET.fromstring(html)
+    assert _local(root.tag) == "html"
+    body = next(el for el in root if _local(el.tag) == "body")
+    alert_els = _find_by_attr(root, "data-economy-alert")
+    assert len(alert_els) == 1
+    assert alert_els[0] in list(body.iter())
+
+
+def test_render_game_page_embeds_canonical_victory_progress_after_player_summary():
+    """``player_duchy_id`` embeds one canonical ``render_victory_progress`` after economy alert.
+
+    Exactly one ``data-victory-progress`` in ``<body>``; string equals
+    ``render_victory_progress(game, player_duchy_id)`` and sits immediately after
+    the embedded ``render_economy_alert`` output.
+    """
+    world, game, calendar = _ongoing_fixture()
+    expected_alert = render_economy_alert(game, "north")
     expected_progress = render_victory_progress(game, "north")
 
     html = render_game_page(world, game, calendar, player_duchy_id="north")
@@ -654,9 +689,9 @@ def test_render_game_page_embeds_canonical_victory_progress_after_player_summary
         "page must embed render_victory_progress(game, player_duchy_id) output"
     )
     assert html.count(expected_progress) == 1
-    assert html.index(expected_summary) + len(expected_summary) == html.index(
+    assert html.index(expected_alert) + len(expected_alert) == html.index(
         expected_progress
-    ), "victory progress must sit directly after the embedded player summary"
+    ), "victory progress must sit directly after the embedded economy alert"
 
     root = ET.fromstring(html)
     assert _local(root.tag) == "html"
