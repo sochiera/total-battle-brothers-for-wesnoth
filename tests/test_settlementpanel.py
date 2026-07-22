@@ -149,7 +149,8 @@ def test_render_settlement_panel_rows_carry_garrison_hp():
         f" · budynki: 0"
         f" · ranni: 0"
         f" · trening: wstrzymany (brak Koszar)"
-        f" · uzbrojenie: wstrzymane (brak Kuźni)"
+f" · uzbrojenie: wstrzymane (brak Kuźni)"
+        f" · produkcja/mies.: +0 pszenicy, +0 złota · konsumpcja: 5 pszenicy"
     )
 
     assert row_b.attrib["data-garrison-hp"] == "0"
@@ -160,7 +161,8 @@ def test_render_settlement_panel_rows_carry_garrison_hp():
         " · budynki: 0"
         " · ranni: 0"
         " · trening: wstrzymany (brak Koszar)"
-        " · uzbrojenie: wstrzymane (brak Kuźni)"
+" · uzbrojenie: wstrzymane (brak Kuźni)"
+        " · produkcja/mies.: +0 pszenicy, +0 złota · konsumpcja: 1 pszenicy"
     )
 
 
@@ -211,7 +213,8 @@ def test_render_settlement_panel_rows_carry_garrison_attack_and_defense():
         f" · budynki: 0"
         f" · ranni: 0"
         f" · trening: wstrzymany (brak Koszar)"
-        f" · uzbrojenie: wstrzymane (brak Kuźni)"
+f" · uzbrojenie: wstrzymane (brak Kuźni)"
+        f" · produkcja/mies.: +0 pszenicy, +0 złota · konsumpcja: 5 pszenicy"
     )
 
     assert row_b.attrib["data-garrison-attack"] == "0"
@@ -223,7 +226,8 @@ def test_render_settlement_panel_rows_carry_garrison_attack_and_defense():
         " · budynki: 0"
         " · ranni: 0"
         " · trening: wstrzymany (brak Koszar)"
-        " · uzbrojenie: wstrzymane (brak Kuźni)"
+" · uzbrojenie: wstrzymane (brak Kuźni)"
+        " · produkcja/mies.: +0 pszenicy, +0 złota · konsumpcja: 1 pszenicy"
     )
 
 
@@ -308,7 +312,8 @@ def test_render_settlement_panel_rows_carry_active_buildings_count():
         f" · budynki: 2 (Farm, Market)"
         f" · ranni: 0"
         f" · trening: wstrzymany (brak Koszar)"
-        f" · uzbrojenie: wstrzymane (brak Kuźni)"
+f" · uzbrojenie: wstrzymane (brak Kuźni)"
+        f" · produkcja/mies.: +3 pszenicy, +2 złota · konsumpcja: 5 pszenicy"
     )
 
     assert row_b.attrib["data-buildings"] == "0"
@@ -319,7 +324,8 @@ def test_render_settlement_panel_rows_carry_active_buildings_count():
         " · budynki: 0"
         " · ranni: 0"
         " · trening: wstrzymany (brak Koszar)"
-        " · uzbrojenie: wstrzymane (brak Kuźni)"
+" · uzbrojenie: wstrzymane (brak Kuźni)"
+        " · produkcja/mies.: +0 pszenicy, +0 złota · konsumpcja: 1 pszenicy"
     )
 
 
@@ -372,7 +378,8 @@ def test_render_settlement_panel_rows_carry_active_building_names():
         f" · budynki: 2 (Farm, Market)"
         f" · ranni: 0"
         f" · trening: wstrzymany (brak Koszar)"
-        f" · uzbrojenie: wstrzymane (brak Kuźni)"
+f" · uzbrojenie: wstrzymane (brak Kuźni)"
+        f" · produkcja/mies.: +3 pszenicy, +2 złota · konsumpcja: 5 pszenicy"
     )
 
     assert row_b.attrib["data-building-names"] == ""
@@ -383,7 +390,8 @@ def test_render_settlement_panel_rows_carry_active_building_names():
         " · budynki: 0"
         " · ranni: 0"
         " · trening: wstrzymany (brak Koszar)"
-        " · uzbrojenie: wstrzymane (brak Kuźni)"
+" · uzbrojenie: wstrzymane (brak Kuźni)"
+        " · produkcja/mies.: +0 pszenicy, +0 złota · konsumpcja: 1 pszenicy"
     )
 
 
@@ -435,7 +443,8 @@ def test_render_settlement_panel_rows_carry_garrison_wounded_count():
         f" · budynki: 2 (Farm, Market)"
         f" · ranni: 2"
         f" · trening: wstrzymany (brak Koszar)"
-        f" · uzbrojenie: wstrzymane (brak Kuźni)"
+f" · uzbrojenie: wstrzymane (brak Kuźni)"
+        f" · produkcja/mies.: +3 pszenicy, +2 złota · konsumpcja: 5 pszenicy"
     )
 
     assert row_b.attrib["data-garrison-wounded"] == "0"
@@ -446,7 +455,8 @@ def test_render_settlement_panel_rows_carry_garrison_wounded_count():
         " · budynki: 0"
         " · ranni: 0"
         " · trening: wstrzymany (brak Koszar)"
-        " · uzbrojenie: wstrzymane (brak Kuźni)"
+" · uzbrojenie: wstrzymane (brak Kuźni)"
+        " · produkcja/mies.: +0 pszenicy, +0 złota · konsumpcja: 1 pszenicy"
     )
 
 
@@ -537,7 +547,8 @@ def test_render_settlement_panel_rows_carry_training_ready_flag():
         f" · budynki: 3 (Farm, Barracks, Market)"
         f" · ranni: 0"
         f" · trening: gotowy"
-        f" · uzbrojenie: wstrzymane (brak Kuźni)"
+f" · uzbrojenie: wstrzymane (brak Kuźni)"
+        f" · produkcja/mies.: +3 pszenicy, +2 złota · konsumpcja: 5 pszenicy"
     )
 
     garrison_b = (Unit(), Unit(), Unit())
@@ -552,7 +563,8 @@ def test_render_settlement_panel_rows_carry_training_ready_flag():
         f" · budynki: 2 (Farm, Market)"
         f" · ranni: 0"
         f" · trening: wstrzymany (brak Koszar)"
-        f" · uzbrojenie: wstrzymane (brak Kuźni)"
+f" · uzbrojenie: wstrzymane (brak Kuźni)"
+        f" · produkcja/mies.: +3 pszenicy, +2 złota · konsumpcja: 10 pszenicy"
     )
 
 
@@ -606,7 +618,8 @@ def test_render_settlement_panel_rows_append_training_ready_text_suffix():
         f" · budynki: 3 (Farm, Barracks, Market)"
         f" · ranni: 1"
         f" · trening: gotowy"
-        f" · uzbrojenie: wstrzymane (brak Kuźni)"
+f" · uzbrojenie: wstrzymane (brak Kuźni)"
+        f" · produkcja/mies.: +3 pszenicy, +2 złota · konsumpcja: 5 pszenicy"
     )
     assert " · ranni: 1 · trening: gotowy" in text_a
 
@@ -618,7 +631,8 @@ def test_render_settlement_panel_rows_append_training_ready_text_suffix():
         " · budynki: 2 (Farm, Market)"
         " · ranni: 0"
         " · trening: wstrzymany (brak Koszar)"
-        " · uzbrojenie: wstrzymane (brak Kuźni)"
+" · uzbrojenie: wstrzymane (brak Kuźni)"
+        " · produkcja/mies.: +3 pszenicy, +2 złota · konsumpcja: 1 pszenicy"
     )
     assert " · ranni: 0 · trening: wstrzymany (brak Koszar)" in text_b
 
@@ -696,10 +710,12 @@ def test_render_settlement_panel_rows_carry_equip_ready_flag():
         f" · budynki: 3 (Farm, Smith, Market)"
         f" · ranni: 0"
         f" · trening: wstrzymany (brak Koszar)"
-        f" · uzbrojenie: gotowe"
+f" · uzbrojenie: gotowe"
+        f" · produkcja/mies.: +3 pszenicy, +2 złota · konsumpcja: 5 pszenicy"
     )
     assert text_a.endswith(
         " · trening: wstrzymany (brak Koszar) · uzbrojenie: gotowe"
+        " · produkcja/mies.: +3 pszenicy, +2 złota · konsumpcja: 5 pszenicy"
     )
 
     garrison_b = (Unit(), Unit(), Unit())
@@ -714,10 +730,12 @@ def test_render_settlement_panel_rows_carry_equip_ready_flag():
         f" · budynki: 3 (Farm, Barracks, Market)"
         f" · ranni: 0"
         f" · trening: gotowy"
-        f" · uzbrojenie: wstrzymane (brak Kuźni)"
+f" · uzbrojenie: wstrzymane (brak Kuźni)"
+        f" · produkcja/mies.: +3 pszenicy, +2 złota · konsumpcja: 10 pszenicy"
     )
     assert text_b.endswith(
         " · trening: gotowy · uzbrojenie: wstrzymane (brak Kuźni)"
+        " · produkcja/mies.: +3 pszenicy, +2 złota · konsumpcja: 10 pszenicy"
     )
 
 
@@ -770,10 +788,12 @@ def test_render_settlement_panel_rows_append_equip_ready_text_suffix():
         f" · budynki: 3 (Farm, Smith, Market)"
         f" · ranni: 1"
         f" · trening: wstrzymany (brak Koszar)"
-        f" · uzbrojenie: gotowe"
+f" · uzbrojenie: gotowe"
+        f" · produkcja/mies.: +3 pszenicy, +2 złota · konsumpcja: 5 pszenicy"
     )
     assert text_a.endswith(
         " · trening: wstrzymany (brak Koszar) · uzbrojenie: gotowe"
+        " · produkcja/mies.: +3 pszenicy, +2 złota · konsumpcja: 5 pszenicy"
     )
 
     assert row_b.attrib["data-equip-ready"] == "false"
@@ -784,10 +804,12 @@ def test_render_settlement_panel_rows_append_equip_ready_text_suffix():
         " · budynki: 3 (Farm, Barracks, Market)"
         " · ranni: 0"
         " · trening: gotowy"
-        " · uzbrojenie: wstrzymane (brak Kuźni)"
+" · uzbrojenie: wstrzymane (brak Kuźni)"
+        " · produkcja/mies.: +3 pszenicy, +2 złota · konsumpcja: 1 pszenicy"
     )
     assert text_b.endswith(
         " · trening: gotowy · uzbrojenie: wstrzymane (brak Kuźni)"
+        " · produkcja/mies.: +3 pszenicy, +2 złota · konsumpcja: 1 pszenicy"
     )
 
 
@@ -796,8 +818,8 @@ def test_render_settlement_panel_rows_carry_monthly_economy_attributes():
     data-wheat-consumption from settlement.production / .consumption (no world
     mutation, no tick_economy), immediately after data-equip-ready and before
     optional data-player-owned. Settlement without active buildings has
-    production 0/0 and consumption equal to population. Visible text is
-    unchanged (no economy text suffix).
+    production 0/0 and consumption equal to population. Visible text includes
+    the K57.1b economy suffix consistent with the attributes.
     """
     a = Region("A")
     b = Region("B")
@@ -872,7 +894,97 @@ def test_render_settlement_panel_rows_carry_monthly_economy_attributes():
         f" · budynki: 2 (Farm, Market)"
         f" · ranni: 0"
         f" · trening: wstrzymany (brak Koszar)"
+f" · uzbrojenie: wstrzymane (brak Kuźni)"
+        f" · produkcja/mies.: +3 pszenicy, +2 złota · konsumpcja: 5 pszenicy"
+    )
+
+    text_b = "".join(row_b.itertext())
+    assert text_b == (
+        "Keep B (south): pszenica 10, złoto 7 · populacja 4 (wolne 4), garnizon 0"
+        " · siła garnizonu: HP 0, atak 0, obrona 0"
+        " · budynki: 0"
+        " · ranni: 0"
+        " · trening: wstrzymany (brak Koszar)"
+" · uzbrojenie: wstrzymane (brak Kuźni)"
+        " · produkcja/mies.: +0 pszenicy, +0 złota · konsumpcja: 4 pszenicy"
+    )
+
+
+def test_render_settlement_panel_rows_append_monthly_economy_text_suffix():
+    """Visible row text appends
+    `` · produkcja/mies.: +Pw pszenicy, +Pg złota · konsumpcja: Cw pszenicy``
+    immediately after the equip-readiness suffix (`` · uzbrojenie: …``). Numbers
+    match ``data-wheat-production`` / ``data-gold-production`` /
+    ``data-wheat-consumption`` on the same row (and settlement.production /
+    .consumption). Machine attributes and their order stay as in K57.1a.
+    """
+    a = Region("A")
+    b = Region("B")
+    settlement_a = Settlement(
+        "Keep A",
+        population=5,
+        occupied=2,
+        owner_id="north",
+        storage=Resources(wheat=5, gold=3),
+        garrison=(Unit(), Unit()),
+        active_buildings=(FARM, MARKET),
+    )
+    settlement_b = Settlement(
+        "Keep B",
+        population=4,
+        owner_id="south",
+        storage=Resources(wheat=10, gold=7),
+    )
+    world = WorldMap(
+        [a, b],
+        [(a, b)],
+        settlements={a: settlement_a, b: settlement_b},
+    )
+
+    assert settlement_a.production == Resources(wheat=3, gold=2)
+    assert settlement_a.consumption == Resources(wheat=5, gold=0)
+    assert settlement_b.production == Resources(wheat=0, gold=0)
+    assert settlement_b.consumption == Resources(wheat=4, gold=0)
+
+    xml = render_settlement_panel(world)
+    root = ET.fromstring(xml)
+
+    row_a, row_b = root.findall("div")
+    assert row_a.attrib["data-wheat-production"] == "3"
+    assert row_a.attrib["data-gold-production"] == "2"
+    assert row_a.attrib["data-wheat-consumption"] == "5"
+    assert row_b.attrib["data-wheat-production"] == "0"
+    assert row_b.attrib["data-gold-production"] == "0"
+    assert row_b.attrib["data-wheat-consumption"] == "4"
+
+    # Attribute order unchanged vs K57.1a.
+    assert (
+        ' data-equip-ready="false" data-wheat-production="3"'
+        ' data-gold-production="2" data-wheat-consumption="5"'
+    ) in xml
+    assert (
+        ' data-equip-ready="false" data-wheat-production="0"'
+        ' data-gold-production="0" data-wheat-consumption="4"'
+    ) in xml
+
+    garrison_a = (Unit(), Unit())
+    expected_hp_a = sum(u.hp for u in garrison_a)
+    expected_attack_a = sum(u.damage for u in garrison_a)
+    expected_defense_a = sum(u.defense for u in garrison_a)
+    text_a = "".join(row_a.itertext())
+    assert text_a == (
+        f"Keep A (north): pszenica 5, złoto 3 · populacja 5 (wolne 3), garnizon 2"
+        f" · siła garnizonu: HP {expected_hp_a}"
+        f", atak {expected_attack_a}, obrona {expected_defense_a}"
+        f" · budynki: 2 (Farm, Market)"
+        f" · ranni: 0"
+        f" · trening: wstrzymany (brak Koszar)"
         f" · uzbrojenie: wstrzymane (brak Kuźni)"
+        f" · produkcja/mies.: +3 pszenicy, +2 złota · konsumpcja: 5 pszenicy"
+    )
+    assert text_a.endswith(
+        " · uzbrojenie: wstrzymane (brak Kuźni)"
+        " · produkcja/mies.: +3 pszenicy, +2 złota · konsumpcja: 5 pszenicy"
     )
 
     text_b = "".join(row_b.itertext())
@@ -883,4 +995,9 @@ def test_render_settlement_panel_rows_carry_monthly_economy_attributes():
         " · ranni: 0"
         " · trening: wstrzymany (brak Koszar)"
         " · uzbrojenie: wstrzymane (brak Kuźni)"
+        " · produkcja/mies.: +0 pszenicy, +0 złota · konsumpcja: 4 pszenicy"
+    )
+    assert text_b.endswith(
+        " · uzbrojenie: wstrzymane (brak Kuźni)"
+        " · produkcja/mies.: +0 pszenicy, +0 złota · konsumpcja: 4 pszenicy"
     )

@@ -59,7 +59,10 @@ def render_settlement_panel(
     `` · trening: gotowy`` when training is ready, else
     `` · trening: wstrzymany (brak Koszar)``, then
     `` · uzbrojenie: gotowe`` when equip is ready, else
-    `` · uzbrojenie: wstrzymane (brak Kuźni)``. When
+    `` · uzbrojenie: wstrzymane (brak Kuźni)``, then
+    `` · produkcja/mies.: +Pw pszenicy, +Pg złota · konsumpcja: Cw pszenicy``
+    (Pw/Pg/Cw = production wheat/gold and consumption wheat, same numbers as
+    the machine attributes). When
     ``player_duchy_id`` is not ``None``, rows whose ``owner_id`` matches get
     ``data-player-owned=""``. Pure and deterministic: no RNG/IO; ``world`` is
     not mutated.
@@ -97,6 +100,10 @@ def render_settlement_panel(
         wheat_production = production.wheat
         gold_production = production.gold
         wheat_consumption = consumption.wheat
+        economy_suffix = (
+            f" · produkcja/mies.: +{wheat_production} pszenicy,"
+            f" +{gold_production} złota · konsumpcja: {wheat_consumption} pszenicy"
+        )
         buildings = len(settlement.active_buildings)
         building_names = ", ".join(b.name for b in settlement.active_buildings)
         buildings_suffix = (
@@ -113,6 +120,7 @@ def render_settlement_panel(
             f" · ranni: {garrison_wounded}"
             f"{training_suffix}"
             f"{equip_suffix}"
+            f"{economy_suffix}"
         )
         player_owned = (
             ' data-player-owned=""'
