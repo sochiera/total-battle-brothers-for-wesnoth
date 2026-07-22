@@ -18,15 +18,17 @@ def render_player_summary(
     ``settlement.storage`` over that duchy), ``data-wheat-production`` /
     ``data-wheat-consumption`` (sums of ``settlement.production.wheat`` /
     ``settlement.consumption.wheat`` over ``duchy.settlements``; empty duchy
-    → ``0``/``0``), immediately after ``data-wheat`` and before ``data-hp`` /
-    ``data-attack`` / ``data-defense`` from ``combat_totals`` over every unit
-    (hero + subordinates) of each party in ``duchy.parties``, and visible text
+    → ``0``/``0``), ``data-wheat-surplus`` (``"true"`` when production sum
+    ``>=`` consumption sum, else ``"false"``; empty duchy → ``"true"``),
+    immediately after ``data-wheat`` and before ``data-hp`` / ``data-attack``
+    / ``data-defense`` from ``combat_totals`` over every unit (hero +
+    subordinates) of each party in ``duchy.parties``, and visible text
     ``Twoje księstwo: osady N, oddziały M · pszenica W, złoto G · siła
     oddziałów: HP H, atak A, obrona D · produkcja/mies.: +Pw pszenicy ·
     konsumpcja: Cw pszenicy`` (Pw/Cw match the production/consumption
-    attributes). When ``player_duchy_id`` is ``None`` or not present in
-    ``game.duchies``, returns a bare empty root. Pure and deterministic: no
-    RNG/IO; ``game`` is not mutated.
+    attributes; no bilans text yet). When ``player_duchy_id`` is ``None`` or
+    not present in ``game.duchies``, returns a bare empty root. Pure and
+    deterministic: no RNG/IO; ``game`` is not mutated.
     """
     duchy = player_duchy(game, player_duchy_id)
     if duchy is None:
@@ -38,6 +40,9 @@ def render_player_summary(
     wheat = sum(s.storage.wheat for s in duchy.settlements)
     wheat_production = sum(s.production.wheat for s in duchy.settlements)
     wheat_consumption = sum(s.consumption.wheat for s in duchy.settlements)
+    wheat_surplus = (
+        "true" if wheat_production >= wheat_consumption else "false"
+    )
     units = tuple(
         unit
         for party in duchy.parties
@@ -60,6 +65,7 @@ def render_player_summary(
         f' data-wheat="{wheat}"'
         f' data-wheat-production="{wheat_production}"'
         f' data-wheat-consumption="{wheat_consumption}"'
+        f' data-wheat-surplus="{wheat_surplus}"'
         f' data-hp="{total_hp}"'
         f' data-attack="{total_attack}"'
         f' data-defense="{total_defense}"'
