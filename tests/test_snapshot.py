@@ -521,6 +521,37 @@ def test_main_without_positional_argument_writes_default_out_state_json(
     json.loads(out_none.read_text(encoding="utf-8"))
 
 
+def test_main_two_runs_to_different_paths_produce_byte_identical_json(tmp_path):
+    """G63.2b-3: dwa uruchomienia ``main([...])`` dają bajt-w-bajt identyczny plik.
+
+    Kontrakt: ``tbbbridge.__main__.main([...])`` wywołane dwukrotnie (bez podprocesu)
+    do dwóch różnych ścieżek w ``tmp_path`` zapisuje pliki, których ``read_bytes()``
+    są równe; obie ścieżki parsują się ``json.loads``. Wynika to z deterministycznego
+    ``run_headless_game(Rng(73))`` + deterministycznego ``save_state`` (G63.2a).
+    """
+    from tbbbridge.__main__ import main
+
+    path_a = tmp_path / "a" / "state.json"
+    path_b = tmp_path / "b" / "state.json"
+
+    rc_a = main([str(path_a)])
+    rc_b = main([str(path_b)])
+
+    assert rc_a == 0
+    assert rc_b == 0
+    assert path_a.exists()
+    assert path_b.exists()
+
+    # Obie ścieżki parsują się json.loads.
+    snap_a = json.loads(path_a.read_text(encoding="utf-8"))
+    snap_b = json.loads(path_b.read_text(encoding="utf-8"))
+    assert list(snap_a.keys()) == ["calendar", "duchies", "map", "result"]
+    assert list(snap_b.keys()) == ["calendar", "duchies", "map", "result"]
+
+    # Bajt-w-bajt identyczne (determinizm CLI).
+    assert path_a.read_bytes() == path_b.read_bytes()
+
+
 def test_python_m_tbbbridge_shim_propagates_rc_and_explicit_arg_writes_named_file_not_default(
     tmp_path,
 ):

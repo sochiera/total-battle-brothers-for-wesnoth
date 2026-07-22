@@ -84,7 +84,18 @@ kodowanie UTF-8. Funkcja reużywa `game_state`, nie mutuje `world`/`game`/`calen
 nie tworzy katalogów docelowych. Dwa wywołania dla tego samego stanu dają
 bajt-w-bajt identyczny plik.
 
-Kolejne funkcje kontraktu (CLI) opisuje zadanie G63.2b.
+`python -m tbbbridge [path]` (G63.2b) uruchamia `tbbbridge.__main__.main`,
+wchodząc przez blok `if __name__ == "__main__": raise SystemExit(main())`.
+Punkt wejścia przyjmuje opcjonalny `path` z `sys.argv[1]`; brak argumentu
+pozycyjnego oznacza domyślną ścieżkę `out/state.json` względem katalogu
+roboczego. Rozgrywana jest deterministyczna partia headless: `create_headless_game()` +
+`run_headless_game(world, game, Rng(73), player_duchy_id="player")`; końcowy
+kalendarz z drivera jest przekazywany do `save_state` z tym samym
+`player_duchy_id="player"`. Przed zapisem katalog nadrzędny docelowej ścieżki jest
+tworzony (`os.makedirs(parent, exist_ok=True)`). Funkcja zwraca `0`. Dwa
+uruchomienia z tym samym seedem `73` dają deterministyczne wyjście bajt-w-bajt,
+ponieważ `save_state` jest deterministyczne, a cała losowość płynie z
+`run_headless_game(Rng(73))`.
 
 ### Prezentacja (pakiet `tbbui`, Kamień 13)
 Warstwa render/UI jest **poza rdzeniem**. `python -m tbb` nadal uruchamia
