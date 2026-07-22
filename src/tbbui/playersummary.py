@@ -16,17 +16,19 @@ def render_player_summary(
     duchy in ``game.duchies``, the root carries ``data-settlements`` /
     ``data-parties`` (counts), ``data-gold`` / ``data-wheat`` (sums of
     ``settlement.storage`` over that duchy), ``data-wheat-production`` /
-    ``data-wheat-consumption`` (sums of ``settlement.production.wheat`` /
+    ``data-gold-production`` / ``data-wheat-consumption`` (sums of
+    ``settlement.production.wheat`` / ``settlement.production.gold`` /
     ``settlement.consumption.wheat`` over ``duchy.settlements``; empty duchy
-    → ``0``/``0``), ``data-wheat-surplus`` (``"true"`` when production sum
-    ``>=`` consumption sum, else ``"false"``; empty duchy → ``"true"``),
-    ``data-wheat-net`` (``str(production − consumption)`` with sign; empty
-    duchy → ``"0"``), immediately after ``data-wheat`` and before ``data-hp``
-    / ``data-attack`` / ``data-defense`` from ``combat_totals`` over every
-    unit (hero + subordinates) of each party in ``duchy.parties``, and
-    visible text ``Twoje księstwo: osady N, oddziały M · pszenica W, złoto G
-    · siła oddziałów: HP H, atak A, obrona D · produkcja/mies.: +Pw pszenicy
-    · konsumpcja: Cw pszenicy · bilans pszenicy: nadwyżka|deficyt
+    → ``0``/``0``/``0``; gold-production immediately after wheat-production,
+    before wheat-consumption), ``data-wheat-surplus`` (``"true"`` when
+    production sum ``>=`` consumption sum, else ``"false"``; empty duchy →
+    ``"true"``), ``data-wheat-net`` (``str(production − consumption)`` with
+    sign; empty duchy → ``"0"``), immediately after ``data-wheat`` and before
+    ``data-hp`` / ``data-attack`` / ``data-defense`` from ``combat_totals``
+    over every unit (hero + subordinates) of each party in ``duchy.parties``,
+    and visible text ``Twoje księstwo: osady N, oddziały M · pszenica W,
+    złoto G · siła oddziałów: HP H, atak A, obrona D · produkcja/mies.: +Pw
+    pszenicy · konsumpcja: Cw pszenicy · bilans pszenicy: nadwyżka|deficyt
     · saldo pszenicy/mies.: {net:+d}`` (Pw/Cw match the production/consumption
     attributes; bilans matches ``data-wheat-surplus``: ``true`` → nadwyżka,
     ``false`` → deficyt; saldo matches ``data-wheat-net``, always signed).
@@ -43,6 +45,7 @@ def render_player_summary(
     gold = sum(s.storage.gold for s in duchy.settlements)
     wheat = sum(s.storage.wheat for s in duchy.settlements)
     wheat_production = sum(s.production.wheat for s in duchy.settlements)
+    gold_production = sum(s.production.gold for s in duchy.settlements)
     wheat_consumption = sum(s.consumption.wheat for s in duchy.settlements)
     wheat_net = wheat_production - wheat_consumption
     wheat_surplus = (
@@ -72,6 +75,7 @@ def render_player_summary(
         f' data-gold="{gold}"'
         f' data-wheat="{wheat}"'
         f' data-wheat-production="{wheat_production}"'
+        f' data-gold-production="{gold_production}"'
         f' data-wheat-consumption="{wheat_consumption}"'
         f' data-wheat-surplus="{wheat_surplus}"'
         f' data-wheat-net="{wheat_net}"'

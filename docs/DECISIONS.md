@@ -291,3 +291,4 @@
 | K58.2b | Tekst bilansu pszenicy w podsumowaniu gracza | Widoczny sufiks ` · bilans pszenicy: nadwyżka` / ` · bilans pszenicy: deficyt` po sufiksie konsumpcji w `render_player_summary`, spójny z `data-wheat-surplus`. |
 | K58.3a | Saldo pszenicy księstwa (atrybut) | `render_player_summary`: korzeń dokłada `data-wheat-net` (= suma produkcji − suma konsumpcji pszenicy po osadach) zaraz po `data-wheat-surplus`; tekst bez zmian w tym kroku. |
 | K58.3b | Tekst salda pszenicy w podsumowaniu gracza | Widoczny sufiks ` · saldo pszenicy/mies.: {net:+d}` po bilansie w `render_player_summary`, spójny z `data-wheat-net` (zawsze ze znakiem). |
+| K59.1a | Produkcja złota księstwa (atrybut) | `render_player_summary`: korzeń dokłada `data-gold-production` (= suma `production.gold` po osadach) zaraz po `data-wheat-production`, przed `data-wheat-consumption`; tekst bez zmian w tym kroku. |

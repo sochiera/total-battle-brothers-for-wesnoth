@@ -266,6 +266,7 @@ def test_render_player_summary_carries_aggregated_monthly_wheat_economy_attribut
     # Attribute order: after data-wheat; wheat-surplus (K58.2a) before data-hp.
     assert (
         f' data-wheat="7" data-wheat-production="{expected_prod}"'
+        f' data-gold-production="2"'
         f' data-wheat-consumption="{expected_cons}"'
         f' data-wheat-surplus="false"'
         f' data-wheat-net="{expected_prod - expected_cons}"'
@@ -295,6 +296,7 @@ def test_render_player_summary_carries_aggregated_monthly_wheat_economy_attribut
     assert empty_root.attrib["data-wheat-consumption"] == "0"
     assert (
         ' data-wheat="0" data-wheat-production="0"'
+        ' data-gold-production="0"'
         ' data-wheat-consumption="0" data-wheat-surplus="true"'
         ' data-wheat-net="0" data-hp='
     ) in empty_xml
@@ -495,6 +497,7 @@ def test_render_player_summary_carries_aggregated_wheat_surplus_flag():
     # (data-wheat-net sits between surplus and hp — K58.3a).
     assert (
         f' data-wheat-production="{expected_prod}"'
+        f' data-gold-production="2"'
         f' data-wheat-consumption="{expected_cons}"'
         f' data-wheat-surplus="false"'
         f' data-wheat-net="{expected_prod - expected_cons}"'
@@ -526,6 +529,7 @@ def test_render_player_summary_carries_aggregated_wheat_surplus_flag():
     assert surplus_root.attrib["data-wheat-surplus"] == "true"
     assert (
         ' data-wheat-production="3"'
+        ' data-gold-production="0"'
         ' data-wheat-consumption="1"'
         ' data-wheat-surplus="true"'
         ' data-wheat-net="2"'
@@ -549,6 +553,7 @@ def test_render_player_summary_carries_aggregated_wheat_surplus_flag():
     assert empty_root.attrib["data-wheat-surplus"] == "true"
     assert (
         ' data-wheat-production="0"'
+        ' data-gold-production="0"'
         ' data-wheat-consumption="0"'
         ' data-wheat-surplus="true"'
         ' data-wheat-net="0"'
@@ -648,6 +653,7 @@ def test_render_player_summary_appends_wheat_surplus_text_suffix():
     # Attrs order: surplus then net (K58.3a) then hp.
     assert (
         f' data-wheat-production="{expected_prod}"'
+        f' data-gold-production="2"'
         f' data-wheat-consumption="{expected_cons}"'
         f' data-wheat-surplus="false"'
         f' data-wheat-net="{expected_prod - expected_cons}"'
@@ -682,6 +688,7 @@ def test_render_player_summary_appends_wheat_surplus_text_suffix():
     assert surplus_root.attrib["data-wheat-surplus"] == "true"
     assert (
         ' data-wheat-production="3"'
+        ' data-gold-production="0"'
         ' data-wheat-consumption="1"'
         ' data-wheat-surplus="true"'
         ' data-wheat-net="2"'
@@ -815,6 +822,7 @@ def test_render_player_summary_carries_aggregated_wheat_net_attribute():
     # Attribute order: immediately after data-wheat-surplus, before data-hp.
     assert (
         f' data-wheat-production="{expected_prod}"'
+        f' data-gold-production="2"'
         f' data-wheat-consumption="{expected_cons}"'
         f' data-wheat-surplus="false"'
         f' data-wheat-net="{expected_net}"'
@@ -851,6 +859,7 @@ def test_render_player_summary_carries_aggregated_wheat_net_attribute():
     )
     assert (
         ' data-wheat-production="3"'
+        ' data-gold-production="0"'
         ' data-wheat-consumption="1"'
         ' data-wheat-surplus="true"'
         f' data-wheat-net="{surplus_net}"'
@@ -878,6 +887,7 @@ def test_render_player_summary_carries_aggregated_wheat_net_attribute():
     )
     assert (
         ' data-wheat-production="0"'
+        ' data-gold-production="0"'
         ' data-wheat-consumption="0"'
         ' data-wheat-surplus="true"'
         ' data-wheat-net="0"'
@@ -983,6 +993,7 @@ def test_render_player_summary_appends_wheat_net_text_suffix():
     assert root.attrib["data-wheat-net"] == "-4"
     assert (
         f' data-wheat-production="{expected_prod}"'
+        f' data-gold-production="2"'
         f' data-wheat-consumption="{expected_cons}"'
         f' data-wheat-surplus="false"'
         f' data-wheat-net="{expected_net}"'
@@ -1020,6 +1031,7 @@ def test_render_player_summary_appends_wheat_net_text_suffix():
     assert surplus_root.attrib["data-wheat-net"] == "2"
     assert (
         ' data-wheat-production="3"'
+        ' data-gold-production="0"'
         ' data-wheat-consumption="1"'
         ' data-wheat-surplus="true"'
         f' data-wheat-net="{surplus_net}"'
@@ -1066,3 +1078,118 @@ def test_render_player_summary_appends_wheat_net_text_suffix():
         assert bare.attrib == {"data-player-summary": ""}
         assert "".join(bare.itertext()) == ""
         assert "data-wheat-net" not in bare.attrib
+
+
+def test_render_player_summary_carries_aggregated_monthly_gold_production_attribute():
+    """When ``player_duchy_id`` matches a duchy in ``game.duchies``, the root
+    carries ``data-gold-production`` as the sum of ``settlement.production.gold``
+    over ``duchy.settlements`` (other duchies ignored), placed immediately after
+    ``data-wheat-production`` and before ``data-wheat-consumption`` (mirror of
+    settlement-panel order). Visible text and remaining attrs unchanged. Pure:
+    does not mutate ``game``. Duchy with no settlements yields ``"0"``.
+    """
+    s1 = Settlement(
+        "Keep A",
+        population=5,
+        occupied=2,
+        owner_id="north",
+        storage=Resources(wheat=5, gold=3),
+        garrison=(Unit(), Unit()),
+        active_buildings=(FARM, MARKET),
+    )
+    s2 = Settlement(
+        "Keep B",
+        population=2,
+        owner_id="north",
+        storage=Resources(wheat=2, gold=7),
+    )
+    other = Settlement(
+        "South Keep",
+        population=99,
+        owner_id="south",
+        storage=Resources(wheat=99, gold=99),
+        active_buildings=(MARKET,),
+    )
+    hero = Unit()
+    party = Party(hero=hero, units=(), owner_id="north")
+    game = GameState(
+        (
+            Duchy(
+                "north",
+                Unit(),
+                settlements=(s1, s2),
+                parties=(party,),
+            ),
+            Duchy(
+                "south",
+                Unit(),
+                settlements=(other,),
+                parties=(),
+            ),
+            Duchy("empty", Unit(), settlements=(), parties=()),
+        )
+    )
+    duchies_before = game.duchies
+    storage_s1_before = s1.storage
+    storage_s2_before = s2.storage
+
+    assert s1.production == Resources(wheat=3, gold=2)
+    assert s1.consumption == Resources(wheat=5, gold=0)
+    assert s2.production == Resources(wheat=0, gold=0)
+    assert s2.consumption == Resources(wheat=2, gold=0)
+    assert other.production.gold == 2  # south Market must not leak into north sum
+    expected_wheat_prod = s1.production.wheat + s2.production.wheat  # 3
+    expected_gold_prod = s1.production.gold + s2.production.gold  # 2
+    expected_cons = s1.consumption.wheat + s2.consumption.wheat  # 7
+    expected_net = expected_wheat_prod - expected_cons  # -4
+    expected_hp, expected_attack, expected_defense = combat_totals((hero,))
+
+    xml = render_player_summary(game, player_duchy_id="north")
+    root = ET.fromstring(xml)
+
+    assert root.attrib["data-wheat-production"] == str(expected_wheat_prod)
+    assert root.attrib["data-gold-production"] == str(expected_gold_prod)
+    assert root.attrib["data-gold-production"] == "2"
+    assert root.attrib["data-wheat-consumption"] == str(expected_cons)
+    # Remaining attrs unchanged (wheat economy + combat + storage).
+    assert root.attrib["data-wheat"] == "7"
+    assert root.attrib["data-gold"] == "10"
+    assert root.attrib["data-wheat-surplus"] == "false"
+    assert root.attrib["data-wheat-net"] == str(expected_net)
+    assert root.attrib["data-hp"] == str(expected_hp)
+    assert root.attrib["data-attack"] == str(expected_attack)
+    assert root.attrib["data-defense"] == str(expected_defense)
+
+    # Attribute order: after data-wheat-production, before data-wheat-consumption.
+    assert (
+        f' data-wheat-production="{expected_wheat_prod}"'
+        f' data-gold-production="{expected_gold_prod}"'
+        f' data-wheat-consumption="{expected_cons}"'
+    ) in xml
+
+    # Visible text unchanged (no gold-production suffix in this step — K59.1b).
+    assert "".join(root.itertext()) == (
+        "Twoje księstwo: osady 2, oddziały 1 · pszenica 7, złoto 10"
+        f" · siła oddziałów: HP {expected_hp}, atak {expected_attack},"
+        f" obrona {expected_defense}"
+        f" · produkcja/mies.: +{expected_wheat_prod} pszenicy"
+        f" · konsumpcja: {expected_cons} pszenicy"
+        f" · bilans pszenicy: deficyt"
+        f" · saldo pszenicy/mies.: {expected_net:+d}"
+    )
+
+    # Pure: no mutation of game / settlement storage.
+    assert game.duchies == duchies_before
+    assert game.duchies is duchies_before
+    assert s1.storage == storage_s1_before
+    assert s2.storage == storage_s2_before
+
+    # Empty duchy: sum over zero settlements → "0".
+    empty_xml = render_player_summary(game, player_duchy_id="empty")
+    empty_root = ET.fromstring(empty_xml)
+    assert empty_root.attrib["data-gold-production"] == "0"
+    assert (
+        ' data-wheat-production="0"'
+        ' data-gold-production="0"'
+        ' data-wheat-consumption="0"'
+    ) in empty_xml

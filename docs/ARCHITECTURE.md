@@ -497,22 +497,24 @@ prefiks `» ` przed tekstem; id spoza palety → żaden wiersz nieoznaczony; `No
 korzeń (bez wierszy). Czyste, deterministyczne, bez mutacji `world`; rdzeń bez
 zmian.
 
-**Podsumowanie księstwa gracza HTML (K30.3a / K30.3b / K58.1a / K58.1b / K58.2a / K58.2b / K58.3a / K58.3b):**
+**Podsumowanie księstwa gracza HTML (K30.3a / K30.3b / K58.1a / K58.1b / K58.2a / K58.2b / K58.3a / K58.3b / K59.1a):**
 `tbbui.playersummary.render_player_summary(game, player_duchy_id=None) -> str`
 — parsowalny fragment XML z korzeniem `<div data-player-summary="">`. Gdy
 `player_duchy_id` wskazuje księstwo w `game.duchies`, korzeń ma atrybuty
 `data-settlements` / `data-parties` (= `len` osad / oddziałów księstwa),
 `data-gold` / `data-wheat` (sumy `settlement.storage.gold` / `.wheat` po
 osadach), zaraz po `data-wheat`: `data-wheat-production` /
-`data-wheat-consumption` (sumy `settlement.production.wheat` /
+`data-gold-production` / `data-wheat-consumption` (sumy
+`settlement.production.wheat` / `settlement.production.gold` /
 `settlement.consumption.wheat` po `duchy.settlements`; księstwo bez osad →
-`0`/`0`), zaraz po konsumpcji `data-wheat-surplus` (`"true"` gdy suma
-produkcji `>=` suma konsumpcji, inaczej `"false"`; księstwo bez osad →
-`"true"`), zaraz po surplus `data-wheat-net` (`str(produkcja − konsumpcja)`
-jako int ze znakiem minusa przy deficycie; księstwo bez osad → `"0"`),
-potem `data-hp` / `data-attack` / `data-defense` (z
-`combat_totals` po bohaterze i podkomendnych każdej party z `duchy.parties`)
-oraz widoczny tekst
+`0`/`0`/`0`; `data-gold-production` zaraz po `data-wheat-production`, przed
+`data-wheat-consumption` — mirror kolejności panelu osad), zaraz po
+konsumpcji `data-wheat-surplus` (`"true"` gdy suma produkcji `>=` suma
+konsumpcji, inaczej `"false"`; księstwo bez osad → `"true"`), zaraz po
+surplus `data-wheat-net` (`str(produkcja − konsumpcja)` jako int ze znakiem
+minusa przy deficycie; księstwo bez osad → `"0"`), potem `data-hp` /
+`data-attack` / `data-defense` (z `combat_totals` po bohaterze i
+podkomendnych każdej party z `duchy.parties`) oraz widoczny tekst
 `Twoje księstwo: osady N, oddziały M · pszenica W, złoto G · siła oddziałów:
 HP H, atak A, obrona D · produkcja/mies.: +Pw pszenicy · konsumpcja: Cw
 pszenicy · bilans pszenicy: nadwyżka|deficyt · saldo pszenicy/mies.: {net:+d}`
