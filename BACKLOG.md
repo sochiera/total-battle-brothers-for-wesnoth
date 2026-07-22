@@ -25,17 +25,20 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > je w kolejności rozwoju przed Market (G54.1b), a na końcu realne bramkowanie
 > `Settlement.tick_training()` czynnymi Koszarami (G54.1c) — mirror wzorca
 > `tick_equipment`/Smith.
-- [ ] **G54.1a** `tbb.building.BARRACKS = Building("Barracks", staff=1)` (zerowa produkcja, jak `SMITH`), eksportowany z `tbb/__init__.py`; czysto katalogowe, bez wiązania z AI/treningiem. *(task-256)*
-- [ ] **G54.1b** `_DEVELOPMENT_PRIORITIES == (FARM, SMITH, BARRACKS, MARKET)` — AI (i przycisk „Rozbuduj osadę") otwiera Koszary jako trzeci priorytet, przed Market. *(task-257)*
-- [ ] **G54.1c** `Settlement.tick_training()` jest no-opem bez czynnych Koszar w `active_buildings`; z czynnymi Koszarami trenuje jak dotąd; DESIGN §5 i `tests/test_smoke.py` zaktualizowane do faktycznego wyniku headless, jeśli tempo progresji przesunęło datę bezpiecznika. *(task-258)*
+> **Uwaga:** pierwotny wsad (task-256..259) padł na K55.1a — panel importował
+> `BARRACKS`, a fundament katalogowy nigdy nie trafił do rdzenia. Przenumerowano
+> i uporządkowano zależności: K54 (264–266) MUSI wyprzedzić K55 (267–268).
+- [ ] **G54.1a** `tbb.building.BARRACKS = Building("Barracks", staff=1)` (zerowa produkcja, jak `SMITH`), eksportowany z `tbb/__init__.py`; czysto katalogowe, bez wiązania z AI/treningiem. *(task-264)*
+- [ ] **G54.1b** `_DEVELOPMENT_PRIORITIES == (FARM, SMITH, BARRACKS, MARKET)` — AI (i przycisk „Rozbuduj osadę") otwiera Koszary jako trzeci priorytet, przed Market. *(task-265)*
+- [ ] **G54.1c** `Settlement.tick_training()` jest no-opem bez czynnych Koszar w `active_buildings`; z czynnymi Koszarami trenuje jak dotąd; DESIGN §5 i `tests/test_smoke.py` zaktualizowane do faktycznego wyniku headless, jeśli tempo progresji przesunęło datę bezpiecznika. *(task-266)*
 
 ## Kamień milowy 55 — czytelna gotowość treningu garnizonu (Koszary) w panelu osady
 > DESIGN §11: K54 uzależnił trening garnizonu od czynnych Koszar, ale panel osad
 > pokazuje tylko listę budynków — gracz nie widzi konsekwencji („garnizon nie
 > szkoli się, bo brak Koszar"). K55 dokłada do wiersza panelu osad maszynową
 > flagę gotowości treningu i czytelny tekst. Rdzeń `tbb` bez zmian.
-- [ ] **K55.1a** `data-training-ready="true|false"` (= `BARRACKS in active_buildings`) w każdym `data-settlement-row`, zaraz po `data-garrison-wounded`; tekst bez zmian. *(task-259)*
-- [ ] **K55.1b** widoczny sufiks ` · trening: gotowy` / ` · trening: wstrzymany (brak Koszar)` spójny z flagą; ARCHITECTURE (panel osad), DESIGN §11 i DECISIONS `K55.1b`. *(task-260)*
+- [ ] **K55.1a** `data-training-ready="true|false"` (= `BARRACKS in active_buildings`) w każdym `data-settlement-row`, zaraz po `data-garrison-wounded`; tekst bez zmian; `BARRACKS` importowany z `tbb` (bez lokalnych duplikatów). *(task-267)*
+- [ ] **K55.1b** widoczny sufiks ` · trening: gotowy` / ` · trening: wstrzymany (brak Koszar)` spójny z flagą; ARCHITECTURE (panel osad), DESIGN §11 i DECISIONS `K55.1b`. *(task-268)*
 
 ## Kamień milowy 56 — czytelna gotowość uzbrojenia garnizonu (Kuźnia) w panelu osady
 > DESIGN §11: symetria do K55 dla uzbrojenia — `tick_equipment` od dawna wymaga
