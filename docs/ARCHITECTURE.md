@@ -181,6 +181,27 @@ Rozkaz jest no-opem (zwraca równoważną sesję z identycznymi
 Nieznana wartość `order` podnosi `ValueError`. Funkcja jest czysta względem
 wejściowej sesji — nigdy jej nie mutuje.
 
+#### Protokół JSON Lines (G66.1a)
+
+Warstwa transportu mostu to cienki proces-most stdio:
+**linia-komenda JSON → linia-odpowiedź JSON**.  Czysta funkcja
+`tbbbridge.protocol.handle_command_line(session: Session, line: str) -> tuple[Session, dict]`
+jest podstawowym punktem wejścia tego protokołu.
+
+- Wejście: jedna linia tekstu parsowana przez `json.loads`.
+- Jeśli linia nie jest poprawnym JSON-em lub nie jest obiektem (`dict`),
+  zwracana jest **identycznościowo ta sama** sesja wejściowa i odpowiedź
+  `{"ok": false, "error": <ciąg opisujący błąd>}` bez klucza `"snapshot"`.
+- Jeśli JSON jest obiektem, funkcja deleguje do
+  `apply_command(session, command)`.  Sukces daje
+  `(new_session, {"ok": true, "snapshot": new_session.snapshot()})`.
+- `ValueError` wyrzucony przez `apply_command` jest łapany i zwracany jako
+  `(session, {"ok": false, "error": str(exc)})`, również bez `"snapshot"`.
+
+`handle_command_line` jest bez IO i bez mutacji wejściowej sesji; pełna pętla
+strumieniowa `serve_stream` (task-320) i CLI `serve` (task-321) będą go tylko
+okuwać w czytanie/pisanie linii i `flush`.
+
 
 ### Prezentacja (pakiet `tbbui`, Kamień 13)
 Warstwa render/UI jest **poza rdzeniem**. `python -m tbb` nadal uruchamia
