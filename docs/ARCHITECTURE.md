@@ -145,8 +145,18 @@ Rozpoznaje `command["type"]`:
 player_duchy_id=session.player_duchy_id)` — świeża gra ze startowym kalendarzem
 `{year: 1, month: 1}`, zachowanym `player_duchy_id` i domyślnym seedem z sesji.
 Brak klucza `type` lub nieznana wartość podnoszą `ValueError`; dla `new_game`
-dozwolony jest tylko klucz opcjonalny `"seed"`. Funkcja jest czysta względem
-wejściowej sesji — nigdy jej nie mutuje.
+dozwolony jest tylko klucz opcjonalny `"seed"`.
+
+`"order"` — rozkaz niebitewny dla księstwa gracza. Rozpoznawane
+`command["order"]` to `"develop"`, `"recruit"` i `"muster"`; każdy reużywa
+odpowiedni czysty prymityw `tbb.ai` (`develop_duchy_settlement`,
+`recruit_duchy_unit`, `muster_duchy_party`) jako
+`world = transition(world, player_duchy)`, po czym `game = game.sync_from_world(world)`.
+Rozkaz jest no-opem (zwraca równoważną sesję z identycznymi
+`world`/`game`/`calendar`) gdy `game.is_over`, brak `player_duchy_id` lub
+księstwo gracza nie występuje w `game.duchies`. Nieznana wartość `order`
+podnosi `ValueError`. Funkcja jest czysta względem wejściowej sesji — nigdy
+jej nie mutuje.
 
 ### Prezentacja (pakiet `tbbui`, Kamień 13)
 Warstwa render/UI jest **poza rdzeniem**. `python -m tbb` nadal uruchamia

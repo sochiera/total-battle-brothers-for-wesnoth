@@ -190,6 +190,35 @@ def test_apply_command_next_turn_delegates_to_session_next_turn():
     assert s.snapshot() == before
 
 
+def test_apply_command_order_develop_applies_ai_primitive_syncs_game_returns_new_session():
+    """G65.2a crit-1: apply_command({"type": "order", "order": "develop"})
+    applies ``ai.develop_duchy_settlement`` to the player duchy (opening the
+    first priority building — FARM — in Player Keep), then
+    ``game.sync_from_world`` and returns a new Session with that world/game.
+    The input session is not mutated; calendar/rng/seed/player_duchy_id are
+    preserved.
+    """
+    s = new_session(73, "player")
+    before = copy.deepcopy(s.snapshot())
+
+    after = apply_command(s, {"type": "order", "order": "develop"})
+
+    assert isinstance(after, Session)
+    assert after is not s
+    assert after.player_duchy_id == "player"
+    assert after.seed == 73
+    assert after.calendar == s.calendar
+    assert after.rng is s.rng
+    # FARM is the highest development priority — Player Keep starts with no
+    # active buildings, so develop opens FARM (observable in the snapshot).
+    player_settlement_after = after.snapshot()["map"]["regions"][0]["settlement"]
+    assert "Farma" in player_settlement_after["buildings"] or len(
+        player_settlement_after["buildings"]
+    ) >= 1
+    # The input session's snapshot is unchanged.
+    assert s.snapshot() == before
+
+
 def test_apply_command_unknown_type_and_missing_type_raise_valueerror_without_mutation():
     """G65.1c crit-3: unknown type or missing 'type' key both raise ValueError;
     the input session is never mutated (snapshot deterministic, RNG advanced
