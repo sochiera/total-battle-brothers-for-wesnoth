@@ -37,3 +37,25 @@ def handle_command_line(session: Session, line: str) -> tuple[Session, dict]:
         return session, {"ok": False, "error": str(exc)}
 
     return next_session, {"ok": True, "snapshot": next_session.snapshot()}
+
+
+def serve_stream(session: Session, in_stream, out_stream) -> Session:
+    """Czytaj linie-komendy z ``in_stream`` i wypisuj linie-odpowiedzi do ``out_stream``.
+
+    - Puste / białoznakowe linie są pomijane.
+    - Każda niepusta linia jest przekazywana do :func:`handle_command_line`;
+      odpowiedź ``resp`` jest zapisywana jako ``json.dumps(resp) + "\\n"``
+      i natychmiast ``flush()``-owana.
+    - Po EOF zwracana jest bieżąca (końcowa) sesja.
+
+    Funkcja nie zależy od konkretnej klasy strumienia — wystarcza kaczkowe
+    ``.write`` / ``.flush`` po stronie wyjścia oraz iterowalne wejście.
+    """
+    current = session
+    for line in in_stream:
+        if not line.strip():
+            continue
+        current, resp = handle_command_line(current, line)
+        out_stream.write(json.dumps(resp) + "\n")
+        out_stream.flush()
+    return current

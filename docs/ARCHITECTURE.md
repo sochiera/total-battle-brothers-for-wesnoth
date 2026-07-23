@@ -198,9 +198,17 @@ jest podstawowym punktem wejścia tego protokołu.
 - `ValueError` wyrzucony przez `apply_command` jest łapany i zwracany jako
   `(session, {"ok": false, "error": str(exc)})`, również bez `"snapshot"`.
 
-`handle_command_line` jest bez IO i bez mutacji wejściowej sesji; pełna pętla
-strumieniowa `serve_stream` (task-320) i CLI `serve` (task-321) będą go tylko
-okuwać w czytanie/pisanie linii i `flush`.
+`handle_command_line` jest bez IO i bez mutacji wejściowej sesji.
+
+`serve_stream(session, in_stream, out_stream) -> Session` (G66.1b) jest
+reużywalną pętlą JSON Lines nad strumieniami. Iteruje po liniach
+`in_stream`, pomija linie puste / zawierające wyłącznie białe znaki
+(żadnego wpisu w `out_stream`, sesja bez zmian), dla każdej pozostałej
+linii woła `handle_command_line`, zapisuje `json.dumps(response) + "\n"`
+do `out_stream` i wywołuje `out_stream.flush()`. Błąd parsowania JSON
+zwraca jedną linię `{"ok": false, ...}` i **nie** przerywa pętli —
+kolejne linie są nadal obsługiwane. Po EOF zwracana jest końcowa sesja
+(efekt sekwencyjnego zastosowania wszystkich poprawnych komend).
 
 
 ### Prezentacja (pakiet `tbbui`, Kamień 13)
