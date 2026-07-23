@@ -157,6 +157,15 @@ month=13)`) zachodzi `load_calendar(dump_calendar(c)) == c`. Obie funkcje są
 czyste, nie mutują wejścia i będą reużywane przez serializery wyższych
 kompozytów (np. `Session`).
 
+`dump_terrain(terrain: Terrain) -> dict` (G70.1b) zwraca json-serializowalny
+słownik z kluczami `name`, `move_cost`, `defense_mod`, `accuracy_mod` pobranymi
+z pól `Terrain`. `load_terrain(data: dict) -> Terrain` odtwarza
+`Terrain(name, move_cost, defense_mod, accuracy_mod)` z tych pól. Dla każdego
+terenu z katalogu (`PLAINS`, `FOREST`, `HILLS`) zachodzi
+`load_terrain(dump_terrain(t)) == t`, a po round-tripie przez `json` również.
+Obie funkcje są czyste, nie mutują wejścia i będą reużywane przez serializery
+`Battlefield`.
+
 `dump_party(party: Party) -> dict` (G67.2a) zwraca json-serializowalny słownik
 z kluczami `hero` (= `dump_unit(party.hero)`), `units` (lista `dump_unit(u)` w
 kolejności `party.units`) oraz `owner_id` (= `party.owner_id`).

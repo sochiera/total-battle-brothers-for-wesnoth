@@ -13,6 +13,7 @@ from tbb.duchy import Duchy
 from tbb.party import Party
 from tbb.resources import Resources
 from tbb.settlement import Settlement
+from tbb.terrain import Terrain
 from tbb.turn import Calendar
 from tbb.unit import Unit
 from tbb.wound import Wound
@@ -72,6 +73,30 @@ def dump_hex(hex_coord: Hex) -> dict:
 def load_hex(data: dict) -> Hex:
     """Odtwarza ``Hex`` ze słownika wyprodukowanego przez ``dump_hex``."""
     return Hex(q=data["q"], r=data["r"])
+
+
+def dump_terrain(terrain: Terrain) -> dict:
+    """Zwraca json-serializowalny słownik ``Terrain``.
+
+    Klucze: ``name`` (str), ``move_cost`` (int), ``defense_mod`` (int),
+    ``accuracy_mod`` (int).
+    """
+    return {
+        "name": terrain.name,
+        "move_cost": terrain.move_cost,
+        "defense_mod": terrain.defense_mod,
+        "accuracy_mod": terrain.accuracy_mod,
+    }
+
+
+def load_terrain(data: dict) -> Terrain:
+    """Odtwarza ``Terrain`` ze słownika wyprodukowanego przez ``dump_terrain``."""
+    return Terrain(
+        name=data["name"],
+        move_cost=data["move_cost"],
+        defense_mod=data["defense_mod"],
+        accuracy_mod=data["accuracy_mod"],
+    )
 
 
 def dump_resources(res: Resources) -> dict:

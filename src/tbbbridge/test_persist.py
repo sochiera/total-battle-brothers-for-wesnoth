@@ -1,7 +1,8 @@
 """Tests for ``tbbbridge.persist`` (G67.1a — round-trip ``Resources``,
 G67.1b — round-trip ``Wound``, G67.1c — round-trip ``Unit``,
 G67.1e — round-trip ``Calendar``, G67.3b — round-trip ``Rng``,
-G67.4a — round-trip ``Session``, G70.1a — round-trip ``Hex``).
+G67.4a — round-trip ``Session``, G70.1a — round-trip ``Hex``,
+G70.1b — round-trip ``Terrain``).
 
 Tests live next to the module under test per task-324 "Ścieżki testów".
 """
@@ -16,6 +17,7 @@ from tbb.hex import Hex
 from tbb.party import Party
 from tbb.resources import Resources
 from tbb.settlement import Settlement
+from tbb.terrain import FOREST, HILLS, PLAINS, Terrain
 from tbb.turn import Calendar
 from tbb.unit import Unit
 from tbb.wound import BRUISE, MAIMED, Wound
@@ -1364,3 +1366,83 @@ def test_read_session_roundtrip_restores_world_game_calendar_player_duchy_id_see
     expected_rng_sequence = [s.rng.randint(1, 100) for _ in range(10)]
     actual_rng_sequence = [r.rng.randint(1, 100) for _ in range(10)]
     assert actual_rng_sequence == expected_rng_sequence
+
+
+def test_dump_terrain_returns_json_serializable_dict_with_name_move_cost_defense_mod_accuracy_mod():
+    """G70.1b kryt-1: ``dump_terrain(terrain)`` zwraca json-serializowalny
+    ``dict`` z kluczami ``name``, ``move_cost``, ``defense_mod``, ``accuracy_mod``;
+    ``json.dumps(dump_terrain(FOREST))`` nie podnosi wyjątku.
+    """
+    dumped = persist.dump_terrain(FOREST)
+
+    assert dumped == {
+        "name": "Forest",
+        "move_cost": 2,
+        "defense_mod": 2,
+        "accuracy_mod": -1,
+    }
+    json.dumps(dumped)
+
+
+def test_load_terrain_returns_terrain_from_dict():
+    """G70.1b kryt-2: ``load_terrain(data)`` odtwarza
+    ``Terrain(name, move_cost, defense_mod, accuracy_mod)``."""
+    data = {
+        "name": "Hills",
+        "move_cost": 2,
+        "defense_mod": 1,
+        "accuracy_mod": 1,
+    }
+
+    loaded = persist.load_terrain(data)
+
+    assert loaded == HILLS
+    assert loaded.name == "Hills"
+    assert loaded.move_cost == 2
+    assert loaded.defense_mod == 1
+    assert loaded.accuracy_mod == 1
+
+
+def test_round_trip_load_dump_terrain_restores_equality_for_catalog():
+    """G70.1b kryt-2: round-trip przez JSON zachowuje równość:
+    ``load_terrain(json.loads(json.dumps(dump_terrain(t)))) == t`` dla
+    ``t ∈ {PLAINS, FOREST, HILLS}``.
+    """
+    samples = [PLAINS, FOREST, HILLS]
+
+    for terrain in samples:
+        dumped = persist.dump_terrain(terrain)
+        json_round_tripped = json.loads(json.dumps(dumped))
+        round_tripped = persist.load_terrain(json_round_tripped)
+        assert round_tripped == terrain
+
+
+def test_dump_terrain_does_not_mutate_input_terrain():
+    """G70.1b kryt-3: ``dump_terrain`` jest czysta — nie mutuje wejścia.
+
+    ``Terrain`` ma ``frozen=True`` (immutable), ale test weryfikuje kontrakt
+    braku mutacji wejścia (idempotencja).
+    """
+    terrain = FOREST
+    terrain_before = copy.copy(terrain)
+
+    persist.dump_terrain(terrain)
+
+    assert terrain == terrain_before
+
+
+def test_load_terrain_does_not_mutate_input_dict():
+    """G70.1b kryt-3: ``load_terrain`` jest czysta — nie mutuje słownika
+    wejściowego.
+    """
+    data = {
+        "name": "Plains",
+        "move_cost": 1,
+        "defense_mod": 0,
+        "accuracy_mod": 0,
+    }
+    data_before = copy.deepcopy(data)
+
+    persist.load_terrain(data)
+
+    assert data == data_before
