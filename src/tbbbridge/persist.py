@@ -11,7 +11,7 @@ from tbb.settlement import Settlement
 from tbb.turn import Calendar
 from tbb.unit import Unit
 from tbb.wound import Wound
-from tbb.world import Region
+from tbb.world import Region, WorldMap
 
 
 def dump_resources(res: Resources) -> dict:
@@ -140,6 +140,55 @@ def dump_calendar(calendar: Calendar) -> dict:
 def load_calendar(data: dict) -> Calendar:
     """Odtwarza ``Calendar`` ze słownika wyprodukowanego przez ``dump_calendar``."""
     return Calendar(year=data["year"], month=data["month"])
+
+
+def dump_world(world: WorldMap) -> dict:
+    """Zwraca json-serializowalny słownik ``WorldMap``.
+
+    Klucze: ``regions`` (lista ``dump_region`` w kolejności ``world.regions``),
+    ``connections`` (lista par ``[i, j]`` — indeksy w liście regionów),
+    ``settlements`` i ``parties`` (listy par ``[i, dump_*]`` po indeksie regionu).
+    """
+    regions = world.regions
+    region_index = {region: index for index, region in enumerate(regions)}
+    return {
+        "regions": [dump_region(region) for region in regions],
+        "connections": [
+            [region_index[first], region_index[second]]
+            for first, second in world.connections
+        ],
+        "settlements": [
+            [region_index[region], dump_settlement(settlement)]
+            for region, settlement in world.settlements.items()
+        ],
+        "parties": [
+            [region_index[region], dump_party(party)]
+            for region, party in world.parties.items()
+        ],
+    }
+
+
+def load_world(data: dict) -> WorldMap:
+    """Odtwarza ``WorldMap`` ze słownika wyprodukowanego przez ``dump_world``."""
+    regions = tuple(load_region(region_data) for region_data in data["regions"])
+    connections = tuple(
+        (regions[first_index], regions[second_index])
+        for first_index, second_index in data["connections"]
+    )
+    settlements = {
+        regions[index]: load_settlement(settlement_data)
+        for index, settlement_data in data["settlements"]
+    }
+    parties = {
+        regions[index]: load_party(party_data)
+        for index, party_data in data["parties"]
+    }
+    return WorldMap(
+        regions=regions,
+        connections=connections,
+        settlements=settlements,
+        parties=parties,
+    )
 
 
 def dump_settlement(settlement: Settlement) -> dict:

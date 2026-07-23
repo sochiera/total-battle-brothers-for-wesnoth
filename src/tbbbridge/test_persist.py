@@ -15,7 +15,7 @@ from tbb.settlement import Settlement
 from tbb.turn import Calendar
 from tbb.unit import Unit
 from tbb.wound import BRUISE, MAIMED, Wound
-from tbb.world import Region
+from tbb.world import Region, WorldMap
 from tbbbridge import persist
 
 
@@ -602,3 +602,114 @@ def test_dump_and_load_region_do_not_mutate_input():
     persist.load_region(dumped)
 
     assert dumped == data_before
+
+
+def _sample_world_with_settlement_and_party():
+    """Zbuduj ``WorldMap`` z regionami, połączeniami, osadą i party — pełny
+    kompozyt do testów persystencji świata."""
+    regions = (
+        Region(name="Oakhaven"),
+        Region(name="Rivermouth"),
+        Region(name="Freehold"),
+        Region(name="Stagford"),
+    )
+    connections = (
+        (regions[0], regions[1]),
+        (regions[1], regions[2]),
+        (regions[2], regions[3]),
+    )
+    settlement = Settlement(
+        name="Oakhaven",
+        population=12,
+        occupied=3,
+        active_buildings=(FARM, SMITH),
+        storage=Resources(wheat=7, gold=4),
+        capacity=20,
+        garrison=(
+            Unit(
+                training=3,
+                equipment=2,
+                experience=5,
+                ranged_range=3,
+                wounds=(BRUISE,),
+                stunned=True,
+                training_progress=1,
+                equipment_progress=1,
+            ),
+        ),
+        owner_id="player",
+    )
+    party = Party(
+        hero=Unit(
+            training=2,
+            equipment=1,
+            experience=3,
+            ranged_range=2,
+            wounds=(MAIMED,),
+            stunned=False,
+        ),
+        units=(Unit(training=1, equipment=0, experience=0, ranged_range=0),),
+        owner_id="ai",
+    )
+    world = WorldMap(
+        regions,
+        connections,
+        settlements={regions[0]: settlement},
+        parties={regions[2]: party},
+    )
+    return world, regions
+
+
+def test_round_trip_load_world_restores_world_equality_and_region_identity():
+    """G67.2d kryt-1/2: ``dump_world(world)`` zwraca json-serializowalny ``dict``
+    z kluczami ``regions`` (lista ``dump_region`` w kolejności ``world.regions``),
+    ``connections`` (lista par ``[i, j]`` — indeksy w liście ``regions``),
+    ``settlements`` i ``parties`` (listy par ``[i, dump_settlement(s)]`` /
+    ``[i, dump_party(p)]`` po indeksie regionu); ``load_world(dump_world(w))``
+    odtwarza ``WorldMap`` reużywając ``load_region``/``load_settlement``/
+    ``load_party``; połączenia i mapowania osad/party wiążą się z tymi samymi
+    obiektami ``Region`` z odtworzonej listy regionów (po indeksie); dla dowolnej
+    ``WorldMap w`` zachodzi ``load_world(dump_world(w)) == w``.
+
+    Próbka naraz: 4 regiony, 3 połączenia, osada z garnizonem/budynkami
+    w regionie 0, party z rannym bohaterem i podwładnym w regionie 2.
+    Weryfikuje: (a) strukturę dump (klucze, kolejność regionów, indeksy
+    połączeń i par osad/party), (b) ``json.dumps``, (c) round-trip
+    ``load_world(...) == world``, oraz (d) identyczność regionów (a nie tylko
+    równość ``name``) w połączeniach i kluczach mapowań — spoiwo indeksów ma
+    sens tylko wtedy, gdy odtworzone obiekty ``Region`` są tymi samymi
+    referencjami w odtworzonym świecie.
+    """
+    world, regions = _sample_world_with_settlement_and_party()
+    settlement = world.settlements[regions[0]]
+    party = world.parties[regions[2]]
+
+    dumped = persist.dump_world(world)
+
+    assert set(dumped.keys()) == {"regions", "connections", "settlements", "parties"}
+    assert dumped["regions"] == [persist.dump_region(r) for r in world.regions]
+    assert dumped["connections"] == [[0, 1], [1, 2], [2, 3]]
+    assert dumped["settlements"] == [[0, persist.dump_settlement(settlement)]]
+    assert dumped["parties"] == [[2, persist.dump_party(party)]]
+    json.dumps(dumped)
+
+    round_tripped = persist.load_world(dumped)
+
+    assert round_tripped == world
+    assert round_tripped.regions == world.regions
+
+    restored_regions = round_tripped.regions
+    for first, second in round_tripped.connections:
+        assert first in restored_regions
+        assert second in restored_regions
+        assert first is not regions[0]
+        assert second is not regions[0]
+    for settlement_region in round_tripped.settlements:
+        assert settlement_region in restored_regions
+        assert settlement_region is not regions[0]
+    for party_region in round_tripped.parties:
+        assert party_region in restored_regions
+        assert party_region is not regions[2]
+
+    assert round_tripped.settlements[restored_regions[0]] == settlement
+    assert round_tripped.parties[restored_regions[2]] == party

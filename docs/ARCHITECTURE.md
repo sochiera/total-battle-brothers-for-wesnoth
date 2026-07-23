@@ -187,6 +187,18 @@ odtwarza `Region(name=data["name"])`. Dla każdego `Region r` zachodzi
 i będą reużywane przez serializery wyższych kompozytów (`WorldMap` używa
 identyczności regionów do połączeń i mapowań osad/party).
 
+`dump_world(world: WorldMap) -> dict` (G67.2d) zwraca json-serializowalny
+słownik z kluczami `regions`, `connections`, `settlements`, `parties`.
+`regions` to lista `dump_region(r)` w kolejności `world.regions`;
+`connections` to lista par `[i, j]` — indeksów regionów w tej liście;
+`settlements` i `parties` to listy par `[i, dump_settlement(s)]` /
+`[i, dump_party(p)]` po indeksie regionu. `load_world(data: dict) -> WorldMap`
+odtwarza `WorldMap` reużywając `load_region`/`load_settlement`/`load_party`:
+połączenia i mapowania osad/party wiążą się z tymi samymi obiektami `Region`
+z odtworzonej listy regionów (po indeksie). Dla dowolnej `WorldMap w`
+zachodzi `load_world(dump_world(w)) == w`. Obie funkcje są czyste, nie mutują
+wejścia i będą reużywane przez serializery wyższych kompozytów (sesja).
+
 ### Most poleceń (G65)
 
 Most `tbbbridge` daje również kanał **IN** — uchwyt sesji, przez który
