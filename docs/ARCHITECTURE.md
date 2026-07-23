@@ -117,12 +117,16 @@ Most `tbbbridge` daje również kanał **IN** — uchwyt sesji, przez który
 klient Godot steruje partią bez duplikowania logiki reguł. Rdzeń `tbb`
 nie importuje sesji ani mostu.
 
-`Session(world, game, calendar, rng, player_duchy_id, seed)` (G65.1a) to
-uchwyt sesji z polami do odczytu: `world: WorldMap`, `game: GameState`,
-`calendar: Calendar`, `rng: Rng`, `player_duchy_id: str | None`, `seed: int`.
+`Session(world, game, calendar, rng, player_duchy_id, seed,
+last_battle=None)` (G65.1a/G65.3a) to uchwyt sesji z polami do odczytu:
+`world: WorldMap`, `game: GameState`, `calendar: Calendar`, `rng: Rng`,
+`player_duchy_id: str | None`, `seed: int`, `last_battle: HexBattle | None`.
 Metoda `Session.snapshot() -> dict` zwraca
-`game_state(session.world, session.game, session.calendar, session.player_duchy_id)`;
-jest czysta, nie mutuje sesji, a wynik przechodzi przez `json.dumps`.
+`game_state(session.world, session.game, session.calendar, session.player_duchy_id,
+battle=session.last_battle)`; gdy `last_battle is None` wynik nie zawiera klucza
+`battle` (bajt-w-bajt identyczny z wcześniejszą postacią funkcji), a gdy jest
+ustawione, jako ostatni klucz osadzany jest `battle_state(session.last_battle)`.
+Jest czysta, nie mutuje sesji, a wynik przechodzi przez `json.dumps`.
 
 `new_session(seed: int = 73, player_duchy_id: str | None = "player") -> Session`
 (G65.1a) buduje świeżą sesję: `create_headless_game()` + `Calendar()` +

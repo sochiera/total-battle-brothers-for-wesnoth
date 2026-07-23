@@ -1,6 +1,7 @@
 """Uchwyt sesji gry dla mostu poleceń Godot↔rdzeń."""
 
 import tbb.ai as ai
+from tbb.battle import HexBattle
 from tbb.driver import run_headless_game
 from tbb.duchy import Duchy
 from tbb.game import create_headless_game, GameState
@@ -55,6 +56,7 @@ class Session:
       rng              -> Rng
       player_duchy_id  -> str | None
       seed             -> int
+      last_battle      -> HexBattle | None
     """
 
     def __init__(
@@ -65,6 +67,7 @@ class Session:
         rng: Rng,
         player_duchy_id: str | None,
         seed: int,
+        last_battle: HexBattle | None = None,
     ) -> None:
         self.world = world
         self.game = game
@@ -72,6 +75,7 @@ class Session:
         self.rng = rng
         self.player_duchy_id = player_duchy_id
         self.seed = seed
+        self.last_battle = last_battle
 
     def snapshot(self) -> dict:
         """Zwróć json-serializowalny snapshot stanu sesji.
@@ -83,10 +87,21 @@ class Session:
             self.game,
             self.calendar,
             self.player_duchy_id,
+            battle=self.last_battle,
         )
 
-    def _derive(self, world: WorldMap, game: GameState, calendar: Calendar) -> "Session":
-        """Return a new Session sharing RNG, player id and seed."""
+    def _derive(
+        self,
+        world: WorldMap,
+        game: GameState,
+        calendar: Calendar,
+        last_battle: HexBattle | None = None,
+    ) -> "Session":
+        """Return a new Session sharing RNG, player id and seed.
+
+        ``last_battle`` defaults to ``None`` so transitions that do not carry
+        an explicit battle reset the field.
+        """
         return Session(
             world=world,
             game=game,
@@ -94,6 +109,7 @@ class Session:
             rng=self.rng,
             player_duchy_id=self.player_duchy_id,
             seed=self.seed,
+            last_battle=last_battle,
         )
 
     def next_turn(self) -> "Session":

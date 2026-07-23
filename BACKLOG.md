@@ -87,7 +87,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 - [x] **G65.2a** rozkazy gracza bez bitwy `develop`/`recruit`/`muster` (`ai.*` + `sync_from_world`, guardy jak `tbbui.serve`); ARCHITECTURE, DECISIONS `G65.2a`. *(task-314)*
 - [x] **G65.2b** rozkaz `march` (auto / do wskazanego regionu przez `ai.march_duchy_party[_to]`); ARCHITECTURE, DECISIONS `G65.2b`. *(task-315)*
 > **G65.3 rozkazy bitewne — pocięte (RNG, morale, rejestr bitwy w snapshotcie).**
-- [ ] **G65.3a** `Session.last_battle: HexBattle | None` + `Session.snapshot()` osadza ją przez `game_state(..., battle=)`; `_derive` przewodzi/zeruje pole; ARCHITECTURE, DECISIONS `G65.3a`. *(task-316)*
+- [x] **G65.3a** `Session.last_battle: HexBattle | None` + `Session.snapshot()` osadza ją przez `game_state(..., battle=)`; `_derive` przewodzi/zeruje pole; ARCHITECTURE, DECISIONS `G65.3a`. *(task-316)*
 - [ ] **G65.3b** rozkaz `assault` (auto / do wskazanej osady przez `ai.assault_duchy_party[_to]_recorded`; morale z `game.duchies`, RNG, `last_battle`); ARCHITECTURE, DECISIONS `G65.3b`. *(task-317)*
 - [ ] **G65.3c** rozkaz `engage` (auto / do wskazanego regionu przez `ai.engage_duchy_party[_to]_recorded`; morale, RNG, `last_battle`); ARCHITECTURE, DESIGN §11 (pełny zestaw rozkazów), DECISIONS `G65.3c`. *(task-318)*
 

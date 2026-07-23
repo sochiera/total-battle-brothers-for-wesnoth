@@ -549,3 +549,73 @@ def test_apply_command_order_march_falls_back_to_auto_when_target_missing_empty_
         assert s.world.party_at(start_region) is not None
         assert s.world.party_at(step_near_region) is None
         assert s.world.party_at(step_far_region) is None
+
+
+def test_session_last_battle_field_and_snapshot_embeds_battle_state():
+    """G65.3a kryt-1/kryt-2: ``Session.__init__`` zyskuje publiczne pole
+    ``last_battle: HexBattle | None`` (domyślnie ``None``), a
+    ``Session.snapshot()`` przekazuje ``battle=self.last_battle`` do
+    ``game_state(...)``. Gdy ``last_battle is None`` wynik nie ma klucza
+    ``battle`` (bajt-w-bajt jak dziś); gdy jest ustawione,
+    ``session.snapshot()["battle"] == battle_state(session.last_battle)``.
+    Metoda pozostaje czysta (nie mutuje sesji), a wynik przechodzi przez
+    ``json.dumps``.
+
+    Bitwa ustawiana jest na istniejącej sesji bezpośrednio przez publiczne
+    przypisanie pola (tak jak zrobią to rozkazy ``assault``/``engage`` w
+    task-317/318 — ten przyrost dodaje wyłącznie pole i przewód do snapshotu).
+    """
+    from tbb.battle import BattleSide, HexBattle
+    from tbb.battlefield import Battlefield
+    from tbb.hex import Hex
+    from tbb.terrain import FOREST, PLAINS
+    from tbb.unit import Unit
+    from tbbbridge.snapshot import battle_state
+
+    # --- Świeża sesja: last_battle is None, snapshot bez klucza "battle". ---
+    s = new_session(73, "player")
+    assert s.last_battle is None
+    snap_none = s.snapshot()
+    assert "battle" not in snap_none
+
+    # --- Budowa realnej, trwającej bitwy heksowej (obie strony żywe). ---
+    attacker = Unit(training=2)
+    defender = Unit(training=1, equipment=1)
+    battlefield = Battlefield({Hex(1, -1): FOREST, Hex(0, 0): PLAINS})
+    battle = HexBattle(battlefield)
+    battle = battle.deploy(defender, Hex(0, 0), BattleSide.DEFENDER)
+    battle = battle.deploy(attacker, Hex(1, -1), BattleSide.ATTACKER)
+    assert battle.result() is None  # ongoing
+
+    # --- Ustawienie pola last_battle (przypisanie publiczne). ---
+    s.last_battle = battle
+    assert s.last_battle is battle
+
+    snap_before = copy.deepcopy(s.snapshot())
+
+    # --- Snapshot osadza battle_state(last_battle) pod kluczem "battle". ---
+    snap = s.snapshot()
+    assert "battle" in snap
+    assert snap["battle"] == battle_state(battle)
+
+    # --- Pozostałe klucze snapshotu bez zmian względem postaci bez bitwy ---
+    # (z wyjątkiem dodanego klucza "battle" na końcu).
+    assert list(snap.keys()) == [
+        "calendar", "duchies", "map", "result", "battle",
+    ]
+    snap_stripped = {k: snap[k] for k in ("calendar", "duchies", "map", "result")}
+    snap_none_stripped = {
+        k: snap_none[k] for k in ("calendar", "duchies", "map", "result")
+    }
+    assert snap_stripped == snap_none_stripped
+
+    # --- Wynik przechodzi przez json.dumps. ---
+    json.dumps(snap)
+
+    # --- Metoda czysta: powtórne wywołanie daje ten sam wynik, sesja nie
+    # mutuje ani pola, ani bitwy (HexBattle jest zamrożony — tożsamość ref). ---
+    snap2 = s.snapshot()
+    assert snap2 == snap
+    assert json.dumps(snap2) == json.dumps(snap)
+    assert s.last_battle is battle
+    assert s.snapshot() == snap_before
