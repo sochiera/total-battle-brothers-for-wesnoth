@@ -153,6 +153,42 @@ def test_load_wound_does_not_mutate_input_dict():
     assert data == data_before
 
 
+def test_dump_unit_returns_json_serializable_dict_with_all_keys_and_wounds_list():
+    """G67.1c kryt-1: ``dump_unit(unit)`` zwraca json-serializowalny słownik z
+    kluczami ``training``, ``equipment``, ``experience``, ``ranged_range``,
+    ``wounds``, ``stunned``, ``training_progress``, ``equipment_progress``;
+    ``wounds`` = lista ``dump_wound(w)`` w kolejności ``unit.wounds``;
+    wynik przechodzi ``json.dumps``."""
+    unit = Unit(
+        training=3,
+        equipment=2,
+        experience=5,
+        ranged_range=3,
+        wounds=(BRUISE, MAIMED),
+        stunned=True,
+        training_progress=1,
+        equipment_progress=1,
+    )
+
+    dumped = persist.dump_unit(unit)
+
+    assert dumped == {
+        "training": 3,
+        "equipment": 2,
+        "experience": 5,
+        "ranged_range": 3,
+        "wounds": [persist.dump_wound(BRUISE), persist.dump_wound(MAIMED)],
+        "stunned": True,
+        "training_progress": 1,
+        "equipment_progress": 1,
+    }
+    assert dumped["wounds"] == [
+        persist.dump_wound(BRUISE),
+        persist.dump_wound(MAIMED),
+    ]
+    json.dumps(dumped)
+
+
 def test_round_trip_load_dump_restores_unit_equality_wounded_stunned_progress_ranged():
     """G67.1c kryt-2: dla dowolnego ``Unit u`` — w tym rannego, ogłuszonego,
     z niezerowym ``training_progress``/``equipment_progress`` i ``ranged_range >= 2``
