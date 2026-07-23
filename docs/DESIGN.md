@@ -348,10 +348,15 @@ uchwyt sesji `tbbbridge.session.Session` i json-owy punkt wejścia
 `apply_command(session, command)`, którym Godot posuwa turę (`next_turn`),
 zaczyna nową grę (`new_game`), wydaje rozkazy księstwu gracza (`order`:
 rozwój / rekrutacja / zbiórka / marsz / szturm / starcie — reużycie prymitywów `ai.*`, bez logiki
-reguł w moście) oraz **zapisuje i wczytuje stan** (`save`/`load` z kluczem
+reguł w moście), **odczytuje bieżący stan bez mutacji** (`snapshot` — czysty
+odczyt, bez posuwania tury i bez RNG; klient pobiera stan startowy do renderu)
+oraz **zapisuje i wczytuje stan** (`save`/`load` z kluczem
 `path` — reużycie `tbbbridge.persist.save_session`/`read_session`; IO żyje
 w warstwie protokołu, `apply_command` pozostaje czysty). Transportem między Godotem a rdzeniem jest **proces-most stdio**:
-`python -m tbbbridge serve [seed]` startuje `new_session(seed=...)` i uruchamia
+`python -m tbbbridge serve [seed]` startuje `new_session(seed=...)`, a
+`python -m tbbbridge serve --resume <path>` **wznawia** zapisaną partię z pliku
+(`read_session(path)` zamiast nowej); brak/niepoprawny plik → komunikat na
+`stderr` i kod wyjścia `1`. Po starcie most uruchamia
 `serve_stream` na stdin/stdout: czyta z stdin linie-komendy JSON (JSON Lines)
 i wypisuje na stdout linie-odpowiedzi `{"ok", "snapshot"|"error", "result"?}` —
 `result` to maszynowe podsumowanie skutku komendy dla dziennika kampanii
