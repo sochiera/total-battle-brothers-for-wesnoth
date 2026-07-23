@@ -13,13 +13,42 @@ from tbb.turn import Calendar
 from tbb.unit import Unit
 from tbb.wound import Wound
 from tbb.game import GameState
+from tbb.rng import Rng
 from tbb.world import Region, WorldMap
+
+
+def _convert_state(value, make_seq):
+    """Rekurencyjnie zamienia sekwencje (``list``/``tuple``) na typ ``make_seq``.
+
+    Służy do konwersji stanu ``random.Random`` między krotkami a listami:
+    ``json.dumps`` akceptuje tylko listy, ``setstate`` wymaga krotek.
+    """
+    if isinstance(value, (list, tuple)):
+        return make_seq(_convert_state(item, make_seq) for item in value)
+    return value
+
+
+def dump_rng(rng: Rng) -> dict:
+    """Zwraca json-serializowalny słownik ``{"state": ...}`` dla ``Rng``.
+
+    Stan pobierany jest przez ``rng.state()`` i sprowadzany do struktur
+    JSON-owych (krotki zamieniane na listy).
+    """
+    return {"state": _convert_state(rng.state(), list)}
+
+
+def load_rng(data: dict) -> Rng:
+    """Odtwarza ``Rng`` ze słownika wyprodukowanego przez ``dump_rng``.
+
+    Reużywa ``Rng.from_state`` z pola ``state`` (krotki przywrócone z list JSON).
+    """
+    return Rng.from_state(_convert_state(data["state"], tuple))
 
 
 def dump_gamestate(game: GameState) -> dict:
     """Zwraca json-serializowalny słownik ``{"duchies": [...]}``.
 
-    Lista ``duchies`` zawiera ``dump_duchy(d)`` w kolejności ``game.duchies``.
+    Lista ``duchies`` zawiera ``dump_duchy(duchy)`` w kolejności ``game.duchies``.
     """
     return {"duchies": [dump_duchy(duchy) for duchy in game.duchies]}
 

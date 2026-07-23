@@ -220,6 +220,17 @@ księstwem bez bohatera i księstwem z osadami/drużynami) zachodzi
 `load_gamestate(dump_gamestate(g)) == g`. Obie funkcje są czyste i nie mutują
 wejścia.
 
+`dump_rng(rng: Rng) -> dict` (G67.3b) zwraca json-serializowalny słownik
+`{"state": state}` pobierając stan przez `rng.state()` i rekurencyjnie
+zamieniając krotki na listy, by przeżył `json.dumps`. `load_rng(data: dict)
+-> Rng` odtwarza generator przez `Rng.from_state(state)` z pola `state`,
+przywracając listy z powrotem na krotki wymagane przez
+`random.Random.setstate`. Dla `r = Rng(7)` po dowolnej liczbie rzutów
+`load_rng(dump_rng(r))` produkuje tę samą dalszą sekwencję `randint(1, 100)`
+co oryginał, a round-trip przez `json.loads(json.dumps(...))` zachowuje tę
+sekwencję. Obie funkcje są czyste i nie mutują wejścia; będą reużywane przez
+serializer `Session`.
+
 ### Most poleceń (G65)
 
 Most `tbbbridge` daje również kanał **IN** — uchwyt sesji, przez który

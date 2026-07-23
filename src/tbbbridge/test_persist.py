@@ -1,6 +1,6 @@
 """Tests for ``tbbbridge.persist`` (G67.1a — round-trip ``Resources``,
 G67.1b — round-trip ``Wound``, G67.1c — round-trip ``Unit``,
-G67.1e — round-trip ``Calendar``).
+G67.1e — round-trip ``Calendar``, G67.3b — round-trip ``Rng``).
 
 Tests live next to the module under test per task-324 "Ścieżki testów".
 """
@@ -8,6 +8,7 @@ Tests live next to the module under test per task-324 "Ścieżki testów".
 import copy
 import json
 
+from tbb import Rng
 from tbb.building import BARRACKS, FARM, MARKET, SMITH, Building
 from tbb.duchy import Duchy
 from tbb.party import Party
@@ -1008,3 +1009,79 @@ def test_dump_and_load_gamestate_do_not_mutate_input():
 
     assert game.duchies == duchies_before
     assert dumped == data_before
+
+
+def test_dump_rng_returns_json_serializable_dict_with_state_key():
+    """G67.3b kryt-1: ``dump_rng(rng)`` zwraca json-serializowalny ``dict`` z
+    kluczem ``state`` (wartość = ``rng.state()`` z krotkami zamienionymi na listy);
+    wynik przechodzi ``json.dumps``.
+    """
+    rng = Rng(7)
+    for _ in range(5):
+        rng.randint(1, 100)
+
+    dumped = persist.dump_rng(rng)
+
+    assert "state" in dumped
+    assert isinstance(dumped["state"], (list, tuple))
+    json.dumps(dumped)
+
+
+def test_round_trip_load_dump_rng_restores_rng_sequence_via_json_round_trip():
+    """G67.3b kryt-2: dla ``r = Rng(7)`` po dowolnej liczbie rzutów,
+    ``load_rng(dump_rng(r))`` produkuje tę samą kolejną sekwencję
+    ``randint(1, 100)`` co dalsze rzuty ``r``; round-trip przez
+    ``json.loads(json.dumps(...))`` zachowuje sekwencję.
+    """
+    r = Rng(7)
+    for _ in range(5):
+        r.randint(1, 100)
+
+    dumped = persist.dump_rng(r)
+    json_round_tripped = json.loads(json.dumps(dumped))
+    restored = persist.load_rng(json_round_tripped)
+
+    expected = [r.randint(1, 100) for _ in range(10)]
+    actual = [restored.randint(1, 100) for _ in range(10)]
+
+    assert actual == expected
+
+
+def test_dump_rng_does_not_mutate_input_rng():
+    """G67.3b kryt-3: ``dump_rng`` jest czysta — nie mutuje wejściowego ``Rng``.
+
+    ``Rng`` nie jest ``frozen``, ale test weryfikuje kontrakt braku mutacji
+    wejścia (idempotencja state) — stan przed i po wywołaniu musi być
+    identyczny, a dalsze rzuty dają tę samą sekwencję.
+    """
+    rng = Rng(13)
+    for _ in range(3):
+        rng.randint(1, 100)
+
+    state_before = rng.state()
+    expected_continuation = [rng.randint(1, 100) for _ in range(5)]
+
+    rng_after_dump = Rng.from_state(state_before)
+    persist.dump_rng(rng_after_dump)
+
+    state_after = rng_after_dump.state()
+    actual_continuation = [rng_after_dump.randint(1, 100) for _ in range(5)]
+
+    assert state_after == state_before
+    assert actual_continuation == expected_continuation
+
+
+def test_load_rng_does_not_mutate_input_dict():
+    """G67.3b kryt-3: ``load_rng`` jest czysta — nie mutuje słownika
+    wejściowego.
+    """
+    r = Rng(7)
+    for _ in range(3):
+        r.randint(1, 100)
+
+    data = persist.dump_rng(r)
+    data_before = copy.deepcopy(data)
+
+    persist.load_rng(data)
+
+    assert data == data_before
