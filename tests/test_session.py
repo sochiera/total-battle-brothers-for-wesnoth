@@ -89,3 +89,66 @@ def test_fresh_new_session_snapshot_has_expected_starting_state():
     assert snap["result"]["player_result"] == "ongoing"
     assert snap["result"]["winner"] is None
     assert snap["result"]["is_over"] is False
+
+
+def test_next_turn_advances_calendar_by_one_month():
+    """G65.1b-1: next_turn() runs exactly one headless turn.
+
+    For a fresh new_session(73, 'player') the calendar advances from
+    {year: 1, month: 1} to {year: 1, month: 2}.
+    """
+    s = new_session(73, "player")
+    after = s.next_turn()
+    assert after.snapshot()["calendar"] == {"year": 1, "month": 2}
+
+
+def test_next_turn_returns_new_session_with_shared_advanced_rng_and_preserved_fields():
+    """G65.1b-2: next_turn() returns a new session with deterministic state.
+
+    The returned session is a distinct object, preserves ``player_duchy_id``
+    and ``seed``, and shares the same (advanced) RNG instance by reference.
+    The original session remains unchanged.
+    """
+    s = new_session(73, "player")
+    rng_before = s.rng
+    before_state = s.snapshot()
+
+    after = s.next_turn()
+
+    assert after is not s
+    assert after.player_duchy_id == "player"
+    assert after.seed == 73
+    assert after.rng is rng_before
+    assert after.rng is s.rng
+    assert after.snapshot()["calendar"] == {"year": 1, "month": 2}
+    # Original session not mutated.
+    assert s.snapshot() == before_state
+
+
+def test_next_turn_is_noop_when_game_is_over():
+    """G65.1b-3: next_turn() is a no-op and returns an equivalent session
+    sharing the same world/game/calendar objects when the game is already over.
+    """
+    from tbb.game import GameState
+
+    s = new_session(73, "player")
+    ended_game = GameState([s.game.duchies[0]])
+    assert ended_game.is_over is True
+    ended_session = Session(
+        world=s.world,
+        game=ended_game,
+        calendar=s.calendar,
+        rng=s.rng,
+        player_duchy_id=s.player_duchy_id,
+        seed=s.seed,
+    )
+
+    after = ended_session.next_turn()
+
+    assert after is not ended_session
+    assert after.world is ended_session.world
+    assert after.game is ended_session.game
+    assert after.calendar is ended_session.calendar
+    assert after.rng is ended_session.rng
+    assert after.player_duchy_id == "player"
+    assert after.seed == 73

@@ -129,6 +129,15 @@ jest czysta, nie mutuje sesji, a wynik przechodzi przez `json.dumps`.
 `Rng(seed)`. Domyślne argumenty odpowiadają standardowej partii gracza
 `"player"` z seedem `73`.
 
+`Session.next_turn() -> Session` (G65.1b) posuwa partię o dokładnie jedną
+turę `run_headless_game(session.world, session.game, session.rng,
+max_turns=1, calendar=session.calendar, player_duchy_id=session.player_duchy_id)`.
+Zwraca nowy `Session`; `rng` jest tym samym obiektem generatora
+(współdzielonym przez referencję i posuniętym wewnątrz drivera),
+`player_duchy_id` i `seed` są zachowane. Gdy `session.game.is_over`,
+metoda jest no-opem: zwraca równoważną sesję z identycznymi obiektami
+`world`/`game`/`calendar` bez mutacji sesji wejściowej.
+
 ### Prezentacja (pakiet `tbbui`, Kamień 13)
 Warstwa render/UI jest **poza rdzeniem**. `python -m tbb` nadal uruchamia
 deterministyczną partię headless. Obserwowalny UI buduje **osobny pakiet**

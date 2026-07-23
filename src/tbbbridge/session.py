@@ -1,5 +1,6 @@
 """Uchwyt sesji gry dla mostu poleceń Godot↔rdzeń."""
 
+from tbb.driver import run_headless_game
 from tbb.game import create_headless_game, GameState
 from tbb.rng import Rng
 from tbb.turn import Calendar
@@ -47,6 +48,37 @@ class Session:
             self.calendar,
             self.player_duchy_id,
         )
+
+    def _derive(self, world: WorldMap, game: GameState, calendar: Calendar) -> "Session":
+        """Return a new Session sharing RNG, player id and seed."""
+        return Session(
+            world=world,
+            game=game,
+            calendar=calendar,
+            rng=self.rng,
+            player_duchy_id=self.player_duchy_id,
+            seed=self.seed,
+        )
+
+    def next_turn(self) -> "Session":
+        """Zwróć nową sesję po dokładnie jednej turze headless.
+
+        AI gra za wszystkie księstwa poza ``player_duchy_id``; RNG jest
+        współdzielony przez referencję i posuwany wewnątrz drivera.
+        Gdy gra jest już zakończona, zwracana jest sesja z tymi samymi
+        obiektami ``world``/``game``/``calendar`` (no-op).
+        """
+        if self.game.is_over:
+            return self._derive(self.world, self.game, self.calendar)
+        new_world, new_game, new_calendar = run_headless_game(
+            self.world,
+            self.game,
+            self.rng,
+            max_turns=1,
+            calendar=self.calendar,
+            player_duchy_id=self.player_duchy_id,
+        )
+        return self._derive(new_world, new_game, new_calendar)
 
 
 def new_session(seed: int = 73, player_duchy_id: str | None = "player") -> Session:
