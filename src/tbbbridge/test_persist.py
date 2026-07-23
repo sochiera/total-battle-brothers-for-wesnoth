@@ -502,3 +502,43 @@ def test_round_trip_load_dump_restores_settlement_equality_buildings_garrison_ca
         assert isinstance(round_tripped.garrison, tuple)
         assert round_tripped.owner_id == settlement.owner_id
         assert round_tripped.capacity == settlement.capacity
+
+
+def test_dump_and_load_settlement_do_not_mutate_input():
+    """G67.2b kryt-3: ``dump_settlement`` i ``load_settlement`` są czyste —
+    nie mutują wejścia (ani obiektu ``Settlement``, ani słownika danych).
+
+    ``Settlement`` jest ``frozen=True`` (immutable), ale test weryfikuje kontrakt
+    braku mutacji wejścia (idempotencja), wzorem par liściowych
+    (``dump_wound``/``load_wound``, ``dump_calendar``/``load_calendar``).
+    """
+    garrison_unit = Unit(
+        training=3,
+        equipment=2,
+        experience=5,
+        ranged_range=3,
+        wounds=(BRUISE,),
+        stunned=True,
+        training_progress=1,
+        equipment_progress=1,
+    )
+    settlement = Settlement(
+        name="Oakhaven",
+        population=12,
+        occupied=3,
+        active_buildings=(FARM, SMITH),
+        storage=Resources(wheat=7, gold=4),
+        capacity=20,
+        garrison=(garrison_unit,),
+        owner_id="player",
+    )
+    settlement_before = copy.copy(settlement)
+
+    dumped = persist.dump_settlement(settlement)
+
+    assert settlement == settlement_before
+    data_before = copy.deepcopy(dumped)
+
+    persist.load_settlement(dumped)
+
+    assert dumped == data_before
