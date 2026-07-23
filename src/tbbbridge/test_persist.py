@@ -1538,10 +1538,11 @@ def test_dump_battle_returns_json_serializable_dict_with_keys_battlefield_units_
     ``_deployment_order``); ``json.dumps(dump_battle(b))`` nie podnosi wyjątku.
     """
     from tbb.battle import BattleSide, HexBattle
+    from tbb.battlefield import Battlefield
     from tbb.terrain import PLAINS
 
     battle = HexBattle(
-        battlefield={Hex(0, 0): PLAINS},
+        battlefield=Battlefield({Hex(0, 0): PLAINS}),
         units={Hex(0, 0): Unit()},
         sides={Hex(0, 0): BattleSide.ATTACKER},
     )
@@ -1569,3 +1570,86 @@ def test_dump_battle_returns_json_serializable_dict_with_keys_battlefield_units_
     assert dumped["fallen"] == []
     assert dumped["deployment_order"] == [persist.dump_hex(Hex(0, 0))]
     json.dumps(dumped)
+
+
+def test_load_battle_restores_hexbattle_from_dump():
+    """G70.1d kryt-2: ``load_battle(data)`` odtwarza ``HexBattle`` z danych
+    wyprodukowanych przez ``dump_battle``."""
+    from tbb.battle import BattleSide, HexBattle
+    from tbb.battlefield import Battlefield
+    from tbb.terrain import PLAINS
+
+    original = HexBattle(
+        battlefield=Battlefield({Hex(0, 0): PLAINS}),
+        units={Hex(0, 0): Unit()},
+        sides={Hex(0, 0): BattleSide.ATTACKER},
+    )
+
+    dumped = persist.dump_battle(original)
+    loaded = persist.load_battle(dumped)
+
+    assert loaded.battlefield == original.battlefield
+    assert loaded.unit_at(Hex(0, 0)) == original.unit_at(Hex(0, 0))
+    assert loaded.current_hp_at(Hex(0, 0)) == original.current_hp_at(Hex(0, 0))
+    assert loaded.side_at(Hex(0, 0)) == original.side_at(Hex(0, 0))
+    assert loaded._fallen == original._fallen
+    assert loaded._deployment_order == original._deployment_order
+
+
+def test_round_trip_hexbattle_via_json_preserves_equality_and_report():
+    """G70.1d kryt-2: dla bitwy rozstrzygniętej przez
+    ``resolve_party_battle_recorded`` (dwa party, seed stały) round-trip
+    przez JSON daje ``load_battle(json.loads(json.dumps(dump_battle(b)))) == b``
+    oraz równy ``report()`` (ten sam ``result``, ``attacker``/``defender``
+    fallen/stunned/active).
+    """
+    from tbb.battle import HexBattle
+    from tbb.game import create_headless_game
+    from tbb.party import Party
+    from tbb.rng import Rng
+    from tbb.unit import Unit
+
+    world, game = create_headless_game()
+    rng = Rng(42)
+
+    player_region = world.regions[0]
+    ai_region = world.regions[1]
+
+    player_party = Party(hero=Unit(training=3, equipment=2), owner_id="player")
+    ai_party = Party(hero=Unit(training=2, equipment=3), owner_id="ai")
+
+    world = world.place_party(player_party, player_region)
+    world = world.place_party(ai_party, ai_region)
+
+    battle = world.start_battle(player_region, ai_region)
+
+    new_world, resolved_battle = world.resolve_party_battle_recorded(
+        player_region,
+        ai_region,
+        rng,
+        attacker_morale=0,
+        defender_morale=0,
+    )
+
+    assert resolved_battle is not None
+    assert resolved_battle.result() is not None
+
+    original_report = resolved_battle.report()
+
+    dumped = persist.dump_battle(resolved_battle)
+    json_round_tripped = json.loads(json.dumps(dumped))
+    round_tripped = persist.load_battle(json_round_tripped)
+
+    assert round_tripped == resolved_battle
+    assert round_tripped.battlefield == resolved_battle.battlefield
+    assert round_tripped._deployment_order == resolved_battle._deployment_order
+    assert round_tripped._fallen == resolved_battle._fallen
+
+    round_tripped_report = round_tripped.report()
+    assert round_tripped_report.result == original_report.result
+    assert round_tripped_report.attacker.fallen == original_report.attacker.fallen
+    assert round_tripped_report.attacker.stunned == original_report.attacker.stunned
+    assert round_tripped_report.attacker.active == original_report.attacker.active
+    assert round_tripped_report.defender.fallen == original_report.defender.fallen
+    assert round_tripped_report.defender.stunned == original_report.defender.stunned
+    assert round_tripped_report.defender.active == original_report.defender.active
