@@ -15,7 +15,34 @@ _ORDER_TRANSITIONS = {
     "develop": ai.develop_duchy_settlement,
     "recruit": ai.recruit_duchy_unit,
     "muster": ai.muster_duchy_party,
+    "march": None,  # handled specially because of optional target
 }
+
+
+def _find_region_by_name(world: WorldMap, name: object) -> object | None:
+    """Return the Region from ``world.regions`` whose name equals ``name``.
+
+    ``None`` when ``name`` is missing, empty, or does not match any region.
+    """
+    if not isinstance(name, str) or not name:
+        return None
+    for region in world.regions:
+        if region.name == name:
+            return region
+    return None
+
+
+def _apply_march_order(world: WorldMap, duchy: Duchy, target_name: str | None) -> WorldMap:
+    """Apply the player ``march`` order.
+
+    An explicit, resolvable ``target_name`` routes to
+    ``ai.march_duchy_party_to``; anything else falls back to the automatic
+    ``ai.march_duchy_party``.
+    """
+    target = _find_region_by_name(world, target_name)
+    if target is not None:
+        return ai.march_duchy_party_to(world, duchy, target)
+    return ai.march_duchy_party(world, duchy)
 
 
 class Session:
@@ -173,5 +200,9 @@ def apply_command(session: Session, command: dict) -> Session:
         order = command.get("order")
         if order not in _ORDER_TRANSITIONS:
             raise ValueError(f"Unknown order: {order!r}")
+        if order == "march":
+            return _apply_order(
+                session, lambda world, duchy: _apply_march_order(world, duchy, command.get("target"))
+            )
         return _apply_order(session, _ORDER_TRANSITIONS[order])
     raise ValueError(f"Unknown command type: {command_type!r}")

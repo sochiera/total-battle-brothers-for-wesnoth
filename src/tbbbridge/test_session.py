@@ -351,3 +351,102 @@ def test_apply_command_unknown_type_and_missing_type_raise_valueerror_without_mu
         apply_command(s, {"unrelated": 1})
 
     assert s.snapshot() == before
+
+
+def test_apply_command_order_march_with_target_applies_march_duchy_party_to():
+    """G65.2b crit-1: apply_command({"type": "order", "order": "march",
+    "target": <name>}) resolves target to a Region by ``region.name`` from
+    ``world.regions`` and applies ``ai.march_duchy_party_to(world,
+    player_duchy, region)`` (NOT the automatic nearest-enemy
+    ``ai.march_duchy_party``). The resulting game is
+    ``game.sync_from_world(new_world)`` and a new Session is returned with
+    calendar/rng/seed/player_duchy_id preserved. The input session is not
+    mutated.
+
+    The scenario uses a branching map where the explicit target (``Far``)
+    lies along a different first step (``StepFar``) than the nearest enemy
+    settlement (``Near`` / ``StepNear``), so an auto-march fallback would
+    be observable as a party at ``StepNear`` instead of ``StepFar``.
+    """
+    from tbb.ai import march_duchy_party, march_duchy_party_to
+    from tbb.duchy import Duchy
+    from tbb.party import Party
+    from tbb.settlement import Settlement
+    from tbb.unit import Unit
+    from tbb.world import Region, WorldMap
+
+    start, step_near, near, step_far, far = map(
+        Region, ("Start", "StepNear", "Near", "StepFar", "Far")
+    )
+    party = Party(Unit(training=4), (Unit(equipment=1),), owner_id="north")
+    near_keep = Settlement("Near Keep", 2, owner_id="south")
+    far_keep = Settlement("Far Keep", 2, owner_id="south")
+    world = WorldMap(
+        (start, step_near, near, step_far, far),
+        (
+            (start, step_near),
+            (step_near, near),
+            (start, step_far),
+            (step_far, far),
+        ),
+        settlements={near: near_keep, far: far_keep},
+        parties={start: party},
+    )
+    game = GameState(
+        (
+            Duchy("north", party.hero, parties=(party,)),
+            Duchy("south", Unit(), settlements=(near_keep, far_keep)),
+        )
+    )
+    assert not game.is_over
+    calendar = Calendar(year=2, month=3)
+    s = Session(
+        world=world,
+        game=game,
+        calendar=calendar,
+        rng=Rng(11),
+        player_duchy_id="north",
+        seed=11,
+    )
+
+    # Sanity: the automatic nearest-enemy march would step toward Near,
+    # not Far — so a march-to(Far) result is observably different.
+    auto = march_duchy_party(s.world, s.game.duchies[0])
+    assert auto.party_at(step_near) is party
+    assert auto.party_at(step_far) is None
+
+    expected_world = march_duchy_party_to(s.world, s.game.duchies[0], far)
+    expected_game = s.game.sync_from_world(expected_world)
+    assert expected_world.party_at(step_far) is party
+    assert expected_world.party_at(start) is None
+    assert expected_world.party_at(step_near) is None
+
+    before = copy.deepcopy(s.snapshot())
+    after = apply_command(
+        s, {"type": "order", "order": "march", "target": "Far"}
+    )
+
+    assert isinstance(after, Session)
+    assert after is not s
+    assert after.player_duchy_id == "north"
+    assert after.seed == 11
+    assert after.calendar == calendar
+    assert after.rng is s.rng
+
+    # The transition used march_duchy_party_to(world, duchy, region_named_Far):
+    # the party moved to StepFar (toward Far), NOT StepNear (nearest enemy).
+    assert after.world.party_at(step_far) is party
+    assert after.world.party_at(step_near) is None
+    assert after.world.party_at(start) is None
+    # The new game is sync_from_world of the new world.
+    assert after.game is not s.game
+    assert after.world == expected_world
+    north_after = next(d for d in after.game.duchies if d.duchy_id == "north")
+    north_expected = next(
+        d for d in expected_game.duchies if d.duchy_id == "north"
+    )
+    assert north_after.parties == north_expected.parties
+    # The input session is not mutated.
+    assert s.snapshot() == before
+    assert s.world.party_at(start) is party
+    assert s.world.party_at(step_far) is None
