@@ -350,6 +350,23 @@ sys.stdout)`. Strumienie są wstrzykiwane jako keyword-only argumenty
 argumentu pozycyjnego.
 
 
+## RNG / rdzeń (G67.3a)
+
+Rdzeń `tbb.rng.Rng` to seedowalny wrapper wokół `random.Random`, izolowany
+od stanu globalnego. Aby umożliwić zapisanie i wznowienie partii z
+zachowaniem bit-w-bit tego samego strumienia losowości, `Rng` wystawia
+**seam** do odczytu i odtworzenia wewnętrznego stanu generatora:
+
+- `Rng.state(self) -> tuple` zwraca wynik `random.Random.getstate()`; jest
+czysty względem generatora — dwa kolejne wywołania bez rzutów dają
+identyczną wartość.
+- `Rng.from_state(cls, state: tuple) -> Rng` (classmethod) buduje nowy
+`Rng` z załadowanym przez `random.Random.setstate(state)` stanem; dalsze
+rzuty są ciągiem dalszym oryginału.
+
+Te metody są fundamentem pod serializację RNG w moście (`G67.3b`).
+
+
 ### Prezentacja (pakiet `tbbui`, Kamień 13)
 Warstwa render/UI jest **poza rdzeniem**. `python -m tbb` nadal uruchamia
 deterministyczną partię headless. Obserwowalny UI buduje **osobny pakiet**

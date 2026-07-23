@@ -67,3 +67,28 @@ def test_isolated_from_global_random():
         random.random()
 
     assert disturbed_results == baseline_results
+
+
+def test_state_does_not_mutate_generator():
+    rng = Rng(7)
+    for _ in range(3):
+        rng.randint(1, 100)
+
+    first = rng.state()
+    second = rng.state()
+
+    assert first == second
+
+
+def test_from_state_reproduces_sequence_after_rolls():
+    r = Rng(7)
+    for _ in range(5):
+        r.randint(1, 100)
+    r.chance(0.4)
+
+    restored = Rng.from_state(r.state())
+
+    expected = [r.randint(1, 100) for _ in range(10)]
+    actual = [restored.randint(1, 100) for _ in range(10)]
+
+    assert actual == expected

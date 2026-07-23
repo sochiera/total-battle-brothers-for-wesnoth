@@ -20,3 +20,15 @@ class Rng:
         if p >= 1.0:
             return True
         return self._random.random() < p
+
+    def state(self) -> tuple:
+        """Return the internal state of the generator."""
+        return self._random.getstate()
+
+    @classmethod
+    def from_state(cls, state: tuple) -> "Rng":
+        """Build a new Rng from a state previously returned by ``state()``."""
+        rng = cls.__new__(cls)
+        rng._random = random.Random()
+        rng._random.setstate(state)
+        return rng
