@@ -436,6 +436,134 @@ def test_command_result_save_returns_kind_save_with_path():
     json.dumps(result)
 
 
+def test_command_result_load_returns_kind_load_with_path():
+    """G68.2b kryt-1: ``command_result(before, after, {"type": "load", "path": p})``
+    zwraca ``{"kind": "load", "path": p}`` (czysta funkcja; dla ``load`` ``before``
+    i ``after`` to ta sama sesja). Wynik przechodzi ``json.dumps``.
+    """
+    s = new_session(73, "player")
+    result = command_result(s, s, {"type": "load", "path": "/tmp/test-load.json"})
+
+    assert result == {
+        "kind": "load",
+        "path": "/tmp/test-load.json",
+    }
+    json.dumps(result)
+
+
+def test_handle_command_line_load_existing_file_returns_loaded_session_and_snapshot():
+    """G68.2b kryt-2: ``handle_command_line(session, '{"type": "load", "path": <p>}')``
+    dla pliku zapisanego wcześniej przez ``save_session`` zwraca ``(loaded, resp)``,
+    gdzie ``loaded`` to ``read_session(p)`` (nowa sesja), a
+    ``resp == {"ok": True, "snapshot": loaded.snapshot(), "result": {"kind": "load",
+    "path": p}}``; ``json.dumps(resp)`` nie rzuca. Wejściowa sesja nie jest mutowana
+    i ``apply_command`` nie jest wołane dla ``load``.
+    """
+    import os
+    import tempfile
+    from tbbbridge.persist import save_session, read_session
+
+    # Najpierw zapiszmy sesję referencyjną
+    original = new_session(73, "player")
+    original_snapshot = original.snapshot()
+
+    in_stream = io.StringIO()  # pusty dla izolacji
+    out_stream = _FlushTrackingStream()
+    s = serve_stream(original, in_stream, out_stream)  # upewnij się że session jest czysta
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        path = os.path.join(tmpdir, "test-load.json")
+        save_session(original, path)
+
+        # Wywołaj load
+        loaded_session, resp = handle_command_line(s, json.dumps({"type": "load", "path": path}))
+
+        # loaded_session to nowa sesja z pliku (nie ta sama co wejściowa)
+        assert loaded_session is not s
+        assert loaded_session is not original
+
+        # Sesja wczytana zgadza się z read_session
+        expected = read_session(path)
+        assert loaded_session.world.regions == expected.world.regions
+        assert loaded_session.game.duchies == expected.game.duchies
+        assert loaded_session.calendar.year == expected.calendar.year
+        assert loaded_session.calendar.month == expected.calendar.month
+        assert loaded_session.player_duchy_id == expected.player_duchy_id
+        assert loaded_session.seed == expected.seed
+
+        # Odpowiedź zawiera ok, snapshot z wczytanej sesji i result
+        assert resp["ok"] is True
+        assert resp["snapshot"] == loaded_session.snapshot()
+        assert resp["result"] == {"kind": "load", "path": path}
+
+        # json.dumps nie rzuca
+        json.dumps(resp)
+
+        # Wejściowa sesja nie jest mutowana
+        assert s.snapshot() == original_snapshot
+
+
+def test_handle_command_line_load_missing_path_non_string_nonexistent_file_json_error_returns_error_without_session_mutation():
+    """G68.2b kryt-3: Brak klucza ``path`` lub ``path`` nie będący ``str`` →
+    ``(session, {"ok": False, "error": <str>})`` z zachowaną bieżącą sesją;
+    nieistniejący plik (``OSError``) oraz uszkodzony JSON (``json.JSONDecodeError``) →
+    ``(session, {"ok": False, "error": <str>})`` bez podmiany sesji.
+    """
+    import os
+    import tempfile
+
+    s = new_session(73, "player")
+    before_snapshot = s.snapshot()
+
+    # --- Brak klucza path ---
+    session_out, resp = handle_command_line(s, json.dumps({"type": "load"}))
+    assert session_out is s
+    assert resp["ok"] is False
+    assert isinstance(resp["error"], str)
+    assert resp["error"]  # niepusty
+    assert "snapshot" not in resp
+    assert "result" not in resp
+    assert s.snapshot() == before_snapshot
+
+    # --- path nie będący str ---
+    session_out, resp = handle_command_line(s, json.dumps({"type": "load", "path": 123}))
+    assert session_out is s
+    assert resp["ok"] is False
+    assert isinstance(resp["error"], str)
+    assert "snapshot" not in resp
+    assert s.snapshot() == before_snapshot
+
+    # --- path pusty string ---
+    session_out, resp = handle_command_line(s, json.dumps({"type": "load", "path": ""}))
+    assert session_out is s
+    assert resp["ok"] is False
+    assert isinstance(resp["error"], str)
+    assert "snapshot" not in resp
+    assert s.snapshot() == before_snapshot
+
+    # --- Nieistniejący plik (OSError) ---
+    with tempfile.TemporaryDirectory() as tmpdir:
+        nonexistent = os.path.join(tmpdir, "does-not-exist.json")
+        session_out, resp = handle_command_line(s, json.dumps({"type": "load", "path": nonexistent}))
+        assert session_out is s
+        assert resp["ok"] is False
+        assert isinstance(resp["error"], str)
+        assert "snapshot" not in resp
+        assert s.snapshot() == before_snapshot
+
+    # --- Uszkodzony JSON w pliku (JSONDecodeError) ---
+    with tempfile.TemporaryDirectory() as tmpdir:
+        corrupted_path = os.path.join(tmpdir, "corrupted.json")
+        with open(corrupted_path, "w") as f:
+            f.write("{not valid json")
+        session_out, resp = handle_command_line(s, json.dumps({"type": "load", "path": corrupted_path}))
+        assert session_out is s
+        assert resp["ok"] is False
+        assert isinstance(resp["error"], str)
+        assert "snapshot" not in resp
+        assert s.snapshot() == before_snapshot
+
+
 def test_handle_command_line_save_writes_file_and_returns_same_session_with_snapshot_and_result():
     """G68.2a kryt-2: ``handle_command_line(session, '{"type": "save", "path": <p>}')``
     wywołuje ``tbbbridge.persist.save_session(session, p)`` (plik powstaje) i zwraca

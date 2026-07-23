@@ -358,12 +358,13 @@ jest podstawowym punktem wejścia tego protokołu.
   obsługiwana w warstwie protokołu.  Sukces daje
   `(new_session, {"ok": true, "snapshot": new_session.snapshot(),
   "result": command_result(session, new_session, command)})`, gdzie
-  `command_result(before, after, command)` (G66.2a/G68.2a) to json-serializowalny
-  klasyfikator: `"next_turn"` → `{"kind": "turn", "date": {"year": ...,
-  "month": ...}}`, `"new_game"` → `{"kind": "new_game"}`, rozkaz niebitewny
-  `{"type":"order","order":name}` → `{"kind": "order", "order": name,
-  "changed": after.world is not before.world}`, `"save"` →
-  `{"kind": "save", "path": command["path"]}`.
+`command_result(before, after, command)` (G66.2a/G68.2a) to json-serializowalny
+klasyfikator: `"next_turn"` → `{"kind": "turn", "date": {"year": ...,
+"month": ...}}`, `"new_game"` → `{"kind": "new_game"}`, rozkaz niebitewny
+`{"type":"order","order":name}` → `{"kind": "order", "order": name,
+"changed": after.world is not before.world}`, `"save"` →
+`{"kind": "save", "path": command["path"]}`, `"load"` →
+`{"kind": "load", "path": command["path"]}`.
 - `"save"`: gdy `command["path"]` jest niepustym łańcuchem, wywoływane jest
   `tbbbridge.persist.save_session(session, path)`, a zwracana jest ta sama
   sesja `session` i odpowiedź z `snapshot` oraz `"result": {"kind": "save",
@@ -371,14 +372,24 @@ jest podstawowym punktem wejścia tego protokołu.
   `(session, {"ok": false, "error": <str>})` bez zapisu; `OSError` z
   `save_session` → `(session, {"ok": false, "error": str(exc)})`.
   `apply_command` **nie** jest wołane — IO pozostaje w warstwie protokołu.
+- `"load"`: gdy `command["path"]` jest niepustym łańcuchem, wywoływane jest
+  `tbbbridge.persist.read_session(path)`, a zwracana jest wczytana sesja
+  `loaded` i odpowiedź z `snapshot` oraz `"result": {"kind": "load",
+  "path": path}`; brak klucza, nie-łańcuch lub pusty łańcuch →
+  `(session, {"ok": false, "error": <str>})` bez podmiany; `OSError` lub
+  `json.JSONDecodeError` z `read_session` →
+  `(session, {"ok": false, "error": str(exc)})` bez podmiany sesji.
+  `apply_command` **nie** jest wołane — IO pozostaje w warstwie protokołu; wczytana
+  sesja zastępuje bieżącą.
 - Błędne ścieżki (niepoprawny JSON / nie-obiekt / `ValueError` przy innych
   komendach) **nie** zawierają klucza `"result"`.
 - `ValueError` wyrzucony przez `apply_command` jest łapany i zwracany jako
   `(session, {"ok": false, "error": str(exc)})`, również bez `"snapshot"`.
 
 `handle_command_line` jest bez IO i bez mutacji wejściowej sesji (poza
-jawnym zapisem pliku przy komendzie `save`, której IO reużyjuje
-`persist.save_session`).
+jawnym zapisem pliku przy komendzie `save` oraz odczytem pliku przy
+komendzie `load`, których IO reużywają odpowiednio `persist.save_session`
+i `persist.read_session`).
 
 `serve_stream(session, in_stream, out_stream) -> Session` (G66.1b) jest
 reużywalną pętlą JSON Lines nad strumieniami. Iteruje po liniach

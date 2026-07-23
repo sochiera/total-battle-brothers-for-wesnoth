@@ -2,7 +2,7 @@
 
 import json
 
-from tbbbridge.persist import save_session
+from tbbbridge.persist import read_session, save_session
 from tbbbridge.session import Session, apply_command, new_session
 
 _BATTLE_ORDERS = ("assault", "engage")
@@ -12,6 +12,16 @@ _BATTLE_OUTCOME = {
     "defender_win": "porażka",
     "draw": "remis",
 }
+
+
+def _validated_path(command: dict, command_name: str) -> tuple[str | None, str | None]:
+    """Zwraca ``(path, None)`` gdy ``path`` jest niepustym łańcuchem;
+    inaczej ``(None, error_message)``.
+    """
+    path = command.get("path")
+    if isinstance(path, str) and path != "":
+        return path, None
+    return None, f"{command_name} command requires a non-empty string path"
 
 
 def command_result(before: Session, after: Session, command: dict) -> dict:
@@ -27,9 +37,9 @@ def command_result(before: Session, after: Session, command: dict) -> dict:
     if command_type == "new_game":
         return {"kind": "new_game"}
 
-    if command_type == "save":
+    if command_type in ("save", "load"):
         return {
-            "kind": "save",
+            "kind": command_type,
             "path": command["path"],
         }
 
@@ -82,12 +92,9 @@ def handle_command_line(session: Session, line: str) -> tuple[Session, dict]:
         }
 
     if command.get("type") == "save":
-        path = command.get("path")
-        if not isinstance(path, str) or path == "":
-            return session, {
-                "ok": False,
-                "error": "save command requires a non-empty string path",
-            }
+        path, error = _validated_path(command, "save")
+        if error is not None:
+            return session, {"ok": False, "error": error}
         try:
             save_session(session, path)
         except OSError as exc:
@@ -95,6 +102,20 @@ def handle_command_line(session: Session, line: str) -> tuple[Session, dict]:
         return session, {
             "ok": True,
             "snapshot": session.snapshot(),
+            "result": command_result(session, session, command),
+        }
+
+    if command.get("type") == "load":
+        path, error = _validated_path(command, "load")
+        if error is not None:
+            return session, {"ok": False, "error": error}
+        try:
+            loaded = read_session(path)
+        except (OSError, json.JSONDecodeError) as exc:
+            return session, {"ok": False, "error": str(exc)}
+        return loaded, {
+            "ok": True,
+            "snapshot": loaded.snapshot(),
             "result": command_result(session, session, command),
         }
 
