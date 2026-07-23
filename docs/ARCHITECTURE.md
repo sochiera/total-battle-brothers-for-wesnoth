@@ -167,6 +167,19 @@ zachodzi `load_party(dump_party(p)) == p`. Obie funkcje są czyste, nie mutują
 wejścia i będą reużywane przez serializery wyższych kompozytów (osada,
 świat, sesja).
 
+`dump_settlement(settlement: Settlement) -> dict` (G67.2b) zwraca
+json-serializowalny słownik z kluczami `name`, `population`, `occupied`,
+`active_buildings` (lista `dump_building(b)` w kolejności
+`settlement.active_buildings`), `storage` (= `dump_resources(settlement.storage)`),
+`capacity` (int lub `None`), `garrison` (lista `dump_unit(u)` w kolejności
+`settlement.garrison`) oraz `owner_id` (= `settlement.owner_id`).
+`load_settlement(data: dict) -> Settlement` odtwarza `Settlement` z tych pól,
+reużywając `load_building`/`load_resources`/`load_unit` i zapisując
+`active_buildings` oraz `garrison` jako krotki. Dla każdej `Settlement s` (w tym
+z budynkami, garnizonem, `capacity=None` oraz `owner_id=None`) zachodzi
+`load_settlement(dump_settlement(s)) == s`. Obie funkcje są czyste, nie mutują
+wejścia i będą reużywane przez serializery wyższych kompozytów (świat, sesja).
+
 ### Most poleceń (G65)
 
 Most `tbbbridge` daje również kanał **IN** — uchwyt sesji, przez który

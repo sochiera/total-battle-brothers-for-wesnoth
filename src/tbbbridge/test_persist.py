@@ -11,6 +11,7 @@ import json
 from tbb.building import BARRACKS, FARM, MARKET, SMITH, Building
 from tbb.party import Party
 from tbb.resources import Resources
+from tbb.settlement import Settlement
 from tbb.turn import Calendar
 from tbb.unit import Unit
 from tbb.wound import BRUISE, MAIMED, Wound
@@ -379,3 +380,125 @@ def test_round_trip_load_dump_restores_party_equality_wounded_subordinate_owner_
         assert round_tripped == party
         assert round_tripped.owner_id == party.owner_id
         assert isinstance(round_tripped.units, tuple)
+
+
+def test_dump_settlement_returns_json_serializable_dict_with_all_keys():
+    """G67.2b kryt-1: ``dump_settlement(settlement)`` zwraca json-serializowalny
+    ``dict`` z kluczami ``name``, ``population``, ``occupied``,
+    ``active_buildings`` (lista ``dump_building``), ``storage``
+    (= ``dump_resources``), ``capacity`` (int lub ``None``), ``garrison``
+    (lista ``dump_unit``) oraz ``owner_id``; wynik przechodzi ``json.dumps``.
+
+    Próbka naraz: osada z niepustym garnizonem (ranny jednostka), aktywnym
+    budynkiem (``FARM``), obsadą, magazynem, ``capacity`` int oraz jawny
+    ``owner_id`` — wszystkie filary kryt-1 jednocześnie.
+    """
+    garrison_unit = Unit(
+        training=3,
+        equipment=2,
+        experience=5,
+        ranged_range=3,
+        wounds=(BRUISE, MAIMED),
+        stunned=True,
+        training_progress=1,
+        equipment_progress=1,
+    )
+    settlement = Settlement(
+        name="Oakhaven",
+        population=12,
+        occupied=3,
+        active_buildings=(FARM,),
+        storage=Resources(wheat=7, gold=4),
+        capacity=20,
+        garrison=(garrison_unit,),
+        owner_id="player",
+    )
+
+    dumped = persist.dump_settlement(settlement)
+
+    assert set(dumped.keys()) == {
+        "name",
+        "population",
+        "occupied",
+        "active_buildings",
+        "storage",
+        "capacity",
+        "garrison",
+        "owner_id",
+    }
+    assert dumped["name"] == "Oakhaven"
+    assert dumped["population"] == 12
+    assert dumped["occupied"] == 3
+    assert dumped["active_buildings"] == [persist.dump_building(FARM)]
+    assert dumped["storage"] == persist.dump_resources(Resources(wheat=7, gold=4))
+    assert dumped["capacity"] == 20
+    assert dumped["garrison"] == [persist.dump_unit(garrison_unit)]
+    assert dumped["owner_id"] == "player"
+    json.dumps(dumped)
+
+
+def test_round_trip_load_dump_restores_settlement_equality_buildings_garrison_capacity_none_owner_none():
+    """G67.2b kryt-2: dla dowolnej ``Settlement s`` (w tym z budynkami,
+    garnizonem, ``capacity=None`` oraz ``owner_id=None``) zachodzi
+    ``load_settlement(dump_settlement(s)) == s``.
+
+    ``load_settlement`` reużywa ``load_building``/``load_resources``/
+    ``load_unit`` (``active_buildings`` i ``garrison`` jako krotki).
+
+    Próbki naraz: osada z dwoma budynkami, rannym garnizonem, obsadą i
+    magazynem; ``capacity`` int / ``None``; ``owner_id`` jawny / ``None``,
+    z pustym garnizonem; puste budynki — weryfikują pełny round-trip.
+    """
+    garrison_unit = Unit(
+        training=3,
+        equipment=2,
+        experience=5,
+        ranged_range=3,
+        wounds=(BRUISE,),
+        stunned=True,
+        training_progress=1,
+        equipment_progress=1,
+    )
+    samples = [
+        Settlement(
+            name="Oakhaven",
+            population=12,
+            occupied=3,
+            active_buildings=(FARM, MARKET),
+            storage=Resources(wheat=7, gold=4),
+            capacity=20,
+            garrison=(garrison_unit,),
+            owner_id="player",
+        ),
+        Settlement(
+            name="Freehold",
+            population=5,
+            occupied=0,
+            active_buildings=(),
+            storage=Resources(wheat=0, gold=0),
+            capacity=None,
+            garrison=(),
+            owner_id=None,
+        ),
+        Settlement(
+            name="Rivermouth",
+            population=8,
+            occupied=1,
+            active_buildings=(SMITH,),
+            storage=Resources(wheat=2, gold=9),
+            capacity=10,
+            garrison=(Unit(),),
+            owner_id=None,
+        ),
+    ]
+
+    for settlement in samples:
+        round_tripped = persist.load_settlement(
+            persist.dump_settlement(settlement)
+        )
+
+        assert round_tripped == settlement
+        assert isinstance(round_tripped.active_buildings, tuple)
+        assert isinstance(round_tripped.garrison, tuple)
+        assert round_tripped.owner_id == settlement.owner_id
+        assert round_tripped.capacity == settlement.capacity

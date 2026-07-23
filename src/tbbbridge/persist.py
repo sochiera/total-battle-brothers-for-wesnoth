@@ -7,6 +7,7 @@ publiczne API rdzenia, bez żadnej logiki reguł.
 from tbb.building import Building
 from tbb.party import Party
 from tbb.resources import Resources
+from tbb.settlement import Settlement
 from tbb.turn import Calendar
 from tbb.unit import Unit
 from tbb.wound import Wound
@@ -128,3 +129,41 @@ def dump_calendar(calendar: Calendar) -> dict:
 def load_calendar(data: dict) -> Calendar:
     """Odtwarza ``Calendar`` ze słownika wyprodukowanego przez ``dump_calendar``."""
     return Calendar(year=data["year"], month=data["month"])
+
+
+def dump_settlement(settlement: Settlement) -> dict:
+    """Zwraca json-serializowalny słownik ``Settlement``.
+
+    Klucze: ``name`` (str), ``population`` (int), ``occupied`` (int),
+    ``active_buildings`` (lista ``dump_building``), ``storage``
+    (``dump_resources``), ``capacity`` (int lub ``None``), ``garrison``
+    (lista ``dump_unit``), ``owner_id`` (``str | None``).
+    """
+    return {
+        "name": settlement.name,
+        "population": settlement.population,
+        "occupied": settlement.occupied,
+        "active_buildings": [
+            dump_building(building) for building in settlement.active_buildings
+        ],
+        "storage": dump_resources(settlement.storage),
+        "capacity": settlement.capacity,
+        "garrison": [dump_unit(unit) for unit in settlement.garrison],
+        "owner_id": settlement.owner_id,
+    }
+
+
+def load_settlement(data: dict) -> Settlement:
+    """Odtwarza ``Settlement`` ze słownika wyprodukowanego przez ``dump_settlement``."""
+    return Settlement(
+        name=data["name"],
+        population=data["population"],
+        occupied=data["occupied"],
+        active_buildings=tuple(
+            load_building(building) for building in data["active_buildings"]
+        ),
+        storage=load_resources(data["storage"]),
+        capacity=data["capacity"],
+        garrison=tuple(load_unit(unit) for unit in data["garrison"]),
+        owner_id=data["owner_id"],
+    )
