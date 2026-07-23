@@ -1,5 +1,6 @@
 """Tests for ``tbbbridge.persist`` (G67.1a — round-trip ``Resources``,
-G67.1b — round-trip ``Wound``, G67.1c — round-trip ``Unit``).
+G67.1b — round-trip ``Wound``, G67.1c — round-trip ``Unit``,
+G67.1e — round-trip ``Calendar``).
 
 Tests live next to the module under test per task-324 "Ścieżki testów".
 """
@@ -9,6 +10,7 @@ import json
 
 from tbb.building import BARRACKS, FARM, MARKET, SMITH, Building
 from tbb.resources import Resources
+from tbb.turn import Calendar
 from tbb.unit import Unit
 from tbb.wound import BRUISE, MAIMED, Wound
 from tbbbridge import persist
@@ -241,3 +243,64 @@ def test_round_trip_load_dump_restores_building_equality_for_catalog():
         round_tripped = persist.load_building(dumped)
 
         assert round_tripped == building
+
+
+def test_dump_calendar_returns_json_serializable_dict_with_year_month():
+    """G67.1e kryt-1: ``dump_calendar(calendar)`` zwraca json-serializowalny
+    słownik z kluczami ``year`` i ``month`` (wartości = ``calendar.year`` /
+    ``calendar.month``); wynik przechodzi ``json.dumps``."""
+    calendar = Calendar(year=3, month=7)
+
+    dumped = persist.dump_calendar(calendar)
+
+    assert dumped == {"year": 3, "month": 7}
+    json.dumps(dumped)
+
+
+def test_load_calendar_returns_calendar_from_dict_year_month():
+    """G67.1e kryt-2: ``load_calendar({"year": 5, "month": 9})`` zwraca
+    ``Calendar(year=5, month=9)``."""
+    data = {"year": 5, "month": 9}
+
+    loaded = persist.load_calendar(data)
+
+    assert loaded == Calendar(year=5, month=9)
+
+
+def test_round_trip_load_dump_restores_calendar_equality_including_year77_month13():
+    """G67.1e kryt-2: dla dowolnego ``Calendar c`` (w tym ``Calendar(year=77,
+    month=13)``) zachodzi ``load_calendar(dump_calendar(c)) == c``."""
+    samples = [
+        Calendar(year=1, month=1),
+        Calendar(year=77, month=13),
+        Calendar(year=2, month=4),
+        Calendar(year=999, month=13),
+    ]
+
+    for calendar in samples:
+        round_tripped = persist.load_calendar(persist.dump_calendar(calendar))
+        assert round_tripped == calendar
+
+
+def test_dump_calendar_does_not_mutate_input_calendar():
+    """G67.1e kryt-3: ``dump_calendar`` jest czysta — nie mutuje wejścia.
+
+    ``Calendar`` ma ``frozen=True`` (immutable), ale test weryfikuje kontrakt
+    braku mutacji wejścia (idempotencja)."""
+    calendar = Calendar(year=3, month=7)
+    calendar_before = copy.copy(calendar)
+
+    persist.dump_calendar(calendar)
+
+    assert calendar == calendar_before
+
+
+def test_load_calendar_does_not_mutate_input_dict():
+    """G67.1e kryt-3: ``load_calendar`` jest czysta — nie mutuje słownika
+    wejściowego."""
+    data = {"year": 4, "month": 11}
+    data_before = copy.deepcopy(data)
+
+    persist.load_calendar(data)
+
+    assert data == data_before

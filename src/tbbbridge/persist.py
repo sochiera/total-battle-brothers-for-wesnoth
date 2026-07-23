@@ -6,6 +6,7 @@ publiczne API rdzenia, bez żadnej logiki reguł.
 
 from tbb.building import Building
 from tbb.resources import Resources
+from tbb.turn import Calendar
 from tbb.unit import Unit
 from tbb.wound import Wound
 
@@ -94,3 +95,13 @@ def load_unit(data: dict) -> Unit:
         training_progress=data["training_progress"],
         equipment_progress=data["equipment_progress"],
     )
+
+
+def dump_calendar(calendar: Calendar) -> dict:
+    """Zwraca json-serializowalny słownik ``{"year": int, "month": int}``."""
+    return {"year": calendar.year, "month": calendar.month}
+
+
+def load_calendar(data: dict) -> Calendar:
+    """Odtwarza ``Calendar`` ze słownika wyprodukowanego przez ``dump_calendar``."""
+    return Calendar(year=data["year"], month=data["month"])

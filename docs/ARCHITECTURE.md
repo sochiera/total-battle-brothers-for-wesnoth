@@ -149,6 +149,14 @@ budynku z katalogu (`FARM`, `SMITH`, `MARKET`, `BARRACKS`) zachodzi
 `load_building(dump_building(b)) == b`. Obie funkcje są czyste, nie mutują
 wejścia i będą reużywane przez serializery osad.
 
+`dump_calendar(calendar: Calendar) -> dict` (G67.1e) zwraca
+json-serializowalny słownik `{"year": calendar.year, "month": calendar.month}`.
+`load_calendar(data: dict) -> Calendar` odtwarza `Calendar(year=data["year"],
+month=data["month"])`. Dla każdego `Calendar c` (w tym `Calendar(year=77,
+month=13)`) zachodzi `load_calendar(dump_calendar(c)) == c`. Obie funkcje są
+czyste, nie mutują wejścia i będą reużywane przez serializery wyższych
+kompozytów (np. `Session`).
+
 ### Most poleceń (G65)
 
 Most `tbbbridge` daje również kanał **IN** — uchwyt sesji, przez który
