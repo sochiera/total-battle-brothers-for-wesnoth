@@ -82,13 +82,14 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > gracza. Most reużywa czyste prymitywy `ai.*` i driver headless — **żadnej**
 > nowej logiki reguł; rdzeń `tbb` bez zmian.
 - [x] **G65.1a** `tbbbridge.session.Session` + `new_session(seed=73, player_duchy_id="player")` + `Session.snapshot()`; ARCHITECTURE (podsekcja „Most poleceń”), DECISIONS `G65.0`/`G65.1a`. *(task-311)*
-- [ ] **G65.1b** `Session.next_turn()` — jedna tura `run_headless_game` (RNG współdzielony), `is_over` → no-op; ARCHITECTURE, DECISIONS `G65.1b`. *(task-312)*
+- [x] **G65.1b** `Session.next_turn()` — jedna tura `run_headless_game` (RNG współdzielony), `is_over` → no-op; ARCHITECTURE, DECISIONS `G65.1b`. *(task-312)*
 - [x] **G65.1c** `apply_command(session, {"type": "next_turn"|"new_game"})` — dyspozytor poleceń sterujących; nieznany `type` → `ValueError`; ARCHITECTURE, DECISIONS `G65.1c`. *(task-313)*
-- [ ] **G65.2a** rozkazy gracza bez bitwy `develop`/`recruit`/`muster` (`ai.*` + `sync_from_world`, guardy jak `tbbui.serve`); ARCHITECTURE, DECISIONS `G65.2a`. *(task-314)*
-- [ ] **G65.2b** rozkaz `march` (auto / do wskazanego regionu przez `ai.march_duchy_party[_to]`); ARCHITECTURE, DECISIONS `G65.2b`. *(task-315)*
-> **G65.3 (do zaplanowania w kolejnym wsadzie)** rozkazy bitewne `assault`/`engage`
-> — wymagają RNG, morale i rejestru bitwy w snapshotcie (`game_state(..., battle=)`);
-> pocięte osobno, bo cięższe niż rozkazy niebitewne.
+- [x] **G65.2a** rozkazy gracza bez bitwy `develop`/`recruit`/`muster` (`ai.*` + `sync_from_world`, guardy jak `tbbui.serve`); ARCHITECTURE, DECISIONS `G65.2a`. *(task-314)*
+- [x] **G65.2b** rozkaz `march` (auto / do wskazanego regionu przez `ai.march_duchy_party[_to]`); ARCHITECTURE, DECISIONS `G65.2b`. *(task-315)*
+> **G65.3 rozkazy bitewne — pocięte (RNG, morale, rejestr bitwy w snapshotcie).**
+- [ ] **G65.3a** `Session.last_battle: HexBattle | None` + `Session.snapshot()` osadza ją przez `game_state(..., battle=)`; `_derive` przewodzi/zeruje pole; ARCHITECTURE, DECISIONS `G65.3a`. *(task-316)*
+- [ ] **G65.3b** rozkaz `assault` (auto / do wskazanej osady przez `ai.assault_duchy_party[_to]_recorded`; morale z `game.duchies`, RNG, `last_battle`); ARCHITECTURE, DECISIONS `G65.3b`. *(task-317)*
+- [ ] **G65.3c** rozkaz `engage` (auto / do wskazanego regionu przez `ai.engage_duchy_party[_to]_recorded`; morale, RNG, `last_battle`); ARCHITECTURE, DESIGN §11 (pełny zestaw rozkazów), DECISIONS `G65.3c`. *(task-318)*
 
 ## Dług/refaktor
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*
