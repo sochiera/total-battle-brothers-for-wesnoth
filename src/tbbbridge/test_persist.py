@@ -1,5 +1,5 @@
 """Tests for ``tbbbridge.persist`` (G67.1a — round-trip ``Resources``,
-G67.1b — round-trip ``Wound``).
+G67.1b — round-trip ``Wound``, G67.1c — round-trip ``Unit``).
 
 Tests live next to the module under test per task-324 "Ścieżki testów".
 """
@@ -8,6 +8,7 @@ import copy
 import json
 
 from tbb.resources import Resources
+from tbb.unit import Unit
 from tbb.wound import BRUISE, MAIMED, Wound
 from tbbbridge import persist
 
@@ -150,3 +151,30 @@ def test_load_wound_does_not_mutate_input_dict():
     persist.load_wound(data)
 
     assert data == data_before
+
+
+def test_round_trip_load_dump_restores_unit_equality_wounded_stunned_progress_ranged():
+    """G67.1c kryt-2: dla dowolnego ``Unit u`` — w tym rannego, ogłuszonego,
+    z niezerowym ``training_progress``/``equipment_progress`` i ``ranged_range >= 2``
+    — zachodzi ``load_unit(dump_unit(u)) == u``.
+
+    Próbka pokrywa naraz wszystkie filary (trening/uzbrojenie/doświadczenie),
+    postęp resztkowy obu filarów, stan bojowy (rany przez ``Wound`` + ogłuszenie)
+    i zasięg dystansowy — czyli wszystkiego, co musi przetrwać zapis.
+    """
+    unit = Unit(
+        training=3,
+        equipment=2,
+        experience=5,
+        ranged_range=3,
+        wounds=(BRUISE, MAIMED),
+        stunned=True,
+        training_progress=1,
+        equipment_progress=1,
+    )
+
+    round_tripped = persist.load_unit(persist.dump_unit(unit))
+
+    assert round_tripped == unit
+    assert round_tripped.wounds == unit.wounds
+    assert isinstance(round_tripped.wounds, tuple)

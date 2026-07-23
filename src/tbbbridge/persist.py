@@ -5,6 +5,7 @@ publiczne API rdzenia, bez żadnej logiki reguł.
 """
 
 from tbb.resources import Resources
+from tbb.unit import Unit
 from tbb.wound import Wound
 
 
@@ -37,4 +38,37 @@ def load_wound(data: dict) -> Wound:
         accuracy_mod=data["accuracy_mod"],
         defense_mod=data["defense_mod"],
         duration_months=data["duration_months"],
+    )
+
+
+def dump_unit(unit: Unit) -> dict:
+    """Zwraca json-serializowalny słownik ``Unit``.
+
+    Klucze: ``training``, ``equipment``, ``experience``, ``ranged_range``,
+    ``wounds``, ``stunned``, ``training_progress``, ``equipment_progress``.
+    ``wounds`` to lista wyników ``dump_wound`` w kolejności ``unit.wounds``.
+    """
+    return {
+        "training": unit.training,
+        "equipment": unit.equipment,
+        "experience": unit.experience,
+        "ranged_range": unit.ranged_range,
+        "wounds": [dump_wound(w) for w in unit.wounds],
+        "stunned": unit.stunned,
+        "training_progress": unit.training_progress,
+        "equipment_progress": unit.equipment_progress,
+    }
+
+
+def load_unit(data: dict) -> Unit:
+    """Odtwarza ``Unit`` ze słownika wyprodukowanego przez ``dump_unit``."""
+    return Unit(
+        training=data["training"],
+        equipment=data["equipment"],
+        experience=data["experience"],
+        ranged_range=data["ranged_range"],
+        wounds=tuple(load_wound(w) for w in data["wounds"]),
+        stunned=data["stunned"],
+        training_progress=data["training_progress"],
+        equipment_progress=data["equipment_progress"],
     )

@@ -131,6 +131,16 @@ z kluczami `name`, `accuracy_mod`, `defense_mod`, `duration_months`; wartość
 Dla każdego `Wound w` zachodzi `load_wound(dump_wound(w)) == w`. Obie funkcje
 są czyste i nie mutują wejścia; będą reużywane przez serializery `Unit`.
 
+`dump_unit(unit: Unit) -> dict` (G67.1c) zwraca json-serializowalny słownik
+z kluczami `training`, `equipment`, `experience`, `ranged_range`, `wounds`,
+`stunned`, `training_progress`, `equipment_progress`. `wounds` to lista
+`dump_wound(w)` w kolejności `unit.wounds`. `load_unit(data: dict) -> Unit`
+odtwarza `Unit` z tych pól (rany przez `load_wound`, `wounds` jako krotka).
+Dla każdego `Unit u` (w tym rannego, ogłuszonego, z niezerowym progresem
+i `ranged_range >= 2`) zachodzi `load_unit(dump_unit(u)) == u`. Obie funkcje
+są czyste i nie mutują wejścia; będą reużywane przez serializery wyższych
+kompozytów (np. `Party`).
+
 ### Most poleceń (G65)
 
 Most `tbbbridge` daje również kanał **IN** — uchwyt sesji, przez który
