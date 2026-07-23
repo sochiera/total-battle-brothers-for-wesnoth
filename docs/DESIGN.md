@@ -346,9 +346,11 @@ z publicznego API rdzenia; kontrakt w `ARCHITECTURE.md`). Kanał jest
 dwukierunkowy: obok snapshotu OUT (`tbbbridge.snapshot`) most daje kanał IN —
 uchwyt sesji `tbbbridge.session.Session` i json-owy punkt wejścia
 `apply_command(session, command)`, którym Godot posuwa turę (`next_turn`),
-zaczyna nową grę (`new_game`) i wydaje rozkazy księstwu gracza (`order`:
+zaczyna nową grę (`new_game`), wydaje rozkazy księstwu gracza (`order`:
 rozwój / rekrutacja / zbiórka / marsz / szturm / starcie — reużycie prymitywów `ai.*`, bez logiki
-reguł w moście). Transportem między Godotem a rdzeniem jest **proces-most stdio**:
+reguł w moście) oraz **zapisuje i wczytuje stan** (`save`/`load` z kluczem
+`path` — reużycie `tbbbridge.persist.save_session`/`read_session`; IO żyje
+w warstwie protokołu, `apply_command` pozostaje czysty). Transportem między Godotem a rdzeniem jest **proces-most stdio**:
 `python -m tbbbridge serve [seed]` startuje `new_session(seed=...)` i uruchamia
 `serve_stream` na stdin/stdout: czyta z stdin linie-komendy JSON (JSON Lines)
 i wypisuje na stdout linie-odpowiedzi `{"ok", "snapshot"|"error", "result"?}` —

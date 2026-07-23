@@ -103,25 +103,25 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > (G67.1d), `dump/load_calendar` (G67.1e). Szczegóły w `docs/ARCHITECTURE.md`
 > (sekcja „Persystencja round-trip") i `docs/DECISIONS.md`. *(task-324…328)*
 
-### G67.2 — kompozyty persystencji (oddolnie ku sesji)
-- [x] **G67.2a** `tbbbridge.persist.dump_party`/`load_party` — round-trip `Party` (reużycie `load_unit`); ARCHITECTURE, DECISIONS `G67.2a`. *(task-329)*
-- [x] **G67.2b** `tbbbridge.persist.dump_settlement`/`load_settlement` — round-trip `Settlement` (reużycie `load_building`/`load_resources`/`load_unit`); ARCHITECTURE, DECISIONS `G67.2b`. *(task-330)*
-- [x] **G67.2c** `tbbbridge.persist.dump_region`/`load_region` — round-trip `Region` (liść mapy); ARCHITECTURE, DECISIONS `G67.2c`. *(task-331)*
-- [x] **G67.2d** `tbbbridge.persist.dump_world`/`load_world` — round-trip `WorldMap` (regiony, połączenia, osady/party; identyczność regionów przez indeksy); ARCHITECTURE, DECISIONS `G67.2d`. *(task-332)*
-- [~] **G67.2e** `tbbbridge.persist.dump_duchy`/`load_duchy` — round-trip `Duchy` (reużycie `load_unit`/`load_settlement`/`load_party`; `hero`/`heir` opcjonalne); ARCHITECTURE, DECISIONS `G67.2e`. *(task-333)*
-- [ ] **G67.2f** `tbbbridge.persist.dump_gamestate`/`load_gamestate` — round-trip `GameState` (reużycie `load_duchy`); ARCHITECTURE, DECISIONS `G67.2f`. *(task-334)*
+> **Kamień 67 — UKOŃCZONE.** Round-trip serializacja w `tbbbridge.persist`
+> oddolnie aż do sesji: kompozyty (`dump/load_party` G67.2a, `settlement`
+> G67.2b, `region` G67.2c, `world` G67.2d, `duchy` G67.2e, `gamestate` G67.2f),
+> seam RNG w rdzeniu (`Rng.state`/`from_state` G67.3a) i jego most
+> (`dump/load_rng` G67.3b) oraz sesja (`dump/load_session` G67.4a; `last_battle`
+> nietrwałe, `None` po wczytaniu). Szczegóły w `docs/ARCHITECTURE.md` i
+> `docs/DECISIONS.md`. *(task-329…337)*
 
-### G67.3 — serializacja RNG (seam w rdzeniu + most)
-- [ ] **G67.3a** seam RNG w rdzeniu: `Rng.state()` / `Rng.from_state(state)` (opakowanie `random.Random.getstate`/`setstate`); ARCHITECTURE (sekcja RNG), DECISIONS `G67.3a`. *(task-335)*
-- [ ] **G67.3b** `tbbbridge.persist.dump_rng`/`load_rng` — round-trip `Rng` przez seam (state json-owy: krotki→listy); ARCHITECTURE, DECISIONS `G67.3b`. *(task-336)*
+### G68 — sesja i zapis plikowy (fundament save/load)
+- [x] **G68.1a** `tbbbridge.persist.save_session`/`read_session` — deterministyczny zapis/odczyt sesji do pliku JSON (reużycie `dump_session`/`load_session`); ARCHITECTURE, DECISIONS `G68.1a`. *(task-338)*
 
-### G67.4 / G68 — sesja i zapis plikowy (fundament save/load)
-- [ ] **G67.4a** `tbbbridge.persist.dump_session`/`load_session` — round-trip `Session` (world/game/calendar/rng/player_duchy_id/seed); `last_battle` nietrwałe, nieserializowane (`None` po wczytaniu); ARCHITECTURE, DECISIONS `G67.4a`. *(task-337)*
-- [ ] **G68.1a** `tbbbridge.persist.save_session`/`read_session` — deterministyczny zapis/odczyt sesji do pliku JSON (reużycie `dump_session`/`load_session`); ARCHITECTURE, DECISIONS `G68.1a`. *(task-338)*
-> **Dalej (kolejne wsady):** komendy `save`/`load` w protokole JSON Lines
-> (reużycie `save_session`/`read_session`) + odpowiednie `command_result`;
-> ewentualna serializacja `last_battle`/`HexBattle`, jeśli podgląd bitwy ma
-> przetrwać zapis (obecnie świadomie pomijany).
+### G68.2 — save/load w protokole JSON Lines (kanał sterujący Godota)
+- [ ] **G68.2a** protokół: komenda `save` — `handle_command_line` obsługuje `{"type": "save", "path": ...}` reużywając `save_session`; `command_result` daje `{"kind": "save", "path": ...}`; sesja bez zmian; błędy (brak `path`, `OSError`) → `{"ok": False, "error": ...}`; ARCHITECTURE, DECISIONS `G68.2a`. *(task-339)*
+- [ ] **G68.2b** protokół: komenda `load` — `handle_command_line` obsługuje `{"type": "load", "path": ...}` reużywając `read_session`; `command_result` daje `{"kind": "load", "path": ...}`; podmiana sesji; błędy (brak `path`, `OSError`, `JSONDecodeError`) → `{"ok": False, "error": ...}` bez podmiany; ARCHITECTURE, DECISIONS `G68.2b`. *(task-340)*
+- [ ] **G68.2c** e2e save/load przez `serve_stream` — round-trip po stdio (`order`→`save`→`new_game`→`load`) odtwarza snapshot i dalszą sekwencję RNG; bez nowej powierzchni API. *(task-341)*
+> **Dalej (kolejne wsady):** wczytanie z pliku przy starcie CLI
+> (`python -m tbbbridge serve` z opcją resume); ewentualna serializacja
+> `last_battle`/`HexBattle`, jeśli podgląd bitwy ma przetrwać zapis (obecnie
+> świadomie pomijany — wymaga oddolnego rozbicia `Hex`/`Battlefield`/`HexBattle`).
 
 ## Dług/refaktor
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*
