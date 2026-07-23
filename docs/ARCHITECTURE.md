@@ -111,6 +111,19 @@ uruchomienia z tym samym seedem `73` dają deterministyczne wyjście bajt-w-bajt
 ponieważ `save_state` jest deterministyczne, a cała losowość płynie z
 `run_headless_game(Rng(73))`.
 
+## Persystencja round-trip (`tbbbridge.persist`)
+
+Pakiet-most obsługuje również **dwukierunkową serializację stanu partii**
+(zapis/wczytywanie), reużywając publiczne API rdzenia i jego konstruktory.
+
+`dump_resources(res: Resources) -> dict` (G67.1a) zwraca
+`{"wheat": int, "gold": int}` — json-serializowalny słownik.
+`load_resources(data: dict) -> Resources` odtwarza `Resources` ze słownika
+produkowanego przez `dump_resources`. Dla każdego `Resources r` zachodzi
+`load_resources(dump_resources(r)) == r`. Obie funkcje są czyste i nie mutują
+wejścia. Będą reużywane przez serializery budynków, osad i wyższych
+kompozytów.
+
 ### Most poleceń (G65)
 
 Most `tbbbridge` daje również kanał **IN** — uchwyt sesji, przez który
