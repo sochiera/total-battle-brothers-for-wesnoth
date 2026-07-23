@@ -210,6 +210,16 @@ kolejności `duchy.settlements`) oraz `parties` (lista `dump_party` w kolejnośc
 `load_duchy(dump_duchy(d)) == d`. Obie funkcje są czyste, nie mutują wejścia i
 będą reużywane przez serializery wyższych kompozytów (`GameState`, sesja).
 
+`dump_gamestate(game: GameState) -> dict` (G67.2f) zwraca json-serializowalny
+słownik z pojedynczym kluczem `duchies`, gdzie wartość to lista
+`dump_duchy(d)` w kolejności `game.duchies`.
+`load_gamestate(data: dict) -> GameState` odtwarza
+`GameState(tuple(load_duchy(d) for d in data["duchies"]))`, reużywając
+`load_duchy`. Dla dowolnego `GameState g` (w tym z wieloma księstwami,
+księstwem bez bohatera i księstwem z osadami/drużynami) zachodzi
+`load_gamestate(dump_gamestate(g)) == g`. Obie funkcje są czyste i nie mutują
+wejścia.
+
 ### Most poleceń (G65)
 
 Most `tbbbridge` daje również kanał **IN** — uchwyt sesji, przez który

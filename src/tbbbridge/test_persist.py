@@ -933,3 +933,28 @@ def test_load_duchy_reuses_load_unit_load_settlement_load_party():
     assert round_tripped.settlements[0] == sample.settlements[0]
     assert round_tripped.parties[0] == sample.parties[0]
     assert round_tripped.hero == sample.hero
+
+
+def test_dump_gamestate_returns_json_serializable_dict_with_duchies_key_in_order():
+    """G67.2f kryt-1: ``dump_gamestate(game)`` zwraca json-serializowalny
+    ``dict`` z pojedynczym kluczem ``duchies`` (lista ``dump_duchy(d)`` w
+    kolejności ``game.duchies``); wynik przechodzi ``json.dumps``.
+
+    Próbka naraz: ``GameState`` z wieloma księstwami (pełne z osadą/drużyną,
+    bez dziedzica oraz księstwo bez bohatera) — weryfikuje, że dump ma tylko
+    klucz ``duchies``, kolejność listy odpowiada ``game.duchies``, a każdy
+    element to dokładnie ``dump_duchy`` odpowiedniego księstwa.
+    """
+    from tbb.game import GameState
+
+    duchies = _sample_duchies()
+    game = GameState(tuple(duchies))
+
+    dumped = persist.dump_gamestate(game)
+
+    assert set(dumped.keys()) == {"duchies"}
+    assert dumped["duchies"] == [persist.dump_duchy(d) for d in game.duchies]
+    assert [entry["duchy_id"] for entry in dumped["duchies"]] == [
+        d.duchy_id for d in game.duchies
+    ]
+    json.dumps(dumped)

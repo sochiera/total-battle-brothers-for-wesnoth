@@ -12,7 +12,21 @@ from tbb.settlement import Settlement
 from tbb.turn import Calendar
 from tbb.unit import Unit
 from tbb.wound import Wound
+from tbb.game import GameState
 from tbb.world import Region, WorldMap
+
+
+def dump_gamestate(game: GameState) -> dict:
+    """Zwraca json-serializowalny słownik ``{"duchies": [...]}``.
+
+    Lista ``duchies`` zawiera ``dump_duchy(d)`` w kolejności ``game.duchies``.
+    """
+    return {"duchies": [dump_duchy(duchy) for duchy in game.duchies]}
+
+
+def load_gamestate(data: dict) -> GameState:
+    """Odtwarza ``GameState`` ze słownika wyprodukowanego przez ``dump_gamestate``."""
+    return GameState(tuple(load_duchy(d) for d in data["duchies"]))
 
 
 def dump_resources(res: Resources) -> dict:
