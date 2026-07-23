@@ -628,7 +628,6 @@ def test_non_battle_transitions_reset_last_battle_to_none():
     ``last_battle is None`` i snapshotem bez klucza ``battle``. Sesja wejściowa
     pozostaje nietknięta.
     """
-    from tbb.ai import develop_duchy_settlement, muster_duchy_party, recruit_duchy_unit
     from tbb.battle import BattleSide, HexBattle
     from tbb.battlefield import Battlefield
     from tbb.hex import Hex
