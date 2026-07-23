@@ -151,8 +151,8 @@ player_duchy_id=session.player_duchy_id)` — świeża gra ze startowym kalendar
 Brak klucza `type` lub nieznana wartość podnoszą `ValueError`; dla `new_game`
 dozwolony jest tylko klucz opcjonalny `"seed"`.
 
-`"order"` — rozkaz niebitewny dla księstwa gracza. Rozpoznawane
-`command["order"]` to `"develop"`, `"recruit"`, `"muster"` i `"march"`.
+`"order"` — rozkaz dla księstwa gracza. Rozpoznawane
+`command["order"]` to `"develop"`, `"recruit"`, `"muster"`, `"march"` i `"assault"`.
 Pierwsze trzy reużywają odpowiednich czystych prymitywów `tbb.ai`
 (`develop_duchy_settlement`, `recruit_duchy_unit`, `muster_duchy_party`) jako
 `world = transition(world, player_duchy)`, po czym `game = game.sync_from_world(world)`.
@@ -161,11 +161,22 @@ Pierwsze trzy reużywają odpowiednich czystych prymitywów `tbb.ai`
 `world.regions`; w każdym innym przypadku (brak klucza, pusty łańcuch lub
 brak dopasowania — zgodnie z `tbbui.serve`) fallbackuje do automatycznego
 `ai.march_duchy_party(world, player_duchy)`, po czym `game = game.sync_from_world(world)`.
+`"assault"` reużywa `ai.assault_duchy_party_to_recorded(world, player_duchy,
+region, session.rng, morale_by_owner=m)` gdy `command["target"]` jest
+niepustym łańcuchem pasującym do nazwy regionu z `world.regions`; w każdym
+innym przypadku fallbackuje do `ai.assault_duchy_party_recorded(world,
+player_duchy, session.rng, morale_by_owner=m)`, gdzie `m = {d.duchy_id:
+d.morale for d in session.game.duchies}`. Prymityw zwraca `(new_world, battle)`;
+nowy `Session` ma `world == new_world`, `game == game.sync_from_world(new_world)`,
+`last_battle == battle` (lub `None` gdy prymityw zwrócił `(world, None)`),
+a `calendar`/`rng`/`seed`/`player_duchy_id` bez zmian; współdzielony `rng`
+jest posuwany wyłącznie gdy rozegrano bitwę.
 Rozkaz jest no-opem (zwraca równoważną sesję z identycznymi
-`world`/`game`/`calendar`) gdy `game.is_over`, brak `player_duchy_id` lub
-księstwo gracza nie występuje w `game.duchies`. Nieznana wartość `order`
-podnosi `ValueError`. Funkcja jest czysta względem wejściowej sesji — nigdy
-jej nie mutuje.
+`world`/`game`/`calendar` i `last_battle is None`) gdy `game.is_over`, brak
+`player_duchy_id` lub księstwo gracza nie występuje w `game.duchies`.
+Nieznana wartość `order` podnosi `ValueError`. Funkcja jest czysta względem
+wejściowej sesji — nigdy jej nie mutuje.
+
 
 ### Prezentacja (pakiet `tbbui`, Kamień 13)
 Warstwa render/UI jest **poza rdzeniem**. `python -m tbb` nadal uruchamia

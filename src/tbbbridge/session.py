@@ -46,6 +46,34 @@ def _apply_march_order(world: WorldMap, duchy: Duchy, target_name: str | None) -
     return ai.march_duchy_party(world, duchy)
 
 
+def _morale_by_owner(game: GameState) -> dict[str, int]:
+    """Build owner_id → morale from the current game duchies."""
+    return {d.duchy_id: d.morale for d in game.duchies}
+
+
+def _apply_assault_order(
+    world: WorldMap,
+    duchy: Duchy,
+    rng: Rng,
+    target_name: str | None,
+    game: GameState,
+) -> tuple[WorldMap, HexBattle | None]:
+    """Apply the player ``assault`` order and return the resulting battle.
+
+    An explicit, resolvable ``target_name`` routes to
+    ``ai.assault_duchy_party_to_recorded``; anything else falls back to the
+    automatic ``ai.assault_duchy_party_recorded``.  The shared RNG is advanced
+    only when a battle is actually resolved.
+    """
+    morale = _morale_by_owner(game)
+    target = _find_region_by_name(world, target_name)
+    if target is not None:
+        return ai.assault_duchy_party_to_recorded(
+            world, duchy, target, rng, morale_by_owner=morale
+        )
+    return ai.assault_duchy_party_recorded(world, duchy, rng, morale_by_owner=morale)
+
+
 class Session:
     """Uchwyt sesji trzymający stan gry i RNG współdzielony z driverem.
 
@@ -173,7 +201,8 @@ def _apply_order(session: Session, transition) -> Session:
     duchy), the input world/game/calendar are returned unchanged.
 
     Calendar, RNG, seed and ``player_duchy_id`` are preserved; the RNG is not
-    advanced.  The input session is never mutated.
+    advanced.  The input session is never mutated.  Any previous ``last_battle``
+    is reset to ``None``.
     """
     player_duchy = _resolve_player_duchy(session)
     if player_duchy is None:
@@ -181,6 +210,30 @@ def _apply_order(session: Session, transition) -> Session:
     new_world = transition(session.world, player_duchy)
     new_game = session.game.sync_from_world(new_world)
     return session._derive(new_world, new_game, session.calendar)
+
+
+def _apply_battle_order(
+    session: Session,
+    transition,
+) -> Session:
+    """Apply a battle player order transition and return a new Session.
+
+    The transition receives ``(world, player_duchy, rng, game)`` and returns
+    ``(new_world, battle | None)``.  The resulting ``GameState`` is
+    ``sync_from_world`` of the new map and ``last_battle`` is set to the
+    returned battle (or ``None`` when the order was a no-op).  When the order
+    is illegal, the input world/game/calendar are returned unchanged with
+    ``last_battle is None``.
+
+    Calendar, RNG, seed and ``player_duchy_id`` are preserved.  The input
+    session is never mutated.
+    """
+    player_duchy = _resolve_player_duchy(session)
+    if player_duchy is None:
+        return session._derive(session.world, session.game, session.calendar)
+    new_world, battle = transition(session.world, player_duchy, session.rng, session.game)
+    new_game = session.game.sync_from_world(new_world)
+    return session._derive(new_world, new_game, session.calendar, last_battle=battle)
 
 
 def apply_command(session: Session, command: dict) -> Session:
@@ -191,9 +244,10 @@ def apply_command(session: Session, command: dict) -> Session:
       * ``"new_game"`` — zwraca świeżą sesję przez ``new_session``;
         domyślny seed pochodzi z ``session.seed``, można nadpisać kluczem
         ``"seed"`` w komendzie. Zachowany jest ``session.player_duchy_id``.
-      * ``"order"`` — wydaje rozkaz niebitewny dla księstwa gracza;
-        rozpoznawane ``command["order"]`` to ``"develop"``, ``"recruit"``,
-        ``"muster"``. Nieznana nazwa rozkazu podnosi ``ValueError``.
+      * ``"order"`` — wydaje rozkaz dla księstwa gracza; rozpoznawane
+        ``command["order"]`` to ``"develop"``, ``"recruit"``, ``"muster"``,
+        ``"march"`` oraz ``"assault"``. Nieznana nazwa rozkazu podnosi
+        ``ValueError``.
 
     Brak klucza ``type`` lub nieznana wartość podnoszą ``ValueError``.
     Wejściowa sesja nigdy nie jest mutowana.
@@ -214,11 +268,18 @@ def apply_command(session: Session, command: dict) -> Session:
         )
     if command_type == "order":
         order = command.get("order")
-        if order not in _ORDER_TRANSITIONS:
-            raise ValueError(f"Unknown order: {order!r}")
         if order == "march":
             return _apply_order(
                 session, lambda world, duchy: _apply_march_order(world, duchy, command.get("target"))
             )
+        if order == "assault":
+            return _apply_battle_order(
+                session,
+                lambda world, duchy, rng, game: _apply_assault_order(
+                    world, duchy, rng, command.get("target"), game
+                ),
+            )
+        if order not in _ORDER_TRANSITIONS:
+            raise ValueError(f"Unknown order: {order!r}")
         return _apply_order(session, _ORDER_TRANSITIONS[order])
     raise ValueError(f"Unknown command type: {command_type!r}")
