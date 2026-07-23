@@ -4,6 +4,7 @@ Ten moduł to fundament zapisu/wczytywania stanu partii. Reużywa wyłącznie
 publiczne API rdzenia, bez żadnej logiki reguł.
 """
 
+from tbb.building import Building
 from tbb.resources import Resources
 from tbb.unit import Unit
 from tbb.wound import Wound
@@ -38,6 +39,27 @@ def load_wound(data: dict) -> Wound:
         accuracy_mod=data["accuracy_mod"],
         defense_mod=data["defense_mod"],
         duration_months=data["duration_months"],
+    )
+
+
+def dump_building(building: Building) -> dict:
+    """Zwraca json-serializowalny słownik ``Building``.
+
+    Klucze: ``name`` (str), ``staff`` (int), ``output`` (``dump_resources``).
+    """
+    return {
+        "name": building.name,
+        "staff": building.staff,
+        "output": dump_resources(building.output),
+    }
+
+
+def load_building(data: dict) -> Building:
+    """Odtwarza ``Building`` ze słownika wyprodukowanego przez ``dump_building``."""
+    return Building(
+        name=data["name"],
+        staff=data["staff"],
+        output=load_resources(data["output"]),
     )
 
 

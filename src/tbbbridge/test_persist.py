@@ -7,6 +7,7 @@ Tests live next to the module under test per task-324 "Ścieżki testów".
 import copy
 import json
 
+from tbb.building import BARRACKS, FARM, MARKET, SMITH, Building
 from tbb.resources import Resources
 from tbb.unit import Unit
 from tbb.wound import BRUISE, MAIMED, Wound
@@ -214,3 +215,29 @@ def test_round_trip_load_dump_restores_unit_equality_wounded_stunned_progress_ra
     assert round_tripped == unit
     assert round_tripped.wounds == unit.wounds
     assert isinstance(round_tripped.wounds, tuple)
+
+
+def test_round_trip_load_dump_restores_building_equality_for_catalog():
+    """G67.1d kryt-2: dla każdego budynku katalogu (``FARM``, ``SMITH``,
+    ``MARKET``, ``BARRACKS``) zachodzi ``load_building(dump_building(b)) == b``.
+
+    ``dump_building`` ma zwracać json-serializowalny ``dict`` z kluczami ``name``,
+    ``staff``, ``output`` (gdzie ``output`` = ``dump_resources(building.output)``);
+    ``load_building`` odtwarza ``Building(name=..., staff=...,
+    output=load_resources(data["output"]))``. Cały katalog przechodzi round-trip z
+    równością dataclass (``Building`` jest ``frozen=True``).
+    """
+    catalog = (FARM, SMITH, MARKET, BARRACKS)
+
+    for building in catalog:
+        dumped = persist.dump_building(building)
+
+        assert set(dumped.keys()) == {"name", "staff", "output"}
+        assert dumped["name"] == building.name
+        assert dumped["staff"] == building.staff
+        assert dumped["output"] == persist.dump_resources(building.output)
+        json.dumps(dumped)
+
+        round_tripped = persist.load_building(dumped)
+
+        assert round_tripped == building

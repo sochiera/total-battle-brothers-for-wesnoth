@@ -141,6 +141,14 @@ i `ranged_range >= 2`) zachodzi `load_unit(dump_unit(u)) == u`. Obie funkcje
 są czyste i nie mutują wejścia; będą reużywane przez serializery wyższych
 kompozytów (np. `Party`).
 
+`dump_building(building: Building) -> dict` (G67.1d) zwraca json-serializowalny
+słownik z kluczami `name`, `staff`, `output` (gdzie `output` to
+`dump_resources(building.output)`). `load_building(data: dict) -> Building`
+odtwarza `Building` z tych pól, reużywając `load_resources`. Dla każdego
+budynku z katalogu (`FARM`, `SMITH`, `MARKET`, `BARRACKS`) zachodzi
+`load_building(dump_building(b)) == b`. Obie funkcje są czyste, nie mutują
+wejścia i będą reużywane przez serializery osad.
+
 ### Most poleceń (G65)
 
 Most `tbbbridge` daje również kanał **IN** — uchwyt sesji, przez który
