@@ -255,3 +255,95 @@ def test_main_serve_resume_invalid_json_returns_one_writes_stderr_no_stdout(tmp_
     assert out_stream.getvalue() == ""
     assert err_stream.getvalue() != ""
     assert in_stream.tell() == 0
+
+
+def test_main_serve_save_then_resume_e2e_two_process_loop(tmp_path):
+    """G69.2c kryt-1 (e2e pełna pętla): pierwszy proces ``main(["serve"],
+    stdin=[develop, save, snapshot], stdout=out1)`` zapisuje plik i zwraca
+    snapshot po zapisie; drugi proces ``main(["serve", "--resume", path],
+    stdin=[snapshot], stdout=out2)`` daje snapshot **równy** zanotowanemu
+    (stan odtworzony z pliku); oba procesy zwracają ``0``.
+    """
+    from tbbbridge.persist import read_session
+
+    state_path = tmp_path / "saved_state.json"
+
+    stdin_first = io.StringIO(
+        '{"type": "order", "order": "develop"}\n'
+        f'{{"type": "save", "path": "{state_path}"}}\n'
+        '{"type": "snapshot"}\n'
+    )
+    stdout_first = io.StringIO()
+
+    rc1 = main(["serve"], stdin=stdin_first, stdout=stdout_first)
+
+    assert rc1 == 0
+    out1_lines = stdout_first.getvalue().splitlines()
+    assert len(out1_lines) == 3
+
+    resp_snapshot_first = json.loads(out1_lines[2])
+    assert resp_snapshot_first.get("ok") is True
+    saved_snapshot = resp_snapshot_first["snapshot"]
+
+    stdin_second = io.StringIO('{"type": "snapshot"}\n')
+    stdout_second = io.StringIO()
+
+    rc2 = main(
+        ["serve", "--resume", str(state_path)],
+        stdin=stdin_second,
+        stdout=stdout_second,
+    )
+
+    assert rc2 == 0
+    out2_lines = stdout_second.getvalue().splitlines()
+    assert len(out2_lines) == 1
+
+    resp_snapshot_second = json.loads(out2_lines[0])
+    assert resp_snapshot_second.get("ok") is True
+    resumed_snapshot = resp_snapshot_second["snapshot"]
+
+    assert resumed_snapshot == saved_snapshot
+
+
+def test_main_serve_resume_next_turn_continuity_e2e(tmp_path):
+    """G69.2c kryt-2 (ciągłość RNG i stanu): po wznowieniu komenda
+    ``{"type": "next_turn"}`` daje snapshot równy
+    ``read_session(path).next_turn().snapshot()``; plik tymczasowy jest
+    sprzątany (tmp_path).
+    """
+    from tbbbridge.persist import read_session
+    from tbbbridge.session import apply_command
+
+    state_path = tmp_path / "saved_state.json"
+
+    stdin_first = io.StringIO(
+        '{"type": "order", "order": "develop"}\n'
+        f'{{"type": "save", "path": "{state_path}"}}\n'
+        '{"type": "snapshot"}\n'
+    )
+    stdout_first = io.StringIO()
+
+    rc1 = main(["serve"], stdin=stdin_first, stdout=stdout_first)
+    assert rc1 == 0
+
+    stdin_second = io.StringIO('{"type": "next_turn"}\n')
+    stdout_second = io.StringIO()
+
+    rc2 = main(
+        ["serve", "--resume", str(state_path)],
+        stdin=stdin_second,
+        stdout=stdout_second,
+    )
+
+    assert rc2 == 0
+    out2_lines = stdout_second.getvalue().splitlines()
+    assert len(out2_lines) == 1
+
+    resp = json.loads(out2_lines[0])
+    assert resp.get("ok") is True
+    actual_snapshot = resp["snapshot"]
+
+    expected_session = read_session(state_path)
+    expected_snapshot = apply_command(expected_session, {"type": "next_turn"}).snapshot()
+
+    assert actual_snapshot == expected_snapshot
