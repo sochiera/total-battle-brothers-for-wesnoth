@@ -257,6 +257,9 @@ def apply_command(session: Session, command: dict) -> Session:
     command_type = command.get("type") if isinstance(command, dict) else None
     if command_type == "next_turn":
         return session.next_turn()
+    if command_type == "snapshot":
+        return session
+
     if command_type == "new_game":
         if set(command.keys()) - {"type", "seed"}:
             raise ValueError(

@@ -37,6 +37,9 @@ def command_result(before: Session, after: Session, command: dict) -> dict:
     if command_type == "new_game":
         return {"kind": "new_game"}
 
+    if command_type == "snapshot":
+        return {"kind": "snapshot"}
+
     if command_type in ("save", "load"):
         return {
             "kind": command_type,

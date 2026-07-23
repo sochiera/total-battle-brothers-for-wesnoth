@@ -353,6 +353,41 @@ def test_apply_command_unknown_type_and_missing_type_raise_valueerror_without_mu
     assert s.snapshot() == before
 
 
+def test_apply_command_snapshot_returns_same_session_identity_without_mutation():
+    """G69.1a crit-1: apply_command(session, {"type": "snapshot"}) returns the
+    **same** (identity-wise) input session — no mutation of world/game/
+    calendar, no RNG consumption, regardless of game.is_over.
+    """
+    s = new_session(73, "player")
+    before_snapshot = copy.deepcopy(s.snapshot())
+    rng_before = s.rng
+
+    result = apply_command(s, {"type": "snapshot"})
+
+    assert result is s
+    assert result.world is s.world
+    assert result.game is s.game
+    assert result.calendar is s.calendar
+    assert result.rng is rng_before
+    assert s.snapshot() == before_snapshot
+
+    # Also verify the no-op behavior when game.is_over
+    ended_game = GameState([s.game.duchies[0]])
+    assert ended_game.is_over is True
+    ended_session = Session(
+        world=s.world,
+        game=ended_game,
+        calendar=s.calendar,
+        rng=s.rng,
+        player_duchy_id=s.player_duchy_id,
+        seed=s.seed,
+    )
+    ended_before = copy.deepcopy(ended_session.snapshot())
+    result_ended = apply_command(ended_session, {"type": "snapshot"})
+    assert result_ended is ended_session
+    assert ended_session.snapshot() == ended_before
+
+
 def test_apply_command_order_march_with_target_applies_march_duchy_party_to():
     """G65.2b crit-1: apply_command({"type": "order", "order": "march",
     "target": <name>}) resolves target to a Region by ``region.name`` from

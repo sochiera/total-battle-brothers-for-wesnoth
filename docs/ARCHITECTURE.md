@@ -287,9 +287,12 @@ Zwraca nowy `Session`; `rng` jest tym samym obiektem generatora
 metoda jest no-opem: zwraca równoważną sesję z identycznymi obiektami
 `world`/`game`/`calendar` bez mutacji sesji wejściowej.
 
-`apply_command(session, command)` (G65.1c) to json-owy punkt wejścia mostu.
+`apply_command(session, command)` (G65.1c/G69.1a) to json-owy punkt wejścia mostu.
 Rozpoznaje `command["type"]`:
 `"next_turn"` → `session.next_turn()`;
+`"snapshot"` → zwraca **tę samą** (identycznościowo) sesję wejściową — czysty
+odczyt stanu bez mutacji `world`/`game`/`calendar`, bez konsumpcji RNG i
+niezależnie od `game.is_over`;
 `"new_game"` → `new_session(seed=command.get("seed", session.seed),
 player_duchy_id=session.player_duchy_id)` — świeża gra ze startowym kalendarzem
 `{year: 1, month: 1}`, zachowanym `player_duchy_id` i domyślnym seedem z sesji.
@@ -326,12 +329,12 @@ Rozkaz jest no-opem (zwraca równoważną sesję z identycznymi
 Nieznana wartość `order` podnosi `ValueError`. Funkcja jest czysta względem
 wejściowej sesji — nigdy jej nie mutuje.
 
-`command_result(before, after, command)` (G66.2a/G66.2b/G68.2a) to
+`command_result(before, after, command)` (G66.2a/G66.2b/G68.2a/G69.1a) to
 json-serializowalne, czyste podsumowanie skutku komendy. Dla `next_turn`
 zwraca `{"kind": "turn", "date": {"year": ..., "month": ...}}`, dla `new_game`
-`{"kind": "new_game"}`, dla rozkazów niebitewnych
-`{"kind": "order", "order": name, "changed": <bool>}` (różność obiektów
-`world`). Dla rozkazów bojowych `assault`/`engage`, gdy `after.last_battle is not
+`{"kind": "new_game"}`, dla `snapshot` `{"kind": "snapshot"}`, dla rozkazów
+niebitewnych `{"kind": "order", "order": name, "changed": <bool>}` (różność
+obiektów `world`). Dla rozkazów bojowych `assault`/`engage`, gdy `after.last_battle is not
 None`, zwraca `{"kind": "battle", "order": name, "outcome": ..., "attacker_losses": int,
 "defender_losses": int}`: `outcome` mapowany jest z perspektywy atakującego
 z `report.result.value` (`"attacker_win"` → `"zwycięstwo"`, `"defender_win"` →
