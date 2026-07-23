@@ -124,6 +124,13 @@ produkowanego przez `dump_resources`. Dla każdego `Resources r` zachodzi
 wejścia. Będą reużywane przez serializery budynków, osad i wyższych
 kompozytów.
 
+`dump_wound(wound: Wound) -> dict` (G67.1b) zwraca json-serializowalny słownik
+z kluczami `name`, `accuracy_mod`, `defense_mod`, `duration_months`; wartość
+`duration_months` to int dla ran czasowych lub `None` dla ran trwałych
+(np. `MAIMED`). `load_wound(data: dict) -> Wound` odtwarza `Wound` z tych pól.
+Dla każdego `Wound w` zachodzi `load_wound(dump_wound(w)) == w`. Obie funkcje
+są czyste i nie mutują wejścia; będą reużywane przez serializery `Unit`.
+
 ### Most poleceń (G65)
 
 Most `tbbbridge` daje również kanał **IN** — uchwyt sesji, przez który

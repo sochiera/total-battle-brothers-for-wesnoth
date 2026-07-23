@@ -1,4 +1,5 @@
-"""Tests for ``tbbbridge.persist`` (G67.1a — round-trip ``Resources``).
+"""Tests for ``tbbbridge.persist`` (G67.1a — round-trip ``Resources``,
+G67.1b — round-trip ``Wound``).
 
 Tests live next to the module under test per task-324 "Ścieżki testów".
 """
@@ -7,6 +8,7 @@ import copy
 import json
 
 from tbb.resources import Resources
+from tbb.wound import BRUISE, MAIMED, Wound
 from tbbbridge import persist
 
 
@@ -77,3 +79,30 @@ def test_load_resources_does_not_mutate_input_dict():
     persist.load_resources(data)
 
     assert data == data_before
+
+
+def test_dump_wound_returns_json_serializable_dict_with_name_accuracy_defense_duration():
+    """G67.1b kryt-1: ``dump_wound(wound)`` zwraca json-serializowalny słownik z
+    kluczami ``name``, ``accuracy_mod``, ``defense_mod``, ``duration_months``
+    o wartościach pobranych z pól ``Wound`` (``duration_months`` może być
+    ``None``); wynik przechodzi ``json.dumps``."""
+    bruise = Wound(name="Bruise", accuracy_mod=-1, defense_mod=-1, duration_months=2)
+    maimed = Wound(name="Maimed", accuracy_mod=-2, defense_mod=-2, duration_months=None)
+
+    dumped_bruise = persist.dump_wound(bruise)
+    dumped_maimed = persist.dump_wound(maimed)
+
+    assert dumped_bruise == {
+        "name": "Bruise",
+        "accuracy_mod": -1,
+        "defense_mod": -1,
+        "duration_months": 2,
+    }
+    assert dumped_maimed == {
+        "name": "Maimed",
+        "accuracy_mod": -2,
+        "defense_mod": -2,
+        "duration_months": None,
+    }
+    assert json.dumps(dumped_bruise)
+    assert json.dumps(dumped_maimed)
