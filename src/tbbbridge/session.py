@@ -92,3 +92,32 @@ def new_session(seed: int = 73, player_duchy_id: str | None = "player") -> Sessi
         player_duchy_id=player_duchy_id,
         seed=seed,
     )
+
+
+def apply_command(session: Session, command: dict) -> Session:
+    """Dyspozytor poleceń sterujących mostu Godot↔rdzeń.
+
+    Rozpoznawane ``command["type"]``:
+      * ``"next_turn"`` — deleguje do ``session.next_turn()``.
+      * ``"new_game"`` — zwraca świeżą sesję przez ``new_session``;
+        domyślny seed pochodzi z ``session.seed``, można nadpisać kluczem
+        ``"seed"`` w komendzie. Zachowany jest ``session.player_duchy_id``.
+
+    Brak klucza ``type`` lub nieznana wartość podnoszą ``ValueError``.
+    Wejściowa sesja nigdy nie jest mutowana.
+    """
+    command_type = command.get("type") if isinstance(command, dict) else None
+    if command_type == "next_turn":
+        return session.next_turn()
+    if command_type == "new_game":
+        if set(command.keys()) - {"type", "seed"}:
+            raise ValueError(
+                f"new_game command accepts only 'seed' key, got extra keys: "
+                f"{sorted(set(command.keys()) - {'type', 'seed'})}"
+            )
+        seed = command.get("seed", session.seed)
+        return new_session(
+            seed=seed,
+            player_duchy_id=session.player_duchy_id,
+        )
+    raise ValueError(f"Unknown command type: {command_type!r}")

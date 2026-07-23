@@ -138,6 +138,16 @@ Zwraca nowy `Session`; `rng` jest tym samym obiektem generatora
 metoda jest no-opem: zwraca równoważną sesję z identycznymi obiektami
 `world`/`game`/`calendar` bez mutacji sesji wejściowej.
 
+`apply_command(session, command)` (G65.1c) to json-owy punkt wejścia mostu.
+Rozpoznaje `command["type"]`:
+`"next_turn"` → `session.next_turn()`;
+`"new_game"` → `new_session(seed=command.get("seed", session.seed),
+player_duchy_id=session.player_duchy_id)` — świeża gra ze startowym kalendarzem
+`{year: 1, month: 1}`, zachowanym `player_duchy_id` i domyślnym seedem z sesji.
+Brak klucza `type` lub nieznana wartość podnoszą `ValueError`; dla `new_game`
+dozwolony jest tylko klucz opcjonalny `"seed"`. Funkcja jest czysta względem
+wejściowej sesji — nigdy jej nie mutuje.
+
 ### Prezentacja (pakiet `tbbui`, Kamień 13)
 Warstwa render/UI jest **poza rdzeniem**. `python -m tbb` nadal uruchamia
 deterministyczną partię headless. Obserwowalny UI buduje **osobny pakiet**

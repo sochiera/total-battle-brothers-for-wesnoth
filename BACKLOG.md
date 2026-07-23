@@ -83,7 +83,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > nowej logiki reguł; rdzeń `tbb` bez zmian.
 - [x] **G65.1a** `tbbbridge.session.Session` + `new_session(seed=73, player_duchy_id="player")` + `Session.snapshot()`; ARCHITECTURE (podsekcja „Most poleceń”), DECISIONS `G65.0`/`G65.1a`. *(task-311)*
 - [ ] **G65.1b** `Session.next_turn()` — jedna tura `run_headless_game` (RNG współdzielony), `is_over` → no-op; ARCHITECTURE, DECISIONS `G65.1b`. *(task-312)*
-- [ ] **G65.1c** `apply_command(session, {"type": "next_turn"|"new_game"})` — dyspozytor poleceń sterujących; nieznany `type` → `ValueError`; ARCHITECTURE, DECISIONS `G65.1c`. *(task-313)*
+- [x] **G65.1c** `apply_command(session, {"type": "next_turn"|"new_game"})` — dyspozytor poleceń sterujących; nieznany `type` → `ValueError`; ARCHITECTURE, DECISIONS `G65.1c`. *(task-313)*
 - [ ] **G65.2a** rozkazy gracza bez bitwy `develop`/`recruit`/`muster` (`ai.*` + `sync_from_world`, guardy jak `tbbui.serve`); ARCHITECTURE, DECISIONS `G65.2a`. *(task-314)*
 - [ ] **G65.2b** rozkaz `march` (auto / do wskazanego regionu przez `ai.march_duchy_party[_to]`); ARCHITECTURE, DECISIONS `G65.2b`. *(task-315)*
 > **G65.3 (do zaplanowania w kolejnym wsadzie)** rozkazy bitewne `assault`/`engage`

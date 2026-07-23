@@ -3,13 +3,16 @@
 Tests live next to the module under test per task-312 \"Ścieżki testów\".
 """
 
+import copy
 import json
+
+import pytest
 
 from tbb.game import GameState, create_headless_game
 from tbb.rng import Rng
 from tbb.turn import Calendar
 
-from tbbbridge.session import Session, new_session
+from tbbbridge.session import Session, apply_command, new_session
 from tbbbridge.snapshot import game_state
 
 
@@ -133,3 +136,75 @@ def test_next_turn_is_noop_when_game_is_over():
     assert after.seed == 73
     # Input session not mutated in any case.
     assert ended_session.snapshot() == snapshot_before
+
+
+def test_apply_command_new_game_returns_fresh_session_preserving_player_and_seed():
+    """G65.1c crit-2: apply_command({"type": "new_game"}) returns a fresh
+    session built via new_session(seed=session.seed, player_duchy_id=...),
+    preserving player_duchy_id and defaulting seed to the current session.seed;
+    an explicit {"type": "new_game", "seed": 7} uses seed=7. The new game's
+    snapshot has calendar == {"year": 1, "month": 1}. The input session is not
+    mutated. An unknown type (and a missing type key) both raise ValueError.
+    """
+    s = new_session(42, "player")
+    advanced = s.next_turn()
+    assert advanced.snapshot()["calendar"] != {"year": 1, "month": 1}
+
+    fresh_default = apply_command(advanced, {"type": "new_game"})
+
+    assert isinstance(fresh_default, Session)
+    assert fresh_default is not advanced
+    assert fresh_default.player_duchy_id == "player"
+    assert fresh_default.seed == 42
+    assert fresh_default.snapshot()["calendar"] == {"year": 1, "month": 1}
+    fresh_default_snapshot = copy.deepcopy(fresh_default.snapshot())
+    assert fresh_default.snapshot() == fresh_default_snapshot
+
+    fresh_seeded = apply_command(advanced, {"type": "new_game", "seed": 7})
+    assert fresh_seeded.seed == 7
+    assert fresh_seeded.player_duchy_id == "player"
+    assert fresh_seeded.snapshot()["calendar"] == {"year": 1, "month": 1}
+    assert fresh_seeded.rng.randint(0, 1000) == Rng(7).randint(0, 1000)
+
+    advanced_before = copy.deepcopy(advanced.snapshot())
+    assert advanced.snapshot() == advanced_before
+
+    with pytest.raises(ValueError):
+        apply_command(advanced, {"type": "totally_unknown"})
+    with pytest.raises(ValueError):
+        apply_command(advanced, {"unrelated": "value"})
+
+
+def test_apply_command_next_turn_delegates_to_session_next_turn():
+    """G65.1c crit-1: apply_command(session, {"type": "next_turn"}) returns a
+    session whose snapshot matches session.next_turn() exactly (pure delegation,
+    no own turn logic). The input session is not mutated.
+    """
+    s = new_session(73, "player")
+    before = copy.deepcopy(s.snapshot())
+
+    via_command = apply_command(s, {"type": "next_turn"})
+    via_method = s.next_turn()
+
+    assert via_command.snapshot() == via_method.snapshot()
+    assert s.snapshot() == before
+
+
+def test_apply_command_unknown_type_and_missing_type_raise_valueerror_without_mutation():
+    """G65.1c crit-3: unknown type or missing 'type' key both raise ValueError;
+    the input session is never mutated (snapshot deterministic, RNG advanced
+    by the raised call has no observable effect on a later identical session).
+    """
+    s = new_session(73, "player")
+    before = copy.deepcopy(s.snapshot())
+
+    with pytest.raises(ValueError):
+        apply_command(s, {"type": "order"})
+    with pytest.raises(ValueError):
+        apply_command(s, {"type": "new_game", "seed": 999, "extra": True})
+    with pytest.raises(ValueError):
+        apply_command(s, {})
+    with pytest.raises(ValueError):
+        apply_command(s, {"unrelated": 1})
+
+    assert s.snapshot() == before
