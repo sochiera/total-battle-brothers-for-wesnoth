@@ -404,14 +404,16 @@ zwraca jedną linię `{"ok": false, ...}` i **nie** przerywa pętli —
 kolejne linie są nadal obsługiwane. Po EOF zwracana jest końcowa sesja
 (efekt sekwencyjnego zastosowania wszystkich poprawnych komend).
 
-`python -m tbbbridge serve [seed]` (G66.1c) uruchamia
-`tbbbridge.__main__.main` z podkomendą `serve`. Gdy `argv[0] == "serve"`,
-punkt wejścia tworzy świeżą sesję `new_session(seed=int(argv[1])`
-(domyslnie `73`), po czym wywołuje `serve_stream(session, sys.stdin,
-sys.stdout)`. Strumienie są wstrzykiwane jako keyword-only argumenty
-(`stdin`, `stdout`) dla testowalności. Dotychczasowe zachowanie CLI
-(snapshot headless do pliku) pozostaje nietknięte dla każdego innego
-argumentu pozycyjnego.
+`python -m tbbbridge serve [seed]` (G66.1c) i
+`python -m tbbbridge serve --resume <path>` (G69.2a) uruchamiają
+`tbbbridge.__main__.main` z podkomendą `serve`. Gdy `argv[0] == "serve"` i
+`argv[1:3] == ["--resume", <path>]`, punkt wejścia buduje sesję przez
+`read_session(<path>)`; w przeciwnym razie tworzy świeżą sesję
+`new_session(seed=int(argv[1])` (domyślnie `73`). Następnie wywołuje
+`serve_stream(session, sys.stdin, sys.stdout)`. Strumienie są wstrzykiwane
+jako keyword-only argumenty (`stdin`, `stdout`) dla testowalności.
+Dotychczasowe zachowanie CLI (snapshot headless do pliku) pozostaje
+nietknięte dla każdego innego argumentu pozycyjnego.
 
 
 ## RNG / rdzeń (G67.3a)

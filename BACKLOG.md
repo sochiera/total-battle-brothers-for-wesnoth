@@ -128,7 +128,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > zapisanej partii przy starcie mostu. Oba przyrosty reużywają istniejące
 > `snapshot`/`read_session`; rdzeń `tbb` bez zmian.
 - [ ] **G69.1a** protokół: komenda `snapshot` — `apply_command` rozpoznaje `{"type":"snapshot"}` i zwraca tę samą sesję (bez mutacji/RNG); `command_result` → `{"kind":"snapshot"}`; ARCHITECTURE, DECISIONS `G69.1a`. *(task-342)*
-- [ ] **G69.2a** CLI `serve --resume <path>` — `main` startuje `serve_stream` z `read_session(path)` zamiast `new_session`; legacy formy CLI bez zmian; ARCHITECTURE, DESIGN §11, DECISIONS `G69.2a`. *(task-343)*
+- [x] **G69.2a** CLI `serve --resume <path>` — `main` startuje `serve_stream` z `read_session(path)` zamiast `new_session`; legacy formy CLI bez zmian; ARCHITECTURE, DESIGN §11, DECISIONS `G69.2a`. *(task-343)*
 - [ ] **G69.2b** CLI `serve --resume`: błędy wznowienia — brak/niepoprawny plik → komunikat na wstrzykiwalny `stderr` + kod `1`, bez startu pętli; DECISIONS `G69.2b`. *(task-344)*
 - [ ] **G69.2c** e2e: zapis w jednym `main(["serve"])`, wznowienie w drugim `main(["serve","--resume",...])` — odtworzony snapshot i ciągłość RNG przez plik; bez nowej powierzchni API. *(task-345)*
 > **Dalej (kolejne wsady):** ewentualna serializacja `last_battle`/`HexBattle`,

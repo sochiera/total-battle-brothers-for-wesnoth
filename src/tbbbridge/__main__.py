@@ -1,8 +1,9 @@
 """CLI entry point for the tbbbridge snapshot package.
 
-Przyrost G63.2b/G66.1c: jawna ścieżka z ``argv[0]`` lub domyślna
+Przyrost G63.2b/G66.1c/G69.2a: jawna ścieżka z ``argv[0]`` lub domyślna
 ``out/state.json``; deterministyczna partia headless + zapis snapshotu JSON.
 Podkomenda ``serve`` startuje interaktywną sesję JSON Lines na stdin/stdout.
+``serve --resume <path>`` wznawia zapisaną partię z pliku.
 """
 
 import os
@@ -12,14 +13,27 @@ from tbb.driver import run_headless_game
 from tbb.game import create_headless_game
 from tbb.rng import Rng
 
+from tbbbridge.persist import read_session
 from tbbbridge.protocol import serve_stream
-from tbbbridge.session import new_session
+from tbbbridge.session import Session, new_session
 from tbbbridge.snapshot import save_state
 
 
 DEFAULT_PATH = "out/state.json"
 HEADLESS_SEED = 73
 PLAYER_DUCHY_ID = "player"
+
+
+def _session_for_serve(argv: list[str]) -> Session:
+    """Return the Session for a ``serve`` invocation.
+
+    ``serve --resume <path>`` loads via ``read_session``; ``serve [seed]``
+    builds a fresh ``new_session``.
+    """
+    if len(argv) >= 3 and argv[1] == "--resume":
+        return read_session(argv[2])
+    seed = int(argv[1]) if len(argv) > 1 else HEADLESS_SEED
+    return new_session(seed=seed, player_duchy_id=PLAYER_DUCHY_ID)
 
 
 def main(
@@ -31,16 +45,17 @@ def main(
     """CLI entry point for ``tbbbridge``.
 
     ``python -m tbbbridge serve [seed]`` starts an interactive JSON Lines
-    session on ``stdin``/``stdout``.  Any other invocation runs the legacy
-    headless snapshot path: ``argv[0]`` is the output path (default
-    ``out/state.json``).  Returns ``0`` on success.
+    session on ``stdin``/``stdout``.  ``python -m tbbbridge serve --resume
+    <path>`` resumes a saved session from ``path`` via ``read_session``.
+    Any other invocation runs the legacy headless snapshot path:
+    ``argv[0]`` is the output path (default ``out/state.json``).
+    Returns ``0`` on success.
     """
     if argv is None:
         argv = sys.argv[1:]
 
     if argv and argv[0] == "serve":
-        seed = int(argv[1]) if len(argv) > 1 else HEADLESS_SEED
-        session = new_session(seed=seed, player_duchy_id=PLAYER_DUCHY_ID)
+        session = _session_for_serve(argv)
         serve_stream(session, stdin, stdout)
         return 0
 

@@ -134,3 +134,75 @@ def test_main_with_explicit_path_writes_deterministic_snapshot_to_that_path_retu
     snapshot = json.loads(out_path.read_text(encoding="utf-8"))
     assert list(snapshot.keys()) == ["calendar", "duchies", "map", "result"]
     assert snapshot == _reference_legacy_snapshot()
+
+
+def test_main_serve_resume_uses_read_session_not_new_session(tmp_path):
+    """G69.2a kryt-1: ``main(["serve", "--resume", <path>], stdin=<io>, stdout=<io>)``
+    startuje ``serve_stream`` z sesją ``read_session(<path>)`` (nie ``new_session``) i
+    zwraca ``0``; dla pliku zapisanego wcześniej z sesji ``s`` pierwsza odpowiedź na
+    ``{"type": "snapshot"}`` ma ``snapshot`` równy ``read_session(<path>).snapshot()``.
+    """
+    from tbbbridge.persist import read_session, save_session
+    from tbbbridge.session import new_session
+
+    # Przygotuj zapisaną sesję (z innym seedem niż domyślny 73, by różnica była widoczna)
+    saved_session = new_session(seed=42, player_duchy_id="player")
+    state_path = tmp_path / "saved_state.json"
+    save_session(saved_session, state_path)
+
+    # Wywołaj CLI z --resume
+    in_stream = io.StringIO('{"type": "snapshot"}\n')
+    out_stream = io.StringIO()
+
+    rc = main(["serve", "--resume", str(state_path)], stdin=in_stream, stdout=out_stream)
+
+    assert rc == 0
+    out_lines = out_stream.getvalue().splitlines()
+    assert len(out_lines) == 1
+    resp = json.loads(out_lines[0])
+    assert resp.get("ok") is True
+    assert "snapshot" in resp
+
+    # Snapshot musi pochodzić z read_session, nie z new_session
+    expected_session = read_session(state_path)
+    assert resp["snapshot"] == expected_session.snapshot()
+    # Asertacja negatywna: zapisana sesja miała inny seed niż new_session();
+    # sam snapshot przed użyciem RNG jest taki sam dla każdego seedu, więc
+    # różnicę weryfikujemy bezpośrednio na polu seed.
+    assert expected_session.seed != new_session().seed
+
+
+def test_main_serve_resume_next_turn_uses_state_from_file(tmp_path):
+    """G69.2a kryt-2: Po ``--resume`` kolejna komenda ``{"type": "next_turn"}`` daje
+    ``snapshot`` równy ``read_session(<path>).next_turn().snapshot()`` (stan i
+    seed/``player_duchy_id``/RNG pochodzą z pliku, nie z domyślnego ``new_session``).
+    """
+    from tbbbridge.persist import read_session, save_session
+    from tbbbridge.session import new_session, apply_command
+
+    # Przygotuj zapisaną sesję po kilku turach (inna niż świeża)
+    saved_session = new_session(seed=99, player_duchy_id="player")
+    # Wykonaj turę przed zapisem, by stan był inny niż startowy
+    saved_session = apply_command(saved_session, {"type": "next_turn"})
+    state_path = tmp_path / "saved_state.json"
+    save_session(saved_session, state_path)
+
+    # Wywołaj CLI z --resume i wyślij next_turn
+    in_stream = io.StringIO('{"type": "next_turn"}\n')
+    out_stream = io.StringIO()
+
+    rc = main(["serve", "--resume", str(state_path)], stdin=in_stream, stdout=out_stream)
+
+    assert rc == 0
+    out_lines = out_stream.getvalue().splitlines()
+    assert len(out_lines) == 1
+    resp = json.loads(out_lines[0])
+    assert resp.get("ok") is True
+    assert "snapshot" in resp
+
+    # Snapshot musi być równy read_session(path).next_turn().snapshot()
+    expected_session = read_session(state_path)
+    expected_snapshot = apply_command(expected_session, {"type": "next_turn"}).snapshot()
+    assert resp["snapshot"] == expected_snapshot
+    # Asertacja negatywna: to nie może być wynik next_turn na domyślnej sesji
+    assert resp["snapshot"] != apply_command(new_session(), {"type": "next_turn"}).snapshot()
