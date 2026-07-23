@@ -326,9 +326,9 @@ Rozkaz jest no-opem (zwraca równoważną sesję z identycznymi
 Nieznana wartość `order` podnosi `ValueError`. Funkcja jest czysta względem
 wejściowej sesji — nigdy jej nie mutuje.
 
-`command_result(before, after, command)` (G66.2a/G66.2b) to json-serializowalne,
-czyste podsumowanie skutku komendy. Dla `next_turn` zwraca
-`{"kind": "turn", "date": {"year": ..., "month": ...}}`, dla `new_game`
+`command_result(before, after, command)` (G66.2a/G66.2b/G68.2a) to
+json-serializowalne, czyste podsumowanie skutku komendy. Dla `next_turn`
+zwraca `{"kind": "turn", "date": {"year": ..., "month": ...}}`, dla `new_game`
 `{"kind": "new_game"}`, dla rozkazów niebitewnych
 `{"kind": "order", "order": name, "changed": <bool>}` (różność obiektów
 `world`). Dla rozkazów bojowych `assault`/`engage`, gdy `after.last_battle is not
@@ -338,7 +338,9 @@ z `report.result.value` (`"attacker_win"` → `"zwycięstwo"`, `"defender_win"` 
 `"porażka"`, `"draw"` → `"remis"`, inne → `None`), straty to liczności
 `report.attacker.fallen` / `report.defender.fallen`). Gdy rozkaz bojowy nie
 rozegrał bitwy (`after.last_battle is None`), zachowuje gałąź `kind: "order"`
-spójnie z rozkazami niebitewnymi.
+spójnie z rozkazami niebitewnymi. Dla `{"type": "save", "path": str}` zwraca
+`{"kind": "save", "path": str}` — `save` jest obsługiwany w warstwie protokołu
+przed `apply_command`, więc `before` i `after` to ta sama sesja.
 
 #### Protokół JSON Lines (G66.1a)
 
@@ -352,19 +354,31 @@ jest podstawowym punktem wejścia tego protokołu.
   zwracana jest **identycznościowo ta sama** sesja wejściowa i odpowiedź
   `{"ok": false, "error": <ciąg opisujący błąd>}` bez klucza `"snapshot"`.
 - Jeśli JSON jest obiektem, funkcja deleguje do
-  `apply_command(session, command)`.  Sukces daje
+  `apply_command(session, command)`, z wyjątkiem komendy `save`, która jest
+  obsługiwana w warstwie protokołu.  Sukces daje
   `(new_session, {"ok": true, "snapshot": new_session.snapshot(),
   "result": command_result(session, new_session, command)})`, gdzie
-  `command_result(before, after, command)` (G66.2a) to json-serializowalny
+  `command_result(before, after, command)` (G66.2a/G68.2a) to json-serializowalny
   klasyfikator: `"next_turn"` → `{"kind": "turn", "date": {"year": ...,
   "month": ...}}`, `"new_game"` → `{"kind": "new_game"}`, rozkaz niebitewny
   `{"type":"order","order":name}` → `{"kind": "order", "order": name,
-  "changed": after.world is not before.world}`. Błędne ścieżki (niepoprawny
-  JSON / nie-obiekt / `ValueError`) **nie** zawierają klucza `"result"`.
+  "changed": after.world is not before.world}`, `"save"` →
+  `{"kind": "save", "path": command["path"]}`.
+- `"save"`: gdy `command["path"]` jest niepustym łańcuchem, wywoływane jest
+  `tbbbridge.persist.save_session(session, path)`, a zwracana jest ta sama
+  sesja `session` i odpowiedź z `snapshot` oraz `"result": {"kind": "save",
+  "path": path}`; brak klucza, nie-łańcuch lub pusty łańcuch →
+  `(session, {"ok": false, "error": <str>})` bez zapisu; `OSError` z
+  `save_session` → `(session, {"ok": false, "error": str(exc)})`.
+  `apply_command` **nie** jest wołane — IO pozostaje w warstwie protokołu.
+- Błędne ścieżki (niepoprawny JSON / nie-obiekt / `ValueError` przy innych
+  komendach) **nie** zawierają klucza `"result"`.
 - `ValueError` wyrzucony przez `apply_command` jest łapany i zwracany jako
   `(session, {"ok": false, "error": str(exc)})`, również bez `"snapshot"`.
 
-`handle_command_line` jest bez IO i bez mutacji wejściowej sesji.
+`handle_command_line` jest bez IO i bez mutacji wejściowej sesji (poza
+jawnym zapisem pliku przy komendzie `save`, której IO reużyjuje
+`persist.save_session`).
 
 `serve_stream(session, in_stream, out_stream) -> Session` (G66.1b) jest
 reużywalną pętlą JSON Lines nad strumieniami. Iteruje po liniach

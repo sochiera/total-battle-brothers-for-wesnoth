@@ -419,3 +419,140 @@ def test_command_result_battle_order_without_last_battle_returns_kind_order_chan
         "changed": False,
     }
     json.dumps(result)
+
+
+def test_command_result_save_returns_kind_save_with_path():
+    """G68.2a kryt-1: ``command_result(before, after, {"type": "save", "path": p})``
+    zwraca ``{"kind": "save", "path": p}`` (czysta funkcja; dla ``save`` ``before``
+    i ``after`` to ta sama sesja). Wynik przechodzi ``json.dumps``.
+    """
+    s = new_session(73, "player")
+    result = command_result(s, s, {"type": "save", "path": "/tmp/test-save.json"})
+
+    assert result == {
+        "kind": "save",
+        "path": "/tmp/test-save.json",
+    }
+    json.dumps(result)
+
+
+def test_handle_command_line_save_writes_file_and_returns_same_session_with_snapshot_and_result():
+    """G68.2a kryt-2: ``handle_command_line(session, '{"type": "save", "path": <p>}')``
+    wywołuje ``tbbbridge.persist.save_session(session, p)`` (plik powstaje) i zwraca
+    ``(session, resp)``, gdzie zwrócona sesja jest **tym samym** obiektem co wejściowa
+    (``is``), a ``resp == {"ok": True, "snapshot": session.snapshot(), "result":
+    {"kind": "save", "path": p}}``; ``json.dumps(resp)`` nie rzuca. ``apply_command``
+    nie jest wołane dla ``save`` i pozostaje czyste (bez IO).
+    """
+    import os
+    import tempfile
+    from tbbbridge.persist import read_session
+
+    s = new_session(73, "player")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        path = os.path.join(tmpdir, "test-save.json")
+        session_out, resp = handle_command_line(s, json.dumps({"type": "save", "path": path}))
+
+        # Sesja wyjściowa jest tym samym obiektem co wejściowa (save nie mutuje stanu).
+        assert session_out is s
+
+        # Odpowiedź zawiera ok, snapshot i result.
+        assert resp["ok"] is True
+        assert resp["snapshot"] == s.snapshot()
+        assert resp["result"] == {"kind": "save", "path": path}
+
+        # Plik powstał i można go wczytać.
+        assert os.path.exists(path)
+        loaded = read_session(path)
+        assert loaded.world.regions == s.world.regions
+        assert loaded.game.duchies == s.game.duchies
+        assert loaded.calendar.year == s.calendar.year
+        assert loaded.calendar.month == s.calendar.month
+        assert loaded.player_duchy_id == s.player_duchy_id
+        assert loaded.seed == s.seed
+
+        # json.dumps nie rzuca.
+        json.dumps(resp)
+
+
+def test_handle_command_line_save_missing_path_or_non_string_path_returns_error_without_write():
+    """G68.2a kryt-3: Brak klucza ``path`` lub ``path`` nie będący ``str`` →
+    ``(session, {"ok": False, "error": <str>})`` bez próby zapisu.
+    """
+    import os
+    import tempfile
+
+    s = new_session(73, "player")
+    before_snapshot = s.snapshot()
+
+    # --- Brak klucza path ---
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Ścieżka, która na pewno nie istnieje przed testem.
+        nonexistent = os.path.join(tmpdir, "does-not-exist.json")
+        session_out, resp = handle_command_line(s, json.dumps({"type": "save"}))
+
+        assert session_out is s
+        assert resp["ok"] is False
+        assert isinstance(resp["error"], str)
+        assert resp["error"]  # niepusty
+        assert "snapshot" not in resp
+        assert "result" not in resp
+        # Plik nie powstał.
+        assert not os.path.exists(nonexistent)
+        # Sesja nie jest mutowana.
+        assert s.snapshot() == before_snapshot
+
+    # --- path nie będący str ---
+    with tempfile.TemporaryDirectory() as tmpdir:
+        nonexistent = os.path.join(tmpdir, "does-not-exist-2.json")
+        session_out, resp = handle_command_line(s, json.dumps({"type": "save", "path": 123}))
+
+        assert session_out is s
+        assert resp["ok"] is False
+        assert isinstance(resp["error"], str)
+        assert resp["error"]  # niepusty
+        assert "snapshot" not in resp
+        assert "result" not in resp
+        assert not os.path.exists(nonexistent)
+        assert s.snapshot() == before_snapshot
+
+    # --- path pusty string ---
+    with tempfile.TemporaryDirectory() as tmpdir:
+        nonexistent = os.path.join(tmpdir, "does-not-exist-3.json")
+        session_out, resp = handle_command_line(s, json.dumps({"type": "save", "path": ""}))
+
+        assert session_out is s
+        assert resp["ok"] is False
+        assert isinstance(resp["error"], str)
+        assert resp["error"]  # niepusty
+        assert "snapshot" not in resp
+        assert "result" not in resp
+        assert not os.path.exists(nonexistent)
+        assert s.snapshot() == before_snapshot
+
+
+def test_handle_command_line_save_oserror_returns_error_without_write():
+    """G68.2a kryt-3 cd.: ``OSError`` z ``save_session`` (np. katalog docelowy nie
+    istnieje) → ``(session, {"ok": False, "error": <str>})``.
+    """
+    import os
+    import tempfile
+
+    s = new_session(73, "player")
+    before_snapshot = s.snapshot()
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Ścieżka z nieistniejącym katalogiem nadrzędnym.
+        nonexistent_dir = os.path.join(tmpdir, "nonexistent-dir", "save.json")
+        session_out, resp = handle_command_line(s, json.dumps({"type": "save", "path": nonexistent_dir}))
+
+        # save_session nie tworzy katalogów, więc OSError powinien wystąpić.
+        assert session_out is s
+        assert resp["ok"] is False
+        assert isinstance(resp["error"], str)
+        assert "snapshot" not in resp
+        assert "result" not in resp
+        # Katalog nie powstał.
+        assert not os.path.exists(os.path.join(tmpdir, "nonexistent-dir"))
+        # Sesja nie jest mutowana.
+        assert s.snapshot() == before_snapshot

@@ -2,6 +2,7 @@
 
 import json
 
+from tbbbridge.persist import save_session
 from tbbbridge.session import Session, apply_command, new_session
 
 _BATTLE_ORDERS = ("assault", "engage")
@@ -25,6 +26,12 @@ def command_result(before: Session, after: Session, command: dict) -> dict:
 
     if command_type == "new_game":
         return {"kind": "new_game"}
+
+    if command_type == "save":
+        return {
+            "kind": "save",
+            "path": command["path"],
+        }
 
     if command_type == "order":
         order_name = command["order"]
@@ -72,6 +79,23 @@ def handle_command_line(session: Session, line: str) -> tuple[Session, dict]:
         return session, {
             "ok": False,
             "error": "Command must be a JSON object",
+        }
+
+    if command.get("type") == "save":
+        path = command.get("path")
+        if not isinstance(path, str) or path == "":
+            return session, {
+                "ok": False,
+                "error": "save command requires a non-empty string path",
+            }
+        try:
+            save_session(session, path)
+        except OSError as exc:
+            return session, {"ok": False, "error": str(exc)}
+        return session, {
+            "ok": True,
+            "snapshot": session.snapshot(),
+            "result": command_result(session, session, command),
         }
 
     try:
