@@ -284,6 +284,7 @@
 | G67.1c | Persist round-trip Unit | `tbbbridge.persist.dump_unit`/`load_unit` — czysta, json-serializowalna para round-trip dla `Unit` (filary, postęp, rany, ogłuszenie, zasięg); reużywa `dump_wound`/`load_wound`; rdzeń `tbb` bez zmian. |
 | G67.1d | Persist round-trip Building | `tbbbridge.persist.dump_building`/`load_building` — czysta, json-serializowalna para round-trip dla `Building` (`name`/`staff`/`output`); reużywa `dump_resources`/`load_resources`; rdzeń `tbb` bez zmian. |
 | G67.1e | Persist round-trip Calendar | `tbbbridge.persist.dump_calendar`/`load_calendar` — czysta, json-serializowalna para round-trip dla `Calendar` (`year`/`month`); rdzeń `tbb` bez zmian. |
+| G67.2a | Persist round-trip Party | `tbbbridge.persist.dump_party`/`load_party` — czysta, json-serializowalna para round-trip dla `Party` (`hero`/`units`/`owner_id`, reużycie `dump_unit`/`load_unit`); rdzeń `tbb` bez zmian. |
 | G54.1a | Katalog Koszar | `tbb.building.BARRACKS = Building("Barracks", staff=1)` (output zerowy jak Smith), eksport `tbb.BARRACKS`; czysto katalogowe — bez AI i bez bramki `tick_training`. |
 | G54.1b | AI otwiera Koszary w kolejności rozwoju | `_DEVELOPMENT_PRIORITIES = (FARM, SMITH, BARRACKS, MARKET)` — Koszary trzecim priorytetem przed Market; `develop_duchy_settlement` bez zmiany sygnatury. |
 | G54.1c | Bramkowanie treningu garnizonu Koszarami | `Settlement.tick_training()` no-op gdy `BARRACKS not in active_buildings`; z czynnymi Koszarami trenuje jak dotąd (bez wymogu obsady/złota). |

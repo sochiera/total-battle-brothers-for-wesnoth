@@ -157,6 +157,16 @@ month=13)`) zachodzi `load_calendar(dump_calendar(c)) == c`. Obie funkcje są
 czyste, nie mutują wejścia i będą reużywane przez serializery wyższych
 kompozytów (np. `Session`).
 
+`dump_party(party: Party) -> dict` (G67.2a) zwraca json-serializowalny słownik
+z kluczami `hero` (= `dump_unit(party.hero)`), `units` (lista `dump_unit(u)` w
+kolejności `party.units`) oraz `owner_id` (= `party.owner_id`).
+`load_party(data: dict) -> Party` odtwarza `Party(hero=load_unit(data["hero"]),
+units=tuple(load_unit(u) for u in data["units"]), owner_id=data["owner_id"])`.
+Dla każdej `Party p` (w tym z podwładnymi, rannym bohaterem oraz `owner_id=None`)
+zachodzi `load_party(dump_party(p)) == p`. Obie funkcje są czyste, nie mutują
+wejścia i będą reużywane przez serializery wyższych kompozytów (osada,
+świat, sesja).
+
 ### Most poleceń (G65)
 
 Most `tbbbridge` daje również kanał **IN** — uchwyt sesji, przez który

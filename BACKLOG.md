@@ -109,7 +109,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > (sekcja „Persystencja round-trip") i `docs/DECISIONS.md`. *(task-324…328)*
 
 ### G67.2 — kompozyty persystencji (oddolnie ku sesji)
-- [ ] **G67.2a** `tbbbridge.persist.dump_party`/`load_party` — round-trip `Party` (reużycie `load_unit`); ARCHITECTURE, DECISIONS `G67.2a`. *(task-329)*
+- [x] **G67.2a** `tbbbridge.persist.dump_party`/`load_party` — round-trip `Party` (reużycie `load_unit`); ARCHITECTURE, DECISIONS `G67.2a`. *(task-329)*
 - [ ] **G67.2b** `tbbbridge.persist.dump_settlement`/`load_settlement` — round-trip `Settlement` (reużycie `load_building`/`load_resources`/`load_unit`); ARCHITECTURE, DECISIONS `G67.2b`. *(task-330)*
 - [ ] **G67.2c** `tbbbridge.persist.dump_region`/`load_region` — round-trip `Region` (liść mapy); ARCHITECTURE, DECISIONS `G67.2c`. *(task-331)*
 - [ ] **G67.2d** `tbbbridge.persist.dump_world`/`load_world` — round-trip `WorldMap` (regiony, połączenia, osady/party; identyczność regionów przez indeksy); ARCHITECTURE, DECISIONS `G67.2d`. *(task-332)*

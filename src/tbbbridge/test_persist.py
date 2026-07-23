@@ -9,6 +9,7 @@ import copy
 import json
 
 from tbb.building import BARRACKS, FARM, MARKET, SMITH, Building
+from tbb.party import Party
 from tbb.resources import Resources
 from tbb.turn import Calendar
 from tbb.unit import Unit
@@ -304,3 +305,41 @@ def test_load_calendar_does_not_mutate_input_dict():
     persist.load_calendar(data)
 
     assert data == data_before
+
+
+def test_dump_party_returns_json_serializable_dict_with_hero_units_owner_id():
+    """G67.2a kryt-1: ``dump_party(party)`` zwraca json-serializowalny ``dict``
+    z kluczami ``hero`` (= ``dump_unit(party.hero)``), ``units`` (lista
+    ``dump_unit(u)`` w kolejności ``party.units``) i ``owner_id``
+    (= ``party.owner_id``).
+
+    Próbka obejmuje party z podwładnymi, rannym bohaterem oraz jawny
+    ``owner_id`` — wszystkie три filary kryt-1 jednocześnie.
+    """
+    wounded_hero = Unit(
+        training=3,
+        equipment=2,
+        experience=5,
+        ranged_range=3,
+        wounds=(BRUISE,),
+        stunned=True,
+        training_progress=1,
+        equipment_progress=1,
+    )
+    subordinate = Unit(training=1, equipment=0, experience=0, ranged_range=0)
+    party = Party(
+        hero=wounded_hero,
+        units=(subordinate,),
+        owner_id="player",
+    )
+
+    dumped = persist.dump_party(party)
+
+    assert dumped == {
+        "hero": persist.dump_unit(wounded_hero),
+        "units": [persist.dump_unit(subordinate)],
+        "owner_id": "player",
+    }
+    assert dumped["units"] == [persist.dump_unit(subordinate)]
+    assert dumped["owner_id"] == party.owner_id
+    json.dumps(dumped)
