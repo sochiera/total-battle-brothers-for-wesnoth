@@ -64,6 +64,7 @@ def test_handle_command_line_invalid_json_or_non_dict_and_valueerror_returns_sam
         assert isinstance(resp.get("error"), str)
         assert resp.get("error")  # niepusty
         assert "snapshot" not in resp
+        assert "result" not in resp  # G66.2a: ścieżka błędu nie dokłada "result"
         # Sesja nie jest mutowana.
         assert s.snapshot() == before
 
@@ -87,6 +88,7 @@ def test_handle_command_line_invalid_json_or_non_dict_and_valueerror_returns_sam
         assert resp.get("ok") is False
         assert resp.get("error") == expected_msg
         assert "snapshot" not in resp
+        assert "result" not in resp  # G66.2a: ścieżka błędu nie dokłada "result"
         # Sesja nie jest mutowana.
         assert s.snapshot() == before
 
@@ -250,3 +252,48 @@ def test_command_result_non_battle_order_changed_flag_matches_world_identity():
         "changed": False,
     }
     json.dumps(result_unchanged)
+
+
+def test_command_result_turn_and_new_game_kinds_match_after_calendar_and_are_json_serializable():
+    """G66.2a kryt-1 (gałęzie turn/new_game): ``command_result(before, after,
+    {"type": "next_turn"})`` zwraca ``{"kind": "turn", "date": {"year":
+    after.calendar.year, "month": after.calendar.month}}`` (wartości czerwone
+    z obiektu ``after``, a nie z ``before``, oraz różne od stanu wyjściowego),
+    a ``command_result(before, after, {"type": "new_game"})`` zwraca dokładnie
+    ``{"kind": "new_game"}`` (bez klucza ``changed`` ani ``date``). Oba wyniki
+    są json-serializowalne.
+    """
+    s = new_session(73, "player")
+    before_calendar = dict(year=s.calendar.year, month=s.calendar.month)
+
+    # --- next_turn -> {"kind": "turn", "date": z after.calendar} ---
+    after_turn = apply_command(s, {"type": "next_turn"})
+    assert after_turn.calendar is not s.calendar  # warunek scenariusza: tura poszła
+    assert (after_turn.calendar.year, after_turn.calendar.month) != (
+        s.calendar.year,
+        s.calendar.month,
+    )
+
+    result_turn = command_result(s, after_turn, {"type": "next_turn"})
+
+    assert result_turn == {
+        "kind": "turn",
+        "date": {
+            "year": after_turn.calendar.year,
+            "month": after_turn.calendar.month,
+        },
+    }
+    # date pochodzi z after, nie z before:
+    assert result_turn["date"] != before_calendar
+    # brak klucza changed:
+    assert "changed" not in result_turn
+    json.dumps(result_turn)
+
+    # --- new_game -> {"kind": "new_game"} ---
+    after_new = apply_command(s, {"type": "new_game"})
+    result_new = command_result(s, after_new, {"type": "new_game"})
+
+    assert result_new == {"kind": "new_game"}
+    assert "date" not in result_new
+    assert "changed" not in result_new
+    json.dumps(result_new)
