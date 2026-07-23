@@ -347,7 +347,7 @@ dwukierunkowy: obok snapshotu OUT (`tbbbridge.snapshot`) most daje kanał IN —
 uchwyt sesji `tbbbridge.session.Session` i json-owy punkt wejścia
 `apply_command(session, command)`, którym Godot posuwa turę (`next_turn`),
 zaczyna nową grę (`new_game`) i wydaje rozkazy księstwu gracza (`order`:
-rozwój / rekrutacja / zbiórka / marsz — reużycie prymitywów `ai.*`, bez logiki
+rozwój / rekrutacja / zbiórka / marsz / szturm / starcie — reużycie prymitywów `ai.*`, bez logiki
 reguł w moście). Klient HTML/SVG
 (`tbbui`) zostaje **wyłącznie jako narzędzie diagnostyczne**, nie jest już
 docelowym klientem gry.

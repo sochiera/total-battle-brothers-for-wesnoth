@@ -985,3 +985,128 @@ def test_apply_command_order_assault_fallback_and_guards_and_no_op_no_rng():
     assert s_iso.snapshot() == iso_before
     # RNG proxy nie rzuciło — dowód braku konsumpcji na no-op path.
     # (gdyby kod pobrał liczbę, _ForbiddenRng.randint/chance rzuciłby AssertionError)
+
+
+def test_apply_command_order_engage_auto_applies_recorded_primitive_sets_last_battle_preserves_fields():
+    """G65.3c kryt-1: ``apply_command({"type": "order", "order": "engage"})``
+    bez ``target`` stosuje ``ai.engage_duchy_party_recorded(world,
+    player_duchy, session.rng, morale_by_owner=m)``, gdzie
+    ``m = {d.duchy_id: d.morale for d in session.game.duchies}``. Z
+    ``"target": <name>`` rozwiązywalnym do ``Region`` z ``world.regions`` (po
+    ``region.name``) stosuje ``ai.engage_duchy_party_to_recorded(world,
+    player_duchy, region, session.rng, morale_by_owner=m)``. W obu razach
+    prymityw zwraca ``(new_world, battle)``; wynikowy ``Session`` ma
+    ``world == new_world``, ``game == game.sync_from_world(new_world)``,
+    ``last_battle == battle``, a ``calendar``/``rng``/``seed``/
+    ``player_duchy_id`` bez zmian. Wejściowa sesja nie jest mutowana.
+
+    Scenariusz z dwiema sąsiednimi wrogimi partiami (``Near`` i ``Far``):
+    auto-starcie wybiera pierwszą (``Near``), starcie z ``target="Far"``
+    uderza w ``Far`` — rozłączne wyniki mapy/bitwy pozwalają odróżnić gałęzie.
+    """
+    from tbb.ai import (
+        engage_duchy_party_recorded,
+        engage_duchy_party_to_recorded,
+    )
+    from tbb.duchy import Duchy
+    from tbb.party import Party
+    from tbb.unit import Unit
+    from tbb.world import Region, WorldMap
+
+    def _build_session() -> Session:
+        start, near, far = map(Region, ("Start", "Near", "Far"))
+        player_party = Party(
+            Unit(training=5, equipment=6), owner_id="north"
+        )
+        # Different defender stats make the resolved battles distinct, while
+        # both remain non-None (a battle breaks out against an enemy party).
+        near_enemy = Party(Unit(equipment=1), (Unit(equipment=1),), owner_id="south")
+        far_enemy = Party(
+            Unit(training=2, equipment=2), (Unit(equipment=2),), owner_id="south"
+        )
+        world = WorldMap(
+            [start, near, far],
+            [(start, near), (start, far)],
+            parties={start: player_party, near: near_enemy, far: far_enemy},
+        )
+        game = GameState(
+            (
+                Duchy(
+                    "north", player_party.hero, morale=10,
+                    parties=(player_party,),
+                ),
+                Duchy(
+                    "south", Unit(), morale=-5,
+                    parties=(near_enemy, far_enemy),
+                ),
+            )
+        )
+        return Session(
+            world=world,
+            game=game,
+            calendar=Calendar(year=2, month=3),
+            rng=Rng(2),
+            player_duchy_id="north",
+            seed=2,
+        )
+
+    # --- Ścieżka auto: brak targetu → engage_duchy_party_recorded(...). ---
+    s_auto = _build_session()
+    morale = {d.duchy_id: d.morale for d in s_auto.game.duchies}
+    expected_world_auto, expected_battle_auto = engage_duchy_party_recorded(
+        s_auto.world, s_auto.game.duchies[0], Rng(2), morale_by_owner=morale
+    )
+    assert expected_battle_auto is not None  # walidacja scenariusza: bitwa wybuchła
+    before_auto = copy.deepcopy(s_auto.snapshot())
+
+    after_auto = apply_command(s_auto, {"type": "order", "order": "engage"})
+
+    assert isinstance(after_auto, Session)
+    assert after_auto is not s_auto
+    assert after_auto.player_duchy_id == "north"
+    assert after_auto.seed == 2
+    assert after_auto.calendar == s_auto.calendar
+    assert after_auto.rng is s_auto.rng
+    assert after_auto.world == expected_world_auto
+    assert after_auto.last_battle == expected_battle_auto
+    assert after_auto.last_battle is not None
+    expected_game_auto = s_auto.game.sync_from_world(expected_world_auto)
+    assert after_auto.game == expected_game_auto
+    # Snapshot osadza bitwę.
+    assert "battle" in after_auto.snapshot()
+    # Sesja wejściowa nie jest mutowana.
+    assert s_auto.snapshot() == before_auto
+    assert s_auto.last_battle is None
+
+    # --- Ścieżka z targetem rozwiązywalnym → engage_duchy_party_to_recorded(..., far). ---
+    s_target = _build_session()
+    morale_t = {d.duchy_id: d.morale for d in s_target.game.duchies}
+    far = next(r for r in s_target.world.regions if r.name == "Far")
+    expected_world_t, expected_battle_t = engage_duchy_party_to_recorded(
+        s_target.world, s_target.game.duchies[0], far, Rng(2), morale_by_owner=morale_t
+    )
+    assert expected_battle_t is not None  # walidacja scenariusza: bitwa wybuchła
+    before_t = copy.deepcopy(s_target.snapshot())
+
+    after_t = apply_command(
+        s_target, {"type": "order", "order": "engage", "target": "Far"}
+    )
+
+    assert isinstance(after_t, Session)
+    assert after_t is not s_target
+    assert after_t.player_duchy_id == "north"
+    assert after_t.seed == 2
+    assert after_t.calendar == s_target.calendar
+    assert after_t.rng is s_target.rng
+    assert after_t.world == expected_world_t
+    assert after_t.last_battle == expected_battle_t
+    expected_game_t = s_target.game.sync_from_world(expected_world_t)
+    assert after_t.game == expected_game_t
+    # Sesja wejściowa nie jest mutowana.
+    assert s_target.snapshot() == before_t
+    assert s_target.last_battle is None
+
+    # --- Rozłączne wyniki: auto uderza w Near (pierwszy sąsiad), target=Far uderza w Far. ---
+    # Bitwy oraz światy różnią się między gałęziami (różne pola bitwy).
+    assert expected_world_auto != expected_world_t
+    assert expected_battle_auto != expected_battle_t

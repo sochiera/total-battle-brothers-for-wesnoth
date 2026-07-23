@@ -51,27 +51,29 @@ def _morale_by_owner(game: GameState) -> dict[str, int]:
     return {d.duchy_id: d.morale for d in game.duchies}
 
 
-def _apply_assault_order(
+def _apply_targeted_battle_order(
     world: WorldMap,
     duchy: Duchy,
     rng: Rng,
     target_name: str | None,
     game: GameState,
+    *,
+    to_recorded,
+    auto_recorded,
 ) -> tuple[WorldMap, HexBattle | None]:
-    """Apply the player ``assault`` order and return the resulting battle.
+    """Apply a player battle order with an optional explicit target.
 
-    An explicit, resolvable ``target_name`` routes to
-    ``ai.assault_duchy_party_to_recorded``; anything else falls back to the
-    automatic ``ai.assault_duchy_party_recorded``.  The shared RNG is advanced
-    only when a battle is actually resolved.
+    ``to_recorded(world, duchy, region, rng, morale_by_owner=m)`` is used when
+    ``target_name`` resolves to a Region; otherwise ``auto_recorded(world,
+    duchy, rng, morale_by_owner=m)`` is used.  Both must return ``(new_world,
+    battle | None)``.  The shared RNG is advanced only when a battle is
+    actually resolved.
     """
     morale = _morale_by_owner(game)
     target = _find_region_by_name(world, target_name)
     if target is not None:
-        return ai.assault_duchy_party_to_recorded(
-            world, duchy, target, rng, morale_by_owner=morale
-        )
-    return ai.assault_duchy_party_recorded(world, duchy, rng, morale_by_owner=morale)
+        return to_recorded(world, duchy, target, rng, morale_by_owner=morale)
+    return auto_recorded(world, duchy, rng, morale_by_owner=morale)
 
 
 class Session:
@@ -246,8 +248,8 @@ def apply_command(session: Session, command: dict) -> Session:
         ``"seed"`` w komendzie. Zachowany jest ``session.player_duchy_id``.
       * ``"order"`` — wydaje rozkaz dla księstwa gracza; rozpoznawane
         ``command["order"]`` to ``"develop"``, ``"recruit"``, ``"muster"``,
-        ``"march"`` oraz ``"assault"``. Nieznana nazwa rozkazu podnosi
-        ``ValueError``.
+        ``"march"``, ``"assault"`` oraz ``"engage"``. Nieznana nazwa rozkazu
+        podnosi ``ValueError``.
 
     Brak klucza ``type`` lub nieznana wartość podnoszą ``ValueError``.
     Wejściowa sesja nigdy nie jest mutowana.
@@ -275,8 +277,27 @@ def apply_command(session: Session, command: dict) -> Session:
         if order == "assault":
             return _apply_battle_order(
                 session,
-                lambda world, duchy, rng, game: _apply_assault_order(
-                    world, duchy, rng, command.get("target"), game
+                lambda world, duchy, rng, game: _apply_targeted_battle_order(
+                    world,
+                    duchy,
+                    rng,
+                    command.get("target"),
+                    game,
+                    to_recorded=ai.assault_duchy_party_to_recorded,
+                    auto_recorded=ai.assault_duchy_party_recorded,
+                ),
+            )
+        if order == "engage":
+            return _apply_battle_order(
+                session,
+                lambda world, duchy, rng, game: _apply_targeted_battle_order(
+                    world,
+                    duchy,
+                    rng,
+                    command.get("target"),
+                    game,
+                    to_recorded=ai.engage_duchy_party_to_recorded,
+                    auto_recorded=ai.engage_duchy_party_recorded,
                 ),
             )
         if order not in _ORDER_TRANSITIONS:
