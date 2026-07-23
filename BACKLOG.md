@@ -82,19 +82,14 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > morale z `game.duchies`, współdzielony RNG, `last_battle`). Szczegóły w
 > `BACKLOG-ARCHIVE.md`.
 
-## Kamień milowy 66 — proces-most stdio: Godot steruje żywą partią — PRIORYTET
-> DESIGN §11: kanał IN (`apply_command`) i OUT (`snapshot`) istnieją, brakuje
-> **transportu**. Godot odpala jeden proces Pythona i gada z nim liniami JSON
-> (JSON Lines): linia-komenda → linia-odpowiedź `{"ok", "snapshot"|"error",
-> "result"?}`. `result` to maszynowe podsumowanie skutku komendy dla dziennika
-> kampanii. Warstwa transportu jest cienka — reużywa `apply_command` i
-> `Session.snapshot()`; **żadnej** nowej logiki reguł; rdzeń `tbb` bez zmian.
-- [ ] **G66.1a** `tbbbridge.protocol.handle_command_line(session, line) -> (Session, dict)` — parsuje linię JSON, deleguje do `apply_command`, zwraca `{"ok", "snapshot"|"error"}`; niepoprawny JSON / `ValueError` → sesja nietknięta; ARCHITECTURE, DECISIONS `G66.0`/`G66.1a`. *(task-319)*
-- [ ] **G66.1b** `tbbbridge.protocol.serve_stream(session, in, out) -> Session` — pętla JSON Lines nad strumieniami (pomija puste linie, `flush` po odpowiedzi, EOF → końcowa sesja); ARCHITECTURE, DECISIONS `G66.1b`. *(task-320)*
-- [ ] **G66.1c** CLI `python -m tbbbridge serve [seed]` — świeża sesja + `serve_stream` na stdin/stdout; ścieżka snapshot-do-pliku zachowana; ARCHITECTURE, DESIGN §11, DECISIONS `G66.1c`. *(task-321)*
-> **G66.2 podsumowanie skutku komendy `result` — pocięte (sterujące/niebitewne, potem bitewne).**
-- [ ] **G66.2a** `command_result(before, after, command)` dla `next_turn`/`new_game`/rozkazów niebitewnych (`kind` turn/new_game/order + `changed`) + osadzenie w odpowiedzi `handle_command_line`; ARCHITECTURE, DECISIONS `G66.2a`. *(task-322)*
-- [ ] **G66.2b** `command_result` dla rozkazów bojowych `assault`/`engage` (`kind: "battle"` — outcome + straty z raportu bitwy); ARCHITECTURE, DECISIONS `G66.2b`. *(task-323)*
+> **Kamień 66 — UKOŃCZONE.** Proces-most stdio (JSON Lines): czysta
+> `tbbbridge.protocol.handle_command_line` (parse → `apply_command` → `{"ok",
+> "snapshot"|"error", "result"?}`), reużywalna pętla `serve_stream` (pomija
+> puste linie, `flush`, EOF → końcowa sesja), CLI `python -m tbbbridge serve
+> [seed]` (ścieżka snapshot-do-pliku zachowana) oraz `command_result`
+> (`turn`/`new_game`/`order` z `changed`, `battle` z outcome i stratami dla
+> `assault`/`engage`). Szczegóły w `docs/ARCHITECTURE.md` i `docs/DECISIONS.md`
+> (`G66.0`…`G66.2b`). *(task-319…323)*
 
 ## Kamień milowy 67 — persystencja partii: round-trip serializacja (fundament save/load) — PRIORYTET
 > DESIGN §11: gracz ma móc **zapisać/wczytać stan**. Dziś `save_state` daje tylko
@@ -110,14 +105,23 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 
 ### G67.2 — kompozyty persystencji (oddolnie ku sesji)
 - [x] **G67.2a** `tbbbridge.persist.dump_party`/`load_party` — round-trip `Party` (reużycie `load_unit`); ARCHITECTURE, DECISIONS `G67.2a`. *(task-329)*
-- [ ] **G67.2b** `tbbbridge.persist.dump_settlement`/`load_settlement` — round-trip `Settlement` (reużycie `load_building`/`load_resources`/`load_unit`); ARCHITECTURE, DECISIONS `G67.2b`. *(task-330)*
-- [ ] **G67.2c** `tbbbridge.persist.dump_region`/`load_region` — round-trip `Region` (liść mapy); ARCHITECTURE, DECISIONS `G67.2c`. *(task-331)*
-- [ ] **G67.2d** `tbbbridge.persist.dump_world`/`load_world` — round-trip `WorldMap` (regiony, połączenia, osady/party; identyczność regionów przez indeksy); ARCHITECTURE, DECISIONS `G67.2d`. *(task-332)*
-- [ ] **G67.2e** `tbbbridge.persist.dump_duchy`/`load_duchy` — round-trip `Duchy` (reużycie `load_unit`/`load_settlement`/`load_party`; `hero`/`heir` opcjonalne); ARCHITECTURE, DECISIONS `G67.2e`. *(task-333)*
-> **Dalej (kolejne wsady):** serializacja RNG (state — wymaga seamu w rdzeniu,
-> osobny wsad), `GameState` (reużycie `load_duchy`), `Session`
-> (world/game/calendar/rng/seed/player_duchy_id/last_battle); komendy
-> `save`/`load` w protokole JSON Lines + `load_state` plikowe.
+- [x] **G67.2b** `tbbbridge.persist.dump_settlement`/`load_settlement` — round-trip `Settlement` (reużycie `load_building`/`load_resources`/`load_unit`); ARCHITECTURE, DECISIONS `G67.2b`. *(task-330)*
+- [x] **G67.2c** `tbbbridge.persist.dump_region`/`load_region` — round-trip `Region` (liść mapy); ARCHITECTURE, DECISIONS `G67.2c`. *(task-331)*
+- [x] **G67.2d** `tbbbridge.persist.dump_world`/`load_world` — round-trip `WorldMap` (regiony, połączenia, osady/party; identyczność regionów przez indeksy); ARCHITECTURE, DECISIONS `G67.2d`. *(task-332)*
+- [~] **G67.2e** `tbbbridge.persist.dump_duchy`/`load_duchy` — round-trip `Duchy` (reużycie `load_unit`/`load_settlement`/`load_party`; `hero`/`heir` opcjonalne); ARCHITECTURE, DECISIONS `G67.2e`. *(task-333)*
+- [ ] **G67.2f** `tbbbridge.persist.dump_gamestate`/`load_gamestate` — round-trip `GameState` (reużycie `load_duchy`); ARCHITECTURE, DECISIONS `G67.2f`. *(task-334)*
+
+### G67.3 — serializacja RNG (seam w rdzeniu + most)
+- [ ] **G67.3a** seam RNG w rdzeniu: `Rng.state()` / `Rng.from_state(state)` (opakowanie `random.Random.getstate`/`setstate`); ARCHITECTURE (sekcja RNG), DECISIONS `G67.3a`. *(task-335)*
+- [ ] **G67.3b** `tbbbridge.persist.dump_rng`/`load_rng` — round-trip `Rng` przez seam (state json-owy: krotki→listy); ARCHITECTURE, DECISIONS `G67.3b`. *(task-336)*
+
+### G67.4 / G68 — sesja i zapis plikowy (fundament save/load)
+- [ ] **G67.4a** `tbbbridge.persist.dump_session`/`load_session` — round-trip `Session` (world/game/calendar/rng/player_duchy_id/seed); `last_battle` nietrwałe, nieserializowane (`None` po wczytaniu); ARCHITECTURE, DECISIONS `G67.4a`. *(task-337)*
+- [ ] **G68.1a** `tbbbridge.persist.save_session`/`read_session` — deterministyczny zapis/odczyt sesji do pliku JSON (reużycie `dump_session`/`load_session`); ARCHITECTURE, DECISIONS `G68.1a`. *(task-338)*
+> **Dalej (kolejne wsady):** komendy `save`/`load` w protokole JSON Lines
+> (reużycie `save_session`/`read_session`) + odpowiednie `command_result`;
+> ewentualna serializacja `last_battle`/`HexBattle`, jeśli podgląd bitwy ma
+> przetrwać zapis (obecnie świadomie pomijany).
 
 ## Dług/refaktor
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*
