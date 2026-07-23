@@ -199,6 +199,17 @@ z odtworzonej listy regionów (po indeksie). Dla dowolnej `WorldMap w`
 zachodzi `load_world(dump_world(w)) == w`. Obie funkcje są czyste, nie mutują
 wejścia i będą reużywane przez serializery wyższych kompozytów (sesja).
 
+`dump_duchy(duchy: Duchy) -> dict` (G67.2e) zwraca json-serializowalny
+słownik z kluczami `duchy_id`, `hero` (= `dump_unit` lub `None`), `morale`,
+`heir` (= `dump_unit` lub `None`), `settlements` (lista `dump_settlement` w
+kolejności `duchy.settlements`) oraz `parties` (lista `dump_party` w kolejności
+`duchy.parties`). `load_duchy(data: dict) -> Duchy` odtwarza `Duchy` reużywając
+`load_unit`/`load_settlement`/`load_party` (`hero`/`heir` = `load_unit` lub
+`None`; `settlements`/`parties` jako krotki). Dla dowolnego `Duchy d` (w tym z
+`hero=None`, `heir=None`, osadami i drużynami) zachodzi
+`load_duchy(dump_duchy(d)) == d`. Obie funkcje są czyste, nie mutują wejścia i
+będą reużywane przez serializery wyższych kompozytów (`GameState`, sesja).
+
 ### Most poleceń (G65)
 
 Most `tbbbridge` daje również kanał **IN** — uchwyt sesji, przez który

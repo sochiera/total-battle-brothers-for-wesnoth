@@ -9,6 +9,7 @@ import copy
 import json
 
 from tbb.building import BARRACKS, FARM, MARKET, SMITH, Building
+from tbb.duchy import Duchy
 from tbb.party import Party
 from tbb.resources import Resources
 from tbb.settlement import Settlement
@@ -751,3 +752,184 @@ def test_dump_and_load_world_do_not_mutate_input():
 
     assert _snapshot() == snapshot_before
     assert dumped == data_before
+
+
+def _sample_duchies():
+    """Zbuduj listę ``Duchy`` pokrywających warianty opcjonalnych pól
+    (``hero``/``heir`` = ``None`` oraz osady/drużyny) dla testów persystencji."""
+    hero = Unit(
+        training=3,
+        equipment=2,
+        experience=5,
+        ranged_range=3,
+        wounds=(BRUISE, MAIMED),
+        stunned=True,
+        training_progress=1,
+        equipment_progress=1,
+    )
+    heir = Unit(
+        training=2,
+        equipment=1,
+        experience=3,
+        ranged_range=2,
+        wounds=(MAIMED,),
+    )
+    settlement = Settlement(
+        name="Oakhaven",
+        population=12,
+        occupied=3,
+        active_buildings=(FARM, SMITH),
+        storage=Resources(wheat=7, gold=4),
+        capacity=20,
+        garrison=(
+            Unit(
+                training=1,
+                equipment=0,
+                experience=0,
+                ranged_range=0,
+                wounds=(BRUISE,),
+            ),
+        ),
+        owner_id="player",
+    )
+    party = Party(
+        hero=Unit(
+            training=2,
+            equipment=1,
+            experience=3,
+            ranged_range=2,
+        ),
+        units=(Unit(training=1, equipment=0, experience=0, ranged_range=0),),
+        owner_id="player",
+    )
+    return [
+        Duchy(
+            duchy_id="player",
+            hero=hero,
+            morale=7,
+            heir=heir,
+            settlements=(settlement,),
+            parties=(party,),
+        ),
+        Duchy(
+            duchy_id="ai",
+            hero=Unit(training=1, equipment=0, experience=0, ranged_range=0),
+            morale=3,
+            heir=None,
+            settlements=(),
+            parties=(),
+        ),
+        Duchy(
+            duchy_id="bandits",
+            hero=None,
+            morale=0,
+            heir=None,
+            settlements=(),
+            parties=(),
+        ),
+    ]
+
+
+def test_dump_duchy_returns_json_serializable_dict_with_all_keys_hero_heir_none():
+    """G67.2e kryt-1: ``dump_duchy(duchy)`` zwraca json-serializowalny ``dict``
+    z kluczami ``duchy_id``, ``hero`` (= ``dump_unit`` lub ``None``), ``morale``,
+    ``heir`` (= ``dump_unit`` lub ``None``), ``settlements`` (lista
+    ``dump_settlement``) oraz ``parties`` (lista ``dump_party``); wynik przechodzi
+    ``json.dumps``.
+
+    Próbka naraz: księstwo z bohaterem, dziedzicem, osadą i drużyną (wszystkie
+    filary) oraz przypadek z ``hero=None``/``heir=None`` (opcjonalne pola jako
+    ``None``) — weryfikują strukturę dump w obu wariantach.
+    """
+    duchy_full, _duchy_hero_only, duchy_empty = _sample_duchies()
+
+    dumped_full = persist.dump_duchy(duchy_full)
+    dumped_empty = persist.dump_duchy(duchy_empty)
+
+    assert set(dumped_full.keys()) == {
+        "duchy_id",
+        "hero",
+        "morale",
+        "heir",
+        "settlements",
+        "parties",
+    }
+    assert dumped_full["duchy_id"] == duchy_full.duchy_id
+    assert dumped_full["hero"] == persist.dump_unit(duchy_full.hero)
+    assert dumped_full["morale"] == duchy_full.morale
+    assert dumped_full["heir"] == persist.dump_unit(duchy_full.heir)
+    assert dumped_full["settlements"] == [
+        persist.dump_settlement(s) for s in duchy_full.settlements
+    ]
+    assert dumped_full["parties"] == [
+        persist.dump_party(p) for p in duchy_full.parties
+    ]
+    assert json.dumps(dumped_full)
+
+    assert dumped_empty["duchy_id"] == duchy_empty.duchy_id
+    assert dumped_empty["hero"] is None
+    assert dumped_empty["morale"] == duchy_empty.morale
+    assert dumped_empty["heir"] is None
+    assert dumped_empty["settlements"] == []
+    assert dumped_empty["parties"] == []
+    assert json.dumps(dumped_empty)
+
+
+def test_round_trip_load_dump_restores_duchy_equality_hero_none_heir_settlements_parties():
+    """G67.2e kryt-2: dla dowolnego ``Duchy d`` (w tym z ``hero=None``,
+    ``heir=None``, osadami i drużynami) zachodzi
+    ``load_duchy(dump_duchy(d)) == d``.
+
+    ``load_duchy`` reużywa ``load_unit``/``load_settlement``/``load_party``
+    (``hero``/``heir`` = ``load_unit`` lub ``None``; ``settlements``/``parties``
+    jako krotki). Próbki naraz: bohater+dziedzic+osada+drużyna, bohater bez
+    dziedzica, oraz ``hero=None``/``heir=None`` (puste osady/drużyny) — weryfikują
+    pełny round-trip w obu wariantach opcjonalnych pól.
+    """
+    samples = _sample_duchies()
+
+    for duchy in samples:
+        round_tripped = persist.load_duchy(persist.dump_duchy(duchy))
+
+        assert round_tripped == duchy
+        assert isinstance(round_tripped.settlements, tuple)
+        assert isinstance(round_tripped.parties, tuple)
+        assert round_tripped.hero == duchy.hero
+        assert round_tripped.heir == duchy.heir
+
+
+def test_dump_and_load_duchy_do_not_mutate_input():
+    """G67.2e kryt-3: ``dump_duchy`` i ``load_duchy`` są czyste — nie mutują
+    wejścia (ani ``Duchy``, ani słownika danych).
+
+    Wzorem par liściowych weryfikuje kontrakt braku mutacji wejścia (idempotencja).
+    ``Duchy`` jest ``frozen=True``, ale test chroni przed regresją, gdyby freeze
+    został kiedyś zdjęty lub gdyby mutowano kolekcje wewnątrz ``Duchy``.
+    """
+    duchy = _sample_duchies()[0]
+    duchy_before = copy.copy(duchy)
+
+    dumped = persist.dump_duchy(duchy)
+
+    assert duchy == duchy_before
+    data_before = copy.deepcopy(dumped)
+
+    persist.load_duchy(dumped)
+
+    assert dumped == data_before
+
+
+def test_load_duchy_reuses_load_unit_load_settlement_load_party():
+    """G67.2e kryt-2: ``load_duchy`` reużywa ``load_unit``/``load_settlement``/
+    ``load_party`` —round-trip odtwarza równość na poziomie komponentów,
+    a nie tylko dataclass ``Duchy``. Osada i drużyna z round-trip musi być
+    równa oryginałowi, co jest możliwe tylko wtedy, gdy ``load_duchy`` deleguje
+    do ``load_settlement``/``load_party`` (a te do ``load_unit``).
+    """
+    sample = _sample_duchies()[0]
+
+    round_tripped = persist.load_duchy(persist.dump_duchy(sample))
+
+    assert round_tripped.settlements[0] == sample.settlements[0]
+    assert round_tripped.parties[0] == sample.parties[0]
+    assert round_tripped.hero == sample.hero

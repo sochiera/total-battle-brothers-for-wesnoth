@@ -5,6 +5,7 @@ publiczne API rdzenia, bez żadnej logiki reguł.
 """
 
 from tbb.building import Building
+from tbb.duchy import Duchy
 from tbb.party import Party
 from tbb.resources import Resources
 from tbb.settlement import Settlement
@@ -226,4 +227,33 @@ def load_settlement(data: dict) -> Settlement:
         capacity=data["capacity"],
         garrison=tuple(load_unit(unit) for unit in data["garrison"]),
         owner_id=data["owner_id"],
+    )
+
+
+def dump_duchy(duchy: Duchy) -> dict:
+    """Zwraca json-serializowalny słownik ``Duchy``.
+
+    Klucze: ``duchy_id`` (str), ``hero`` (``dump_unit`` lub ``None``),
+    ``morale`` (int), ``heir`` (``dump_unit`` lub ``None``),
+    ``settlements`` (lista ``dump_settlement``), ``parties`` (lista ``dump_party``).
+    """
+    return {
+        "duchy_id": duchy.duchy_id,
+        "hero": dump_unit(duchy.hero) if duchy.hero is not None else None,
+        "morale": duchy.morale,
+        "heir": dump_unit(duchy.heir) if duchy.heir is not None else None,
+        "settlements": [dump_settlement(s) for s in duchy.settlements],
+        "parties": [dump_party(p) for p in duchy.parties],
+    }
+
+
+def load_duchy(data: dict) -> Duchy:
+    """Odtwarza ``Duchy`` ze słownika wyprodukowanego przez ``dump_duchy``."""
+    return Duchy(
+        duchy_id=data["duchy_id"],
+        hero=load_unit(data["hero"]) if data["hero"] is not None else None,
+        morale=data["morale"],
+        heir=load_unit(data["heir"]) if data["heir"] is not None else None,
+        settlements=tuple(load_settlement(s) for s in data["settlements"]),
+        parties=tuple(load_party(p) for p in data["parties"]),
     )
