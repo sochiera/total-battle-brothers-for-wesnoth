@@ -1446,3 +1446,81 @@ def test_load_terrain_does_not_mutate_input_dict():
     persist.load_terrain(data)
 
     assert data == data_before
+
+
+def test_dump_battlefield_returns_json_serializable_dict_with_terrain_list_sorted_by_q_r():
+    """G70.1c kryt-1: ``dump_battlefield(battlefield)`` zwraca
+    ``{"terrain": [...]}``, gdzie każdy element to
+    ``{"hex": dump_hex(h), "terrain": dump_terrain(t)}`` dla nadpisanych heksów,
+    uporządkowany deterministycznie po ``(q, r)``; pusta mapa → ``{"terrain": []}``;
+    ``json.dumps(...)`` nie podnosi wyjątku.
+    """
+    from tbb.battlefield import Battlefield
+
+    empty = Battlefield()
+    dumped_empty = persist.dump_battlefield(empty)
+
+    assert dumped_empty == {"terrain": []}
+    json.dumps(dumped_empty)
+
+    forest_at_0_0 = Battlefield({Hex(0, 0): FOREST})
+    dumped_forest = persist.dump_battlefield(forest_at_0_0)
+
+    assert dumped_forest == {
+        "terrain": [
+            {"hex": {"q": 0, "r": 0}, "terrain": persist.dump_terrain(FOREST)},
+        ],
+    }
+    json.dumps(dumped_forest)
+
+    multi_hex = Battlefield({Hex(1, -1): HILLS, Hex(0, 0): FOREST})
+    dumped_multi = persist.dump_battlefield(multi_hex)
+
+    assert dumped_multi == {
+        "terrain": [
+            {"hex": {"q": 0, "r": 0}, "terrain": persist.dump_terrain(FOREST)},
+            {"hex": {"q": 1, "r": -1}, "terrain": persist.dump_terrain(HILLS)},
+        ],
+    }
+    json.dumps(dumped_multi)
+
+
+def test_load_battlefield_restores_battlefield_from_terrain_list():
+    """G70.1c kryt-2: ``load_battlefield(data)`` odtwarza ``Battlefield`` z mapą
+    ``{load_hex(e["hex"]): load_terrain(e["terrain"]) for e in data["terrain"]}``.
+    """
+    from tbb.battlefield import Battlefield
+
+    data_empty = {"terrain": []}
+    loaded_empty = persist.load_battlefield(data_empty)
+
+    assert loaded_empty == Battlefield()
+
+    data_forest = {
+        "terrain": [
+            {"hex": {"q": 0, "r": 0}, "terrain": persist.dump_terrain(FOREST)},
+        ],
+    }
+    loaded_forest = persist.load_battlefield(data_forest)
+
+    assert loaded_forest == Battlefield({Hex(0, 0): FOREST})
+
+
+def test_round_trip_battlefield_via_json_preserves_equality_empty_and_multi_hex():
+    """G70.1c kryt-2: round-trip przez JSON zachowuje równość dla
+    ``Battlefield()`` oraz ``Battlefield({Hex(0,0): FOREST, Hex(1,-1): HILLS})``
+    (``load_battlefield(json.loads(json.dumps(dump_battlefield(b)))) == b``).
+    """
+    from tbb.battlefield import Battlefield
+
+    samples = [
+        Battlefield(),
+        Battlefield({Hex(0, 0): FOREST}),
+        Battlefield({Hex(0, 0): FOREST, Hex(1, -1): HILLS}),
+    ]
+
+    for battlefield in samples:
+        dumped = persist.dump_battlefield(battlefield)
+        json_round_tripped = json.loads(json.dumps(dumped))
+        round_tripped = persist.load_battlefield(json_round_tripped)
+        assert round_tripped == battlefield

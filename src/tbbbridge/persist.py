@@ -17,6 +17,7 @@ from tbb.terrain import Terrain
 from tbb.turn import Calendar
 from tbb.unit import Unit
 from tbb.wound import Wound
+from tbb.battlefield import Battlefield
 from tbb.game import GameState
 from tbb.hex import Hex
 from tbb.rng import Rng
@@ -87,6 +88,32 @@ def dump_terrain(terrain: Terrain) -> dict:
         "defense_mod": terrain.defense_mod,
         "accuracy_mod": terrain.accuracy_mod,
     }
+
+
+def dump_battlefield(battlefield: Battlefield) -> dict:
+    """Zwraca json-serializowalny słownik ``{"terrain": [...]}`` dla ``Battlefield``.
+
+    Każdy element zawiera ``{"hex": dump_hex(h), "terrain": dump_terrain(t)}``
+    dla nadpisanych heksów, uporządkowany deterministycznie po ``(q, r)``.
+    Pusta mapa daje ``{"terrain": []}``.
+    """
+    entries = sorted(
+        ({"hex": dump_hex(hex_coord), "terrain": dump_terrain(terrain)}
+         for hex_coord, terrain in battlefield._terrain.items()),
+        key=lambda entry: (entry["hex"]["q"], entry["hex"]["r"]),
+    )
+    return {"terrain": entries}
+
+
+def load_battlefield(data: dict) -> Battlefield:
+    """Odtwarza ``Battlefield`` ze słownika wyprodukowanego przez ``dump_battlefield``.
+
+    Mapa ``{load_hex(e["hex"]): load_terrain(e["terrain"]) for e in data["terrain"]}``.
+    """
+    return Battlefield(
+        {load_hex(entry["hex"]): load_terrain(entry["terrain"])
+         for entry in data["terrain"]}
+    )
 
 
 def load_terrain(data: dict) -> Terrain:
