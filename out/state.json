@@ -1,0 +1,109 @@
+{
+  "calendar": {
+    "year": 77,
+    "month": 13
+  },
+  "duchies": [
+    {
+      "id": "player",
+      "morale": 0,
+      "settlements": 0,
+      "parties": 0,
+      "has_hero": true,
+      "has_heir": true,
+      "is_defeated": false
+    },
+    {
+      "id": "ai",
+      "morale": 0,
+      "settlements": 2,
+      "parties": 1,
+      "has_hero": true,
+      "has_heir": true,
+      "is_defeated": false
+    }
+  ],
+  "map": {
+    "regions": [
+      {
+        "name": "player lands",
+        "col": 0,
+        "row": 0,
+        "owner": "ai",
+        "settlement": {
+          "name": "Player Keep",
+          "owner": "ai",
+          "wheat": 0,
+          "gold": 0,
+          "population": 6,
+          "free": 0,
+          "garrison": 3,
+          "buildings": [
+            "Farm",
+            "Smith",
+            "Barracks"
+          ],
+          "wheat_production": 3,
+          "gold_production": 0,
+          "wheat_consumption": 6
+        },
+        "party": {
+          "owner": "ai",
+          "size": 2,
+          "hp": 162,
+          "attack": 13,
+          "defense": 13,
+          "wounded": 0
+        }
+      },
+      {
+        "name": "border",
+        "col": 1,
+        "row": 0,
+        "owner": null,
+        "settlement": null,
+        "party": null
+      },
+      {
+        "name": "ai lands",
+        "col": 2,
+        "row": 0,
+        "owner": "ai",
+        "settlement": {
+          "name": "AI Keep",
+          "owner": "ai",
+          "wheat": 0,
+          "gold": 994,
+          "population": 8,
+          "free": 0,
+          "garrison": 4,
+          "buildings": [
+            "Farm",
+            "Smith",
+            "Barracks",
+            "Market"
+          ],
+          "wheat_production": 3,
+          "gold_production": 2,
+          "wheat_consumption": 8
+        },
+        "party": null
+      }
+    ],
+    "connections": [
+      {
+        "from": "player lands",
+        "to": "border"
+      },
+      {
+        "from": "border",
+        "to": "ai lands"
+      }
+    ]
+  },
+  "result": {
+    "is_over": false,
+    "winner": null,
+    "player_result": "ongoing"
+  }
+}
