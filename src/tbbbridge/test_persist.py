@@ -1,7 +1,7 @@
 """Tests for ``tbbbridge.persist`` (G67.1a — round-trip ``Resources``,
 G67.1b — round-trip ``Wound``, G67.1c — round-trip ``Unit``,
 G67.1e — round-trip ``Calendar``, G67.3b — round-trip ``Rng``,
-G67.4a — round-trip ``Session``).
+G67.4a — round-trip ``Session``, G70.1a — round-trip ``Hex``).
 
 Tests live next to the module under test per task-324 "Ścieżki testów".
 """
@@ -12,6 +12,7 @@ import json
 from tbb import Rng
 from tbb.building import BARRACKS, FARM, MARKET, SMITH, Building
 from tbb.duchy import Duchy
+from tbb.hex import Hex
 from tbb.party import Party
 from tbb.resources import Resources
 from tbb.settlement import Settlement
@@ -21,6 +22,66 @@ from tbb.wound import BRUISE, MAIMED, Wound
 from tbb.world import Region, WorldMap
 from tbbbridge import persist
 from tbbbridge.session import Session
+
+
+def test_dump_hex_returns_json_serializable_dict_with_q_r():
+    """G70.1a kryt-1: ``dump_hex(Hex(2, -3))`` zwraca ``{"q": 2, "r": -3}``
+    a wynik przechodzi przez ``json.dumps``."""
+    hex_coord = Hex(2, -3)
+
+    dumped = persist.dump_hex(hex_coord)
+
+    assert dumped == {"q": 2, "r": -3}
+    json.dumps(dumped)
+
+
+def test_load_hex_returns_hex_from_dict_q_r():
+    """G70.1a kryt-2: ``load_hex({"q": 5, "r": -1})`` zwraca ``Hex(5, -1)``."""
+    data = {"q": 5, "r": -1}
+
+    loaded = persist.load_hex(data)
+
+    assert loaded == Hex(5, -1)
+
+
+def test_round_trip_load_dump_restores_hex_equality_various():
+    """G70.1a kryt-2: dla ``h ∈ {Hex(0, 0), Hex(2, -3), Hex(-5, 7)}`` zachodzi
+    ``load_hex(json.loads(json.dumps(dump_hex(h)))) == h`` (round-trip przez JSON)."""
+    samples = [
+        Hex(0, 0),
+        Hex(2, -3),
+        Hex(-5, 7),
+    ]
+
+    for h in samples:
+        dumped = persist.dump_hex(h)
+        json_round_tripped = json.loads(json.dumps(dumped))
+        round_tripped = persist.load_hex(json_round_tripped)
+        assert round_tripped == h
+
+
+def test_dump_hex_does_not_mutate_input_hex():
+    """G70.1a kryt-3: ``dump_hex`` jest czysta — nie mutuje wejścia.
+
+    ``Hex`` ma ``frozen=True`` (immutable), ale test weryfikuje kontrakt
+    braku mutacji wejścia (idempotencja)."""
+    hex_coord = Hex(3, -2)
+    hex_before = copy.copy(hex_coord)
+
+    persist.dump_hex(hex_coord)
+
+    assert hex_coord == hex_before
+
+
+def test_load_hex_does_not_mutate_input_dict():
+    """G70.1a kryt-3: ``load_hex`` jest czysta — nie mutuje słownika
+    wejściowego."""
+    data = {"q": 4, "r": -7}
+    data_before = copy.deepcopy(data)
+
+    persist.load_hex(data)
+
+    assert data == data_before
 
 
 def test_dump_resources_returns_json_serializable_dict_with_wheat_gold():

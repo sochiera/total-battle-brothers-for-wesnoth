@@ -17,6 +17,7 @@ from tbb.turn import Calendar
 from tbb.unit import Unit
 from tbb.wound import Wound
 from tbb.game import GameState
+from tbb.hex import Hex
 from tbb.rng import Rng
 from tbb.world import Region, WorldMap
 from tbbbridge.session import Session
@@ -61,6 +62,16 @@ def dump_gamestate(game: GameState) -> dict:
 def load_gamestate(data: dict) -> GameState:
     """Odtwarza ``GameState`` ze słownika wyprodukowanego przez ``dump_gamestate``."""
     return GameState(tuple(load_duchy(d) for d in data["duchies"]))
+
+
+def dump_hex(hex_coord: Hex) -> dict:
+    """Zwraca json-serializowalny słownik ``{"q": int, "r": int}`` dla ``Hex``."""
+    return {"q": hex_coord.q, "r": hex_coord.r}
+
+
+def load_hex(data: dict) -> Hex:
+    """Odtwarza ``Hex`` ze słownika wyprodukowanego przez ``dump_hex``."""
+    return Hex(q=data["q"], r=data["r"])
 
 
 def dump_resources(res: Resources) -> dict:
