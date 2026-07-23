@@ -1273,3 +1273,33 @@ def test_save_session_writes_json_indented_utf8_with_trailing_newline(tmp_path):
     persist.save_session(s, path)
     content2 = path.read_text(encoding="utf-8")
     assert content == content2
+
+
+def test_read_session_roundtrip_restores_world_game_calendar_player_duchy_id_seed_rng_sequence(tmp_path):
+    """G68.1a kryt-2: ``read_session(path)`` wczytuje plik zapisany przez
+    ``save_session`` i zwraca ``Session`` (``load_session(json.load(...))``);
+    dla ``s = new_session()`` po ``save_session(s, tmp)`` sesja
+    ``r = read_session(tmp)`` spełnia ``r.world == s.world``,
+    ``r.game == s.game``, ``r.calendar == s.calendar``,
+    ``r.player_duchy_id == s.player_duchy_id``, ``r.seed == s.seed``,
+    ``r.last_battle is None``, a ``r.rng`` produkuje tę samą sekwencję
+    ``randint(1, 100)`` co ``s.rng``.
+    """
+    from tbbbridge.session import new_session
+
+    s = new_session(seed=73, player_duchy_id="player")
+    path = tmp_path / "session.json"
+
+    persist.save_session(s, path)
+    r = persist.read_session(path)
+
+    assert r.world == s.world
+    assert r.game == s.game
+    assert r.calendar == s.calendar
+    assert r.player_duchy_id == s.player_duchy_id
+    assert r.seed == s.seed
+    assert r.last_battle is None
+
+    expected_rng_sequence = [s.rng.randint(1, 100) for _ in range(10)]
+    actual_rng_sequence = [r.rng.randint(1, 100) for _ in range(10)]
+    assert actual_rng_sequence == expected_rng_sequence
