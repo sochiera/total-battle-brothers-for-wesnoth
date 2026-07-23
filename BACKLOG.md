@@ -63,12 +63,7 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > sceny Godota, budujemy w TDD **kontrakt danych**: nowy pakiet-most `tbbbridge`
 > serializujący publiczny stan rdzenia do json-serializowalnych słowników. To
 > fundament, którego Godot będzie konsumentem; rdzeń `tbb` pozostaje jedynym
-> źródłem reguł i nie zależy od mostu.
-- [x] **G63.1a** `tbbbridge.snapshot.settlement_state(settlement) -> dict` (czysty, json-serializowalny słownik osady); ARCHITECTURE (nowa sekcja `tbbbridge`), DECISIONS `G63.1a`. *(task-296)*
-- [x] **G63.1b** `tbbbridge.snapshot.party_state(party) -> dict` (owner/size/hp/attack/defense/wounded z `unitstrength`); ARCHITECTURE, DECISIONS `G63.1b`. *(task-297)*
-- [x] **G63.1c** `tbbbridge.snapshot.map_state(world) -> dict` (regiony z `col`/`row` z `layout_world`, osada/party, `connections`); ARCHITECTURE, DECISIONS `G63.1c`. *(task-298)*
-- [x] **G63.1d** `tbbbridge.snapshot.game_state(world, game, calendar, player_duchy_id=None) -> dict` (calendar/duchies/map/result); re-issue po review-fail task-299 (rdzeń bez zmian); ARCHITECTURE, DECISIONS `G63.1d`. *(task-301)*
-- [x] **G63.2a** `tbbbridge.snapshot.save_state(world, game, calendar, path, player_duchy_id=None)` — deterministyczny JSON do pliku (`indent=2`, `ensure_ascii=False`, końcowy `\n`); ARCHITECTURE, DECISIONS `G63.2a`. *(task-302)*
+> źródłem reguł i nie zależy od mostu. Szczegóły `[x]` G63.1a–2a → `BACKLOG-ARCHIVE.md`.
 > **Kamienie 63–64 — UKOŃCZONE.** Most snapshotu JSON (`tbbbridge.snapshot`:
 > `settlement_state`/`party_state`/`map_state`/`game_state`/`battle_state`,
 > `save_state` + CLI `python -m tbbbridge`, osadzenie bitwy w `game_state`).
@@ -111,9 +106,6 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > nietrwałe, `None` po wczytaniu). Szczegóły w `docs/ARCHITECTURE.md` i
 > `docs/DECISIONS.md`. *(task-329…337)*
 
-### G68 — sesja i zapis plikowy (fundament save/load)
-- [x] **G68.1a** `tbbbridge.persist.save_session`/`read_session` — deterministyczny zapis/odczyt sesji do pliku JSON (reużycie `dump_session`/`load_session`); ARCHITECTURE, DECISIONS `G68.1a`. *(task-338)*
-
 > **Kamień 68 — UKOŃCZONE.** Save/load w protokole JSON Lines: `handle_command_line`
 > obsługuje `{"type":"save"|"load","path":...}` w warstwie protokołu (reużycie
 > `persist.save_session`/`read_session`, IO poza `apply_command`), `command_result`
@@ -121,20 +113,30 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > → `{"ok":false,"error":...}`; e2e round-trip po stdio (`order`→`save`→`new_game`
 > →`load`) odtwarza snapshot i dalszą sekwencję RNG. *(task-339…341)*
 
-## Kamień milowy 69 — dopełnienie pętli gracza: odczyt stanu + wznowienie z pliku
-> DESIGN §11: gracz ma móc **wczytać stan**. Save/load w protokole jest gotowy
-> (K68), ale brakuje: (1) czystego odczytu bieżącego stanu bez mutacji (Godot
-> potrzebuje stanu startowego do renderu bez posuwania tury) oraz (2) wznowienia
-> zapisanej partii przy starcie mostu. Oba przyrosty reużywają istniejące
-> `snapshot`/`read_session`; rdzeń `tbb` bez zmian.
-- [ ] **G69.1a** protokół: komenda `snapshot` — `apply_command` rozpoznaje `{"type":"snapshot"}` i zwraca tę samą sesję (bez mutacji/RNG); `command_result` → `{"kind":"snapshot"}`; ARCHITECTURE, DECISIONS `G69.1a`. *(task-342)*
-- [x] **G69.2a** CLI `serve --resume <path>` — `main` startuje `serve_stream` z `read_session(path)` zamiast `new_session`; legacy formy CLI bez zmian; ARCHITECTURE, DESIGN §11, DECISIONS `G69.2a`. *(task-343)*
-- [ ] **G69.2b** CLI `serve --resume`: błędy wznowienia — brak/niepoprawny plik → komunikat na wstrzykiwalny `stderr` + kod `1`, bez startu pętli; DECISIONS `G69.2b`. *(task-344)*
-- [ ] **G69.2c** e2e: zapis w jednym `main(["serve"])`, wznowienie w drugim `main(["serve","--resume",...])` — odtworzony snapshot i ciągłość RNG przez plik; bez nowej powierzchni API. *(task-345)*
-> **Dalej (kolejne wsady):** ewentualna serializacja `last_battle`/`HexBattle`,
-> jeśli podgląd bitwy ma przetrwać zapis (obecnie świadomie pomijany — wymaga
-> oddolnego rozbicia `Hex`/`Battlefield`/`HexBattle`). Sceny klienta Godota
-> (konsument mostu; poza pętlą pytest).
+> **Kamień 69 — UKOŃCZONE.** Dopełnienie pętli gracza: komenda protokołu
+> `snapshot` (czysty odczyt bez mutacji/RNG, `command_result`→`{"kind":"snapshot"}`;
+> G69.1a) oraz wznowienie zapisanej partii z pliku — CLI `serve --resume <path>`
+> (`read_session` zamiast `new_session`; G69.2a), błędy wznowienia
+> (brak/niepoprawny plik → `stderr` + kod `1`, bez startu pętli; G69.2b) i e2e
+> zapis-w-jednym / wznowienie-w-drugim procesie z ciągłością RNG przez plik
+> (G69.2c). Szczegóły w `docs/ARCHITECTURE.md`, `docs/DESIGN.md` §11 i
+> `docs/DECISIONS.md` (`G69.1a`…`G69.2b`). *(task-342…345)*
+
+## Kamień milowy 70 — persystencja podglądu bitwy: round-trip HexBattle
+> DESIGN §11: strona/klient może pokazać **ostatnią bitwę gracza**, ale dziś
+> `last_battle` jest nietrwałe — po zapisie/odczycie sesji podgląd znika (świadomie
+> pominięte w K67/G67.4a). Domykamy tę lukę oddolnie (jak G67 dla świata): liście
+> `Hex`/`Terrain` → `Battlefield` → `HexBattle` → osadzenie w `dump/load_session`.
+> Rdzeń `tbb` bez zmian; most reużywa publiczne API i istniejące helpery persist.
+- [ ] **G70.1a** persist: round-trip `Hex` (`dump_hex`/`load_hex`, liść `{q,r}`); DECISIONS `G70.1a`. *(task-346)*
+- [ ] **G70.1b** persist: round-trip `Terrain` (`dump_terrain`/`load_terrain`, `{name,move_cost,defense_mod,accuracy_mod}`); DECISIONS `G70.1b`. *(task-347)*
+- [ ] **G70.1c** persist: round-trip `Battlefield` (`dump_battlefield`/`load_battlefield`, rzadka mapa `hex→terrain`, reużycie liści); DECISIONS `G70.1c`. *(task-348)*
+- [ ] **G70.1d** persist: round-trip `HexBattle` (`dump_battle`/`load_battle` — battlefield/units/current_hp/sides/fallen/deployment_order; równość + `report()`); DECISIONS `G70.1d`. *(task-349)*
+- [ ] **G70.2a** persist: `dump_session`/`load_session` zachowują `last_battle` (klucz `last_battle`, tolerancja braku klucza); DECISIONS `G70.2a`. *(task-350)*
+> **Dalej (kolejne wsady):** protokół save/load e2e z bitwą przez stdio
+> (`last_battle` przeżywa `save`→`load` w `serve_stream`); ARCHITECTURE — sekcja
+> persystencji o `HexBattle`. Sceny klienta Godota (konsument mostu; poza pętlą
+> pytest).
 
 ## Dług/refaktor
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*

@@ -553,3 +553,12 @@
 - [x] **G65.3a** `Session.last_battle: HexBattle | None` + `Session.snapshot()` osadza ją przez `game_state(..., battle=)`; `_derive` przewodzi/zeruje pole; ARCHITECTURE, DECISIONS `G65.3a`. *(task-316)*
 - [x] **G65.3b** rozkaz `assault` (auto / do wskazanej osady przez `ai.assault_duchy_party[_to]_recorded`; morale, RNG, `last_battle`); ARCHITECTURE, DECISIONS `G65.3b`. *(task-317)*
 - [x] **G65.3c** rozkaz `engage` (auto / do wskazanego regionu przez `ai.engage_duchy_party[_to]_recorded`; morale, RNG, `last_battle`); ARCHITECTURE, DESIGN §11, DECISIONS `G65.3c`. *(task-318)*
+
+## Kamienie 63–70 — most `tbbbridge` (szczegóły przeniesione z BACKLOG)
+- [x] **G63.1a** `tbbbridge.snapshot.settlement_state(settlement) -> dict`. *(task-296)*
+- [x] **G63.1b** `tbbbridge.snapshot.party_state(party) -> dict`. *(task-297)*
+- [x] **G63.1c** `tbbbridge.snapshot.map_state(world) -> dict`. *(task-298)*
+- [x] **G63.1d** `tbbbridge.snapshot.game_state(world, game, calendar, player_duchy_id=None) -> dict`. *(task-301)*
+- [x] **G63.2a** `tbbbridge.snapshot.save_state(...path...)` — deterministyczny JSON do pliku. *(task-302)*
+- [x] **G67.1** liście persist: `dump/load_resources` (G67.1a), `_wound` (G67.1b), `_unit` (G67.1c), `_building` (G67.1d), `_calendar` (G67.1e). *(task-324…328)*
+- [x] **G68.1a** `tbbbridge.persist.save_session`/`read_session` — zapis/odczyt sesji do pliku JSON. *(task-338)*
