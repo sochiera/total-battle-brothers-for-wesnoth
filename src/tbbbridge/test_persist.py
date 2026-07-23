@@ -343,3 +343,39 @@ def test_dump_party_returns_json_serializable_dict_with_hero_units_owner_id():
     assert dumped["units"] == [persist.dump_unit(subordinate)]
     assert dumped["owner_id"] == party.owner_id
     json.dumps(dumped)
+
+
+def test_round_trip_load_dump_restores_party_equality_wounded_subordinate_owner_none():
+    """G67.2a kryt-2: dla dowolnej ``Party p`` (w tym z podwładnymi, rannym
+    bohaterem oraz ``owner_id=None``) zachodzi
+    ``load_party(dump_party(p)) == p``.
+
+    Próbka naraz: ranny bohater (``BRUISE`` + ogłuszenie), niepusty podwładny,
+    jawny ``owner_id`` oraz przypadek z ``owner_id=None`` — weryfikują, że
+    ``load_party`` reużywa ``load_unit`` (hero + ``units`` jako krotka) i
+    przenosi ``owner_id`` przez round-trip.
+    """
+    wounded_hero = Unit(
+        training=3,
+        equipment=2,
+        experience=5,
+        ranged_range=3,
+        wounds=(BRUISE, MAIMED),
+        stunned=True,
+        training_progress=1,
+        equipment_progress=1,
+    )
+    subordinate = Unit(training=2, equipment=1, experience=3, ranged_range=2)
+    samples = [
+        Party(hero=wounded_hero, units=(subordinate,), owner_id="player"),
+        Party(hero=wounded_hero, units=(subordinate,), owner_id=None),
+        Party(hero=wounded_hero, units=(), owner_id="player"),
+        Party(hero=wounded_hero, units=(), owner_id=None),
+    ]
+
+    for party in samples:
+        round_tripped = persist.load_party(persist.dump_party(party))
+
+        assert round_tripped == party
+        assert round_tripped.owner_id == party.owner_id
+        assert isinstance(round_tripped.units, tuple)
