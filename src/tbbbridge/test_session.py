@@ -219,6 +219,120 @@ def test_apply_command_order_develop_applies_ai_primitive_syncs_game_returns_new
     assert s.snapshot() == before
 
 
+def test_apply_command_order_recruit_applies_ai_primitive_syncs_game_returns_new_session():
+    """G65.2a crit-1: ``apply_command({"type": "order", "order": "recruit"})``
+    applies ``ai.recruit_duchy_unit`` to the player duchy: garrison grows by one
+    and gold drops by the recruit cost in Player Keep, ``game.sync_from_world``
+    is applied and a new Session is returned with calendar/rng/seed/
+    player_duchy_id preserved. The input session is not mutated.
+    """
+    s = new_session(73, "player")
+    before = copy.deepcopy(s.snapshot())
+
+    after = apply_command(s, {"type": "order", "order": "recruit"})
+
+    assert isinstance(after, Session)
+    assert after is not s
+    assert after.player_duchy_id == "player"
+    assert after.seed == 73
+    assert after.calendar == s.calendar
+    assert after.rng is s.rng
+
+    before_settlement = before["map"]["regions"][0]["settlement"]
+    after_settlement = after.snapshot()["map"]["regions"][0]["settlement"]
+    assert after_settlement["garrison"] == before_settlement["garrison"] + 1
+    assert after_settlement["gold"] < before_settlement["gold"]
+    # The input session's snapshot is unchanged.
+    assert s.snapshot() == before
+
+
+def test_apply_command_order_muster_applies_ai_primitive_syncs_game_returns_new_session():
+    """G65.2a crit-1: ``apply_command({"type": "order", "order": "muster"})``
+    applies ``ai.muster_duchy_party`` to the player duchy: a party owned by the
+    player appears in the Player Keep region (absent before), ``game.sync_from_world``
+    is applied and a new Session is returned with calendar/rng/seed/
+    player_duchy_id preserved. The input session is not mutated.
+    """
+    s = new_session(73, "player")
+    before = copy.deepcopy(s.snapshot())
+
+    after = apply_command(s, {"type": "order", "order": "muster"})
+
+    assert isinstance(after, Session)
+    assert after is not s
+    assert after.player_duchy_id == "player"
+    assert after.seed == 73
+    assert after.calendar == s.calendar
+    assert after.rng is s.rng
+
+    before_party = before["map"]["regions"][0]["party"]
+    after_party = after.snapshot()["map"]["regions"][0]["party"]
+    assert before_party is None
+    assert after_party is not None
+    assert after_party["owner"] == "player"
+    # The input session's snapshot is unchanged.
+    assert s.snapshot() == before
+
+
+def test_apply_command_order_is_noop_when_game_over_or_no_player_or_duchy_absent():
+    """G65.2a crit-2: an order is a no-op (returned session shares the input
+    world/game/calendar by identity) when ``game.is_over``, when
+    ``player_duchy_id`` is None, or when the player's duchy is absent from
+    ``game.duchies``. The input session is never mutated. An unknown ``order``
+    value raises ``ValueError``.
+    """
+    base = new_session(73, "player")
+
+    # is_over guard: a single-duchy game is immediately decided.
+    ended_game = GameState([base.game.duchies[0]])
+    assert ended_game.is_over is True
+    over_session = Session(
+        world=base.world,
+        game=ended_game,
+        calendar=base.calendar,
+        rng=base.rng,
+        player_duchy_id="player",
+        seed=base.seed,
+    )
+    over_before = copy.deepcopy(over_session.snapshot())
+    after_over = apply_command(over_session, {"type": "order", "order": "develop"})
+    assert after_over is not over_session
+    assert after_over.world is over_session.world
+    assert after_over.game is over_session.game
+    assert after_over.calendar is over_session.calendar
+    assert after_over.player_duchy_id == "player"
+    assert after_over.seed == 73
+    assert over_session.snapshot() == over_before
+
+    # No player_duchy_id guard.
+    no_player = new_session(73, None)
+    no_player_before = copy.deepcopy(no_player.snapshot())
+    after_no_player = apply_command(
+        no_player, {"type": "order", "order": "develop"}
+    )
+    assert after_no_player.world is no_player.world
+    assert after_no_player.game is no_player.game
+    assert after_no_player.calendar is no_player.calendar
+    assert after_no_player.player_duchy_id is None
+    assert no_player.snapshot() == no_player_before
+
+    # Player duchy absent from game.duchies guard.
+    absent = new_session(73, "absent")
+    absent_before = copy.deepcopy(absent.snapshot())
+    after_absent = apply_command(absent, {"type": "order", "order": "develop"})
+    assert after_absent.world is absent.world
+    assert after_absent.game is absent.game
+    assert after_absent.calendar is absent.calendar
+    assert after_absent.snapshot() == absent_before
+
+    # Unknown order value raises ValueError without mutation.
+    s = new_session(73, "player")
+    before = copy.deepcopy(s.snapshot())
+    with pytest.raises(ValueError):
+        apply_command(s, {"type": "order", "order": "totally_unknown"})
+    assert s.snapshot() == before
+
+
 def test_apply_command_unknown_type_and_missing_type_raise_valueerror_without_mutation():
     """G65.1c crit-3: unknown type or missing 'type' key both raise ValueError;
     the input session is never mutated (snapshot deterministic, RNG advanced
