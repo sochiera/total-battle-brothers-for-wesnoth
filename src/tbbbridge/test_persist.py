@@ -713,3 +713,41 @@ def test_round_trip_load_world_restores_world_equality_and_region_identity():
 
     assert round_tripped.settlements[restored_regions[0]] == settlement
     assert round_tripped.parties[restored_regions[2]] == party
+
+
+def test_dump_and_load_world_do_not_mutate_input():
+    """G67.2d kryt-3: ``dump_world`` i ``load_world`` są czyste — nie mutują
+    wejścia (ani ``WorldMap``, ani słownika danych).
+
+    Wzorem par liściowych (``dump_and_load_settlement``,
+    ``dump_and_load_region``) weryfikuje kontrakt braku mutacji wejścia
+    (idempotencja). ``WorldMap`` oraz ``Region`` są ``frozen=True``, ale test
+    chroni przed regresją, gdyby freeze został kiedyś zdjęty lub gdyby mutowano
+    kolekcje wewnątrz ``WorldMap``.
+
+    ``WorldMap`` trzyma ``MappingProxyType``, którego nie da się
+    ``copy.deepcopy`` (nie jest picklowalny), więc snapshot wejścia budujemy
+    ręcznie jako krotkę pól publicznych i porównujemy wartość po wywołaniu
+    ``dump_world``/``load_world``.
+    """
+    world, _regions = _sample_world_with_settlement_and_party()
+
+    def _snapshot():
+        return (
+            world.regions,
+            world.connections,
+            tuple(world.settlements.items()),
+            tuple(world.parties.items()),
+        )
+
+    snapshot_before = _snapshot()
+
+    dumped = persist.dump_world(world)
+
+    assert _snapshot() == snapshot_before
+    data_before = copy.deepcopy(dumped)
+
+    persist.load_world(dumped)
+
+    assert _snapshot() == snapshot_before
+    assert dumped == data_before
