@@ -4,6 +4,10 @@ Ten moduł to fundament zapisu/wczytywania stanu partii. Reużywa wyłącznie
 publiczne API rdzenia, bez żadnej logiki reguł.
 """
 
+import json
+import os
+from typing import Any
+
 from tbb.building import Building
 from tbb.duchy import Duchy
 from tbb.party import Party
@@ -335,3 +339,29 @@ def load_session(data: dict) -> Session:
         seed=data["seed"],
         last_battle=None,
     )
+
+
+def _write_json(obj: Any, path: str | os.PathLike) -> None:
+    """Wewnętrzny helper: zapis UTF-8 JSON z ``indent=2`` i pojedynczym ``\\n``.
+
+    Nie tworzy katalogów docelowych.
+    """
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(json.dumps(obj, indent=2, ensure_ascii=False))
+        f.write("\n")
+
+
+def save_session(session: Session, path: str | os.PathLike) -> None:
+    """Zapisuje ``dump_session(session)`` do pliku ``path`` jako UTF-8 JSON.
+
+    Format: ``indent=2``, ``ensure_ascii=False``, zakończony pojedynczym ``\\n``.
+    Nie mutuje sesji, nie tworzy katalogów docelowych.
+    """
+    _write_json(dump_session(session), path)
+
+
+def read_session(path: str | os.PathLike) -> Session:
+    """Wczytuje plik zapisany przez ``save_session`` i zwraca ``Session``."""
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    return load_session(data)

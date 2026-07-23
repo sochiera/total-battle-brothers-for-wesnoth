@@ -1246,3 +1246,30 @@ def test_load_session_does_not_mutate_input_dict():
     persist.load_session(data)
 
     assert data == data_before
+
+
+def test_save_session_writes_json_indented_utf8_with_trailing_newline(tmp_path):
+    """G68.1a kryt-1: ``save_session(session, path)`` zapisuje plik JSON z
+    ``indent=2``, ``ensure_ascii=False``, zakończony pojedynczym ``\\n``,
+    kodowanie UTF-8; nie mutuje sesji; dwa wywołania dają bajt-w-bajt
+    identyczny plik.
+    """
+    import os
+    from tbbbridge.session import new_session
+
+    s = new_session(seed=73, player_duchy_id="player")
+    path = tmp_path / "session.json"
+
+    persist.save_session(s, path)
+
+    assert path.exists()
+    content = path.read_text(encoding="utf-8")
+    assert content.endswith("\n")
+    assert not content.endswith("\n\n")
+    loaded = json.loads(content)
+    assert json.dumps(loaded, indent=2, ensure_ascii=False) + "\n" == content
+    path.unlink()
+
+    persist.save_session(s, path)
+    content2 = path.read_text(encoding="utf-8")
+    assert content == content2

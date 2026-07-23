@@ -242,8 +242,19 @@ prezentacji (widok OUT tuż po bitwie) i nie podlega persystencji.
 last_battle=None)`. Dla `s = new_session()` po round-tripie
 `load_session(dump_session(s))` zachodzi równość `world`/`game`/`calendar`,
 równość `player_duchy_id`/`seed`, `last_battle is None`, a odtworzony RNG
-produkuje tę samą dalszą sekwencję co oryginał. Obie funkcje są czyste i nie
-mutują wejścia.
+produkuje tę samą dalszą sekwencję co oryginał. Obie funkcje są czyste i
+nie mutują wejścia.
+
+`save_session(session: Session, path: str | os.PathLike) -> None` (G68.1a)
+zapisuje `dump_session(session)` do pliku `path` jako UTF-8, formatując przez
+`json.dumps(..., indent=2, ensure_ascii=False)` i dopełniając jednym znakiem
+`"\n"`. Funkcja nie mutuje sesji, nie tworzy katalogów docelowych i daje
+bajt-w-bajt identyczny plik dla tego samego stanu sesji. `read_session(path:
+str | os.PathLike) -> Session` (G68.1a) wczytuje plik zapisany przez
+`save_session`, parsuje przez `json.load` i odtwarza `Session` przez
+`load_session`. Po round-tripie zapisu/odczytu zachodzi równość
+`world`/`game`/`calendar`, równość `player_duchy_id`/`seed`, `last_battle is
+None`, a odtworzony RNG produkuje tę samą dalszą sekwencję co oryginał.
 
 ### Most poleceń (G65)
 

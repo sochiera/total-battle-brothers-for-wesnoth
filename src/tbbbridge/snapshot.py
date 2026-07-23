@@ -255,11 +255,6 @@ def save_state(
     Format pliku: `json.dumps(game_state(...), indent=2, ensure_ascii=False)`
     zakończony pojedynczym znakiem "\\n", kodowanie UTF-8.
     """
-    payload = json.dumps(
-        game_state(world, game, calendar, player_duchy_id),
-        indent=2,
-        ensure_ascii=False,
-    )
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(payload)
-        f.write("\n")
+    from tbbbridge.persist import _write_json
+
+    _write_json(game_state(world, game, calendar, player_duchy_id), path)
