@@ -1524,3 +1524,48 @@ def test_round_trip_battlefield_via_json_preserves_equality_empty_and_multi_hex(
         json_round_tripped = json.loads(json.dumps(dumped))
         round_tripped = persist.load_battlefield(json_round_tripped)
         assert round_tripped == battlefield
+
+
+def test_dump_battle_returns_json_serializable_dict_with_keys_battlefield_units_current_hp_sides_fallen_deployment_order():
+    """G70.1d kryt-1: ``dump_battle(battle)`` zwraca json-serializowalny
+    słownik z kluczami ``battlefield`` (``dump_battlefield``), ``units``
+    (lista ``{"hex": dump_hex, "unit": dump_unit}`` w kolejności
+    ``_deployment_order``), ``current_hp`` (lista ``{"hex": dump_hex, "hp": int}``
+    w kolejności ``_deployment_order``), ``sides`` (lista ``{"hex": dump_hex,
+    "side": BattleSide.value}`` w kolejności ``_deployment_order``), ``fallen``
+    (lista ``{"side": BattleSide.value, "unit": dump_unit}`` w kolejności
+    ``_fallen``), ``deployment_order`` (lista ``dump_hex`` w kolejności
+    ``_deployment_order``); ``json.dumps(dump_battle(b))`` nie podnosi wyjątku.
+    """
+    from tbb.battle import BattleSide, HexBattle
+    from tbb.terrain import PLAINS
+
+    battle = HexBattle(
+        battlefield={Hex(0, 0): PLAINS},
+        units={Hex(0, 0): Unit()},
+        sides={Hex(0, 0): BattleSide.ATTACKER},
+    )
+
+    dumped = persist.dump_battle(battle)
+
+    assert set(dumped.keys()) == {
+        "battlefield",
+        "units",
+        "current_hp",
+        "sides",
+        "fallen",
+        "deployment_order",
+    }
+    assert dumped["battlefield"] == persist.dump_battlefield(battle.battlefield)
+    assert dumped["units"] == [
+        {"hex": persist.dump_hex(Hex(0, 0)), "unit": persist.dump_unit(Unit())}
+    ]
+    assert dumped["current_hp"] == [
+        {"hex": persist.dump_hex(Hex(0, 0)), "hp": battle.current_hp_at(Hex(0, 0))}
+    ]
+    assert dumped["sides"] == [
+        {"hex": persist.dump_hex(Hex(0, 0)), "side": BattleSide.ATTACKER.value}
+    ]
+    assert dumped["fallen"] == []
+    assert dumped["deployment_order"] == [persist.dump_hex(Hex(0, 0))]
+    json.dumps(dumped)

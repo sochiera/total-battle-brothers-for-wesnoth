@@ -62,6 +62,11 @@ class HexBattle:
 
     def __post_init__(self) -> None:
         """Protect deployment data from mutation through the public mapping."""
+        battlefield = (
+            self.battlefield
+            if isinstance(self.battlefield, Battlefield)
+            else Battlefield(self.battlefield)
+        )
         units = dict(self.units)
         current_hp = dict(self._current_hp)
         sides = dict(self.sides)
@@ -72,6 +77,7 @@ class HexBattle:
             raise ValueError("every deployed unit must have exactly one battle side")
         if len(deployment_order) != len(units) or set(deployment_order) != set(units):
             raise ValueError("deployment order must contain every deployed position")
+        object.__setattr__(self, "battlefield", battlefield)
         object.__setattr__(self, "units", MappingProxyType(units))
         object.__setattr__(self, "_current_hp", MappingProxyType(current_hp))
         object.__setattr__(self, "sides", MappingProxyType(sides))

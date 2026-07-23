@@ -265,6 +265,33 @@ str | os.PathLike) -> Session` (G68.1a) wczytuje plik zapisany przez
 `world`/`game`/`calendar`, równość `player_duchy_id`/`seed`, `last_battle is
 None`, a odtworzony RNG produkuje tę samą dalszą sekwencję co oryginał.
 
+`dump_battle(battle: HexBattle) -> dict` (G70.1d) zwraca json-serializowalny
+słownik z kluczami `battlefield` (`dump_battlefield`), `units`, `current_hp`,
+`sides`, `fallen` oraz `deployment_order`. Jednostki, HP i strony są
+serializowane w kolejności `_deployment_order`; polegli w kolejności `_fallen`.
+`load_battle(data: dict) -> HexBattle` odtwarza `HexBattle` przez
+`load_battlefield`, `load_hex`, `load_unit` i `BattleSide`. Dla bitwy
+rozstrzygniętej round-trip przez JSON daje `HexBattle` równy oryginałowi i
+identyczny raport.
+
+`dump_hex(hex: Hex) -> dict` (G70.1a) zwraca `{"q": hex.q, "r": hex.r}`;
+`load_hex(data: dict) -> Hex` odtwarza `Hex(q, r)`. Dla każdego `Hex h` zachodzi
+`load_hex(dump_hex(h)) == h` oraz round-trip przez JSON zachowuje równość.
+
+`dump_terrain(terrain: Terrain) -> dict` (G70.1b) zwraca json-serializowalny
+słownik `{"name", "move_cost", "defense_mod", "accuracy_mod"}`;
+`load_terrain(data: dict) -> Terrain` odtwarza `Terrain(...)` z tych pól.
+Dla każdego terenu z katalogu (`PLAINS`, `FOREST`, `HILLS`) zachodzi
+`load_terrain(dump_terrain(t)) == t`, również po round-tripie przez JSON.
+
+`dump_battlefield(battlefield: Battlefield) -> dict` (G70.1c) zwraca
+json-serializowalny słownik `{"terrain": [...]}`, gdzie każdy element to
+`{"hex": dump_hex, "terrain": dump_terrain}` dla nadpisanych heksów,
+uporządkowanych deterministycznie po `(q, r)`. `load_battlefield(data: dict)
+-> Battlefield` odtwarza mapę przez `load_hex`/`load_terrain`. Dla dowolnego
+`Battlefield b` zachodzi `load_battlefield(dump_battlefield(b)) == b` oraz
+round-trip przez JSON zachowuje równość.
+
 ### Most poleceń (G65)
 
 Most `tbbbridge` daje również kanał **IN** — uchwyt sesji, przez który

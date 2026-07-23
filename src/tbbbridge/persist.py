@@ -102,6 +102,7 @@ def dump_battlefield(battlefield: Battlefield) -> dict:
          for hex_coord, terrain in battlefield._terrain.items()),
         key=lambda entry: (entry["hex"]["q"], entry["hex"]["r"]),
     )
+
     return {"terrain": entries}
 
 
@@ -113,6 +114,73 @@ def load_battlefield(data: dict) -> Battlefield:
     return Battlefield(
         {load_hex(entry["hex"]): load_terrain(entry["terrain"])
          for entry in data["terrain"]}
+    )
+
+
+def dump_battle(battle) -> dict:
+    """Zwraca json-serializowalny słownik ``HexBattle``.
+
+    Klucze: ``battlefield`` (``dump_battlefield``), ``units``, ``current_hp``,
+    ``sides``, ``fallen``, ``deployment_order`` — wszystkie listy z ``Hex``
+    powiązane z jednostkami w kolejności ``_deployment_order``.
+    """
+    return {
+        "battlefield": dump_battlefield(battle.battlefield),
+        "units": [
+            {"hex": dump_hex(position), "unit": dump_unit(battle.unit_at(position))}
+            for position in battle._deployment_order
+        ],
+        "current_hp": [
+            {"hex": dump_hex(position), "hp": battle.current_hp_at(position)}
+            for position in battle._deployment_order
+        ],
+        "sides": [
+            {"hex": dump_hex(position), "side": battle.side_at(position).value}
+            for position in battle._deployment_order
+        ],
+        "fallen": [
+            {"side": side.value, "unit": dump_unit(unit)}
+            for side, unit in battle._fallen
+        ],
+        "deployment_order": [dump_hex(position) for position in battle._deployment_order],
+    }
+
+
+def load_battle(data: dict):
+    """Odtwarza ``HexBattle`` ze słownika wyprodukowanego przez ``dump_battle``.
+
+    Najpierw ładuje pole bitwy i listę poległych, następnie odtwarza
+    ``HexBattle`` bez jednostek i wdraża każdą jednostkę na ładunek w kolejności
+    ``deployment_order``.
+    """
+    from tbb.battle import BattleSide, HexBattle
+
+    battlefield = load_battlefield(data["battlefield"])
+    fallen = tuple(
+        (BattleSide(entry["side"]), load_unit(entry["unit"]))
+        for entry in data["fallen"]
+    )
+    units = {}
+    current_hp = {}
+    sides = {}
+    deployment_order = []
+    for unit_entry, hp_entry, side_entry in zip(
+        data["units"], data["current_hp"], data["sides"]
+    ):
+        position = load_hex(unit_entry["hex"])
+        unit = load_unit(unit_entry["unit"])
+        units[position] = unit
+        current_hp[position] = hp_entry["hp"]
+        sides[position] = BattleSide(side_entry["side"])
+        deployment_order.append(position)
+
+    return HexBattle(
+        battlefield=battlefield,
+        units=units,
+        _current_hp=current_hp,
+        sides=sides,
+        _fallen=fallen,
+        _deployment_order=tuple(deployment_order),
     )
 
 
