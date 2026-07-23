@@ -231,6 +231,20 @@ co oryginał, a round-trip przez `json.loads(json.dumps(...))` zachowuje tę
 sekwencję. Obie funkcje są czyste i nie mutują wejścia; będą reużywane przez
 serializer `Session`.
 
+`dump_session(session: Session) -> dict` (G67.4a) zwraca json-serializowalny
+słownik z kluczami `world` (= `dump_world`), `game` (= `dump_gamestate`),
+`calendar` (= `dump_calendar`), `rng` (= `dump_rng`), `player_duchy_id`
+oraz `seed`. Klucza `last_battle` nie ma — pole to jest nietrwałym stanem
+prezentacji (widok OUT tuż po bitwie) i nie podlega persystencji.
+`load_session(data: dict) -> Session` odtwarza uchwyt sesji przez
+`load_world`/`load_gamestate`/`load_calendar`/`load_rng`, konstruując
+`Session(world, game, calendar, rng, player_duchy_id, seed,
+last_battle=None)`. Dla `s = new_session()` po round-tripie
+`load_session(dump_session(s))` zachodzi równość `world`/`game`/`calendar`,
+równość `player_duchy_id`/`seed`, `last_battle is None`, a odtworzony RNG
+produkuje tę samą dalszą sekwencję co oryginał. Obie funkcje są czyste i nie
+mutują wejścia.
+
 ### Most poleceń (G65)
 
 Most `tbbbridge` daje również kanał **IN** — uchwyt sesji, przez który

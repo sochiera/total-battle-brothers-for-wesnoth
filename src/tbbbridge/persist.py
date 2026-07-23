@@ -15,6 +15,7 @@ from tbb.wound import Wound
 from tbb.game import GameState
 from tbb.rng import Rng
 from tbb.world import Region, WorldMap
+from tbbbridge.session import Session
 
 
 def _convert_state(value, make_seq):
@@ -299,4 +300,38 @@ def load_duchy(data: dict) -> Duchy:
         heir=load_unit(data["heir"]) if data["heir"] is not None else None,
         settlements=tuple(load_settlement(s) for s in data["settlements"]),
         parties=tuple(load_party(p) for p in data["parties"]),
+    )
+
+
+def dump_session(session: Session) -> dict:
+    """Zwraca json-serializowalny słownik ``Session``.
+
+    Klucze: ``world`` (``dump_world``), ``game`` (``dump_gamestate``),
+    ``calendar`` (``dump_calendar``), ``rng`` (``dump_rng``),
+    ``player_duchy_id`` (``str | None``), ``seed`` (int).
+    Klucza ``last_battle`` nie ma — pole jest nietrwałym stanem prezentacji.
+    """
+    return {
+        "world": dump_world(session.world),
+        "game": dump_gamestate(session.game),
+        "calendar": dump_calendar(session.calendar),
+        "rng": dump_rng(session.rng),
+        "player_duchy_id": session.player_duchy_id,
+        "seed": session.seed,
+    }
+
+
+def load_session(data: dict) -> Session:
+    """Odtwarza ``Session`` ze słownika wyprodukowanego przez ``dump_session``.
+
+    ``last_battle`` jest zawsze ``None`` — stan bitwy nie podlega persystencji.
+    """
+    return Session(
+        world=load_world(data["world"]),
+        game=load_gamestate(data["game"]),
+        calendar=load_calendar(data["calendar"]),
+        rng=load_rng(data["rng"]),
+        player_duchy_id=data["player_duchy_id"],
+        seed=data["seed"],
+        last_battle=None,
     )

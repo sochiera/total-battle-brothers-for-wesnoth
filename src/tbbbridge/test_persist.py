@@ -1,6 +1,7 @@
 """Tests for ``tbbbridge.persist`` (G67.1a — round-trip ``Resources``,
 G67.1b — round-trip ``Wound``, G67.1c — round-trip ``Unit``,
-G67.1e — round-trip ``Calendar``, G67.3b — round-trip ``Rng``).
+G67.1e — round-trip ``Calendar``, G67.3b — round-trip ``Rng``,
+G67.4a — round-trip ``Session``).
 
 Tests live next to the module under test per task-324 "Ścieżki testów".
 """
@@ -19,6 +20,7 @@ from tbb.unit import Unit
 from tbb.wound import BRUISE, MAIMED, Wound
 from tbb.world import Region, WorldMap
 from tbbbridge import persist
+from tbbbridge.session import Session
 
 
 def test_dump_resources_returns_json_serializable_dict_with_wheat_gold():
@@ -1083,5 +1085,164 @@ def test_load_rng_does_not_mutate_input_dict():
     data_before = copy.deepcopy(data)
 
     persist.load_rng(data)
+
+    assert data == data_before
+
+
+def test_dump_session_returns_json_serializable_dict_with_keys_world_game_calendar_rng_player_duchy_id_seed_no_last_battle():
+    """G67.4a kryt-1: ``dump_session(session)`` zwraca json-serializowalny
+    ``dict`` z kluczami ``world`` (= ``dump_world``), ``game`` (= ``dump_gamestate``),
+    ``calendar`` (= ``dump_calendar``), ``rng`` (= ``dump_rng``), ``player_duchy_id``
+    (``str | None``) oraz ``seed`` (int); klucza ``last_battle`` **brak**; wynik
+    przechodzi ``json.dumps``.
+    """
+    from tbb.game import GameState
+
+    session = Session(
+        world=_sample_world_with_settlement_and_party()[0],
+        game=GameState(tuple(_sample_duchies())),
+        calendar=Calendar(year=5, month=8),
+        rng=Rng(42),
+        player_duchy_id="player",
+        seed=42,
+        last_battle=None,
+    )
+
+    dumped = persist.dump_session(session)
+
+    assert set(dumped.keys()) == {
+        "world",
+        "game",
+        "calendar",
+        "rng",
+        "player_duchy_id",
+        "seed",
+    }
+    assert "last_battle" not in dumped
+    assert dumped["world"] == persist.dump_world(session.world)
+    assert dumped["game"] == persist.dump_gamestate(session.game)
+    assert dumped["calendar"] == persist.dump_calendar(session.calendar)
+    assert dumped["rng"] == persist.dump_rng(session.rng)
+    assert dumped["player_duchy_id"] == "player"
+    assert dumped["seed"] == 42
+    json.dumps(dumped)
+
+
+def test_dump_session_with_last_battle_omits_last_battle_key():
+    """G67.4a kryt-1: ``dump_session`` dla sesji z ``last_battle`` ustawionym
+    również pomija klucz ``last_battle`` — pole jest nietrwałe.
+    """
+    from tbb.battle import BattleSide, HexBattle, Hex
+    from tbb.game import GameState
+    from tbb.terrain import PLAINS
+
+    session = Session(
+        world=_sample_world_with_settlement_and_party()[0],
+        game=GameState(tuple(_sample_duchies()[:1])),
+        calendar=Calendar(),
+        rng=Rng(7),
+        player_duchy_id="player",
+        seed=7,
+        last_battle=HexBattle(
+            battlefield={Hex(0, 0): PLAINS},
+            units={Hex(0, 0): Unit()},
+            sides={Hex(0, 0): BattleSide.ATTACKER},
+        ),
+    )
+
+    dumped = persist.dump_session(session)
+
+    assert "last_battle" not in dumped
+    json.dumps(dumped)
+
+
+def test_round_trip_load_dump_session_restores_session_equality_and_rng_sequence():
+    """G67.4a kryt-2: dla ``s = new_session()`` po round-tripie
+    ``r = load_session(dump_session(s))`` zachodzi ``r.world == s.world``,
+    ``r.game == s.game``, ``r.calendar == s.calendar``, ``r.player_duchy_id ==
+    s.player_duchy_id``, ``r.seed == s.seed``, ``r.last_battle is None``, a
+    ``r.rng`` produkuje tę samą sekwencję ``randint(1, 100)`` co ``s.rng``.
+    """
+    from tbbbridge.session import new_session
+
+    s = new_session(seed=73, player_duchy_id="player")
+    orig_rng_sequence = [s.rng.randint(1, 100) for _ in range(10)]
+
+    dumped = persist.dump_session(s)
+    expected_continuation = [s.rng.randint(1, 100) for _ in range(10)]
+    r = persist.load_session(dumped)
+
+    assert r.world == s.world
+    assert r.game == s.game
+    assert r.calendar == s.calendar
+    assert r.player_duchy_id == s.player_duchy_id
+    assert r.seed == s.seed
+    assert r.last_battle is None
+    restored_rng_sequence = [r.rng.randint(1, 100) for _ in range(10)]
+    assert restored_rng_sequence == expected_continuation
+
+
+def test_round_trip_load_dump_session_with_last_battle_restores_with_last_battle_none():
+    """G67.4a kryt-3: Round-trip działa też dla sesji z ustawionym
+    ``last_battle`` (pole jest po prostu pomijane, wynik ``load_session`` ma
+    ``last_battle=None``).
+    """
+    from tbb.battle import BattleSide, HexBattle, Hex
+    from tbb.terrain import PLAINS
+    from tbbbridge.session import new_session
+
+    s = new_session(seed=73, player_duchy_id="player")
+    dummy_battle = HexBattle(
+        battlefield={Hex(0, 0): PLAINS},
+        units={Hex(0, 0): Unit()},
+        sides={Hex(0, 0): BattleSide.ATTACKER},
+    )
+    s.last_battle = dummy_battle
+
+    dumped = persist.dump_session(s)
+    r = persist.load_session(dumped)
+
+    assert r.last_battle is None
+    assert r.world == s.world
+    assert r.game == s.game
+    assert r.calendar == s.calendar
+    assert r.player_duchy_id == s.player_duchy_id
+    assert r.seed == s.seed
+
+
+def test_dump_session_does_not_mutate_input_session():
+    """G67.4a kryt-3: ``dump_session`` jest czysta — nie mutuje wejściowej
+    sesji.
+    """
+    from tbbbridge.session import new_session
+
+    s = new_session(seed=73, player_duchy_id="player")
+    orig_world = s.world
+    orig_game = s.game
+    orig_calendar = s.calendar
+    orig_rng_state = s.rng.state()
+    orig_last_battle = s.last_battle
+
+    dumped = persist.dump_session(s)
+
+    assert s.world is orig_world
+    assert s.game is orig_game
+    assert s.calendar is orig_calendar
+    assert s.rng.state() == orig_rng_state
+    assert s.last_battle is orig_last_battle
+    json.dumps(dumped)
+
+
+def test_load_session_does_not_mutate_input_dict():
+    """G67.4a kryt-3: ``load_session`` jest czysta — nie mutuje słownika
+    wejściowego.
+    """
+    from tbbbridge.session import new_session
+
+    s = new_session(seed=73, player_duchy_id="player")
+    data = persist.dump_session(s)
+    data_before = copy.deepcopy(data)
+
+    persist.load_session(data)
 
     assert data == data_before
