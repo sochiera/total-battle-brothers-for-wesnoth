@@ -794,3 +794,194 @@ def test_apply_command_order_assault_auto_applies_recorded_primitive_sets_last_b
     # Bitwy oraz światy różnią się między gałęziami (różne pola bitwy).
     assert expected_world_auto != expected_world_t
     assert expected_battle_auto != expected_battle_t
+
+
+class _ForbiddenRng:
+    """RNG proxy that raises on any draw, proving no-op paths never pull."""
+
+    def randint(self, a, b):
+        raise AssertionError("RNG consumed on a no-op path")
+
+    def chance(self, p):
+        raise AssertionError("RNG consumed on a no-op path")
+
+
+def test_apply_command_order_assault_fallback_and_guards_and_no_op_no_rng():
+    """G65.3b kryt-2: ``target`` pusty/niepasujący → fallback do auto
+    (``assault_duchy_party_recorded``), rozłącznie od ``target=Far`` na
+    scenariuszu Near/Far. Guardy G65.2a (``is_over`` / brak
+    ``player_duchy_id`` / księstwo nieobecne) → no-op z
+    ``last_battle is None``, ``world``/``game``/``calendar`` identyczne z
+    wejściowymi **bez konsumpcji RNG** (wstrzyknięty ``_ForbiddenRng`` rzuca
+    przy poborze). Gdy prymityw zwróci ``(world, None)`` (brak sąsiedniej
+    wrogiej osady) → RNG nietknięty, ``last_battle is None``, wejściowa sesja
+    nie jest mutowana.
+    """
+    from tbb.ai import assault_duchy_party_recorded
+    from tbb.duchy import Duchy
+    from tbb.party import Party
+    from tbb.settlement import Settlement
+    from tbb.unit import Unit
+    from tbb.world import Region, WorldMap
+
+    def _build_session(rng=None) -> Session:
+        start, near, far = map(Region, ("Start", "Near", "Far"))
+        party = Party(Unit(training=5, equipment=6), owner_id="north")
+        near_keep = Settlement(
+            "Near Keep", population=1, garrison=(Unit(equipment=1),), owner_id="south"
+        )
+        far_keep = Settlement(
+            "Far Keep", population=1,
+            garrison=(Unit(training=2, equipment=2),), owner_id="south"
+        )
+        world = WorldMap(
+            [start, near, far],
+            [(start, near), (start, far)],
+            settlements={near: near_keep, far: far_keep},
+            parties={start: party},
+        )
+        game = GameState(
+            (
+                Duchy("north", party.hero, morale=10, parties=(party,)),
+                Duchy("south", Unit(), morale=-5,
+                      settlements=(near_keep, far_keep)),
+            )
+        )
+        return Session(
+            world=world,
+            game=game,
+            calendar=Calendar(year=2, month=3),
+            rng=rng if rng is not None else Rng(2),
+            player_duchy_id="north",
+            seed=2,
+        )
+
+    # --- Fallback: target pusty/None/niepasujący → auto (Near), nie Far. ---
+    reference = _build_session()
+    far = next(r for r in reference.world.regions if r.name == "Far")
+    near = next(r for r in reference.world.regions if r.name == "Near")
+    auto_world, auto_battle = assault_duchy_party_recorded(
+        reference.world, reference.game.duchies[0], Rng(2),
+        morale_by_owner={d.duchy_id: d.morale for d in reference.game.duchies},
+    )
+    assert auto_battle is not None
+
+    fallback_variants = (
+        {"type": "order", "order": "assault"},  # missing target
+        {"type": "order", "order": "assault", "target": ""},  # empty
+        {"type": "order", "order": "assault", "target": None},  # non-str
+        {"type": "order", "order": "assault", "target": "Nowhere"},  # unknown
+    )
+    for command in fallback_variants:
+        s = _build_session()
+        before = copy.deepcopy(s.snapshot())
+        after = apply_command(s, command)
+
+        assert isinstance(after, Session)
+        assert after is not s
+        assert after.player_duchy_id == "north"
+        assert after.seed == 2
+        assert after.calendar == s.calendar
+        assert after.rng is s.rng
+        # Auto assault resolved Near (not Far): fallback used recorded auto.
+        assert after.world == auto_world
+        assert after.last_battle == auto_battle
+        assert after.last_battle is not None
+        # Distinct from target=Far (would hit Far, not Near).
+        from tbb.ai import assault_duchy_party_to_recorded
+        target_far_world = assault_duchy_party_to_recorded(
+            _build_session().world, _build_session().game.duchies[0], far, Rng(2),
+            morale_by_owner={"north": 10, "south": -5},
+        )[0]
+        assert after.world != target_far_world or near == far
+        # Input session unchanged.
+        assert s.snapshot() == before
+        assert s.last_battle is None
+
+    # --- Guardy G65.2a: no-op bez konsumpcji RNG (_ForbiddenRng rzuca). ---
+    # is_over guard.
+    base = _build_session(rng=_ForbiddenRng())
+    ended_game = GameState([base.game.duchies[0]])
+    assert ended_game.is_over is True
+    over_session = Session(
+        world=base.world, game=ended_game, calendar=base.calendar,
+        rng=_ForbiddenRng(), player_duchy_id="north", seed=2,
+    )
+    over_before = copy.deepcopy(over_session.snapshot())
+    after_over = apply_command(
+        over_session, {"type": "order", "order": "assault", "target": "Near"}
+    )
+    assert after_over is not over_session
+    assert after_over.world is over_session.world
+    assert after_over.game is over_session.game
+    assert after_over.calendar is over_session.calendar
+    assert after_over.last_battle is None
+    assert "battle" not in after_over.snapshot()
+    assert over_session.snapshot() == over_before
+
+    # No player_duchy_id guard.
+    no_player = _build_session(rng=_ForbiddenRng())
+    no_player.player_duchy_id = None
+    no_player_before = copy.deepcopy(no_player.snapshot())
+    after_no_player = apply_command(
+        no_player, {"type": "order", "order": "assault", "target": "Near"}
+    )
+    assert after_no_player.world is no_player.world
+    assert after_no_player.game is no_player.game
+    assert after_no_player.calendar is no_player.calendar
+    assert after_no_player.last_battle is None
+    assert no_player.snapshot() == no_player_before
+
+    # Player duchy absent guard.
+    absent = _build_session(rng=_ForbiddenRng())
+    absent.player_duchy_id = "absent"
+    absent_before = copy.deepcopy(absent.snapshot())
+    after_absent = apply_command(
+        absent, {"type": "order", "order": "assault", "target": "Near"}
+    )
+    assert after_absent.world is absent.world
+    assert after_absent.game is absent.game
+    assert after_absent.calendar is absent.calendar
+    assert after_absent.last_battle is None
+    assert absent.snapshot() == absent_before
+
+    # --- Prymityw zwraca (world, None): nearest enemy settlement nie sąsiaduje. ---
+    # Party na StartIso, Mid jako bufor, Remote — wroga osada nie sąsiadująca
+    # z StartIso: nearest_enemy_settlement → Remote, ale Remote ∉ neighbors(StartIso),
+    # więc prymityw zwraca (world, None) bez konsumpcji RNG.
+    start_isolated = Region("StartIso")
+    mid = Region("Mid")
+    remote = Region("Remote")
+    party = Party(Unit(training=5, equipment=6), owner_id="north")
+    world_iso = WorldMap(
+        [start_isolated, mid, remote],
+        [(start_isolated, mid), (mid, remote)],
+        settlements={
+            remote: Settlement("Remote Keep", population=1,
+                               garrison=(Unit(),), owner_id="south")
+        },
+        parties={start_isolated: party},
+    )
+    game_iso = GameState(
+        (
+            Duchy("north", party.hero, parties=(party,)),
+            Duchy("south", Unit(),
+                  settlements=(world_iso.settlement_at(remote),)),
+        )
+    )
+    forbidden = _ForbiddenRng()
+    s_iso = Session(
+        world=world_iso, game=game_iso, calendar=Calendar(year=2, month=3),
+        rng=forbidden, player_duchy_id="north", seed=2,
+    )
+    iso_before = copy.deepcopy(s_iso.snapshot())
+    after_iso = apply_command(
+        s_iso, {"type": "order", "order": "assault", "target": "Nowhere"}
+    )
+    assert after_iso is not s_iso
+    assert after_iso.world is world_iso
+    assert after_iso.last_battle is None
+    assert "battle" not in after_iso.snapshot()
+    assert s_iso.snapshot() == iso_before
+    # RNG proxy nie rzuciło — dowód braku konsumpcji na no-op path.
+    # (gdyby kod pobrał liczbę, _ForbiddenRng.randint/chance rzuciłby AssertionError)
