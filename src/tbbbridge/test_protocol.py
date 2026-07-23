@@ -8,7 +8,7 @@ import io
 import json
 
 from tbbbridge.session import Session, apply_command, new_session
-from tbbbridge.protocol import handle_command_line, serve_stream
+from tbbbridge.protocol import command_result, handle_command_line, serve_stream
 
 
 def test_handle_command_line_next_turn_returns_apply_command_result_and_snapshot_dict():
@@ -28,8 +28,11 @@ def test_handle_command_line_next_turn_returns_apply_command_result_and_snapshot
 
     assert isinstance(result_session, Session)
     assert result_session.snapshot() == expected_new.snapshot()
-    assert resp == {"ok": True, "snapshot": result_session.snapshot()}
-    assert json.dumps(resp) is not None
+    assert resp["ok"] is True
+    assert resp["snapshot"] == result_session.snapshot()
+    assert resp["result"] == command_result(
+        s, result_session, {"type": "next_turn"}
+    )
     json.dumps(resp)
     # Wejściowa sesja nie jest mutowana.
     assert s.snapshot() == before
@@ -197,3 +200,53 @@ def test_serve_stream_skips_blank_lines_bad_json_does_not_break_loop_and_flushes
         {"type": "next_turn"},
     )
     assert returned.snapshot() == expected.snapshot()
+
+
+def test_command_result_non_battle_order_changed_flag_matches_world_identity():
+    """G66.2a kryt-1: ``command_result(before, after, command)`` dla rozkazu
+    niebitewnego ``{"type": "order", "order": "develop"}`` zwraca
+    ``{"kind": "order", "order": "develop", "changed": <bool>}`` gdzie
+    ``changed == (after.world is not before.world)``. Dwa scenariusze:
+
+    1. Zastosowany rozkaz (świeża sesja z graczem) -> ``_apply_order`` buduje
+       nowy ``WorldMap`` (``develop_duchy_settlement`` otwiera budynek), więc
+       ``after.world is not before.world`` i ``changed is True``.
+    2. Guard/no-op (sesja bez ``player_duchy_id``) -> ``_resolve_player_duchy``
+       zwraca ``None`` i ``_apply_order`` zwraca tę samą ``(world, game,
+       calendar)`` (tożsamość obiektu ``world`` zachowana), więc
+       ``changed is False``.
+
+    Wynik musi być json-serializowalny.
+    """
+    # --- Scenariusz 1: rozkaz zastosowany -> changed=True ---
+    s_player = new_session(73, "player")
+    after_player = apply_command(s_player, {"type": "order", "order": "develop"})
+    assert after_player.world is not s_player.world  # warunek scenariusza
+
+    result_changed = command_result(
+        s_player, after_player, {"type": "order", "order": "develop"}
+    )
+
+    assert result_changed == {
+        "kind": "order",
+        "order": "develop",
+        "changed": True,
+    }
+    # json-serializowalny
+    json.dumps(result_changed)
+
+    # --- Scenariusz 2: guard/no-op -> changed=False ---
+    s_noop = new_session(73, player_duchy_id=None)
+    after_noop = apply_command(s_noop, {"type": "order", "order": "develop"})
+    assert after_noop.world is s_noop.world  # tożsamość obiektu zachowana
+
+    result_unchanged = command_result(
+        s_noop, after_noop, {"type": "order", "order": "develop"}
+    )
+
+    assert result_unchanged == {
+        "kind": "order",
+        "order": "develop",
+        "changed": False,
+    }
+    json.dumps(result_unchanged)

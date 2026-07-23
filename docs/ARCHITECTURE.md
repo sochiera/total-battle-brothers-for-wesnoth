@@ -194,7 +194,14 @@ jest podstawowym punktem wejścia tego protokołu.
   `{"ok": false, "error": <ciąg opisujący błąd>}` bez klucza `"snapshot"`.
 - Jeśli JSON jest obiektem, funkcja deleguje do
   `apply_command(session, command)`.  Sukces daje
-  `(new_session, {"ok": true, "snapshot": new_session.snapshot()})`.
+  `(new_session, {"ok": true, "snapshot": new_session.snapshot(),
+  "result": command_result(session, new_session, command)})`, gdzie
+  `command_result(before, after, command)` (G66.2a) to json-serializowalny
+  klasyfikator: `"next_turn"` → `{"kind": "turn", "date": {"year": ...,
+  "month": ...}}`, `"new_game"` → `{"kind": "new_game"}`, rozkaz niebitewny
+  `{"type":"order","order":name}` → `{"kind": "order", "order": name,
+  "changed": after.world is not before.world}`. Błędne ścieżki (niepoprawny
+  JSON / nie-obiekt / `ValueError`) **nie** zawierają klucza `"result"`.
 - `ValueError` wyrzucony przez `apply_command` jest łapany i zwracany jako
   `(session, {"ok": false, "error": str(exc)})`, również bez `"snapshot"`.
 

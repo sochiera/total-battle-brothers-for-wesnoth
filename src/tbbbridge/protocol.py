@@ -5,13 +5,37 @@ import json
 from tbbbridge.session import Session, apply_command, new_session
 
 
+def command_result(before: Session, after: Session, command: dict) -> dict:
+    """Maszynowe podsumowanie skutku komendy (sterującej lub niebitewnej)."""
+    command_type = command.get("type")
+
+    if command_type == "next_turn":
+        return {
+            "kind": "turn",
+            "date": {"year": after.calendar.year, "month": after.calendar.month},
+        }
+
+    if command_type == "new_game":
+        return {"kind": "new_game"}
+
+    if command_type == "order":
+        return {
+            "kind": "order",
+            "order": command["order"],
+            "changed": after.world is not before.world,
+        }
+
+    return {}
+
+
 def handle_command_line(session: Session, line: str) -> tuple[Session, dict]:
     """Sparsuj linię-komendę JSON i zwróć (nowa_sesja, odpowiedź).
 
     - Niepoprawny JSON lub JSON nie będący obiektem →
       ``(session, {"ok": False, "error": <str>})``.
     - Poprawna komenda → delegowane do ``apply_command``; sukces daje
-      ``(new_session, {"ok": True, "snapshot": new_session.snapshot()})``.
+      ``(new_session, {"ok": True, "snapshot": new_session.snapshot(),
+      "result": command_result(session, new_session, command)})``.
     - ``ValueError`` z ``apply_command`` →
       ``(session, {"ok": False, "error": str(exc)})``.
 
@@ -36,7 +60,11 @@ def handle_command_line(session: Session, line: str) -> tuple[Session, dict]:
     except ValueError as exc:
         return session, {"ok": False, "error": str(exc)}
 
-    return next_session, {"ok": True, "snapshot": next_session.snapshot()}
+    return next_session, {
+        "ok": True,
+        "snapshot": next_session.snapshot(),
+        "result": command_result(session, next_session, command),
+    }
 
 
 def serve_stream(session: Session, in_stream, out_stream) -> Session:
