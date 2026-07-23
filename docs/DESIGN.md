@@ -348,7 +348,12 @@ uchwyt sesji `tbbbridge.session.Session` i json-owy punkt wejścia
 `apply_command(session, command)`, którym Godot posuwa turę (`next_turn`),
 zaczyna nową grę (`new_game`) i wydaje rozkazy księstwu gracza (`order`:
 rozwój / rekrutacja / zbiórka / marsz / szturm / starcie — reużycie prymitywów `ai.*`, bez logiki
-reguł w moście). Klient HTML/SVG
+reguł w moście). Transportem między Godotem a rdzeniem jest **proces-most stdio**:
+`python -m tbbbridge serve [seed]` czyta z stdin linie-komendy JSON (JSON Lines)
+i wypisuje na stdout linie-odpowiedzi `{"ok", "snapshot"|"error", "result"?}` —
+`result` to maszynowe podsumowanie skutku komendy dla dziennika kampanii
+(tura / nowa gra / rozkaz z flagą `changed` / bitwa z wynikiem i stratami).
+Klient HTML/SVG
 (`tbbui`) zostaje **wyłącznie jako narzędzie diagnostyczne**, nie jest już
 docelowym klientem gry.
 

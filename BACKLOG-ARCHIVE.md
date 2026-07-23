@@ -543,3 +543,13 @@
 ## Kamień milowy 64 — most: snapshot bitwy heksowej do JSON — UKOŃCZONY
 - [x] **G64.1a** `tbbbridge.snapshot.battle_state(battle) -> dict` (`hexes` per zajęty heks + `result`); ARCHITECTURE, DECISIONS `G64.1a`. *(task-309)*
 - [x] **G64.1b** `game_state(..., battle=None)` osadza `battle_state` jako ostatni klucz; `None` → bajt-w-bajt; ARCHITECTURE, DECISIONS `G64.1b`. *(task-310)*
+
+## Kamień milowy 65 — most poleceń: kanał IN Godot↔rdzeń — UKOŃCZONY
+- [x] **G65.1a** `tbbbridge.session.Session` + `new_session(seed=73, player_duchy_id="player")` + `Session.snapshot()`; ARCHITECTURE, DECISIONS `G65.0`/`G65.1a`. *(task-311)*
+- [x] **G65.1b** `Session.next_turn()` — jedna tura `run_headless_game` (RNG współdzielony), `is_over` → no-op; ARCHITECTURE, DECISIONS `G65.1b`. *(task-312)*
+- [x] **G65.1c** `apply_command(session, {"type": "next_turn"|"new_game"})` — dyspozytor poleceń sterujących; nieznany `type` → `ValueError`; ARCHITECTURE, DECISIONS `G65.1c`. *(task-313)*
+- [x] **G65.2a** rozkazy gracza bez bitwy `develop`/`recruit`/`muster` (`ai.*` + `sync_from_world`, guardy jak `tbbui.serve`); ARCHITECTURE, DECISIONS `G65.2a`. *(task-314)*
+- [x] **G65.2b** rozkaz `march` (auto / do wskazanego regionu przez `ai.march_duchy_party[_to]`); ARCHITECTURE, DECISIONS `G65.2b`. *(task-315)*
+- [x] **G65.3a** `Session.last_battle: HexBattle | None` + `Session.snapshot()` osadza ją przez `game_state(..., battle=)`; `_derive` przewodzi/zeruje pole; ARCHITECTURE, DECISIONS `G65.3a`. *(task-316)*
+- [x] **G65.3b** rozkaz `assault` (auto / do wskazanej osady przez `ai.assault_duchy_party[_to]_recorded`; morale, RNG, `last_battle`); ARCHITECTURE, DECISIONS `G65.3b`. *(task-317)*
+- [x] **G65.3c** rozkaz `engage` (auto / do wskazanego regionu przez `ai.engage_duchy_party[_to]_recorded`; morale, RNG, `last_battle`); ARCHITECTURE, DESIGN §11, DECISIONS `G65.3c`. *(task-318)*
