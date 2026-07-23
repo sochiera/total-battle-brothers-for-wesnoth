@@ -619,3 +619,58 @@ def test_session_last_battle_field_and_snapshot_embeds_battle_state():
     assert json.dumps(snap2) == json.dumps(snap)
     assert s.last_battle is battle
     assert s.snapshot() == snap_before
+
+
+def test_non_battle_transitions_reset_last_battle_to_none():
+    """G65.3a kryt-1: z sesji z ustawionym ``last_battle`` każde niebitewne
+    przejście — ``next_turn()`` oraz rozkazy ``develop``/``recruit``/
+    ``muster``/``march`` przez ``apply_command`` — produkuje nową sesję z
+    ``last_battle is None`` i snapshotem bez klucza ``battle``. Sesja wejściowa
+    pozostaje nietknięta.
+    """
+    from tbb.ai import develop_duchy_settlement, muster_duchy_party, recruit_duchy_unit
+    from tbb.battle import BattleSide, HexBattle
+    from tbb.battlefield import Battlefield
+    from tbb.hex import Hex
+    from tbb.terrain import FOREST, PLAINS
+    from tbb.unit import Unit
+
+    # --- Przygotowanie sesji z realną, trwającą bitwą. ---
+    s = new_session(73, "player")
+    attacker = Unit(training=2)
+    defender = Unit(training=1, equipment=1)
+    battlefield = Battlefield({Hex(1, -1): FOREST, Hex(0, 0): PLAINS})
+    battle = HexBattle(battlefield)
+    battle = battle.deploy(defender, Hex(0, 0), BattleSide.DEFENDER)
+    battle = battle.deploy(attacker, Hex(1, -1), BattleSide.ATTACKER)
+    assert battle.result() is None
+
+    s.last_battle = battle
+    before = copy.deepcopy(s.snapshot())
+    assert "battle" in before
+
+    # --- next_turn() zeruje pole i snapshot. ---
+    after_turn = s.next_turn()
+    assert after_turn is not s
+    assert after_turn.last_battle is None
+    assert "battle" not in after_turn.snapshot()
+
+    # --- _apply_order (develop) zeruje pole i snapshot. ---
+    after_order = apply_command(s, {"type": "order", "order": "develop"})
+    assert after_order is not s
+    assert after_order.last_battle is None
+    assert "battle" not in after_order.snapshot()
+
+    # --- Pozostałe niebitewne rozkazy również zerują pole. ---
+    for command in (
+        {"type": "order", "order": "recruit"},
+        {"type": "order", "order": "muster"},
+        {"type": "order", "order": "march"},
+    ):
+        after = apply_command(s, command)
+        assert after.last_battle is None, command
+        assert "battle" not in after.snapshot(), command
+
+    # --- Sesja wejściowa pozostaje nietknięta. ---
+    assert s.last_battle is battle
+    assert s.snapshot() == before
