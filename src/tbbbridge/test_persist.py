@@ -15,6 +15,7 @@ from tbb.settlement import Settlement
 from tbb.turn import Calendar
 from tbb.unit import Unit
 from tbb.wound import BRUISE, MAIMED, Wound
+from tbb.world import Region
 from tbbbridge import persist
 
 
@@ -540,5 +541,64 @@ def test_dump_and_load_settlement_do_not_mutate_input():
     data_before = copy.deepcopy(dumped)
 
     persist.load_settlement(dumped)
+
+    assert dumped == data_before
+
+
+def test_dump_region_returns_json_serializable_dict_with_name():
+    """G67.2c kryt-1: ``dump_region(region)`` zwraca json-serializowalny
+    ``dict`` z kluczem ``name`` (= ``region.name``); wynik przechodzi
+    ``json.dumps``."""
+    region = Region(name="Oakhaven")
+
+    dumped = persist.dump_region(region)
+
+    assert dumped == {"name": "Oakhaven"}
+    json.dumps(dumped)
+
+
+def test_load_region_returns_region_from_dict_name():
+    """G67.2c kryt-2: ``load_region({"name": "Rivermouth"})`` zwraca
+    ``Region(name="Rivermouth")``."""
+    data = {"name": "Rivermouth"}
+
+    loaded = persist.load_region(data)
+
+    assert loaded == Region(name="Rivermouth")
+
+
+def test_round_trip_load_dump_restores_region_equality_various():
+    """G67.2c kryt-2: dla dowolnego ``Region r`` zachodzi
+    ``load_region(dump_region(r)) == r`` (równość dataclass)."""
+    samples = [
+        Region(name="Oakhaven"),
+        Region(name="Rivermouth"),
+        Region(name=""),
+        Region(name="Freehold"),
+    ]
+
+    for region in samples:
+        round_tripped = persist.load_region(persist.dump_region(region))
+        assert round_tripped == region
+
+
+def test_dump_and_load_region_do_not_mutate_input():
+    """G67.2c kryt-3: ``dump_region`` i ``load_region`` są czyste — nie mutują
+    wejścia (ani ``Region``, ani słownika danych).
+
+    ``Region`` ma ``frozen=True`` (immutable), ale test weryfikuje kontrakt
+    braku mutacji wejścia (idempotencja), wzorem par liściowych
+    (``dump_wound``/``load_wound``, ``dump_calendar``/``load_calendar``,
+    ``dump_and_load_settlement``).
+    """
+    region = Region(name="Oakhaven")
+    region_before = copy.copy(region)
+
+    dumped = persist.dump_region(region)
+
+    assert region == region_before
+    data_before = copy.deepcopy(dumped)
+
+    persist.load_region(dumped)
 
     assert dumped == data_before

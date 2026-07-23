@@ -11,6 +11,7 @@ from tbb.settlement import Settlement
 from tbb.turn import Calendar
 from tbb.unit import Unit
 from tbb.wound import Wound
+from tbb.world import Region
 
 
 def dump_resources(res: Resources) -> dict:
@@ -119,6 +120,16 @@ def load_party(data: dict) -> Party:
         units=tuple(load_unit(u) for u in data["units"]),
         owner_id=data["owner_id"],
     )
+
+
+def dump_region(region: Region) -> dict:
+    """Zwraca json-serializowalny słownik ``{"name": region.name}``."""
+    return {"name": region.name}
+
+
+def load_region(data: dict) -> Region:
+    """Odtwarza ``Region`` ze słownika wyprodukowanego przez ``dump_region``."""
+    return Region(name=data["name"])
 
 
 def dump_calendar(calendar: Calendar) -> dict:

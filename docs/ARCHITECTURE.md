@@ -180,6 +180,13 @@ z budynkami, garnizonem, `capacity=None` oraz `owner_id=None`) zachodzi
 `load_settlement(dump_settlement(s)) == s`. Obie funkcje są czyste, nie mutują
 wejścia i będą reużywane przez serializery wyższych kompozytów (świat, sesja).
 
+`dump_region(region: Region) -> dict` (G67.2c) zwraca json-serializowalny
+słownik `{"name": region.name}`. `load_region(data: dict) -> Region`
+odtwarza `Region(name=data["name"])`. Dla każdego `Region r` zachodzi
+`load_region(dump_region(r)) == r`. Obie funkcje są czyste, nie mutują wejścia
+i będą reużywane przez serializery wyższych kompozytów (`WorldMap` używa
+identyczności regionów do połączeń i mapowań osad/party).
+
 ### Most poleceń (G65)
 
 Most `tbbbridge` daje również kanał **IN** — uchwyt sesji, przez który
