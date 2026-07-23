@@ -106,3 +106,47 @@ def test_dump_wound_returns_json_serializable_dict_with_name_accuracy_defense_du
     }
     assert json.dumps(dumped_bruise)
     assert json.dumps(dumped_maimed)
+
+
+def test_round_trip_load_dump_restores_wound_equality_bruise_and_maimed():
+    """G67.1b kryt-2: dla każdej rany (w tym ``BRUISE`` z ``duration_months=2``
+    oraz ``MAIMED`` z ``duration_months=None``) zachodzi
+    ``load_wound(dump_wound(w)) == w``."""
+    samples = [
+        BRUISE,
+        MAIMED,
+        Wound(name="Cut", accuracy_mod=-1, defense_mod=0, duration_months=1),
+        Wound(name="Shatter", accuracy_mod=0, defense_mod=-3, duration_months=4),
+    ]
+
+    for wound in samples:
+        round_tripped = persist.load_wound(persist.dump_wound(wound))
+        assert round_tripped == wound
+
+
+def test_dump_wound_does_not_mutate_input_wound():
+    """G67.1b kryt-3: ``dump_wound`` jest czysta — nie mutuje wejściowego ``Wound``.
+
+    ``Wound`` ma ``frozen=True`` (immutable), ale test weryfikuje kontrakt
+    braku mutacji wejścia (idempotencja)."""
+    wound = Wound(name="Bruise", accuracy_mod=-1, defense_mod=-1, duration_months=2)
+    wound_before = copy.copy(wound)
+
+    persist.dump_wound(wound)
+
+    assert wound == wound_before
+
+
+def test_load_wound_does_not_mutate_input_dict():
+    """G67.1b kryt-3: ``load_wound`` jest czysta — nie mutuje słownika wejściowego."""
+    data = {
+        "name": "Maimed",
+        "accuracy_mod": -2,
+        "defense_mod": -2,
+        "duration_months": None,
+    }
+    data_before = copy.deepcopy(data)
+
+    persist.load_wound(data)
+
+    assert data == data_before
