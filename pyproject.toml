@@ -16,5 +16,6 @@ where = ["src"]
 [tool.pytest.ini_options]
 # Dzięki temu `import tbb` działa bez instalacji pakietu.
 pythonpath = ["src"]
-testpaths = ["tests"]
+# Testy modułowe mogą leżeć obok kodu (src/...) albo w tests/.
+testpaths = ["tests", "src"]
 addopts = "-q"
