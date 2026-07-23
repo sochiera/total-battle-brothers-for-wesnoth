@@ -735,3 +735,38 @@ def test_serve_stream_save_load_roundtrip_restores_snapshot_and_rng_sequence():
         assert seq_save == seq_load, (
             f"Sekwencja RNG po save ({seq_save}) nie jest identyczna jak po load ({seq_load})"
         )
+
+
+def test_command_result_snapshot_returns_kind_snapshot():
+    """G69.1a kryt-2: ``command_result(before, after, {"type": "snapshot"})``
+    zwraca dokładnie ``{"kind": "snapshot"}`` (bez kluczy ``changed``, ``date``
+    czy innych). Dla ``snapshot`` ``before`` i ``after`` to ta sama sesja
+    (identycznościowo). Wynik przechodzi ``json.dumps``.
+    """
+    s = new_session(73, "player")
+    result = command_result(s, s, {"type": "snapshot"})
+
+    assert result == {"kind": "snapshot"}
+    assert "changed" not in result
+    assert "date" not in result
+    json.dumps(result)
+
+
+def test_handle_command_line_snapshot_returns_same_session_with_snapshot_and_result():
+    """G69.1a kryt-3: ``handle_command_line(session, '{"type": "snapshot"}')``
+    zwraca krotkę ``(session, resp)`` gdzie sesja wyjściowa jest **tą samą**
+    (identycznościowo) sesją wejściową — bez mutacji — a
+    ``resp == {"ok": True, "snapshot": session.snapshot(), "result": {"kind":
+    "snapshot"}}``; ``json.dumps(resp)`` nie rzuca.
+    """
+    s = new_session(73, "player")
+    before_snapshot = copy.deepcopy(s.snapshot())
+
+    returned_session, resp = handle_command_line(s, '{"type": "snapshot"}')
+
+    assert returned_session is s
+    assert resp["ok"] is True
+    assert resp["snapshot"] == before_snapshot
+    assert resp["result"] == {"kind": "snapshot"}
+    json.dumps(resp)
+    assert s.snapshot() == before_snapshot
