@@ -206,3 +206,52 @@ def test_main_serve_resume_next_turn_uses_state_from_file(tmp_path):
     assert resp["snapshot"] == expected_snapshot
     # Asertacja negatywna: to nie może być wynik next_turn na domyślnej sesji
     assert resp["snapshot"] != apply_command(new_session(), {"type": "next_turn"}).snapshot()
+
+
+def test_main_serve_resume_nonexistent_path_returns_one_writes_stderr_no_stdout(tmp_path):
+    """G69.2b kryt-1: ``main(["serve", "--resume", <nieistniejąca_ścieżka>], stdin=<io>,
+    stdout=<io>, stderr=<io>)`` **nie** startuje ``serve_stream`` (żadnej linii na
+    ``stdout``), pisze niepusty komunikat błędu na ``stderr`` i zwraca ``1``.
+    """
+    nonexistent_path = tmp_path / "does_not_exist.json"
+    assert not nonexistent_path.exists()
+
+    in_stream = io.StringIO('{"type": "snapshot"}\n')
+    out_stream = io.StringIO()
+    err_stream = io.StringIO()
+
+    rc = main(
+        ["serve", "--resume", str(nonexistent_path)],
+        stdin=in_stream,
+        stdout=out_stream,
+        stderr=err_stream,
+    )
+
+    assert rc == 1
+    assert out_stream.getvalue() == ""
+    assert err_stream.getvalue() != ""
+
+
+def test_main_serve_resume_invalid_json_returns_one_writes_stderr_no_stdout(tmp_path):
+    """G69.2b kryt-2: Dla pliku z niepoprawnym JSON-em (``json.JSONDecodeError`` z
+    ``read_session``): brak wyjścia na ``stdout``, niepusty komunikat na ``stderr``,
+    kod ``1``; ``stdin`` nie jest czytany.
+    """
+    invalid_json_path = tmp_path / "invalid.json"
+    invalid_json_path.write_text("not valid json {", encoding="utf-8")
+
+    in_stream = io.StringIO('{"type": "snapshot"}\n')
+    out_stream = io.StringIO()
+    err_stream = io.StringIO()
+
+    rc = main(
+        ["serve", "--resume", str(invalid_json_path)],
+        stdin=in_stream,
+        stdout=out_stream,
+        stderr=err_stream,
+    )
+
+    assert rc == 1
+    assert out_stream.getvalue() == ""
+    assert err_stream.getvalue() != ""
+    assert in_stream.tell() == 0

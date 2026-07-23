@@ -6,6 +6,7 @@ Podkomenda ``serve`` startuje interaktywną sesję JSON Lines na stdin/stdout.
 ``serve --resume <path>`` wznawia zapisaną partię z pliku.
 """
 
+import json
 import os
 import sys
 
@@ -41,6 +42,7 @@ def main(
     *,
     stdin: object = sys.stdin,
     stdout: object = sys.stdout,
+    stderr: object = sys.stderr,
 ) -> int:
     """CLI entry point for ``tbbbridge``.
 
@@ -55,7 +57,11 @@ def main(
         argv = sys.argv[1:]
 
     if argv and argv[0] == "serve":
-        session = _session_for_serve(argv)
+        try:
+            session = _session_for_serve(argv)
+        except (OSError, json.JSONDecodeError) as exc:
+            print(str(exc), file=stderr)
+            return 1
         serve_stream(session, stdin, stdout)
         return 0
 
