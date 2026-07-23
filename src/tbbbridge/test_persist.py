@@ -958,3 +958,53 @@ def test_dump_gamestate_returns_json_serializable_dict_with_duchies_key_in_order
         d.duchy_id for d in game.duchies
     ]
     json.dumps(dumped)
+
+
+def test_round_trip_load_dump_restores_gamestate_equality_multiple_duchies_hero_none_settlements_parties():
+    """G67.2f kryt-2: dla dowolnego ``GameState g`` (w tym z wieloma księstwami,
+    księstwem bez bohatera i księstwem z osadami/drużynami) zachodzi
+    ``load_gamestate(dump_gamestate(g)) == g``.
+
+    ``load_gamestate`` reużywa ``load_duchy`` (``duchies`` jako krotka). Próbki
+    naraz: pełne księstwo z bohaterem+dziedzicem+osadą+drużyną, księstwo z
+    bohaterem bez dziedzica, oraz ``hero=None`` (puste osady/drużyny), oraz
+    jednoksięstwowy ``GameState`` — weryfikują pełny round-trip ``GameState``.
+    """
+    from tbb.game import GameState
+
+    samples = [
+        GameState(tuple(_sample_duchies())),
+        GameState(tuple(_sample_duchies()[:1])),
+        GameState(tuple(_sample_duchies()[1:])),
+    ]
+
+    for game in samples:
+        round_tripped = persist.load_gamestate(persist.dump_gamestate(game))
+
+        assert round_tripped == game
+        assert isinstance(round_tripped.duchies, tuple)
+        assert round_tripped.duchies == game.duchies
+
+
+def test_dump_and_load_gamestate_do_not_mutate_input():
+    """G67.2f kryt-3: ``dump_gamestate`` i ``load_gamestate`` są czyste — nie
+    mutują wejścia (ani ``GameState``, ani słownika danych).
+
+    ``GameState`` jest immutable (``frozen=True``), ale test weryfikuje kontrakt
+    braku mutacji wejścia (idempotencja), wzorem par liściowych
+    (``dump_duchy``/``load_duchy``, ``dump_and_load_duchy``).
+    """
+    from tbb.game import GameState
+
+    game = GameState(tuple(_sample_duchies()))
+    duchies_before = game.duchies
+
+    dumped = persist.dump_gamestate(game)
+
+    assert game.duchies == duchies_before
+    data_before = copy.deepcopy(dumped)
+
+    persist.load_gamestate(dumped)
+
+    assert game.duchies == duchies_before
+    assert dumped == data_before
