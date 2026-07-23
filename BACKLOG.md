@@ -102,14 +102,22 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > serializację w nowym module `tbbbridge.persist` — **oddolnie**, od typów
 > liściowych ku kompozytom (osada/party/świat/sesja w kolejnych wsadach). Rdzeń
 > `tbb` bez zmian; most reużywa wyłącznie publiczne API i konstruktory rdzenia.
-- [ ] **G67.1a** `tbbbridge.persist.dump_resources`/`load_resources` — round-trip `Resources`; ARCHITECTURE (nowa sekcja „Persystencja round-trip"), DECISIONS `G67.1a`. *(task-324)*
-- [ ] **G67.1b** `tbbbridge.persist.dump_wound`/`load_wound` — round-trip `Wound` (w tym `duration_months=None`); ARCHITECTURE, DECISIONS `G67.1b`. *(task-325)*
-- [ ] **G67.1c** `tbbbridge.persist.dump_unit`/`load_unit` — round-trip `Unit` (filary, postęp, rany, ogłuszenie, zasięg); ARCHITECTURE, DECISIONS `G67.1c`. *(task-326)*
-- [ ] **G67.1d** `tbbbridge.persist.dump_building`/`load_building` — round-trip `Building` (reużycie serializera `Resources`); ARCHITECTURE, DECISIONS `G67.1d`. *(task-327)*
-- [ ] **G67.1e** `tbbbridge.persist.dump_calendar`/`load_calendar` — round-trip `Calendar`; ARCHITECTURE, DECISIONS `G67.1e`. *(task-328)*
-> **Dalej (kolejne wsady):** serializacja RNG (state), `Settlement` (garnizon,
-> obsada, stan otwarcia budynków), `Party`, `Region`/`WorldMap`, `GameState`,
-> `Session`; komendy `save`/`load` w protokole JSON Lines + `load_state` plikowe.
+> **G67.1 liście — UKOŃCZONE.** Round-trip typów liściowych w `tbbbridge.persist`:
+> `dump/load_resources` (G67.1a), `dump/load_wound` (G67.1b, w tym
+> `duration_months=None`), `dump/load_unit` (G67.1c), `dump/load_building`
+> (G67.1d), `dump/load_calendar` (G67.1e). Szczegóły w `docs/ARCHITECTURE.md`
+> (sekcja „Persystencja round-trip") i `docs/DECISIONS.md`. *(task-324…328)*
+
+### G67.2 — kompozyty persystencji (oddolnie ku sesji)
+- [ ] **G67.2a** `tbbbridge.persist.dump_party`/`load_party` — round-trip `Party` (reużycie `load_unit`); ARCHITECTURE, DECISIONS `G67.2a`. *(task-329)*
+- [ ] **G67.2b** `tbbbridge.persist.dump_settlement`/`load_settlement` — round-trip `Settlement` (reużycie `load_building`/`load_resources`/`load_unit`); ARCHITECTURE, DECISIONS `G67.2b`. *(task-330)*
+- [ ] **G67.2c** `tbbbridge.persist.dump_region`/`load_region` — round-trip `Region` (liść mapy); ARCHITECTURE, DECISIONS `G67.2c`. *(task-331)*
+- [ ] **G67.2d** `tbbbridge.persist.dump_world`/`load_world` — round-trip `WorldMap` (regiony, połączenia, osady/party; identyczność regionów przez indeksy); ARCHITECTURE, DECISIONS `G67.2d`. *(task-332)*
+- [ ] **G67.2e** `tbbbridge.persist.dump_duchy`/`load_duchy` — round-trip `Duchy` (reużycie `load_unit`/`load_settlement`/`load_party`; `hero`/`heir` opcjonalne); ARCHITECTURE, DECISIONS `G67.2e`. *(task-333)*
+> **Dalej (kolejne wsady):** serializacja RNG (state — wymaga seamu w rdzeniu,
+> osobny wsad), `GameState` (reużycie `load_duchy`), `Session`
+> (world/game/calendar/rng/seed/player_duchy_id/last_battle); komendy
+> `save`/`load` w protokole JSON Lines + `load_state` plikowe.
 
 ## Dług/refaktor
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*
