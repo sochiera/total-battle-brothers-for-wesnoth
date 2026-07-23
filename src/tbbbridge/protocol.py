@@ -4,6 +4,14 @@ import json
 
 from tbbbridge.session import Session, apply_command, new_session
 
+_BATTLE_ORDERS = ("assault", "engage")
+
+_BATTLE_OUTCOME = {
+    "attacker_win": "zwycięstwo",
+    "defender_win": "porażka",
+    "draw": "remis",
+}
+
 
 def command_result(before: Session, after: Session, command: dict) -> dict:
     """Maszynowe podsumowanie skutku komendy (sterującej lub niebitewnej)."""
@@ -19,9 +27,20 @@ def command_result(before: Session, after: Session, command: dict) -> dict:
         return {"kind": "new_game"}
 
     if command_type == "order":
+        order_name = command["order"]
+        if order_name in _BATTLE_ORDERS and after.last_battle is not None:
+            report = after.last_battle.report()
+            outcome = _BATTLE_OUTCOME.get(report.result.value)
+            return {
+                "kind": "battle",
+                "order": order_name,
+                "outcome": outcome,
+                "attacker_losses": len(report.attacker.fallen),
+                "defender_losses": len(report.defender.fallen),
+            }
         return {
             "kind": "order",
-            "order": command["order"],
+            "order": order_name,
             "changed": after.world is not before.world,
         }
 

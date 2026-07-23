@@ -181,6 +181,20 @@ Rozkaz jest no-opem (zwraca równoważną sesję z identycznymi
 Nieznana wartość `order` podnosi `ValueError`. Funkcja jest czysta względem
 wejściowej sesji — nigdy jej nie mutuje.
 
+`command_result(before, after, command)` (G66.2a/G66.2b) to json-serializowalne,
+czyste podsumowanie skutku komendy. Dla `next_turn` zwraca
+`{"kind": "turn", "date": {"year": ..., "month": ...}}`, dla `new_game`
+`{"kind": "new_game"}`, dla rozkazów niebitewnych
+`{"kind": "order", "order": name, "changed": <bool>}` (różność obiektów
+`world`). Dla rozkazów bojowych `assault`/`engage`, gdy `after.last_battle is not
+None`, zwraca `{"kind": "battle", "order": name, "outcome": ..., "attacker_losses": int,
+"defender_losses": int}`: `outcome` mapowany jest z perspektywy atakującego
+z `report.result.value` (`"attacker_win"` → `"zwycięstwo"`, `"defender_win"` →
+`"porażka"`, `"draw"` → `"remis"`, inne → `None`), straty to liczności
+`report.attacker.fallen` / `report.defender.fallen`). Gdy rozkaz bojowy nie
+rozegrał bitwy (`after.last_battle is None`), zachowuje gałąź `kind: "order"`
+spójnie z rozkazami niebitewnymi.
+
 #### Protokół JSON Lines (G66.1a)
 
 Warstwa transportu mostu to cienki proces-most stdio:

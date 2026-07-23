@@ -297,3 +297,125 @@ def test_command_result_turn_and_new_game_kinds_match_after_calendar_and_are_jso
     assert "date" not in result_new
     assert "changed" not in result_new
     json.dumps(result_new)
+
+
+def _build_battle_session_assault():
+    """Sesja z sąsiednią wrogą osadą — ``assault`` rozegra bitwę (last_battle)."""
+    from tbb.duchy import Duchy
+    from tbb.party import Party
+    from tbb.settlement import Settlement
+    from tbb.unit import Unit
+    from tbb.world import Region, WorldMap
+    from tbb.turn import Calendar
+    from tbb.rng import Rng
+    from tbb.game import GameState
+
+    start, near = Region("Start"), Region("Near")
+    party = Party(Unit(training=5, equipment=6), owner_id="north")
+    near_keep = Settlement(
+        "Near Keep", population=1, garrison=(Unit(equipment=1),), owner_id="south"
+    )
+    world = WorldMap(
+        [start, near],
+        [(start, near)],
+        settlements={near: near_keep},
+        parties={start: party},
+    )
+    game = GameState(
+        (
+            Duchy("north", party.hero, morale=10, parties=(party,)),
+            Duchy("south", Unit(), morale=-5, settlements=(near_keep,)),
+        )
+    )
+    return Session(
+        world=world,
+        game=game,
+        calendar=Calendar(year=2, month=3),
+        rng=Rng(2),
+        player_duchy_id="north",
+        seed=2,
+    )
+
+
+def test_command_result_battle_order_with_last_battle_returns_kind_battle_with_outcome_and_losses():
+    """G66.2b kryt-1: ``command_result(before, after, {"type": "order",
+    "order": "assault"})`` gdy ``after.last_battle is not None`` zwraca
+    ``{"kind": "battle", "order": "assault", "outcome": <str|None>,
+    "attacker_losses": int, "defender_losses": int}`` gdzie ``outcome`` jest
+    mapowane z perspektywy atakującego z ``after.last_battle.report().result.value``
+    (``"attacker_win"`` → ``"zwycięstwo"``, ``"defender_win"`` → ``"porażka"``,
+    ``"draw"`` → ``"remis"``), a straty == ``len(report.attacker.fallen)`` /
+    ``len(report.defender.fallen)``. Wynik przechodzi ``json.dumps``.
+
+    Scenariusz: party gracza (north) szturmem uderza na sąsiednią wrogą osadę
+    (south). ``after.last_battle`` jest rozegrana bitwą z realnym
+    ``BattleResult`` i poległymi, więc ``command_result`` musi odczytać raport
+    zamiast zwracać gałąź ``kind: "order"``.
+    """
+    from tbb.battle import BattleResult
+
+    s = _build_battle_session_assault()
+    after = apply_command(s, {"type": "order", "order": "assault"})
+
+    # Warunki scenariusza: bitwa wybuchła i jest rozstrzygnięta.
+    assert after.last_battle is not None
+    report = after.last_battle.report()
+    assert isinstance(report.result, BattleResult)
+
+    result = command_result(s, after, {"type": "order", "order": "assault"})
+
+    # Oczekiwane mapowanie outcome z perspektywy atakującego.
+    _outcome_from_result = {
+        BattleResult.ATTACKER_WIN: "zwycięstwo",
+        BattleResult.DEFENDER_WIN: "porażka",
+        BattleResult.DRAW: "remis",
+    }
+    expected_outcome = _outcome_from_result[report.result]
+    expected = {
+        "kind": "battle",
+        "order": "assault",
+        "outcome": expected_outcome,
+        "attacker_losses": len(report.attacker.fallen),
+        "defender_losses": len(report.defender.fallen),
+    }
+    assert result == expected
+
+    # outcome jest str (rozstrzygnięta bitwa w tym scenariuszu).
+    assert isinstance(result["outcome"], str)
+    assert result["outcome"] in ("zwycięstwo", "porażka", "remis")
+    assert isinstance(result["attacker_losses"], int)
+    assert isinstance(result["defender_losses"], int)
+    # Brak klucza "changed" w gałęzi bitewnej.
+    assert "changed" not in result
+    # json-serializowalny.
+    json.dumps(result)
+
+
+def test_command_result_battle_order_without_last_battle_returns_kind_order_changed():
+    """G66.2b kryt-2: gdy rozkaz bojowy (``assault``) nie rozegrał bitwy
+    (``after.last_battle is None`` — guard albo brak sąsiedniego celu) →
+    ``command_result`` zwraca ``{"kind": "order", "order": "assault",
+    "changed": (after.world is not before.world)}``, spójnie z rozkazami
+    niebitewnymi (G66.2a). Wynik przechodzi ``json.dumps``.
+
+    Scenariusz guard: sesja bez ``player_duchy_id`` (``None``) →
+    ``_resolve_player_duchy`` zwraca ``None`` i ``_apply_battle_order`` zwraca
+    pochodną sesji z tymiż obiektami ``world``/``game``/``calendar`` oraz
+    ``last_battle is None``, więc ``changed is False``.
+    """
+    s = _build_battle_session_assault()
+    s.player_duchy_id = None
+    after = apply_command(s, {"type": "order", "order": "assault"})
+
+    # Warunki scenariusza: guard → no-op, brak bitwy, world niezmieniony.
+    assert after.last_battle is None
+    assert after.world is s.world
+
+    result = command_result(s, after, {"type": "order", "order": "assault"})
+
+    assert result == {
+        "kind": "order",
+        "order": "assault",
+        "changed": False,
+    }
+    json.dumps(result)
