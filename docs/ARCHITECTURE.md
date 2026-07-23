@@ -210,6 +210,15 @@ zwraca jedną linię `{"ok": false, ...}` i **nie** przerywa pętli —
 kolejne linie są nadal obsługiwane. Po EOF zwracana jest końcowa sesja
 (efekt sekwencyjnego zastosowania wszystkich poprawnych komend).
 
+`python -m tbbbridge serve [seed]` (G66.1c) uruchamia
+`tbbbridge.__main__.main` z podkomendą `serve`. Gdy `argv[0] == "serve"`,
+punkt wejścia tworzy świeżą sesję `new_session(seed=int(argv[1])`
+(domyslnie `73`), po czym wywołuje `serve_stream(session, sys.stdin,
+sys.stdout)`. Strumienie są wstrzykiwane jako keyword-only argumenty
+(`stdin`, `stdout`) dla testowalności. Dotychczasowe zachowanie CLI
+(snapshot headless do pliku) pozostaje nietknięte dla każdego innego
+argumentu pozycyjnego.
+
 
 ### Prezentacja (pakiet `tbbui`, Kamień 13)
 Warstwa render/UI jest **poza rdzeniem**. `python -m tbb` nadal uruchamia

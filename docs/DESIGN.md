@@ -349,7 +349,8 @@ uchwyt sesji `tbbbridge.session.Session` i json-owy punkt wejścia
 zaczyna nową grę (`new_game`) i wydaje rozkazy księstwu gracza (`order`:
 rozwój / rekrutacja / zbiórka / marsz / szturm / starcie — reużycie prymitywów `ai.*`, bez logiki
 reguł w moście). Transportem między Godotem a rdzeniem jest **proces-most stdio**:
-`python -m tbbbridge serve [seed]` czyta z stdin linie-komendy JSON (JSON Lines)
+`python -m tbbbridge serve [seed]` startuje `new_session(seed=...)` i uruchamia
+`serve_stream` na stdin/stdout: czyta z stdin linie-komendy JSON (JSON Lines)
 i wypisuje na stdout linie-odpowiedzi `{"ok", "snapshot"|"error", "result"?}` —
 `result` to maszynowe podsumowanie skutku komendy dla dziennika kampanii
 (tura / nowa gra / rozkaz z flagą `changed` / bitwa z wynikiem i stratami).
