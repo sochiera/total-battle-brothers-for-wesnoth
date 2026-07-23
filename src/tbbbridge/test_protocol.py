@@ -684,3 +684,54 @@ def test_handle_command_line_save_oserror_returns_error_without_write():
         assert not os.path.exists(os.path.join(tmpdir, "nonexistent-dir"))
         # Sesja nie jest mutowana.
         assert s.snapshot() == before_snapshot
+
+
+def test_serve_stream_save_load_roundtrip_restores_snapshot_and_rng_sequence():
+    """G68.2c kryt-1/2: ``serve_stream`` z sekwencją ``order``→``save``→``new_game``→``load``
+    przywraca snapshot identyczny z momentu zapisu (przed ``new_game``) oraz przywraca
+    stan RNG — dalsza sekwencja ``rng.randint(1, 100)`` po ``load`` jest identyczna
+    jak bezpośrednio po ``save``. Plik tymczasowy jest sprzątany.
+    """
+    import os
+    import tempfile
+    from tbb.rng import Rng
+    from tbbbridge.persist import read_session
+
+    s0 = new_session(73, "player")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        save_path = os.path.join(tmpdir, "roundtrip-test.json")
+
+        in_stream = io.StringIO(
+            json.dumps({"type": "order", "order": "develop"}) + "\n"
+            + json.dumps({"type": "save", "path": save_path}) + "\n"
+            + json.dumps({"type": "new_game"}) + "\n"
+            + json.dumps({"type": "load", "path": save_path}) + "\n"
+        )
+        out_stream = _FlushTrackingStream()
+
+        final_session = serve_stream(s0, in_stream, out_stream)
+
+        out_lines = out_stream.getvalue().splitlines()
+        assert len(out_lines) == 4, f"Oczekiwano 4 odpowiedzi, otrzymano {len(out_lines)}"
+
+        for i, line in enumerate(out_lines):
+            resp = json.loads(line)
+            assert resp.get("ok") is True, f"Odpowiedź {i} ma ok != True: {resp}"
+
+        save_resp = json.loads(out_lines[1])
+        load_resp = json.loads(out_lines[3])
+        assert load_resp["snapshot"] == save_resp["snapshot"], (
+            "Snapshot po load nie jest identyczny jak snapshot z save"
+        )
+
+        # Wczytaj sesję z pliku save, aby uzyskać stan RNG po save
+        saved_session = read_session(save_path)
+
+        # Porównaj sekwencję RNG: saved_session vs final_session (po load)
+        seq_save = [saved_session.rng.randint(1, 100) for _ in range(5)]
+        seq_load = [final_session.rng.randint(1, 100) for _ in range(5)]
+
+        assert seq_save == seq_load, (
+            f"Sekwencja RNG po save ({seq_save}) nie jest identyczna jak po load ({seq_load})"
+        )
