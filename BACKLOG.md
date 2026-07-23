@@ -96,6 +96,21 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 - [ ] **G66.2a** `command_result(before, after, command)` dla `next_turn`/`new_game`/rozkazów niebitewnych (`kind` turn/new_game/order + `changed`) + osadzenie w odpowiedzi `handle_command_line`; ARCHITECTURE, DECISIONS `G66.2a`. *(task-322)*
 - [ ] **G66.2b** `command_result` dla rozkazów bojowych `assault`/`engage` (`kind: "battle"` — outcome + straty z raportu bitwy); ARCHITECTURE, DECISIONS `G66.2b`. *(task-323)*
 
+## Kamień milowy 67 — persystencja partii: round-trip serializacja (fundament save/load) — PRIORYTET
+> DESIGN §11: gracz ma móc **zapisać/wczytać stan**. Dziś `save_state` daje tylko
+> stratny snapshot (widok OUT), bez odczytu. Budujemy w TDD round-trippowalną
+> serializację w nowym module `tbbbridge.persist` — **oddolnie**, od typów
+> liściowych ku kompozytom (osada/party/świat/sesja w kolejnych wsadach). Rdzeń
+> `tbb` bez zmian; most reużywa wyłącznie publiczne API i konstruktory rdzenia.
+- [ ] **G67.1a** `tbbbridge.persist.dump_resources`/`load_resources` — round-trip `Resources`; ARCHITECTURE (nowa sekcja „Persystencja round-trip"), DECISIONS `G67.1a`. *(task-324)*
+- [ ] **G67.1b** `tbbbridge.persist.dump_wound`/`load_wound` — round-trip `Wound` (w tym `duration_months=None`); ARCHITECTURE, DECISIONS `G67.1b`. *(task-325)*
+- [ ] **G67.1c** `tbbbridge.persist.dump_unit`/`load_unit` — round-trip `Unit` (filary, postęp, rany, ogłuszenie, zasięg); ARCHITECTURE, DECISIONS `G67.1c`. *(task-326)*
+- [ ] **G67.1d** `tbbbridge.persist.dump_building`/`load_building` — round-trip `Building` (reużycie serializera `Resources`); ARCHITECTURE, DECISIONS `G67.1d`. *(task-327)*
+- [ ] **G67.1e** `tbbbridge.persist.dump_calendar`/`load_calendar` — round-trip `Calendar`; ARCHITECTURE, DECISIONS `G67.1e`. *(task-328)*
+> **Dalej (kolejne wsady):** serializacja RNG (state), `Settlement` (garnizon,
+> obsada, stan otwarcia budynków), `Party`, `Region`/`WorldMap`, `GameState`,
+> `Session`; komendy `save`/`load` w protokole JSON Lines + `load_state` plikowe.
+
 ## Dług/refaktor
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*
 - [x] **R21.1 (refaktor)** Wspólny emiter formularzy celu marsz/szturm/starcie w `serve.py`. *(task-113)*
