@@ -737,6 +737,59 @@ def test_serve_stream_save_load_roundtrip_restores_snapshot_and_rng_sequence():
         )
 
 
+def test_serve_stream_save_new_game_load_restores_last_battle_snapshot_and_report():
+    """G70.2b: ``serve_stream`` z sesją mającą rozstrzygniętą ``last_battle``
+    w sekwencji ``save`` → ``new_game`` → ``load`` (publiczne
+    ``save_session`` / ``read_session``) przywraca
+    ``load.snapshot["battle"]`` identyczne z ``save.snapshot["battle"]``
+    oraz końcową sesję z ``last_battle.report()`` równym raportowi bitwy
+    zapisanej przed round-tripem. Bez nowego API protokołu.
+    """
+    import os
+    import tempfile
+
+    s = apply_command(
+        _build_battle_session_assault(),
+        {"type": "order", "order": "assault"},
+    )
+    assert s.last_battle is not None
+    assert "battle" in s.snapshot()
+    expected_report = s.last_battle.report()
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        save_path = os.path.join(tmpdir, "last-battle-roundtrip.json")
+
+        in_stream = io.StringIO(
+            json.dumps({"type": "save", "path": save_path}) + "\n"
+            + json.dumps({"type": "new_game"}) + "\n"
+            + json.dumps({"type": "load", "path": save_path}) + "\n"
+        )
+        out_stream = _FlushTrackingStream()
+
+        final_session = serve_stream(s, in_stream, out_stream)
+
+        out_lines = out_stream.getvalue().splitlines()
+        assert len(out_lines) == 3, (
+            f"Oczekiwano 3 odpowiedzi, otrzymano {len(out_lines)}"
+        )
+
+        for i, line in enumerate(out_lines):
+            resp = json.loads(line)
+            assert resp.get("ok") is True, f"Odpowiedź {i} ma ok != True: {resp}"
+
+        save_resp = json.loads(out_lines[0])
+        new_game_resp = json.loads(out_lines[1])
+        load_resp = json.loads(out_lines[2])
+
+        assert "battle" in save_resp["snapshot"]
+        assert "battle" not in new_game_resp["snapshot"]
+        assert "battle" in load_resp["snapshot"]
+        assert load_resp["snapshot"]["battle"] == save_resp["snapshot"]["battle"]
+
+        assert final_session.last_battle is not None
+        assert final_session.last_battle.report() == expected_report
+
+
 def test_command_result_snapshot_returns_kind_snapshot():
     """G69.1a kryt-2: ``command_result(before, after, {"type": "snapshot"})``
     zwraca dokładnie ``{"kind": "snapshot"}`` (bez kluczy ``changed``, ``date``
