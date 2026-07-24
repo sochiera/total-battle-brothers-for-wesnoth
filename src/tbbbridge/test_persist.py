@@ -1152,12 +1152,12 @@ def test_load_rng_does_not_mutate_input_dict():
     assert data == data_before
 
 
-def test_dump_session_returns_json_serializable_dict_with_keys_world_game_calendar_rng_player_duchy_id_seed_no_last_battle():
-    """G67.4a kryt-1: ``dump_session(session)`` zwraca json-serializowalny
+def test_dump_session_returns_json_serializable_dict_with_keys_world_game_calendar_rng_player_duchy_id_seed_and_last_battle():
+    """G67.4a/G70.2a: ``dump_session(session)`` zwraca json-serializowalny
     ``dict`` z kluczami ``world`` (= ``dump_world``), ``game`` (= ``dump_gamestate``),
     ``calendar`` (= ``dump_calendar``), ``rng`` (= ``dump_rng``), ``player_duchy_id``
-    (``str | None``) oraz ``seed`` (int); klucza ``last_battle`` **brak**; wynik
-    przechodzi ``json.dumps``.
+    (``str | None``), ``seed`` (int) oraz ``last_battle`` (``None`` gdy brak bitwy);
+    wynik przechodzi ``json.dumps``.
     """
     from tbb.game import GameState
 
@@ -1180,8 +1180,9 @@ def test_dump_session_returns_json_serializable_dict_with_keys_world_game_calend
         "rng",
         "player_duchy_id",
         "seed",
+        "last_battle",
     }
-    assert "last_battle" not in dumped
+    assert dumped["last_battle"] is None
     assert dumped["world"] == persist.dump_world(session.world)
     assert dumped["game"] == persist.dump_gamestate(session.game)
     assert dumped["calendar"] == persist.dump_calendar(session.calendar)
@@ -1191,32 +1192,50 @@ def test_dump_session_returns_json_serializable_dict_with_keys_world_game_calend
     json.dumps(dumped)
 
 
-def test_dump_session_with_last_battle_omits_last_battle_key():
-    """G67.4a kryt-1: ``dump_session`` dla sesji z ``last_battle`` ustawionym
-    również pomija klucz ``last_battle`` — pole jest nietrwałe.
+def test_dump_session_with_last_battle_includes_last_battle_key():
+    """G70.2a kryt-1: ``dump_session`` dla sesji z ``last_battle`` ustawionym
+    dokłada klucz ``last_battle`` = ``dump_battle(session.last_battle)``;
+    gdy ``last_battle is None``, klucz ma wartość ``None``;
+    ``json.dumps`` nie podnosi wyjątku.
     """
     from tbb.battle import BattleSide, HexBattle, Hex
     from tbb.game import GameState
     from tbb.terrain import PLAINS
 
-    session = Session(
+    battle = HexBattle(
+        battlefield={Hex(0, 0): PLAINS},
+        units={Hex(0, 0): Unit()},
+        sides={Hex(0, 0): BattleSide.ATTACKER},
+    )
+    session_with_battle = Session(
         world=_sample_world_with_settlement_and_party()[0],
         game=GameState(tuple(_sample_duchies()[:1])),
         calendar=Calendar(),
         rng=Rng(7),
         player_duchy_id="player",
         seed=7,
-        last_battle=HexBattle(
-            battlefield={Hex(0, 0): PLAINS},
-            units={Hex(0, 0): Unit()},
-            sides={Hex(0, 0): BattleSide.ATTACKER},
-        ),
+        last_battle=battle,
+    )
+    session_without_battle = Session(
+        world=_sample_world_with_settlement_and_party()[0],
+        game=GameState(tuple(_sample_duchies()[:1])),
+        calendar=Calendar(),
+        rng=Rng(7),
+        player_duchy_id="player",
+        seed=7,
+        last_battle=None,
     )
 
-    dumped = persist.dump_session(session)
+    dumped_with = persist.dump_session(session_with_battle)
+    dumped_without = persist.dump_session(session_without_battle)
 
-    assert "last_battle" not in dumped
-    json.dumps(dumped)
+    assert "last_battle" in dumped_with
+    assert dumped_with["last_battle"] == persist.dump_battle(battle)
+    assert json.dumps(dumped_with)
+
+    assert "last_battle" in dumped_without
+    assert dumped_without["last_battle"] is None
+    assert json.dumps(dumped_without)
 
 
 def test_round_trip_load_dump_session_restores_session_equality_and_rng_sequence():
@@ -1245,32 +1264,141 @@ def test_round_trip_load_dump_session_restores_session_equality_and_rng_sequence
     assert restored_rng_sequence == expected_continuation
 
 
-def test_round_trip_load_dump_session_with_last_battle_restores_with_last_battle_none():
-    """G67.4a kryt-3: Round-trip działa też dla sesji z ustawionym
-    ``last_battle`` (pole jest po prostu pomijane, wynik ``load_session`` ma
-    ``last_battle=None``).
-    """
+def test_load_session_with_last_battle_key_restores_battle():
+    """G70.2a kryt-2: ``load_session(data)`` z kluczem ``last_battle``
+    odtwarza ``last_battle = load_battle(data["last_battle"])``."""
     from tbb.battle import BattleSide, HexBattle, Hex
+    from tbb.battlefield import Battlefield
+    from tbb.game import GameState
     from tbb.terrain import PLAINS
-    from tbbbridge.session import new_session
 
-    s = new_session(seed=73, player_duchy_id="player")
-    dummy_battle = HexBattle(
-        battlefield={Hex(0, 0): PLAINS},
+    battle = HexBattle(
+        battlefield=Battlefield({Hex(0, 0): PLAINS}),
         units={Hex(0, 0): Unit()},
         sides={Hex(0, 0): BattleSide.ATTACKER},
     )
-    s.last_battle = dummy_battle
+    data = {
+        "world": persist.dump_world(_sample_world_with_settlement_and_party()[0]),
+        "game": persist.dump_gamestate(GameState(tuple(_sample_duchies()[:1]))),
+        "calendar": persist.dump_calendar(Calendar()),
+        "rng": persist.dump_rng(Rng(7)),
+        "player_duchy_id": "player",
+        "seed": 7,
+        "last_battle": persist.dump_battle(battle),
+    }
 
-    dumped = persist.dump_session(s)
-    r = persist.load_session(dumped)
+    session = persist.load_session(data)
 
-    assert r.last_battle is None
-    assert r.world == s.world
-    assert r.game == s.game
-    assert r.calendar == s.calendar
-    assert r.player_duchy_id == s.player_duchy_id
-    assert r.seed == s.seed
+    assert session.last_battle is not None
+    assert session.last_battle.battlefield == battle.battlefield
+    assert session.last_battle.unit_at(Hex(0, 0)) == battle.unit_at(Hex(0, 0))
+
+
+def test_load_session_without_last_battle_key_restores_none():
+    """G70.2a kryt-2: brak klucza ``last_battle`` (stary format) →
+    ``last_battle=None`` (zgodność wstecz)."""
+    from tbb.game import GameState
+
+    data = {
+        "world": persist.dump_world(_sample_world_with_settlement_and_party()[0]),
+        "game": persist.dump_gamestate(GameState(tuple(_sample_duchies()[:1]))),
+        "calendar": persist.dump_calendar(Calendar()),
+        "rng": persist.dump_rng(Rng(7)),
+        "player_duchy_id": "player",
+        "seed": 7,
+    }
+
+    session = persist.load_session(data)
+
+    assert session.last_battle is None
+
+
+def test_load_session_with_last_battle_none_restores_none():
+    """G70.2a kryt-2: ``last_battle`` = ``None`` w danych →
+    ``last_battle=None`` w sesji."""
+    from tbb.game import GameState
+
+    data = {
+        "world": persist.dump_world(_sample_world_with_settlement_and_party()[0]),
+        "game": persist.dump_gamestate(GameState(tuple(_sample_duchies()[:1]))),
+        "calendar": persist.dump_calendar(Calendar()),
+        "rng": persist.dump_rng(Rng(7)),
+        "player_duchy_id": "player",
+        "seed": 7,
+        "last_battle": None,
+    }
+
+    session = persist.load_session(data)
+
+    assert session.last_battle is None
+
+
+def test_round_trip_session_with_battle_preserves_last_battle_and_components():
+    """G70.2a kryt-3: Round-trip sesji z rozegraną bitwą (``Session`` z
+    ``last_battle`` z ``resolve_party_battle_recorded``) przez JSON zachowuje
+    ``last_battle`` (równy ``HexBattle`` i ``report()``) oraz dotychczasowe
+    komponenty (``world``/``game``/``calendar``/``seed``/``player_duchy_id`` i
+    dalszą sekwencję RNG).
+    """
+    from tbb.battle import HexBattle
+    from tbb.game import create_headless_game, GameState
+    from tbb.party import Party
+    from tbb.rng import Rng
+    from tbb.unit import Unit
+    from tbbbridge.session import new_session
+
+    world, game = create_headless_game()
+    rng = Rng(42)
+
+    player_region = world.regions[0]
+    ai_region = world.regions[1]
+
+    player_party = Party(hero=Unit(training=3, equipment=2), owner_id="player")
+    ai_party = Party(hero=Unit(training=2, equipment=3), owner_id="ai")
+
+    world = world.place_party(player_party, player_region)
+    world = world.place_party(ai_party, ai_region)
+
+    new_world, resolved_battle = world.resolve_party_battle_recorded(
+        player_region,
+        ai_region,
+        rng,
+        attacker_morale=0,
+        defender_morale=0,
+    )
+
+    assert resolved_battle is not None
+    assert resolved_battle.result() is not None
+
+    session = Session(
+        world=new_world,
+        game=game.sync_from_world(new_world),
+        calendar=Calendar(year=5, month=3),
+        rng=Rng(99),
+        player_duchy_id="player",
+        seed=123,
+        last_battle=resolved_battle,
+    )
+    original_report = resolved_battle.report()
+
+    dumped = persist.dump_session(session)
+    restored = persist.load_session(dumped)
+
+    assert restored.last_battle is not None
+    assert restored.last_battle == session.last_battle
+    assert restored.last_battle.report().result == original_report.result
+    assert restored.last_battle.report().attacker.fallen == original_report.attacker.fallen
+    assert restored.last_battle.report().defender.fallen == original_report.defender.fallen
+
+    assert restored.world == session.world
+    assert restored.game == session.game
+    assert restored.calendar == session.calendar
+    assert restored.player_duchy_id == session.player_duchy_id
+    assert restored.seed == session.seed
+
+    expected_rng = [session.rng.randint(1, 100) for _ in range(5)]
+    actual_rng = [restored.rng.randint(1, 100) for _ in range(5)]
+    assert actual_rng == expected_rng
 
 
 def test_dump_session_does_not_mutate_input_session():

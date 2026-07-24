@@ -240,19 +240,25 @@ co oryginał, a round-trip przez `json.loads(json.dumps(...))` zachowuje tę
 sekwencję. Obie funkcje są czyste i nie mutują wejścia; będą reużywane przez
 serializer `Session`.
 
-`dump_session(session: Session) -> dict` (G67.4a) zwraca json-serializowalny
-słownik z kluczami `world` (= `dump_world`), `game` (= `dump_gamestate`),
-`calendar` (= `dump_calendar`), `rng` (= `dump_rng`), `player_duchy_id`
-oraz `seed`. Klucza `last_battle` nie ma — pole to jest nietrwałym stanem
-prezentacji (widok OUT tuż po bitwie) i nie podlega persystencji.
+`dump_session(session: Session) -> dict` (G67.4a/G70.2a) zwraca
+json-serializowalny słownik z kluczami `world` (= `dump_world`), `game`
+(= `dump_gamestate`), `calendar` (= `dump_calendar`), `rng` (= `dump_rng`),
+`player_duchy_id`, `seed` oraz `last_battle`. Wartość `last_battle` to
+`dump_battle(session.last_battle)` gdy pole jest ustawione, a `None` gdy
+`session.last_battle is None`; `json.dumps(dump_session(session))` nie
+podnosi wyjątku dla obu przypadków.
 `load_session(data: dict) -> Session` odtwarza uchwyt sesji przez
 `load_world`/`load_gamestate`/`load_calendar`/`load_rng`, konstruując
 `Session(world, game, calendar, rng, player_duchy_id, seed,
-last_battle=None)`. Dla `s = new_session()` po round-tripie
+last_battle=...)`. Pole `last_battle` odtwarza się jako
+`load_battle(data["last_battle"])` gdy klucz istnieje i nie jest `None`,
+w przeciwnym razie `None`; brak klucza `last_battle` (stary format)
+→ `None` (zgodność wstecz). Dla `s = new_session()` po round-tripie
 `load_session(dump_session(s))` zachodzi równość `world`/`game`/`calendar`,
-równość `player_duchy_id`/`seed`, `last_battle is None`, a odtworzony RNG
-produkuje tę samą dalszą sekwencję co oryginał. Obie funkcje są czyste i
-nie mutują wejścia.
+równość `player_duchy_id`/`seed`, a odtworzony RNG produkuje tę samą
+dalszą sekwencję co oryginał; gdy `s.last_battle` było ustawione,
+również `last_battle` zostaje odtworzone równe oryginałowi i z równym
+`report()`. Obie funkcje są czyste i nie mutują wejścia.
 
 `save_session(session: Session, path: str | os.PathLike) -> None` (G68.1a)
 zapisuje `dump_session(session)` do pliku `path` jako UTF-8, formatując przez

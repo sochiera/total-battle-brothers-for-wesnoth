@@ -96,7 +96,11 @@ def dump_battlefield(battlefield: Battlefield) -> dict:
     Każdy element zawiera ``{"hex": dump_hex(h), "terrain": dump_terrain(t)}``
     dla nadpisanych heksów, uporządkowany deterministycznie po ``(q, r)``.
     Pusta mapa daje ``{"terrain": []}``.
+    Akceptuje też surowy ``Mapping[Hex, Terrain]`` (jak w konstruktorze
+    ``HexBattle``), normalizując go do ``Battlefield``.
     """
+    if not isinstance(battlefield, Battlefield):
+        battlefield = Battlefield(battlefield)
     entries = sorted(
         ({"hex": dump_hex(hex_coord), "terrain": dump_terrain(terrain)}
          for hex_coord, terrain in battlefield._terrain.items()),
@@ -443,8 +447,8 @@ def dump_session(session: Session) -> dict:
 
     Klucze: ``world`` (``dump_world``), ``game`` (``dump_gamestate``),
     ``calendar`` (``dump_calendar``), ``rng`` (``dump_rng``),
-    ``player_duchy_id`` (``str | None``), ``seed`` (int).
-    Klucza ``last_battle`` nie ma — pole jest nietrwałym stanem prezentacji.
+    ``player_duchy_id`` (``str | None``), ``seed`` (int) oraz
+    ``last_battle`` (``dump_battle`` lub ``None``).
     """
     return {
         "world": dump_world(session.world),
@@ -453,14 +457,22 @@ def dump_session(session: Session) -> dict:
         "rng": dump_rng(session.rng),
         "player_duchy_id": session.player_duchy_id,
         "seed": session.seed,
+        "last_battle": (
+            dump_battle(session.last_battle)
+            if session.last_battle is not None
+            else None
+        ),
     }
 
 
 def load_session(data: dict) -> Session:
     """Odtwarza ``Session`` ze słownika wyprodukowanego przez ``dump_session``.
 
-    ``last_battle`` jest zawsze ``None`` — stan bitwy nie podlega persystencji.
+    ``last_battle`` odtwarza się z ``load_battle(data["last_battle"])`` gdy
+    klucz istnieje i nie jest ``None``; inaczej ``None`` (zgodność wstecz ze
+    starym formatem bez tego klucza).
     """
+    raw_last_battle = data.get("last_battle")
     return Session(
         world=load_world(data["world"]),
         game=load_gamestate(data["game"]),
@@ -468,7 +480,9 @@ def load_session(data: dict) -> Session:
         rng=load_rng(data["rng"]),
         player_duchy_id=data["player_duchy_id"],
         seed=data["seed"],
-        last_battle=None,
+        last_battle=load_battle(raw_last_battle)
+        if raw_last_battle is not None
+        else None,
     )
 
 
