@@ -492,9 +492,11 @@ sterowaniem przez most.
 
 `SnapshotModel` (G71.1a2b1) jest częściową projekcją odpowiedzi mostu dla
 klienta. `SnapshotModel.from_response(response: Dictionary) -> SnapshotModel`
-odczytuje `response["snapshot"]["calendar"]`; publiczne pola `year: int` i
-`month: int` zawierają odpowiednio wartości `year` i `month` z tego słownika.
-Pozostałe pola snapshotu nie należą jeszcze do kontraktu modelu.
+odczytuje `response["snapshot"]["calendar"]` i
+`response["snapshot"]["map"]["regions"]`; publiczne pola `year: int` i
+`month: int` zawierają odpowiednio wartości `year` i `month` z kalendarza,
+a `regions: Array` zawiera listę regionów mapy. Pozostałe pola snapshotu nie
+należą jeszcze do kontraktu modelu.
 
 
 ## RNG / rdzeń (G67.3a)
