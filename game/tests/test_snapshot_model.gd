@@ -9,6 +9,7 @@ func _init() -> void:
 	var response := {"ok": true, "snapshot": snapshot}
 
 	var model := SnapshotModel.from_response(response)
-	var ok := model.year == 1 and model.month == 1
+	var expected_regions: Array = snapshot["map"]["regions"]
+	var ok := model.year == 1 and model.month == 1 and model.regions == expected_regions
 
 	call_deferred("quit", 0 if ok else 1)
