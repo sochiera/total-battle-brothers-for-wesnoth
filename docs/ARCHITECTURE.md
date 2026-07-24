@@ -490,6 +490,12 @@ powyżej. Katalog `game/` **nie** zawiera kopii ani importów pakietu `tbb`
 — reguły zostają w rdzeniu Python; Godot jest wyłącznie prezentacją i
 sterowaniem przez most.
 
+`SnapshotModel` (G71.1a2b1) jest częściową projekcją odpowiedzi mostu dla
+klienta. `SnapshotModel.from_response(response: Dictionary) -> SnapshotModel`
+odczytuje `response["snapshot"]["calendar"]`; publiczne pola `year: int` i
+`month: int` zawierają odpowiednio wartości `year` i `month` z tego słownika.
+Pozostałe pola snapshotu nie należą jeszcze do kontraktu modelu.
+
 
 ## RNG / rdzeń (G67.3a)
 
@@ -1384,7 +1390,8 @@ game/                     # katalog projektu (repo root dla tej gry)
 │   ├── scenes/
 │   │   └── main.tscn     # scena startowa: korzeń Control + main.gd
 │   └── scripts/
-│       └── main.gd       # skrypt głównej sceny (extends Control)
+│       ├── main.gd       # skrypt głównej sceny (extends Control)
+│       └── snapshot_model.gd # częściowa projekcja odpowiedzi mostu
 ├── scripts/
 │   ├── test.sh           # uruchamia pełny pakiet testów
 │   ├── build.sh          # no-op dla Pythona (jest, by kontrakt komend był spójny)
