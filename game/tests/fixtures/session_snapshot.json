@@ -1,0 +1,93 @@
+{
+  "calendar": {
+    "year": 1,
+    "month": 1
+  },
+  "duchies": [
+    {
+      "id": "player",
+      "morale": 0,
+      "settlements": 1,
+      "parties": 0,
+      "has_hero": true,
+      "has_heir": false,
+      "is_defeated": false
+    },
+    {
+      "id": "ai",
+      "morale": 0,
+      "settlements": 1,
+      "parties": 0,
+      "has_hero": true,
+      "has_heir": false,
+      "is_defeated": false
+    }
+  ],
+  "map": {
+    "regions": [
+      {
+        "name": "player lands",
+        "col": 0,
+        "row": 0,
+        "owner": "player",
+        "settlement": {
+          "name": "Player Keep",
+          "owner": "player",
+          "wheat": 10,
+          "gold": 10,
+          "population": 5,
+          "free": 5,
+          "garrison": 0,
+          "buildings": [],
+          "wheat_production": 0,
+          "gold_production": 0,
+          "wheat_consumption": 5
+        },
+        "party": null
+      },
+      {
+        "name": "border",
+        "col": 1,
+        "row": 0,
+        "owner": null,
+        "settlement": null,
+        "party": null
+      },
+      {
+        "name": "ai lands",
+        "col": 2,
+        "row": 0,
+        "owner": "ai",
+        "settlement": {
+          "name": "AI Keep",
+          "owner": "ai",
+          "wheat": 10,
+          "gold": 10,
+          "population": 5,
+          "free": 4,
+          "garrison": 1,
+          "buildings": [],
+          "wheat_production": 0,
+          "gold_production": 0,
+          "wheat_consumption": 5
+        },
+        "party": null
+      }
+    ],
+    "connections": [
+      {
+        "from": "player lands",
+        "to": "border"
+      },
+      {
+        "from": "border",
+        "to": "ai lands"
+      }
+    ]
+  },
+  "result": {
+    "is_over": false,
+    "winner": null,
+    "player_result": "ongoing"
+  }
+}
