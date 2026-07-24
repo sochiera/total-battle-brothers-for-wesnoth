@@ -20,12 +20,12 @@ def test_godot_bootstrap_exposes_the_configured_main_control_scene_without_tbb_c
     assert 'path="res://scripts/main.gd"' in scene_text
 
     assert script.is_file()
-    game_files = [path for path in game.rglob("*") if path.is_file()]
     assert not any(
         path.name == "tbb" or path.name.startswith("tbb.")
-        for path in game_files
+        for path in game.rglob("*")
     )
     assert not any(
-        re.search(r"^\\s*(?:from|import)\\s+tbb(?:\\.|\\s|$)", path.read_text(), re.MULTILINE)
-        for path in game_files
+        re.search(r"^\s*(?:from|import)\s+tbb(?:\.|\s|$)", path.read_text(), re.MULTILINE)
+        for path in game.rglob("*")
+        if path.is_file()
     )
