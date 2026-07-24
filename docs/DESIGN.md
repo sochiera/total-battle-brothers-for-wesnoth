@@ -365,6 +365,11 @@ Klient HTML/SVG
 (`tbbui`) zostaje **wyłącznie jako narzędzie diagnostyczne**, nie jest już
 docelowym klientem gry.
 
+Bootstrap klienta Godot jest przyrostem objętym obowiązkowym review w pętli
+agentowej. Zadania klienta są przy planowaniu jawnie klasyfikowane jako
+`simple`, `standard` albo `complex`; bootstrap, toolchain i integracja
+Godot↔Python trafiają do profilu `complex`.
+
 ### 11a. Warstwa diagnostyczna (`tbbui`)
 Rdzeń `tbb` **nigdy** nie importuje UI. Diagnostyka to osobny pakiet **stdlib**:
 deterministyczne SVG/HTML + `http.server`; wyświetlacz = przeglądarka.

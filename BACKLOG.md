@@ -10,6 +10,10 @@
 ## Legenda
 Każde zadanie ma **kryteria akceptacji** (co musi przejść jako test). Rdzeń przed
 prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
+Planista przypisuje każdemu zadaniu trudność `simple|standard|complex` oraz
+flagi ryzyka; bootstrap klienta przechodzi dodatkowo obowiązkowe review pętli
+agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
+`complex`.
 
 ---
 
@@ -123,20 +127,27 @@ prezentacją. Determinizm (seedowalny RNG) jest wymogiem przekrojowym.
 > `docs/DECISIONS.md` (`G69.1a`…`G69.2b`). *(task-342…345)*
 
 ## Kamień milowy 70 — persystencja podglądu bitwy: round-trip HexBattle
-> DESIGN §11: strona/klient może pokazać **ostatnią bitwę gracza**, ale dziś
-> `last_battle` jest nietrwałe — po zapisie/odczycie sesji podgląd znika (świadomie
-> pominięte w K67/G67.4a). Domykamy tę lukę oddolnie (jak G67 dla świata): liście
-> `Hex`/`Terrain` → `Battlefield` → `HexBattle` → osadzenie w `dump/load_session`.
-> Rdzeń `tbb` bez zmian; most reużywa publiczne API i istniejące helpery persist.
-- [ ] **G70.1a** persist: round-trip `Hex` (`dump_hex`/`load_hex`, liść `{q,r}`); DECISIONS `G70.1a`. *(task-346)*
-- [ ] **G70.1b** persist: round-trip `Terrain` (`dump_terrain`/`load_terrain`, `{name,move_cost,defense_mod,accuracy_mod}`); DECISIONS `G70.1b`. *(task-347)*
-- [ ] **G70.1c** persist: round-trip `Battlefield` (`dump_battlefield`/`load_battlefield`, rzadka mapa `hex→terrain`, reużycie liści); DECISIONS `G70.1c`. *(task-348)*
-- [ ] **G70.1d** persist: round-trip `HexBattle` (`dump_battle`/`load_battle` — battlefield/units/current_hp/sides/fallen/deployment_order; równość + `report()`); DECISIONS `G70.1d`. *(task-349)*
-- [ ] **G70.2a** persist: `dump_session`/`load_session` zachowują `last_battle` (klucz `last_battle`, tolerancja braku klucza); DECISIONS `G70.2a`. *(task-350)*
-> **Dalej (kolejne wsady):** protokół save/load e2e z bitwą przez stdio
-> (`last_battle` przeżywa `save`→`load` w `serve_stream`); ARCHITECTURE — sekcja
-> persystencji o `HexBattle`. Sceny klienta Godota (konsument mostu; poza pętlą
-> pytest).
+> **G70.1a–G70.2a — UKOŃCZONE.** Round-trip `Hex`/`Terrain`/`Battlefield`/
+> `HexBattle` oraz osadzenie `last_battle` w sesji są gotowe; szczegóły
+> przeniesione do `BACKLOG-ARCHIVE.md`.
+- [ ] **G70.2b** Protokół e2e zachowuje ostatnią bitwę przez sekwencję
+      `save`→`new_game`→`load` w `serve_stream`; snapshot i `report()` po
+      wczytaniu są zgodne ze stanem zapisanym. *(task-351)*
+
+## Kamień milowy 71 — bootstrap natywnego klienta Godot — PRIORYTET
+> Po domknięciu mostu zaczynamy widoczny klient w `game/`. Bootstrap, toolchain
+> i integracja z procesem Python są zadaniami `complex` i przechodzą review
+> agent-loop. Godot konsumuje JSON Lines z istniejącego `tbbbridge`; nie
+> duplikuje reguł `tbb`.
+- [ ] **G71.0** Minimalny projekt Godot 4 z główną sceną i testowalnym kontraktem
+      struktury; wybór układu klienta zapisany w ARCHITECTURE/DECISIONS.
+      *(task-352)*
+- [ ] **G71.1a** Czysty model snapshotu w GDScript odczytuje utrwalony fixture
+      JSON i wystawia dane kalendarza, regionów oraz wyniku. *(task-353)*
+- [ ] **G71.1b** Główna scena renderuje fixture snapshotu jako pierwszy widoczny
+      ekran kampanii: datę, regiony i status rozgrywki. *(task-354)*
+- [ ] **G71.2a** Klient procesu JSON Lines uruchamia `tbbbridge serve`, wysyła
+      `snapshot` i przekazuje pierwszą poprawną odpowiedź do modelu. *(task-355)*
 
 ## Dług/refaktor
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*

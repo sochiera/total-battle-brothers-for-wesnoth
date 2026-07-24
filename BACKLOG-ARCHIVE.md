@@ -4,6 +4,13 @@
 > Szczegóły decyzji mechaniki/architektury żyją w `docs/DESIGN.md` i
 > `docs/ARCHITECTURE.md`. Tu zostaje jedynie ślad, co i kiedy zamknięto.
 
+## Kamień milowy 70 — persystencja podglądu bitwy (część ukończona)
+- [x] **G70.1a** Persist round-trip `Hex` (`dump_hex`/`load_hex`, liść `{q,r}`). *(task-346)*
+- [x] **G70.1b** Persist round-trip `Terrain` (`dump_terrain`/`load_terrain`). *(task-347)*
+- [x] **G70.1c** Persist round-trip `Battlefield` z rzadką mapą terenu. *(task-348)*
+- [x] **G70.1d** Persist round-trip pełnego `HexBattle` z raportem. *(task-349)*
+- [x] **G70.2a** `dump_session`/`load_session` zachowują `last_battle` i tolerują stary format bez klucza. *(task-350)*
+
 ## Kamień milowy 14 — rozkazy gracza w podglądzie (single-player) — UKOŃCZONY
 - [x] **K14.1a** Driver pomija turę AI księstwa gracza. *(task-076)*
 - [x] **K14.1b** GameApp zna gracza; `/turn` odpala tylko AI. *(task-077)*
