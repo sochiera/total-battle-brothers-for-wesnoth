@@ -138,18 +138,27 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > **G71.0 — UKOŃCZONE.** Minimalny projekt Godot 4 ma główną scenę `Control`
 > i stabilną strukturę `game/`; szczegóły przeniesione do
 > `BACKLOG-ARCHIVE.md`. *(task-352)*
-> **G71.1a2 — PONOWNIE ROZCIĘTE PO REVIEW task-357.** Fałszywie zielony kod
-> wyjścia testu Godota jest naprawiany osobno przed ponowieniem projekcji.
-- [ ] **G71.1a2a** Bramka headless rozróżnia sukces i celową porażkę skryptu
-      Godota także z `SceneTree._init()`. *(task-361)*
-- [ ] **G71.1a2b** `SnapshotModel` wystawia `year`, `month`, `regions` i
-      `player_result` dla poprawnej odpowiedzi, z testem mutacyjnym. *(task-362)*
+> **G71.1a2a — UKOŃCZONE.** Bramka headless rozróżnia sukces i celową porażkę
+> skryptu Godota także z `SceneTree._init()`. Szczegóły w
+> `BACKLOG-ARCHIVE.md`. *(task-361)*
+> **G71.1a2b — PONOWNIE ROZCIĘTE PO `coder_red` task-362.** Porzucona próba
+> pomyliła liść `snapshot.result.player_result` z całym `snapshot.result`;
+> projekcja idzie teraz po jednym polu/grupie pól, a mutacja tego liścia osobno.
+- [ ] **G71.1a2b1** `SnapshotModel` wystawia `year` i `month` z poprawnego
+      fixture. *(task-366)*
+- [ ] **G71.1a2b2** `SnapshotModel` wystawia `regions` z poprawnego fixture.
+      *(task-367)*
+- [ ] **G71.1a2b3** `SnapshotModel` wystawia liść `player_result`. *(task-368)*
+- [ ] **G71.1a2b4** Bramka mutacyjna odróżnia liść `player_result` od całego
+      słownika `result` i utrwala decyzję G71.1a2. *(task-369)*
 - [ ] **G71.1a3** `SnapshotModel` atomowo odrzuca błędne i niepełne odpowiedzi,
-      zwracając `null`. *(task-363)*
+      zwracając `null`. *(task-370)*
 - [ ] **G71.1b1** Główna scena dostaje nazwane kontrolki daty, regionów i wyniku,
-      jeszcze bez wiązania danych. *(task-364)*
+      jeszcze bez wiązania danych; do ponownego rozplanowania po G71.1a3
+      (task-364 porzucone po porażce task-362).
 - [ ] **G71.1b2** Główna scena renderuje fixture przez `SnapshotModel` jako datę,
-      listę regionów i status rozgrywki. *(task-365)*
+      listę regionów i status rozgrywki; do ponownego rozplanowania po G71.1b1
+      (task-365 porzucone po porażce task-362).
 - [ ] **G71.2a** Klient procesu JSON Lines uruchamia `tbbbridge serve`, wysyła
       `snapshot` i przekazuje pierwszą poprawną odpowiedź do modelu; do ponownego
       rozplanowania po G71.1b2 (porzucone task-355 było potomkiem porażki task-353).

@@ -574,3 +574,6 @@
 - [x] **G63.2a** `tbbbridge.snapshot.save_state(...path...)` — deterministyczny JSON do pliku. *(task-302)*
 - [x] **G67.1** liście persist: `dump/load_resources` (G67.1a), `_wound` (G67.1b), `_unit` (G67.1c), `_building` (G67.1d), `_calendar` (G67.1e). *(task-324…328)*
 - [x] **G68.1a** `tbbbridge.persist.save_session`/`read_session` — zapis/odczyt sesji do pliku JSON. *(task-338)*
+
+## Kamień milowy 71 — natywny klient Godot (ukończone przyrosty)
+- [x] **G71.1a2a** Wspólny helper uruchamia skrypty Godota headless bez maskowania kodu wyjścia, a sonda `SceneTree._init()` wiarygodnie rozróżnia sukces i celową porażkę. *(task-361)*
