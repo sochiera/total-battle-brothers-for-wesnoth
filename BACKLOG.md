@@ -138,18 +138,18 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > **G71.0 — UKOŃCZONE.** Minimalny projekt Godot 4 ma główną scenę `Control`
 > i stabilną strukturę `game/`; szczegóły przeniesione do
 > `BACKLOG-ARCHIVE.md`. *(task-352)*
-> **G71.1a — PONOWNIE ROZCIĘTE PO `coder_red` task-353.** Brakujący fixture,
-> poprawna projekcja i atomowa walidacja są osobnymi mikroprzyrostami.
-- [ ] **G71.1a1** Utrwalony fixture jest dokładnym JSON-owym wynikiem publicznego
-      `new_session().snapshot()` i zawiera pola potrzebne klientowi. *(task-356)*
-- [ ] **G71.1a2** `SnapshotModel` wystawia `year`, `month`, `regions` i
-      `player_result` dla poprawnej odpowiedzi mostu. *(task-357)*
+> **G71.1a2 — PONOWNIE ROZCIĘTE PO REVIEW task-357.** Fałszywie zielony kod
+> wyjścia testu Godota jest naprawiany osobno przed ponowieniem projekcji.
+- [ ] **G71.1a2a** Bramka headless rozróżnia sukces i celową porażkę skryptu
+      Godota także z `SceneTree._init()`. *(task-361)*
+- [ ] **G71.1a2b** `SnapshotModel` wystawia `year`, `month`, `regions` i
+      `player_result` dla poprawnej odpowiedzi, z testem mutacyjnym. *(task-362)*
 - [ ] **G71.1a3** `SnapshotModel` atomowo odrzuca błędne i niepełne odpowiedzi,
-      zwracając `null`. *(task-358)*
+      zwracając `null`. *(task-363)*
 - [ ] **G71.1b1** Główna scena dostaje nazwane kontrolki daty, regionów i wyniku,
-      jeszcze bez wiązania danych. *(task-359)*
+      jeszcze bez wiązania danych. *(task-364)*
 - [ ] **G71.1b2** Główna scena renderuje fixture przez `SnapshotModel` jako datę,
-      listę regionów i status rozgrywki. *(task-360)*
+      listę regionów i status rozgrywki. *(task-365)*
 - [ ] **G71.2a** Klient procesu JSON Lines uruchamia `tbbbridge serve`, wysyła
       `snapshot` i przekazuje pierwszą poprawną odpowiedź do modelu; do ponownego
       rozplanowania po G71.1b2 (porzucone task-355 było potomkiem porażki task-353).

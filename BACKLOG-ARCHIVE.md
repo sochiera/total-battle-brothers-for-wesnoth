@@ -14,6 +14,7 @@
 
 ## Kamień milowy 71 — bootstrap natywnego klienta Godot (część ukończona)
 - [x] **G71.0** Minimalny projekt Godot 4: `project.godot`, główna scena `Control` i skrypt `main.gd`, bez kopii/importów `tbb`. *(task-352)*
+- [x] **G71.1a1** Utrwalony fixture jest dokładnym JSON-owym wynikiem publicznego `new_session().snapshot()` i zawiera pola potrzebne klientowi. *(task-356)*
 
 ## Kamień milowy 14 — rozkazy gracza w podglądzie (single-player) — UKOŃCZONY
 - [x] **K14.1a** Driver pomija turę AI księstwa gracza. *(task-076)*
