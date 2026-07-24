@@ -268,8 +268,10 @@ bajt-w-bajt identyczny plik dla tego samego stanu sesji. `read_session(path:
 str | os.PathLike) -> Session` (G68.1a) wczytuje plik zapisany przez
 `save_session`, parsuje przez `json.load` i odtwarza `Session` przez
 `load_session`. Po round-tripie zapisu/odczytu zachodzi równość
-`world`/`game`/`calendar`, równość `player_duchy_id`/`seed`, `last_battle is
-None`, a odtworzony RNG produkuje tę samą dalszą sekwencję co oryginał.
+`world`/`game`/`calendar`, równość `player_duchy_id`/`seed`, a odtworzony RNG
+produkuje tę samą dalszą sekwencję co oryginał; gdy w sesji było ustawione
+`last_battle`, plik niesie `dump_battle` i `read_session` przywraca bitwę
+równą oryginałowi z identycznym `report()` (G70.2a).
 
 `dump_battle(battle: HexBattle) -> dict` (G70.1d) zwraca json-serializowalny
 słownik z kluczami `battlefield` (`dump_battlefield`), `units`, `current_hp`,
@@ -445,6 +447,14 @@ do `out_stream` i wywołuje `out_stream.flush()`. Błąd parsowania JSON
 zwraca jedną linię `{"ok": false, ...}` i **nie** przerywa pętli —
 kolejne linie są nadal obsługiwane. Po EOF zwracana jest końcowa sesja
 (efekt sekwencyjnego zastosowania wszystkich poprawnych komend).
+
+Persystencja podglądu bitwy na granicy protokołu (G70.2b): gdy sesja ma
+rozstrzygniętą `last_battle`, sekwencja komend `save` → `new_game` → `load`
+w jednej sesji `serve_stream` (IO wyłącznie przez publiczne
+`persist.save_session` / `persist.read_session`) przywraca
+`load.snapshot["battle"]` identyczne z `save.snapshot["battle"]`, a sesja
+zwrócona po `load` ma `last_battle` równą zapisanej bitwie z identycznym
+`report()`. Bez nowych komend protokołu i bez osobnych serialiserów.
 
 `python -m tbbbridge serve [seed]` (G66.1c) i
 `python -m tbbbridge serve --resume <path>` (G69.2a) uruchamiają
