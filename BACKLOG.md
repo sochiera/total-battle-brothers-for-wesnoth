@@ -126,28 +126,33 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > (G69.2c). Szczegóły w `docs/ARCHITECTURE.md`, `docs/DESIGN.md` §11 i
 > `docs/DECISIONS.md` (`G69.1a`…`G69.2b`). *(task-342…345)*
 
-## Kamień milowy 70 — persystencja podglądu bitwy: round-trip HexBattle
-> **G70.1a–G70.2a — UKOŃCZONE.** Round-trip `Hex`/`Terrain`/`Battlefield`/
-> `HexBattle` oraz osadzenie `last_battle` w sesji są gotowe; szczegóły
-> przeniesione do `BACKLOG-ARCHIVE.md`.
-- [ ] **G70.2b** Protokół e2e zachowuje ostatnią bitwę przez sekwencję
-      `save`→`new_game`→`load` w `serve_stream`; snapshot i `report()` po
-      wczytaniu są zgodne ze stanem zapisanym. *(task-351)*
+> **Kamień 70 — UKOŃCZONY.** Round-trip `HexBattle`, trwałe `last_battle` i
+> weryfikacja protokołu e2e `save`→`new_game`→`load` są gotowe. Szczegóły
+> przeniesione do `BACKLOG-ARCHIVE.md`. *(task-346…351)*
 
 ## Kamień milowy 71 — bootstrap natywnego klienta Godot — PRIORYTET
 > Po domknięciu mostu zaczynamy widoczny klient w `game/`. Bootstrap, toolchain
 > i integracja z procesem Python są zadaniami `complex` i przechodzą review
 > agent-loop. Godot konsumuje JSON Lines z istniejącego `tbbbridge`; nie
 > duplikuje reguł `tbb`.
-- [ ] **G71.0** Minimalny projekt Godot 4 z główną sceną i testowalnym kontraktem
-      struktury; wybór układu klienta zapisany w ARCHITECTURE/DECISIONS.
-      *(task-352)*
-- [ ] **G71.1a** Czysty model snapshotu w GDScript odczytuje utrwalony fixture
-      JSON i wystawia dane kalendarza, regionów oraz wyniku. *(task-353)*
-- [ ] **G71.1b** Główna scena renderuje fixture snapshotu jako pierwszy widoczny
-      ekran kampanii: datę, regiony i status rozgrywki. *(task-354)*
+> **G71.0 — UKOŃCZONE.** Minimalny projekt Godot 4 ma główną scenę `Control`
+> i stabilną strukturę `game/`; szczegóły przeniesione do
+> `BACKLOG-ARCHIVE.md`. *(task-352)*
+> **G71.1a — PONOWNIE ROZCIĘTE PO `coder_red` task-353.** Brakujący fixture,
+> poprawna projekcja i atomowa walidacja są osobnymi mikroprzyrostami.
+- [ ] **G71.1a1** Utrwalony fixture jest dokładnym JSON-owym wynikiem publicznego
+      `new_session().snapshot()` i zawiera pola potrzebne klientowi. *(task-356)*
+- [ ] **G71.1a2** `SnapshotModel` wystawia `year`, `month`, `regions` i
+      `player_result` dla poprawnej odpowiedzi mostu. *(task-357)*
+- [ ] **G71.1a3** `SnapshotModel` atomowo odrzuca błędne i niepełne odpowiedzi,
+      zwracając `null`. *(task-358)*
+- [ ] **G71.1b1** Główna scena dostaje nazwane kontrolki daty, regionów i wyniku,
+      jeszcze bez wiązania danych. *(task-359)*
+- [ ] **G71.1b2** Główna scena renderuje fixture przez `SnapshotModel` jako datę,
+      listę regionów i status rozgrywki. *(task-360)*
 - [ ] **G71.2a** Klient procesu JSON Lines uruchamia `tbbbridge serve`, wysyła
-      `snapshot` i przekazuje pierwszą poprawną odpowiedź do modelu. *(task-355)*
+      `snapshot` i przekazuje pierwszą poprawną odpowiedź do modelu; do ponownego
+      rozplanowania po G71.1b2 (porzucone task-355 było potomkiem porażki task-353).
 
 ## Dług/refaktor
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*
