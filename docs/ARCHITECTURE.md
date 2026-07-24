@@ -467,6 +467,29 @@ jako keyword-only argumenty (`stdin`, `stdout`) dla testowalności.
 Dotychczasowe zachowanie CLI (snapshot headless do pliku) pozostaje
 nietknięte dla każdego innego argumentu pozycyjnego.
 
+### Klient Godot 4 (`game/`, G71.0)
+
+Natywny klient wizualny żyje w katalogu **`game/`** (osobny projekt Godot 4,
+nie pakiet Pythona). Bootstrap nie implementuje jeszcze IO ani ekranu
+kampanii — tylko stabilną strukturę scen i skryptów:
+
+| Ścieżka | Rola |
+|--------|------|
+| `game/project.godot` | Manifest Godot 4; `run/main_scene="res://scenes/main.tscn"`. |
+| `game/scenes/main.tscn` | Scena startowa: korzeń `Control` ze skryptem `res://scripts/main.gd`. |
+| `game/scripts/main.gd` | Skrypt głównej sceny (`extends Control`); punkt zaczepienia UI. |
+
+**Odpowiedzialności głównej sceny (na teraz):** pusty korzeń UI gotowy na
+kolejne przyrosty (warstwa prezentacji). **Poza zakresem bootstrapu:**
+spawn procesu Pythona, protokół JSON Lines, assety, eksport.
+
+**Plan reużycia mostu:** klient Godot będzie spawnował osobny proces
+`python -m tbbbridge serve [seed]` (albo `serve --resume <path>`) i
+komunikował się z nim przez stdin/stdout w formacie JSON Lines opisanym
+powyżej. Katalog `game/` **nie** zawiera kopii ani importów pakietu `tbb`
+— reguły zostają w rdzeniu Python; Godot jest wyłącznie prezentacją i
+sterowaniem przez most.
+
 
 ## RNG / rdzeń (G67.3a)
 
@@ -1356,6 +1379,12 @@ game/                     # katalog projektu (repo root dla tej gry)
 │   ├── test_serve.py     # GameApp.handle routing podglądu (tbbui, V13.5a)
 │   ├── test_ui_serve.py  # make_server + handle_request (tbbui, V13.5b)
 │   └── test_smoke.py
+├── game/                 # natywny klient Godot 4 (G71.0); bez kopii/importów tbb
+│   ├── project.godot     # manifest; run/main_scene → res://scenes/main.tscn
+│   ├── scenes/
+│   │   └── main.tscn     # scena startowa: korzeń Control + main.gd
+│   └── scripts/
+│       └── main.gd       # skrypt głównej sceny (extends Control)
 ├── scripts/
 │   ├── test.sh           # uruchamia pełny pakiet testów
 │   ├── build.sh          # no-op dla Pythona (jest, by kontrakt komend był spójny)
@@ -1365,6 +1394,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 ├── LICENSE
 └── .gitignore
 ```
+
 
 Konwencja: **każdy moduł w `src/tbb/foo.py` ma test `tests/test_foo.py`.**
 Moduły prezentacji: **`src/tbbui/foo.py` → `tests/test_foo.py` albo `tests/test_ui_foo.py`**

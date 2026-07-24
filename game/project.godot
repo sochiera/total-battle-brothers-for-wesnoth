@@ -1,0 +1,9 @@
+; Engine configuration file.
+; Godot 4 project bootstrap (G71.0).
+config_version=5
+
+[application]
+
+config/name="Total Battle Brothers"
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.2", "Forward Plus")
