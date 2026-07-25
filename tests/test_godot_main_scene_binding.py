@@ -31,4 +31,35 @@ def test_scene_bind_probe_applies_model_date_and_leaves_other_controls_empty(tmp
         f"Rok {fixture['calendar']['year']}, miesiąc {fixture['calendar']['month']}"
     )
     assert payload["result"] == ""
-    assert payload["regions"] == 0
+    assert payload["regions"] == len(fixture["map"]["regions"])
+    assert payload["region_names"] == [
+        region["name"] for region in fixture["map"]["regions"]
+    ]
+
+
+def test_scene_bind_probe_skips_regions_without_string_name(tmp_path):
+    fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    response_fixture = fixture.copy()
+    response_map = fixture["map"].copy()
+    response_regions = fixture["map"]["regions"].copy()
+    response_regions.extend(["nie-region", {"col": 9}])
+    response_map["regions"] = response_regions
+    response_fixture["map"] = response_map
+    response_path = tmp_path / "response.json"
+    response_path.write_text(
+        json.dumps({"ok": True, "snapshot": response_fixture}), encoding="utf-8"
+    )
+
+    result = run_godot_script(
+        GAME, "res://scripts/scene_bind_probe.gd", str(response_path), timeout=30
+    )
+
+    assert result.returncode == 0, result.stderr
+    lines = [line for line in result.stdout.splitlines() if line.startswith(PREFIX)]
+    assert len(lines) == 1, result.stdout
+    assert "SCRIPT ERROR" not in result.stderr, result.stderr
+
+    payload = json.loads(lines[0][len(PREFIX) :])
+    assert payload["region_names"] == [
+        region["name"] for region in fixture["map"]["regions"]
+    ]

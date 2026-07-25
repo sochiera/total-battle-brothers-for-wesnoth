@@ -44,10 +44,14 @@ func _init() -> void:
 	var date_label: Label = scene_root.get_node("DateLabel") as Label
 	var result_label: Label = scene_root.get_node("ResultLabel") as Label
 	var region_list: ItemList = scene_root.get_node("RegionList") as ItemList
+	var region_names: Array[String] = []
+	for index: int in region_list.item_count:
+		region_names.append(region_list.get_item_text(index))
 	print("SCENE_TEXT ", JSON.stringify({
 		"date": date_label.text,
 		"result": result_label.text,
 		"regions": region_list.item_count,
+		"region_names": region_names,
 	}))
 	call_deferred("quit", 0)
 

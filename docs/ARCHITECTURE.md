@@ -477,15 +477,16 @@ kampanii — tylko stabilną strukturę scen i skryptów:
 |--------|------|
 | `game/project.godot` | Manifest Godot 4; `run/main_scene="res://scenes/main.tscn"`. |
 | `game/scenes/main.tscn` | Scena startowa: korzeń `Main` (`Control`) ze skryptem `res://scripts/main.gd` oraz pustymi kontrolkami `DateLabel` (`Label`), `RegionList` (`ItemList`), `ResultLabel` (`Label`) — w tej kolejności. |
-| `game/scripts/main.gd` | Skrypt głównej sceny (`extends Control`); wejście prezentacji `apply_model(model: SnapshotModel)`. |
+| `game/scripts/main.gd` | Skrypt głównej sceny (`extends Control`); wejście prezentacji `apply_model(model: SnapshotModel)` wiąże datę i nazwy regionów. |
 | `game/scripts/scene_probe.gd` | Sonda headless sceny: po ładowaniu i instancjonowaniu `main.tscn` wypisuje `SCENE_TREE <json>` — tablicę `path`/`name`/`class` w kolejności w głąb (korzeń: `.`) — i kończy się kodem `0`; błąd ładowania lub instancjonowania zapisuje komunikat na stderr i kończy się kodem `2`. |
 | `game/scripts/scene_bind_probe.gd` | Sonda headless wiązania: czyta odpowiedź mostu z pliku, buduje model, wiąże go ze sceną i wypisuje `SCENE_TEXT <json>`. |
 
 **Odpowiedzialności głównej sceny (na teraz):** scena dostaje gotowy
 `SnapshotModel` wyłącznie z zewnątrz przez `apply_model`; nie czyta plików ani
-JSON-a i nie zna mostu. Metoda ustawia tylko `DateLabel` na `Rok R, miesiąc M`
-z pól `model.year` i `model.month`; `RegionList` oraz `ResultLabel` pozostawia
-puste. Korzeń `Main` (`Control`) oraz `DateLabel` (`Label`), `RegionList`
+JSON-a i nie zna mostu. Metoda ustawia `DateLabel` na `Rok R, miesiąc M`
+z pól `model.year` i `model.month`, a `RegionList` wypełnia nazwami kolejnych
+regionów ze słownikowym liściem `name` typu `String`; pozostałe elementy
+pomija. `ResultLabel` pozostawia pusty. Korzeń `Main` (`Control`) oraz `DateLabel` (`Label`), `RegionList`
 (`ItemList`) i `ResultLabel` (`Label`) pozostają w tej kolejności, gotowe na
 kolejne przyrosty warstwy prezentacji. **Poza zakresem bootstrapu:**
 spawn procesu Pythona, protokół JSON Lines, assety, eksport.
@@ -529,7 +530,7 @@ danych ze stdout, a nie samym kodem wyjścia skryptu testowego.
 `game/scripts/scene_bind_probe.gd` przyjmuje jedną ścieżkę do pliku odpowiedzi
 mostu, buduje `SnapshotModel`, instancjonuje `main.tscn` i przekazuje model do
 `apply_model`. Przy sukcesie wypisuje dokładnie jedną linię `SCENE_TEXT <json>`
-z kluczami `date`, `result` i `regions`, po czym kończy się kodem `0`. Brak
+z kluczami `date`, `result`, `regions` i `region_names`, po czym kończy się kodem `0`. Brak
 argumentu, nieczytelny lub niepoprawny plik, odpowiedź bez modelu oraz błąd
 sceny zapisują komunikat na stderr i kończą się kodem `2`, bez linii
 `SCENE_TEXT`.
