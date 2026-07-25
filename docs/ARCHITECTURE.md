@@ -498,6 +498,11 @@ odczytuje `response["snapshot"]["calendar"]` i
 a `regions: Array` zawiera listę regionów mapy. Pozostałe pola snapshotu nie
 należą jeszcze do kontraktu modelu.
 
+`game/scripts/snapshot_probe.gd` jest produkcyjną sondą tej projekcji: czyta z
+pliku odpowiedź mostu, buduje `SnapshotModel` i wypisuje jedną linię
+`SNAPSHOT_MODEL <json>`. Projekcja GDScript jest bramkowana przez asercje
+Pythona na danych ze stdout, a nie samym kodem wyjścia skryptu testowego.
+
 **Testy headless:** każdy skrypt testowy Godota dziedziczący po `SceneTree`
 musi zakończyć się przez `call_deferred("quit", …)`. Błąd przed tym wywołaniem
 pozostawia drzewo scen aktywne, dlatego pythonowa bramka
