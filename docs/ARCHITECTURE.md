@@ -478,6 +478,7 @@ kampanii — tylko stabilną strukturę scen i skryptów:
 | `game/project.godot` | Manifest Godot 4; `run/main_scene="res://scenes/main.tscn"`. |
 | `game/scenes/main.tscn` | Scena startowa: korzeń `Control` ze skryptem `res://scripts/main.gd`. |
 | `game/scripts/main.gd` | Skrypt głównej sceny (`extends Control`); punkt zaczepienia UI. |
+| `game/scripts/scene_probe.gd` | Sonda headless sceny: po ładowaniu i instancjonowaniu `main.tscn` wypisuje `SCENE_TREE <json>` — tablicę `path`/`name`/`class` w kolejności w głąb (korzeń: `.`) — i kończy się kodem `0`; błąd ładowania lub instancjonowania zapisuje komunikat na stderr i kończy się kodem `2`. |
 
 **Odpowiedzialności głównej sceny (na teraz):** pusty korzeń UI gotowy na
 kolejne przyrosty (warstwa prezentacji). **Poza zakresem bootstrapu:**
