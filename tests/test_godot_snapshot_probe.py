@@ -29,3 +29,4 @@ def test_snapshot_probe_prints_projection_of_bridge_response(tmp_path):
     assert payload["year"] == fixture["calendar"]["year"]
     assert payload["month"] == fixture["calendar"]["month"]
     assert payload["regions"] == fixture["map"]["regions"]
+    assert payload["player_result"] == fixture["result"]["player_result"]

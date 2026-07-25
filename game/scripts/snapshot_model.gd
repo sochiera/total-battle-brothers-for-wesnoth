@@ -5,6 +5,7 @@ extends RefCounted
 var year: int
 var month: int
 var regions: Array
+var player_result: String
 
 
 static func from_response(response: Dictionary) -> SnapshotModel:
@@ -13,4 +14,5 @@ static func from_response(response: Dictionary) -> SnapshotModel:
 	model.year = calendar["year"]
 	model.month = calendar["month"]
 	model.regions = response["snapshot"]["map"]["regions"]
+	model.player_result = response["snapshot"]["result"]["player_result"]
 	return model

@@ -26,5 +26,6 @@ func _init() -> void:
 		"year": model.year,
 		"month": model.month,
 		"regions": model.regions,
+		"player_result": model.player_result,
 	}))
 	call_deferred("quit", 0)

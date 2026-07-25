@@ -490,18 +490,22 @@ powyżej. Katalog `game/` **nie** zawiera kopii ani importów pakietu `tbb`
 — reguły zostają w rdzeniu Python; Godot jest wyłącznie prezentacją i
 sterowaniem przez most.
 
-`SnapshotModel` (G71.1a2b1) jest częściową projekcją odpowiedzi mostu dla
+`SnapshotModel` (G71.1a2d2) jest częściową projekcją odpowiedzi mostu dla
 klienta. `SnapshotModel.from_response(response: Dictionary) -> SnapshotModel`
 odczytuje `response["snapshot"]["calendar"]` i
-`response["snapshot"]["map"]["regions"]`; publiczne pola `year: int` i
+`response["snapshot"]["map"]["regions"]` oraz liść
+`response["snapshot"]["result"]["player_result"]`; publiczne pola `year: int` i
 `month: int` zawierają odpowiednio wartości `year` i `month` z kalendarza,
-a `regions: Array` zawiera listę regionów mapy. Pozostałe pola snapshotu nie
-należą jeszcze do kontraktu modelu.
+a `regions: Array` zawiera listę regionów mapy, a `player_result: String` to
+wyłącznie liść `result.player_result`, nie cała sekcja `result`. Pozostałe pola
+snapshotu nie należą jeszcze do kontraktu modelu.
 
 `game/scripts/snapshot_probe.gd` jest produkcyjną sondą tej projekcji: czyta z
 pliku odpowiedź mostu, buduje `SnapshotModel` i wypisuje jedną linię
-`SNAPSHOT_MODEL <json>`. Projekcja GDScript jest bramkowana przez asercje
-Pythona na danych ze stdout, a nie samym kodem wyjścia skryptu testowego.
+`SNAPSHOT_MODEL <json>` z kluczami `year`, `month`, `regions` i
+`player_result` (ten ostatni jest liściem `result.player_result`, nie całą
+sekcją `result`). Projekcja GDScript jest bramkowana przez asercje Pythona na
+danych ze stdout, a nie samym kodem wyjścia skryptu testowego.
 
 **Testy headless:** każdy skrypt testowy Godota dziedziczący po `SceneTree`
 musi zakończyć się przez `call_deferred("quit", …)`. Błąd przed tym wywołaniem
