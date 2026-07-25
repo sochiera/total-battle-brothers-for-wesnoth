@@ -22,6 +22,11 @@ func _init() -> void:
 	file.close()
 	var response: Dictionary = JSON.parse_string(response_text)
 	var model: SnapshotModel = SnapshotModel.from_response(response)
+	if model == null:
+		print("SNAPSHOT_MODEL null")
+		call_deferred("quit", 0)
+		return
+
 	print("SNAPSHOT_MODEL ", JSON.stringify({
 		"year": model.year,
 		"month": model.month,
