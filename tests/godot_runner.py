@@ -5,12 +5,13 @@ import subprocess
 
 
 def run_godot_script(
-    project: Path, script: str, *script_args: str
+    project: Path, script: str, *script_args: str, timeout: float = 60.0
 ) -> subprocess.CompletedProcess[str]:
-    """Run a script with Godot headless and preserve its exit status."""
+    """Run a script headlessly, preserving its exit status within ``timeout``."""
     return subprocess.run(
         ["godot", "--headless", "--path", str(project), "--script", script, "--", *script_args],
         capture_output=True,
         text=True,
         check=False,
+        timeout=timeout,
     )

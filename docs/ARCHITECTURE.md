@@ -498,6 +498,11 @@ odczytuje `response["snapshot"]["calendar"]` i
 a `regions: Array` zawiera listę regionów mapy. Pozostałe pola snapshotu nie
 należą jeszcze do kontraktu modelu.
 
+**Testy headless:** każdy skrypt testowy Godota dziedziczący po `SceneTree`
+musi zakończyć się przez `call_deferred("quit", …)`. Błąd przed tym wywołaniem
+pozostawia drzewo scen aktywne, dlatego pythonowa bramka
+`run_godot_script` ma limit czasu i propaguje `subprocess.TimeoutExpired`.
+
 
 ## RNG / rdzeń (G67.3a)
 
