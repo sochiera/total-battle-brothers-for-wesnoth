@@ -497,12 +497,16 @@ wartość nie jest słownikiem. Model wymaga również słownikowych sekcji
 `calendar`, `map` i `result`; brak którejkolwiek powoduje zwrot `null` przed
 odczytem pól, zamiast utworzenia obiektu częściowego. Wymaga także liści
 `calendar.year`, `calendar.month`, `map.regions` i `result.player_result`;
-brak któregokolwiek również powoduje zwrot `null` przed odczytem pól. Dla
-użytecznego snapshotu odczytuje
+brak któregokolwiek również powoduje zwrot `null` przed odczytem pól. Domyka
+to atomowość projekcji także dla błędnych typów: `year` i `month` muszą być
+liczbami (`int` albo `float`), ponieważ Godot 4 parsuje liczby JSON jako
+`float`, a następnie są jawnie konwertowane do publicznych pól `int`;
+`regions` musi być `Array`, a `player_result` — `String`. Każdy inny typ
+powoduje zwrot `null` przed utworzeniem modelu. Dla użytecznego snapshotu odczytuje
 `response["snapshot"]["calendar"]` i
 `response["snapshot"]["map"]["regions"]` oraz liść
 `response["snapshot"]["result"]["player_result"]`; publiczne pola `year: int` i
-`month: int` zawierają odpowiednio wartości `year` i `month` z kalendarza,
+`month: int` zawierają odpowiednio jawnie skonwertowane wartości `year` i `month` z kalendarza,
 a `regions: Array` zawiera listę regionów mapy, a `player_result: String` to
 wyłącznie liść `result.player_result`, nie cała sekcja `result`. Pozostałe pola
 snapshotu nie należą jeszcze do kontraktu modelu.

@@ -117,6 +117,35 @@ def test_snapshot_probe_prints_null_when_required_leaf_missing(
     assert_null_probe_result(result)
 
 
+@pytest.mark.parametrize(
+    ("section", "leaf", "invalid_value"),
+    [
+        ("calendar", "year", "1"),
+        ("calendar", "month", None),
+        ("map", "regions", "nie-lista"),
+        ("result", "player_result", 5),
+    ],
+)
+def test_snapshot_probe_prints_null_when_required_leaf_has_invalid_type(
+    tmp_path, section, leaf, invalid_value
+):
+    fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    snapshot = fixture.copy()
+    section_copy = snapshot[section].copy()
+    section_copy[leaf] = invalid_value
+    snapshot[section] = section_copy
+    response_path = tmp_path / "response.json"
+    response_path.write_text(
+        json.dumps({"ok": True, "snapshot": snapshot}), encoding="utf-8"
+    )
+
+    result = run_godot_script(
+        GAME, "res://scripts/snapshot_probe.gd", str(response_path), timeout=30
+    )
+
+    assert_null_probe_result(result)
+
+
 def test_snapshot_probe_prints_null_when_snapshot_map_is_not_dictionary(tmp_path):
     fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
     snapshot = dict(fixture)

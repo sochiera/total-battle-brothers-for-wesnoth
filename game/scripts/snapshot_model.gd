@@ -4,9 +4,12 @@ extends RefCounted
 
 const REQUIRED_SECTIONS := ["calendar", "map", "result"]
 const REQUIRED_LEAVES := {
-	"calendar": ["year", "month"],
-	"map": ["regions"],
-	"result": ["player_result"],
+	"calendar": {
+		"year": [TYPE_INT, TYPE_FLOAT],
+		"month": [TYPE_INT, TYPE_FLOAT],
+	},
+	"map": {"regions": [TYPE_ARRAY]},
+	"result": {"player_result": [TYPE_STRING]},
 }
 
 
@@ -28,17 +31,20 @@ static func from_response(response: Dictionary) -> SnapshotModel:
 			return null
 	for section_name in REQUIRED_LEAVES:
 		var section: Dictionary = snapshot[section_name]
-		var required_leaves: Array = REQUIRED_LEAVES[section_name]
-		for leaf_name in required_leaves:
+		var leaves_with_allowed_types: Dictionary = REQUIRED_LEAVES[section_name]
+		for leaf_name in leaves_with_allowed_types:
 			if not section.has(leaf_name):
+				return null
+			var allowed_types: Array = leaves_with_allowed_types[leaf_name]
+			if not allowed_types.has(typeof(section[leaf_name])):
 				return null
 
 	var model := preload("res://scripts/snapshot_model.gd").new()
 	var calendar: Dictionary = snapshot["calendar"]
 	var map: Dictionary = snapshot["map"]
 	var result: Dictionary = snapshot["result"]
-	model.year = calendar["year"]
-	model.month = calendar["month"]
+	model.year = int(calendar["year"])
+	model.month = int(calendar["month"])
 	model.regions = map["regions"]
 	model.player_result = result["player_result"]
 	return model
