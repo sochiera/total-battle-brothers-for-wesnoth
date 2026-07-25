@@ -10,3 +10,9 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_main")
+
+[node name="DateLabel" type="Label" parent="."]
+
+[node name="RegionList" type="ItemList" parent="."]
+
+[node name="ResultLabel" type="Label" parent="."]

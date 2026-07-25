@@ -476,12 +476,15 @@ kampanii — tylko stabilną strukturę scen i skryptów:
 | Ścieżka | Rola |
 |--------|------|
 | `game/project.godot` | Manifest Godot 4; `run/main_scene="res://scenes/main.tscn"`. |
-| `game/scenes/main.tscn` | Scena startowa: korzeń `Control` ze skryptem `res://scripts/main.gd`. |
+| `game/scenes/main.tscn` | Scena startowa: korzeń `Main` (`Control`) ze skryptem `res://scripts/main.gd` oraz pustymi kontrolkami `DateLabel` (`Label`), `RegionList` (`ItemList`), `ResultLabel` (`Label`) — w tej kolejności. |
 | `game/scripts/main.gd` | Skrypt głównej sceny (`extends Control`); punkt zaczepienia UI. |
 | `game/scripts/scene_probe.gd` | Sonda headless sceny: po ładowaniu i instancjonowaniu `main.tscn` wypisuje `SCENE_TREE <json>` — tablicę `path`/`name`/`class` w kolejności w głąb (korzeń: `.`) — i kończy się kodem `0`; błąd ładowania lub instancjonowania zapisuje komunikat na stderr i kończy się kodem `2`. |
 
-**Odpowiedzialności głównej sceny (na teraz):** pusty korzeń UI gotowy na
-kolejne przyrosty (warstwa prezentacji). **Poza zakresem bootstrapu:**
+**Odpowiedzialności głównej sceny (na teraz):** pusty szkielet UI — korzeń
+`Main` (`Control`) oraz `DateLabel` (`Label`), `RegionList` (`ItemList`) i
+`ResultLabel` (`Label`) w tej kolejności — gotowy na kolejne przyrosty
+(warstwa prezentacji). Wiązanie danych (`SnapshotModel` → kontrolki) należy do
+następnego przyrostu. **Poza zakresem bootstrapu:**
 spawn procesu Pythona, protokół JSON Lines, assety, eksport.
 
 **Plan reużycia mostu:** klient Godot będzie spawnował osobny proces
