@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from godot_runner import run_godot_script
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -8,6 +10,14 @@ GAME = ROOT / "game"
 FIXTURE = GAME / "tests" / "fixtures" / "session_snapshot.json"
 
 PREFIX = "SNAPSHOT_MODEL "
+
+
+def assert_null_probe_result(result):
+    assert result.returncode == 0, result.stderr
+    lines = [line for line in result.stdout.splitlines() if line.startswith(PREFIX)]
+    assert len(lines) == 1, result.stdout
+    assert json.loads(lines[0][len(PREFIX) :]) is None
+    assert "SCRIPT ERROR" not in result.stderr, result.stderr
 
 
 def test_snapshot_probe_prints_projection_of_bridge_response(tmp_path):
@@ -60,6 +70,38 @@ def test_snapshot_probe_prints_null_when_snapshot_key_missing(tmp_path):
     lines = [line for line in result.stdout.splitlines() if line.startswith(PREFIX)]
     assert len(lines) == 1, result.stdout
     assert json.loads(lines[0][len(PREFIX) :]) is None
+
+
+@pytest.mark.parametrize("section", ["calendar", "map", "result"])
+def test_snapshot_probe_prints_null_when_snapshot_section_missing(tmp_path, section):
+    fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    snapshot = {key: value for key, value in fixture.items() if key != section}
+    response_path = tmp_path / "response.json"
+    response_path.write_text(
+        json.dumps({"ok": True, "snapshot": snapshot}), encoding="utf-8"
+    )
+
+    result = run_godot_script(
+        GAME, "res://scripts/snapshot_probe.gd", str(response_path), timeout=30
+    )
+
+    assert_null_probe_result(result)
+
+
+def test_snapshot_probe_prints_null_when_snapshot_map_is_not_dictionary(tmp_path):
+    fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    snapshot = dict(fixture)
+    snapshot["map"] = "nie-slownik"
+    response_path = tmp_path / "response.json"
+    response_path.write_text(
+        json.dumps({"ok": True, "snapshot": snapshot}), encoding="utf-8"
+    )
+
+    result = run_godot_script(
+        GAME, "res://scripts/snapshot_probe.gd", str(response_path), timeout=30
+    )
+
+    assert_null_probe_result(result)
 
 
 def test_snapshot_probe_prints_null_when_snapshot_is_not_dictionary(tmp_path):

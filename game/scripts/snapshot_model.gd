@@ -2,6 +2,9 @@ class_name SnapshotModel
 extends RefCounted
 
 
+const REQUIRED_SECTIONS := ["calendar", "map", "result"]
+
+
 var year: int
 var month: int
 var regions: Array
@@ -15,10 +18,16 @@ static func from_response(response: Dictionary) -> SnapshotModel:
 		return null
 
 	var snapshot: Dictionary = response["snapshot"]
+	for section_name in REQUIRED_SECTIONS:
+		if not snapshot.has(section_name) or not snapshot[section_name] is Dictionary:
+			return null
+
 	var model := preload("res://scripts/snapshot_model.gd").new()
 	var calendar: Dictionary = snapshot["calendar"]
+	var map: Dictionary = snapshot["map"]
+	var result: Dictionary = snapshot["result"]
 	model.year = calendar["year"]
 	model.month = calendar["month"]
-	model.regions = snapshot["map"]["regions"]
-	model.player_result = snapshot["result"]["player_result"]
+	model.regions = map["regions"]
+	model.player_result = result["player_result"]
 	return model

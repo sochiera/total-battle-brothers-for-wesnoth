@@ -493,7 +493,9 @@ sterowaniem przez most.
 `SnapshotModel` (G71.1a3a) jest częściową projekcją odpowiedzi mostu dla
 klienta. `SnapshotModel.from_response(response: Dictionary) -> SnapshotModel`
 zwraca `null`, gdy `ok` jest fałszywe, brakuje klucza `snapshot` albo jego
-wartość nie jest słownikiem. Dla użytecznego snapshotu odczytuje
+wartość nie jest słownikiem. Model wymaga również słownikowych sekcji
+`calendar`, `map` i `result`; brak którejkolwiek powoduje zwrot `null` przed
+odczytem pól, zamiast utworzenia obiektu częściowego. Dla użytecznego snapshotu odczytuje
 `response["snapshot"]["calendar"]` i
 `response["snapshot"]["map"]["regions"]` oraz liść
 `response["snapshot"]["result"]["player_result"]`; publiczne pola `year: int` i
