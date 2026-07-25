@@ -3,6 +3,7 @@ extends SceneTree
 
 const MAIN_SCENE_PATH := "res://scenes/main.tscn"
 const SnapshotModel = preload("res://scripts/snapshot_model.gd")
+const INVALID_APPLICATIONS_MESSAGE := "scene_bind_probe: applications must be a positive integer"
 
 
 func _init() -> void:
@@ -10,6 +11,17 @@ func _init() -> void:
 	if args.is_empty():
 		_fail("scene_bind_probe: missing response path")
 		return
+
+	var applications := 1
+	if args.size() >= 2:
+		var applications_arg: String = args[1]
+		if not applications_arg.is_valid_int():
+			_fail(INVALID_APPLICATIONS_MESSAGE)
+			return
+		applications = applications_arg.to_int()
+		if applications <= 0:
+			_fail(INVALID_APPLICATIONS_MESSAGE)
+			return
 
 	var path: String = args[0]
 	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
@@ -40,7 +52,8 @@ func _init() -> void:
 		return
 
 	root.add_child(scene_root)
-	scene_root.call("apply_model", model)
+	for _application: int in applications:
+		scene_root.call("apply_model", model)
 	var date_label: Label = scene_root.get_node("DateLabel") as Label
 	var result_label: Label = scene_root.get_node("ResultLabel") as Label
 	var region_list: ItemList = scene_root.get_node("RegionList") as ItemList

@@ -477,7 +477,7 @@ kampanii — tylko stabilną strukturę scen i skryptów:
 |--------|------|
 | `game/project.godot` | Manifest Godot 4; `run/main_scene="res://scenes/main.tscn"`. |
 | `game/scenes/main.tscn` | Scena startowa: korzeń `Main` (`Control`) ze skryptem `res://scripts/main.gd` oraz pustymi kontrolkami `DateLabel` (`Label`), `RegionList` (`ItemList`), `ResultLabel` (`Label`) — w tej kolejności. |
-| `game/scripts/main.gd` | Skrypt głównej sceny (`extends Control`); wejście prezentacji `apply_model(model: SnapshotModel)` wiąże datę, nazwy regionów i wynik. |
+| `game/scripts/main.gd` | Skrypt głównej sceny (`extends Control`); wejście prezentacji `apply_model(model: SnapshotModel)` wiąże datę, nazwy regionów i wynik idempotentnie: przed wypełnieniem czyści `RegionList`. |
 | `game/scripts/scene_probe.gd` | Sonda headless sceny: po ładowaniu i instancjonowaniu `main.tscn` wypisuje `SCENE_TREE <json>` — tablicę `path`/`name`/`class` w kolejności w głąb (korzeń: `.`) — i kończy się kodem `0`; błąd ładowania lub instancjonowania zapisuje komunikat na stderr i kończy się kodem `2`. |
 | `game/scripts/scene_bind_probe.gd` | Sonda headless wiązania: czyta odpowiedź mostu z pliku, buduje model, wiąże go ze sceną i wypisuje `SCENE_TEXT <json>`. |
 
@@ -530,10 +530,11 @@ danych ze stdout, a nie samym kodem wyjścia skryptu testowego.
 
 `game/scripts/scene_bind_probe.gd` przyjmuje jedną ścieżkę do pliku odpowiedzi
 mostu, buduje `SnapshotModel`, instancjonuje `main.tscn` i przekazuje model do
-`apply_model`. Przy sukcesie wypisuje dokładnie jedną linię `SCENE_TEXT <json>`
+`apply_model`. Opcjonalny drugi argument określa dodatnią liczbę zastosowań
+modelu na tej samej scenie (domyślnie `1`). Przy sukcesie wypisuje dokładnie jedną linię `SCENE_TEXT <json>`
 z kluczami `date`, `result`, `regions` i `region_names`, po czym kończy się kodem `0`. Brak
-argumentu, nieczytelny lub niepoprawny plik, odpowiedź bez modelu oraz błąd
-sceny zapisują komunikat na stderr i kończą się kodem `2`, bez linii
+argumentu, nieczytelny lub niepoprawny plik, odpowiedź bez modelu, niepoprawna
+liczba zastosowań oraz błąd sceny zapisują komunikat na stderr i kończą się kodem `2`, bez linii
 `SCENE_TEXT`.
 
 **Testy headless:** każdy skrypt testowy Godota dziedziczący po `SceneTree`
