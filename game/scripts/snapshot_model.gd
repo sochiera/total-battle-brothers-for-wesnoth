@@ -3,6 +3,11 @@ extends RefCounted
 
 
 const REQUIRED_SECTIONS := ["calendar", "map", "result"]
+const REQUIRED_LEAVES := {
+	"calendar": ["year", "month"],
+	"map": ["regions"],
+	"result": ["player_result"],
+}
 
 
 var year: int
@@ -21,6 +26,12 @@ static func from_response(response: Dictionary) -> SnapshotModel:
 	for section_name in REQUIRED_SECTIONS:
 		if not snapshot.has(section_name) or not snapshot[section_name] is Dictionary:
 			return null
+	for section_name in REQUIRED_LEAVES:
+		var section: Dictionary = snapshot[section_name]
+		var required_leaves: Array = REQUIRED_LEAVES[section_name]
+		for leaf_name in required_leaves:
+			if not section.has(leaf_name):
+				return null
 
 	var model := preload("res://scripts/snapshot_model.gd").new()
 	var calendar: Dictionary = snapshot["calendar"]

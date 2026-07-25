@@ -495,7 +495,10 @@ klienta. `SnapshotModel.from_response(response: Dictionary) -> SnapshotModel`
 zwraca `null`, gdy `ok` jest fałszywe, brakuje klucza `snapshot` albo jego
 wartość nie jest słownikiem. Model wymaga również słownikowych sekcji
 `calendar`, `map` i `result`; brak którejkolwiek powoduje zwrot `null` przed
-odczytem pól, zamiast utworzenia obiektu częściowego. Dla użytecznego snapshotu odczytuje
+odczytem pól, zamiast utworzenia obiektu częściowego. Wymaga także liści
+`calendar.year`, `calendar.month`, `map.regions` i `result.player_result`;
+brak któregokolwiek również powoduje zwrot `null` przed odczytem pól. Dla
+użytecznego snapshotu odczytuje
 `response["snapshot"]["calendar"]` i
 `response["snapshot"]["map"]["regions"]` oraz liść
 `response["snapshot"]["result"]["player_result"]`; publiczne pola `year: int` i
