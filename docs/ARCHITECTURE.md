@@ -537,6 +537,15 @@ argumentu, nieczytelny lub niepoprawny plik, odpowiedź bez modelu, niepoprawna
 liczba zastosowań oraz błąd sceny zapisują komunikat na stderr i kończą się kodem `2`, bez linii
 `SCENE_TEXT`.
 
+Warstwa prezentacji jest bramkowana także na żywym snapshotcie (G71.1b2e),
+a nie wyłącznie na zamrożonym fixture. Test `tests/test_godot_main_scene_live_snapshot.py`
+buduje sesję przez `tbbbridge`, przesuwa ją o trzy tury niemutującym
+`session = session.next_turn()`, a następnie zapisuje odpowiedź
+`{"ok": true, "snapshot": ...}` do pliku podawanego sondzie. Asercje
+porównują wyrenderowaną datę, wynik, liczbę regionów i ich nazwy z tym właśnie
+snapshotem oraz sprawdzają, że różni się on od fixture. Domyka to bramkę
+G71.1b2 przed planowanym spawnem procesu i protokołem JSON Lines w G71.2a.
+
 **Testy headless:** każdy skrypt testowy Godota dziedziczący po `SceneTree`
 musi zakończyć się przez `call_deferred("quit", …)`. Błąd przed tym wywołaniem
 pozostawia drzewo scen aktywne, dlatego pythonowa bramka
