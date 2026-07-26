@@ -2,6 +2,9 @@ extends RefCounted
 class_name BridgeClient
 
 
+const SnapshotModel = preload("res://scripts/snapshot_model.gd")
+
+
 var _command: String
 var _request_path: String
 
@@ -46,3 +49,10 @@ func send(request: Dictionary) -> Variant:
 		return null
 
 	return first_response(str(output[0]))
+
+
+func snapshot_model() -> SnapshotModel:
+	var response: Variant = send({"type": "snapshot"})
+	if response == null or not response is Dictionary:
+		return null
+	return SnapshotModel.from_response(response)
