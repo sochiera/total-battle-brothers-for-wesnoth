@@ -29,3 +29,6 @@ text = "Rozwiń osadę"
 
 [node name="RecruitButton" type="Button" parent="."]
 text = "Rekrutuj jednostkę"
+
+[node name="MusterButton" type="Button" parent="."]
+text = "Zbierz oddział"
