@@ -49,8 +49,7 @@ func _on_next_turn_button_pressed() -> void:
 
 
 func _on_develop_button_pressed() -> void:
-	if _client != null:
-		develop_from_bridge(_client)
+	_send_bound_order("develop")
 
 
 func _on_recruit_button_pressed() -> void:
