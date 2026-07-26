@@ -1,4 +1,5 @@
 import json
+import os
 import shlex
 from pathlib import Path
 
@@ -12,6 +13,8 @@ PROBE = "res://tests/start_session_probe.gd"
 INVALID_CONFIG_PROBE = "res://tests/start_session_invalid_config_probe.gd"
 PREFIX = "START_SESSION "
 INVALID_PREFIX = "START_SESSION_INVALID "
+ENVIRONMENT_AUTOSTART_PROBE = "res://tests/environment_autostart_probe.gd"
+ENVIRONMENT_AUTOSTART_PREFIX = "ENVIRONMENT_AUTOSTART "
 SEED = 73
 
 
@@ -70,4 +73,79 @@ def test_start_session_rejects_invalid_config_without_changing_scene_or_starting
         "results": [False, False, False, False],
         "controls_unchanged": True,
         "bridge_started": False,
+    }
+
+
+def test_scene_autostarts_from_environment_and_resumes_after_next_turn(tmp_path):
+    state_path = tmp_path / "autostart-session.json"
+    environment = os.environ.copy()
+    environment.update(
+        {
+            "TBB_BRIDGE_COMMAND": (
+                f"PYTHONPATH={shlex.quote(str(ROOT / 'src'))} python3 -m tbbbridge"
+            ),
+            "TBB_STATE_PATH": str(state_path),
+            "TBB_SEED": str(SEED),
+        }
+    )
+
+    first = run_godot_script(
+        GAME,
+        ENVIRONMENT_AUTOSTART_PROBE,
+        "--press",
+        timeout=30,
+        env=environment,
+    )
+    second = run_godot_script(
+        GAME, ENVIRONMENT_AUTOSTART_PROBE, timeout=30, env=environment
+    )
+
+    for result in (first, second):
+        assert result.returncode == 0, result.stderr
+        assert "SCRIPT ERROR" not in result.stderr, result.stderr
+
+    def payload(result):
+        lines = [
+            line
+            for line in result.stdout.splitlines()
+            if line.startswith(ENVIRONMENT_AUTOSTART_PREFIX)
+        ]
+        assert len(lines) == 1, result.stdout
+        return json.loads(lines[0][len(ENVIRONMENT_AUTOSTART_PREFIX) :])
+
+    fresh = new_session(SEED)
+    after_turn = fresh.next_turn()
+    assert payload(first) == {
+        "after_start": _controls(fresh.snapshot()),
+        "after_press": _controls(after_turn.snapshot()),
+        "state_exists": True,
+    }
+    assert payload(second) == {
+        "after_start": _controls(after_turn.snapshot()),
+        "after_press": _controls(after_turn.snapshot()),
+        "state_exists": True,
+    }
+
+
+def test_scene_entry_without_environment_is_a_noop():
+    environment = os.environ.copy()
+    for variable in ("TBB_BRIDGE_COMMAND", "TBB_STATE_PATH", "TBB_SEED"):
+        environment.pop(variable, None)
+
+    result = run_godot_script(
+        GAME, ENVIRONMENT_AUTOSTART_PROBE, timeout=30, env=environment
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "SCRIPT ERROR" not in result.stderr, result.stderr
+    lines = [
+        line
+        for line in result.stdout.splitlines()
+        if line.startswith(ENVIRONMENT_AUTOSTART_PREFIX)
+    ]
+    assert len(lines) == 1, result.stdout
+    assert json.loads(lines[0][len(ENVIRONMENT_AUTOSTART_PREFIX) :]) == {
+        "after_start": {"date": "", "result": "", "regions": []},
+        "after_press": {"date": "", "result": "", "regions": []},
+        "state_exists": False,
     }

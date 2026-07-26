@@ -3,13 +3,16 @@ extends Control
 
 const SnapshotModel = preload("res://scripts/snapshot_model.gd")
 const BridgeClient = preload("res://scripts/bridge_client.gd")
+const BridgeConfig = preload("res://scripts/bridge_config.gd")
 
 
 var _client: Variant = null
 
 
 func _ready() -> void:
-	pass
+	var config: Variant = BridgeConfig.from_environment()
+	if config != null:
+		start_session(config)
 
 
 func start_session(config) -> bool:
