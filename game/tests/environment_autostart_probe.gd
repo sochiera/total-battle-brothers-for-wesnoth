@@ -7,8 +7,8 @@ const PREFIX := "ENVIRONMENT_AUTOSTART "
 
 func _init() -> void:
 	var press_next_turn := "--press" in OS.get_cmdline_user_args()
-	var press_develop := "--develop" in OS.get_cmdline_user_args()
-	if press_next_turn and press_develop:
+	var develop_presses := OS.get_cmdline_user_args().count("--develop")
+	if press_next_turn and develop_presses > 0:
 		_fail("expected at most one button press")
 		return
 	var scene := ResourceLoader.load(MAIN_SCENE_PATH) as PackedScene
@@ -20,10 +20,10 @@ func _init() -> void:
 		_fail("cannot instantiate main scene")
 		return
 	root.add_child(scene_root)
-	call_deferred("_observe_autostart", scene_root, press_next_turn, press_develop)
+	call_deferred("_observe_autostart", scene_root, press_next_turn, develop_presses)
 
 
-func _observe_autostart(scene_root: Control, press_next_turn: bool, press_develop: bool) -> void:
+func _observe_autostart(scene_root: Control, press_next_turn: bool, develop_presses: int) -> void:
 	var after_start := _controls(scene_root)
 	if press_next_turn:
 		var button := scene_root.get_node_or_null("NextTurnButton") as Button
@@ -31,12 +31,13 @@ func _observe_autostart(scene_root: Control, press_next_turn: bool, press_develo
 			_fail("missing NextTurnButton")
 			return
 		button.emit_signal("pressed")
-	if press_develop:
+	if develop_presses > 0:
 		var button := scene_root.get_node_or_null("DevelopButton") as Button
 		if button == null:
 			_fail("missing DevelopButton")
 			return
-		button.emit_signal("pressed")
+		for _press: int in develop_presses:
+			button.emit_signal("pressed")
 	print(PREFIX, JSON.stringify({
 		"after_start": after_start,
 		"after_press": _controls(scene_root),
@@ -55,6 +56,7 @@ func _controls(scene_root: Control) -> Dictionary:
 		"result": (scene_root.get_node("ResultLabel") as Label).text,
 		"duchy_status": (scene_root.get_node("PlayerDuchyStatusLabel") as Label).text,
 		"regions": names,
+		"order_status": (scene_root.get_node("LastOrderStatusLabel") as Label).text,
 	}
 
 

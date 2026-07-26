@@ -8,13 +8,17 @@ const PREFIX := "DEVELOP_BUTTON_BINDING "
 
 class StubClient extends RefCounted:
 	var models: Array[Variant]
+	var last_order_results: Array[Variant]
+	var last_order_result: Variant
 	var orders: Array[String] = []
 
-	func _init(next_models: Array[Variant]) -> void:
+	func _init(next_models: Array[Variant], next_order_results: Array[Variant]) -> void:
 		models = next_models
+		last_order_results = next_order_results
 
 	func send_order(order_name: String) -> Variant:
 		orders.append(order_name)
+		last_order_result = last_order_results.pop_front() if not last_order_results.is_empty() else null
 		if models.is_empty():
 			return null
 		return models.pop_front()
@@ -42,6 +46,10 @@ func _init() -> void:
 	var client := StubClient.new([
 		_model(4, 2),
 		_model(5, 3),
+		null,
+	], [
+		{"order": "develop", "changed": true},
+		{"order": "develop", "changed": false},
 		null,
 	])
 	scene_root.bind_client(client)
@@ -80,6 +88,7 @@ func _controls(scene_root: Control) -> Dictionary:
 	return {
 		"date": (scene_root.get_node("DateLabel") as Label).text,
 		"duchy_status": (scene_root.get_node("PlayerDuchyStatusLabel") as Label).text,
+		"order_status": (scene_root.get_node("LastOrderStatusLabel") as Label).text,
 	}
 
 

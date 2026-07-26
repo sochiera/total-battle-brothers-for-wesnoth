@@ -8,10 +8,12 @@ const PREFIX := "DEVELOP_FROM_BRIDGE "
 
 class StubClient extends RefCounted:
 	var model: Variant
+	var last_order_result: Variant
 	var orders: Array[String] = []
 
-	func _init(next_model: Variant) -> void:
+	func _init(next_model: Variant, next_order_result: Variant) -> void:
 		model = next_model
+		last_order_result = next_order_result
 
 	func send_order(order_name: String) -> Variant:
 		orders.append(order_name)
@@ -34,11 +36,21 @@ func _init() -> void:
 		call_deferred("quit", 0)
 		return
 
-	var successful_client := StubClient.new(_model(1, 1, "developed", ["Po rozkazie"]))
+	var successful_client := StubClient.new(
+		_model(1, 1, "developed", ["Po rozkazie"]),
+		{"order": "develop", "changed": true},
+	)
 	var refreshed: bool = scene_root.develop_from_bridge(successful_client)
 	var after_success := _controls(scene_root)
 
-	var failed_client := StubClient.new(null)
+	var unchanged_client := StubClient.new(
+		_model(1, 1, "unchanged", ["Bez zmiany"]),
+		{"order": "develop", "changed": false},
+	)
+	var refreshed_without_change: bool = scene_root.develop_from_bridge(unchanged_client)
+	var after_unchanged := _controls(scene_root)
+
+	var failed_client := StubClient.new(null, null)
 	var rejected: bool = scene_root.develop_from_bridge(failed_client)
 	var after_failure := _controls(scene_root)
 
@@ -47,6 +59,9 @@ func _init() -> void:
 		"refreshed": refreshed,
 		"success_orders": successful_client.orders,
 		"after_success": after_success,
+		"refreshed_without_change": refreshed_without_change,
+		"unchanged_orders": unchanged_client.orders,
+		"after_unchanged": after_unchanged,
 		"rejected": rejected,
 		"failure_orders": failed_client.orders,
 		"after_failure": after_failure,
@@ -74,6 +89,7 @@ func _controls(scene_root: Control) -> Dictionary:
 		"date": (scene_root.get_node("DateLabel") as Label).text,
 		"result": (scene_root.get_node("ResultLabel") as Label).text,
 		"regions": names,
+		"order_status": (scene_root.get_node("LastOrderStatusLabel") as Label).text,
 	}
 
 

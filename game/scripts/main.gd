@@ -60,7 +60,33 @@ func advance_turn_from_bridge(client) -> bool:
 
 
 func develop_from_bridge(client) -> bool:
-	return _apply_model_if_present(client.send_order("develop"))
+	var model: SnapshotModel = client.send_order("develop")
+	if not _apply_model_if_present(model):
+		$LastOrderStatusLabel.text = ""
+		return false
+	_set_develop_order_status(_last_order_result(client))
+	return true
+
+
+func _last_order_result(client) -> Variant:
+	for property: Dictionary in client.get_property_list():
+		if property.get("name") == "last_order_result":
+			return client.get("last_order_result")
+	return null
+
+
+func _set_develop_order_status(order_result: Variant) -> void:
+	var status_label: Label = $LastOrderStatusLabel
+	if not order_result is Dictionary or order_result.get("order") != "develop":
+		status_label.text = ""
+		return
+	match order_result.get("changed"):
+		true:
+			status_label.text = "Rozkaz rozwoju zmienił stan."
+		false:
+			status_label.text = "Rozkaz rozwoju nie zmienił stanu."
+		_:
+			status_label.text = ""
 
 
 func _apply_model_if_present(model: SnapshotModel) -> bool:

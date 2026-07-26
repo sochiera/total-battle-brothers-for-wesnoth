@@ -18,19 +18,22 @@ def test_develop_button_is_a_single_safe_binding_and_renders_the_post_order_snap
     lines = [line for line in result.stdout.splitlines() if line.startswith(PREFIX)]
     assert len(lines) == 1, result.stdout
     assert json.loads(lines[0][len(PREFIX) :]) == {
-        "before_bind": {"date": "", "duchy_status": ""},
-        "after_unbound_press": {"date": "", "duchy_status": ""},
+        "before_bind": {"date": "", "duchy_status": "", "order_status": ""},
+        "after_unbound_press": {"date": "", "duchy_status": "", "order_status": ""},
         "orders": ["develop", "develop", "develop"],
         "after_first_press": {
             "date": "Rok 1, miesiąc 1",
             "duchy_status": "Morale: 4, osady: 2, oddziały: 1",
+            "order_status": "Rozkaz rozwoju zmienił stan.",
         },
         "after_second_press": {
             "date": "Rok 1, miesiąc 1",
             "duchy_status": "Morale: 5, osady: 3, oddziały: 1",
+            "order_status": "Rozkaz rozwoju nie zmienił stanu.",
         },
         "after_failed_press": {
             "date": "Rok 1, miesiąc 1",
             "duchy_status": "Morale: 5, osady: 3, oddziały: 1",
+            "order_status": "",
         },
     }
