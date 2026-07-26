@@ -511,6 +511,17 @@ połączenie także dla `DevelopButton.pressed`, którego handler wywołuje tę
 metodę. Dlatego kliknięcie rozwoju trwałego klienta wysyła `order/develop`,
 zapisuje stan przez `BridgeClient.send_order` i renderuje snapshot po rozkazie
 bez przesuwania tury.
+Analogicznie pojedyncze połączenie `RecruitButton.pressed` wywołuje
+`send_order_from_bridge(_client, "recruit")`; bez związanego klienta handler
+jest no-opem. Rekrutacja korzysta z tej samej ścieżki wyniku i odświeżenia co
+rozwój, dlatego zachowuje datę oraz pokazuje status właściwy dla rozkazu
+`recruit`.
+
+Sonda E2E `persistent_recruit_e2e_probe.gd` wykonuje pięć kliknięć
+`RecruitButton` dla trwałego klienta, po czym tworzy nową scenę i klienta
+uruchamianego przez `serve --resume`. Test porównuje snapshoty po każdym z
+pięciu rozkazów ze stanem rdzenia i wymaga statusów „zmienił stan”; szósty
+rozkaz po wznowieniu musi zachować datę i pokazać „nie zmienił stanu”.
 
 `bind_client(client)` jest granicą kompozycji sceny: zapamiętuje aktualnego
 klienta i zapewnia jedno połączenie sygnału `NextTurnButton.pressed`. Po

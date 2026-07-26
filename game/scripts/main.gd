@@ -38,6 +38,10 @@ func bind_client(client) -> void:
 	var develop_handler := _on_develop_button_pressed
 	if not develop_button.pressed.is_connected(develop_handler):
 		develop_button.pressed.connect(develop_handler)
+	var recruit_button: Button = $RecruitButton
+	var recruit_handler := _on_recruit_button_pressed
+	if not recruit_button.pressed.is_connected(recruit_handler):
+		recruit_button.pressed.connect(recruit_handler)
 
 
 func _on_next_turn_button_pressed() -> void:
@@ -48,6 +52,11 @@ func _on_next_turn_button_pressed() -> void:
 func _on_develop_button_pressed() -> void:
 	if _client != null:
 		develop_from_bridge(_client)
+
+
+func _on_recruit_button_pressed() -> void:
+	if _client != null:
+		send_order_from_bridge(_client, "recruit")
 
 
 func refresh_from_bridge(client) -> bool:
