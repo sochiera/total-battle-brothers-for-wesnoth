@@ -2,6 +2,7 @@ extends Control
 
 
 const SnapshotModel = preload("res://scripts/snapshot_model.gd")
+const BridgeClient = preload("res://scripts/bridge_client.gd")
 
 
 var _client: Variant = null
@@ -9,6 +10,18 @@ var _client: Variant = null
 
 func _ready() -> void:
 	pass
+
+
+func start_session(config) -> bool:
+	if not _is_valid_session_config(config):
+		return false
+
+	var command: String = config["command"]
+	var state_path: String = config["state_path"]
+	var seed: int = config["seed"]
+	var client := BridgeClient.create_persistent(command, state_path, seed)
+	bind_client(client)
+	return refresh_from_bridge(client)
 
 
 func bind_client(client) -> void:
@@ -39,6 +52,17 @@ func _apply_model_if_present(model: SnapshotModel) -> bool:
 		return false
 	apply_model(model)
 	return true
+
+
+func _is_valid_session_config(config) -> bool:
+	return (
+		config is Dictionary
+		and config.get("command") is String
+		and not (config["command"] as String).strip_edges().is_empty()
+		and config.get("state_path") is String
+		and not (config["state_path"] as String).strip_edges().is_empty()
+		and config.get("seed") is int
+	)
 
 
 func apply_model(model: SnapshotModel) -> void:
