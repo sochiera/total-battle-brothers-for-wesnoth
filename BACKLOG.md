@@ -213,6 +213,21 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 - [ ] **G74.2a** Scena renderuje status księstwa gracza i odświeża go po turze
       (e2e autostartu i ciągłości partii). *(task-435)*
 
+## Kamień milowy 75 — rozkazy gracza w kliencie Godota (pierwszy rozkaz: rozwój)
+> Klient umie dziś tylko czytać snapshot i przesuwać turę. Most (`tbbbridge`)
+> obsługuje pełen zestaw rozkazów gracza od K65 — zweryfikowane empirycznie:
+> sekwencja `order:develop` + `save` w jednym uruchomieniu daje `changed=true`
+> i utrwala stan, a `serve --resume` startuje po rozkazie bez przesunięcia
+> kalendarza. K75 doprowadza tę ścieżkę do przycisku w scenie.
+- [ ] **G75.1a** `BridgeClient.send_order()` — rozkaz + zapis stanu w jednym
+      uruchomieniu procesu; `SnapshotModel` albo `null`. *(task-436)*
+- [ ] **R75.1 (dług techniczny)** Jeden prymityw sekwencji „komenda + zapis"
+      reużyty przez `advance_turn` i `send_order`. *(task-437)*
+- [ ] **G75.1b** Scena ma nazwany przycisk „Rozwiń osadę" (bez wiązania).
+      *(task-438)*
+- [ ] **G75.1c** Klik rozwoju wydaje rozkaz przez most, odświeża scenę i
+      utrwala partię (e2e przez dwa procesy). *(task-439)*
+
 ## Dług/refaktor
 - [ ] **R73.1 (dług techniczny)** Jedno źródło reguł poprawnej konfiguracji
       startowej: `main.gd._is_valid_session_config` duplikuje warunki
