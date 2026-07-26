@@ -498,10 +498,14 @@ kampanii — tylko stabilną strukturę scen i skryptów:
 
 ### Pętla gracza: następna tura i wznowienie (`G72.3d`)
 
-Rozkaz rozwoju (`G75.1c`) korzysta z tej samej granicy prezentacji.
-`develop_from_bridge(client) -> bool` wywołuje dokładnie raz
-`client.send_order("develop")` i przekazuje jego snapshot do
-`_apply_model_if_present`; `null` zwraca `false` bez zmiany kontrolek.
+Rozkazy gracza korzystają z tej samej granicy prezentacji.
+`send_order_from_bridge(client, order_name) -> bool` wywołuje dokładnie raz
+`client.send_order(order_name)` i przekazuje jego snapshot do
+`_apply_model_if_present`; `null` zwraca `false`, pozostawia pozostałe
+kontrolki bez zmiany i czyści status rozkazu. Po sukcesie status pochodzi
+wyłącznie z `OrderResult.status_text(_last_order_result(client))`.
+`develop_from_bridge(client)` pozostaje cienkim wrapperem wywołującym tę
+metodę z nazwą `"develop"`.
 `bind_client(client)` zapamiętuje ostatniego klienta oraz zapewnia pojedyncze
 połączenie także dla `DevelopButton.pressed`, którego handler wywołuje tę
 metodę. Dlatego kliknięcie rozwoju trwałego klienta wysyła `order/develop`,
