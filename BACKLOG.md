@@ -228,6 +228,20 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 - [ ] **G75.1c** Klik rozwoju wydaje rozkaz przez most, odświeża scenę i
       utrwala partię (e2e przez dwa procesy). *(task-439)*
 
+## Kamień milowy 76 — informacja zwrotna o rozkazie w kliencie Godota
+> Klik „Rozwiń osadę" wydaje rozkaz i odświeża scenę, ale gracz nie wie, czy
+> rozkaz cokolwiek zmienił — most niesie to w `result.changed`, a klient je
+> wyrzuca. Zweryfikowane empirycznie (`serve 73`): cztery pierwsze `develop`
+> dają `changed:true`, piąty `changed:false` przy `ok:true`.
+- [ ] **G76.1a** `order_result.gd` — czysta, atomowa projekcja `result` rozkazu
+      (albo `null`). *(task-440)*
+- [ ] **G76.1b** `BridgeClient` wystawia wynik ostatniego rozkazu obok modelu.
+      *(task-441)*
+- [ ] **G76.2a** Scena ma nazwaną kontrolkę statusu rozkazu (bez wiązania).
+      *(task-442)*
+- [ ] **G76.2b** Klik rozwoju pokazuje „zmieniono"/„bez zmian" (e2e przez dwa
+      procesy). *(task-443)*
+
 ## Dług/refaktor
 - [ ] **R73.1 (dług techniczny)** Jedno źródło reguł poprawnej konfiguracji
       startowej: `main.gd._is_valid_session_config` duplikuje warunki
