@@ -35,6 +35,13 @@ def test_bridge_protocol_exposes_json_lines_batch_entrypoints():
     assert "static func all_responses(output: String) -> Array" in client
 
 
+def test_bridge_protocol_exposes_send_many_entrypoint():
+    """G72.1b: the live batch API is publicly callable."""
+    client = (SCRIPTS / "bridge_client.gd").read_text(encoding="utf-8")
+
+    assert "func send_many(requests: Array) -> Array" in client
+
+
 def run_batch_probe(*args: str):
     return run_godot_script(
         GAME, "res://scripts/bridge_batch_probe.gd", *args, timeout=30

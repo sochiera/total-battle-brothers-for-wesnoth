@@ -58,6 +58,16 @@ static func all_responses(output: String) -> Array:
 	return responses
 
 
+func _run_request_file() -> Variant:
+	var output: Array = []
+	var quoted_request_path := _request_path.replace("'", "'\\''")
+	var shell_command := "%s < '%s'" % [_command, quoted_request_path]
+	var exit_code := OS.execute("sh", ["-c", shell_command], output, false, false)
+	if exit_code != 0 or output.is_empty():
+		return null
+	return str(output[0])
+
+
 func send(request: Dictionary) -> Variant:
 	var file := FileAccess.open(_request_path, FileAccess.WRITE)
 	if file == null:
@@ -66,14 +76,30 @@ func send(request: Dictionary) -> Variant:
 	file.store_line(request_line(request))
 	file.close()
 
-	var output: Array = []
-	var quoted_request_path := _request_path.replace("'", "'\\''")
-	var shell_command := "%s < '%s'" % [_command, quoted_request_path]
-	var exit_code := OS.execute("sh", ["-c", shell_command], output, false, false)
-	if exit_code != 0 or output.is_empty():
+	var stdout: Variant = _run_request_file()
+	if stdout == null:
 		return null
 
-	return first_response(str(output[0]))
+	return first_response(str(stdout))
+
+
+func send_many(requests: Array) -> Array:
+	if requests.is_empty():
+		return []
+
+	var file := FileAccess.open(_request_path, FileAccess.WRITE)
+	if file == null:
+		return []
+
+	file.store_string(request_lines(requests))
+	file.close()
+
+	var stdout: Variant = _run_request_file()
+	if stdout == null:
+		return []
+
+	var responses := all_responses(str(stdout))
+	return responses if responses.size() == requests.size() else []
 
 
 func snapshot_model() -> SnapshotModel:
