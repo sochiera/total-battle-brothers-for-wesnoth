@@ -172,16 +172,33 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > uruchomieniu procesu (`next_turn` + `save`) i wznowienie przez
 > `serve --resume <plik stanu>` — oba mechanizmy istnieją już w `tbbbridge`
 > (K68/K69) i zostały zweryfikowane empirycznie przy planowaniu.
-- [ ] **G72.1a** `BridgeClient.request_lines` / `all_responses` — czysta warstwa
+- [x] **G72.1a** `BridgeClient.request_lines` / `all_responses` — czysta warstwa
       wielolinijkowego JSON Lines (bez procesu). *(task-420)*
-- [ ] **G72.1b** `BridgeClient.send_many()` — sekwencja komend do żywego mostu
+- [x] **G72.1b** `BridgeClient.send_many()` — sekwencja komend do żywego mostu
       w jednym uruchomieniu procesu. *(task-421)*
-- [ ] **G72.2a** Komenda startowa mostu zależna od pliku stanu (świeże ziarno vs
+- [x] **G72.2a** Komenda startowa mostu zależna od pliku stanu (świeże ziarno vs
       `serve --resume`) + `create_persistent`. *(task-422)*
-- [ ] **G72.2b** `BridgeClient.advance_turn()` — tura utrwalona w pliku stanu;
+- [x] **G72.2b** `BridgeClient.advance_turn()` — tura utrwalona w pliku stanu;
       dwa procesy = dwie kolejne tury tej samej partii. *(task-423)*
-- [ ] **G72.3** Wejście gracza w scenie: przycisk „Następna tura” woła
-      `advance_turn()` i odświeża wiązania (do rozplanowania po G72.2b).
+- [x] **G72.3** Wejście gracza w scenie: przycisk „Następna tura” (G72.3a),
+      `advance_turn_from_bridge` (G72.3b), `bind_client` (G72.3c) i e2e trwałej
+      partii przez dwa procesy mostu (G72.3d).
+
+## Kamień milowy 73 — samodzielny start klienta Godota (konfiguracja + autostart)
+> Dziś partię składa wyłącznie sonda testowa: nikt nie tworzy klienta przy
+> starcie gry. K73 daje klientowi jawne wejście uruchomieniowe (komenda mostu,
+> plik stanu, ziarno ze zmiennych `TBB_*`), granicę startu w scenie i autostart
+> w `_ready()`, który bez konfiguracji jest bezpiecznym no-opem (sceny są
+> instancjonowane też przez istniejące sondy — zweryfikowane empirycznie:
+> `_ready()` odpala się przy `root.add_child`).
+- [ ] **G73.1a** `bridge_config.gd`: czysta `from_values` (atomowa walidacja
+      komendy, ścieżki stanu i ziarna). *(task-428)*
+- [ ] **G73.1b** `BridgeConfig.from_environment()` — `TBB_BRIDGE_COMMAND` /
+      `TBB_STATE_PATH` / `TBB_SEED`; brak lub błąd → `null`. *(task-429)*
+- [ ] **G73.2a** `main.gd.start_session(config)` — trwały klient, `bind_client`
+      i render bieżącego stanu bez przesuwania tury. *(task-430)*
+- [ ] **G73.2b** Autostart w `_ready()` + e2e ciągłości partii (no-op bez
+      konfiguracji). *(task-431)*
 
 ## Dług/refaktor
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*
