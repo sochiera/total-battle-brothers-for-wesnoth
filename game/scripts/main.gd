@@ -60,6 +60,16 @@ func _apply_model_if_present(model: SnapshotModel) -> bool:
 func apply_model(model: SnapshotModel) -> void:
 	$DateLabel.text = "Rok %d, miesiąc %d" % [model.year, model.month]
 	$ResultLabel.text = "Wynik: %s" % model.player_result
+	var player_duchy_status_label: Label = $PlayerDuchyStatusLabel
+	var player_duchy_status: Variant = model.player_duchy_status
+	if player_duchy_status is Dictionary:
+		player_duchy_status_label.text = "Morale: %s, osady: %s, oddziały: %s" % [
+			player_duchy_status["morale"],
+			player_duchy_status["settlements"],
+			player_duchy_status["parties"],
+		]
+	else:
+		player_duchy_status_label.text = ""
 	var region_list: ItemList = $RegionList
 	region_list.clear()
 	for region: Variant in model.regions:

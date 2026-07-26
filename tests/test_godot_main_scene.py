@@ -25,5 +25,10 @@ def test_scene_probe_reports_main_scene_root():
         {"path": "DateLabel", "name": "DateLabel", "class": "Label"},
         {"path": "RegionList", "name": "RegionList", "class": "ItemList"},
         {"path": "ResultLabel", "name": "ResultLabel", "class": "Label"},
+        {
+            "path": "PlayerDuchyStatusLabel",
+            "name": "PlayerDuchyStatusLabel",
+            "class": "Label",
+        },
         {"path": "NextTurnButton", "name": "NextTurnButton", "class": "Button"},
     ]

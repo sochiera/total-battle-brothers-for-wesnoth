@@ -21,12 +21,22 @@ def _expected_snapshot(turns: int) -> dict:
 
 
 def _controls(snapshot: dict) -> dict:
+    player_status = next(
+        duchy
+        for duchy in snapshot["duchies"]
+        if duchy["id"] == snapshot["player_duchy"]
+    )
     return {
         "date": (
             f"Rok {snapshot['calendar']['year']}, "
             f"miesiąc {snapshot['calendar']['month']}"
         ),
         "result": f"Wynik: {snapshot['result']['player_result']}",
+        "duchy_status": (
+            f"Morale: {player_status['morale']}, "
+            f"osady: {player_status['settlements']}, "
+            f"oddziały: {player_status['parties']}"
+        ),
         "regions": [region["name"] for region in snapshot["map"]["regions"]],
     }
 
@@ -76,6 +86,6 @@ def test_next_turn_button_keeps_controls_empty_when_persistent_bridge_fails(tmp_
     assert len(lines) == 1, result.stdout
     assert json.loads(lines[0][len(PREFIX) :]) == {
         "state_exists_after_first_press": False,
-        "first": {"date": "", "result": "", "regions": []},
-        "second": {"date": "", "result": "", "regions": []},
+        "first": {"date": "", "result": "", "duchy_status": "", "regions": []},
+        "second": {"date": "", "result": "", "duchy_status": "", "regions": []},
     }

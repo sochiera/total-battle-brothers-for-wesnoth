@@ -4,6 +4,7 @@ extends SceneTree
 const MAIN_SCENE_PATH := "res://scenes/main.tscn"
 const SnapshotModel = preload("res://scripts/snapshot_model.gd")
 const INVALID_APPLICATIONS_MESSAGE := "scene_bind_probe: applications must be a positive integer"
+const CLEAR_STATUS_MODE := "clear_status"
 
 
 func _init() -> void:
@@ -22,6 +23,12 @@ func _init() -> void:
 		if applications <= 0:
 			_fail(INVALID_APPLICATIONS_MESSAGE)
 			return
+	var clear_status := false
+	if args.size() >= 3:
+		if args[2] != CLEAR_STATUS_MODE:
+			_fail("scene_bind_probe: invalid mode")
+			return
+		clear_status = true
 
 	var path: String = args[0]
 	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
@@ -56,6 +63,11 @@ func _init() -> void:
 		scene_root.call("apply_model", model)
 	var date_label: Label = scene_root.get_node("DateLabel") as Label
 	var result_label: Label = scene_root.get_node("ResultLabel") as Label
+	var duchy_status_label: Label = scene_root.get_node_or_null("PlayerDuchyStatusLabel") as Label
+	var duchy_status_before_clear: Variant = duchy_status_label.text if duchy_status_label != null else null
+	if clear_status:
+		model.player_duchy_status = null
+		scene_root.call("apply_model", model)
 	var region_list: ItemList = scene_root.get_node("RegionList") as ItemList
 	var region_names: Array[String] = []
 	for index: int in region_list.item_count:
@@ -63,6 +75,8 @@ func _init() -> void:
 	print("SCENE_TEXT ", JSON.stringify({
 		"date": date_label.text,
 		"result": result_label.text,
+		"duchy_status_before_clear": duchy_status_before_clear,
+		"duchy_status": duchy_status_label.text if duchy_status_label != null else null,
 		"regions": region_list.item_count,
 		"region_names": region_names,
 	}))

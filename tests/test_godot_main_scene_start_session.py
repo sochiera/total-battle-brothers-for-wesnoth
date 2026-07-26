@@ -19,12 +19,22 @@ SEED = 73
 
 
 def _controls(snapshot: dict) -> dict:
+    player_status = next(
+        duchy
+        for duchy in snapshot["duchies"]
+        if duchy["id"] == snapshot["player_duchy"]
+    )
     return {
         "date": (
             f"Rok {snapshot['calendar']['year']}, "
             f"miesiąc {snapshot['calendar']['month']}"
         ),
         "result": f"Wynik: {snapshot['result']['player_result']}",
+        "duchy_status": (
+            f"Morale: {player_status['morale']}, "
+            f"osady: {player_status['settlements']}, "
+            f"oddziały: {player_status['parties']}"
+        ),
         "regions": [region["name"] for region in snapshot["map"]["regions"]],
     }
 
@@ -150,7 +160,7 @@ def test_scene_entry_without_environment_is_a_noop():
     ]
     assert len(lines) == 1, result.stdout
     assert json.loads(lines[0][len(ENVIRONMENT_AUTOSTART_PREFIX) :]) == {
-        "after_start": {"date": "", "result": "", "regions": []},
-        "after_press": {"date": "", "result": "", "regions": []},
+        "after_start": {"date": "", "result": "", "duchy_status": "", "regions": []},
+        "after_press": {"date": "", "result": "", "duchy_status": "", "regions": []},
         "state_exists": False,
     }

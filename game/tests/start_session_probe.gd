@@ -59,6 +59,7 @@ func _controls(scene_root: Control) -> Dictionary:
 	return {
 		"date": (scene_root.get_node("DateLabel") as Label).text,
 		"result": (scene_root.get_node("ResultLabel") as Label).text,
+		"duchy_status": (scene_root.get_node("PlayerDuchyStatusLabel") as Label).text,
 		"regions": names,
 	}
 

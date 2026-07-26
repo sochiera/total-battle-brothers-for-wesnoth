@@ -17,5 +17,7 @@ script = ExtResource("1_main")
 
 [node name="ResultLabel" type="Label" parent="."]
 
+[node name="PlayerDuchyStatusLabel" type="Label" parent="."]
+
 [node name="NextTurnButton" type="Button" parent="."]
 text = "Następna tura"
