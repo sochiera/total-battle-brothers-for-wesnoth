@@ -45,12 +45,46 @@ func _init() -> void:
 		"command": command,
 		"seed": 73,
 	}))
+	results.append(scene_root.start_session({
+		"state_path": args[0],
+		"seed": 73,
+	}))
+	results.append(scene_root.start_session({
+		"command": 73,
+		"state_path": args[0],
+		"seed": 73,
+	}))
+	results.append(scene_root.start_session({
+		"command": command,
+		"state_path": 73,
+		"seed": 73,
+	}))
+	results.append(scene_root.start_session({
+		"command": " \t ",
+		"state_path": args[0],
+		"seed": 73,
+	}))
+	results.append(scene_root.start_session({
+		"command": command,
+		"state_path": " \t ",
+		"seed": 73,
+	}))
+	results.append(scene_root.start_session({
+		"command": command,
+		"state_path": args[0],
+		"seed": "73",
+	}))
+	results.append(scene_root.start_session([]))
 
 	print(PREFIX, JSON.stringify({
 		"available": true,
 		"results": results,
 		"controls_unchanged": _controls(scene_root) == before,
 		"bridge_started": FileAccess.file_exists(args[1]),
+		"state_exists": FileAccess.file_exists(args[0]),
+		"request_exists": FileAccess.file_exists(
+			ProjectSettings.globalize_path("user://bridge_request.jsonl")
+		),
 	}))
 	call_deferred("quit", 0)
 

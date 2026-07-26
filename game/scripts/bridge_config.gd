@@ -5,14 +5,28 @@ extends RefCounted
 static func from_values(command: String, state_path: String, seed_text: String) -> Variant:
 	var trimmed_command := command.strip_edges()
 	var trimmed_state_path := state_path.strip_edges()
-	if trimmed_command.is_empty() or trimmed_state_path.is_empty() or not seed_text.is_valid_int():
+	if not seed_text.is_valid_int():
 		return null
 
-	return {
+	var config := {
 		"command": trimmed_command,
 		"state_path": trimmed_state_path,
 		"seed": seed_text.to_int(),
 	}
+	if not is_valid_session_config(config):
+		return null
+	return config
+
+
+static func is_valid_session_config(config: Variant) -> bool:
+	return (
+		config is Dictionary
+		and config.get("command") is String
+		and not (config["command"] as String).strip_edges().is_empty()
+		and config.get("state_path") is String
+		and not (config["state_path"] as String).strip_edges().is_empty()
+		and config.get("seed") is int
+	)
 
 
 static func from_environment() -> Variant:

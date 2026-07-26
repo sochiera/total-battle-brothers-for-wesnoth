@@ -54,12 +54,15 @@ def test_start_session_renders_fresh_game_without_advancing_then_binds_next_turn
 
 
 def test_start_session_rejects_invalid_config_without_changing_scene_or_starting_bridge(tmp_path):
+    environment = os.environ.copy()
+    environment["XDG_DATA_HOME"] = str(tmp_path / "xdg-data")
     result = run_godot_script(
         GAME,
         INVALID_CONFIG_PROBE,
         str(tmp_path / "session.json"),
         str(tmp_path / "bridge-started"),
         timeout=30,
+        env=environment,
     )
 
     assert result.returncode == 0, result.stderr
@@ -70,9 +73,11 @@ def test_start_session_rejects_invalid_config_without_changing_scene_or_starting
     assert len(lines) == 1, result.stdout
     assert json.loads(lines[0][len(INVALID_PREFIX) :]) == {
         "available": True,
-        "results": [False, False, False, False],
+        "results": [False] * 11,
         "controls_unchanged": True,
         "bridge_started": False,
+        "state_exists": False,
+        "request_exists": False,
     }
 
 

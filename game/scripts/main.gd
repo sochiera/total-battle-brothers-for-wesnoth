@@ -16,7 +16,7 @@ func _ready() -> void:
 
 
 func start_session(config) -> bool:
-	if not _is_valid_session_config(config):
+	if not BridgeConfig.is_valid_session_config(config):
 		return false
 
 	var command: String = config["command"]
@@ -55,17 +55,6 @@ func _apply_model_if_present(model: SnapshotModel) -> bool:
 		return false
 	apply_model(model)
 	return true
-
-
-func _is_valid_session_config(config) -> bool:
-	return (
-		config is Dictionary
-		and config.get("command") is String
-		and not (config["command"] as String).strip_edges().is_empty()
-		and config.get("state_path") is String
-		and not (config["state_path"] as String).strip_edges().is_empty()
-		and config.get("seed") is int
-	)
 
 
 func apply_model(model: SnapshotModel) -> void:

@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 GAME = ROOT / "game"
 PROBE = "res://tests/bridge_config_probe.gd"
 PREFIX = "BRIDGE_CONFIG "
+VALIDITY_PREFIX = "BRIDGE_CONFIG_VALIDITY "
 ENVIRONMENT_PROBE = "res://tests/bridge_config_environment_probe.gd"
 ENVIRONMENT_PREFIX = "BRIDGE_CONFIG_ENVIRONMENT "
 
@@ -38,6 +39,21 @@ def test_bridge_config_from_values_trims_valid_values_and_rejects_invalid_ones()
         None,
         None,
     ]
+
+
+def test_bridge_config_exposes_single_public_validity_predicate_for_ready_configs():
+    result = run_godot_script(GAME, PROBE, timeout=30)
+
+    assert result.returncode == 0, result.stderr
+    assert "SCRIPT ERROR" not in result.stderr, result.stderr
+    lines = [
+        line for line in result.stdout.splitlines() if line.startswith(VALIDITY_PREFIX)
+    ]
+    assert len(lines) == 1, result.stdout
+    assert json.loads(lines[0][len(VALIDITY_PREFIX) :]) == {
+        "available": True,
+        "results": [True, False, False, False],
+    }
 
 
 def test_bridge_config_from_environment_delegates_environment_values_to_from_values():

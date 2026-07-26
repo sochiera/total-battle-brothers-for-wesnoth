@@ -2,6 +2,7 @@ extends SceneTree
 
 
 const MAIN_SCENE_PATH := "res://scenes/main.tscn"
+const BridgeConfig = preload("res://scripts/bridge_config.gd")
 const PREFIX := "START_SESSION "
 
 
@@ -26,11 +27,12 @@ func _init() -> void:
 		call_deferred("quit", 0)
 		return
 
-	var started: bool = scene_root.start_session({
-		"command": args[0],
-		"state_path": args[1],
-		"seed": args[2].to_int(),
-	})
+	var config: Variant = BridgeConfig.from_values(
+		" %s " % args[0],
+		" %s " % args[1],
+		args[2],
+	)
+	var started: bool = scene_root.start_session(config)
 	var after_start := _controls(scene_root)
 	var state_exists_after_start := FileAccess.file_exists(args[1])
 	var button := scene_root.get_node_or_null("NextTurnButton") as Button
