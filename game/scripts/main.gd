@@ -36,6 +36,12 @@ func bind_client(client) -> void:
 	_connect_pressed_once($MusterButton, _on_muster_button_pressed)
 	_connect_pressed_once($MarchButton, _on_march_button_pressed)
 	_connect_pressed_once($AssaultButton, _on_assault_button_pressed)
+	_refresh_bound_client()
+
+
+func _refresh_bound_client() -> void:
+	if _client != null and _client.has_method("snapshot_model"):
+		refresh_from_bridge(_client)
 
 
 func _connect_pressed_once(button: Button, handler: Callable) -> void:

@@ -42,7 +42,12 @@ def test_assault_button_persists_battle_then_no_change_across_godot_processes(tm
     assert prepared["state_exists"] is True
     assert battle["session_command"] == f"{command_prefix} serve --resume '{state_path}'"
     assert unchanged["session_command"] == f"{command_prefix} serve --resume '{state_path}'"
+    assert prepared["controls_after_muster"]["party_position"] == "Położenie oddziału: player lands"
+    assert prepared["controls"]["party_position"] == "Położenie oddziału: border"
+    assert battle["controls_before_order"]["party_position"] == "Położenie oddziału: border"
+    assert battle["controls"]["party_position"] == "Położenie oddziału: brak"
     assert battle["controls"]["order_status"] == "Szturm: porażka (straty: 0, wróg: 0)."
     assert unchanged["controls"]["order_status"] == "Rozkaz szturmu nie zmienił stanu."
+    assert prepared["controls"]["date"] == prepared["controls_before_order"]["date"]
     assert battle["controls"]["date"] == prepared["controls"]["date"]
     assert unchanged["controls"]["date"] == battle["controls"]["date"]

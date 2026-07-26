@@ -16,10 +16,14 @@ func _init() -> void:
 		return
 	var client := BridgeClient.create_persistent(args[0], args[1], args[3].to_int(), args[2])
 	scene_root.bind_client(client)
-	if not _run_phase(scene_root, args[4]):
+	var controls_before_order := _controls(scene_root)
+	var controls_after_muster: Variant = _run_phase(scene_root, args[4])
+	if controls_after_muster == null:
 		return
 
 	print(PREFIX, JSON.stringify({
+		"controls_before_order": controls_before_order,
+		"controls_after_muster": controls_after_muster,
 		"controls": _controls(scene_root),
 		"state_exists": FileAccess.file_exists(args[1]),
 		"session_command": client.session_command(),
@@ -40,17 +44,22 @@ func _instantiate_scene() -> Control:
 	return scene_root
 
 
-func _run_phase(scene_root: Control, phase: String) -> bool:
+func _run_phase(scene_root: Control, phase: String) -> Variant:
 	match phase:
 		"prepare":
 			if not _press(scene_root, "MusterButton"):
-				return false
-			return _press(scene_root, "MarchButton")
+				return null
+			var after_muster := _controls(scene_root)
+			if not _press(scene_root, "MarchButton"):
+				return null
+			return after_muster
 		"battle", "unchanged":
-			return _press(scene_root, "AssaultButton")
+			if _press(scene_root, "AssaultButton"):
+				return {}
+			return null
 		_:
 			_fail("unknown phase")
-			return false
+			return null
 
 
 func _press(scene_root: Control, button_name: String) -> bool:
@@ -70,6 +79,7 @@ func _controls(scene_root: Control) -> Dictionary:
 	return {
 		"date": (scene_root.get_node("DateLabel") as Label).text,
 		"result": (scene_root.get_node("ResultLabel") as Label).text,
+		"party_position": (scene_root.get_node("PlayerPartyPositionLabel") as Label).text,
 		"regions": regions,
 		"duchy_status": (scene_root.get_node("PlayerDuchyStatusLabel") as Label).text,
 		"order_status": (scene_root.get_node("LastOrderStatusLabel") as Label).text,
