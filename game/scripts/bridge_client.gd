@@ -3,6 +3,7 @@ class_name BridgeClient
 
 
 const SnapshotModel = preload("res://scripts/snapshot_model.gd")
+const OrderResult = preload("res://scripts/order_result.gd")
 
 
 var _command: String
@@ -10,6 +11,7 @@ var _request_path: String
 var _is_persistent: bool = false
 var state_path: String
 var seed: int
+var last_order_result: Variant = null
 
 
 static func create(command: String, request_path: String = "") -> BridgeClient:
@@ -124,7 +126,7 @@ func send_many(requests: Array) -> Array:
 	return responses if responses.size() == requests.size() else []
 
 
-func _send_persisted_sequence(command: Dictionary) -> SnapshotModel:
+func _send_persisted_sequence(command: Dictionary, project_order_result: bool = false) -> SnapshotModel:
 	if not _is_persistent:
 		return null
 
@@ -139,7 +141,10 @@ func _send_persisted_sequence(command: Dictionary) -> SnapshotModel:
 		if not response is Dictionary or not response.get("ok", false):
 			return null
 
-	return SnapshotModel.from_response(responses[0])
+	var first_response: Dictionary = responses[0]
+	if project_order_result:
+		last_order_result = OrderResult.from_response(first_response)
+	return SnapshotModel.from_response(first_response)
 
 
 func advance_turn() -> SnapshotModel:
@@ -147,7 +152,8 @@ func advance_turn() -> SnapshotModel:
 
 
 func send_order(order_name: String) -> SnapshotModel:
-	return _send_persisted_sequence({"type": "order", "order": order_name})
+	last_order_result = null
+	return _send_persisted_sequence({"type": "order", "order": order_name}, true)
 
 
 func snapshot_model() -> SnapshotModel:

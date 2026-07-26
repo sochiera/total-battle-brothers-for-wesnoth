@@ -39,6 +39,14 @@ def test_persistent_bridge_send_order_persists_and_returns_the_post_order_model(
     payload = json.loads(lines[0][len(PREFIX) :])
     assert payload["has_send_order"] is True
     assert payload["order"] is not None
+    assert payload["has_last_order_result"] is True
+    assert payload["last_order_result"] == {"order": "develop", "changed": True}
+
+    assert payload["unchanged_order"] is not None
+    assert payload["unchanged_order_result"] == {"order": "develop", "changed": False}
+    assert payload["rejected_order_is_null"] is True
+    assert payload["rejected_order_result"] is None
+
     assert payload["order"]["calendar"] == {"year": 1, "month": 1}
     assert payload["order"]["regions"]
     assert payload["order"]["player_result"] == "ongoing"
@@ -47,7 +55,7 @@ def test_persistent_bridge_send_order_persists_and_returns_the_post_order_model(
         "settlements": 1,
         "parties": 0,
     }
-    assert payload["order"] == payload["resumed"]
+    assert payload["unchanged_order"] == payload["resumed"]
     assert payload["state_exists"] is True
     assert payload["requests"] == [
         {"type": "order", "order": "develop"},
