@@ -8,6 +8,14 @@ func _ready() -> void:
 	pass
 
 
+func refresh_from_bridge(client) -> bool:
+	var model: SnapshotModel = client.snapshot_model()
+	if model == null:
+		return false
+	apply_model(model)
+	return true
+
+
 func apply_model(model: SnapshotModel) -> void:
 	$DateLabel.text = "Rok %d, miesiąc %d" % [model.year, model.month]
 	$ResultLabel.text = "Wynik: %s" % model.player_result
