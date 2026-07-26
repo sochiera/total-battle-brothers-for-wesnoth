@@ -124,6 +124,24 @@ func send_many(requests: Array) -> Array:
 	return responses if responses.size() == requests.size() else []
 
 
+func advance_turn() -> SnapshotModel:
+	if not _is_persistent:
+		return null
+
+	var turn_and_save: Array = [
+		{"type": "next_turn"},
+		{"type": "save", "path": state_path},
+	]
+	var responses := send_many(turn_and_save)
+	if responses.size() != turn_and_save.size():
+		return null
+	for response in responses:
+		if not response is Dictionary or not response.get("ok", false):
+			return null
+
+	return SnapshotModel.from_response(responses[0])
+
+
 func snapshot_model() -> SnapshotModel:
 	var response: Variant = send({"type": "snapshot"})
 	if response == null or not response is Dictionary:
