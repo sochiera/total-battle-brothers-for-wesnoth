@@ -11,10 +11,29 @@ static func status_text(order_result: Variant) -> String:
 		return ""
 	if not order_result.has("order") or not order_result["order"] is String:
 		return ""
+
+	var order: String = order_result["order"]
+	if order_result.has("kind"):
+		if order_result["kind"] != "battle" or order != "assault":
+			return ""
+		if not order_result.has("outcome") or not order_result["outcome"] is String:
+			return ""
+		if not order_result.has("attacker_losses") or not order_result["attacker_losses"] is int:
+			return ""
+		if not order_result.has("defender_losses") or not order_result["defender_losses"] is int:
+			return ""
+		var outcome: String = order_result["outcome"]
+		var attacker_losses: int = order_result["attacker_losses"]
+		var defender_losses: int = order_result["defender_losses"]
+		return "Szturm: %s (straty: %d, wróg: %d)." % [
+			outcome,
+			attacker_losses,
+			defender_losses,
+		]
+
 	if not order_result.has("changed") or not order_result["changed"] is bool:
 		return ""
 
-	var order: String = order_result["order"]
 	var changed: bool = order_result["changed"]
 	var order_name := ""
 	match order:
@@ -26,6 +45,8 @@ static func status_text(order_result: Variant) -> String:
 			order_name = "zbiórki"
 		"march":
 			order_name = "marszu"
+		"assault":
+			order_name = "szturmu"
 		_:
 			return ""
 
