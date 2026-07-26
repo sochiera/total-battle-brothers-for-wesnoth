@@ -15,6 +15,19 @@ const EXPECTED := {
 	"invalid_changed": null,
 }
 
+const EXPECTED_STATUS_TEXT := {
+	"develop_changed": "Rozkaz rozwoju zmienił stan.",
+	"develop_unchanged": "Rozkaz rozwoju nie zmienił stanu.",
+	"recruit_changed": "Rozkaz rekrutacji zmienił stan.",
+	"recruit_unchanged": "Rozkaz rekrutacji nie zmienił stanu.",
+	"missing_result": "",
+	"non_dictionary": "",
+	"missing_order": "",
+	"invalid_changed": "",
+	"unknown_order": "",
+	"deterministic": "Rozkaz rozwoju zmienił stan.",
+}
+
 
 func _init() -> void:
 	var cases := {
@@ -37,5 +50,29 @@ func _init() -> void:
 		printerr("order_result_probe: projection did not match the contract")
 		call_deferred("quit", 1)
 		return
+	var status_cases: Dictionary = {
+		"develop_changed": projected["changed"],
+		"develop_unchanged": projected["unchanged"],
+		"recruit_changed": OrderResult.from_response({"ok": true, "result": {"kind": "order", "order": "recruit", "changed": true}}),
+		"recruit_unchanged": OrderResult.from_response({"ok": true, "result": {"kind": "order", "order": "recruit", "changed": false}}),
+		"missing_result": null,
+		"non_dictionary": [],
+		"missing_order": {"changed": true},
+		"invalid_changed": {"order": "develop", "changed": "yes"},
+		"unknown_order": {"order": "trade", "changed": true},
+		"deterministic": projected["changed"],
+	}
+	var status_text: Dictionary = {}
+	for name: String in status_cases:
+		status_text[name] = OrderResult.status_text(status_cases[name])
+	if OrderResult.status_text(status_cases["deterministic"]) != status_text["deterministic"]:
+		printerr("order_result_probe: status text was not deterministic")
+		call_deferred("quit", 1)
+		return
+	if status_text != EXPECTED_STATUS_TEXT:
+		printerr("order_result_probe: status text did not match the contract")
+		call_deferred("quit", 1)
+		return
 	print("ORDER_RESULT ", JSON.stringify(projected))
+	print("ORDER_STATUS_TEXT ", JSON.stringify(status_text))
 	call_deferred("quit", 0)
