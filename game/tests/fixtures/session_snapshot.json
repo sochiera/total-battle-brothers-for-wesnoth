@@ -3,6 +3,7 @@
     "year": 1,
     "month": 1
   },
+  "player_duchy": "player",
   "duchies": [
     {
       "id": "player",

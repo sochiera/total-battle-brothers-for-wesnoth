@@ -11,6 +11,11 @@ from tbbbridge.session import Session, apply_command, new_session
 from tbbbridge.protocol import command_result, handle_command_line, serve_stream
 
 
+def _assert_player_duchy(snapshot: dict) -> None:
+    """G74.1a: protocol responses expose the session's player duchy."""
+    assert snapshot["player_duchy"] == "player"
+
+
 def test_handle_command_line_next_turn_returns_apply_command_result_and_snapshot_dict():
     """G66.1a kryt-1: ``handle_command_line(session, '{"type": "next_turn"}')``
     zwraca krotkę ``(new_session, resp)`` gdzie ``new_session`` jest wynikiem
@@ -30,6 +35,7 @@ def test_handle_command_line_next_turn_returns_apply_command_result_and_snapshot
     assert result_session.snapshot() == expected_new.snapshot()
     assert resp["ok"] is True
     assert resp["snapshot"] == result_session.snapshot()
+    _assert_player_duchy(resp["snapshot"])
     assert resp["result"] == command_result(
         s, result_session, {"type": "next_turn"}
     )
@@ -494,6 +500,7 @@ def test_handle_command_line_load_existing_file_returns_loaded_session_and_snaps
         # Odpowiedź zawiera ok, snapshot z wczytanej sesji i result
         assert resp["ok"] is True
         assert resp["snapshot"] == loaded_session.snapshot()
+        _assert_player_duchy(resp["snapshot"])
         assert resp["result"] == {"kind": "load", "path": path}
 
         # json.dumps nie rzuca
@@ -820,6 +827,7 @@ def test_handle_command_line_snapshot_returns_same_session_with_snapshot_and_res
     assert returned_session is s
     assert resp["ok"] is True
     assert resp["snapshot"] == before_snapshot
+    _assert_player_duchy(resp["snapshot"])
     assert resp["result"] == {"kind": "snapshot"}
     json.dumps(resp)
     assert s.snapshot() == before_snapshot

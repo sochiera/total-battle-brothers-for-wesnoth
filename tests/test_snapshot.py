@@ -292,11 +292,12 @@ def test_game_state_composes_calendar_duchies_map_and_result_per_contract():
     state = game_state(world, game, calendar, player_duchy_id="player")
 
     # Contract: top-level keys exactly in order calendar, duchies, map, result.
-    assert list(state.keys()) == ["calendar", "duchies", "map", "result"]
+    assert list(state.keys()) == ["calendar", "player_duchy", "duchies", "map", "result"]
 
     # Contract: calendar sub-dict with exactly year, month sourced from input.
     assert list(state["calendar"].keys()) == ["year", "month"]
     assert state["calendar"] == {"year": calendar.year, "month": calendar.month}
+    assert state["player_duchy"] == "player"
 
     # Contract: map is exactly map_state(world) (reuse, no reimplementation).
     assert state["map"] == map_state(world)
@@ -372,6 +373,27 @@ def test_game_state_composes_calendar_duchies_map_and_result_per_contract():
     json.dumps(state_none)
 
 
+def test_game_state_always_exposes_player_duchy_id_from_its_argument():
+    """G74.1a: top-level player_duchy identifies the player or is null."""
+    from tbbbridge.snapshot import game_state
+
+    world = _game_world()
+    game = GameState((_rich_player_duchy(), _ai_duchy(alive=True)))
+    calendar = Calendar(year=2, month=7)
+
+    with_player = game_state(world, game, calendar, player_duchy_id="player")
+    without_player = game_state(world, game, calendar, player_duchy_id=None)
+
+    assert "player_duchy" in with_player
+    assert with_player["player_duchy"] == "player"
+    assert with_player["player_duchy"] in {
+        duchy["id"] for duchy in with_player["duchies"]
+    }
+    assert "player_duchy" in without_player
+    assert without_player["player_duchy"] is None
+    json.dumps(without_player)
+
+
 def test_main_writes_snapshot_to_explicit_path_creating_parent_directory_and_returns_zero(
     tmp_path,
 ):
@@ -391,7 +413,7 @@ def test_main_writes_snapshot_to_explicit_path_creating_parent_directory_and_ret
     assert rc == 0
     assert out_path.exists()
     snapshot = json.loads(out_path.read_text(encoding="utf-8"))
-    assert list(snapshot.keys()) == ["calendar", "duchies", "map", "result"]
+    assert list(snapshot.keys()) == ["calendar", "player_duchy", "duchies", "map", "result"]
     assert snapshot["result"]["player_result"] in {
         "ongoing",
         "victory",
@@ -493,7 +515,7 @@ def test_main_without_positional_argument_writes_default_out_state_json(
     assert rc == 0
     assert out_path.exists()
     snapshot = json.loads(out_path.read_text(encoding="utf-8"))
-    assert list(snapshot.keys()) == ["calendar", "duchies", "map", "result"]
+    assert list(snapshot.keys()) == ["calendar", "player_duchy", "duchies", "map", "result"]
 
     # Wariant main() (argv=None → sys.argv[1:]; tu puste) — osobny katalog roboczy.
     other = tmp_path / "via_default_call"
@@ -545,8 +567,8 @@ def test_main_two_runs_to_different_paths_produce_byte_identical_json(tmp_path):
     # Obie ścieżki parsują się json.loads.
     snap_a = json.loads(path_a.read_text(encoding="utf-8"))
     snap_b = json.loads(path_b.read_text(encoding="utf-8"))
-    assert list(snap_a.keys()) == ["calendar", "duchies", "map", "result"]
-    assert list(snap_b.keys()) == ["calendar", "duchies", "map", "result"]
+    assert list(snap_a.keys()) == ["calendar", "player_duchy", "duchies", "map", "result"]
+    assert list(snap_b.keys()) == ["calendar", "player_duchy", "duchies", "map", "result"]
 
     # Bajt-w-bajt identyczne (determinizm CLI).
     assert path_a.read_bytes() == path_b.read_bytes()
@@ -706,7 +728,7 @@ def test_python_m_tbbbridge_shim_propagates_rc_and_explicit_arg_writes_named_fil
     )
     assert named_path.exists(), "jawny argv[0] musi zapisać snapshot do wskazanego pliku"
     snapshot = json.loads(named_path.read_text(encoding="utf-8"))
-    assert list(snapshot.keys()) == ["calendar", "duchies", "map", "result"]
+    assert list(snapshot.keys()) == ["calendar", "player_duchy", "duchies", "map", "result"]
     # Brak regresji vs 306: domyślna ścieżka NIE powstaje w cwd podprocesu.
     assert not (workdir_explicit / "out" / "state.json").exists()
 
@@ -772,7 +794,7 @@ def test_game_state_with_battle_embeds_battle_state_and_none_preserves_prior_out
     )
     # Contract: top-level keys exactly the prescribed order, "battle" last.
     assert list(state.keys()) == [
-        "calendar", "duchies", "map", "result", "battle",
+        "calendar", "player_duchy", "duchies", "map", "result", "battle",
     ]
     # Contract: embedded battle equals battle_state(battle) (reuse, not reimplement).
     assert state["battle"] == battle_state(battle)
@@ -792,7 +814,7 @@ def test_game_state_with_battle_embeds_battle_state_and_none_preserves_prior_out
         world, game, calendar, player_duchy_id="player", battle=None
     )
     assert list(state_none_explicit.keys()) == [
-        "calendar", "duchies", "map", "result",
+        "calendar", "player_duchy", "duchies", "map", "result",
     ]
     assert state_none_explicit == base
     assert json.dumps(state_none_explicit, sort_keys=True) == json.dumps(
@@ -804,7 +826,7 @@ def test_game_state_with_battle_embeds_battle_state_and_none_preserves_prior_out
         world, game, calendar, player_duchy_id="player"
     )
     assert list(state_default.keys()) == [
-        "calendar", "duchies", "map", "result",
+        "calendar", "player_duchy", "duchies", "map", "result",
     ]
     assert json.dumps(state_default, sort_keys=True) == json.dumps(
         base, sort_keys=True

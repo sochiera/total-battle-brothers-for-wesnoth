@@ -67,9 +67,10 @@ przez `json.dumps`.
 
 `game_state(world, game, calendar, player_duchy_id=None, battle=None)`
 (G63.1d / G64.1b) zwraca dict z kluczami w kolejności:
-`calendar`, `duchies`, `map`, `result` — a gdy `battle is not None`, także
+`calendar`, `player_duchy`, `duchies`, `map`, `result` — a gdy `battle is not None`, także
 ostatni klucz `battle`.
 `calendar` to `{"year": calendar.year, "month": calendar.month}`;
+`player_duchy` to dokładnie `player_duchy_id` i jest obecne zawsze, także jako `None`;
 `duchies` to lista statusów księstw z `game.duchies`, każdy z kluczami
 `id`, `morale`, `settlements`, `parties`, `has_hero`, `has_heir`, `is_defeated`;
 `map` to `map_state(world)`; `result` to `{"is_over": game.is_over,

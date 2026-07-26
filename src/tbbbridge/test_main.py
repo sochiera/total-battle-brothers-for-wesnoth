@@ -108,7 +108,7 @@ def test_main_empty_argv_writes_deterministic_snapshot_to_default_path_returns_z
     assert empty_out.getvalue() == ""
 
     snapshot = json.loads(out_path.read_text(encoding="utf-8"))
-    assert list(snapshot.keys()) == ["calendar", "duchies", "map", "result"]
+    assert list(snapshot.keys()) == ["calendar", "player_duchy", "duchies", "map", "result"]
     assert snapshot == _reference_legacy_snapshot()
 
 
@@ -132,7 +132,7 @@ def test_main_with_explicit_path_writes_deterministic_snapshot_to_that_path_retu
     assert empty_out.getvalue() == ""
 
     snapshot = json.loads(out_path.read_text(encoding="utf-8"))
-    assert list(snapshot.keys()) == ["calendar", "duchies", "map", "result"]
+    assert list(snapshot.keys()) == ["calendar", "player_duchy", "duchies", "map", "result"]
     assert snapshot == _reference_legacy_snapshot()
 
 

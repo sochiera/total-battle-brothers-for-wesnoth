@@ -636,11 +636,11 @@ def test_session_last_battle_field_and_snapshot_embeds_battle_state():
     # --- Pozostałe klucze snapshotu bez zmian względem postaci bez bitwy ---
     # (z wyjątkiem dodanego klucza "battle" na końcu).
     assert list(snap.keys()) == [
-        "calendar", "duchies", "map", "result", "battle",
+        "calendar", "player_duchy", "duchies", "map", "result", "battle",
     ]
-    snap_stripped = {k: snap[k] for k in ("calendar", "duchies", "map", "result")}
+    snap_stripped = {k: snap[k] for k in ("calendar", "player_duchy", "duchies", "map", "result")}
     snap_none_stripped = {
-        k: snap_none[k] for k in ("calendar", "duchies", "map", "result")
+        k: snap_none[k] for k in ("calendar", "player_duchy", "duchies", "map", "result")
     }
     assert snap_stripped == snap_none_stripped
 

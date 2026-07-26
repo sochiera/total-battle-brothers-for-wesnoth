@@ -181,11 +181,12 @@ def game_state(
     przez `json.dumps`.
 
     Gdy `battle` jest podane, jako ostatni klucz osadzany jest
-    `battle_state(battle)`. Gdy `battle is None` (domyślnie), wynik pozostaje
-    bajt-w-bajt identyczny z wcześniejszą postacią funkcji.
+    `battle_state(battle)`. Gdy `battle is None` (domyślnie), klucz `battle`
+    nie jest dodawany.
 
     Klucze wyniku dokładnie w kolejności:
       calendar -> {"year": calendar.year, "month": calendar.month}
+      player_duchy -> player_duchy_id (zawsze, także jako None)
       duchies  -> lista statusów księstw (kolejność game.duchies)
       map      -> map_state(world)
       result   -> {"is_over": ..., "winner": ..., "player_result": ...}
@@ -193,6 +194,7 @@ def game_state(
     """
     state: dict[str, Any] = {
         "calendar": {"year": calendar.year, "month": calendar.month},
+        "player_duchy": player_duchy_id,
         "duchies": [_duchy_state(duchy) for duchy in game.duchies],
         "map": map_state(world),
         "result": {
