@@ -65,10 +65,13 @@ def test_godot_order_result_returns_polish_status_text_for_projected_orders():
         "develop_unchanged": "Rozkaz rozwoju nie zmienił stanu.",
         "recruit_changed": "Rozkaz rekrutacji zmienił stan.",
         "recruit_unchanged": "Rozkaz rekrutacji nie zmienił stanu.",
+        "muster_changed": "Rozkaz zbiórki zmienił stan.",
+        "muster_unchanged": "Rozkaz zbiórki nie zmienił stanu.",
         "missing_result": "",
         "non_dictionary": "",
         "missing_order": "",
         "invalid_changed": "",
         "unknown_order": "",
         "deterministic": "Rozkaz rozwoju zmienił stan.",
+        "deterministic_muster": "Rozkaz zbiórki zmienił stan.",
     }

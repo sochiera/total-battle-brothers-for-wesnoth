@@ -18,12 +18,13 @@ static func status_text(order_result: Variant) -> String:
 			order_name = "rozwoju"
 		"recruit":
 			order_name = "rekrutacji"
+		"muster":
+			order_name = "zbiórki"
 		_:
 			return ""
 
-	if changed:
-		return "Rozkaz %s zmienił stan." % order_name
-	return "Rozkaz %s nie zmienił stanu." % order_name
+	var change_text := "zmienił stan." if changed else "nie zmienił stanu."
+	return "Rozkaz %s %s" % [order_name, change_text]
 
 
 static func from_response(response: Dictionary) -> Variant:
