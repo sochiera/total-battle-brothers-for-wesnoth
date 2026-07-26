@@ -274,6 +274,23 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 - [ ] **G78.2a** Nieudany rozkaz pokazuje czytelny komunikat zamiast pustego
       statusu. *(task-451)*
 
+## Kamień milowy 79 — czwarty rozkaz gracza (marsz) w kliencie Godota
+> Ścieżka rozkazu jest parametryzowana od K77, więc marsz to tekst statusu,
+> przycisk i wiązanie. Najpierw jednak spłacamy dług: scena szuka wyniku
+> ostatniego rozkazu skanując `get_property_list()` klienta — ukryty kontrakt
+> po nazwie pola. Zweryfikowane empirycznie (`serve 73`): sam `march` na
+> świeżej partii → `changed:false`; `muster` → `march` → `changed:true`,
+> kolejne `march` → `false`.
+- [ ] **R79.1 (dług techniczny)** Jawne API wyniku ostatniego rozkazu w
+      `BridgeClient` zamiast skanowania `get_property_list` w `main.gd`
+      + testy regresji statusu rozkazu. *(task-452)*
+- [ ] **G79.1a** `order_result.gd` — tekst statusu rozróżnia rozkaz `march`.
+      *(task-453)*
+- [ ] **G79.1b** Scena ma nazwany przycisk „Wyrusz w pole" (bez wiązania).
+      *(task-454)*
+- [ ] **G79.1c** Klik marszu wydaje rozkaz, pokazuje skutek i utrwala partię
+      (e2e przez dwa procesy). *(task-455)*
+
 ## Dług/refaktor
 - [ ] **R73.1 (dług techniczny)** Jedno źródło reguł poprawnej konfiguracji
       startowej: `main.gd._is_valid_session_config` duplikuje warunki
