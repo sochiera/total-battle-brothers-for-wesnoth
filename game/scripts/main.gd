@@ -30,18 +30,15 @@ func start_session(config) -> bool:
 
 func bind_client(client) -> void:
 	_client = client
-	var next_turn_button: Button = $NextTurnButton
-	var next_turn_handler := _on_next_turn_button_pressed
-	if not next_turn_button.pressed.is_connected(next_turn_handler):
-		next_turn_button.pressed.connect(next_turn_handler)
-	var develop_button: Button = $DevelopButton
-	var develop_handler := _on_develop_button_pressed
-	if not develop_button.pressed.is_connected(develop_handler):
-		develop_button.pressed.connect(develop_handler)
-	var recruit_button: Button = $RecruitButton
-	var recruit_handler := _on_recruit_button_pressed
-	if not recruit_button.pressed.is_connected(recruit_handler):
-		recruit_button.pressed.connect(recruit_handler)
+	_connect_pressed_once($NextTurnButton, _on_next_turn_button_pressed)
+	_connect_pressed_once($DevelopButton, _on_develop_button_pressed)
+	_connect_pressed_once($RecruitButton, _on_recruit_button_pressed)
+	_connect_pressed_once($MusterButton, _on_muster_button_pressed)
+
+
+func _connect_pressed_once(button: Button, handler: Callable) -> void:
+	if not button.pressed.is_connected(handler):
+		button.pressed.connect(handler)
 
 
 func _on_next_turn_button_pressed() -> void:
@@ -57,6 +54,11 @@ func _on_develop_button_pressed() -> void:
 func _on_recruit_button_pressed() -> void:
 	if _client != null:
 		send_order_from_bridge(_client, "recruit")
+
+
+func _on_muster_button_pressed() -> void:
+	if _client != null:
+		send_order_from_bridge(_client, "muster")
 
 
 func refresh_from_bridge(client) -> bool:

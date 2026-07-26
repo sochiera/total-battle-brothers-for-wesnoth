@@ -516,6 +516,9 @@ Analogicznie pojedyncze połączenie `RecruitButton.pressed` wywołuje
 jest no-opem. Rekrutacja korzysta z tej samej ścieżki wyniku i odświeżenia co
 rozwój, dlatego zachowuje datę oraz pokazuje status właściwy dla rozkazu
 `recruit`.
+Tak samo `MusterButton.pressed` jest łączony jednokrotnie i wywołuje
+`send_order_from_bridge(_client, "muster")`, bez własnej obsługi statusu ani
+zapisu; bez związanego klienta pozostaje no-opem.
 
 Sonda E2E `persistent_recruit_e2e_probe.gd` wykonuje pięć kliknięć
 `RecruitButton` dla trwałego klienta, po czym tworzy nową scenę i klienta
