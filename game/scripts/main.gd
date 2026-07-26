@@ -4,8 +4,24 @@ extends Control
 const SnapshotModel = preload("res://scripts/snapshot_model.gd")
 
 
+var _client: Variant = null
+
+
 func _ready() -> void:
 	pass
+
+
+func bind_client(client) -> void:
+	_client = client
+	var next_turn_button: Button = $NextTurnButton
+	var handler := _on_next_turn_button_pressed
+	if not next_turn_button.pressed.is_connected(handler):
+		next_turn_button.pressed.connect(handler)
+
+
+func _on_next_turn_button_pressed() -> void:
+	if _client != null:
+		advance_turn_from_bridge(_client)
 
 
 func refresh_from_bridge(client) -> bool:
