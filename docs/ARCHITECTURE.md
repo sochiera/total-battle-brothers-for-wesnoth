@@ -496,6 +496,16 @@ kampanii — tylko stabilną strukturę scen i skryptów:
 
 ### Pętla gracza: następna tura i wznowienie (`G72.3d`)
 
+Rozkaz rozwoju (`G75.1c`) korzysta z tej samej granicy prezentacji.
+`develop_from_bridge(client) -> bool` wywołuje dokładnie raz
+`client.send_order("develop")` i przekazuje jego snapshot do
+`_apply_model_if_present`; `null` zwraca `false` bez zmiany kontrolek.
+`bind_client(client)` zapamiętuje ostatniego klienta oraz zapewnia pojedyncze
+połączenie także dla `DevelopButton.pressed`, którego handler wywołuje tę
+metodę. Dlatego kliknięcie rozwoju trwałego klienta wysyła `order/develop`,
+zapisuje stan przez `BridgeClient.send_order` i renderuje snapshot po rozkazie
+bez przesuwania tury.
+
 `bind_client(client)` jest granicą kompozycji sceny: zapamiętuje aktualnego
 klienta i zapewnia jedno połączenie sygnału `NextTurnButton.pressed`. Po
 kliknięciu handler wywołuje `advance_turn_from_bridge(_client)`, a ta funkcja

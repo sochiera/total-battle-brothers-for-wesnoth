@@ -7,6 +7,10 @@ const PREFIX := "ENVIRONMENT_AUTOSTART "
 
 func _init() -> void:
 	var press_next_turn := "--press" in OS.get_cmdline_user_args()
+	var press_develop := "--develop" in OS.get_cmdline_user_args()
+	if press_next_turn and press_develop:
+		_fail("expected at most one button press")
+		return
 	var scene := ResourceLoader.load(MAIN_SCENE_PATH) as PackedScene
 	if scene == null:
 		_fail("cannot load main scene")
@@ -16,15 +20,21 @@ func _init() -> void:
 		_fail("cannot instantiate main scene")
 		return
 	root.add_child(scene_root)
-	call_deferred("_observe_autostart", scene_root, press_next_turn)
+	call_deferred("_observe_autostart", scene_root, press_next_turn, press_develop)
 
 
-func _observe_autostart(scene_root: Control, press_next_turn: bool) -> void:
+func _observe_autostart(scene_root: Control, press_next_turn: bool, press_develop: bool) -> void:
 	var after_start := _controls(scene_root)
 	if press_next_turn:
 		var button := scene_root.get_node_or_null("NextTurnButton") as Button
 		if button == null:
 			_fail("missing NextTurnButton")
+			return
+		button.emit_signal("pressed")
+	if press_develop:
+		var button := scene_root.get_node_or_null("DevelopButton") as Button
+		if button == null:
+			_fail("missing DevelopButton")
 			return
 		button.emit_signal("pressed")
 	print(PREFIX, JSON.stringify({

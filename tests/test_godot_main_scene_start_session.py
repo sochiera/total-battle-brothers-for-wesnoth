@@ -4,7 +4,7 @@ import shlex
 from pathlib import Path
 
 from godot_runner import run_godot_script
-from tbbbridge.session import new_session
+from tbbbridge.session import apply_command, new_session
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -137,6 +137,62 @@ def test_scene_autostarts_from_environment_and_resumes_after_next_turn(tmp_path)
     }
     assert payload(second) == {
         "after_start": _controls(after_turn.snapshot()),
+        "after_press": _controls(after_turn.snapshot()),
+        "state_exists": True,
+    }
+
+
+def test_scene_autostarts_persists_development_and_then_advances_on_the_next_process(tmp_path):
+    state_path = tmp_path / "autostart-develop-session.json"
+    environment = os.environ.copy()
+    environment.update(
+        {
+            "TBB_BRIDGE_COMMAND": (
+                f"PYTHONPATH={shlex.quote(str(ROOT / 'src'))} python3 -m tbbbridge"
+            ),
+            "TBB_STATE_PATH": str(state_path),
+            "TBB_SEED": str(SEED),
+        }
+    )
+
+    first = run_godot_script(
+        GAME,
+        ENVIRONMENT_AUTOSTART_PROBE,
+        "--develop",
+        timeout=30,
+        env=environment,
+    )
+    second = run_godot_script(
+        GAME,
+        ENVIRONMENT_AUTOSTART_PROBE,
+        "--press",
+        timeout=30,
+        env=environment,
+    )
+
+    for result in (first, second):
+        assert result.returncode == 0, result.stderr
+        assert "SCRIPT ERROR" not in result.stderr, result.stderr
+
+    def payload(result):
+        lines = [
+            line
+            for line in result.stdout.splitlines()
+            if line.startswith(ENVIRONMENT_AUTOSTART_PREFIX)
+        ]
+        assert len(lines) == 1, result.stdout
+        return json.loads(lines[0][len(ENVIRONMENT_AUTOSTART_PREFIX) :])
+
+    fresh = new_session(SEED)
+    developed = apply_command(fresh, {"type": "order", "order": "develop"})
+    after_turn = developed.next_turn()
+    assert payload(first) == {
+        "after_start": _controls(fresh.snapshot()),
+        "after_press": _controls(developed.snapshot()),
+        "state_exists": True,
+    }
+    assert payload(second) == {
+        "after_start": _controls(developed.snapshot()),
         "after_press": _controls(after_turn.snapshot()),
         "state_exists": True,
     }

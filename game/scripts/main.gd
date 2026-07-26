@@ -30,14 +30,23 @@ func start_session(config) -> bool:
 func bind_client(client) -> void:
 	_client = client
 	var next_turn_button: Button = $NextTurnButton
-	var handler := _on_next_turn_button_pressed
-	if not next_turn_button.pressed.is_connected(handler):
-		next_turn_button.pressed.connect(handler)
+	var next_turn_handler := _on_next_turn_button_pressed
+	if not next_turn_button.pressed.is_connected(next_turn_handler):
+		next_turn_button.pressed.connect(next_turn_handler)
+	var develop_button: Button = $DevelopButton
+	var develop_handler := _on_develop_button_pressed
+	if not develop_button.pressed.is_connected(develop_handler):
+		develop_button.pressed.connect(develop_handler)
 
 
 func _on_next_turn_button_pressed() -> void:
 	if _client != null:
 		advance_turn_from_bridge(_client)
+
+
+func _on_develop_button_pressed() -> void:
+	if _client != null:
+		develop_from_bridge(_client)
 
 
 func refresh_from_bridge(client) -> bool:
@@ -48,6 +57,10 @@ func refresh_from_bridge(client) -> bool:
 func advance_turn_from_bridge(client) -> bool:
 	var model: SnapshotModel = client.advance_turn()
 	return _apply_model_if_present(model)
+
+
+func develop_from_bridge(client) -> bool:
+	return _apply_model_if_present(client.send_order("develop"))
 
 
 func _apply_model_if_present(model: SnapshotModel) -> bool:
