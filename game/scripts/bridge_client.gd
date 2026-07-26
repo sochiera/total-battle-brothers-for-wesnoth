@@ -22,6 +22,17 @@ static func request_line(command: Dictionary) -> String:
 	return JSON.stringify(command)
 
 
+static func request_lines(commands: Array) -> String:
+	if commands.is_empty():
+		return ""
+
+	var lines: PackedStringArray = []
+	for command in commands:
+		var request: Dictionary = command
+		lines.append(request_line(request))
+	return "\n".join(lines) + "\n"
+
+
 static func first_response(output: String) -> Variant:
 	for line in output.split("\n"):
 		var trimmed: String = line.strip_edges()
@@ -31,6 +42,20 @@ static func first_response(output: String) -> Variant:
 		var parsed: Variant = JSON.parse_string(trimmed)
 		return parsed if parsed is Dictionary else null
 	return null
+
+
+static func all_responses(output: String) -> Array:
+	var responses: Array = []
+	for line in output.split("\n"):
+		var trimmed: String = line.strip_edges()
+		if trimmed.is_empty():
+			continue
+
+		var parsed: Variant = JSON.parse_string(trimmed)
+		if not parsed is Dictionary:
+			break
+		responses.append(parsed)
+	return responses
 
 
 func send(request: Dictionary) -> Variant:
