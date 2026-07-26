@@ -16,3 +16,6 @@ script = ExtResource("1_main")
 [node name="RegionList" type="ItemList" parent="."]
 
 [node name="ResultLabel" type="Label" parent="."]
+
+[node name="NextTurnButton" type="Button" parent="."]
+text = "Następna tura"
