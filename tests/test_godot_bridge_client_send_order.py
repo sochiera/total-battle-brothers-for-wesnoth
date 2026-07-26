@@ -1,4 +1,5 @@
 import json
+import re
 import shlex
 import sys
 from pathlib import Path
@@ -10,10 +11,22 @@ from godot_runner import run_godot_script
 
 ROOT = Path(__file__).resolve().parents[1]
 GAME = ROOT / "game"
+CLIENT_SCRIPT = GAME / "scripts" / "bridge_client.gd"
+MAIN_SCRIPT = GAME / "scripts" / "main.gd"
 PROBE = GAME / "scripts" / "bridge_order_probe.gd"
 PREFIX = "BRIDGE_ORDER "
 FAILURE_PROBE = GAME / "scripts" / "bridge_order_failure_probe.gd"
 FAILURE_PREFIX = "BRIDGE_ORDER_FAILURE "
+
+
+def test_main_reads_the_last_order_result_through_the_named_client_api():
+    client_source = CLIENT_SCRIPT.read_text(encoding="utf-8")
+    main_source = MAIN_SCRIPT.read_text(encoding="utf-8")
+
+    assert re.search(
+        r"^func last_order_result\(\) -> Variant:", client_source, flags=re.MULTILINE
+    ), "BridgeClient must expose last_order_result() as the scene-facing API"
+    assert "get_property_list" not in main_source
 
 
 def test_persistent_bridge_send_order_persists_and_returns_the_post_order_model(tmp_path):
@@ -39,7 +52,7 @@ def test_persistent_bridge_send_order_persists_and_returns_the_post_order_model(
     payload = json.loads(lines[0][len(PREFIX) :])
     assert payload["has_send_order"] is True
     assert payload["order"] is not None
-    assert payload["has_last_order_result"] is True
+    assert payload["has_last_order_result_api"] is True
     assert payload["last_order_result"] == {"order": "develop", "changed": True}
 
     assert payload["unchanged_order"] is not None

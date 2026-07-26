@@ -45,6 +45,14 @@ def test_develop_from_bridge_applies_post_order_model_and_preserves_scene_on_fai
             "regions": ["Bez zmiany"],
             "order_status": "Rozkaz nie powiódł się.",
         },
+        "refreshed_without_order_result": True,
+        "missing_order_result_orders": ["develop"],
+        "after_missing_order_result": {
+            "date": "Rok 1, miesiąc 1",
+            "result": "Wynik: missing result",
+            "regions": ["Bez wyniku"],
+            "order_status": "",
+        },
     }
 
 

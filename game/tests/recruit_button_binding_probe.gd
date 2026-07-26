@@ -9,7 +9,7 @@ const PREFIX := "RECRUIT_BUTTON_BINDING "
 class StubClient extends RefCounted:
 	var models: Array[Variant]
 	var last_order_results: Array[Variant]
-	var last_order_result: Variant
+	var _last_order_result: Variant
 	var orders: Array[String] = []
 
 	func _init(next_models: Array[Variant], next_order_results: Array[Variant]) -> void:
@@ -18,8 +18,11 @@ class StubClient extends RefCounted:
 
 	func send_order(order_name: String) -> Variant:
 		orders.append(order_name)
-		last_order_result = last_order_results.pop_front()
+		_last_order_result = last_order_results.pop_front()
 		return models.pop_front()
+
+	func last_order_result() -> Variant:
+		return _last_order_result
 
 
 func _init() -> void:

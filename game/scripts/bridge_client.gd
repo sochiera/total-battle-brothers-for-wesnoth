@@ -11,7 +11,7 @@ var _request_path: String
 var _is_persistent: bool = false
 var state_path: String
 var seed: int
-var last_order_result: Variant = null
+var _last_order_result: Variant = null
 
 
 static func create(command: String, request_path: String = "") -> BridgeClient:
@@ -143,7 +143,7 @@ func _send_persisted_sequence(command: Dictionary, project_order_result: bool = 
 
 	var first_response: Dictionary = responses[0]
 	if project_order_result:
-		last_order_result = OrderResult.from_response(first_response)
+		_last_order_result = OrderResult.from_response(first_response)
 	return SnapshotModel.from_response(first_response)
 
 
@@ -152,8 +152,12 @@ func advance_turn() -> SnapshotModel:
 
 
 func send_order(order_name: String) -> SnapshotModel:
-	last_order_result = null
+	_last_order_result = null
 	return _send_persisted_sequence({"type": "order", "order": order_name}, true)
+
+
+func last_order_result() -> Variant:
+	return _last_order_result
 
 
 func snapshot_model() -> SnapshotModel:

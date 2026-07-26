@@ -85,10 +85,9 @@ func send_order_from_bridge(client, order_name: String) -> bool:
 
 
 func _last_order_result(client) -> Variant:
-	for property: Dictionary in client.get_property_list():
-		if property.get("name") == "last_order_result":
-			return client.get("last_order_result")
-	return null
+	if not client.has_method("last_order_result"):
+		return null
+	return client.last_order_result()
 
 
 func _apply_model_if_present(model: SnapshotModel) -> bool:

@@ -8,16 +8,19 @@ const PREFIX := "SEND_ORDER_FROM_BRIDGE "
 
 class StubClient extends RefCounted:
 	var model: Variant
-	var last_order_result: Variant
+	var _last_order_result: Variant
 	var orders: Array[String] = []
 
 	func _init(next_model: Variant, next_order_result: Variant) -> void:
 		model = next_model
-		last_order_result = next_order_result
+		_last_order_result = next_order_result
 
 	func send_order(order_name: String) -> Variant:
 		orders.append(order_name)
 		return model
+
+	func last_order_result() -> Variant:
+		return _last_order_result
 
 
 func _init() -> void:

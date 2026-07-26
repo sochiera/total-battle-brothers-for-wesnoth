@@ -8,12 +8,27 @@ const PREFIX := "DEVELOP_FROM_BRIDGE "
 
 class StubClient extends RefCounted:
 	var model: Variant
-	var last_order_result: Variant
+	var _last_order_result: Variant
 	var orders: Array[String] = []
 
 	func _init(next_model: Variant, next_order_result: Variant) -> void:
 		model = next_model
-		last_order_result = next_order_result
+		_last_order_result = next_order_result
+
+	func send_order(order_name: String) -> Variant:
+		orders.append(order_name)
+		return model
+
+	func last_order_result() -> Variant:
+		return _last_order_result
+
+
+class NoOrderResultClient extends RefCounted:
+	var model: Variant
+	var orders: Array[String] = []
+
+	func _init(next_model: Variant) -> void:
+		model = next_model
 
 	func send_order(order_name: String) -> Variant:
 		orders.append(order_name)
@@ -49,10 +64,12 @@ func _init() -> void:
 	)
 	var refreshed_without_change: bool = scene_root.develop_from_bridge(unchanged_client)
 	var after_unchanged := _controls(scene_root)
-
 	var failed_client := StubClient.new(null, null)
 	var rejected: bool = scene_root.develop_from_bridge(failed_client)
 	var after_failure := _controls(scene_root)
+	var client_without_order_result := NoOrderResultClient.new(_model(1, 1, "missing result", ["Bez wyniku"]))
+	var refreshed_without_order_result: bool = scene_root.develop_from_bridge(client_without_order_result)
+	var after_missing_order_result := _controls(scene_root)
 
 	print(PREFIX, JSON.stringify({
 		"available": true,
@@ -65,6 +82,9 @@ func _init() -> void:
 		"rejected": rejected,
 		"failure_orders": failed_client.orders,
 		"after_failure": after_failure,
+		"refreshed_without_order_result": refreshed_without_order_result,
+		"missing_order_result_orders": client_without_order_result.orders,
+		"after_missing_order_result": after_missing_order_result,
 	}))
 	call_deferred("quit", 0)
 
