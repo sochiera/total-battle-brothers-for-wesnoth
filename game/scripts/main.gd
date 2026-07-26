@@ -35,6 +35,7 @@ func bind_client(client) -> void:
 	_connect_pressed_once($RecruitButton, _on_recruit_button_pressed)
 	_connect_pressed_once($MusterButton, _on_muster_button_pressed)
 	_connect_pressed_once($MarchButton, _on_march_button_pressed)
+	_connect_pressed_once($AssaultButton, _on_assault_button_pressed)
 
 
 func _connect_pressed_once(button: Button, handler: Callable) -> void:
@@ -62,6 +63,10 @@ func _on_muster_button_pressed() -> void:
 
 func _on_march_button_pressed() -> void:
 	_send_bound_order("march")
+
+
+func _on_assault_button_pressed() -> void:
+	_send_bound_order("assault")
 
 
 func _send_bound_order(order_name: String) -> void:

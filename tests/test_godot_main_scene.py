@@ -12,6 +12,7 @@ ORDER_STATUS_PREFIX = "ORDER_STATUS "
 MUSTER_PREFIX = "MUSTER_BUTTON "
 MARCH_PREFIX = "MARCH_BUTTON "
 ASSAULT_PREFIX = "ASSAULT_BUTTON "
+ASSAULT_BINDING_PREFIX = "ASSAULT_BUTTON_BINDING "
 
 
 def test_scene_probe_reports_main_scene_root():
@@ -132,6 +133,30 @@ def test_assault_button_has_exact_text_and_no_behavior():
         "direct_child": True,
         "pressed_connections": 0,
         "controls_unchanged": True,
+    }
+
+
+def test_assault_button_sends_the_assault_order_and_projects_a_battle_result():
+    result = run_godot_script(
+        GAME, "res://tests/assault_button_binding_probe.gd", timeout=30
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "SCRIPT ERROR" not in result.stderr, result.stderr
+    lines = [
+        line
+        for line in result.stdout.splitlines()
+        if line.startswith(ASSAULT_BINDING_PREFIX)
+    ]
+    assert len(lines) == 1, result.stdout
+    payload = json.loads(lines[0][len(ASSAULT_BINDING_PREFIX) :])
+    assert payload == {
+        "orders": ["assault"],
+        "date": "Rok 1, miesiąc 1",
+        "result": "Wynik: ongoing",
+        "regions": ["Północ"],
+        "duchy_status": "Morale: 2, osady: 1, oddziały: 1",
+        "order_status": "Szturm: porażka (straty: 0, wróg: 0).",
     }
 
 
