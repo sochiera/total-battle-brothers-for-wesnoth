@@ -10,6 +10,15 @@ func _ready() -> void:
 
 func refresh_from_bridge(client) -> bool:
 	var model: SnapshotModel = client.snapshot_model()
+	return _apply_model_if_present(model)
+
+
+func advance_turn_from_bridge(client) -> bool:
+	var model: SnapshotModel = client.advance_turn()
+	return _apply_model_if_present(model)
+
+
+func _apply_model_if_present(model: SnapshotModel) -> bool:
 	if model == null:
 		return false
 	apply_model(model)
