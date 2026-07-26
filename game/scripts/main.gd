@@ -34,6 +34,7 @@ func bind_client(client) -> void:
 	_connect_pressed_once($DevelopButton, _on_develop_button_pressed)
 	_connect_pressed_once($RecruitButton, _on_recruit_button_pressed)
 	_connect_pressed_once($MusterButton, _on_muster_button_pressed)
+	_connect_pressed_once($MarchButton, _on_march_button_pressed)
 
 
 func _connect_pressed_once(button: Button, handler: Callable) -> void:
@@ -52,13 +53,20 @@ func _on_develop_button_pressed() -> void:
 
 
 func _on_recruit_button_pressed() -> void:
-	if _client != null:
-		send_order_from_bridge(_client, "recruit")
+	_send_bound_order("recruit")
 
 
 func _on_muster_button_pressed() -> void:
+	_send_bound_order("muster")
+
+
+func _on_march_button_pressed() -> void:
+	_send_bound_order("march")
+
+
+func _send_bound_order(order_name: String) -> void:
 	if _client != null:
-		send_order_from_bridge(_client, "muster")
+		send_order_from_bridge(_client, order_name)
 
 
 func refresh_from_bridge(client) -> bool:
