@@ -281,15 +281,32 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > po nazwie pola. Zweryfikowane empirycznie (`serve 73`): sam `march` na
 > świeżej partii → `changed:false`; `muster` → `march` → `changed:true`,
 > kolejne `march` → `false`.
-- [ ] **R79.1 (dług techniczny)** Jawne API wyniku ostatniego rozkazu w
+- [x] **R79.1 (dług techniczny)** Jawne API wyniku ostatniego rozkazu w
       `BridgeClient` zamiast skanowania `get_property_list` w `main.gd`
       + testy regresji statusu rozkazu. *(task-452)*
-- [ ] **G79.1a** `order_result.gd` — tekst statusu rozróżnia rozkaz `march`.
+- [x] **G79.1a** `order_result.gd` — tekst statusu rozróżnia rozkaz `march`.
       *(task-453)*
-- [ ] **G79.1b** Scena ma nazwany przycisk „Wyrusz w pole" (bez wiązania).
+- [x] **G79.1b** Scena ma nazwany przycisk „Wyrusz w pole" (bez wiązania).
       *(task-454)*
-- [ ] **G79.1c** Klik marszu wydaje rozkaz, pokazuje skutek i utrwala partię
+- [x] **G79.1c** Klik marszu wydaje rozkaz, pokazuje skutek i utrwala partię
       (e2e przez dwa procesy). *(task-455)*
+
+## Kamień milowy 80 — piąty rozkaz gracza (szturm) i wynik bitwy w kliencie
+> Szturm to pierwszy rozkaz, który zwraca **inny kształt wyniku**: most daje
+> `result.kind == "battle"` (outcome + straty stron), a nie
+> `{"kind":"order","changed":…}`. Klient dziś taki wynik odrzuca i zostawia
+> pusty status. Zweryfikowane empirycznie (`serve 73`, trzy procesy na wspólnym
+> pliku stanu): `muster`→`march`→`save`; po `--resume` `assault` →
+> `{"kind":"battle","outcome":"porażka","attacker_losses":0,
+> "defender_losses":0}`; kolejny `assault` → `{"kind":"order","changed":false}`.
+- [ ] **G80.1a** `order_result.gd` — atomowa projekcja wyniku bitwy
+      (`kind:"battle"`) obok projekcji rozkazu. *(task-456)*
+- [ ] **G80.1b** `order_result.gd` — polski tekst statusu szturmu i skutku
+      bitwy (wynik + straty), bez zmian pozostałych statusów. *(task-457)*
+- [ ] **G80.2a** Scena ma nazwany przycisk „Szturmuj osadę" (bez wiązania).
+      *(task-458)*
+- [ ] **G80.2b** Klik szturmu wydaje rozkaz, pokazuje skutek bitwy i utrwala
+      partię (e2e przez procesy `serve` + `--resume`). *(task-459)*
 
 ## Dług/refaktor
 - [ ] **R73.1 (dług techniczny)** Jedno źródło reguł poprawnej konfiguracji
