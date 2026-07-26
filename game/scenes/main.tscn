@@ -35,3 +35,6 @@ text = "Zbierz oddział"
 
 [node name="MarchButton" type="Button" parent="."]
 text = "Wyrusz w pole"
+
+[node name="AssaultButton" type="Button" parent="."]
+text = "Szturmuj osadę"

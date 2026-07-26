@@ -11,6 +11,7 @@ DEVELOP_PREFIX = "DEVELOP_BUTTON "
 ORDER_STATUS_PREFIX = "ORDER_STATUS "
 MUSTER_PREFIX = "MUSTER_BUTTON "
 MARCH_PREFIX = "MARCH_BUTTON "
+ASSAULT_PREFIX = "ASSAULT_BUTTON "
 
 
 def test_scene_probe_reports_main_scene_root():
@@ -44,6 +45,7 @@ def test_scene_probe_reports_main_scene_root():
         {"path": "RecruitButton", "name": "RecruitButton", "class": "Button"},
         {"path": "MusterButton", "name": "MusterButton", "class": "Button"},
         {"path": "MarchButton", "name": "MarchButton", "class": "Button"},
+        {"path": "AssaultButton", "name": "AssaultButton", "class": "Button"},
     ]
 
 
@@ -105,6 +107,28 @@ def test_march_button_has_exact_text_and_no_behavior():
     assert payload == {
         "name": "MarchButton",
         "text": "Wyrusz w pole",
+        "direct_child": True,
+        "pressed_connections": 0,
+        "controls_unchanged": True,
+    }
+
+
+def test_assault_button_has_exact_text_and_no_behavior():
+    result = run_godot_script(
+        GAME, "res://tests/assault_button_probe.gd", timeout=30
+    )
+
+    assert result.returncode == 0, result.stderr
+    lines = [
+        line for line in result.stdout.splitlines() if line.startswith(ASSAULT_PREFIX)
+    ]
+    assert len(lines) == 1, result.stdout
+    assert "SCRIPT ERROR" not in result.stderr, result.stderr
+
+    payload = json.loads(lines[0][len(ASSAULT_PREFIX) :])
+    assert payload == {
+        "name": "AssaultButton",
+        "text": "Szturmuj osadę",
         "direct_child": True,
         "pressed_connections": 0,
         "controls_unchanged": True,
