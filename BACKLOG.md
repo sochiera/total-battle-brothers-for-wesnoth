@@ -242,6 +242,22 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 - [ ] **G76.2b** Klik rozwoju pokazuje „zmieniono"/„bez zmian" (e2e przez dwa
       procesy). *(task-443)*
 
+## Kamień milowy 77 — drugi rozkaz gracza w kliencie Godota (rekrutacja)
+> Klient wydaje dziś tylko `develop`, a ścieżka rozkazu jest zaszyta pod tę
+> jedną nazwę (`develop_from_bridge` + własna gałąź tekstu statusu). K77
+> uogólnia ścieżkę i dokłada drugi rozkaz — rekrutację. Most obsługuje
+> `recruit` od K65; zweryfikowane empirycznie (`serve 73`): pięć pierwszych
+> `recruit` daje `changed:true`, szósty i dalsze `false` przy `ok:true`,
+> a nieznany rozkaz → `ok:false`.
+- [ ] **G77.1a** `order_result.gd` — czysty polski tekst statusu rozkazu
+      (zmieniono / bez zmian / brak wyniku), rozróżniający rozkazy. *(task-444)*
+- [ ] **G77.1b** `main.gd` wydaje dowolny rozkaz jedną, parametryzowaną
+      ścieżką; `develop_from_bridge` zostaje cienkim wrapperem. *(task-445)*
+- [ ] **G77.2a** Scena ma nazwany przycisk „Rekrutuj jednostkę" (bez wiązania).
+      *(task-446)*
+- [ ] **G77.2b** Klik rekrutacji wydaje rozkaz, pokazuje skutek i utrwala
+      partię (e2e przez dwa procesy). *(task-447)*
+
 ## Dług/refaktor
 - [ ] **R73.1 (dług techniczny)** Jedno źródło reguł poprawnej konfiguracji
       startowej: `main.gd._is_valid_session_config` duplikuje warunki
@@ -272,3 +288,6 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 - [ ] Pełna maszyna faz `StrategicTurn` w headless driverze (routing akcji AI przez
       fazy ruch/bitwy zamiast bezpośredniego `take_duchy_turn`). M8 reużywa tylko
       prymitywów `tick_settlements`/`end_turn`, bez wciągania phase-gatingu.
+- Dług dokumentacji: `docs/ARCHITECTURE.md` ma 116 KB — zaplanuj podział pliku.
+- Dług dokumentacji: `docs/DESIGN.md` ma 27 KB — zaplanuj podział pliku.
+- Dług dokumentacji: `docs/DECISIONS.md` ma 74 KB — zaplanuj podział pliku.
