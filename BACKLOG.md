@@ -200,7 +200,25 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 - [ ] **G73.2b** Autostart w `_ready()` + e2e ciągłości partii (no-op bez
       konfiguracji). *(task-431)*
 
+## Kamień milowy 74 — stan księstwa gracza w kliencie Godota
+> Klient pokazuje datę, regiony i wynik, ale nie wie, **które księstwo jest
+> gracza** — snapshot niesie listę `duchies` bez wskaźnika na gracza
+> (zweryfikowane empirycznie na `seed=73`). K74 dokłada ten wskaźnik w moście,
+> projekcję statusu w `SnapshotModel` i render w scenie, aż do odświeżenia po
+> naciśnięciu „Następna tura".
+- [ ] **G74.1a** Snapshot wskazuje księstwo gracza (`player_duchy`, `None` bez
+      gracza; sesja i protokół niosą ten sam klucz). *(task-433)*
+- [ ] **G74.1b** `SnapshotModel` wystawia status księstwa gracza (morale, osady,
+      oddziały) albo jednoznaczny brak; atomowa walidacja bez zmian. *(task-434)*
+- [ ] **G74.2a** Scena renderuje status księstwa gracza i odświeża go po turze
+      (e2e autostartu i ciągłości partii). *(task-435)*
+
 ## Dług/refaktor
+- [ ] **R73.1 (dług techniczny)** Jedno źródło reguł poprawnej konfiguracji
+      startowej: `main.gd._is_valid_session_config` duplikuje warunki
+      `BridgeConfig.from_values` (niepuste `command`/`state_path`, `seed:int`).
+      Scalić w `BridgeConfig` + testy regresji równoważności i odrzuceń
+      (brak procesu mostu, brak plików, kontrolki nietknięte). *(task-432)*
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*
 - [x] **R21.1 (refaktor)** Wspólny emiter formularzy celu marsz/szturm/starcie w `serve.py`. *(task-113)*
 - [x] **R15.1 (refaktor)** Kompaktacja DESIGN.md do stanu obecnego; historia → DECISIONS.md. *(task-094)*
