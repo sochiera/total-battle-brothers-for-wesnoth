@@ -20,6 +20,7 @@ var month: int
 var regions: Array
 var player_result: String
 var player_duchy_status: Variant = null
+var player_party_region: Variant = null
 
 
 static func _is_numeric(value: Variant) -> bool:
@@ -39,6 +40,26 @@ static func _player_duchy_status(snapshot: Dictionary) -> Variant:
 					return null
 				status[leaf_name] = duchy[leaf_name]
 			return status
+	return null
+
+
+static func _player_party_region(snapshot: Dictionary) -> Variant:
+	var player_duchy: Variant = snapshot.get("player_duchy")
+	var map: Variant = snapshot.get("map")
+	if not player_duchy is String or player_duchy.is_empty() or not map is Dictionary:
+		return null
+	var regions: Variant = map.get("regions")
+	if not regions is Array:
+		return null
+	for region: Variant in regions:
+		if not region is Dictionary:
+			continue
+		var party: Variant = region.get("party")
+		if not party is Dictionary or party.get("owner") != player_duchy:
+			continue
+		var region_name: Variant = region.get("name")
+		if region_name is String:
+			return region_name
 	return null
 
 
@@ -71,4 +92,5 @@ static func from_response(response: Dictionary) -> SnapshotModel:
 	model.regions = map["regions"]
 	model.player_result = result["player_result"]
 	model.player_duchy_status = _player_duchy_status(snapshot)
+	model.player_party_region = _player_party_region(snapshot)
 	return model
