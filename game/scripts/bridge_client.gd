@@ -7,6 +7,9 @@ const SnapshotModel = preload("res://scripts/snapshot_model.gd")
 
 var _command: String
 var _request_path: String
+var _is_persistent: bool = false
+var state_path: String
+var seed: int
 
 
 static func create(command: String, request_path: String = "") -> BridgeClient:
@@ -16,6 +19,26 @@ static func create(command: String, request_path: String = "") -> BridgeClient:
 	if client._request_path.is_empty():
 		client._request_path = ProjectSettings.globalize_path("user://bridge_request.jsonl")
 	return client
+
+
+static func create_persistent(command_prefix: String, state_path: String, seed: int, request_path: String = "") -> BridgeClient:
+	var client := create(command_prefix, request_path)
+	client._is_persistent = true
+	client.state_path = state_path
+	client.seed = seed
+	return client
+
+
+func session_command() -> String:
+	if not _is_persistent:
+		return _command
+	if FileAccess.file_exists(state_path):
+		return "%s serve --resume %s" % [_command, _shell_quote(state_path)]
+	return "%s serve %d" % [_command, seed]
+
+
+static func _shell_quote(value: String) -> String:
+	return "'%s'" % value.replace("'", "'\\''")
 
 
 static func request_line(command: Dictionary) -> String:
@@ -60,8 +83,7 @@ static func all_responses(output: String) -> Array:
 
 func _run_request_file() -> Variant:
 	var output: Array = []
-	var quoted_request_path := _request_path.replace("'", "'\\''")
-	var shell_command := "%s < '%s'" % [_command, quoted_request_path]
+	var shell_command := "%s < %s" % [session_command(), _shell_quote(_request_path)]
 	var exit_code := OS.execute("sh", ["-c", shell_command], output, false, false)
 	if exit_code != 0 or output.is_empty():
 		return null
