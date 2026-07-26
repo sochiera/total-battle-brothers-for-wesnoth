@@ -112,6 +112,7 @@ func _apply_model_if_present(model: SnapshotModel) -> bool:
 func apply_model(model: SnapshotModel) -> void:
 	$DateLabel.text = "Rok %d, miesiąc %d" % [model.year, model.month]
 	$ResultLabel.text = "Wynik: %s" % model.player_result
+	$PlayerPartyPositionLabel.text = _player_party_position_text(model.player_party_region)
 	var player_duchy_status_label: Label = $PlayerDuchyStatusLabel
 	var player_duchy_status: Variant = model.player_duchy_status
 	if player_duchy_status is Dictionary:
@@ -127,3 +128,9 @@ func apply_model(model: SnapshotModel) -> void:
 	for region: Variant in model.regions:
 		if region is Dictionary and region.get("name") is String:
 			region_list.add_item(region["name"])
+
+
+func _player_party_position_text(player_party_region: Variant) -> String:
+	if player_party_region is String and not player_party_region.is_empty():
+		return "Położenie oddziału: %s" % player_party_region
+	return "Położenie oddziału: brak"

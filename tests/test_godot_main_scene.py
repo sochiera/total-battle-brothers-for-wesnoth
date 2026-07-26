@@ -13,6 +13,7 @@ MUSTER_PREFIX = "MUSTER_BUTTON "
 MARCH_PREFIX = "MARCH_BUTTON "
 ASSAULT_PREFIX = "ASSAULT_BUTTON "
 ASSAULT_BINDING_PREFIX = "ASSAULT_BUTTON_BINDING "
+PARTY_POSITION_PREFIX = "PARTY_POSITION "
 
 
 def test_scene_probe_reports_main_scene_root():
@@ -41,6 +42,11 @@ def test_scene_probe_reports_main_scene_root():
             "name": "LastOrderStatusLabel",
             "class": "Label",
         },
+        {
+            "path": "PlayerPartyPositionLabel",
+            "name": "PlayerPartyPositionLabel",
+            "class": "Label",
+        },
         {"path": "NextTurnButton", "name": "NextTurnButton", "class": "Button"},
         {"path": "DevelopButton", "name": "DevelopButton", "class": "Button"},
         {"path": "RecruitButton", "name": "RecruitButton", "class": "Button"},
@@ -48,6 +54,33 @@ def test_scene_probe_reports_main_scene_root():
         {"path": "MarchButton", "name": "MarchButton", "class": "Button"},
         {"path": "AssaultButton", "name": "AssaultButton", "class": "Button"},
     ]
+
+
+def test_player_party_position_renders_and_updates_through_bridge_paths():
+    result = run_godot_script(
+        GAME, "res://tests/party_position_probe.gd", timeout=30
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "SCRIPT ERROR" not in result.stderr, result.stderr
+    lines = [
+        line for line in result.stdout.splitlines() if line.startswith(PARTY_POSITION_PREFIX)
+    ]
+    assert len(lines) == 1, result.stdout
+    payload = json.loads(lines[0][len(PARTY_POSITION_PREFIX) :])
+    assert payload["available"] is True
+    assert payload["present_first"] == payload["present_second"]
+    assert "Stary Gród" in payload["present_first"]
+    assert payload["missing"] != payload["present_first"]
+    assert payload["missing"].strip()
+    assert "brak" in payload["missing"].lower()
+    assert payload["empty"] == payload["missing"]
+    assert "Nowy Gród" in payload["moved"]
+    assert "Stary Gród" not in payload["moved"]
+    assert "Odświeżony Gród" in payload["refreshed"]
+    assert "Gród po turze" in payload["advanced"]
+    assert "Gród po rozkazie" in payload["ordered"]
+    assert payload["date_after_order"] == "Rok 9, miesiąc 1"
 
 
 def test_develop_button_has_exact_text_and_no_behavior():
