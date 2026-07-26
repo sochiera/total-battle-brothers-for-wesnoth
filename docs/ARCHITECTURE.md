@@ -492,6 +492,27 @@ kampanii — tylko stabilną strukturę scen i skryptów:
 | `game/scripts/scene_bind_probe.gd` | Sonda headless wiązania: czyta odpowiedź mostu z pliku, buduje model, wiąże go ze sceną i wypisuje `SCENE_TEXT <json>`. |
 | `game/scripts/scene_live_probe.gd` | Sonda pełnej ścieżki most→scena: przyjmuje komendę mostu i opcjonalną ścieżkę żądania, tworzy wstrzyknięty `BridgeClient`, odświeża scenę i wypisuje `SCENE_LIVE <json>` z `refreshed`, `date`, `result`, `regions` i `region_names`; kończy kodem `0`. Brak komendy lub błąd sceny zapisuje komunikat na stderr i kończy kodem `2`. |
 
+### Pętla gracza: następna tura i wznowienie (`G72.3d`)
+
+`bind_client(client)` jest granicą kompozycji sceny: zapamiętuje aktualnego
+klienta i zapewnia jedno połączenie sygnału `NextTurnButton.pressed`. Po
+kliknięciu handler wywołuje `advance_turn_from_bridge(_client)`, a ta funkcja
+jest granicą prezentacji: jednokrotnie deleguje do `client.advance_turn()` i
+wiąże model z kontrolkami tylko wtedy, gdy most zwróci poprawny model. Błąd
+mostu pozostawia dotychczasowe kontrolki bez zmian.
+
+Dla klienta utworzonego przez `BridgeClient.create_persistent(...)` pełna
+pętla wygląda tak:
+
+`NextTurnButton` → `advance_turn_from_bridge()` → `BridgeClient.advance_turn()`
+→ jeden proces mostu `serve <seed>` z żądaniami `next_turn`, potem `save`
+→ plik stanu.
+
+Przy kolejnym kliknięciu w świeżej scenie/kliencie `session_command()` wykrywa
+plik stanu i uruchamia nowy proces jako `serve --resume <ścieżka>`. Ten proces
+wykonuje następną turę i ponownie zapisuje stan, więc partia jest kontynuowana,
+zamiast powstawać od seeda od nowa.
+
 **Odpowiedzialności głównej sceny (na teraz):** scena dostaje gotowy
 `SnapshotModel` wyłącznie z zewnątrz przez `apply_model`; nie czyta plików ani
 JSON-a i nie zna mostu. Metoda ustawia `DateLabel` na `Rok R, miesiąc M`
