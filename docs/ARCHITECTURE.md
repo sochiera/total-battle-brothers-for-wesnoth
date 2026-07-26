@@ -551,8 +551,14 @@ powoduje zwrot `null` przed utworzeniem modelu. Dla użytecznego snapshotu odczy
 `response["snapshot"]["result"]["player_result"]`; publiczne pola `year: int` i
 `month: int` zawierają odpowiednio jawnie skonwertowane wartości `year` i `month` z kalendarza,
 a `regions: Array` zawiera listę regionów mapy, a `player_result: String` to
-wyłącznie liść `result.player_result`, nie cała sekcja `result`. Pozostałe pola
-snapshotu nie należą jeszcze do kontraktu modelu.
+wyłącznie liść `result.player_result`, nie cała sekcja `result`. Publiczne pole
+`player_duchy_status: Dictionary | null` jest opcjonalną projekcją wpisu z
+`duchies`, którego `id` równa się `player_duchy`: zawiera tylko liczbowe pola
+`morale`, `settlements` i `parties`. Ma wartość `null`, gdy wskaźnik gracza jest
+nieobecny, nie jest tekstem, lista `duchies` jest nieobecna lub pusta albo nie
+zawiera pasującego wpisu, bądź pasujący wpis nie ma kompletu tych liczbowych
+pól. Ta projekcja nie rozszerza walidacji wymaganych pól;
+pozostałe pola snapshotu nie należą do kontraktu modelu.
 
 `game/scripts/snapshot_probe.gd` jest produkcyjną sondą tej projekcji: czyta z
 pliku odpowiedź mostu, buduje `SnapshotModel` i wypisuje jedną linię
