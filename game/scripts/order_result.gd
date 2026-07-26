@@ -40,15 +40,46 @@ static func from_response(response: Dictionary) -> Variant:
 		return null
 
 	var result: Dictionary = response["result"]
-	if not result.has("kind") or result["kind"] != "order":
+	if not result.has("kind") or not result.has("order"):
 		return null
-	if not result.has("order"):
-		return null
-	if not result.has("changed"):
+	var order: Variant = result["order"]
+	if not order is String:
 		return null
 
-	var order: Variant = result["order"]
-	var changed: Variant = result["changed"]
-	if not order is String or not changed is bool:
-		return null
-	return {"order": order, "changed": changed}
+	match result["kind"]:
+		"order":
+			if not result.has("changed"):
+				return null
+
+			var changed: Variant = result["changed"]
+			if not changed is bool:
+				return null
+			return {"order": order, "changed": changed}
+		"battle":
+			if not result.has("outcome"):
+				return null
+			if not result.has("attacker_losses") or not result.has("defender_losses"):
+				return null
+
+			var outcome: Variant = result["outcome"]
+			var attacker_losses: Variant = result["attacker_losses"]
+			var defender_losses: Variant = result["defender_losses"]
+			if not outcome is String:
+				return null
+			if not attacker_losses is int and not attacker_losses is float:
+				return null
+			if not defender_losses is int and not defender_losses is float:
+				return null
+			if attacker_losses is float and attacker_losses != floor(attacker_losses):
+				return null
+			if defender_losses is float and defender_losses != floor(defender_losses):
+				return null
+			return {
+				"kind": "battle",
+				"order": order,
+				"outcome": outcome,
+				"attacker_losses": int(attacker_losses),
+				"defender_losses": int(defender_losses),
+			}
+		_:
+			return null

@@ -47,16 +47,41 @@ def test_godot_order_result_projects_only_complete_successful_order_results():
 
     assert payload["changed"] == {"order": "develop", "changed": True}
     assert payload["unchanged"] == {"order": "develop", "changed": False}
+    assert payload["battle"] == {
+        "kind": "battle",
+        "order": "assault",
+        "outcome": "porażka",
+        "attacker_losses": 0,
+        "defender_losses": 0,
+    }
+    assert payload["battle_from_wire"] == {
+        "kind": "battle",
+        "order": "assault",
+        "outcome": "zwycięstwo",
+        "attacker_losses": 0,
+        "defender_losses": 2,
+    }
     for case in (
         "missing_ok",
         "not_ok",
         "missing_result",
         "turn_result",
         "save_result",
+        "snapshot_result",
+        "new_game_result",
         "missing_order",
         "invalid_order",
         "missing_changed",
         "invalid_changed",
+        "battle_missing_outcome",
+        "battle_missing_order",
+        "battle_invalid_order",
+        "battle_invalid_outcome",
+        "battle_missing_attacker_losses",
+        "battle_missing_defender_losses",
+        "battle_invalid_attacker_losses",
+        "battle_invalid_defender_losses",
+        "battle_fractional_losses_from_wire",
     ):
         assert payload[case] is None
 
