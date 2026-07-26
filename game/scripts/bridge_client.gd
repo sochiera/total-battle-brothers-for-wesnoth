@@ -124,40 +124,30 @@ func send_many(requests: Array) -> Array:
 	return responses if responses.size() == requests.size() else []
 
 
-func advance_turn() -> SnapshotModel:
+func _send_persisted_sequence(command: Dictionary) -> SnapshotModel:
 	if not _is_persistent:
 		return null
 
-	var turn_and_save: Array = [
-		{"type": "next_turn"},
+	var command_and_save: Array = [
+		command,
 		{"type": "save", "path": state_path},
 	]
-	var responses := send_many(turn_and_save)
-	if responses.size() != turn_and_save.size():
+	var responses := send_many(command_and_save)
+	if responses.size() != command_and_save.size():
 		return null
 	for response in responses:
 		if not response is Dictionary or not response.get("ok", false):
 			return null
 
 	return SnapshotModel.from_response(responses[0])
+
+
+func advance_turn() -> SnapshotModel:
+	return _send_persisted_sequence({"type": "next_turn"})
 
 
 func send_order(order_name: String) -> SnapshotModel:
-	if not _is_persistent:
-		return null
-
-	var order_and_save: Array = [
-		{"type": "order", "order": order_name},
-		{"type": "save", "path": state_path},
-	]
-	var responses := send_many(order_and_save)
-	if responses.size() != order_and_save.size():
-		return null
-	for response in responses:
-		if not response is Dictionary or not response.get("ok", false):
-			return null
-
-	return SnapshotModel.from_response(responses[0])
+	return _send_persisted_sequence({"type": "order", "order": order_name})
 
 
 func snapshot_model() -> SnapshotModel:

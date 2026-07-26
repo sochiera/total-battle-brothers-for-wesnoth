@@ -1547,6 +1547,16 @@ w skryptach `scripts/`.
 
 Uruchamiaj z katalogu `game/`.
 
+### Trwałe komendy klienta Godot
+
+`BridgeClient.advance_turn()` i `send_order(order_name)` korzystają ze
+wspólnego prywatnego prymitywu `_send_persisted_sequence(command)`. Prymityw
+buduje wsad z komendy i `{"type": "save", "path": state_path}`, wymaga
+klienta trwałego, odrzuca niekompletną sekwencję lub dowolną odpowiedź z
+`ok == false`, a następnie tworzy model z pierwszej odpowiedzi. Dzięki temu
+reguły trwałości, zapisu i walidacji pozostają jednym źródłem dla kolejnych
+komend utrwalanych.
+
 ## 4. Konwencje kodu i testów
 - **TDD:** najpierw czerwony test, potem minimalny kod do zieleni, potem refaktor.
 - **Determinizm:** żadnego `random` globalnego w rdzeniu — RNG wstrzykiwany
