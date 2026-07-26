@@ -479,6 +479,8 @@ kampanii — tylko stabilną strukturę scen i skryptów:
 | `game/scenes/main.tscn` | Scena startowa: korzeń `Main` (`Control`) ze skryptem `res://scripts/main.gd` oraz pustymi kontrolkami `DateLabel` (`Label`), `RegionList` (`ItemList`), `ResultLabel` (`Label`) — w tej kolejności. |
 | `game/scripts/main.gd` | Skrypt głównej sceny (`extends Control`); wejście prezentacji `apply_model(model: SnapshotModel)` wiąże datę, nazwy regionów i wynik idempotentnie: przed wypełnieniem czyści `RegionList`. |
 | `game/scripts/scene_probe.gd` | Sonda headless sceny: po ładowaniu i instancjonowaniu `main.tscn` wypisuje `SCENE_TREE <json>` — tablicę `path`/`name`/`class` w kolejności w głąb (korzeń: `.`) — i kończy się kodem `0`; błąd ładowania lub instancjonowania zapisuje komunikat na stderr i kończy się kodem `2`. |
+| `game/scripts/bridge_client.gd` | Czysta warstwa protokołu klienta: `request_line(command)` serializuje słownik komendy do jednolinijkowego JSON, a `first_response(output)` zwraca słownik z pierwszej niepustej linii lub `null`, gdy ta linia nie parsuje się do słownika. |
+| `game/scripts/bridge_parse_probe.gd` | Sonda protokołu: z pliku surowego stdout wypisuje `BRIDGE_PARSE <json>` z `request` i `response`, kończąc kodem `0`; bez wejścia albo przy nieczytelnym pliku raportuje stderr i kończy kodem `2`. |
 | `game/scripts/scene_bind_probe.gd` | Sonda headless wiązania: czyta odpowiedź mostu z pliku, buduje model, wiąże go ze sceną i wypisuje `SCENE_TEXT <json>`. |
 
 **Odpowiedzialności głównej sceny (na teraz):** scena dostaje gotowy
