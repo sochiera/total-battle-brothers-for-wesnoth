@@ -159,9 +159,29 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 - [ ] **G71.1b2** Główna scena renderuje fixture przez `SnapshotModel` jako datę,
       listę regionów i status rozgrywki; do ponownego rozplanowania po G71.1b1
       (task-365 porzucone po porażce task-362).
-- [ ] **G71.2a** Klient procesu JSON Lines uruchamia `tbbbridge serve`, wysyła
-      `snapshot` i przekazuje pierwszą poprawną odpowiedź do modelu; do ponownego
-      rozplanowania po G71.1b2 (porzucone task-355 było potomkiem porażki task-353).
+> **G71.1a2b1…G71.2a — UKOŃCZONE.** `SnapshotModel` (kalendarz, regiony, liść
+> `player_result`, atomowa walidacja → `null`), nazwane kontrolki i idempotentne
+> `apply_model` w głównej scenie, bramka na żywym snapshocie mostu oraz klient
+> procesu JSON Lines (`bridge_client.gd`: `request_line`/`first_response`,
+> `send`, `snapshot_model`) wpięty w scenę przez `main.gd.refresh_from_bridge`.
+> *(task-366…369, task-406…419)*
+
+## Kamień milowy 72 — trwała partia w kliencie Godota (sekwencje komend + plik stanu)
+> Godot 4.2.2 nie ma `OS.execute_with_pipe`, więc most wołamy jedno-strzałowo,
+> a partia musi przeżyć między wywołaniami. Droga: wiele komend w jednym
+> uruchomieniu procesu (`next_turn` + `save`) i wznowienie przez
+> `serve --resume <plik stanu>` — oba mechanizmy istnieją już w `tbbbridge`
+> (K68/K69) i zostały zweryfikowane empirycznie przy planowaniu.
+- [ ] **G72.1a** `BridgeClient.request_lines` / `all_responses` — czysta warstwa
+      wielolinijkowego JSON Lines (bez procesu). *(task-420)*
+- [ ] **G72.1b** `BridgeClient.send_many()` — sekwencja komend do żywego mostu
+      w jednym uruchomieniu procesu. *(task-421)*
+- [ ] **G72.2a** Komenda startowa mostu zależna od pliku stanu (świeże ziarno vs
+      `serve --resume`) + `create_persistent`. *(task-422)*
+- [ ] **G72.2b** `BridgeClient.advance_turn()` — tura utrwalona w pliku stanu;
+      dwa procesy = dwie kolejne tury tej samej partii. *(task-423)*
+- [ ] **G72.3** Wejście gracza w scenie: przycisk „Następna tura” woła
+      `advance_turn()` i odświeża wiązania (do rozplanowania po G72.2b).
 
 ## Dług/refaktor
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*
