@@ -34,6 +34,6 @@ def test_develop_button_is_a_single_safe_binding_and_renders_the_post_order_snap
         "after_failed_press": {
             "date": "Rok 1, miesiąc 1",
             "duchy_status": "Morale: 5, osady: 3, oddziały: 1",
-            "order_status": "",
+            "order_status": "Rozkaz nie powiódł się.",
         },
     }

@@ -23,6 +23,16 @@ def test_order_result_exposes_pure_status_text_function():
     ), "OrderResult must expose status_text for projected order results"
 
 
+def test_order_result_exposes_a_pure_order_failure_status_function():
+    source = SCRIPT.read_text(encoding="utf-8")
+
+    assert re.search(
+        r"^static func failure_status_text\(\) -> String:",
+        source,
+        flags=re.MULTILINE,
+    ), "OrderResult must own the general status text for a failed order"
+
+
 def test_godot_order_result_projects_only_complete_successful_order_results():
     assert SCRIPT.is_file(), "missing res://scripts/order_result.gd"
     assert PROBE.is_file(), "missing res://tests/order_result_probe.gd"

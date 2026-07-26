@@ -43,7 +43,7 @@ def test_develop_from_bridge_applies_post_order_model_and_preserves_scene_on_fai
             "date": "Rok 1, miesiąc 1",
             "result": "Wynik: unchanged",
             "regions": ["Bez zmiany"],
-            "order_status": "",
+            "order_status": "Rozkaz nie powiódł się.",
         },
     }
 
@@ -73,6 +73,6 @@ def test_send_order_from_bridge_uses_the_order_result_status_for_recruitment():
             "date": "Rok 2, miesiąc 3",
             "result": "Wynik: recruited",
             "regions": ["Po rekrutacji"],
-            "order_status": "",
+            "order_status": "Rozkaz nie powiódł się.",
         },
     }

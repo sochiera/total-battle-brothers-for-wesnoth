@@ -2,6 +2,10 @@ class_name OrderResult
 extends RefCounted
 
 
+static func failure_status_text() -> String:
+	return "Rozkaz nie powiódł się."
+
+
 static func status_text(order_result: Variant) -> String:
 	if not order_result is Dictionary:
 		return ""

@@ -77,11 +77,11 @@ func develop_from_bridge(client) -> bool:
 
 func send_order_from_bridge(client, order_name: String) -> bool:
 	var model: SnapshotModel = client.send_order(order_name)
-	if not _apply_model_if_present(model):
-		$LastOrderStatusLabel.text = ""
-		return false
-	$LastOrderStatusLabel.text = OrderResult.status_text(_last_order_result(client))
-	return true
+	if _apply_model_if_present(model):
+		$LastOrderStatusLabel.text = OrderResult.status_text(_last_order_result(client))
+		return true
+	$LastOrderStatusLabel.text = OrderResult.failure_status_text()
+	return false
 
 
 func _last_order_result(client) -> Variant:
