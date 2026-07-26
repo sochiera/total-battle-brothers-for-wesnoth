@@ -32,3 +32,6 @@ text = "Rekrutuj jednostkę"
 
 [node name="MusterButton" type="Button" parent="."]
 text = "Zbierz oddział"
+
+[node name="MarchButton" type="Button" parent="."]
+text = "Wyrusz w pole"
