@@ -39,6 +39,7 @@ def test_scene_probe_reports_main_scene_root():
         },
         {"path": "NextTurnButton", "name": "NextTurnButton", "class": "Button"},
         {"path": "DevelopButton", "name": "DevelopButton", "class": "Button"},
+        {"path": "RecruitButton", "name": "RecruitButton", "class": "Button"},
     ]
 
 

@@ -26,3 +26,6 @@ text = "Następna tura"
 
 [node name="DevelopButton" type="Button" parent="."]
 text = "Rozwiń osadę"
+
+[node name="RecruitButton" type="Button" parent="."]
+text = "Rekrutuj jednostkę"
