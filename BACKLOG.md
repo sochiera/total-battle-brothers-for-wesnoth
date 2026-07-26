@@ -258,6 +258,22 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 - [ ] **G77.2b** Klik rekrutacji wydaje rozkaz, pokazuje skutek i utrwala
       partię (e2e przez dwa procesy). *(task-447)*
 
+## Kamień milowy 78 — trzeci rozkaz gracza (zbiórka) i czytelna porażka rozkazu
+> Ścieżka rozkazu jest od K77 parametryzowana, więc kolejny rozkaz to już tylko
+> tekst statusu, przycisk i wiązanie. Osobno domykamy cichą lukę: gdy most nie
+> zwróci modelu, klient czyści status do pustego tekstu i gracz nie wie, że
+> rozkaz się nie powiódł. Zweryfikowane empirycznie (`serve 73`): pierwszy
+> `muster` → `changed:true`, kolejne → `false` przy `ok:true`; nieznany rozkaz →
+> `{"ok":false,"error":"Unknown order: …"}`.
+- [ ] **G78.1a** `order_result.gd` — tekst statusu rozróżnia rozkaz `muster`.
+      *(task-448)*
+- [ ] **G78.1b** Scena ma nazwany przycisk „Zbierz oddział" (bez wiązania).
+      *(task-449)*
+- [ ] **G78.1c** Klik zbiórki wydaje rozkaz, pokazuje skutek i utrwala partię
+      (e2e przez dwa procesy). *(task-450)*
+- [ ] **G78.2a** Nieudany rozkaz pokazuje czytelny komunikat zamiast pustego
+      statusu. *(task-451)*
+
 ## Dług/refaktor
 - [ ] **R73.1 (dług techniczny)** Jedno źródło reguł poprawnej konfiguracji
       startowej: `main.gd._is_valid_session_config` duplikuje warunki
