@@ -142,6 +142,24 @@ func advance_turn() -> SnapshotModel:
 	return SnapshotModel.from_response(responses[0])
 
 
+func send_order(order_name: String) -> SnapshotModel:
+	if not _is_persistent:
+		return null
+
+	var order_and_save: Array = [
+		{"type": "order", "order": order_name},
+		{"type": "save", "path": state_path},
+	]
+	var responses := send_many(order_and_save)
+	if responses.size() != order_and_save.size():
+		return null
+	for response in responses:
+		if not response is Dictionary or not response.get("ok", false):
+			return null
+
+	return SnapshotModel.from_response(responses[0])
+
+
 func snapshot_model() -> SnapshotModel:
 	var response: Variant = send({"type": "snapshot"})
 	if response == null or not response is Dictionary:
