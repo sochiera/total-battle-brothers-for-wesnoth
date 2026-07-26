@@ -24,6 +24,8 @@ static func status_text(order_result: Variant) -> String:
 			order_name = "rekrutacji"
 		"muster":
 			order_name = "zbiórki"
+		"march":
+			order_name = "marszu"
 		_:
 			return ""
 
