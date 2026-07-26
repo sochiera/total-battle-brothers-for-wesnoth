@@ -13,3 +13,11 @@ static func from_values(command: String, state_path: String, seed_text: String) 
 		"state_path": trimmed_state_path,
 		"seed": seed_text.to_int(),
 	}
+
+
+static func from_environment() -> Variant:
+	return from_values(
+		OS.get_environment("TBB_BRIDGE_COMMAND"),
+		OS.get_environment("TBB_STATE_PATH"),
+		OS.get_environment("TBB_SEED"),
+	)
