@@ -267,10 +267,11 @@ def test_scene_development_status_survives_resume_and_reports_no_change(tmp_path
     }
 
 
-def test_scene_entry_without_environment_is_a_noop():
+def test_scene_entry_without_environment_uses_default_session_config(tmp_path):
     environment = os.environ.copy()
     for variable in ("TBB_BRIDGE_COMMAND", "TBB_STATE_PATH", "TBB_SEED"):
         environment.pop(variable, None)
+    environment["XDG_DATA_HOME"] = str(tmp_path / "xdg-data")
 
     result = run_godot_script(
         GAME, ENVIRONMENT_AUTOSTART_PROBE, timeout=30, env=environment
@@ -285,7 +286,7 @@ def test_scene_entry_without_environment_is_a_noop():
     ]
     assert len(lines) == 1, result.stdout
     assert json.loads(lines[0][len(ENVIRONMENT_AUTOSTART_PREFIX) :]) == {
-        "after_start": {"date": "", "result": "", "duchy_status": "", "regions": [], "order_status": ""},
-        "after_press": {"date": "", "result": "", "duchy_status": "", "regions": [], "order_status": ""},
+        "after_start": _environment_controls(new_session(0).snapshot()),
+        "after_press": _environment_controls(new_session(0).snapshot()),
         "state_exists": False,
     }

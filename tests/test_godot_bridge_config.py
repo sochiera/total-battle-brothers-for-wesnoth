@@ -19,6 +19,29 @@ DEFAULT_PROBE = "res://tests/bridge_config_default_probe.gd"
 DEFAULT_PREFIX = "BRIDGE_CONFIG_DEFAULT "
 DEFAULT_LIVE_PROBE = "res://tests/bridge_config_default_live_probe.gd"
 DEFAULT_LIVE_PREFIX = "BRIDGE_CONFIG_DEFAULT_LIVE "
+TBB_VARIABLES = ("TBB_BRIDGE_COMMAND", "TBB_STATE_PATH", "TBB_SEED")
+
+
+def _environment_config_payload(overrides, tmp_path):
+    environment = dict(os.environ)
+    for variable in TBB_VARIABLES:
+        environment.pop(variable, None)
+    environment.update(overrides)
+    environment["XDG_DATA_HOME"] = str(tmp_path / "xdg-data")
+
+    result = run_godot_script(
+        GAME, ENVIRONMENT_PROBE, timeout=30, env=environment
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "SCRIPT ERROR" not in result.stderr, result.stderr
+    lines = [
+        line
+        for line in result.stdout.splitlines()
+        if line.startswith(ENVIRONMENT_PREFIX)
+    ]
+    assert len(lines) == 1, result.stdout
+    return json.loads(lines[0][len(ENVIRONMENT_PREFIX) :])
 
 
 def test_bridge_config_from_values_trims_valid_values_and_rejects_invalid_ones():
@@ -63,55 +86,82 @@ def test_bridge_config_exposes_single_public_validity_predicate_for_ready_config
     }
 
 
-def test_bridge_config_from_environment_delegates_environment_values_to_from_values():
-    cases = [
-        (
-            {
-                "TBB_BRIDGE_COMMAND": " python -m tbbbridge ",
-                "TBB_STATE_PATH": " /tmp/tbb-state.jsonl ",
-                "TBB_SEED": "-73",
-            },
-            {
-                "command": "python -m tbbbridge",
-                "state_path": "/tmp/tbb-state.jsonl",
-                "seed": -73,
-            },
-        ),
-        (
-            {
-                "TBB_BRIDGE_COMMAND": "bridge",
-                "TBB_STATE_PATH": "state.jsonl",
-            },
-            None,
-        ),
-        (
-            {
-                "TBB_BRIDGE_COMMAND": "bridge",
-                "TBB_STATE_PATH": "state.jsonl",
-                "TBB_SEED": "not-an-integer",
-            },
-            None,
-        ),
-    ]
+def test_bridge_config_from_environment_trims_complete_valid_overrides(tmp_path):
+    payload = _environment_config_payload(
+        {
+            "TBB_BRIDGE_COMMAND": " python -m tbbbridge ",
+            "TBB_STATE_PATH": " /tmp/tbb-state.jsonl ",
+            "TBB_SEED": "-73",
+        },
+        tmp_path,
+    )
 
-    for overrides, expected in cases:
-        environment = dict(os.environ)
-        for variable in ("TBB_BRIDGE_COMMAND", "TBB_STATE_PATH", "TBB_SEED"):
-            environment.pop(variable, None)
-        environment.update(overrides)
-        result = run_godot_script(
-            GAME, ENVIRONMENT_PROBE, timeout=30, env=environment
-        )
+    assert payload["config"] == {
+        "command": "python -m tbbbridge",
+        "state_path": "/tmp/tbb-state.jsonl",
+        "seed": -73,
+    }
+    assert payload["valid"] is True
 
-        assert result.returncode == 0, result.stderr
-        lines = [
-            line
-            for line in result.stdout.splitlines()
-            if line.startswith(ENVIRONMENT_PREFIX)
-        ]
-        assert len(lines) == 1, result.stdout
-        assert "SCRIPT ERROR" not in result.stderr, result.stderr
-        assert json.loads(lines[0][len(ENVIRONMENT_PREFIX) :]) == expected
+
+def test_bridge_config_from_environment_keeps_explicit_fields_and_defaults_invalid_ones(
+    tmp_path,
+):
+    payload = _environment_config_payload(
+        {
+            "TBB_BRIDGE_COMMAND": " bridge --serve ",
+            "TBB_STATE_PATH": " /tmp/tbb-state.jsonl ",
+            "TBB_SEED": "not-an-integer",
+        },
+        tmp_path,
+    )
+
+    assert payload["config"] == {
+        **payload["default"],
+        "command": "bridge --serve",
+        "state_path": "/tmp/tbb-state.jsonl",
+    }
+    assert payload["valid"] is True
+
+
+@pytest.mark.parametrize(
+    ("overrides", "expected_overrides"),
+    [
+        ({}, {}),
+        (
+            {
+                "TBB_BRIDGE_COMMAND": " \t ",
+                "TBB_STATE_PATH": " state.jsonl ",
+                "TBB_SEED": "12",
+            },
+            {"state_path": "state.jsonl", "seed": 12},
+        ),
+        (
+            {
+                "TBB_BRIDGE_COMMAND": " bridge ",
+                "TBB_STATE_PATH": "\n ",
+                "TBB_SEED": "-5",
+            },
+            {"command": "bridge", "seed": -5},
+        ),
+        (
+            {
+                "TBB_BRIDGE_COMMAND": " bridge ",
+                "TBB_STATE_PATH": " state.jsonl ",
+                "TBB_SEED": " \t ",
+            },
+            {"command": "bridge", "state_path": "state.jsonl"},
+        ),
+    ],
+    ids=["all-missing", "blank-command", "blank-state-path", "blank-seed"],
+)
+def test_bridge_config_from_environment_defaults_missing_or_blank_fields_independently(
+    overrides, expected_overrides, tmp_path
+):
+    payload = _environment_config_payload(overrides, tmp_path)
+
+    assert payload["config"] == {**payload["default"], **expected_overrides}
+    assert payload["valid"] is True
 
 
 def test_bridge_config_default_values_are_valid_deterministic_and_stay_in_user_data(

@@ -57,9 +57,23 @@ static func is_valid_session_config(config: Variant) -> bool:
 	)
 
 
-static func from_environment() -> Variant:
-	return from_values(
-		OS.get_environment("TBB_BRIDGE_COMMAND"),
-		OS.get_environment("TBB_STATE_PATH"),
-		OS.get_environment("TBB_SEED"),
-	)
+static func _environment_text_or_default(variable: String, fallback: String) -> String:
+	var value := OS.get_environment(variable).strip_edges()
+	return fallback if value.is_empty() else value
+
+
+static func _environment_seed_or_default(variable: String, fallback: int) -> int:
+	var seed_text := OS.get_environment(variable).strip_edges()
+	return seed_text.to_int() if seed_text.is_valid_int() else fallback
+
+
+static func from_environment() -> Dictionary:
+	var defaults := default_values()
+	var command := _environment_text_or_default("TBB_BRIDGE_COMMAND", defaults["command"])
+	var state_path := _environment_text_or_default("TBB_STATE_PATH", defaults["state_path"])
+	var seed: int = _environment_seed_or_default("TBB_SEED", defaults["seed"])
+	return {
+		"command": command,
+		"state_path": state_path,
+		"seed": seed,
+	}

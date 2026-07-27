@@ -3,6 +3,7 @@ extends SceneTree
 
 const MAIN_SCENE_PATH := "res://scenes/main.tscn"
 const PREFIX := "ENVIRONMENT_AUTOSTART "
+const BridgeConfig = preload("res://scripts/bridge_config.gd")
 
 
 func _init() -> void:
@@ -24,6 +25,7 @@ func _init() -> void:
 
 
 func _observe_autostart(scene_root: Control, press_next_turn: bool, develop_presses: int) -> void:
+	var config: Dictionary = BridgeConfig.from_environment()
 	var after_start := _controls(scene_root)
 	if press_next_turn:
 		var button := scene_root.get_node_or_null("NextTurnButton") as Button
@@ -41,7 +43,7 @@ func _observe_autostart(scene_root: Control, press_next_turn: bool, develop_pres
 	print(PREFIX, JSON.stringify({
 		"after_start": after_start,
 		"after_press": _controls(scene_root),
-		"state_exists": FileAccess.file_exists(OS.get_environment("TBB_STATE_PATH")),
+		"state_exists": FileAccess.file_exists(config["state_path"]),
 	}))
 	call_deferred("quit", 0)
 
