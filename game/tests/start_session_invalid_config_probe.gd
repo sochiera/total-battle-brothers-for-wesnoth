@@ -76,6 +76,7 @@ func _init() -> void:
 	}))
 	results.append(scene_root.start_session([]))
 
+	var status_label := scene_root.get_node_or_null("StartStatusLabel") as Label
 	print(PREFIX, JSON.stringify({
 		"available": true,
 		"results": results,
@@ -85,6 +86,8 @@ func _init() -> void:
 		"request_exists": FileAccess.file_exists(
 			ProjectSettings.globalize_path("user://bridge_request.jsonl")
 		),
+		"has_start_status_label": status_label != null,
+		"start_status": "" if status_label == null else status_label.text,
 	}))
 	call_deferred("quit", 0)
 

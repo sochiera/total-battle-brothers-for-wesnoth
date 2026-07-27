@@ -5,6 +5,7 @@ const SnapshotModel = preload("res://scripts/snapshot_model.gd")
 const BridgeClient = preload("res://scripts/bridge_client.gd")
 const BridgeConfig = preload("res://scripts/bridge_config.gd")
 const OrderResult = preload("res://scripts/order_result.gd")
+const START_FAILURE_STATUS := "Nie udało się uruchomić mostu ani rozpocząć partii."
 
 
 var _client: Variant = null
@@ -16,6 +17,7 @@ func _ready() -> void:
 
 func start_session(config) -> bool:
 	if not BridgeConfig.is_valid_session_config(config):
+		_apply_start_failure_status(false)
 		return false
 
 	var command: String = config["command"]
@@ -23,7 +25,13 @@ func start_session(config) -> bool:
 	var seed: int = config["seed"]
 	var client := BridgeClient.create_persistent(command, state_path, seed)
 	bind_client(client)
-	return refresh_from_bridge(client)
+	var started := refresh_from_bridge(client)
+	_apply_start_failure_status(started)
+	return started
+
+
+func _apply_start_failure_status(started: bool) -> void:
+	$StartStatusLabel.text = "" if started else START_FAILURE_STATUS
 
 
 func bind_client(client) -> void:

@@ -13,6 +13,8 @@ script = ExtResource("1_main")
 
 [node name="DateLabel" type="Label" parent="."]
 
+[node name="StartStatusLabel" type="Label" parent="."]
+
 [node name="RegionList" type="ItemList" parent="."]
 
 [node name="ResultLabel" type="Label" parent="."]

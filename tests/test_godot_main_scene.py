@@ -30,6 +30,7 @@ def test_scene_probe_reports_main_scene_root():
     assert payload[0] == {"path": ".", "name": "Main", "class": "Control"}
     assert payload[1:] == [
         {"path": "DateLabel", "name": "DateLabel", "class": "Label"},
+        {"path": "StartStatusLabel", "name": "StartStatusLabel", "class": "Label"},
         {"path": "RegionList", "name": "RegionList", "class": "ItemList"},
         {"path": "ResultLabel", "name": "ResultLabel", "class": "Label"},
         {
