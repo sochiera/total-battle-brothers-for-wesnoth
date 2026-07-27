@@ -21,6 +21,7 @@ var regions: Array
 var player_result: String
 var player_duchy_status: Variant = null
 var player_party_region: Variant = null
+var battle: Variant = null
 
 
 static func _is_numeric(value: Variant) -> bool:
@@ -84,6 +85,45 @@ static func _player_party_region(snapshot: Dictionary) -> Variant:
 	return null
 
 
+static func _battle(snapshot: Dictionary) -> Variant:
+	var battle_snapshot: Variant = snapshot.get("battle")
+	if not battle_snapshot is Dictionary:
+		return null
+	if not battle_snapshot.has("result") or not battle_snapshot["result"] is String:
+		return null
+	if not battle_snapshot.has("hexes") or not battle_snapshot["hexes"] is Array:
+		return null
+
+	var hexes: Array = []
+	for hex: Variant in battle_snapshot["hexes"]:
+		var projected_hex: Variant = _project_battle_hex(hex)
+		if projected_hex != null:
+			hexes.append(projected_hex)
+	return {"result": battle_snapshot["result"], "hexes": hexes}
+
+
+static func _project_battle_hex(hex: Variant) -> Variant:
+	if not hex is Dictionary:
+		return null
+	if not hex.has("q") or not _is_numeric(hex["q"]):
+		return null
+	if not hex.has("r") or not _is_numeric(hex["r"]):
+		return null
+	if not hex.has("side") or not hex["side"] is String:
+		return null
+	if not hex.has("terrain") or not hex["terrain"] is String:
+		return null
+	if not hex.has("hp") or not _is_numeric(hex["hp"]):
+		return null
+	return {
+		"q": int(hex["q"]),
+		"r": int(hex["r"]),
+		"terrain": hex["terrain"],
+		"side": hex["side"],
+		"hp": int(hex["hp"]),
+	}
+
+
 static func from_response(response: Dictionary) -> SnapshotModel:
 	if not response.get("ok", false):
 		return null
@@ -114,4 +154,5 @@ static func from_response(response: Dictionary) -> SnapshotModel:
 	model.player_result = result["player_result"]
 	model.player_duchy_status = _player_duchy_status(snapshot)
 	model.player_party_region = _player_party_region(snapshot)
+	model.battle = _battle(snapshot)
 	return model
