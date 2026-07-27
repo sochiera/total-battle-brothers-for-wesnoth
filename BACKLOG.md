@@ -315,30 +315,51 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > **wyłącznie** przy ustawionych `TBB_BRIDGE_COMMAND`/`TBB_STATE_PATH`/`TBB_SEED`
 > — bez nich `BridgeConfig.from_environment()` daje `null` i scena jest martwa.
 > K82 usuwa terminal ze ścieżki startu. Rdzeń `tbb` i most bez zmian.
-- [ ] **G82.1a** `BridgeConfig.default_values()` — czysta funkcja dająca
+- [x] **G82.1a** `BridgeConfig.default_values()` — czysta funkcja dająca
       kompletną, poprawną konfigurację bez środowiska (komenda mostu, ścieżka
       stanu w katalogu danych użytkownika, domyślne ziarno); wynik przechodzi
       `is_valid_session_config`. *(simple)*
-- [ ] **G82.1b** `from_environment()` uzupełnia **brakujące lub niepoprawne**
+- [x] **G82.1b** `from_environment()` uzupełnia **brakujące lub niepoprawne**
       zmienne wartościami domyślnymi zamiast zwracać `null`; jawnie ustawione
       `TBB_*` nadal nadpisują domyślne. Testy regresji dotychczasowych odrzuceń
       przenoszą się na `from_values` (kontrakt walidacji bez zmian). *(standard)*
-- [ ] **G82.2a** Scena po `_ready()` w środowisku **bez żadnych `TBB_*`** startuje
+- [x] **G82.2a** Scena po `_ready()` w środowisku **bez żadnych `TBB_*`** startuje
       partię i renderuje datę oraz status księstwa (sonda headless na tymczasowym
       katalogu stanu). *(standard)*
-- [ ] **G82.2b** Most daje się uruchomić z katalogu projektu Godota bez ręcznego
+- [x] **G82.2b** Most daje się uruchomić z katalogu projektu Godota bez ręcznego
       `PYTHONPATH` z terminala: domyślna komenda rozwiązuje interpreter i pakiet
       `tbbbridge` względem lokalizacji gry, a e2e w czystym środowisku daje dwa
       kolejne snapshoty tej samej partii. *(complex, ryzyko: ścieżki `res://` vs
       katalog roboczy procesu, brak Pythona → czytelny komunikat w scenie zamiast
       cichej martwej sceny)*
 
+## Kamień milowy 83 — czytelny układ ekranu — UKOŃCZONY
+> **UKOŃCZONE.** K83.1: kontrolki sceny w kontenerach zamiast wspólnego punktu
+> (0,0) — prostokąty parami rozłączne, `RegionList` o niezerowym rozmiarze,
+> grupa stanu oddzielona od grupy rozkazów, nazwy kontrolek bez zmian.
+> *(task-471)*
+
+## Kamień milowy 84 — widok mapy 2D w kliencie Godota — PRIORYTET
+> Następny punkt kryterium „da się grać patrząc, a nie czytając logi": mapa
+> istnieje w kliencie wyłącznie jako `ItemList` nazw. Most niesie siatkę od
+> dawna — zweryfikowane empirycznie (`serve 73`): `map.regions` ma `name`,
+> `col`, `row`, `owner` (`"player"`/`"ai"`/`null`), a po `muster`→`march`
+> oddział gracza stoi w regionie `border`. Rdzeń `tbb` i most bez zmian.
+- [ ] **R83.1 (dług techniczny)** Jedno miejsce walidacji regionów: model
+      wystawia regiony gotowe do pokazania, scena nie powtarza sprawdzeń
+      surowych słowników + testy regresji. *(simple, task-472)*
+- [ ] **G84.1a** Model niesie `col`, `row` i właściciela regionu; region bez
+      poprawnych współrzędnych odpada. *(simple, task-473)*
+- [ ] **G84.1b** Widok mapy `MapView`: jeden kafel na region, rozmieszczenie po
+      siatce, kafle rozłączne, właściciel rozróżnialny wzrokowo. *(standard,
+      task-474)*
+- [ ] **G84.1c** Kafel oddziału gracza oznaczony i przesuwający się po rozkazach
+      (e2e przez dwa procesy mostu). *(standard, task-475)*
+
 ## Dług/refaktor
-- [ ] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: wersjonowane
-      artefakty w `out/` (`game.html`, `state.json`, `state.json.ref`) — usunąć
-      z gita i dopisać do `.gitignore`, chyba że `state.json.ref` jest realnym
-      fixture (wtedy przenieść do `tests/`). Bramka zielona przed i po.
-      *(standard; część o sondach `*_probe.gd` zamknięta w R82.1a / task-469)*
+- [x] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
+      poza kodem produkcyjnym klienta (R82.1a) i wygenerowane artefakty `out/`
+      poza gitem (R82.1b). *(task-469, task-470)*
 - [x] **R73.1 (dług techniczny)** Jedno źródło reguł poprawnej konfiguracji
       startowej: `main.gd._is_valid_session_config` duplikował warunki
       `BridgeConfig.from_values`; scalone w `BridgeConfig` + testy regresji.
@@ -352,10 +373,7 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > Kolejność wynika z kryterium „gotowe" w `docs/PROJECT.md`. **Nie dokładamy
 > kolejnych przycisków rozkazu ani reguł rdzenia, dopóki te punkty stoją** —
 > most obsługuje więcej rozkazów, niż klient potrafi pokazać.
-- Czytelny układ ekranu: kontenery Godota zamiast wszystkich kontrolek w punkcie
-  (0,0) w `main.tscn`; osobno panel stanu, osobno panel rozkazów.
-- Widok mapy 2D: regiony, osady i party rysowane zamiast `ItemList` nazw; rozkaz
-  wybierany klikiem na cel, nie globalnym przyciskiem.
+- Rozkaz wybierany klikiem na cel na mapie, nie globalnym przyciskiem (po K84).
 - Widok bitwy: `battle_state` z mostu na siatce heksów (teren, jednostki, wynik),
   potem sterowanie pojedynczą jednostką.
 - Zapis/odczyt z UI: jawne „Zapisz"/„Wczytaj" (protokół ma to od K68/K69).
