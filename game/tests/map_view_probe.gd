@@ -7,6 +7,7 @@ extends SceneTree
 
 const MAIN_SCENE_PATH := "res://scenes/main.tscn"
 const SnapshotModel = preload("res://scripts/snapshot_model.gd")
+const PartyMapMark = preload("res://tests/party_map_mark_helpers.gd")
 const PREFIX := "MAP_VIEW "
 
 
@@ -84,6 +85,20 @@ func _run() -> void:
 		tiles_direct = _collect_tiles(map_view, names_full)
 		count_direct = _count_tiles(map_view)
 
+	# Party-mark scenarios (G84.1c): mark derives solely from model.player_party_region.
+	var party_on_alpha: Dictionary = await _party_mark_sample(
+		scene_root, map_view, regions_full, names_full, "Alpha", false
+	)
+	var party_absent: Dictionary = await _party_mark_sample(
+		scene_root, map_view, regions_full, names_full, null, false
+	)
+	var party_on_beta: Dictionary = await _party_mark_sample(
+		scene_root, map_view, regions_full, names_full, "Beta", false
+	)
+	var party_direct_gamma: Dictionary = await _party_mark_sample(
+		scene_root, map_view, regions_full, names_full, "Gamma", true
+	)
+
 	print(PREFIX, JSON.stringify({
 		"map_view_found": true,
 		"has_render_model": has_render,
@@ -96,17 +111,50 @@ func _run() -> void:
 		"tile_count_after_second": count_second,
 		"tile_count_after_empty": count_empty,
 		"tile_count_after_direct_render": count_direct,
+		"party_on_alpha": party_on_alpha,
+		"party_absent": party_absent,
+		"party_on_beta": party_on_beta,
+		"party_direct_gamma": party_direct_gamma,
 	}))
 	quit(0)
 
 
-func _model(regions: Array) -> SnapshotModel:
+func _model(regions: Array, party_region: Variant = null) -> SnapshotModel:
 	var model := SnapshotModel.new()
 	model.year = 1
 	model.month = 1
 	model.player_result = "ongoing"
 	model.regions = regions
+	model.player_party_region = party_region
 	return model
+
+
+func _party_mark_sample(
+	scene_root: Control,
+	map_view: Node,
+	regions: Array,
+	names: Array[String],
+	party_region: Variant,
+	direct_render: bool,
+) -> Dictionary:
+	var model: SnapshotModel = _model(regions, party_region)
+	if direct_render:
+		if not map_view.has_method("render_model"):
+			_fail("direct_render party sample requires MapView.render_model")
+			return {}
+		map_view.call("render_model", model)
+	else:
+		scene_root.apply_model(model)
+	await process_frame
+	await process_frame
+	var position_label: Label = scene_root.find_child(
+		"PlayerPartyPositionLabel", true, false
+	) as Label
+	return {
+		"position_label": "" if position_label == null else position_label.text,
+		"marked_regions": PartyMapMark.marked_party_regions(map_view, names),
+		"marker_count": PartyMapMark.count_party_markers(map_view),
+	}
 
 
 func _count_tiles(map_view: Node) -> int:
@@ -122,10 +170,10 @@ func _count_tiles(map_view: Node) -> int:
 func _collect_tiles(map_view: Node, expected_names: Array[String]) -> Array:
 	var tiles: Array = []
 	for region_name: String in expected_names:
-		var label: Label = _find_label_with_text(map_view, region_name)
+		var label: Label = PartyMapMark.find_label_with_text(map_view, region_name)
 		if label == null:
 			continue
-		var tile: Control = _tile_control(label, map_view)
+		var tile: Control = PartyMapMark.tile_control(label, map_view)
 		var rect: Rect2 = tile.get_global_rect()
 		tiles.append({
 			"name": region_name,
@@ -137,24 +185,6 @@ func _collect_tiles(map_view: Node, expected_names: Array[String]) -> Array:
 			"visual": _visual_key(tile),
 		})
 	return tiles
-
-
-func _find_label_with_text(root: Node, text: String) -> Label:
-	if root is Label and (root as Label).text == text:
-		return root as Label
-	for child: Node in root.get_children():
-		var found: Label = _find_label_with_text(child, text)
-		if found != null:
-			return found
-	return null
-
-
-func _tile_control(label: Label, map_view: Node) -> Control:
-	# Tile body is the immediate Control parent under MapView (not a shared root).
-	var parent: Node = label.get_parent()
-	if parent is Control and parent != map_view:
-		return parent as Control
-	return label
 
 
 func _visual_key(tile: Control) -> String:

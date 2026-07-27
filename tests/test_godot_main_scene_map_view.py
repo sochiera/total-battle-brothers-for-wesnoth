@@ -142,3 +142,54 @@ def test_map_view_shows_one_grid_tile_per_region_with_owner_paint():
     # Direct public API matches apply_model path.
     assert len(direct) == n, direct
     assert {t["name"] for t in direct} == region_names
+
+
+def _assert_party_mark(
+    sample: dict,
+    *,
+    marked: list[str],
+    marker_count: int,
+    label_contains: str | None = None,
+) -> None:
+    """One place for party-mark contract: exclusive tiles + optional label sync."""
+    assert sample["marked_regions"] == marked, sample
+    assert sample["marker_count"] == marker_count, sample
+    if label_contains is not None:
+        assert label_contains in sample["position_label"], sample
+
+
+def test_map_view_marks_only_the_tile_of_player_party_region():
+    """Player party tile mark must follow SnapshotModel.player_party_region.
+
+    Realistic defect this catches: MapView paints ownership only and ignores
+    player_party_region, so the army is visible solely as PlayerPartyPositionLabel
+    text. Existing map_view / party_position gates never look for a map mark, so
+    a pure-list-or-ownership map stays green while the player cannot see which
+    tile holds their party after muster/march.
+    """
+    payload = _load_map_view()
+    assert payload["map_view_found"] is True, payload
+    assert payload["has_render_model"] is True, payload
+
+    regions = payload["regions"]
+    names = {r["name"] for r in regions}
+    assert names >= {"Alpha", "Beta", "Gamma"}, regions
+
+    on_alpha = payload["party_on_alpha"]
+    absent = payload["party_absent"]
+    on_beta = payload["party_on_beta"]
+    direct_gamma = payload["party_direct_gamma"]
+
+    # Only the party region tile is marked; never multiple marks; label agrees.
+    _assert_party_mark(
+        on_alpha, marked=["Alpha"], marker_count=1, label_contains="Alpha"
+    )
+
+    # No party → no marks; position label stays consistent with the map.
+    _assert_party_mark(absent, marked=[], marker_count=0, label_contains="brak")
+
+    # Moving the party in the model moves the mark (and the label).
+    _assert_party_mark(on_beta, marked=["Beta"], marker_count=1, label_contains="Beta")
+
+    # Direct render_model path marks from the model alone (no main.gd side channel).
+    _assert_party_mark(direct_gamma, marked=["Gamma"], marker_count=1)

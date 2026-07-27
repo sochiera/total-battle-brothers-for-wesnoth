@@ -15,7 +15,7 @@ func render_model(model: SnapshotModel) -> void:
 		return
 	for region: Variant in model.regions:
 		if region is Dictionary and region.has("col") and region.has("row"):
-			_add_tile(region)
+			_add_tile(region, model.player_party_region)
 
 
 func _clear_tiles() -> void:
@@ -24,7 +24,7 @@ func _clear_tiles() -> void:
 			child.free()
 
 
-func _add_tile(region: Dictionary) -> void:
+func _add_tile(region: Dictionary, player_party_region: Variant) -> void:
 	var tile := ColorRect.new()
 	tile.name = "RegionTile_%s" % region["name"]
 	tile.color = _owner_color(region.get("owner"))
@@ -40,6 +40,26 @@ func _add_tile(region: Dictionary) -> void:
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.add_theme_color_override("font_color", Color.WHITE)
 	tile.add_child(label)
+	if _is_player_party_region(region, player_party_region):
+		_add_player_party_marker(tile)
+
+
+func _is_player_party_region(region: Dictionary, player_party_region: Variant) -> bool:
+	return (
+		player_party_region is String
+		and not player_party_region.is_empty()
+		and region.get("name") == player_party_region
+	)
+
+
+func _add_player_party_marker(tile: Control) -> void:
+	var marker := ColorRect.new()
+	marker.name = "PlayerPartyMarker"
+	marker.color = Color(0.98, 0.86, 0.18)
+	marker.position = Vector2(TILE_SIZE.x - 24, 8)
+	marker.size = Vector2(16, 16)
+	marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tile.add_child(marker)
 
 
 func _grid_position(region: Dictionary) -> Vector2:
