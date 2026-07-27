@@ -147,3 +147,104 @@ def test_assets_credits_documents_each_file_with_cc0_or_cc_by():
     for rel in REQUIRED_ASSETS:
         name = Path(rel).name
         assert name in text, f"CREDITS.md must mention asset file {name}"
+
+
+# Battle-side silhouettes (G87.1c-1b / task-489): public res:// paths stay, content changes.
+SIDE_SILHOUETTE_ASSETS: tuple[str, ...] = (
+    "assets/side_attacker.png",
+    "assets/side_defender.png",
+)
+TERRAIN_PLAINS_ASSET = "assets/terrain_plains.png"
+# Source path inside Kenney RTS Pack: Medieval (Unit/ piechur, not Hexagon buildings).
+_SIDE_SOURCE_UNIT_RE = re.compile(
+    r"PNG/Default size/Unit/medievalUnit_\d+\.png",
+    re.IGNORECASE,
+)
+_CREDITS_ROW_RE = re.compile(
+    r"^\|\s*(?P<file>[^|]+?)\s*\|\s*(?P<source>[^|]+?)\s*\|",
+    re.MULTILINE,
+)
+
+
+def test_side_silhouettes_are_distinct_unit_sized_alpha_textures_with_rts_credits():
+    """Battle sides must be distinct human-unit silhouettes under the public paths.
+
+    Realistic defect existing gates miss: ``side_attacker`` / ``side_defender`` still
+    load as Texture2D and appear in CREDITS with a blanket CC0 line, but remain
+    Hexagon *buildings* (castle/tower) — same footprint as a terrain tile, or even
+    the same file twice — so a later BattleView looks "textured" while both sides
+    are structures. Machine gate: Godot load + alpha + strictly smaller than
+    ``terrain_plains`` in both axes + byte-distinct files; CREDITS rows must cite
+    RTS Pack: Medieval unit paths (not Hexagon object tiles).
+    """
+    attacker_path = GAME / SIDE_SILHOUETTE_ASSETS[0]
+    defender_path = GAME / SIDE_SILHOUETTE_ASSETS[1]
+    assert attacker_path.is_file() and defender_path.is_file(), (
+        "side silhouette PNGs must exist under game/assets/"
+    )
+    assert attacker_path.read_bytes() != defender_path.read_bytes(), (
+        "side_attacker.png and side_defender.png must differ byte-wise "
+        "(two sides, not one image under two names)"
+    )
+
+    imported = _import_game_assets()
+    assert imported.returncode == 0, (
+        f"godot --import failed rc={imported.returncode} "
+        f"stderr={imported.stderr!r} stdout={imported.stdout!r}"
+    )
+
+    probe_rels = SIDE_SILHOUETTE_ASSETS + (TERRAIN_PLAINS_ASSET,)
+    result = _run_load_probe(*_res_paths(probe_rels))
+    assert result.returncode == 0, (
+        f"asset load probe failed rc={result.returncode} "
+        f"stderr={result.stderr!r} stdout={result.stdout!r}"
+    )
+    assert "SCRIPT ERROR" not in result.stderr, result.stderr
+
+    by_path = {row["path"]: row for row in _probe_payload(result)}
+    terrain = by_path.get(f"res://{TERRAIN_PLAINS_ASSET}")
+    assert terrain is not None and terrain.get("ok") is True, (
+        f"terrain_plains must load for size baseline, got {terrain!r}"
+    )
+    tw, th = int(terrain["width"]), int(terrain["height"])
+    assert tw > 0 and th > 0, f"terrain_plains size unreadable: {terrain!r}"
+
+    for rel in SIDE_SILHOUETTE_ASSETS:
+        res_path = f"res://{rel}"
+        row = by_path.get(res_path)
+        assert row is not None and row.get("ok") is True, (
+            f"{res_path} must load as Texture2D, got {row!r}"
+        )
+        # Image.ALPHA_NONE == 0; BIT/BLEND count as usable transparency.
+        assert int(row.get("alpha", -1)) > 0, (
+            f"{res_path} must have a detectable alpha channel "
+            f"(detect_alpha > ALPHA_NONE), got {row!r}"
+        )
+        w, h = int(row["width"]), int(row["height"])
+        assert w < tw and h < th, (
+            f"{res_path} must be smaller than terrain_plains "
+            f"({tw}x{th}) in both dimensions, got {w}x{h}"
+        )
+
+    credits_text = (GAME / "assets" / "CREDITS.md").read_text(encoding="utf-8")
+    assert re.search(r"RTS\s*Pack\s*:\s*Medieval|Medieval\s*RTS", credits_text, re.I), (
+        "CREDITS.md must name Kenney RTS Pack: Medieval for the side unit sources"
+    )
+    rows = {
+        m.group("file").strip(): m.group("source").strip()
+        for m in _CREDITS_ROW_RE.finditer(credits_text)
+    }
+    for rel in SIDE_SILHOUETTE_ASSETS:
+        name = Path(rel).name
+        source = rows.get(name)
+        assert source is not None, (
+            f"CREDITS.md must have a table row attributing {name}"
+        )
+        assert _SIDE_SOURCE_UNIT_RE.search(source), (
+            f"CREDITS.md row for {name} must cite an RTS Medieval unit file "
+            f"(PNG/Default size/Unit/medievalUnit_NN.png), got {source!r}"
+        )
+        assert "castle_small" not in source and "medieval_tower" not in source, (
+            f"CREDITS.md row for {name} must not still point at Hexagon buildings, "
+            f"got {source!r}"
+        )
