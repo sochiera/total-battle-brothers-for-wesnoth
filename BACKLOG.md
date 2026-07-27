@@ -339,7 +339,7 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > grupa stanu oddzielona od grupy rozkazów, nazwy kontrolek bez zmian.
 > *(task-471)*
 
-## Kamień milowy 84 — widok mapy 2D w kliencie Godota — PRIORYTET
+## Kamień milowy 84 — widok mapy 2D w kliencie Godota — UKOŃCZONY
 > Następny punkt kryterium „da się grać patrząc, a nie czytając logi": mapa
 > istnieje w kliencie wyłącznie jako `ItemList` nazw. Most niesie siatkę od
 > dawna — zweryfikowane empirycznie (`serve 73`): `map.regions` ma `name`,
@@ -348,15 +348,15 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 - [x] **R83.1 (dług techniczny)** Jedno miejsce walidacji regionów: model
       wystawia regiony gotowe do pokazania, scena nie powtarza sprawdzeń
       surowych słowników + testy regresji. *(simple, task-472)*
-- [ ] **G84.1a** Model niesie `col`, `row` i właściciela regionu; region bez
-      poprawnych współrzędnych odpada. *(simple, task-473)*
-- [ ] **G84.1b** Widok mapy `MapView`: jeden kafel na region, rozmieszczenie po
+- [x] **G84.1a** Model niesie `col`, `row` i właściciela regionu; region bez
+      poprawnych współrzędnych odpada. *(simple, task-473, commit d666192)*
+- [x] **G84.1b** Widok mapy `MapView`: jeden kafel na region, rozmieszczenie po
       siatce, kafle rozłączne, właściciel rozróżnialny wzrokowo. *(standard,
-      task-474)*
-- [ ] **G84.1c** Kafel oddziału gracza oznaczony i przesuwający się po rozkazach
-      (e2e przez dwa procesy mostu). *(standard, task-475)*
+      task-474, commit bcad83c)*
+- [x] **G84.1c** Kafel oddziału gracza oznaczony i przesuwający się po rozkazach
+      (e2e przez dwa procesy mostu). *(standard, task-475, commit 4af2b79)*
 
-## Kamień milowy 85 — widok bitwy w kliencie Godota (pierwszy plasterek)
+## Kamień milowy 85 — widok bitwy w kliencie Godota (pierwszy plasterek) — PRIORYTET
 > Po mapie zostaje **jedyna całkowicie niewidoczna faza gry**: szturm daje dziś
 > wyłącznie jedną linię tekstu („porażka, straty 0/0"), choć most niesie pełną
 > bitwę. Kryterium z briefu wymaga obu widoków — mapy **i** bitwy. Zweryfikowane
@@ -372,15 +372,15 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
       gotowych do pokazania (`q`, `r`, `terrain`, `side`, `hp`) i wynik bitwy
       albo jednoznaczny brak, gdy snapshot nie ma klucza `battle`; heks bez
       poprawnych współrzędnych lub strony odpada; atomowa walidacja modelu bez
-      zmian. *(simple)*
+      zmian. *(simple, task-476)*
 - [ ] **G85.1b** Widok bitwy `BattleView`: jeden kafel na heks bitwy,
       rozmieszczenie po współrzędnych osiowych `(q, r)`, kafle parami rozłączne,
       strona (atakujący/broniący) rozróżnialna wzrokowo; brak bitwy → pusty
-      widok bez błędu. *(standard)*
+      widok bez błędu. *(standard, task-477)*
 - [ ] **G85.1c** Klik „Szturmuj osadę" pokazuje bitwę na siatce zamiast samego
       tekstu: po rozkazie widok ma kafle obu stron, wynik bitwy jest czytelny na
       ekranie, a partia zostaje utrwalona (e2e przez dwa procesy mostu).
-      *(standard)*
+      *(standard, task-478)*
 
 ## Dług/refaktor
 - [x] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
