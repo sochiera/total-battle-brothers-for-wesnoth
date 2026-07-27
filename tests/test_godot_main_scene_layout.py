@@ -28,6 +28,8 @@ ORDER_CONTROLS = (
     "MusterButton",
     "MarchButton",
     "AssaultButton",
+    "SaveGameButton",
+    "LoadGameButton",
 )
 ALL_CONTROLS = STATUS_CONTROLS + ORDER_CONTROLS
 

@@ -26,6 +26,8 @@ const CONTROL_NAMES: Array[String] = [
 	"MusterButton",
 	"MarchButton",
 	"AssaultButton",
+	"SaveGameButton",
+	"LoadGameButton",
 ]
 
 
