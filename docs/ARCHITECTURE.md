@@ -1557,6 +1557,7 @@ game/                     # katalog projektu (repo root dla tej gry)
 ├── scripts/
 │   ├── test.sh           # uruchamia pełny pakiet testów
 │   ├── build.sh          # no-op dla Pythona (jest, by kontrakt komend był spójny)
+│   ├── package.sh        # buduje katalog pakietu: binarium + .pck + src/ (G88.1c)
 │   └── run.sh            # uruchamia headless runner
 ├── pyproject.toml        # konfiguracja pytest (pythonpath=src) + metadane
 ├── BACKLOG.md            # kolejka zadań
@@ -1578,11 +1579,23 @@ w skryptach `scripts/`.
 | test  | `bash scripts/test.sh`  |
 | build | `bash scripts/build.sh` (no-op, kończy się 0) |
 | run   | `bash scripts/run.sh`   |
+| pakiet | `bash scripts/package.sh <katalog-docelowy>` |
 
 - **test.sh** → `python3 -m pytest -q` z katalogu projektu. `pyproject.toml`
   ustawia `pythonpath = ["src"]`, więc `import tbb` działa bez instalacji.
 - **build.sh** → brak kompilacji (Python); istnieje dla spójności kontraktu.
 - **run.sh** → `python3 -m tbb` (pełna deterministyczna partia headless).
+- **package.sh** (G88.1c) → jedno polecenie budujące kompletny katalog pakietu
+  dystrybucyjnego pod ścieżką z argumentu (musi leżeć poza repo, więc budowa nie
+  brudzi `git status`). Kroki: headless `godot --export-release "Linux/X11"` do
+  `<cel>/TotalBattleBrothers.x86_64` (+ towarzyszący `.pck`) i kopia repozytoryjnego
+  `src/` do `<cel>/src` — pierwszego kandydata `BridgeConfig` „obok wykonywalnego
+  pliku gry" (G88.1b), bez `__pycache__`. Assety są w `.pck`, więc `game/assets/`
+  się nie kopiuje. O sukcesie rozstrzygają **artefakty**, nie kod wyjścia Godota
+  (4.2.2 potrafi zwrócić 0 mimo błędu): brak binarium, puste binarium, brak bitu
+  `+x` albo pusty `.pck` kończą skrypt niezerowym kodem, czytelnym komunikatem
+  (z podpowiedzią o brakujących szablonach eksportu) i usunięciem niekompletnych
+  artefaktów — pakiet nigdy nie zostaje w stanie „udawanego" kompletu.
 
 Uruchamiaj z katalogu `game/`.
 
