@@ -19,6 +19,11 @@ TERRAIN_ASSETS: dict[str, str] = {
     "Hills": "res://assets/terrain_hills.png",
 }
 
+# Public side silhouette paths (G87.1a / G87.1c-2).
+SIDE_ATTACKER = "res://assets/side_attacker.png"
+SIDE_DEFENDER = "res://assets/side_defender.png"
+SIDE_ASSETS = (SIDE_ATTACKER, SIDE_DEFENDER)
+
 
 def _import_game_assets() -> subprocess.CompletedProcess[str]:
     """Headless import so res://assets/*.png resolve to Texture2D."""
@@ -328,4 +333,137 @@ def test_battle_view_hex_tiles_carry_terrain_textures_from_assets():
             f"fallback hex ({tile['q']},{tile['r']}) must use default {default_path}, "
             f"got paths={tile['texture_paths']!r}"
         )
+
+
+def _side_layers(tile: dict) -> list[dict]:
+    """Texture layers whose path is a public battle-side silhouette asset."""
+    layers = tile.get("texture_layers") or []
+    return [
+        layer
+        for layer in layers
+        if isinstance(layer, dict) and layer.get("path") in SIDE_ASSETS
+    ]
+
+
+def test_battle_view_hex_tiles_overlay_side_silhouettes_on_terrain():
+    """Occupied battle hexes must show side unit silhouettes on top of terrain.
+
+    Realistic defect existing gates miss: BattleView still paints side only via
+    terrain ``modulate`` (K85 visual keys + G87.1c-1 terrain paths stay green)
+    while the player never sees a unit figure. Asset gates only prove the PNGs
+    load on disk — they never require BattleView to place them. Unknown / empty
+    side must keep terrain and omit both side assets without error.
+    """
+    assets_dir = GAME / "assets"
+    for asset_name in ("side_attacker.png", "side_defender.png"):
+        asset_path = assets_dir / asset_name
+        assert asset_path.is_file(), (
+            f"required side silhouette asset missing on disk: {asset_path} "
+            "(missing file must red-gate, not paint a color-only tile)"
+        )
+
+    imported = _import_game_assets()
+    assert imported.returncode == 0, (
+        f"godot --import failed rc={imported.returncode} "
+        f"stderr={imported.stderr!r} stdout={imported.stdout!r}"
+    )
+
+    payload = _load_battle_view()
+    assert payload["battle_view_found"] is True, payload
+    assert payload["has_render_model"] is True, payload
+
+    hexes = payload["hexes"]
+    first = payload["tiles_after_first"]
+    assert len(first) == len(hexes), first
+    by_qr = _by_qr(first)
+
+    expected_side_path = {
+        "attacker": SIDE_ATTACKER,
+        "defender": SIDE_DEFENDER,
+    }
+    sides_seen = {str(h.get("side", "")) for h in hexes}
+    assert "attacker" in sides_seen and "defender" in sides_seen, hexes
+    assert any(s not in ("attacker", "defender") for s in sides_seen), (
+        f"probe must include a non-attacker/defender side for no-silhouette "
+        f"coverage, got sides {sorted(sides_seen)}"
+    )
+
+    for hex_row in hexes:
+        qr = (int(hex_row["q"]), int(hex_row["r"]))
+        tile = by_qr[qr]
+        side = str(hex_row.get("side", ""))
+        terrain = str(hex_row.get("terrain", ""))
+        paths = list(tile.get("texture_paths") or [])
+        layers = list(tile.get("texture_layers") or [])
+        assert tile["has_texture"] is True, tile
+        assert layers, f"hex {qr} must report texture_layers for size checks, got {tile!r}"
+
+        # Terrain under the unit remains (G87.1c-1 choice unchanged).
+        if terrain in TERRAIN_ASSETS:
+            assert TERRAIN_ASSETS[terrain] in paths, (
+                f"hex {qr} side={side!r} must keep terrain {TERRAIN_ASSETS[terrain]}, "
+                f"got paths={paths!r}"
+            )
+
+        side_layers = _side_layers(tile)
+        if side in expected_side_path:
+            wanted = expected_side_path[side]
+            assert wanted in paths, (
+                f"hex {qr} side={side!r} must overlay {wanted} on terrain, "
+                f"got paths={paths!r}"
+            )
+            assert len(side_layers) >= 1, (
+                f"hex {qr} side={side!r} must expose a sized side layer, got {tile!r}"
+            )
+            # Tree order (DFS children): terrain must come before side so a
+            # silhouette painted *under* ground cannot green-gate as "overlay".
+            if terrain in TERRAIN_ASSETS:
+                terrain_path = TERRAIN_ASSETS[terrain]
+                assert paths.index(terrain_path) < paths.index(wanted), (
+                    f"hex {qr} side={side!r} must draw silhouette over terrain "
+                    f"(terrain path before side path in tree order), got paths={paths!r}"
+                )
+            for layer in side_layers:
+                assert layer["path"] == wanted, (
+                    f"hex {qr} side={side!r} must not carry the other side's "
+                    f"silhouette, got layer={layer!r}"
+                )
+                # Silhouette smaller than the hex tile so terrain stays readable.
+                assert float(layer["w"]) < float(tile["w"]), (
+                    f"hex {qr} side silhouette must be narrower than the tile: "
+                    f"layer_w={layer['w']} tile_w={tile['w']} layer={layer!r}"
+                )
+                assert float(layer["h"]) < float(tile["h"]), (
+                    f"hex {qr} side silhouette must be shorter than the tile: "
+                    f"layer_h={layer['h']} tile_h={tile['h']} layer={layer!r}"
+                )
+            other = SIDE_DEFENDER if side == "attacker" else SIDE_ATTACKER
+            assert other not in paths, (
+                f"hex {qr} side={side!r} must not also show {other}, paths={paths!r}"
+            )
+        else:
+            for side_path in SIDE_ASSETS:
+                assert side_path not in paths, (
+                    f"hex {qr} side={side!r} must be terrain-only (no silhouette), "
+                    f"but paths include {side_path}: {paths!r}"
+                )
+            assert side_layers == [], (
+                f"hex {qr} side={side!r} must not report side layers, got {side_layers!r}"
+            )
+
+    # Sides remain machine-distinguishable by different silhouette files.
+    attacker_qr = next(
+        (int(h["q"]), int(h["r"])) for h in hexes if h.get("side") == "attacker"
+    )
+    defender_qr = next(
+        (int(h["q"]), int(h["r"])) for h in hexes if h.get("side") == "defender"
+    )
+    attacker_side_paths = {layer["path"] for layer in _side_layers(by_qr[attacker_qr])}
+    defender_side_paths = {layer["path"] for layer in _side_layers(by_qr[defender_qr])}
+    assert attacker_side_paths == {SIDE_ATTACKER}, attacker_side_paths
+    assert defender_side_paths == {SIDE_DEFENDER}, defender_side_paths
+    assert attacker_side_paths != defender_side_paths, (
+        f"attacker and defender must use different silhouette files: "
+        f"{attacker_side_paths!r} vs {defender_side_paths!r}"
+    )
 

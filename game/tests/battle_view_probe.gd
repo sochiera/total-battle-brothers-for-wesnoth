@@ -56,12 +56,15 @@ func _run() -> void:
 
 	# Settlement-like field: domain r∈{0,1,2}. r=0/1 alone missed label-on-tile overlap.
 	# Include Plains/Forest/Hills so terrain texture mapping is observable (G87.1c-1).
+	# Include unknown / empty side so G87.1c-2 can assert terrain-only (no silhouette).
 	var hexes_full: Array = [
 		{"q": 0, "r": 0, "terrain": "Plains", "side": "attacker", "hp": 10},
 		{"q": 2, "r": 0, "terrain": "Plains", "side": "defender", "hp": 8},
 		{"q": 0, "r": 1, "terrain": "Forest", "side": "attacker", "hp": 5},
 		{"q": 0, "r": 2, "terrain": "Hills", "side": "attacker", "hp": 7},
 		{"q": 2, "r": 2, "terrain": "Forest", "side": "defender", "hp": 6},
+		{"q": 1, "r": 0, "terrain": "Plains", "side": "unknown", "hp": 1},
+		{"q": 1, "r": 1, "terrain": "Hills", "side": "", "hp": 1},
 	]
 	# Unknown / empty / missing terrain must still paint a default asset tile (no drop).
 	var hexes_fallback: Array = [
@@ -205,7 +208,13 @@ func _collect_tiles(battle_view: Node, hexes: Array) -> Array:
 		if tile == null:
 			continue
 		var rect: Rect2 = tile.get_global_rect()
-		var texture_paths: Array = _collect_texture_paths(tile)
+		# Public observation: each TextureRect/Sprite2D under the hex with path+size.
+		# G87.1c-2 needs layer size so a full-tile stretched side sprite fails.
+		var texture_layers: Array = _collect_texture_layers(tile)
+		var texture_paths: Array = []
+		for layer: Variant in texture_layers:
+			if layer is Dictionary and layer.has("path"):
+				texture_paths.append(layer["path"])
 		tiles.append({
 			"q": q,
 			"r": r,
@@ -220,18 +229,27 @@ func _collect_tiles(battle_view: Node, hexes: Array) -> Array:
 			"visual": _visual_key(tile),
 			"has_texture": not texture_paths.is_empty(),
 			"texture_paths": texture_paths,
+			"texture_layers": texture_layers,
 		})
 	return tiles
 
 
-func _collect_texture_paths(node: Node) -> Array:
-	var paths: Array = []
+func _collect_texture_layers(node: Node) -> Array:
+	var layers: Array = []
 	var path: String = _direct_texture_path(node)
-	if not path.is_empty():
-		paths.append(path)
+	if not path.is_empty() and node is CanvasItem:
+		var size: Vector2 = Vector2.ZERO
+		if node is Control:
+			size = (node as Control).get_global_rect().size
+		elif node is Sprite2D:
+			var sp: Sprite2D = node as Sprite2D
+			if sp.texture != null:
+				var tex_size: Vector2 = sp.texture.get_size()
+				size = Vector2(tex_size.x * absf(sp.scale.x), tex_size.y * absf(sp.scale.y))
+		layers.append({"path": path, "w": size.x, "h": size.y})
 	for child: Node in node.get_children():
-		paths.append_array(_collect_texture_paths(child))
-	return paths
+		layers.append_array(_collect_texture_layers(child))
+	return layers
 
 
 func _direct_texture_path(node: Node) -> String:

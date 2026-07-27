@@ -13,6 +13,10 @@ const TERRAIN_FOREST := preload("res://assets/terrain_forest.png")
 const TERRAIN_HILLS := preload("res://assets/terrain_hills.png")
 const DEFAULT_TERRAIN_TEXTURE := TERRAIN_PLAINS
 
+const SIDE_ATTACKER_TEXTURE := preload("res://assets/side_attacker.png")
+const SIDE_DEFENDER_TEXTURE := preload("res://assets/side_defender.png")
+const SIDE_SILHOUETTE_MARGIN := Vector2(20, 14)
+
 
 func render_model(model: SnapshotModel) -> void:
 	_clear_view()
@@ -74,6 +78,21 @@ func _add_tile(hex: Dictionary) -> void:
 	label.add_theme_color_override("font_color", Color.WHITE)
 	tile.add_child(label)
 
+	var silhouette_texture: Texture2D = _side_silhouette_texture(hex.get("side"))
+	if silhouette_texture != null:
+		var silhouette := TextureRect.new()
+		silhouette.name = "SideSilhouette"
+		silhouette.texture = silhouette_texture
+		silhouette.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		silhouette.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		silhouette.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		silhouette.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		silhouette.offset_left += SIDE_SILHOUETTE_MARGIN.x
+		silhouette.offset_right -= SIDE_SILHOUETTE_MARGIN.x
+		silhouette.offset_top += SIDE_SILHOUETTE_MARGIN.y
+		silhouette.offset_bottom -= SIDE_SILHOUETTE_MARGIN.y
+		tile.add_child(silhouette)
+
 
 func _axial_position(q: int, r: int) -> Vector2:
 	return Vector2(
@@ -102,6 +121,16 @@ func _side_color(side: Variant) -> Color:
 			return DEFENDER_COLOR
 		_:
 			return OTHER_SIDE_COLOR
+
+
+func _side_silhouette_texture(side: Variant) -> Texture2D:
+	match side:
+		"attacker":
+			return SIDE_ATTACKER_TEXTURE
+		"defender":
+			return SIDE_DEFENDER_TEXTURE
+		_:
+			return null
 
 
 func _result_text(result: Variant) -> String:
