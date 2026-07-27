@@ -11,9 +11,7 @@ var _client: Variant = null
 
 
 func _ready() -> void:
-	var config: Variant = BridgeConfig.from_environment()
-	if config != null:
-		start_session(config)
+	start_session(BridgeConfig.from_environment())
 
 
 func start_session(config) -> bool:
