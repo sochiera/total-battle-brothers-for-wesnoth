@@ -11,6 +11,7 @@ def run_godot_script(
     *script_args: str,
     timeout: float = 60.0,
     env: Mapping[str, str] | None = None,
+    cwd: Path | None = None,
 ) -> subprocess.CompletedProcess[str]:
     """Run a script headlessly, preserving its exit status within ``timeout``."""
     return subprocess.run(
@@ -20,4 +21,5 @@ def run_godot_script(
         check=False,
         timeout=timeout,
         env=env,
+        cwd=cwd,
     )

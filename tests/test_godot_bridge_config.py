@@ -1,6 +1,9 @@
 import json
 import os
+import shutil
 from pathlib import Path
+
+import pytest
 
 from godot_runner import run_godot_script
 
@@ -14,6 +17,8 @@ ENVIRONMENT_PROBE = "res://tests/bridge_config_environment_probe.gd"
 ENVIRONMENT_PREFIX = "BRIDGE_CONFIG_ENVIRONMENT "
 DEFAULT_PROBE = "res://tests/bridge_config_default_probe.gd"
 DEFAULT_PREFIX = "BRIDGE_CONFIG_DEFAULT "
+DEFAULT_LIVE_PROBE = "res://tests/bridge_config_default_live_probe.gd"
+DEFAULT_LIVE_PREFIX = "BRIDGE_CONFIG_DEFAULT_LIVE "
 
 
 def test_bridge_config_from_values_trims_valid_values_and_rejects_invalid_ones():
@@ -134,3 +139,44 @@ def test_bridge_config_default_values_are_valid_deterministic_and_stay_in_user_d
         Path(payload["user_directory"])
     )
     assert payload["state_file_exists"] is False
+
+
+@pytest.mark.parametrize("project_with_spaces", [False, True], ids=["plain", "spaces"])
+def test_default_config_starts_and_resumes_the_bridge_without_terminal_environment(
+    tmp_path, project_with_spaces
+):
+    environment = dict(os.environ)
+    for variable in ("TBB_BRIDGE_COMMAND", "TBB_STATE_PATH", "TBB_SEED", "PYTHONPATH"):
+        environment.pop(variable, None)
+    environment["XDG_DATA_HOME"] = str(tmp_path / "xdg-data")
+    project = GAME
+    if project_with_spaces:
+        project_root = tmp_path / "project with spaces"
+        project = project_root / "game"
+        shutil.copytree(GAME, project)
+        (project_root / "src").symlink_to(ROOT / "src", target_is_directory=True)
+    working_directory = tmp_path / "unrelated working directory"
+    working_directory.mkdir()
+
+    result = run_godot_script(
+        project,
+        DEFAULT_LIVE_PROBE,
+        timeout=30,
+        env=environment,
+        cwd=working_directory,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "SCRIPT ERROR" not in result.stderr, result.stderr
+    lines = [
+        line
+        for line in result.stdout.splitlines()
+        if line.startswith(DEFAULT_LIVE_PREFIX)
+    ]
+    assert len(lines) == 1, result.stdout
+    assert json.loads(lines[0][len(DEFAULT_LIVE_PREFIX) :]) == {
+        "initial": {"year": 1, "month": 1},
+        "advanced": {"year": 1, "month": 2},
+        "resumed": {"year": 1, "month": 2},
+        "state_exists": True,
+    }
