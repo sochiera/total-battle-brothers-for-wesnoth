@@ -398,17 +398,74 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > daje **ten sam** skutek co automatyczny (`next_march_step` zwraca `None`, gdy
 > cel sąsiaduje). Nie da się dziś napisać kryterium, które odróżnia klik od
 > automatu; wraca po większej mapie albo po zmianie semantyki celu.
-- [ ] **G86.1a** Konfiguracja niesie ścieżkę zapisu partii gracza (`save_path`
+- [x] **G86.1a** Konfiguracja niesie ścieżkę zapisu partii gracza (`save_path`
       w katalogu danych użytkownika, `TBB_SAVE_PATH` nadpisuje, walidacja sesji
-      jej wymaga). *(simple, task-479)*
-- [ ] **G86.1b** `BridgeClient` zapisuje partię do pliku i wczytuje ją z
+      jej wymaga). *(simple, task-479, commit 65dd536)*
+- [x] **G86.1b** `BridgeClient` zapisuje partię do pliku i wczytuje ją z
       utrwaleniem w pliku stanu (kolejny proces widzi wczytany stan); błąd →
-      `null`. *(standard, task-480)*
+      `null`. *(standard, task-480, commit 9ebf1be)*
 - [ ] **G86.2a** Scena ma nazwane przyciski „Zapisz partię” / „Wczytaj partię”
       (bez wiązania). *(simple, task-481)*
 - [ ] **G86.2b** Klik zapisu i wczytania przywraca zapisany stan na ekranie,
       pokazuje czytelny skutek i utrwala partię (e2e przez dwa procesy mostu).
       *(standard, task-482)*
+
+## Kamień milowy 87 — prawdziwe assety zamiast kolorowych prostokątów — PRIORYTET
+> **Nowe wymaganie z briefu (feedback autora, 2026-07-27):** *„prawdziwe MVP
+> będzie wtedy, kiedy będą assety i tekstury. Nie musi być dużo budynków /
+> rodzajów jednostek / terenu itp, ale żeby były jakieś sensowne prawdziwe
+> assety."* Stan faktyczny: w repo **nie ma ani jednego pliku graficznego** —
+> `MapView` i `BattleView` rysują `ColorRect` w jednolitym kolorze z `Label`
+> pośrodku. K84/K85 domknęły geometrię (siatka, współrzędne osiowe, rozłączne
+> kafle, rozróżnialne strony); K87 podmienia **nośnik**, nie układ — istniejące
+> testy rozmieszczenia zostają w mocy.
+> **Zweryfikowane przy przeglądzie:** sieć działa (`kenney.nl`, `opengameart.org`
+> odpowiadają `200`), więc paczka CC0 jest do pobrania; `godot` jest w `PATH`.
+> Rdzeń `tbb` i most bez zmian — to zadanie wyłącznie po stronie `game/`.
+> **Ryzyko nazwane z góry:** sondy headless ładują dziś tylko skrypty. Tekstura
+> wymaga artefaktów importu Godota (`godot --headless --import`) i katalogu
+> `.godot/`, którego **nie ma w `.gitignore`** — pierwszy plasterek musi to
+> rozstrzygnąć w bramce, zanim ktokolwiek ruszy widoki.
+>
+> **Kontrakt terenu — sprawdzony w kodzie przy tym przeglądzie (poprawka po
+> recenzji):** teren istnieje **wyłącznie w warstwie bitwy**. `tbb.terrain`
+> (`PLAINS`/`FOREST`/`HILLS`) konsumuje `Battlefield.terrain_at`, a
+> `snapshot.battle_state` (`src/tbbbridge/snapshot.py:229`) daje `terrain` per
+> heks. Na mapie strategicznej terenu **nie ma**: `tbb.world.Region` ma tylko
+> `name`, a `snapshot.map_state` (`snapshot.py:103-130`) wystawia na region
+> `name`, `col`, `row`, `owner`, `settlement`, `party`. Dlatego G87.1b **nie
+> rysuje terenu regionu** — kafel mapy dobiera teksturę po tym, co most naprawdę
+> niesie (`owner`, obecność osady). Rozszerzenie `Region`/`map_state` o teren
+> regionu to osobny plasterek dotykający rdzenia i mostu — **świadomie odłożony**
+> (patrz „Kolejne kierunki"), żeby K87 pozostał zadaniem po stronie `game/`.
+> Zakres treści trzymamy mały: 1 kafel gruntu mapy + rozróżnienie właściciela,
+> 3 tekstury terenu bitwy (`Plains`/`Forest`/`Hills` — tyle zna rdzeń), 2 strony
+> bitwy, 1 znacznik oddziału gracza. Nie dokładamy typów jednostek ani budynków,
+> żeby mieć co teksturować.
+> **Nota dla kodera G87.1c:** w realnej rozgrywce `world.py` tworzy
+> `HexBattle(Battlefield())`, więc każdy heks zwraca `Plains`. Mapowanie
+> teren→tekstura testuj na fixture snapshotu (`Forest`/`Hills` też), nie licz na
+> zróżnicowany teren w e2e szturmu.
+- [ ] **G87.1a** Paczka assetów CC0 w repo i ładowalna z Godota: pliki w
+      `game/assets/` (kafle terenu + sylwetki stron), `game/assets/CREDITS.md` z
+      licencją i źródłem, `.godot/` poza gitem, a bramka headless dowodzi, że
+      `load("res://assets/…")` zwraca `Texture2D` (nie `null`) po kroku importu.
+      *(complex, ryzyko: import Godota w headless, brak szablonów/edytora,
+      licencja assetów — bez CC0/CC-BY nie wchodzi do repo)*
+- [ ] **G87.1b** `MapView` rysuje kafel regionu **teksturą** zamiast
+      `ColorRect`: kafel to węzeł z prawdziwą `Texture2D` z `game/assets/`,
+      właściciel (`player`/`ai`/brak) nadal jednoznacznie rozróżnialny wzrokowo,
+      obecność osady (klucz `settlement` z mostu) widoczna jako obrazek, oddział
+      gracza oznaczony teksturą zamiast `ColorRect`, kafle nadal parami
+      rozłączne. **Bez pojęcia terenu na mapie strategicznej** — most go nie
+      niesie (patrz „Kontrakt terenu" wyżej); nie wolno wymyślać terenu regionu
+      po stronie klienta ani zmieniać rdzenia/mostu w tym zadaniu. Testy
+      rozmieszczenia z K84 przechodzą bez zmian w kryteriach. *(standard)*
+- [ ] **G87.1c** `BattleView` rysuje heks **teksturą terenu** i stronę
+      **sylwetką jednostki** zamiast koloru: `terrain` z `battle.hexes` (jedyne
+      miejsce, gdzie most niesie teren) wybiera obrazek kafla, `side` wybiera
+      sylwetkę, nieznany teren → kafel domyślny bez błędu, brak bitwy → pusty
+      widok bez błędu. Rozmieszczenie po `(q, r)` z K85 bez zmian. *(standard)*
 
 ## Dług/refaktor
 - [x] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
@@ -423,18 +480,34 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 - [x] **R15.1 (refaktor)** Kompaktacja DESIGN.md do stanu obecnego; historia → DECISIONS.md. *(task-094)*
 - [x] **R16.1 (refaktor)** Wspólny generator formularzy celu marsz/szturm w `serve.py`. *(task-098)*
 
-## Kolejne kierunki (po K85, do rozplanowania na kamienie)
+## Kolejne kierunki (po K87, do rozplanowania na kamienie)
 > Kolejność wynika z kryterium „gotowe" w `docs/PROJECT.md`. **Nie dokładamy
 > kolejnych przycisków rozkazu ani reguł rdzenia, dopóki te punkty stoją** —
-> most obsługuje więcej rozkazów, niż klient potrafi pokazać.
-- Rozkaz wybierany klikiem na cel na mapie, nie globalnym przyciskiem (po K84).
+> most obsługuje więcej rozkazów, niż klient potrafi pokazać. Od 2026-07-27
+> dochodzi twarde: **bez assetów nie ma MVP**, więc rozbudowa treści (typy
+> jednostek, budynki, tereny) czeka na to, aż istniejąca treść będzie narysowana.
+- Rozkaz wybierany klikiem na cel na mapie, nie globalnym przyciskiem — czeka na
+  większą mapę (w obecnym trzyregionowym świecie klik nie różni się skutkiem od
+  automatu; uzasadnienie przy K86).
 - ~~Zapis/odczyt z UI: jawne „Zapisz”/„Wczytaj”~~ — rozplanowane jako K86.
+- ~~Prawdziwe assety i tekstury zamiast `ColorRect`~~ — rozplanowane jako K87.
+- Assety pozostałych elementów sceny (osady/budynki na mapie, tło, ikony
+  rozkazów) — dopiero gdy K87 dowiedzie, że ścieżka import→tekstura stoi.
+- **Teren regionu na mapie strategicznej** — `tbb.world.Region` ma dziś tylko
+  `name`, więc `snapshot.map_state` nie ma czego wystawić i kafel mapy w K87
+  różnicuje wyłącznie właściciela i osadę. Jeśli zróżnicowana mapa okaże się
+  potrzebna, idzie to jako **osobny cienki plasterek dotykający rdzenia i
+  mostu**: pole terenu w `Region` (reuse `tbb.terrain`) → `map_state` →
+  `SnapshotModel` → wybór tekstury w `MapView`. Świadomie odłożone przy
+  przeglądzie 2026-07-27: nie jest warunkiem „prawdziwych assetów" z briefu, a
+  wpuszczone do K87 rozsadziłoby plasterek deklarowany jako „tylko `game/`".
 - Pakiet na Linuksa x86-64: preset eksportu + runtime Pythona, uruchomienie
   jedną ikoną — domknięcie kryterium „gotowe". **Uwaga z przeglądu:** domyślna
   komenda mostu składa ścieżkę `res://../src`, co działa wyłącznie w drzewie
   źródeł — po eksporcie „start bez terminala" (K82) trzeba zweryfikować od nowa,
   a `src/` dołączyć do pakietu. W środowisku brak zainstalowanych szablonów
-  eksportu Godota — to prerekwizyt toolchainu tego kamienia.
+  eksportu Godota — to prerekwizyt toolchainu tego kamienia. Po K87 dochodzi
+  dołączenie assetów i pliku atrybucji do pakietu.
 - Pełne pole bitwy (teren pustych heksów, wymiary pola) — wymaga rozszerzenia
   `tbbbridge.snapshot.battle_state`; dopiero gdy sam widok bitwy (K85) stoi.
 - Sterowanie pojedynczą jednostką w bitwie — po K85.
