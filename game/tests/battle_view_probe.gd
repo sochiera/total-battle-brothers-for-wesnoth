@@ -55,12 +55,19 @@ func _run() -> void:
 		return
 
 	# Settlement-like field: domain r∈{0,1,2}. r=0/1 alone missed label-on-tile overlap.
+	# Include Plains/Forest/Hills so terrain texture mapping is observable (G87.1c-1).
 	var hexes_full: Array = [
 		{"q": 0, "r": 0, "terrain": "Plains", "side": "attacker", "hp": 10},
 		{"q": 2, "r": 0, "terrain": "Plains", "side": "defender", "hp": 8},
 		{"q": 0, "r": 1, "terrain": "Forest", "side": "attacker", "hp": 5},
-		{"q": 0, "r": 2, "terrain": "Plains", "side": "attacker", "hp": 7},
+		{"q": 0, "r": 2, "terrain": "Hills", "side": "attacker", "hp": 7},
 		{"q": 2, "r": 2, "terrain": "Forest", "side": "defender", "hp": 6},
+	]
+	# Unknown / empty / missing terrain must still paint a default asset tile (no drop).
+	var hexes_fallback: Array = [
+		{"q": 0, "r": 0, "terrain": "Swamp", "side": "attacker", "hp": 1},
+		{"q": 1, "r": 0, "terrain": "", "side": "defender", "hp": 1},
+		{"q": 2, "r": 0, "side": "attacker", "hp": 1},
 	]
 
 	scene_root.apply_model(_model_with_battle(hexes_full, "attacker_win"))
@@ -89,6 +96,7 @@ func _run() -> void:
 	var count_direct: int = 0
 	var tiles_null: Array = []
 	var count_null: int = 0
+	var tiles_fallback: Array = []
 	var result_defender: String = ""
 	var result_draw: String = ""
 	var has_render := battle_view.has_method("render_model")
@@ -105,6 +113,11 @@ func _run() -> void:
 		await process_frame
 		result_draw = _result_text(battle_view)
 
+		battle_view.call("render_model", _model_with_battle(hexes_fallback, "draw"))
+		await process_frame
+		await process_frame
+		tiles_fallback = _collect_tiles(battle_view, hexes_fallback)
+
 		battle_view.call("render_model", null)
 		await process_frame
 		await process_frame
@@ -115,11 +128,13 @@ func _run() -> void:
 		"battle_view_found": true,
 		"has_render_model": has_render,
 		"hexes": hexes_full,
+		"hexes_fallback": hexes_fallback,
 		"tiles_after_first": tiles_first,
 		"tiles_after_second": tiles_second,
 		"tiles_after_empty": tiles_empty,
 		"tiles_after_direct_render": tiles_direct,
 		"tiles_after_null_render": tiles_null,
+		"tiles_after_fallback": tiles_fallback,
 		"tile_count_after_first": count_first,
 		"tile_count_after_second": count_second,
 		"tile_count_after_empty": count_empty,
@@ -190,10 +205,12 @@ func _collect_tiles(battle_view: Node, hexes: Array) -> Array:
 		if tile == null:
 			continue
 		var rect: Rect2 = tile.get_global_rect()
+		var texture_paths: Array = _collect_texture_paths(tile)
 		tiles.append({
 			"q": q,
 			"r": r,
-			"side": hex["side"],
+			"side": hex.get("side", ""),
+			"terrain": str(hex.get("terrain", "")),
 			"name": str(tile.name),
 			"x": rect.position.x,
 			"y": rect.position.y,
@@ -201,8 +218,34 @@ func _collect_tiles(battle_view: Node, hexes: Array) -> Array:
 			"h": rect.size.y,
 			"visible": tile.is_visible_in_tree(),
 			"visual": _visual_key(tile),
+			"has_texture": not texture_paths.is_empty(),
+			"texture_paths": texture_paths,
 		})
 	return tiles
+
+
+func _collect_texture_paths(node: Node) -> Array:
+	var paths: Array = []
+	var path: String = _direct_texture_path(node)
+	if not path.is_empty():
+		paths.append(path)
+	for child: Node in node.get_children():
+		paths.append_array(_collect_texture_paths(child))
+	return paths
+
+
+func _direct_texture_path(node: Node) -> String:
+	if node is TextureRect:
+		var tr: TextureRect = node as TextureRect
+		if tr.texture != null:
+			var p: String = tr.texture.resource_path
+			return p if not p.is_empty() else "<embedded>"
+	if node is Sprite2D:
+		var sp: Sprite2D = node as Sprite2D
+		if sp.texture != null:
+			var p2: String = sp.texture.resource_path
+			return p2 if not p2.is_empty() else "<embedded>"
+	return ""
 
 
 func _control_rect(control: Control) -> Dictionary:
@@ -232,11 +275,20 @@ func _result_text(battle_view: Node) -> String:
 
 
 func _visual_key(tile: Control) -> String:
+	# Side paint: ColorRect fill, root/child modulate on textured tiles (MapView-style).
 	if tile is ColorRect:
 		return _color_key((tile as ColorRect).color)
+	if tile is TextureRect:
+		var root_mod: Color = (tile as CanvasItem).modulate
+		if root_mod != Color(1, 1, 1, 1):
+			return _color_key(root_mod)
 	for child: Node in tile.get_children():
 		if child is ColorRect:
 			return _color_key((child as ColorRect).color)
+		if child is TextureRect:
+			var child_mod: Color = (child as CanvasItem).modulate
+			if child_mod != Color(1, 1, 1, 1):
+				return _color_key(child_mod)
 	return _color_key(tile.modulate)
 
 

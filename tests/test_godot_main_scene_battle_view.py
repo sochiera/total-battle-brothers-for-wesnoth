@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
 from godot_runner import run_godot_script
@@ -10,6 +11,24 @@ from godot_runner import run_godot_script
 ROOT = Path(__file__).resolve().parents[1]
 GAME = ROOT / "game"
 PREFIX = "BATTLE_VIEW "
+
+# Public asset paths for battle terrain (G87.1a / G87.1c-1).
+TERRAIN_ASSETS: dict[str, str] = {
+    "Plains": "res://assets/terrain_plains.png",
+    "Forest": "res://assets/terrain_forest.png",
+    "Hills": "res://assets/terrain_hills.png",
+}
+
+
+def _import_game_assets() -> subprocess.CompletedProcess[str]:
+    """Headless import so res://assets/*.png resolve to Texture2D."""
+    return subprocess.run(
+        ["godot", "--headless", "--path", str(GAME), "--import"],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=120,
+    )
 
 
 def _load_battle_view() -> dict:
@@ -205,3 +224,108 @@ def test_battle_view_shows_one_axial_tile_per_hex_with_side_paint_and_polish_res
             f"battle result label must not cover hex tile {qr}: "
             f"tile={tile_rect} label={result_rect}"
         )
+
+
+def test_battle_view_hex_tiles_carry_terrain_textures_from_assets():
+    """Each battle hex tile must show terrain Texture2D from game/assets/.
+
+    Realistic defect this catches: BattleView still paints solid ColorRect tiles
+    with a terrain name Label (K85 geometry / side-color / Polish-result gates
+    stay green) while the player never sees Plains/Forest/Hills art. Missing
+    terrain PNGs must fail at the disk gate, not yield a silent color tile.
+    Unknown / empty / missing terrain must still paint a default asset tile.
+    """
+    assets_dir = GAME / "assets"
+    for asset_name in (
+        "terrain_plains.png",
+        "terrain_forest.png",
+        "terrain_hills.png",
+    ):
+        asset_path = assets_dir / asset_name
+        assert asset_path.is_file(), (
+            f"required battle terrain asset missing on disk: {asset_path} "
+            "(missing file must red-gate, not paint an empty color tile)"
+        )
+
+    imported = _import_game_assets()
+    assert imported.returncode == 0, (
+        f"godot --import failed rc={imported.returncode} "
+        f"stderr={imported.stderr!r} stdout={imported.stdout!r}"
+    )
+
+    payload = _load_battle_view()
+    assert payload["battle_view_found"] is True, payload
+    assert payload["has_render_model"] is True, payload
+
+    hexes = payload["hexes"]
+    terrains = {str(h.get("terrain", "")) for h in hexes}
+    assert terrains >= set(TERRAIN_ASSETS), (
+        f"probe must include Plains/Forest/Hills hexes for texture mapping, "
+        f"got terrains {sorted(terrains)}"
+    )
+
+    first = payload["tiles_after_first"]
+    assert len(first) == len(hexes), first
+    by_qr = _by_qr(first)
+
+    for hex_row in hexes:
+        qr = (int(hex_row["q"]), int(hex_row["r"]))
+        tile = by_qr[qr]
+        terrain = str(hex_row["terrain"])
+        assert tile["has_texture"] is True, (
+            f"hex {qr} terrain={terrain!r} must carry Texture2D from assets, "
+            f"got {tile!r}"
+        )
+        assert tile["texture_paths"], tile
+        for path in tile["texture_paths"]:
+            assert isinstance(path, str) and path.startswith("res://assets/"), (
+                f"hex {qr} texture must come from res://assets/, got {path!r} "
+                f"in {tile!r}"
+            )
+        expected = TERRAIN_ASSETS[terrain]
+        assert expected in tile["texture_paths"], (
+            f"hex {qr} terrain={terrain!r} must include {expected}, "
+            f"got paths={tile['texture_paths']!r}"
+        )
+
+    # Three core terrains must be three different images (not one shared fill).
+    path_sets = {
+        name: {
+            p
+            for t in first
+            if t.get("terrain") == name
+            for p in t["texture_paths"]
+            if p == TERRAIN_ASSETS[name]
+        }
+        for name in TERRAIN_ASSETS
+    }
+    assert len({frozenset(s) for s in path_sets.values()}) == 3, (
+        f"Plains/Forest/Hills must map to three distinct terrain textures, "
+        f"got {path_sets!r}"
+    )
+
+    # Fallback: unknown, empty string, and missing terrain key still paint tiles
+    # with the default asset (Plains) — no drop, no script error, no empty color.
+    default_path = TERRAIN_ASSETS["Plains"]
+    fallback_hexes = payload["hexes_fallback"]
+    fallback_tiles = payload["tiles_after_fallback"]
+    assert len(fallback_hexes) >= 3, fallback_hexes
+    assert len(fallback_tiles) == len(fallback_hexes), (
+        f"fallback hexes must each produce a tile (no drop on bad terrain): "
+        f"hexes={fallback_hexes!r} tiles={fallback_tiles!r}"
+    )
+    for tile in fallback_tiles:
+        assert tile["has_texture"] is True, (
+            f"fallback hex ({tile['q']},{tile['r']}) must still carry a default "
+            f"Texture2D from assets, got {tile!r}"
+        )
+        assert tile["texture_paths"], tile
+        for path in tile["texture_paths"]:
+            assert isinstance(path, str) and path.startswith("res://assets/"), (
+                f"fallback texture must come from res://assets/, got {path!r}"
+            )
+        assert default_path in tile["texture_paths"], (
+            f"fallback hex ({tile['q']},{tile['r']}) must use default {default_path}, "
+            f"got paths={tile['texture_paths']!r}"
+        )
+

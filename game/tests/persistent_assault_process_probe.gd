@@ -150,11 +150,20 @@ func _battle_observation(battle_view: Node) -> Dictionary:
 
 
 func _visual_key(tile: Control) -> String:
+	# Side paint: ColorRect fill, root/child TextureRect.modulate (BattleView MapView-style).
 	if tile is ColorRect:
 		return _color_key((tile as ColorRect).color)
+	if tile is TextureRect:
+		var root_mod: Color = (tile as CanvasItem).modulate
+		if root_mod != Color(1, 1, 1, 1):
+			return _color_key(root_mod)
 	for child: Node in tile.get_children():
 		if child is ColorRect:
 			return _color_key((child as ColorRect).color)
+		if child is TextureRect:
+			var child_mod: Color = (child as CanvasItem).modulate
+			if child_mod != Color(1, 1, 1, 1):
+				return _color_key(child_mod)
 	return _color_key(tile.modulate)
 
 

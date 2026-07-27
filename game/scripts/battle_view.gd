@@ -8,6 +8,11 @@ const ATTACKER_COLOR := Color(0.78, 0.22, 0.16)
 const DEFENDER_COLOR := Color(0.16, 0.38, 0.78)
 const OTHER_SIDE_COLOR := Color(0.38, 0.38, 0.38)
 
+const TERRAIN_PLAINS := preload("res://assets/terrain_plains.png")
+const TERRAIN_FOREST := preload("res://assets/terrain_forest.png")
+const TERRAIN_HILLS := preload("res://assets/terrain_hills.png")
+const DEFAULT_TERRAIN_TEXTURE := TERRAIN_PLAINS
+
 
 func render_model(model: SnapshotModel) -> void:
 	_clear_view()
@@ -44,13 +49,22 @@ func _add_tile(hex: Dictionary) -> void:
 
 	var q: int = int(hex["q"])
 	var r: int = int(hex["r"])
-	var tile := ColorRect.new()
+	var tile := Control.new()
 	tile.name = "HexTile_%d_%d" % [q, r]
-	tile.color = _side_color(hex.get("side"))
 	tile.position = _axial_position(q, r)
 	tile.size = TILE_SIZE
 	tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(tile)
+
+	var ground := TextureRect.new()
+	ground.name = "Ground"
+	ground.texture = _terrain_texture(hex.get("terrain"))
+	ground.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ground.stretch_mode = TextureRect.STRETCH_SCALE
+	ground.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ground.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	ground.modulate = _side_color(hex.get("side"))
+	tile.add_child(ground)
 
 	var label := Label.new()
 	label.text = str(hex.get("terrain", ""))
@@ -66,6 +80,18 @@ func _axial_position(q: int, r: int) -> Vector2:
 		float(q) * (TILE_SIZE.x + TILE_GAP.x),
 		float(r) * (TILE_SIZE.y + TILE_GAP.y),
 	)
+
+
+func _terrain_texture(terrain: Variant) -> Texture2D:
+	match terrain:
+		"Plains":
+			return TERRAIN_PLAINS
+		"Forest":
+			return TERRAIN_FOREST
+		"Hills":
+			return TERRAIN_HILLS
+		_:
+			return DEFAULT_TERRAIN_TEXTURE
 
 
 func _side_color(side: Variant) -> Color:
