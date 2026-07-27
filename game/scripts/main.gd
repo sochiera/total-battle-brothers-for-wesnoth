@@ -125,7 +125,6 @@ func apply_model(model: SnapshotModel) -> void:
 	%ResultLabel.text = "Wynik: %s" % model.player_result
 	%PlayerPartyPositionLabel.text = _player_party_position_text(model.player_party_region)
 	var player_duchy_status_label: Label = %PlayerDuchyStatusLabel
-	var region_list: ItemList = %RegionList
 	var player_duchy_status: Variant = model.player_duchy_status
 	player_duchy_status_label.text = ""
 	if player_duchy_status is Dictionary:
@@ -134,8 +133,14 @@ func apply_model(model: SnapshotModel) -> void:
 			player_duchy_status["settlements"],
 			player_duchy_status["parties"],
 		]
+	_render_region_list(model.regions)
+	%MapView.render_model(model)
+
+
+func _render_region_list(regions: Array) -> void:
+	var region_list: ItemList = %RegionList
 	region_list.clear()
-	for region: Variant in model.regions:
+	for region: Variant in regions:
 		region_list.add_item(region["name"])
 
 
