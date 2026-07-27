@@ -19,7 +19,12 @@ DEFAULT_PROBE = "res://tests/bridge_config_default_probe.gd"
 DEFAULT_PREFIX = "BRIDGE_CONFIG_DEFAULT "
 DEFAULT_LIVE_PROBE = "res://tests/bridge_config_default_live_probe.gd"
 DEFAULT_LIVE_PREFIX = "BRIDGE_CONFIG_DEFAULT_LIVE "
-TBB_VARIABLES = ("TBB_BRIDGE_COMMAND", "TBB_STATE_PATH", "TBB_SEED")
+TBB_VARIABLES = (
+    "TBB_BRIDGE_COMMAND",
+    "TBB_STATE_PATH",
+    "TBB_SAVE_PATH",
+    "TBB_SEED",
+)
 
 
 def _environment_config_payload(overrides, tmp_path):
@@ -52,23 +57,25 @@ def test_bridge_config_from_values_trims_valid_values_and_rejects_invalid_ones()
     assert len(lines) == 1, result.stdout
     assert "SCRIPT ERROR" not in result.stderr, result.stderr
 
-    assert json.loads(lines[0][len(PREFIX) :]) == [
-        {
-            "command": "python3 -m tbbbridge serve 73",
-            "state_path": "/tmp/tbb-state.jsonl",
-            "seed": 73,
-        },
-        {
-            "command": "bridge --serve",
-            "state_path": "state.jsonl",
-            "seed": -5,
-        },
-        None,
-        None,
-        None,
-        None,
-        None,
-    ]
+    # from_values bez 4. arg dopełnia domyślny save_path (ścieżka zależy od user://).
+    results = json.loads(lines[0][len(PREFIX) :])
+    assert len(results) == 7
+    for result_row, command, state_path, seed in (
+        (
+            results[0],
+            "python3 -m tbbbridge serve 73",
+            "/tmp/tbb-state.jsonl",
+            73,
+        ),
+        (results[1], "bridge --serve", "state.jsonl", -5),
+    ):
+        assert result_row["command"] == command
+        assert result_row["state_path"] == state_path
+        assert result_row["seed"] == seed
+        save_path = result_row["save_path"]
+        assert isinstance(save_path, str) and save_path.strip()
+        assert save_path != state_path
+    assert results[2:] == [None, None, None, None, None]
 
 
 def test_bridge_config_exposes_single_public_validity_predicate_for_ready_configs():
@@ -80,9 +87,10 @@ def test_bridge_config_exposes_single_public_validity_predicate_for_ready_config
         line for line in result.stdout.splitlines() if line.startswith(VALIDITY_PREFIX)
     ]
     assert len(lines) == 1, result.stdout
+    # True tylko z niepustym save_path; brak / pusty save_path → False.
     assert json.loads(lines[0][len(VALIDITY_PREFIX) :]) == {
         "available": True,
-        "results": [True, False, False, False],
+        "results": [True, False, False, False, False, False],
     }
 
 
@@ -91,6 +99,7 @@ def test_bridge_config_from_environment_trims_complete_valid_overrides(tmp_path)
         {
             "TBB_BRIDGE_COMMAND": " python -m tbbbridge ",
             "TBB_STATE_PATH": " /tmp/tbb-state.jsonl ",
+            "TBB_SAVE_PATH": " /tmp/tbb-party-save.json ",
             "TBB_SEED": "-73",
         },
         tmp_path,
@@ -99,6 +108,7 @@ def test_bridge_config_from_environment_trims_complete_valid_overrides(tmp_path)
     assert payload["config"] == {
         "command": "python -m tbbbridge",
         "state_path": "/tmp/tbb-state.jsonl",
+        "save_path": "/tmp/tbb-party-save.json",
         "seed": -73,
     }
     assert payload["valid"] is True
@@ -122,6 +132,7 @@ def test_bridge_config_from_environment_keeps_explicit_fields_and_defaults_inval
         "state_path": "/tmp/tbb-state.jsonl",
     }
     assert payload["valid"] is True
+    assert payload["config"]["save_path"] == payload["default"]["save_path"]
 
 
 @pytest.mark.parametrize(
@@ -152,8 +163,27 @@ def test_bridge_config_from_environment_keeps_explicit_fields_and_defaults_inval
             },
             {"command": "bridge", "state_path": "state.jsonl"},
         ),
+        (
+            {
+                "TBB_SAVE_PATH": " /tmp/override-save.json ",
+            },
+            {"save_path": "/tmp/override-save.json"},
+        ),
+        (
+            {
+                "TBB_SAVE_PATH": " \t ",
+            },
+            {},
+        ),
     ],
-    ids=["all-missing", "blank-command", "blank-state-path", "blank-seed"],
+    ids=[
+        "all-missing",
+        "blank-command",
+        "blank-state-path",
+        "blank-seed",
+        "explicit-save-path",
+        "blank-save-path",
+    ],
 )
 def test_bridge_config_from_environment_defaults_missing_or_blank_fields_independently(
     overrides, expected_overrides, tmp_path
@@ -162,13 +192,16 @@ def test_bridge_config_from_environment_defaults_missing_or_blank_fields_indepen
 
     assert payload["config"] == {**payload["default"], **expected_overrides}
     assert payload["valid"] is True
+    assert isinstance(payload["config"].get("save_path"), str)
+    assert payload["config"]["save_path"].strip()
+    assert payload["config"]["save_path"] != payload["config"]["state_path"]
 
 
 def test_bridge_config_default_values_are_valid_deterministic_and_stay_in_user_data(
     tmp_path,
 ):
     environment = dict(os.environ)
-    for variable in ("TBB_BRIDGE_COMMAND", "TBB_STATE_PATH", "TBB_SEED"):
+    for variable in TBB_VARIABLES:
         environment.pop(variable, None)
     environment["XDG_DATA_HOME"] = str(tmp_path / "xdg-data")
 
@@ -189,6 +222,12 @@ def test_bridge_config_default_values_are_valid_deterministic_and_stay_in_user_d
         Path(payload["user_directory"])
     )
     assert payload["state_file_exists"] is False
+    # Kontrakt G86.1a: domyślna ścieżka zapisu partii gracza ≠ plik stanu.
+    save_path = payload["first"]["save_path"]
+    assert isinstance(save_path, str) and save_path.strip()
+    assert Path(save_path).is_absolute()
+    assert Path(save_path).is_relative_to(Path(payload["user_directory"]))
+    assert save_path != payload["first"]["state_path"]
 
 
 @pytest.mark.parametrize("project_with_spaces", [False, True], ids=["plain", "spaces"])
@@ -196,7 +235,7 @@ def test_default_config_starts_and_resumes_the_bridge_without_terminal_environme
     tmp_path, project_with_spaces
 ):
     environment = dict(os.environ)
-    for variable in ("TBB_BRIDGE_COMMAND", "TBB_STATE_PATH", "TBB_SEED", "PYTHONPATH"):
+    for variable in (*TBB_VARIABLES, "PYTHONPATH"):
         environment.pop(variable, None)
     environment["XDG_DATA_HOME"] = str(tmp_path / "xdg-data")
     project = GAME

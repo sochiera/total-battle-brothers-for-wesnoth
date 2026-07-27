@@ -18,19 +18,35 @@ func _init() -> void:
 			bridge_config.is_valid_session_config({
 				"command": "bridge --serve",
 				"state_path": "state.jsonl",
+				"save_path": "party_save.json",
 				"seed": 73,
 			}),
 			bridge_config.is_valid_session_config({
 				"command": " \t ",
 				"state_path": "state.jsonl",
+				"save_path": "party_save.json",
 				"seed": 73,
 			}),
 			bridge_config.is_valid_session_config({
 				"command": "bridge --serve",
 				"state_path": "state.jsonl",
+				"save_path": "party_save.json",
 				"seed": "73",
 			}),
 			bridge_config.is_valid_session_config(null),
+			# Brak save_path — nie jest poprawną konfiguracją sesji.
+			bridge_config.is_valid_session_config({
+				"command": "bridge --serve",
+				"state_path": "state.jsonl",
+				"seed": 73,
+			}),
+			# Pusty save_path po przycięciu.
+			bridge_config.is_valid_session_config({
+				"command": "bridge --serve",
+				"state_path": "state.jsonl",
+				"save_path": " \t ",
+				"seed": 73,
+			}),
 		]
 	print(VALIDITY_PREFIX, JSON.stringify({
 		"available": bridge_config.has_method("is_valid_session_config"),
