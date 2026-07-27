@@ -77,12 +77,17 @@ mały — po kilka kafli terenu, sylwetek jednostek i budynków — ale prawdziw
 
 **Czego brakuje do celu (nazwane wprost, bo tu jest cała reszta pracy):**
 1. **Sylwetki jednostek — najpierw w repo, potem w widoku** (K87, dwa plasterki):
-   (a) prawdziwe pliki z figurą ludzką w `game/assets/` + atrybucja; źródło
-   rozstrzygnięte przy przeglądzie: **Kenney „RTS Pack: Medieval" (CC0)**,
-   katalog `PNG/Default size/Unit/medievalUnit_*.png` — 24 top-downowe figurki
-   piechoty w wariantach kolorystycznych stron, licencja `License.txt` = CC0,
-   zip pobrany i obejrzany przy przeglądzie. (b) `BattleView` rysuje stronę tą
-   sylwetką zamiast samego tintu kafla (G87.1c-2).
+   (a) prawdziwe pliki z figurą ludzką w `game/assets/` + atrybucja wskazująca
+   ścieżkę w paczce źródłowej (**G87.1c-1b**, dopisane do backlogu przy
+   przeglądzie 2026-07-27); (b) `BattleView` rysuje stronę tą sylwetką zamiast
+   samego tintu kafla (G87.1c-2, wymaga (a)).
+   Źródło rozstrzygnięte i **zweryfikowane 2026-07-27**: **Kenney „RTS Pack:
+   Medieval" (CC0)**, strona `https://kenney.nl/assets/medieval-rts` (poprzedni
+   przegląd zapisał slug `rts-pack` — daje `404`, sprostowane), katalog
+   `PNG/Default size/Unit/medievalUnit_01…24.png` — 24 top-downowe figurki
+   piechoty, 64×64 RGBA z przezroczystym tłem, w wariantach kolorystycznych
+   stron; `License.txt` w zipie mówi wprost „Creative Commons Zero, CC0".
+   Zip pobrany, lista plików sprawdzona, trzy figurki obejrzane.
 2. **Nie ma pakietu na Linuksa.** Jedyny sposób uruchomienia gry to
    `godot --path game` z konsoli — dokładnie to, czego brief zabrania. To
    **jedyny nieodhaczony fragment kryterium sukcesu** i po K87 cała pozostała
@@ -176,6 +181,16 @@ mały — po kilka kafli terenu, sylwetek jednostek i budynków — ale prawdziw
     maszynowo sprawdzalnym kształtem (przezroczyste tło dla nakładki, rozmiar
     mniejszy od kafla, obie strony różne), a człowiek ogląda obrazek przy
     review. Dobór paczki sprawdzamy po **liście plików**, zanim wejdzie do repo.
+12. **Jedna paczka nie wystarczy — i to jest świadome odstępstwo od [P].**
+    Hexagon Pack nie ma postaci, więc sylwetki jednostek muszą przyjść z drugiej
+    paczki CC0 (RTS Pack: Medieval). Preferencja „spójna paczka bije zlepek"
+    zostaje w mocy jako domyślna, ale ustępuje wymaganiu: lepiej mieszany styl
+    z prawdziwą figurą niż spójny styl z budynkiem udającym żołnierza. Praktyczny
+    skutek dla G87.1c-2: figurki RTS Packa **są już kolorowe per strona**
+    (`medievalUnit_01` niebieski, `_13` zielony), więc rozróżnialność stron może
+    wziąć się z **wyboru dwóch różnych plików**, a nie z `modulate` — tint na już
+    pokolorowanej figurce może ją zaszarzeć. Wzorzec „tekstura + tint" z wniosku
+    9 zostaje dla kafli terenu, gdzie wariant koloru nie istnieje w paczce.
 
 ## Klimat, ton, kierunek wizualny
 Średniowiecze **bez magii i fantastyki**, surowy i realistyczny ton. **[W]**
@@ -207,8 +222,10 @@ spójna paczka bije zlepek najładniejszych pojedynczych obrazków. **[P]**
 1. ~~Start bez terminala~~ (K82), ~~czytelny układ ekranu~~ (K83), ~~widok mapy~~
    (K84), ~~widok bitwy~~ (K85) i ~~zapis/odczyt z UI~~ (K86) — **zrobione**.
 2. **Prawdziwe assety** (K87) — priorytet z briefu, w 3/4 gotowy: paczka CC0 z
-   atrybucją, kafle mapy i teren heksów rysowane teksturą. Zostaje sylwetka
-   jednostki na stronie bitwy (G87.1c-2) i kamień się domyka. Zakres trzymany po
+   atrybucją, kafle mapy i teren heksów rysowane teksturą. Zostają **dwa**
+   plasterki: figurki jednostek do repo (G87.1c-1b) i dopiero potem sylwetka na
+   stronie bitwy (G87.1c-2) — kolejność wymuszona wnioskiem 11, nie kosmetyczna.
+   Po nich kamień się domyka. Zakres trzymany po
    stronie `game/`: mapa różnicuje właściciela i osadę, teren teksturujemy tam,
    gdzie most go niesie — na polu bitwy (wniosek 8).
 3. **Pakiet na Linuksa** (K88) — po K87 **jedyna droga do „gotowe"**: bramka

@@ -468,14 +468,45 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
       z `battle.hexes` wybiera obrazek kafla, nieznany teren → kafel domyślny bez
       błędu, brak bitwy → pusty widok bez błędu. Rozmieszczenie po `(q, r)` z K85
       bez zmian. *(standard, task-487, commit 4bf7b09)*
+> **Audyt assetów przy przeglądzie 2026-07-27 — G87.1c rozcięte na dwa
+> plasterki.** Pliki `side_attacker.png` / `side_defender.png` z G87.1a **nie są
+> sylwetkami jednostek**: wg `game/assets/CREDITS.md` to
+> `PNG/Objects/castle_small.png` i `PNG/Tiles/Medieval/medieval_tower.png`, a
+> obejrzane pokazują kamienny fort i kafel z wieżą. Hexagon Pack **nie zawiera
+> żadnych postaci** (sprawdzone po liście plików). Bramka „`load()` zwraca
+> `Texture2D`" tego nie wyłapała — patrz `docs/PROJECT.md`, wniosek 11.
+> Gdyby G87.1c-2 poszło na tych plikach, pole bitwy pokazałoby dwa budynki jako
+> obie walczące strony. Dlatego **najpierw wchodzą prawdziwe figurki (G87.1c-1b),
+> dopiero potem widok (G87.1c-2)**.
+- [ ] **G87.1c-1b** Prawdziwe sylwetki jednostek w repo: `game/assets/side_attacker.png`
+      i `game/assets/side_defender.png` niosą **figurę ludzką**, nie budynek, a
+      `game/assets/CREDITS.md` wskazuje dla każdego z nich **konkretną ścieżkę
+      pliku w paczce źródłowej** (nie samą nazwę paczki) wraz z licencją.
+      Źródło rozstrzygnięte i sprawdzone przy przeglądzie: **Kenney „RTS Pack:
+      Medieval" (CC0)**, `https://kenney.nl/assets/medieval-rts`, katalog
+      `PNG/Default size/Unit/medievalUnit_*.png` — 24 top-downowe figurki
+      piechoty, 64×64 RGBA z przezroczystym tłem, w wariantach kolorystycznych
+      stron (`_01` niebieski, `_13` zielony); `License.txt` w zipie = CC0.
+      Bramka headless dowodzi maszynowo: `load("res://assets/side_attacker.png")`
+      i `…side_defender.png` zwracają `Texture2D`, oba mają przezroczystość
+      (obraz RGBA), rozmiar **mniejszy od kafla terenu**, a oba pliki **różnią
+      się bajtowo**. Człowiek ogląda oba obrazki przy review — to jedyny sposób
+      sprawdzenia, że na obrazku jest postać. *(standard, ryzyko: pobranie paczki
+      spoza repo, drugi krok importu Godota, styl niespójny z Hexagon Packiem —
+      świadomie zaakceptowany, bo Hexagon Pack nie ma postaci)*
 - [ ] **G87.1c-2** `BattleView` rysuje stronę **sylwetką jednostki** zamiast
       koloru: `side` (`attacker`/`defender`) wybiera obrazek z `game/assets/`
       (`side_attacker.png` / `side_defender.png`) nałożony na kafel terenu,
       nieznana strona → kafel bez sylwetki i bez błędu, rozróżnialność stron
-      i rozmieszczenie z K85 zachowane. *(standard, task-488)*
+      i rozmieszczenie z K85 zachowane. **Wymaga wcześniejszego G87.1c-1b** —
+      przed nim te pliki są budynkami i zadanie dałoby wynik wprost sprzeczny
+      z kryterium „da się grać patrząc". *(standard, task-488 — do
+      przeplanowania po G87.1c-1b)*
 > **Nota po G87.1b/1c-1:** rozróżnialność właściciela/strony przetrwała podmianę
 > nośnika dzięki `modulate` na warstwie tekstury — kryteria K84/K85 przeszły bez
-> zmian. Ten sam wzorzec (warstwa tekstury + tint) stosuj w G87.1c-2.
+> zmian. W G87.1c-2 stosuj ten sam wzorzec **z zastrzeżeniem**: figurki z RTS
+> Packa są już kolorowe per strona, więc tint na nich może zabrać czytelność —
+> najpierw sprawdź, czy dwa różne pliki nie wystarczą (patrz wniosek 12).
 
 ## Kamień milowy 88 — natywny pakiet na Linuksa (domknięcie kryterium „gotowe") — PRIORYTET
 > Po G87.1c-2 zamyka się K87 i **znika ostatni brak treściowy**: rdzeń, most,
