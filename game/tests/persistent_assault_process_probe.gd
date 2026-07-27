@@ -1,12 +1,20 @@
 extends SceneTree
 
 
+## G85.1c e2e: assault button feeds BattleView from live bridge snapshots across
+## two processes on a shared state file. Pre-assault battle view is empty; after
+## assault tiles of both sides and Polish result appear; resume reloads them.
+
 const MAIN_SCENE_PATH := "res://scenes/main.tscn"
 const BridgeClient = preload("res://scripts/bridge_client.gd")
 const PREFIX := "PERSISTENT_ASSAULT_PROCESS "
 
 
 func _init() -> void:
+	call_deferred("_run")
+
+
+func _run() -> void:
 	var args := OS.get_cmdline_user_args()
 	if args.size() != 5:
 		_fail("expected command prefix, state path, request path, seed and phase")
@@ -14,21 +22,52 @@ func _init() -> void:
 	var scene_root := _instantiate_scene()
 	if scene_root == null:
 		return
+	await process_frame
+	await process_frame
+
 	var client := BridgeClient.create_persistent(args[0], args[1], args[3].to_int(), args[2])
 	scene_root.bind_client(client)
-	var controls_before_order := _controls(scene_root)
-	var controls_after_muster: Variant = _run_phase(scene_root, args[4])
-	if controls_after_muster == null:
+	await process_frame
+	await process_frame
+
+	var battle_view: Node = scene_root.find_child("BattleView", true, false)
+	if battle_view == null:
+		_fail("missing BattleView")
 		return
 
+	var controls_before_order := _controls(scene_root)
+	var battle_before_order := _battle_observation(battle_view)
+	var controls_after_muster: Variant = null
+	var phase: String = args[4]
+
+	match phase:
+		"prepare":
+			if not _press(scene_root, "MusterButton"):
+				return
+			controls_after_muster = _controls(scene_root)
+			if not _press(scene_root, "MarchButton"):
+				return
+		"battle", "second_assault":
+			if not _press(scene_root, "AssaultButton"):
+				return
+		_:
+			_fail("unknown phase")
+			return
+
+	await process_frame
+	await process_frame
+
 	print(PREFIX, JSON.stringify({
+		"phase": phase,
 		"controls_before_order": controls_before_order,
-		"controls_after_muster": controls_after_muster,
+		"controls_after_muster": controls_after_muster if controls_after_muster != null else {},
 		"controls": _controls(scene_root),
+		"battle_before_order": battle_before_order,
+		"battle": _battle_observation(battle_view),
 		"state_exists": FileAccess.file_exists(args[1]),
 		"session_command": client.session_command(),
 	}))
-	call_deferred("quit", 0)
+	quit(0)
 
 
 func _instantiate_scene() -> Control:
@@ -42,24 +81,6 @@ func _instantiate_scene() -> Control:
 		return null
 	root.add_child(scene_root)
 	return scene_root
-
-
-func _run_phase(scene_root: Control, phase: String) -> Variant:
-	match phase:
-		"prepare":
-			if not _press(scene_root, "MusterButton"):
-				return null
-			var after_muster := _controls(scene_root)
-			if not _press(scene_root, "MarchButton"):
-				return null
-			return after_muster
-		"battle", "unchanged":
-			if _press(scene_root, "AssaultButton"):
-				return {}
-			return null
-		_:
-			_fail("unknown phase")
-			return null
 
 
 func _press(scene_root: Control, button_name: String) -> bool:
@@ -86,6 +107,61 @@ func _controls(scene_root: Control) -> Dictionary:
 	}
 
 
+func _battle_observation(battle_view: Node) -> Dictionary:
+	var tiles: Array = []
+	var sides: Dictionary = {}
+	for child: Node in battle_view.get_children():
+		if not child is Control:
+			continue
+		var name_str: String = str(child.name)
+		if not name_str.begins_with("HexTile_"):
+			continue
+		var tile := child as Control
+		var parts: PackedStringArray = name_str.split("_")
+		# Public contract: HexTile_<q>_<r>
+		if parts.size() != 3:
+			continue
+		var q: int = int(parts[1])
+		var r: int = int(parts[2])
+		var visual: String = _visual_key(tile)
+		tiles.append({
+			"q": q,
+			"r": r,
+			"name": name_str,
+			"visual": visual,
+			"visible": tile.is_visible_in_tree(),
+		})
+		# side inferred only for reporting paint groups (not private structure)
+		if not sides.has(visual):
+			sides[visual] = []
+		(sides[visual] as Array).append({"q": q, "r": r})
+
+	var result_label: Node = battle_view.find_child("BattleResultLabel", true, false)
+	var result_text := ""
+	if result_label is Label:
+		result_text = (result_label as Label).text.strip_edges()
+
+	return {
+		"tile_count": tiles.size(),
+		"tiles": tiles,
+		"paint_groups": sides.size(),
+		"result_text": result_text,
+	}
+
+
+func _visual_key(tile: Control) -> String:
+	if tile is ColorRect:
+		return _color_key((tile as ColorRect).color)
+	for child: Node in tile.get_children():
+		if child is ColorRect:
+			return _color_key((child as ColorRect).color)
+	return _color_key(tile.modulate)
+
+
+func _color_key(color: Color) -> String:
+	return "%.4f,%.4f,%.4f,%.4f" % [color.r, color.g, color.b, color.a]
+
+
 func _fail(message: String) -> void:
 	printerr("persistent_assault_process_probe: ", message)
-	call_deferred("quit", 2)
+	quit(2)
