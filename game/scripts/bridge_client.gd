@@ -156,6 +156,14 @@ func send_order(order_name: String) -> SnapshotModel:
 	return _send_persisted_sequence({"type": "order", "order": order_name}, true)
 
 
+func save_party(path: String) -> SnapshotModel:
+	return _send_persisted_sequence({"type": "save", "path": path})
+
+
+func load_party(path: String) -> SnapshotModel:
+	return _send_persisted_sequence({"type": "load", "path": path})
+
+
 func last_order_result() -> Variant:
 	return _last_order_result
 
