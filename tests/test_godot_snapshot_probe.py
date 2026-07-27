@@ -42,11 +42,22 @@ def test_snapshot_probe_prints_projection_of_bridge_response(tmp_path):
     assert payload["player_result"] == fixture["result"]["player_result"]
 
 
-def test_snapshot_probe_keeps_only_regions_with_nonempty_string_name(tmp_path):
-    """Model keeps only Dictionary regions with non-empty String name, in order.
+def _region_grid(entry: dict) -> dict:
+    """Public grid fields of a SnapshotModel region entry (name, col, row, owner)."""
+    return {
+        "name": entry["name"],
+        "col": entry["col"],
+        "row": entry["row"],
+        "owner": entry["owner"],
+    }
 
-    Catches raw map.regions assignment: non-dicts, missing name, empty/null/non-
-    String name must not appear in SnapshotModel.regions; extra keys stay.
+
+def test_snapshot_probe_keeps_only_regions_with_name_grid_and_owner(tmp_path):
+    """Model keeps only placeable regions: name + int col/row + owner str|null.
+
+    Catches name-only filtering: missing/invalid coordinates or owner must not
+    appear (same as empty name). Null owner stays null; numeric col/row project
+    as int so the consumer can place every entry on the grid.
     """
     fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
     good = fixture["map"]["regions"]
@@ -57,7 +68,13 @@ def test_snapshot_probe_keeps_only_regions_with_nonempty_string_name(tmp_path):
         {"name": ""},
         {"name": None},
         {"name": 42},
+        {"name": "no-row", "col": 1, "owner": "player"},
+        {"name": "no-col", "row": 0, "owner": None},
+        {"name": "bad-col", "col": "0", "row": 0, "owner": "player"},
+        {"name": "bad-owner", "col": 0, "row": 0, "owner": 1},
+        {"name": "no-owner", "col": 0, "row": 0},
         good[1],
+        {"name": "float-grid", "col": 3.0, "row": 1.0, "owner": "ai"},
         {"name": "ok-extra", "col": 7},
         good[2],
     ]
@@ -78,11 +95,28 @@ def test_snapshot_probe_keeps_only_regions_with_nonempty_string_name(tmp_path):
     assert "SCRIPT ERROR" not in result.stderr, result.stderr
 
     payload = json.loads(lines[0][len(PREFIX) :])
-    assert payload["regions"] == [
-        good[0],
-        good[1],
-        {"name": "ok-extra", "col": 7},
-        good[2],
+    actual_grids = []
+    for region in payload["regions"]:
+        assert isinstance(region, dict), region
+        for key in ("name", "col", "row", "owner"):
+            assert key in region, f"missing public field {key!r} in {region!r}"
+        assert isinstance(region["name"], str) and region["name"], region
+        assert isinstance(region["col"], int), region
+        assert isinstance(region["row"], int), region
+        assert region["owner"] is None or isinstance(region["owner"], str), region
+        actual_grids.append(_region_grid(region))
+    assert actual_grids == [
+        _region_grid(good[0]),
+        _region_grid(good[1]),
+        {"name": "float-grid", "col": 3, "row": 1, "owner": "ai"},
+        _region_grid(good[2]),
+    ]
+    # Same placeable names/order as pre-task fixture subset (list regression).
+    assert [r["name"] for r in payload["regions"]] == [
+        good[0]["name"],
+        good[1]["name"],
+        "float-grid",
+        good[2]["name"],
     ]
 
 

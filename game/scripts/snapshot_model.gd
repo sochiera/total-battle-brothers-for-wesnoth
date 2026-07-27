@@ -27,11 +27,24 @@ static func _is_numeric(value: Variant) -> bool:
 	return NUMERIC_TYPES.has(typeof(value))
 
 
-static func _named_regions(regions: Array) -> Array:
+static func _placeable_regions(regions: Array) -> Array:
 	var valid_regions: Array = []
 	for region: Variant in regions:
-		if region is Dictionary and region.get("name") is String and not region["name"].is_empty():
-			valid_regions.append(region)
+		if not region is Dictionary:
+			continue
+		var name: Variant = region.get("name")
+		if not name is String or name.is_empty():
+			continue
+		if not region.has("col") or not _is_numeric(region["col"]):
+			continue
+		if not region.has("row") or not _is_numeric(region["row"]):
+			continue
+		if not region.has("owner") or (region["owner"] != null and not region["owner"] is String):
+			continue
+		var projected: Dictionary = region.duplicate()
+		projected["col"] = int(region["col"])
+		projected["row"] = int(region["row"])
+		valid_regions.append(projected)
 	return valid_regions
 
 
@@ -97,7 +110,7 @@ static func from_response(response: Dictionary) -> SnapshotModel:
 	var result: Dictionary = snapshot["result"]
 	model.year = int(calendar["year"])
 	model.month = int(calendar["month"])
-	model.regions = _named_regions(map["regions"])
+	model.regions = _placeable_regions(map["regions"])
 	model.player_result = result["player_result"]
 	model.player_duchy_status = _player_duchy_status(snapshot)
 	model.player_party_region = _player_party_region(snapshot)
