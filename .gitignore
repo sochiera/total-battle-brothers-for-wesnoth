@@ -3,3 +3,4 @@ STOP
 STATE.json
 __pycache__/
 *.pyc
+out/

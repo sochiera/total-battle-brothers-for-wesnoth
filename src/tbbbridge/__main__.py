@@ -37,6 +37,23 @@ def _session_for_serve(argv: list[str]) -> Session:
     return new_session(seed=seed, player_duchy_id=PLAYER_DUCHY_ID)
 
 
+def _ensure_parent_directory(path: str) -> None:
+    """Create a requested output's parent directory when it has one."""
+    parent = os.path.dirname(path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+
+
+def _write_legacy_snapshot(path: str) -> None:
+    """Run the deterministic headless game and write its snapshot."""
+    world, game = create_headless_game()
+    world, game, calendar = run_headless_game(
+        world, game, Rng(HEADLESS_SEED), player_duchy_id=PLAYER_DUCHY_ID
+    )
+    _ensure_parent_directory(path)
+    save_state(world, game, calendar, path, player_duchy_id=PLAYER_DUCHY_ID)
+
+
 def main(
     argv: list[str] | None = None,
     *,
@@ -66,14 +83,7 @@ def main(
         return 0
 
     path = argv[0] if argv else DEFAULT_PATH
-    world, game = create_headless_game()
-    world, game, calendar = run_headless_game(
-        world, game, Rng(HEADLESS_SEED), player_duchy_id=PLAYER_DUCHY_ID
-    )
-    parent = os.path.dirname(path)
-    if parent:
-        os.makedirs(parent, exist_ok=True)
-    save_state(world, game, calendar, path, player_duchy_id=PLAYER_DUCHY_ID)
+    _write_legacy_snapshot(path)
     return 0
 
 
