@@ -24,15 +24,12 @@ func _init() -> void:
 		return
 	root.add_child(scene_root)
 
-	var button := scene_root.get_node_or_null("NextTurnButton")
+	var button := scene_root.find_child("NextTurnButton", true, false)
 	if button == null:
-		_fail("missing direct child NextTurnButton")
+		_fail("missing NextTurnButton")
 		return
 	if not button is Button:
 		_fail("NextTurnButton is not a Button")
-		return
-	if button.get_parent() != scene_root:
-		_fail("NextTurnButton is not a direct child")
 		return
 	if button.text != expected_label:
 		_fail("unexpected button label")

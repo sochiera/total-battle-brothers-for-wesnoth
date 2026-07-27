@@ -22,7 +22,6 @@ def test_main_scene_exposes_a_safe_unbound_recruit_button():
             "name": "RecruitButton",
             "text": "Rekrutuj jednostkę",
             "disabled": False,
-            "direct_child": True,
             "pressed_connections": 0,
         },
         "controls_unchanged": True,

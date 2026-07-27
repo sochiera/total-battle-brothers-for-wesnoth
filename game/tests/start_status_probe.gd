@@ -44,8 +44,8 @@ func _observe_autostart(scene_root: Control) -> void:
 
 
 func _payload(scene_root: Control, started: Variant, state_path: String) -> Dictionary:
-	var status_label := scene_root.get_node_or_null("StartStatusLabel") as Label
-	var region_list := scene_root.get_node("RegionList") as ItemList
+	var status_label := scene_root.find_child("StartStatusLabel", true, false) as Label
+	var region_list := scene_root.find_child("RegionList", true, false) as ItemList
 	var names: Array[String] = []
 	for index: int in region_list.item_count:
 		names.append(region_list.get_item_text(index))
@@ -53,9 +53,9 @@ func _payload(scene_root: Control, started: Variant, state_path: String) -> Dict
 		"available": true,
 		"has_start_status_label": status_label != null,
 		"start_status": "" if status_label == null else status_label.text,
-		"order_status": (scene_root.get_node("LastOrderStatusLabel") as Label).text,
-		"date": (scene_root.get_node("DateLabel") as Label).text,
-		"duchy_status": (scene_root.get_node("PlayerDuchyStatusLabel") as Label).text,
+		"order_status": (scene_root.find_child("LastOrderStatusLabel", true, false) as Label).text,
+		"date": (scene_root.find_child("DateLabel", true, false) as Label).text,
+		"duchy_status": (scene_root.find_child("PlayerDuchyStatusLabel", true, false) as Label).text,
 		"regions": names,
 		"started": started,
 		"state_exists": (

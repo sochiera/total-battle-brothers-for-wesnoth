@@ -18,7 +18,7 @@ func _init() -> void:
 		return
 	var first_client = BridgeClientScript.create_persistent(args[0], args[1], seed, args[2])
 	first_scene.bind_client(first_client)
-	var first_button := first_scene.get_node_or_null("NextTurnButton") as Button
+	var first_button := first_scene.find_child("NextTurnButton", true, false) as Button
 	if first_button == null:
 		_fail("missing NextTurnButton")
 		return
@@ -32,7 +32,7 @@ func _init() -> void:
 		return
 	var second_client = BridgeClientScript.create_persistent(args[0], args[1], seed, args[2])
 	second_scene.bind_client(second_client)
-	var second_button := second_scene.get_node_or_null("NextTurnButton") as Button
+	var second_button := second_scene.find_child("NextTurnButton", true, false) as Button
 	if second_button == null:
 		_fail("missing NextTurnButton after resume")
 		return
@@ -60,14 +60,14 @@ func _instantiate_scene() -> Control:
 
 
 func _controls(scene_root: Control) -> Dictionary:
-	var region_list := scene_root.get_node("RegionList") as ItemList
+	var region_list := scene_root.find_child("RegionList", true, false) as ItemList
 	var names: Array[String] = []
 	for index: int in region_list.item_count:
 		names.append(region_list.get_item_text(index))
 	return {
-		"date": (scene_root.get_node("DateLabel") as Label).text,
-		"result": (scene_root.get_node("ResultLabel") as Label).text,
-		"duchy_status": (scene_root.get_node("PlayerDuchyStatusLabel") as Label).text,
+		"date": (scene_root.find_child("DateLabel", true, false) as Label).text,
+		"result": (scene_root.find_child("ResultLabel", true, false) as Label).text,
+		"duchy_status": (scene_root.find_child("PlayerDuchyStatusLabel", true, false) as Label).text,
 		"regions": names,
 	}
 

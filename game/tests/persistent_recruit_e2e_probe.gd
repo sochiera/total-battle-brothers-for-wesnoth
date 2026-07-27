@@ -19,7 +19,7 @@ func _init() -> void:
 		return
 	var first_client := BridgeClient.create_persistent(args[0], args[1], seed, args[2])
 	first_scene.bind_client(first_client)
-	var first_button := first_scene.get_node_or_null("RecruitButton") as Button
+	var first_button := first_scene.find_child("RecruitButton", true, false) as Button
 	if first_button == null:
 		_fail("missing RecruitButton")
 		return
@@ -32,7 +32,7 @@ func _init() -> void:
 		return
 	var resumed_client := BridgeClient.create_persistent(args[0], args[1], seed, args[2])
 	resumed_scene.bind_client(resumed_client)
-	var resumed_button := resumed_scene.get_node_or_null("RecruitButton") as Button
+	var resumed_button := resumed_scene.find_child("RecruitButton", true, false) as Button
 	if resumed_button == null:
 		_fail("missing RecruitButton after resume")
 		return
@@ -62,9 +62,9 @@ func _instantiate_scene() -> Control:
 
 func _controls(scene_root: Control) -> Dictionary:
 	return {
-		"date": (scene_root.get_node("DateLabel") as Label).text,
-		"result": (scene_root.get_node("ResultLabel") as Label).text,
-		"order_status": (scene_root.get_node("LastOrderStatusLabel") as Label).text,
+		"date": (scene_root.find_child("DateLabel", true, false) as Label).text,
+		"result": (scene_root.find_child("ResultLabel", true, false) as Label).text,
+		"order_status": (scene_root.find_child("LastOrderStatusLabel", true, false) as Label).text,
 	}
 
 

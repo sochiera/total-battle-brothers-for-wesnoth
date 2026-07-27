@@ -25,9 +25,9 @@ func _init() -> void:
 	var client = BridgeClientScript.create(args[0], request_path)
 	root.add_child(scene_root)
 	var refreshed: bool = scene_root.refresh_from_bridge(client)
-	var date_label: Label = scene_root.get_node("DateLabel") as Label
-	var result_label: Label = scene_root.get_node("ResultLabel") as Label
-	var region_list: ItemList = scene_root.get_node("RegionList") as ItemList
+	var date_label: Label = scene_root.find_child("DateLabel", true, false) as Label
+	var result_label: Label = scene_root.find_child("ResultLabel", true, false) as Label
+	var region_list: ItemList = scene_root.find_child("RegionList", true, false) as ItemList
 	var region_names: Array[String] = []
 	for index: int in region_list.item_count:
 		region_names.append(region_list.get_item_text(index))

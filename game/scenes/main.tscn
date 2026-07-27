@@ -11,34 +11,90 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_main")
 
-[node name="DateLabel" type="Label" parent="."]
+[node name="MainLayout" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="StartStatusLabel" type="Label" parent="."]
+[node name="StatusControls" type="VBoxContainer" parent="MainLayout"]
+layout_mode = 2
 
-[node name="RegionList" type="ItemList" parent="."]
+[node name="DateLabel" type="Label" parent="MainLayout/StatusControls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(420, 24)
+layout_mode = 2
 
-[node name="ResultLabel" type="Label" parent="."]
+[node name="StartStatusLabel" type="Label" parent="MainLayout/StatusControls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(420, 24)
+layout_mode = 2
 
-[node name="PlayerDuchyStatusLabel" type="Label" parent="."]
+[node name="RegionList" type="ItemList" parent="MainLayout/StatusControls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(420, 180)
+layout_mode = 2
 
-[node name="LastOrderStatusLabel" type="Label" parent="."]
+[node name="ResultLabel" type="Label" parent="MainLayout/StatusControls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(420, 24)
+layout_mode = 2
 
-[node name="PlayerPartyPositionLabel" type="Label" parent="."]
+[node name="PlayerDuchyStatusLabel" type="Label" parent="MainLayout/StatusControls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(420, 24)
+layout_mode = 2
 
-[node name="NextTurnButton" type="Button" parent="."]
+[node name="LastOrderStatusLabel" type="Label" parent="MainLayout/StatusControls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(420, 24)
+layout_mode = 2
+
+[node name="PlayerPartyPositionLabel" type="Label" parent="MainLayout/StatusControls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(420, 24)
+layout_mode = 2
+
+[node name="OrderControls" type="VBoxContainer" parent="MainLayout"]
+layout_mode = 2
+
+[node name="OrderButtons" type="HBoxContainer" parent="MainLayout/OrderControls"]
+layout_mode = 2
+
+[node name="NextTurnButton" type="Button" parent="MainLayout/OrderControls/OrderButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 40)
+layout_mode = 2
 text = "Następna tura"
 
-[node name="DevelopButton" type="Button" parent="."]
+[node name="DevelopButton" type="Button" parent="MainLayout/OrderControls/OrderButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 40)
+layout_mode = 2
 text = "Rozwiń osadę"
 
-[node name="RecruitButton" type="Button" parent="."]
+[node name="RecruitButton" type="Button" parent="MainLayout/OrderControls/OrderButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 40)
+layout_mode = 2
 text = "Rekrutuj jednostkę"
 
-[node name="MusterButton" type="Button" parent="."]
+[node name="MusterButton" type="Button" parent="MainLayout/OrderControls/OrderButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 40)
+layout_mode = 2
 text = "Zbierz oddział"
 
-[node name="MarchButton" type="Button" parent="."]
+[node name="MarchButton" type="Button" parent="MainLayout/OrderControls/OrderButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 40)
+layout_mode = 2
 text = "Wyrusz w pole"
 
-[node name="AssaultButton" type="Button" parent="."]
+[node name="AssaultButton" type="Button" parent="MainLayout/OrderControls/OrderButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 40)
+layout_mode = 2
 text = "Szturmuj osadę"

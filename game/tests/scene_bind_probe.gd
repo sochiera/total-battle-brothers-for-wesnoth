@@ -61,14 +61,14 @@ func _init() -> void:
 	root.add_child(scene_root)
 	for _application: int in applications:
 		scene_root.call("apply_model", model)
-	var date_label: Label = scene_root.get_node("DateLabel") as Label
-	var result_label: Label = scene_root.get_node("ResultLabel") as Label
-	var duchy_status_label: Label = scene_root.get_node_or_null("PlayerDuchyStatusLabel") as Label
+	var date_label: Label = scene_root.find_child("DateLabel", true, false) as Label
+	var result_label: Label = scene_root.find_child("ResultLabel", true, false) as Label
+	var duchy_status_label: Label = scene_root.find_child("PlayerDuchyStatusLabel", true, false) as Label
 	var duchy_status_before_clear: Variant = duchy_status_label.text if duchy_status_label != null else null
 	if clear_status:
 		model.player_duchy_status = null
 		scene_root.call("apply_model", model)
-	var region_list: ItemList = scene_root.get_node("RegionList") as ItemList
+	var region_list: ItemList = scene_root.find_child("RegionList", true, false) as ItemList
 	var region_names: Array[String] = []
 	for index: int in region_list.item_count:
 		region_names.append(region_list.get_item_text(index))

@@ -29,7 +29,7 @@ func _init() -> void:
 		return
 	scene_root.set_script(TrackingScene)
 	root.add_child(scene_root)
-	var button := scene_root.get_node_or_null("DevelopButton") as Button
+	var button := scene_root.find_child("DevelopButton", true, false) as Button
 	if button == null:
 		_fail("missing DevelopButton")
 		return

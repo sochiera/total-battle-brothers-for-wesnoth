@@ -28,13 +28,13 @@ func _observe_autostart(scene_root: Control, press_next_turn: bool, develop_pres
 	var config: Dictionary = BridgeConfig.from_environment()
 	var after_start := _controls(scene_root)
 	if press_next_turn:
-		var button := scene_root.get_node_or_null("NextTurnButton") as Button
+		var button := scene_root.find_child("NextTurnButton", true, false) as Button
 		if button == null:
 			_fail("missing NextTurnButton")
 			return
 		button.emit_signal("pressed")
 	if develop_presses > 0:
-		var button := scene_root.get_node_or_null("DevelopButton") as Button
+		var button := scene_root.find_child("DevelopButton", true, false) as Button
 		if button == null:
 			_fail("missing DevelopButton")
 			return
@@ -49,16 +49,16 @@ func _observe_autostart(scene_root: Control, press_next_turn: bool, develop_pres
 
 
 func _controls(scene_root: Control) -> Dictionary:
-	var region_list := scene_root.get_node("RegionList") as ItemList
+	var region_list := scene_root.find_child("RegionList", true, false) as ItemList
 	var names: Array[String] = []
 	for index: int in region_list.item_count:
 		names.append(region_list.get_item_text(index))
 	return {
-		"date": (scene_root.get_node("DateLabel") as Label).text,
-		"result": (scene_root.get_node("ResultLabel") as Label).text,
-		"duchy_status": (scene_root.get_node("PlayerDuchyStatusLabel") as Label).text,
+		"date": (scene_root.find_child("DateLabel", true, false) as Label).text,
+		"result": (scene_root.find_child("ResultLabel", true, false) as Label).text,
+		"duchy_status": (scene_root.find_child("PlayerDuchyStatusLabel", true, false) as Label).text,
 		"regions": names,
-		"order_status": (scene_root.get_node("LastOrderStatusLabel") as Label).text,
+		"order_status": (scene_root.find_child("LastOrderStatusLabel", true, false) as Label).text,
 	}
 
 

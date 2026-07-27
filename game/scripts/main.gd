@@ -10,7 +10,6 @@ const START_FAILURE_STATUS := "Nie udało się uruchomić mostu ani rozpocząć 
 
 var _client: Variant = null
 
-
 func _ready() -> void:
 	start_session(BridgeConfig.from_environment())
 
@@ -31,17 +30,17 @@ func start_session(config) -> bool:
 
 
 func _apply_start_failure_status(started: bool) -> void:
-	$StartStatusLabel.text = "" if started else START_FAILURE_STATUS
+	%StartStatusLabel.text = "" if started else START_FAILURE_STATUS
 
 
 func bind_client(client) -> void:
 	_client = client
-	_connect_pressed_once($NextTurnButton, _on_next_turn_button_pressed)
-	_connect_pressed_once($DevelopButton, _on_develop_button_pressed)
-	_connect_pressed_once($RecruitButton, _on_recruit_button_pressed)
-	_connect_pressed_once($MusterButton, _on_muster_button_pressed)
-	_connect_pressed_once($MarchButton, _on_march_button_pressed)
-	_connect_pressed_once($AssaultButton, _on_assault_button_pressed)
+	_connect_pressed_once(%NextTurnButton, _on_next_turn_button_pressed)
+	_connect_pressed_once(%DevelopButton, _on_develop_button_pressed)
+	_connect_pressed_once(%RecruitButton, _on_recruit_button_pressed)
+	_connect_pressed_once(%MusterButton, _on_muster_button_pressed)
+	_connect_pressed_once(%MarchButton, _on_march_button_pressed)
+	_connect_pressed_once(%AssaultButton, _on_assault_button_pressed)
 	_refresh_bound_client()
 
 
@@ -102,9 +101,9 @@ func develop_from_bridge(client) -> bool:
 func send_order_from_bridge(client, order_name: String) -> bool:
 	var model: SnapshotModel = client.send_order(order_name)
 	if _apply_model_if_present(model):
-		$LastOrderStatusLabel.text = OrderResult.status_text(_last_order_result(client))
+		%LastOrderStatusLabel.text = OrderResult.status_text(_last_order_result(client))
 		return true
-	$LastOrderStatusLabel.text = OrderResult.failure_status_text()
+	%LastOrderStatusLabel.text = OrderResult.failure_status_text()
 	return false
 
 
@@ -122,20 +121,19 @@ func _apply_model_if_present(model: SnapshotModel) -> bool:
 
 
 func apply_model(model: SnapshotModel) -> void:
-	$DateLabel.text = "Rok %d, miesiąc %d" % [model.year, model.month]
-	$ResultLabel.text = "Wynik: %s" % model.player_result
-	$PlayerPartyPositionLabel.text = _player_party_position_text(model.player_party_region)
-	var player_duchy_status_label: Label = $PlayerDuchyStatusLabel
+	%DateLabel.text = "Rok %d, miesiąc %d" % [model.year, model.month]
+	%ResultLabel.text = "Wynik: %s" % model.player_result
+	%PlayerPartyPositionLabel.text = _player_party_position_text(model.player_party_region)
+	var player_duchy_status_label: Label = %PlayerDuchyStatusLabel
+	var region_list: ItemList = %RegionList
 	var player_duchy_status: Variant = model.player_duchy_status
+	player_duchy_status_label.text = ""
 	if player_duchy_status is Dictionary:
 		player_duchy_status_label.text = "Morale: %s, osady: %s, oddziały: %s" % [
 			player_duchy_status["morale"],
 			player_duchy_status["settlements"],
 			player_duchy_status["parties"],
 		]
-	else:
-		player_duchy_status_label.text = ""
-	var region_list: ItemList = $RegionList
 	region_list.clear()
 	for region: Variant in model.regions:
 		if region is Dictionary and region.get("name") is String:

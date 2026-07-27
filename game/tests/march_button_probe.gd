@@ -17,7 +17,7 @@ func _init() -> void:
 	root.add_child(scene_root)
 
 	var before_controls := _controls(scene_root)
-	var button := scene_root.get_node_or_null("MarchButton") as Button
+	var button := scene_root.find_child("MarchButton", true, false) as Button
 	if button == null:
 		print(PREFIX, JSON.stringify(null))
 		call_deferred("quit", 0)
@@ -27,7 +27,6 @@ func _init() -> void:
 	print(PREFIX, JSON.stringify({
 		"name": button.name,
 		"text": button.text,
-		"direct_child": button.get_parent() == scene_root,
 		"pressed_connections": button.get_signal_connection_list("pressed").size(),
 		"controls_unchanged": _controls(scene_root) == before_controls,
 	}))
@@ -35,15 +34,15 @@ func _init() -> void:
 
 
 func _controls(scene_root: Control) -> Dictionary:
-	var region_list := scene_root.get_node("RegionList") as ItemList
+	var region_list := scene_root.find_child("RegionList", true, false) as ItemList
 	var regions: Array[String] = []
 	for index: int in region_list.item_count:
 		regions.append(region_list.get_item_text(index))
 	return {
-		"date": (scene_root.get_node("DateLabel") as Label).text,
-		"result": (scene_root.get_node("ResultLabel") as Label).text,
-		"duchy_status": (scene_root.get_node("PlayerDuchyStatusLabel") as Label).text,
-		"order_status": (scene_root.get_node("LastOrderStatusLabel") as Label).text,
+		"date": (scene_root.find_child("DateLabel", true, false) as Label).text,
+		"result": (scene_root.find_child("ResultLabel", true, false) as Label).text,
+		"duchy_status": (scene_root.find_child("PlayerDuchyStatusLabel", true, false) as Label).text,
+		"order_status": (scene_root.find_child("LastOrderStatusLabel", true, false) as Label).text,
 		"regions": regions,
 	}
 

@@ -35,7 +35,7 @@ func _init() -> void:
 		_fail("cannot instantiate main scene")
 		return
 	root.add_child(scene_root)
-	var button := scene_root.get_node_or_null("RecruitButton") as Button
+	var button := scene_root.find_child("RecruitButton", true, false) as Button
 	if button == null:
 		_fail("missing RecruitButton")
 		return
@@ -80,16 +80,16 @@ func _model(morale: int, settlements: int, result: String, regions: Array[String
 
 
 func _controls(scene_root: Control) -> Dictionary:
-	var region_list := scene_root.get_node("RegionList") as ItemList
+	var region_list := scene_root.find_child("RegionList", true, false) as ItemList
 	var regions: Array[String] = []
 	for index: int in region_list.item_count:
 		regions.append(region_list.get_item_text(index))
 	return {
-		"date": (scene_root.get_node("DateLabel") as Label).text,
-		"result": (scene_root.get_node("ResultLabel") as Label).text,
+		"date": (scene_root.find_child("DateLabel", true, false) as Label).text,
+		"result": (scene_root.find_child("ResultLabel", true, false) as Label).text,
 		"regions": regions,
-		"duchy_status": (scene_root.get_node("PlayerDuchyStatusLabel") as Label).text,
-		"order_status": (scene_root.get_node("LastOrderStatusLabel") as Label).text,
+		"duchy_status": (scene_root.find_child("PlayerDuchyStatusLabel", true, false) as Label).text,
+		"order_status": (scene_root.find_child("LastOrderStatusLabel", true, false) as Label).text,
 	}
 
 

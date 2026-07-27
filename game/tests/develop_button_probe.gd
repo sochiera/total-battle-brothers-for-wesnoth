@@ -14,7 +14,7 @@ func _init() -> void:
 
 	var scene_root := scene.instantiate()
 	root.add_child(scene_root)
-	var button := scene_root.get_node_or_null("DevelopButton") as Button
+	var button := scene_root.find_child("DevelopButton", true, false) as Button
 	if button == null:
 		printerr("develop_button_probe: missing DevelopButton")
 		call_deferred("quit", 1)

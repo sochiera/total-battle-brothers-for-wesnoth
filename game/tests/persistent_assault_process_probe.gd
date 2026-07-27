@@ -63,7 +63,7 @@ func _run_phase(scene_root: Control, phase: String) -> Variant:
 
 
 func _press(scene_root: Control, button_name: String) -> bool:
-	var button := scene_root.get_node_or_null(button_name) as Button
+	var button := scene_root.find_child(button_name, true, false) as Button
 	if button == null:
 		_fail("missing %s" % button_name)
 		return false
@@ -72,17 +72,17 @@ func _press(scene_root: Control, button_name: String) -> bool:
 
 
 func _controls(scene_root: Control) -> Dictionary:
-	var region_list := scene_root.get_node("RegionList") as ItemList
+	var region_list := scene_root.find_child("RegionList", true, false) as ItemList
 	var regions: Array[String] = []
 	for index: int in region_list.item_count:
 		regions.append(region_list.get_item_text(index))
 	return {
-		"date": (scene_root.get_node("DateLabel") as Label).text,
-		"result": (scene_root.get_node("ResultLabel") as Label).text,
-		"party_position": (scene_root.get_node("PlayerPartyPositionLabel") as Label).text,
+		"date": (scene_root.find_child("DateLabel", true, false) as Label).text,
+		"result": (scene_root.find_child("ResultLabel", true, false) as Label).text,
+		"party_position": (scene_root.find_child("PlayerPartyPositionLabel", true, false) as Label).text,
 		"regions": regions,
-		"duchy_status": (scene_root.get_node("PlayerDuchyStatusLabel") as Label).text,
-		"order_status": (scene_root.get_node("LastOrderStatusLabel") as Label).text,
+		"duchy_status": (scene_root.find_child("PlayerDuchyStatusLabel", true, false) as Label).text,
+		"order_status": (scene_root.find_child("LastOrderStatusLabel", true, false) as Label).text,
 	}
 
 

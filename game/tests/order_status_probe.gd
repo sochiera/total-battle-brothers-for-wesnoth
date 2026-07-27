@@ -14,7 +14,7 @@ func _init() -> void:
 
 	var scene_root := scene.instantiate()
 	root.add_child(scene_root)
-	var status_label := scene_root.get_node_or_null("LastOrderStatusLabel") as Label
+	var status_label := scene_root.find_child("LastOrderStatusLabel", true, false) as Label
 	if status_label == null:
 		printerr("order_status_probe: missing LastOrderStatusLabel")
 		call_deferred("quit", 1)

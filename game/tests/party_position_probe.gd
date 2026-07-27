@@ -32,7 +32,7 @@ func _init() -> void:
 		_fail("cannot instantiate main scene")
 		return
 	root.add_child(scene_root)
-	var position_label := scene_root.get_node_or_null("PlayerPartyPositionLabel") as Label
+	var position_label := scene_root.find_child("PlayerPartyPositionLabel", true, false) as Label
 	if position_label == null:
 		print(PREFIX, JSON.stringify({"available": false}))
 		call_deferred("quit", 0)
@@ -65,7 +65,7 @@ func _init() -> void:
 		"refreshed": refreshed,
 		"advanced": advanced,
 		"ordered": position_label.text,
-		"date_after_order": (scene_root.get_node("DateLabel") as Label).text,
+		"date_after_order": (scene_root.find_child("DateLabel", true, false) as Label).text,
 	}))
 	call_deferred("quit", 0)
 

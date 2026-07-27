@@ -19,33 +19,32 @@ func _init() -> void:
 	root.add_child(scene_root)
 
 	var before_controls := _controls(scene_root)
-	var button := scene_root.get_node_or_null("RecruitButton") as Button
+	var button := scene_root.find_child("RecruitButton", true, false) as Button
 	if button != null:
 		button.emit_signal("pressed")
 	print(PREFIX, JSON.stringify({
-		"button": _button_payload(button, scene_root),
+		"button": _button_payload(button),
 		"controls_unchanged": _controls(scene_root) == before_controls,
 	}))
 	call_deferred("quit", 0)
 
 
-func _button_payload(button: Button, scene_root: Control) -> Variant:
+func _button_payload(button: Button) -> Variant:
 	if button == null:
 		return null
 	return {
 		"name": button.name,
 		"text": button.text,
 		"disabled": button.disabled,
-		"direct_child": button.get_parent() == scene_root,
 		"pressed_connections": button.get_signal_connection_list("pressed").size(),
 	}
 
 
 func _controls(scene_root: Control) -> Dictionary:
+	# Public control texts only — not scene tree shape (MainLayout nests children).
 	return {
-		"date": (scene_root.get_node("DateLabel") as Label).text,
-		"result": (scene_root.get_node("ResultLabel") as Label).text,
-		"duchy_status": (scene_root.get_node("PlayerDuchyStatusLabel") as Label).text,
-		"order_status": (scene_root.get_node("LastOrderStatusLabel") as Label).text,
-		"children": scene_root.get_child_count(),
+		"date": (scene_root.find_child("DateLabel", true, false) as Label).text,
+		"result": (scene_root.find_child("ResultLabel", true, false) as Label).text,
+		"duchy_status": (scene_root.find_child("PlayerDuchyStatusLabel", true, false) as Label).text,
+		"order_status": (scene_root.find_child("LastOrderStatusLabel", true, false) as Label).text,
 	}

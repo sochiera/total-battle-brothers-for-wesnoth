@@ -76,7 +76,7 @@ func _init() -> void:
 	}))
 	results.append(scene_root.start_session([]))
 
-	var status_label := scene_root.get_node_or_null("StartStatusLabel") as Label
+	var status_label := scene_root.find_child("StartStatusLabel", true, false) as Label
 	print(PREFIX, JSON.stringify({
 		"available": true,
 		"results": results,
@@ -93,13 +93,13 @@ func _init() -> void:
 
 
 func _controls(scene_root: Control) -> Dictionary:
-	var region_list := scene_root.get_node("RegionList") as ItemList
+	var region_list := scene_root.find_child("RegionList", true, false) as ItemList
 	var names: Array[String] = []
 	for index: int in region_list.item_count:
 		names.append(region_list.get_item_text(index))
 	return {
-		"date": (scene_root.get_node("DateLabel") as Label).text,
-		"result": (scene_root.get_node("ResultLabel") as Label).text,
+		"date": (scene_root.find_child("DateLabel", true, false) as Label).text,
+		"result": (scene_root.find_child("ResultLabel", true, false) as Label).text,
 		"regions": names,
 	}
 

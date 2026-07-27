@@ -37,7 +37,7 @@ func _init() -> void:
 		_fail("cannot instantiate main scene")
 		return
 	root.add_child(scene_root)
-	var button := scene_root.get_node_or_null("DevelopButton") as Button
+	var button := scene_root.find_child("DevelopButton", true, false) as Button
 	if button == null:
 		_fail("missing DevelopButton")
 		return
@@ -89,9 +89,9 @@ func _model(morale: int, settlements: int) -> SnapshotModel:
 
 func _controls(scene_root: Control) -> Dictionary:
 	return {
-		"date": (scene_root.get_node("DateLabel") as Label).text,
-		"duchy_status": (scene_root.get_node("PlayerDuchyStatusLabel") as Label).text,
-		"order_status": (scene_root.get_node("LastOrderStatusLabel") as Label).text,
+		"date": (scene_root.find_child("DateLabel", true, false) as Label).text,
+		"duchy_status": (scene_root.find_child("PlayerDuchyStatusLabel", true, false) as Label).text,
+		"order_status": (scene_root.find_child("LastOrderStatusLabel", true, false) as Label).text,
 	}
 
 

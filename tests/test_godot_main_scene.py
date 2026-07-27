@@ -28,33 +28,30 @@ def test_scene_probe_reports_main_scene_root():
 
     payload = json.loads(lines[0][len(PREFIX) :])
     assert payload[0] == {"path": ".", "name": "Main", "class": "Control"}
-    assert payload[1:] == [
-        {"path": "DateLabel", "name": "DateLabel", "class": "Label"},
-        {"path": "StartStatusLabel", "name": "StartStatusLabel", "class": "Label"},
-        {"path": "RegionList", "name": "RegionList", "class": "ItemList"},
-        {"path": "ResultLabel", "name": "ResultLabel", "class": "Label"},
-        {
-            "path": "PlayerDuchyStatusLabel",
-            "name": "PlayerDuchyStatusLabel",
-            "class": "Label",
-        },
-        {
-            "path": "LastOrderStatusLabel",
-            "name": "LastOrderStatusLabel",
-            "class": "Label",
-        },
-        {
-            "path": "PlayerPartyPositionLabel",
-            "name": "PlayerPartyPositionLabel",
-            "class": "Label",
-        },
-        {"path": "NextTurnButton", "name": "NextTurnButton", "class": "Button"},
-        {"path": "DevelopButton", "name": "DevelopButton", "class": "Button"},
-        {"path": "RecruitButton", "name": "RecruitButton", "class": "Button"},
-        {"path": "MusterButton", "name": "MusterButton", "class": "Button"},
-        {"path": "MarchButton", "name": "MarchButton", "class": "Button"},
-        {"path": "AssaultButton", "name": "AssaultButton", "class": "Button"},
-    ]
+    # Public contract is name + class, findable under root; nesting in layout
+    # containers is allowed (K83.1) so exact paths are not pinned.
+    by_name = {node["name"]: node for node in payload}
+    expected_controls = {
+        "DateLabel": "Label",
+        "StartStatusLabel": "Label",
+        "RegionList": "ItemList",
+        "ResultLabel": "Label",
+        "PlayerDuchyStatusLabel": "Label",
+        "LastOrderStatusLabel": "Label",
+        "PlayerPartyPositionLabel": "Label",
+        "NextTurnButton": "Button",
+        "DevelopButton": "Button",
+        "RecruitButton": "Button",
+        "MusterButton": "Button",
+        "MarchButton": "Button",
+        "AssaultButton": "Button",
+    }
+    for name, cls in expected_controls.items():
+        assert name in by_name, f"missing public control {name}"
+        node = by_name[name]
+        assert node["class"] == cls, node
+        assert node["path"] != "."
+        assert node["path"] == name or node["path"].endswith("/" + name)
 
 
 def test_player_party_position_renders_and_updates_through_bridge_paths():
@@ -120,7 +117,6 @@ def test_muster_button_has_exact_text_and_no_behavior():
     assert payload == {
         "name": "MusterButton",
         "text": "Zbierz oddział",
-        "direct_child": True,
         "pressed_connections": 0,
         "controls_unchanged": True,
     }
@@ -142,7 +138,6 @@ def test_march_button_has_exact_text_and_no_behavior():
     assert payload == {
         "name": "MarchButton",
         "text": "Wyrusz w pole",
-        "direct_child": True,
         "pressed_connections": 0,
         "controls_unchanged": True,
     }
@@ -164,7 +159,6 @@ def test_assault_button_has_exact_text_and_no_behavior():
     assert payload == {
         "name": "AssaultButton",
         "text": "Szturmuj osadę",
-        "direct_child": True,
         "pressed_connections": 0,
         "controls_unchanged": True,
     }
