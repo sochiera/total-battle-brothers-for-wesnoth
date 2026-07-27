@@ -42,6 +42,50 @@ def test_snapshot_probe_prints_projection_of_bridge_response(tmp_path):
     assert payload["player_result"] == fixture["result"]["player_result"]
 
 
+def test_snapshot_probe_keeps_only_regions_with_nonempty_string_name(tmp_path):
+    """Model keeps only Dictionary regions with non-empty String name, in order.
+
+    Catches raw map.regions assignment: non-dicts, missing name, empty/null/non-
+    String name must not appear in SnapshotModel.regions; extra keys stay.
+    """
+    fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    good = fixture["map"]["regions"]
+    mixed = [
+        good[0],
+        "nie-region",
+        {"col": 9},
+        {"name": ""},
+        {"name": None},
+        {"name": 42},
+        good[1],
+        {"name": "ok-extra", "col": 7},
+        good[2],
+    ]
+    snapshot = dict(fixture)
+    snapshot["map"] = {**fixture["map"], "regions": mixed}
+    response_path = tmp_path / "response.json"
+    response_path.write_text(
+        json.dumps({"ok": True, "snapshot": snapshot}), encoding="utf-8"
+    )
+
+    result = run_godot_script(
+        GAME, "res://tests/snapshot_probe.gd", str(response_path), timeout=30
+    )
+
+    assert result.returncode == 0, result.stderr
+    lines = [line for line in result.stdout.splitlines() if line.startswith(PREFIX)]
+    assert len(lines) == 1, result.stdout
+    assert "SCRIPT ERROR" not in result.stderr, result.stderr
+
+    payload = json.loads(lines[0][len(PREFIX) :])
+    assert payload["regions"] == [
+        good[0],
+        good[1],
+        {"name": "ok-extra", "col": 7},
+        good[2],
+    ]
+
+
 def test_snapshot_probe_prints_null_for_error_response(tmp_path):
     response_path = tmp_path / "response.json"
     response_path.write_text(

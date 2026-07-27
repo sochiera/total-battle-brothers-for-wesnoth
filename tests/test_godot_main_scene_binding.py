@@ -67,12 +67,13 @@ def test_scene_bind_probe_uses_result_from_model_not_constant(tmp_path):
     assert payload["regions"] == len(fixture["map"]["regions"])
 
 
-def test_scene_bind_probe_skips_regions_without_string_name(tmp_path):
+def test_scene_bind_probe_lists_only_valid_region_names_when_map_has_junk(tmp_path):
+    """Scene shows names from the model filter: junk entries do not blank the list."""
     fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
     response_fixture = fixture.copy()
     response_map = fixture["map"].copy()
     response_regions = fixture["map"]["regions"].copy()
-    response_regions.extend(["nie-region", {"col": 9}])
+    response_regions.extend(["nie-region", {"col": 9}, {"name": ""}])
     response_map["regions"] = response_regions
     response_fixture["map"] = response_map
     response_path = tmp_path / "response.json"

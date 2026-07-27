@@ -136,8 +136,7 @@ func apply_model(model: SnapshotModel) -> void:
 		]
 	region_list.clear()
 	for region: Variant in model.regions:
-		if region is Dictionary and region.get("name") is String:
-			region_list.add_item(region["name"])
+		region_list.add_item(region["name"])
 
 
 func _player_party_position_text(player_party_region: Variant) -> String:
