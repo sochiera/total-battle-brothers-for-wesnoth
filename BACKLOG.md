@@ -144,21 +144,13 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > **G71.1a2b — PONOWNIE ROZCIĘTE PO `coder_red` task-362.** Porzucona próba
 > pomyliła liść `snapshot.result.player_result` z całym `snapshot.result`;
 > projekcja idzie teraz po jednym polu/grupie pól, a mutacja tego liścia osobno.
-- [ ] **G71.1a2b1** `SnapshotModel` wystawia `year` i `month` z poprawnego
-      fixture. *(task-366)*
-- [ ] **G71.1a2b2** `SnapshotModel` wystawia `regions` z poprawnego fixture.
-      *(task-367)*
-- [ ] **G71.1a2b3** `SnapshotModel` wystawia liść `player_result`. *(task-368)*
-- [ ] **G71.1a2b4** Bramka mutacyjna odróżnia liść `player_result` od całego
-      słownika `result` i utrwala decyzję G71.1a2. *(task-369)*
-- [ ] **G71.1a3** `SnapshotModel` atomowo odrzuca błędne i niepełne odpowiedzi,
-      zwracając `null`. *(task-370)*
-- [ ] **G71.1b1** Główna scena dostaje nazwane kontrolki daty, regionów i wyniku,
-      jeszcze bez wiązania danych; do ponownego rozplanowania po G71.1a3
-      (task-364 porzucone po porażce task-362).
-- [ ] **G71.1b2** Główna scena renderuje fixture przez `SnapshotModel` jako datę,
-      listę regionów i status rozgrywki; do ponownego rozplanowania po G71.1b1
-      (task-365 porzucone po porażce task-362).
+- [x] **G71.1a2b1…G71.1a3** `SnapshotModel` po jednym polu/grupie pól: `year`+
+      `month`, `regions`, liść `player_result`, bramka mutacyjna liścia oraz
+      atomowe odrzucanie błędnych/niepełnych odpowiedzi → `null`.
+      *(task-366…370)*
+- [x] **G71.1b1…G71.1b2** Nazwane kontrolki daty/regionów/wyniku w głównej scenie
+      i render fixture przez `SnapshotModel` (pierwotne task-364/365 porzucone po
+      porażce task-362; wykonane w serii task-406…419).
 > **G71.1a2b1…G71.2a — UKOŃCZONE.** `SnapshotModel` (kalendarz, regiony, liść
 > `player_result`, atomowa walidacja → `null`), nazwane kontrolki i idempotentne
 > `apply_model` w głównej scenie, bramka na żywym snapshocie mostu oraz klient
@@ -191,13 +183,13 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > w `_ready()`, który bez konfiguracji jest bezpiecznym no-opem (sceny są
 > instancjonowane też przez istniejące sondy — zweryfikowane empirycznie:
 > `_ready()` odpala się przy `root.add_child`).
-- [ ] **G73.1a** `bridge_config.gd`: czysta `from_values` (atomowa walidacja
+- [x] **G73.1a** `bridge_config.gd`: czysta `from_values` (atomowa walidacja
       komendy, ścieżki stanu i ziarna). *(task-428)*
-- [ ] **G73.1b** `BridgeConfig.from_environment()` — `TBB_BRIDGE_COMMAND` /
+- [x] **G73.1b** `BridgeConfig.from_environment()` — `TBB_BRIDGE_COMMAND` /
       `TBB_STATE_PATH` / `TBB_SEED`; brak lub błąd → `null`. *(task-429)*
-- [ ] **G73.2a** `main.gd.start_session(config)` — trwały klient, `bind_client`
+- [x] **G73.2a** `main.gd.start_session(config)` — trwały klient, `bind_client`
       i render bieżącego stanu bez przesuwania tury. *(task-430)*
-- [ ] **G73.2b** Autostart w `_ready()` + e2e ciągłości partii (no-op bez
+- [x] **G73.2b** Autostart w `_ready()` + e2e ciągłości partii (no-op bez
       konfiguracji). *(task-431)*
 
 ## Kamień milowy 74 — stan księstwa gracza w kliencie Godota
@@ -206,11 +198,11 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > (zweryfikowane empirycznie na `seed=73`). K74 dokłada ten wskaźnik w moście,
 > projekcję statusu w `SnapshotModel` i render w scenie, aż do odświeżenia po
 > naciśnięciu „Następna tura".
-- [ ] **G74.1a** Snapshot wskazuje księstwo gracza (`player_duchy`, `None` bez
+- [x] **G74.1a** Snapshot wskazuje księstwo gracza (`player_duchy`, `None` bez
       gracza; sesja i protokół niosą ten sam klucz). *(task-433)*
-- [ ] **G74.1b** `SnapshotModel` wystawia status księstwa gracza (morale, osady,
+- [x] **G74.1b** `SnapshotModel` wystawia status księstwa gracza (morale, osady,
       oddziały) albo jednoznaczny brak; atomowa walidacja bez zmian. *(task-434)*
-- [ ] **G74.2a** Scena renderuje status księstwa gracza i odświeża go po turze
+- [x] **G74.2a** Scena renderuje status księstwa gracza i odświeża go po turze
       (e2e autostartu i ciągłości partii). *(task-435)*
 
 ## Kamień milowy 75 — rozkazy gracza w kliencie Godota (pierwszy rozkaz: rozwój)
@@ -219,13 +211,13 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > sekwencja `order:develop` + `save` w jednym uruchomieniu daje `changed=true`
 > i utrwala stan, a `serve --resume` startuje po rozkazie bez przesunięcia
 > kalendarza. K75 doprowadza tę ścieżkę do przycisku w scenie.
-- [ ] **G75.1a** `BridgeClient.send_order()` — rozkaz + zapis stanu w jednym
+- [x] **G75.1a** `BridgeClient.send_order()` — rozkaz + zapis stanu w jednym
       uruchomieniu procesu; `SnapshotModel` albo `null`. *(task-436)*
-- [ ] **R75.1 (dług techniczny)** Jeden prymityw sekwencji „komenda + zapis"
+- [x] **R75.1 (dług techniczny)** Jeden prymityw sekwencji „komenda + zapis"
       reużyty przez `advance_turn` i `send_order`. *(task-437)*
-- [ ] **G75.1b** Scena ma nazwany przycisk „Rozwiń osadę" (bez wiązania).
+- [x] **G75.1b** Scena ma nazwany przycisk „Rozwiń osadę" (bez wiązania).
       *(task-438)*
-- [ ] **G75.1c** Klik rozwoju wydaje rozkaz przez most, odświeża scenę i
+- [x] **G75.1c** Klik rozwoju wydaje rozkaz przez most, odświeża scenę i
       utrwala partię (e2e przez dwa procesy). *(task-439)*
 
 ## Kamień milowy 76 — informacja zwrotna o rozkazie w kliencie Godota
@@ -233,13 +225,13 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > rozkaz cokolwiek zmienił — most niesie to w `result.changed`, a klient je
 > wyrzuca. Zweryfikowane empirycznie (`serve 73`): cztery pierwsze `develop`
 > dają `changed:true`, piąty `changed:false` przy `ok:true`.
-- [ ] **G76.1a** `order_result.gd` — czysta, atomowa projekcja `result` rozkazu
+- [x] **G76.1a** `order_result.gd` — czysta, atomowa projekcja `result` rozkazu
       (albo `null`). *(task-440)*
-- [ ] **G76.1b** `BridgeClient` wystawia wynik ostatniego rozkazu obok modelu.
+- [x] **G76.1b** `BridgeClient` wystawia wynik ostatniego rozkazu obok modelu.
       *(task-441)*
-- [ ] **G76.2a** Scena ma nazwaną kontrolkę statusu rozkazu (bez wiązania).
+- [x] **G76.2a** Scena ma nazwaną kontrolkę statusu rozkazu (bez wiązania).
       *(task-442)*
-- [ ] **G76.2b** Klik rozwoju pokazuje „zmieniono"/„bez zmian" (e2e przez dwa
+- [x] **G76.2b** Klik rozwoju pokazuje „zmieniono"/„bez zmian" (e2e przez dwa
       procesy). *(task-443)*
 
 ## Kamień milowy 77 — drugi rozkaz gracza w kliencie Godota (rekrutacja)
@@ -249,13 +241,13 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > `recruit` od K65; zweryfikowane empirycznie (`serve 73`): pięć pierwszych
 > `recruit` daje `changed:true`, szósty i dalsze `false` przy `ok:true`,
 > a nieznany rozkaz → `ok:false`.
-- [ ] **G77.1a** `order_result.gd` — czysty polski tekst statusu rozkazu
+- [x] **G77.1a** `order_result.gd` — czysty polski tekst statusu rozkazu
       (zmieniono / bez zmian / brak wyniku), rozróżniający rozkazy. *(task-444)*
-- [ ] **G77.1b** `main.gd` wydaje dowolny rozkaz jedną, parametryzowaną
+- [x] **G77.1b** `main.gd` wydaje dowolny rozkaz jedną, parametryzowaną
       ścieżką; `develop_from_bridge` zostaje cienkim wrapperem. *(task-445)*
-- [ ] **G77.2a** Scena ma nazwany przycisk „Rekrutuj jednostkę" (bez wiązania).
+- [x] **G77.2a** Scena ma nazwany przycisk „Rekrutuj jednostkę" (bez wiązania).
       *(task-446)*
-- [ ] **G77.2b** Klik rekrutacji wydaje rozkaz, pokazuje skutek i utrwala
+- [x] **G77.2b** Klik rekrutacji wydaje rozkaz, pokazuje skutek i utrwala
       partię (e2e przez dwa procesy). *(task-447)*
 
 ## Kamień milowy 78 — trzeci rozkaz gracza (zbiórka) i czytelna porażka rozkazu
@@ -265,13 +257,13 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > rozkaz się nie powiódł. Zweryfikowane empirycznie (`serve 73`): pierwszy
 > `muster` → `changed:true`, kolejne → `false` przy `ok:true`; nieznany rozkaz →
 > `{"ok":false,"error":"Unknown order: …"}`.
-- [ ] **G78.1a** `order_result.gd` — tekst statusu rozróżnia rozkaz `muster`.
+- [x] **G78.1a** `order_result.gd` — tekst statusu rozróżnia rozkaz `muster`.
       *(task-448)*
-- [ ] **G78.1b** Scena ma nazwany przycisk „Zbierz oddział" (bez wiązania).
+- [x] **G78.1b** Scena ma nazwany przycisk „Zbierz oddział" (bez wiązania).
       *(task-449)*
-- [ ] **G78.1c** Klik zbiórki wydaje rozkaz, pokazuje skutek i utrwala partię
+- [x] **G78.1c** Klik zbiórki wydaje rozkaz, pokazuje skutek i utrwala partię
       (e2e przez dwa procesy). *(task-450)*
-- [ ] **G78.2a** Nieudany rozkaz pokazuje czytelny komunikat zamiast pustego
+- [x] **G78.2a** Nieudany rozkaz pokazuje czytelny komunikat zamiast pustego
       statusu. *(task-451)*
 
 ## Kamień milowy 79 — czwarty rozkaz gracza (marsz) w kliencie Godota
@@ -299,25 +291,78 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > pliku stanu): `muster`→`march`→`save`; po `--resume` `assault` →
 > `{"kind":"battle","outcome":"porażka","attacker_losses":0,
 > "defender_losses":0}`; kolejny `assault` → `{"kind":"order","changed":false}`.
-- [ ] **G80.1a** `order_result.gd` — atomowa projekcja wyniku bitwy
+- [x] **G80.1a** `order_result.gd` — atomowa projekcja wyniku bitwy
       (`kind:"battle"`) obok projekcji rozkazu. *(task-456)*
-- [ ] **G80.1b** `order_result.gd` — polski tekst statusu szturmu i skutku
+- [x] **G80.1b** `order_result.gd` — polski tekst statusu szturmu i skutku
       bitwy (wynik + straty), bez zmian pozostałych statusów. *(task-457)*
-- [ ] **G80.2a** Scena ma nazwany przycisk „Szturmuj osadę" (bez wiązania).
+- [x] **G80.2a** Scena ma nazwany przycisk „Szturmuj osadę" (bez wiązania).
       *(task-458)*
-- [ ] **G80.2b** Klik szturmu wydaje rozkaz, pokazuje skutek bitwy i utrwala
+- [x] **G80.2b** Klik szturmu wydaje rozkaz, pokazuje skutek bitwy i utrwala
       partię (e2e przez procesy `serve` + `--resume`). *(task-459)*
 
+## Kamień milowy 81 — położenie oddziału gracza w kliencie — UKOŃCZONY
+> **UKOŃCZONE.** `SnapshotModel.player_party_region` (G81.1a), render położenia
+> w scenie (G81.1b), e2e „rozkazy przesuwają widoczny oddział" przez dwa procesy
+> (G81.2a) oraz refaktor jednej ścieżki wydawania rozkazu (R81.1). Zaplanowane i
+> wykonane poza tym plikiem — dopisane tu dla ciągłości numeracji.
+
+## Kamień milowy 82 — klient startuje bez terminala (domyślna konfiguracja) — PRIORYTET
+> **Zwrot kierunku (przegląd bootstrap-diff).** K75–K81 to była seria „kolejny
+> przycisk rozkazu"; ścieżka rozkazu jest już sparametryzowana, więc szósty
+> przycisk nie zbliża do celu z briefu. Kryterium „gotowe" mówi: gracz uruchamia
+> **natywną aplikację na Linuksie i bez terminala** zarządza osadą, przemieszcza
+> armię, rozgrywa bitwę, zapisuje i wczytuje stan. Dziś `_ready()` startuje partię
+> **wyłącznie** przy ustawionych `TBB_BRIDGE_COMMAND`/`TBB_STATE_PATH`/`TBB_SEED`
+> — bez nich `BridgeConfig.from_environment()` daje `null` i scena jest martwa.
+> K82 usuwa terminal ze ścieżki startu. Rdzeń `tbb` i most bez zmian.
+- [ ] **G82.1a** `BridgeConfig.default_values()` — czysta funkcja dająca
+      kompletną, poprawną konfigurację bez środowiska (komenda mostu, ścieżka
+      stanu w katalogu danych użytkownika, domyślne ziarno); wynik przechodzi
+      `is_valid_session_config`. *(simple)*
+- [ ] **G82.1b** `from_environment()` uzupełnia **brakujące lub niepoprawne**
+      zmienne wartościami domyślnymi zamiast zwracać `null`; jawnie ustawione
+      `TBB_*` nadal nadpisują domyślne. Testy regresji dotychczasowych odrzuceń
+      przenoszą się na `from_values` (kontrakt walidacji bez zmian). *(standard)*
+- [ ] **G82.2a** Scena po `_ready()` w środowisku **bez żadnych `TBB_*`** startuje
+      partię i renderuje datę oraz status księstwa (sonda headless na tymczasowym
+      katalogu stanu). *(standard)*
+- [ ] **G82.2b** Most daje się uruchomić z katalogu projektu Godota bez ręcznego
+      `PYTHONPATH` z terminala: domyślna komenda rozwiązuje interpreter i pakiet
+      `tbbbridge` względem lokalizacji gry, a e2e w czystym środowisku daje dwa
+      kolejne snapshoty tej samej partii. *(complex, ryzyko: ścieżki `res://` vs
+      katalog roboczy procesu, brak Pythona → czytelny komunikat w scenie zamiast
+      cichej martwej sceny)*
+
 ## Dług/refaktor
-- [ ] **R73.1 (dług techniczny)** Jedno źródło reguł poprawnej konfiguracji
-      startowej: `main.gd._is_valid_session_config` duplikuje warunki
-      `BridgeConfig.from_values` (niepuste `command`/`state_path`, `seed:int`).
-      Scalić w `BridgeConfig` + testy regresji równoważności i odrzuceń
-      (brak procesu mostu, brak plików, kontrolki nietknięte). *(task-432)*
+- [ ] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
+      (`game/scripts/*_probe.gd`) wymieszane z kodem produkcyjnym klienta —
+      przenieść do `game/tests/` obok pozostałych sond i zaktualizować ścieżki w
+      testach Pythona; wersjonowane artefakty w `out/` (`game.html`,
+      `state.json`, `state.json.ref`) — usunąć z gita i dopisać do `.gitignore`,
+      chyba że `state.json.ref` jest realnym fixture (wtedy przenieść do
+      `tests/`). Bramka zielona przed i po. *(standard)*
+- [x] **R73.1 (dług techniczny)** Jedno źródło reguł poprawnej konfiguracji
+      startowej: `main.gd._is_valid_session_config` duplikował warunki
+      `BridgeConfig.from_values`; scalone w `BridgeConfig` + testy regresji.
+      *(task-432)*
 - [x] **R33.1 (refaktor)** Kompaktacja DESIGN.md §11: usunięcie bloków narracyjnych „PLAN K14…K33" (historia → git/DECISIONS.md); tylko stan obecny. *(task-169)*
 - [x] **R21.1 (refaktor)** Wspólny emiter formularzy celu marsz/szturm/starcie w `serve.py`. *(task-113)*
 - [x] **R15.1 (refaktor)** Kompaktacja DESIGN.md do stanu obecnego; historia → DECISIONS.md. *(task-094)*
 - [x] **R16.1 (refaktor)** Wspólny generator formularzy celu marsz/szturm w `serve.py`. *(task-098)*
+
+## Kolejne kierunki (po K82, do rozplanowania na kamienie)
+> Kolejność wynika z kryterium „gotowe" w `docs/PROJECT.md`. **Nie dokładamy
+> kolejnych przycisków rozkazu ani reguł rdzenia, dopóki te punkty stoją** —
+> most obsługuje więcej rozkazów, niż klient potrafi pokazać.
+- Czytelny układ ekranu: kontenery Godota zamiast wszystkich kontrolek w punkcie
+  (0,0) w `main.tscn`; osobno panel stanu, osobno panel rozkazów.
+- Widok mapy 2D: regiony, osady i party rysowane zamiast `ItemList` nazw; rozkaz
+  wybierany klikiem na cel, nie globalnym przyciskiem.
+- Widok bitwy: `battle_state` z mostu na siatce heksów (teren, jednostki, wynik),
+  potem sterowanie pojedynczą jednostką.
+- Zapis/odczyt z UI: jawne „Zapisz"/„Wczytaj" (protokół ma to od K68/K69).
+- Pakiet na Linuksa x86-64: preset eksportu + runtime Pythona, uruchomienie
+  jedną ikoną — domknięcie kryterium „gotowe".
 
 ## Później (poza MVP)
 - [ ] **K62 (WSTRZYMANE — DECISIONS G63.0)** Rozbudowa alertu gospodarczego HTML
