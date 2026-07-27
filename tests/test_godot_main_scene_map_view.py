@@ -7,6 +7,7 @@ import subprocess
 from pathlib import Path
 
 from godot_runner import run_godot_script
+from godot_tile_layer import MOUSE_FILTER_IGNORE, layer_fills_tile
 
 ROOT = Path(__file__).resolve().parents[1]
 GAME = ROOT / "game"
@@ -47,6 +48,16 @@ def _rects_overlap(a: dict, b: dict) -> bool:
     if a_bottom <= b["y"] or b_bottom <= a["y"]:
         return False
     return True
+
+
+def _body_texture_layers(tile: dict) -> list[dict]:
+    """Tile-fill layers (ground/settlement), excluding the party corner mark."""
+    layers = tile.get("texture_layers") or []
+    return [
+        layer
+        for layer in layers
+        if isinstance(layer, dict) and str(layer.get("name", "")) != "PlayerPartyMarker"
+    ]
 
 
 def test_map_view_shows_one_grid_tile_per_region_with_owner_paint():
@@ -266,9 +277,50 @@ def test_map_view_tiles_carry_asset_textures_for_owner_settlement_and_party():
         f"Alpha={alpha_paths!r} Beta={beta_paths!r}"
     )
 
-    # Party mark is a texture, not a ColorRect swatch.
+    # R87.1: body texture layers fill the tile bounds and do not capture mouse.
+    # Compares probe global size to the parent tile — that guards PRESET_FULL_RECT
+    # (control extents), not TextureRect.stretch_mode. A FULL_RECT + STRETCH_KEEP
+    # regression would still pass size checks; paths alone would also stay green.
+    # Also guards MOUSE_FILTER_IGNORE so layers do not steal map clicks.
+    for tile in first:
+        body = _body_texture_layers(tile)
+        assert body, (
+            f"tile {tile['name']!r} must report body texture_layers with size, "
+            f"got {tile!r}"
+        )
+        assert tile.get("tile_mouse_filter") == MOUSE_FILTER_IGNORE, (
+            f"tile {tile['name']!r} root must ignore mouse, got {tile!r}"
+        )
+        for layer in body:
+            assert layer_fills_tile(layer, tile), (
+                f"tile {tile['name']!r} body layer must fill the tile bounds "
+                f"(FULL_RECT size), layer={layer!r} tile_w={tile['w']} "
+                f"tile_h={tile['h']}"
+            )
+            assert layer.get("mouse_filter") == MOUSE_FILTER_IGNORE, (
+                f"tile {tile['name']!r} body layer must not capture mouse, "
+                f"got layer={layer!r}"
+            )
+
+    # Party mark is a texture, not a ColorRect swatch — and stays a small corner
+    # mark (must not accidentally become a full-tile stretch layer).
     on_alpha = payload["party_on_alpha"]
     assert on_alpha["marker_count"] == 1, on_alpha
     assert on_alpha["marker_has_texture"] is True, (
         f"PlayerPartyMarker must carry Texture2D, got {on_alpha!r}"
+    )
+    marker_layers = on_alpha.get("marker_layers") or []
+    assert len(marker_layers) == 1, on_alpha
+    marker = marker_layers[0]
+    assert str(marker.get("tile_name")) == "Alpha", marker
+    assert float(marker["w"]) < float(marker["tile_w"]), (
+        f"PlayerPartyMarker must be narrower than its tile (corner mark, not "
+        f"full-tile stretch), got {marker!r}"
+    )
+    assert float(marker["h"]) < float(marker["tile_h"]), (
+        f"PlayerPartyMarker must be shorter than its tile (corner mark, not "
+        f"full-tile stretch), got {marker!r}"
+    )
+    assert marker.get("mouse_filter") == MOUSE_FILTER_IGNORE, (
+        f"PlayerPartyMarker must not capture mouse, got {marker!r}"
     )

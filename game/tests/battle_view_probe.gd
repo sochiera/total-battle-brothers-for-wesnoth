@@ -208,8 +208,10 @@ func _collect_tiles(battle_view: Node, hexes: Array) -> Array:
 		if tile == null:
 			continue
 		var rect: Rect2 = tile.get_global_rect()
-		# Public observation: each TextureRect/Sprite2D under the hex with path+size.
-		# G87.1c-2 needs layer size so a full-tile stretched side sprite fails.
+		# Public observation: each TextureRect/Sprite2D under the hex with path,
+		# size, and mouse_filter. G87.1c-2 needs layer size so a full-tile
+		# stretched side sprite fails; R87.1 needs ground layers that fill the
+		# hex and do not capture the mouse.
 		var texture_layers: Array = _collect_texture_layers(tile)
 		var texture_paths: Array = []
 		for layer: Variant in texture_layers:
@@ -230,6 +232,7 @@ func _collect_tiles(battle_view: Node, hexes: Array) -> Array:
 			"has_texture": not texture_paths.is_empty(),
 			"texture_paths": texture_paths,
 			"texture_layers": texture_layers,
+			"tile_mouse_filter": tile.mouse_filter,
 		})
 	return tiles
 
@@ -239,14 +242,23 @@ func _collect_texture_layers(node: Node) -> Array:
 	var path: String = _direct_texture_path(node)
 	if not path.is_empty() and node is CanvasItem:
 		var size: Vector2 = Vector2.ZERO
+		var mouse_filter: int = -1
 		if node is Control:
-			size = (node as Control).get_global_rect().size
+			var ctrl: Control = node as Control
+			size = ctrl.get_global_rect().size
+			mouse_filter = ctrl.mouse_filter
 		elif node is Sprite2D:
 			var sp: Sprite2D = node as Sprite2D
 			if sp.texture != null:
 				var tex_size: Vector2 = sp.texture.get_size()
 				size = Vector2(tex_size.x * absf(sp.scale.x), tex_size.y * absf(sp.scale.y))
-		layers.append({"path": path, "w": size.x, "h": size.y})
+		layers.append({
+			"path": path,
+			"name": str(node.name),
+			"w": size.x,
+			"h": size.y,
+			"mouse_filter": mouse_filter,
+		})
 	for child: Node in node.get_children():
 		layers.append_array(_collect_texture_layers(child))
 	return layers

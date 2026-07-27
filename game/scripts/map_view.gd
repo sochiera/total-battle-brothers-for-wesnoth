@@ -2,6 +2,7 @@ extends Control
 
 
 const SnapshotModel = preload("res://scripts/snapshot_model.gd")
+const TileTextureLayer = preload("res://scripts/tile_texture_layer.gd")
 const TILE_SIZE := Vector2(124, 64)
 const TILE_GAP := Vector2(12, 12)
 const PLAYER_COLOR := Color(0.16, 0.38, 0.78)
@@ -27,22 +28,6 @@ func _clear_tiles() -> void:
 			child.free()
 
 
-func _stretched_texture_rect(texture: Texture2D) -> TextureRect:
-	var rect := TextureRect.new()
-	rect.texture = texture
-	rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	rect.stretch_mode = TextureRect.STRETCH_SCALE
-	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return rect
-
-
-func _full_rect_layer(texture: Texture2D, layer_name: String) -> TextureRect:
-	var layer := _stretched_texture_rect(texture)
-	layer.name = layer_name
-	layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	return layer
-
-
 func _add_tile(region: Dictionary, player_party_region: Variant) -> void:
 	var tile := Control.new()
 	tile.name = "RegionTile_%s" % region["name"]
@@ -51,12 +36,12 @@ func _add_tile(region: Dictionary, player_party_region: Variant) -> void:
 	tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(tile)
 
-	var ground := _full_rect_layer(GROUND_TEXTURE, "Ground")
+	var ground := TileTextureLayer.full_rect(GROUND_TEXTURE, "Ground")
 	ground.modulate = _owner_color(region.get("owner"))
 	tile.add_child(ground)
 
 	if region.get("settlement") != null:
-		tile.add_child(_full_rect_layer(SETTLEMENT_TEXTURE, "Settlement"))
+		tile.add_child(TileTextureLayer.full_rect(SETTLEMENT_TEXTURE, "Settlement"))
 
 	var label := Label.new()
 	label.text = region["name"]
@@ -78,7 +63,7 @@ func _is_player_party_region(region: Dictionary, player_party_region: Variant) -
 
 
 func _add_player_party_marker(tile: Control) -> void:
-	var marker := _stretched_texture_rect(PARTY_TEXTURE)
+	var marker := TileTextureLayer.stretched(PARTY_TEXTURE)
 	marker.name = "PlayerPartyMarker"
 	marker.position = Vector2(TILE_SIZE.x - 24, 8)
 	marker.size = Vector2(16, 16)

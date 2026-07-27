@@ -2,6 +2,7 @@ extends Control
 
 
 const SnapshotModel = preload("res://scripts/snapshot_model.gd")
+const TileTextureLayer = preload("res://scripts/tile_texture_layer.gd")
 const TILE_SIZE := Vector2(96, 56)
 const TILE_GAP := Vector2(12, 12)
 const ATTACKER_COLOR := Color(0.78, 0.22, 0.16)
@@ -60,13 +61,7 @@ func _add_tile(hex: Dictionary) -> void:
 	tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(tile)
 
-	var ground := TextureRect.new()
-	ground.name = "Ground"
-	ground.texture = _terrain_texture(hex.get("terrain"))
-	ground.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	ground.stretch_mode = TextureRect.STRETCH_SCALE
-	ground.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	ground.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var ground := TileTextureLayer.full_rect(_terrain_texture(hex.get("terrain")), "Ground")
 	ground.modulate = _side_color(hex.get("side"))
 	tile.add_child(ground)
 

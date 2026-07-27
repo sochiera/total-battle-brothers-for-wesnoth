@@ -157,11 +157,31 @@ func _party_mark_sample(
 	var position_label: Label = scene_root.find_child(
 		"PlayerPartyPositionLabel", true, false
 	) as Label
+	# Marker geometry (R87.1): corner mark must stay smaller than its tile, and
+	# must not capture mouse — a FULL_RECT party texture would green-gate
+	# marker_has_texture while covering the whole region.
+	var marker_layers: Array = []
+	for region_name: String in names:
+		var label: Label = PartyMapMark.find_label_with_text(map_view, region_name)
+		if label == null:
+			continue
+		var tile: Control = PartyMapMark.tile_control(label, map_view)
+		for layer: Variant in _collect_texture_layers(tile):
+			if (
+				layer is Dictionary
+				and str(layer.get("name", "")) == "PlayerPartyMarker"
+			):
+				var copy: Dictionary = (layer as Dictionary).duplicate()
+				copy["tile_name"] = region_name
+				copy["tile_w"] = tile.get_global_rect().size.x
+				copy["tile_h"] = tile.get_global_rect().size.y
+				marker_layers.append(copy)
 	return {
 		"position_label": "" if position_label == null else position_label.text,
 		"marked_regions": PartyMapMark.marked_party_regions(map_view, names),
 		"marker_count": PartyMapMark.count_party_markers(map_view),
 		"marker_has_texture": PartyMapMark.marker_has_texture(map_view),
+		"marker_layers": marker_layers,
 	}
 
 
@@ -183,9 +203,20 @@ func _collect_tiles(map_view: Node, expected_names: Array[String]) -> Array:
 			continue
 		var tile: Control = PartyMapMark.tile_control(label, map_view)
 		var rect: Rect2 = tile.get_global_rect()
+		# Public observation: each TextureRect/Sprite2D under the tile with path,
+		# size, and mouse_filter (R87.1: full-tile stretch layers must fill the
+		# tile and not steal mouse; party marker stays a small corner mark).
+		var texture_layers: Array = _collect_texture_layers(tile)
 		# Region body textures only — exclude party marker so settlement/owner
 		# comparison stays independent of whether the army is parked here.
-		var texture_paths: Array = _region_texture_paths(tile)
+		var texture_paths: Array = []
+		for layer: Variant in texture_layers:
+			if (
+				layer is Dictionary
+				and layer.has("path")
+				and str(layer.get("name", "")) != "PlayerPartyMarker"
+			):
+				texture_paths.append(layer["path"])
 		tiles.append({
 			"name": region_name,
 			"x": rect.position.x,
@@ -196,24 +227,37 @@ func _collect_tiles(map_view: Node, expected_names: Array[String]) -> Array:
 			"visual": _visual_key(tile),
 			"has_texture": not texture_paths.is_empty(),
 			"texture_paths": texture_paths,
+			"texture_layers": texture_layers,
+			"tile_mouse_filter": tile.mouse_filter,
 		})
 	return tiles
 
 
-func _region_texture_paths(tile: Control) -> Array:
-	return _collect_texture_paths_excluding_party_marker(tile)
-
-
-func _collect_texture_paths_excluding_party_marker(node: Node) -> Array:
-	if str(node.name) == "PlayerPartyMarker":
-		return []
-	var paths: Array = []
+func _collect_texture_layers(node: Node) -> Array:
+	var layers: Array = []
 	var path: String = _direct_texture_path(node)
-	if not path.is_empty():
-		paths.append(path)
+	if not path.is_empty() and node is CanvasItem:
+		var size: Vector2 = Vector2.ZERO
+		var mouse_filter: int = -1
+		if node is Control:
+			var ctrl: Control = node as Control
+			size = ctrl.get_global_rect().size
+			mouse_filter = ctrl.mouse_filter
+		elif node is Sprite2D:
+			var sp: Sprite2D = node as Sprite2D
+			if sp.texture != null:
+				var tex_size: Vector2 = sp.texture.get_size()
+				size = Vector2(tex_size.x * absf(sp.scale.x), tex_size.y * absf(sp.scale.y))
+		layers.append({
+			"path": path,
+			"name": str(node.name),
+			"w": size.x,
+			"h": size.y,
+			"mouse_filter": mouse_filter,
+		})
 	for child: Node in node.get_children():
-		paths.append_array(_collect_texture_paths_excluding_party_marker(child))
-	return paths
+		layers.append_array(_collect_texture_layers(child))
+	return layers
 
 
 func _direct_texture_path(node: Node) -> String:

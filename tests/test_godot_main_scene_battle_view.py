@@ -7,6 +7,7 @@ import subprocess
 from pathlib import Path
 
 from godot_runner import run_godot_script
+from godot_tile_layer import MOUSE_FILTER_IGNORE, layer_fills_tile
 
 ROOT = Path(__file__).resolve().parents[1]
 GAME = ROOT / "game"
@@ -68,6 +69,15 @@ def _polish_mentions_result(text: str, *keywords: str) -> bool:
 
 def _rect_of(node: dict) -> dict:
     return {"x": node["x"], "y": node["y"], "w": node["w"], "h": node["h"]}
+
+
+def _terrain_layers(tile: dict, terrain_path: str) -> list[dict]:
+    layers = tile.get("texture_layers") or []
+    return [
+        layer
+        for layer in layers
+        if isinstance(layer, dict) and layer.get("path") == terrain_path
+    ]
 
 
 def _fully_inside(outer: dict, inner: dict) -> bool:
@@ -292,6 +302,25 @@ def test_battle_view_hex_tiles_carry_terrain_textures_from_assets():
             f"hex {qr} terrain={terrain!r} must include {expected}, "
             f"got paths={tile['texture_paths']!r}"
         )
+        # R87.1: ground terrain layer fills hex bounds and does not capture mouse.
+        # Size check is PRESET_FULL_RECT (control extents via global rect), not
+        # TextureRect.stretch_mode — FULL_RECT + STRETCH_KEEP would still pass.
+        # Also guards MOUSE_FILTER_IGNORE so terrain does not steal battle clicks.
+        assert tile.get("tile_mouse_filter") == MOUSE_FILTER_IGNORE, (
+            f"hex {qr} root must ignore mouse, got {tile!r}"
+        )
+        ground_layers = _terrain_layers(tile, expected)
+        assert ground_layers, (
+            f"hex {qr} must report sized terrain layer for {expected}, got {tile!r}"
+        )
+        for layer in ground_layers:
+            assert layer_fills_tile(layer, tile), (
+                f"hex {qr} terrain layer must fill the tile bounds (FULL_RECT size), "
+                f"layer={layer!r} tile_w={tile['w']} tile_h={tile['h']}"
+            )
+            assert layer.get("mouse_filter") == MOUSE_FILTER_IGNORE, (
+                f"hex {qr} terrain layer must not capture mouse, got layer={layer!r}"
+            )
 
     # Three core terrains must be three different images (not one shared fill).
     path_sets = {
@@ -436,6 +465,10 @@ def test_battle_view_hex_tiles_overlay_side_silhouettes_on_terrain():
                 assert float(layer["h"]) < float(tile["h"]), (
                     f"hex {qr} side silhouette must be shorter than the tile: "
                     f"layer_h={layer['h']} tile_h={tile['h']} layer={layer!r}"
+                )
+                assert layer.get("mouse_filter") == MOUSE_FILTER_IGNORE, (
+                    f"hex {qr} side silhouette must not capture mouse, "
+                    f"got layer={layer!r}"
                 )
             other = SIDE_DEFENDER if side == "attacker" else SIDE_ATTACKER
             assert other not in paths, (
