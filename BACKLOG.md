@@ -345,7 +345,7 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > dawna — zweryfikowane empirycznie (`serve 73`): `map.regions` ma `name`,
 > `col`, `row`, `owner` (`"player"`/`"ai"`/`null`), a po `muster`→`march`
 > oddział gracza stoi w regionie `border`. Rdzeń `tbb` i most bez zmian.
-- [ ] **R83.1 (dług techniczny)** Jedno miejsce walidacji regionów: model
+- [x] **R83.1 (dług techniczny)** Jedno miejsce walidacji regionów: model
       wystawia regiony gotowe do pokazania, scena nie powtarza sprawdzeń
       surowych słowników + testy regresji. *(simple, task-472)*
 - [ ] **G84.1a** Model niesie `col`, `row` i właściciela regionu; region bez
@@ -355,6 +355,32 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
       task-474)*
 - [ ] **G84.1c** Kafel oddziału gracza oznaczony i przesuwający się po rozkazach
       (e2e przez dwa procesy mostu). *(standard, task-475)*
+
+## Kamień milowy 85 — widok bitwy w kliencie Godota (pierwszy plasterek)
+> Po mapie zostaje **jedyna całkowicie niewidoczna faza gry**: szturm daje dziś
+> wyłącznie jedną linię tekstu („porażka, straty 0/0"), choć most niesie pełną
+> bitwę. Kryterium z briefu wymaga obu widoków — mapy **i** bitwy. Zweryfikowane
+> empirycznie (`serve 73`, sekwencja `muster`→`march`→`assault`): snapshot dostaje
+> klucz `battle` z `hexes` (`q`, `r`, `terrain`: `"Plains"`, `side`:
+> `"attacker"`/`"defender"`, `hp`, `stunned`) oraz `result` (`"defender_win"`);
+> przed pierwszą bitwą klucza `battle` w snapshocie **nie ma**. Ograniczenie
+> znane z góry: snapshot niesie tylko heksy **zajęte przez jednostki**, więc ten
+> plasterek rysuje jednostki, a nie całe pole bitwy — pełna siatka terenu
+> wymagałaby rozszerzenia mostu i jest świadomie odłożona. Rdzeń `tbb` bez zmian;
+> wzorzec kafla i rozmieszczenia reużywamy z `MapView` (K84).
+- [ ] **G85.1a** `SnapshotModel` wystawia stan ostatniej bitwy: lista heksów
+      gotowych do pokazania (`q`, `r`, `terrain`, `side`, `hp`) i wynik bitwy
+      albo jednoznaczny brak, gdy snapshot nie ma klucza `battle`; heks bez
+      poprawnych współrzędnych lub strony odpada; atomowa walidacja modelu bez
+      zmian. *(simple)*
+- [ ] **G85.1b** Widok bitwy `BattleView`: jeden kafel na heks bitwy,
+      rozmieszczenie po współrzędnych osiowych `(q, r)`, kafle parami rozłączne,
+      strona (atakujący/broniący) rozróżnialna wzrokowo; brak bitwy → pusty
+      widok bez błędu. *(standard)*
+- [ ] **G85.1c** Klik „Szturmuj osadę" pokazuje bitwę na siatce zamiast samego
+      tekstu: po rozkazie widok ma kafle obu stron, wynik bitwy jest czytelny na
+      ekranie, a partia zostaje utrwalona (e2e przez dwa procesy mostu).
+      *(standard)*
 
 ## Dług/refaktor
 - [x] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
@@ -369,16 +395,21 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 - [x] **R15.1 (refaktor)** Kompaktacja DESIGN.md do stanu obecnego; historia → DECISIONS.md. *(task-094)*
 - [x] **R16.1 (refaktor)** Wspólny generator formularzy celu marsz/szturm w `serve.py`. *(task-098)*
 
-## Kolejne kierunki (po K82, do rozplanowania na kamienie)
+## Kolejne kierunki (po K85, do rozplanowania na kamienie)
 > Kolejność wynika z kryterium „gotowe" w `docs/PROJECT.md`. **Nie dokładamy
 > kolejnych przycisków rozkazu ani reguł rdzenia, dopóki te punkty stoją** —
 > most obsługuje więcej rozkazów, niż klient potrafi pokazać.
 - Rozkaz wybierany klikiem na cel na mapie, nie globalnym przyciskiem (po K84).
-- Widok bitwy: `battle_state` z mostu na siatce heksów (teren, jednostki, wynik),
-  potem sterowanie pojedynczą jednostką.
 - Zapis/odczyt z UI: jawne „Zapisz"/„Wczytaj" (protokół ma to od K68/K69).
 - Pakiet na Linuksa x86-64: preset eksportu + runtime Pythona, uruchomienie
-  jedną ikoną — domknięcie kryterium „gotowe".
+  jedną ikoną — domknięcie kryterium „gotowe". **Uwaga z przeglądu:** domyślna
+  komenda mostu składa ścieżkę `res://../src`, co działa wyłącznie w drzewie
+  źródeł — po eksporcie „start bez terminala" (K82) trzeba zweryfikować od nowa,
+  a `src/` dołączyć do pakietu. W środowisku brak zainstalowanych szablonów
+  eksportu Godota — to prerekwizyt toolchainu tego kamienia.
+- Pełne pole bitwy (teren pustych heksów, wymiary pola) — wymaga rozszerzenia
+  `tbbbridge.snapshot.battle_state`; dopiero gdy sam widok bitwy (K85) stoi.
+- Sterowanie pojedynczą jednostką w bitwie — po K85.
 
 ## Później (poza MVP)
 - [ ] **K62 (WSTRZYMANE — DECISIONS G63.0)** Rozbudowa alertu gospodarczego HTML

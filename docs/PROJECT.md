@@ -41,13 +41,20 @@ czytając logi**. Widok mapy i widok bitwy mają nieść stan gry wizualnie. **[
   księstwa, położeniem oddziału, statusem ostatniego rozkazu oraz przyciskami
   „Następna tura", „Rozwiń osadę", „Rekrutuj jednostkę", „Zbierz oddział",
   „Wyrusz w pole", „Szturmuj osadę".
+- **Start bez terminala działa** (K82): bez żadnej zmiennej `TBB_*` klient sam
+  składa komendę mostu, ścieżkę stanu w katalogu użytkownika i ziarno, a gdy
+  most nie wstanie — pokazuje komunikat zamiast martwej sceny.
+- **Układ ekranu czytelny** (K83): kontrolki w kontenerach, grupa stanu oddzielona
+  od grupy rozkazów, prostokąty parami rozłączne.
+- Repo gry posprzątane (R82.1): sondy testowe poza kodem produkcyjnym, `out/`
+  poza gitem.
 - `tbbui` (HTML/SVG) — **wyłącznie narzędzie diagnostyczne**, nie docelowy klient.
 
 **Czego brakuje do celu (nazwane wprost, bo tu jest cała reszta pracy):**
-klient startuje tylko ze zmiennymi `TBB_*` (czyli z terminala); kontrolki sceny
-leżą jedna na drugiej bez layoutu; nie ma widoku mapy ani żadnej wizualizacji
-bitwy w Godocie; nie ma zapisu/odczytu z poziomu UI; nie ma presetu eksportu ani
-pakietu na Linuksa.
+mapa istnieje tylko jako `ItemList` nazw (w kolejce: K84); bitwa jest całkowicie
+niewidoczna — szturm daje jedną linię tekstu, choć most niesie pełny stan bitwy
+(K85); nie ma zapisu/odczytu z poziomu UI; nie ma presetu eksportu ani pakietu na
+Linuksa (i to ostatnie może podważyć start bez terminala — patrz wniosek 4).
 
 ## Ograniczenia i priorytety
 - **[W]** Rdzeń `tbb` jest **jedynym źródłem reguł gry**. Godot nie duplikuje
@@ -76,6 +83,16 @@ pakietu na Linuksa.
    a ciągłość partii daje plik stanu (`serve --resume`). To zadziałało i zostaje.
 3. Odchudzanie kontraktu na liście (jedno pole / jedna grupa pól na zadanie)
    ratuje mikro-TDD tam, gdzie „cały słownik naraz" wcześniej wykładał kodera.
+4. **Start bez terminala jest zweryfikowany tylko w drzewie źródeł.** Domyślna
+   komenda mostu składa `PYTHONPATH=res://../src python3 -m tbbbridge`; po
+   eksporcie `res://` przestaje wskazywać na repo, więc kamień „pakiet na
+   Linuksa" musi *od nowa* udowodnić start bez terminala i dołączyć `src/` do
+   pakietu. Dodatkowo w środowisku nie ma zainstalowanych szablonów eksportu
+   Godota — to prerekwizyt toolchainu, nie zaskoczenie na koniec.
+5. Snapshot bitwy (`battle.hexes`) niesie **wyłącznie heksy zajęte przez
+   jednostki**, bez wymiarów pola i terenu pustych heksów. Pierwszy widok bitwy
+   rysuje więc jednostki, nie całą planszę; pełna siatka to osobna, późniejsza
+   zmiana mostu.
 
 ## Klimat, ton, kierunek wizualny
 Średniowiecze **bez magii i fantastyki**, surowy i realistyczny ton. **[W]**
@@ -95,17 +112,16 @@ jest czytelność stanu gry na ekranie. **[W]** dla istnienia obu widoków,
   produkcyjnym w `game/scripts/`, wersjonowane artefakty w `out/`. **[P]**
 
 ## Kolejne prawdopodobne etapy
-1. **Start bez terminala**: domyślna konfiguracja mostu i pliku stanu, gdy nie ma
-   `TBB_*` (kolejka: K82).
-2. **Czytelny układ ekranu**: kontenery Godota zamiast kontrolek w punkcie (0,0);
-   panel osady/księstwa oddzielony od panelu rozkazów.
-3. **Widok mapy**: regiony, osady i party rysowane w 2D zamiast `ItemList` nazw;
-   klik na region/osadę zamiast globalnych przycisków „Rozwiń/Szturmuj".
-4. **Widok bitwy**: `battle_state` z mostu na siatce heksów w Godocie — teren,
-   jednostki, wynik; potem sterowanie pojedynczą jednostką w bitwie.
+1. ~~Start bez terminala~~ (K82) i ~~czytelny układ ekranu~~ (K83) — **zrobione**.
+2. **Widok mapy**: regiony rysowane po siatce zamiast `ItemList` nazw, właściciel
+   i oddział gracza widoczne (kolejka: K84).
+3. **Widok bitwy**: heksy bitwy z mostu na ekranie — strony, kondycja, wynik
+   (kolejka: K85). Pełne pole bitwy i sterowanie jednostką dopiero potem.
+4. **Klik na cel na mapie** zamiast globalnych przycisków „Rozwiń/Szturmuj".
 5. **Zapis/odczyt z UI**: jawne „Zapisz"/„Wczytaj" (most ma to od K68/K69).
-6. **Pakiet na Linuksa**: preset eksportu, dołączony/wykryty runtime Pythona,
-   uruchomienie jedną ikoną — domknięcie kryterium sukcesu.
+6. **Pakiet na Linuksa**: preset eksportu, dołączony/wykryty runtime Pythona i
+   `src/`, uruchomienie jedną ikoną — domknięcie kryterium sukcesu. Zakłada
+   ponowną weryfikację startu bez terminala (wniosek 4).
 
 ## Świadomie odłożone
 - Scenariuszowa kampania/fabuła, multiplayer, magia, oddziały masowe, grafika
