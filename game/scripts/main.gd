@@ -135,6 +135,7 @@ func apply_model(model: SnapshotModel) -> void:
 		]
 	_render_region_list(model.regions)
 	%MapView.render_model(model)
+	%BattleView.render_model(model)
 
 
 func _render_region_list(regions: Array) -> void:
