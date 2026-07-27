@@ -7,6 +7,9 @@ const TILE_GAP := Vector2(12, 12)
 const PLAYER_COLOR := Color(0.16, 0.38, 0.78)
 const NEUTRAL_COLOR := Color(0.38, 0.38, 0.38)
 const AI_COLOR := Color(0.72, 0.18, 0.16)
+const GROUND_TEXTURE := preload("res://assets/map_ground.png")
+const SETTLEMENT_TEXTURE := preload("res://assets/settlement.png")
+const PARTY_TEXTURE := preload("res://assets/party_player.png")
 
 
 func render_model(model: SnapshotModel) -> void:
@@ -24,14 +27,36 @@ func _clear_tiles() -> void:
 			child.free()
 
 
+func _stretched_texture_rect(texture: Texture2D) -> TextureRect:
+	var rect := TextureRect.new()
+	rect.texture = texture
+	rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	rect.stretch_mode = TextureRect.STRETCH_SCALE
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return rect
+
+
+func _full_rect_layer(texture: Texture2D, layer_name: String) -> TextureRect:
+	var layer := _stretched_texture_rect(texture)
+	layer.name = layer_name
+	layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	return layer
+
+
 func _add_tile(region: Dictionary, player_party_region: Variant) -> void:
-	var tile := ColorRect.new()
+	var tile := Control.new()
 	tile.name = "RegionTile_%s" % region["name"]
-	tile.color = _owner_color(region.get("owner"))
 	tile.position = _grid_position(region)
 	tile.size = TILE_SIZE
 	tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(tile)
+
+	var ground := _full_rect_layer(GROUND_TEXTURE, "Ground")
+	ground.modulate = _owner_color(region.get("owner"))
+	tile.add_child(ground)
+
+	if region.get("settlement") != null:
+		tile.add_child(_full_rect_layer(SETTLEMENT_TEXTURE, "Settlement"))
 
 	var label := Label.new()
 	label.text = region["name"]
@@ -53,12 +78,10 @@ func _is_player_party_region(region: Dictionary, player_party_region: Variant) -
 
 
 func _add_player_party_marker(tile: Control) -> void:
-	var marker := ColorRect.new()
+	var marker := _stretched_texture_rect(PARTY_TEXTURE)
 	marker.name = "PlayerPartyMarker"
-	marker.color = Color(0.98, 0.86, 0.18)
 	marker.position = Vector2(TILE_SIZE.x - 24, 8)
 	marker.size = Vector2(16, 16)
-	marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tile.add_child(marker)
 
 

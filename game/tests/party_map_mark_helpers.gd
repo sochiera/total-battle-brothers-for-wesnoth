@@ -16,6 +16,30 @@ static func count_party_markers(map_view: Node) -> int:
 	return count
 
 
+## True when a visible PlayerPartyMarker carries a non-null Texture2D
+## (TextureRect / Sprite2D on the marker or a descendant). ColorRect-only marks fail.
+static func marker_has_texture(map_view: Node) -> bool:
+	for marker: Node in find_all_named(map_view, "PlayerPartyMarker"):
+		if not (marker is CanvasItem):
+			continue
+		if not (marker as CanvasItem).is_visible_in_tree():
+			continue
+		if _node_tree_has_texture(marker):
+			return true
+	return false
+
+
+static func _node_tree_has_texture(node: Node) -> bool:
+	if node is TextureRect and (node as TextureRect).texture != null:
+		return true
+	if node is Sprite2D and (node as Sprite2D).texture != null:
+		return true
+	for child: Node in node.get_children():
+		if _node_tree_has_texture(child):
+			return true
+	return false
+
+
 static func marked_party_regions(map_view: Node, expected_names: Array[String]) -> Array:
 	var marked: Array = []
 	var markers: Array = find_all_named(map_view, "PlayerPartyMarker")

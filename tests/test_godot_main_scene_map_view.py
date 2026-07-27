@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
 from godot_runner import run_godot_script
@@ -10,6 +11,17 @@ from godot_runner import run_godot_script
 ROOT = Path(__file__).resolve().parents[1]
 GAME = ROOT / "game"
 PREFIX = "MAP_VIEW "
+
+
+def _import_game_assets() -> subprocess.CompletedProcess[str]:
+    """Headless import so res://assets/*.png resolve to Texture2D."""
+    return subprocess.run(
+        ["godot", "--headless", "--path", str(GAME), "--import"],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=120,
+    )
 
 
 def _load_map_view() -> dict:
@@ -193,3 +205,70 @@ def test_map_view_marks_only_the_tile_of_player_party_region():
 
     # Direct render_model path marks from the model alone (no main.gd side channel).
     _assert_party_mark(direct_gamma, marked=["Gamma"], marker_count=1)
+
+
+def test_map_view_tiles_carry_asset_textures_for_owner_settlement_and_party():
+    """Region tiles and the party mark must show Texture2D from game/assets/.
+
+    Realistic defect this catches: MapView still paints solid ColorRect tiles
+    (and a ColorRect party mark). K84 geometry / owner-color / party-mark-count
+    gates stay green while the player never sees real graphics, settlement art,
+    or a textured army marker. Missing asset files must fail this gate (disk +
+    import + non-empty res://assets/ texture paths), not yield a silent color tile.
+    """
+    assets_dir = GAME / "assets"
+    for asset_name in ("map_ground.png", "settlement.png", "party_player.png"):
+        asset_path = assets_dir / asset_name
+        assert asset_path.is_file(), (
+            f"required map asset missing on disk: {asset_path} "
+            "(missing file must red-gate, not paint an empty color tile)"
+        )
+
+    imported = _import_game_assets()
+    assert imported.returncode == 0, (
+        f"godot --import failed rc={imported.returncode} "
+        f"stderr={imported.stderr!r} stdout={imported.stdout!r}"
+    )
+
+    payload = _load_map_view()
+    assert payload["map_view_found"] is True, payload
+    assert payload["has_render_model"] is True, payload
+
+    regions = payload["regions"]
+    by_region = {r["name"]: r for r in regions}
+    assert by_region["Alpha"].get("settlement") is not None, regions
+    assert by_region["Beta"].get("settlement") is None, regions
+    assert by_region["Gamma"].get("settlement") is None, regions
+
+    first = payload["tiles_after_first"]
+    assert len(first) == len(regions), first
+    by_name = _by_name(first)
+
+    for tile in first:
+        assert tile["has_texture"] is True, (
+            f"tile {tile['name']!r} must carry a Texture2D from assets, got {tile!r}"
+        )
+        assert tile["texture_paths"], tile
+        for path in tile["texture_paths"]:
+            assert isinstance(path, str) and path.startswith("res://assets/"), (
+                f"tile {tile['name']!r} texture must come from res://assets/, "
+                f"got {path!r} in {tile!r}"
+            )
+
+    # Settlement presence is visible as a different image set, not name text alone.
+    # Owner distinction (texture swap vs modulate) is left to visual/K84 — do not
+    # require Beta and Gamma (different owners, both without settlement) to share
+    # the same body texture set; AC allows per-owner textures.
+    alpha_paths = set(by_name["Alpha"]["texture_paths"])
+    beta_paths = set(by_name["Beta"]["texture_paths"])
+    assert alpha_paths != beta_paths, (
+        f"region with settlement must differ by texture from region without: "
+        f"Alpha={alpha_paths!r} Beta={beta_paths!r}"
+    )
+
+    # Party mark is a texture, not a ColorRect swatch.
+    on_alpha = payload["party_on_alpha"]
+    assert on_alpha["marker_count"] == 1, on_alpha
+    assert on_alpha["marker_has_texture"] is True, (
+        f"PlayerPartyMarker must carry Texture2D, got {on_alpha!r}"
+    )

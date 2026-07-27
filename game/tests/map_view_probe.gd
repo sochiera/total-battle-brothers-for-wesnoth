@@ -48,10 +48,17 @@ func _run() -> void:
 		return
 
 	# Single source of truth for synthetic regions; emitted in payload for Python.
+	# settlement mirrors map_state (dict or null) so G87.1b can observe settlement art.
 	var regions_full: Array = [
-		{"name": "Alpha", "col": 0, "row": 0, "owner": "player"},
-		{"name": "Beta", "col": 2, "row": 0, "owner": null},
-		{"name": "Gamma", "col": 0, "row": 1, "owner": "ai"},
+		{
+			"name": "Alpha",
+			"col": 0,
+			"row": 0,
+			"owner": "player",
+			"settlement": {"name": "Alpha Keep"},
+		},
+		{"name": "Beta", "col": 2, "row": 0, "owner": null, "settlement": null},
+		{"name": "Gamma", "col": 0, "row": 1, "owner": "ai", "settlement": null},
 	]
 	var names_full: Array[String] = []
 	for region: Variant in regions_full:
@@ -154,6 +161,7 @@ func _party_mark_sample(
 		"position_label": "" if position_label == null else position_label.text,
 		"marked_regions": PartyMapMark.marked_party_regions(map_view, names),
 		"marker_count": PartyMapMark.count_party_markers(map_view),
+		"marker_has_texture": PartyMapMark.marker_has_texture(map_view),
 	}
 
 
@@ -175,6 +183,9 @@ func _collect_tiles(map_view: Node, expected_names: Array[String]) -> Array:
 			continue
 		var tile: Control = PartyMapMark.tile_control(label, map_view)
 		var rect: Rect2 = tile.get_global_rect()
+		# Region body textures only — exclude party marker so settlement/owner
+		# comparison stays independent of whether the army is parked here.
+		var texture_paths: Array = _region_texture_paths(tile)
 		tiles.append({
 			"name": region_name,
 			"x": rect.position.x,
@@ -183,17 +194,60 @@ func _collect_tiles(map_view: Node, expected_names: Array[String]) -> Array:
 			"h": rect.size.y,
 			"visible": tile.is_visible_in_tree() and label.is_visible_in_tree(),
 			"visual": _visual_key(tile),
+			"has_texture": not texture_paths.is_empty(),
+			"texture_paths": texture_paths,
 		})
 	return tiles
 
 
+func _region_texture_paths(tile: Control) -> Array:
+	return _collect_texture_paths_excluding_party_marker(tile)
+
+
+func _collect_texture_paths_excluding_party_marker(node: Node) -> Array:
+	if str(node.name) == "PlayerPartyMarker":
+		return []
+	var paths: Array = []
+	var path: String = _direct_texture_path(node)
+	if not path.is_empty():
+		paths.append(path)
+	for child: Node in node.get_children():
+		paths.append_array(_collect_texture_paths_excluding_party_marker(child))
+	return paths
+
+
+func _direct_texture_path(node: Node) -> String:
+	if node is TextureRect:
+		var tr: TextureRect = node as TextureRect
+		if tr.texture != null:
+			var p: String = tr.texture.resource_path
+			return p if not p.is_empty() else "<embedded>"
+	if node is Sprite2D:
+		var sp: Sprite2D = node as Sprite2D
+		if sp.texture != null:
+			var p2: String = sp.texture.resource_path
+			return p2 if not p2.is_empty() else "<embedded>"
+	return ""
+
+
 func _visual_key(tile: Control) -> String:
-	# Observable paint of the tile body — ColorRect.color when present, else modulate.
+	# Ownership paint only — not settlement/marker. Supports ColorRect.color,
+	# root TextureRect.modulate, or a ground-layer child (when root is an
+	# un-tinted Control so label/marker keep default color).
 	if tile is ColorRect:
 		return _color_key((tile as ColorRect).color)
+	if tile is TextureRect:
+		var root_mod: Color = (tile as CanvasItem).modulate
+		if root_mod != Color(1, 1, 1, 1):
+			return _color_key(root_mod)
 	for child: Node in tile.get_children():
+		var child_name: String = str(child.name)
+		if child_name == "PlayerPartyMarker" or child_name == "Settlement":
+			continue
 		if child is ColorRect:
 			return _color_key((child as ColorRect).color)
+		if child is TextureRect:
+			return _color_key((child as CanvasItem).modulate)
 	return _color_key(tile.modulate)
 
 
