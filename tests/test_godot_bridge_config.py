@@ -12,6 +12,8 @@ PREFIX = "BRIDGE_CONFIG "
 VALIDITY_PREFIX = "BRIDGE_CONFIG_VALIDITY "
 ENVIRONMENT_PROBE = "res://tests/bridge_config_environment_probe.gd"
 ENVIRONMENT_PREFIX = "BRIDGE_CONFIG_ENVIRONMENT "
+DEFAULT_PROBE = "res://tests/bridge_config_default_probe.gd"
+DEFAULT_PREFIX = "BRIDGE_CONFIG_DEFAULT "
 
 
 def test_bridge_config_from_values_trims_valid_values_and_rejects_invalid_ones():
@@ -105,3 +107,30 @@ def test_bridge_config_from_environment_delegates_environment_values_to_from_val
         assert len(lines) == 1, result.stdout
         assert "SCRIPT ERROR" not in result.stderr, result.stderr
         assert json.loads(lines[0][len(ENVIRONMENT_PREFIX) :]) == expected
+
+
+def test_bridge_config_default_values_are_valid_deterministic_and_stay_in_user_data(
+    tmp_path,
+):
+    environment = dict(os.environ)
+    for variable in ("TBB_BRIDGE_COMMAND", "TBB_STATE_PATH", "TBB_SEED"):
+        environment.pop(variable, None)
+    environment["XDG_DATA_HOME"] = str(tmp_path / "xdg-data")
+
+    result = run_godot_script(GAME, DEFAULT_PROBE, timeout=30, env=environment)
+
+    assert result.returncode == 0, result.stderr
+    assert "SCRIPT ERROR" not in result.stderr, result.stderr
+    lines = [line for line in result.stdout.splitlines() if line.startswith(DEFAULT_PREFIX)]
+    assert len(lines) == 1, result.stdout
+    payload = json.loads(lines[0][len(DEFAULT_PREFIX) :])
+
+    assert payload["available"] is True
+    assert payload["valid"] is True
+    assert payload["first"] == payload["second"]
+    assert payload["first"]["command"]
+    assert Path(payload["first"]["state_path"]).is_absolute()
+    assert Path(payload["first"]["state_path"]).is_relative_to(
+        Path(payload["user_directory"])
+    )
+    assert payload["state_file_exists"] is False

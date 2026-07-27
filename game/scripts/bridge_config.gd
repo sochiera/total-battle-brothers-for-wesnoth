@@ -2,6 +2,19 @@ class_name BridgeConfig
 extends RefCounted
 
 
+const DEFAULT_COMMAND := "python3 -m tbbbridge"
+const DEFAULT_STATE_FILE := "bridge_state.jsonl"
+const DEFAULT_SEED := 0
+
+
+static func default_values() -> Dictionary:
+	return {
+		"command": DEFAULT_COMMAND,
+		"state_path": ProjectSettings.globalize_path("user://".path_join(DEFAULT_STATE_FILE)),
+		"seed": DEFAULT_SEED,
+	}
+
+
 static func from_values(command: String, state_path: String, seed_text: String) -> Variant:
 	var trimmed_command := command.strip_edges()
 	var trimmed_state_path := state_path.strip_edges()
