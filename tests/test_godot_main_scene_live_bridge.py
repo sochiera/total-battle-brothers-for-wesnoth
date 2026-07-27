@@ -9,7 +9,7 @@ from tbbbridge.session import new_session
 
 ROOT = Path(__file__).resolve().parents[1]
 GAME = ROOT / "game"
-PROBE = GAME / "scripts" / "scene_live_probe.gd"
+PROBE = GAME / "tests" / "scene_live_probe.gd"
 PREFIX = "SCENE_LIVE "
 SEED = 7
 
@@ -28,7 +28,7 @@ def assert_probe_failure(result, message):
 
 
 def test_scene_live_probe_renders_snapshot_from_real_bridge(tmp_path):
-    assert PROBE.is_file(), "missing res://scripts/scene_live_probe.gd"
+    assert PROBE.is_file(), "missing res://tests/scene_live_probe.gd"
 
     command = (
         f"PYTHONPATH={shlex.quote(str(ROOT / 'src'))} "
@@ -36,7 +36,7 @@ def test_scene_live_probe_renders_snapshot_from_real_bridge(tmp_path):
     )
     result = run_godot_script(
         GAME,
-        "res://scripts/scene_live_probe.gd",
+        "res://tests/scene_live_probe.gd",
         command,
         str(tmp_path / "bridge-request.jsonl"),
         timeout=30,
@@ -63,7 +63,7 @@ def test_scene_live_probe_renders_snapshot_from_real_bridge(tmp_path):
 def test_scene_live_probe_leaves_controls_empty_when_bridge_fails(tmp_path):
     result = run_godot_script(
         GAME,
-        "res://scripts/scene_live_probe.gd",
+        "res://tests/scene_live_probe.gd",
         "false",
         str(tmp_path / "bridge-request.jsonl"),
         timeout=30,
@@ -83,7 +83,7 @@ def test_scene_live_probe_leaves_controls_empty_when_bridge_fails(tmp_path):
 
 def test_scene_live_probe_rejects_missing_bridge_command():
     result = run_godot_script(
-        GAME, "res://scripts/scene_live_probe.gd", timeout=30
+        GAME, "res://tests/scene_live_probe.gd", timeout=30
     )
 
     assert_probe_failure(result, "scene_live_probe: missing bridge command")
@@ -94,10 +94,12 @@ def test_scene_live_probe_reports_missing_main_scene(tmp_path):
     project.mkdir()
     shutil.copy2(GAME / "project.godot", project / "project.godot")
     shutil.copytree(GAME / "scripts", project / "scripts")
+    (project / "tests").mkdir()
+    shutil.copy2(PROBE, project / "tests" / PROBE.name)
 
     result = run_godot_script(
         project,
-        "res://scripts/scene_live_probe.gd",
+        "res://tests/scene_live_probe.gd",
         "false",
         timeout=30,
     )

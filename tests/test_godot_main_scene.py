@@ -18,7 +18,7 @@ PARTY_POSITION_PREFIX = "PARTY_POSITION "
 
 def test_scene_probe_reports_main_scene_root():
     result = run_godot_script(
-        GAME, "res://scripts/scene_probe.gd", timeout=30
+        GAME, "res://tests/scene_probe.gd", timeout=30
     )
 
     assert result.returncode == 0, result.stderr

@@ -13,9 +13,9 @@ ROOT = Path(__file__).resolve().parents[1]
 GAME = ROOT / "game"
 CLIENT_SCRIPT = GAME / "scripts" / "bridge_client.gd"
 MAIN_SCRIPT = GAME / "scripts" / "main.gd"
-PROBE = GAME / "scripts" / "bridge_order_probe.gd"
+PROBE = GAME / "tests" / "bridge_order_probe.gd"
 PREFIX = "BRIDGE_ORDER "
-FAILURE_PROBE = GAME / "scripts" / "bridge_order_failure_probe.gd"
+FAILURE_PROBE = GAME / "tests" / "bridge_order_failure_probe.gd"
 FAILURE_PREFIX = "BRIDGE_ORDER_FAILURE "
 
 
@@ -30,14 +30,14 @@ def test_main_reads_the_last_order_result_through_the_named_client_api():
 
 
 def test_persistent_bridge_send_order_persists_and_returns_the_post_order_model(tmp_path):
-    assert PROBE.is_file(), "missing res://scripts/bridge_order_probe.gd"
+    assert PROBE.is_file(), "missing res://tests/bridge_order_probe.gd"
     state_path = tmp_path / "campaign-state.json"
     request_path = tmp_path / "bridge-request.jsonl"
     command = f"PYTHONPATH={shlex.quote(str(ROOT / 'src'))} python3 -m tbbbridge"
 
     result = run_godot_script(
         GAME,
-        "res://scripts/bridge_order_probe.gd",
+        "res://tests/bridge_order_probe.gd",
         command,
         str(state_path),
         str(request_path),
@@ -89,12 +89,12 @@ def test_persistent_bridge_send_order_persists_and_returns_the_post_order_model(
     ids=["order_rejected", "save_rejected", "missing_response", "unusable_order_snapshot", "malformed_response", "process_fails"],
 )
 def test_persistent_bridge_send_order_discards_all_failed_batches(tmp_path, program):
-    assert FAILURE_PROBE.is_file(), "missing res://scripts/bridge_order_failure_probe.gd"
+    assert FAILURE_PROBE.is_file(), "missing res://tests/bridge_order_failure_probe.gd"
     command = f"{shlex.quote(sys.executable)} -c {shlex.quote(program)}"
 
     result = run_godot_script(
         GAME,
-        "res://scripts/bridge_order_failure_probe.gd",
+        "res://tests/bridge_order_failure_probe.gd",
         command,
         str(tmp_path / "campaign-state.json"),
         str(tmp_path / "bridge-request.jsonl"),
@@ -109,11 +109,11 @@ def test_persistent_bridge_send_order_discards_all_failed_batches(tmp_path, prog
 
 
 def test_non_persistent_bridge_send_order_returns_null_without_running_the_bridge(tmp_path):
-    assert FAILURE_PROBE.is_file(), "missing res://scripts/bridge_order_failure_probe.gd"
+    assert FAILURE_PROBE.is_file(), "missing res://tests/bridge_order_failure_probe.gd"
     marker = tmp_path / "bridge-ran"
     result = run_godot_script(
         GAME,
-        "res://scripts/bridge_order_failure_probe.gd",
+        "res://tests/bridge_order_failure_probe.gd",
         f"touch {shlex.quote(str(marker))}",
         str(tmp_path / "campaign-state.json"),
         str(tmp_path / "bridge-request.jsonl"),
@@ -130,11 +130,11 @@ def test_non_persistent_bridge_send_order_returns_null_without_running_the_bridg
 
 
 def test_persistent_bridge_send_order_returns_null_when_the_real_bridge_rejects_it(tmp_path):
-    assert FAILURE_PROBE.is_file(), "missing res://scripts/bridge_order_failure_probe.gd"
+    assert FAILURE_PROBE.is_file(), "missing res://tests/bridge_order_failure_probe.gd"
     command = f"PYTHONPATH={shlex.quote(str(ROOT / 'src'))} python3 -m tbbbridge"
     result = run_godot_script(
         GAME,
-        "res://scripts/bridge_order_failure_probe.gd",
+        "res://tests/bridge_order_failure_probe.gd",
         command,
         str(tmp_path / "campaign-state.json"),
         str(tmp_path / "bridge-request.jsonl"),

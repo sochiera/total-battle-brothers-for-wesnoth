@@ -28,7 +28,7 @@ def test_snapshot_probe_prints_projection_of_bridge_response(tmp_path):
     )
 
     result = run_godot_script(
-        GAME, "res://scripts/snapshot_probe.gd", str(response_path), timeout=30
+        GAME, "res://tests/snapshot_probe.gd", str(response_path), timeout=30
     )
 
     assert result.returncode == 0, result.stderr
@@ -49,7 +49,7 @@ def test_snapshot_probe_prints_null_for_error_response(tmp_path):
     )
 
     result = run_godot_script(
-        GAME, "res://scripts/snapshot_probe.gd", str(response_path), timeout=30
+        GAME, "res://tests/snapshot_probe.gd", str(response_path), timeout=30
     )
 
     assert result.returncode == 0, result.stderr
@@ -63,7 +63,7 @@ def test_snapshot_probe_prints_null_when_snapshot_key_missing(tmp_path):
     response_path.write_text(json.dumps({"ok": True}), encoding="utf-8")
 
     result = run_godot_script(
-        GAME, "res://scripts/snapshot_probe.gd", str(response_path), timeout=30
+        GAME, "res://tests/snapshot_probe.gd", str(response_path), timeout=30
     )
 
     assert result.returncode == 0, result.stderr
@@ -82,7 +82,7 @@ def test_snapshot_probe_prints_null_when_snapshot_section_missing(tmp_path, sect
     )
 
     result = run_godot_script(
-        GAME, "res://scripts/snapshot_probe.gd", str(response_path), timeout=30
+        GAME, "res://tests/snapshot_probe.gd", str(response_path), timeout=30
     )
 
     assert_null_probe_result(result)
@@ -111,7 +111,7 @@ def test_snapshot_probe_prints_null_when_required_leaf_missing(
     )
 
     result = run_godot_script(
-        GAME, "res://scripts/snapshot_probe.gd", str(response_path), timeout=30
+        GAME, "res://tests/snapshot_probe.gd", str(response_path), timeout=30
     )
 
     assert_null_probe_result(result)
@@ -140,7 +140,7 @@ def test_snapshot_probe_prints_null_when_required_leaf_has_invalid_type(
     )
 
     result = run_godot_script(
-        GAME, "res://scripts/snapshot_probe.gd", str(response_path), timeout=30
+        GAME, "res://tests/snapshot_probe.gd", str(response_path), timeout=30
     )
 
     assert_null_probe_result(result)
@@ -156,7 +156,7 @@ def test_snapshot_probe_prints_null_when_snapshot_map_is_not_dictionary(tmp_path
     )
 
     result = run_godot_script(
-        GAME, "res://scripts/snapshot_probe.gd", str(response_path), timeout=30
+        GAME, "res://tests/snapshot_probe.gd", str(response_path), timeout=30
     )
 
     assert_null_probe_result(result)
@@ -169,7 +169,7 @@ def test_snapshot_probe_prints_null_when_snapshot_is_not_dictionary(tmp_path):
     )
 
     result = run_godot_script(
-        GAME, "res://scripts/snapshot_probe.gd", str(response_path), timeout=30
+        GAME, "res://tests/snapshot_probe.gd", str(response_path), timeout=30
     )
 
     assert result.returncode == 0, result.stderr

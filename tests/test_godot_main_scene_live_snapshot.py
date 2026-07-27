@@ -29,7 +29,7 @@ def test_scene_bind_probe_applies_live_snapshot_after_three_turns(tmp_path, monk
     )
     monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "xdg_data"))
     result = run_godot_script(
-        GAME, "res://scripts/scene_bind_probe.gd", str(response_path), timeout=30
+        GAME, "res://tests/scene_bind_probe.gd", str(response_path), timeout=30
     )
 
     assert result.returncode == 0, result.stderr
@@ -69,7 +69,7 @@ def test_scene_bind_probe_clears_status_when_the_next_model_has_no_player_duchy(
 
     result = run_godot_script(
         GAME,
-        "res://scripts/scene_bind_probe.gd",
+        "res://tests/scene_bind_probe.gd",
         str(response_path),
         "1",
         "clear_status",

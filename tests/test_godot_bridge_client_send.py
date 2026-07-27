@@ -7,7 +7,7 @@ from godot_runner import run_godot_script
 
 ROOT = Path(__file__).resolve().parents[1]
 GAME = ROOT / "game"
-PROBE = GAME / "scripts" / "bridge_call_probe.gd"
+PROBE = GAME / "tests" / "bridge_call_probe.gd"
 PREFIX = "BRIDGE_CALL "
 
 
@@ -28,7 +28,7 @@ def _assert_null_call(result) -> None:
 
 
 def test_bridge_call_probe_sends_snapshot_to_the_real_bridge(tmp_path):
-    assert PROBE.is_file(), "missing res://scripts/bridge_call_probe.gd"
+    assert PROBE.is_file(), "missing res://tests/bridge_call_probe.gd"
 
     request_path = tmp_path / "bridge-request.jsonl"
     command = (
@@ -38,7 +38,7 @@ def test_bridge_call_probe_sends_snapshot_to_the_real_bridge(tmp_path):
 
     result = run_godot_script(
         GAME,
-        "res://scripts/bridge_call_probe.gd",
+        "res://tests/bridge_call_probe.gd",
         command,
         str(request_path),
         timeout=30,
@@ -55,7 +55,7 @@ def test_bridge_call_probe_sends_snapshot_to_the_real_bridge(tmp_path):
     for failed_command in ("exit 3", "missing-tbbbridge-command"):
         failed_result = run_godot_script(
             GAME,
-            "res://scripts/bridge_call_probe.gd",
+            "res://tests/bridge_call_probe.gd",
             failed_command,
             str(tmp_path / (failed_command + ".jsonl")),
             timeout=30,
@@ -64,7 +64,7 @@ def test_bridge_call_probe_sends_snapshot_to_the_real_bridge(tmp_path):
 
     empty_stdout = run_godot_script(
         GAME,
-        "res://scripts/bridge_call_probe.gd",
+        "res://tests/bridge_call_probe.gd",
         "true",
         str(tmp_path / "empty-stdout-request.jsonl"),
         timeout=30,
@@ -73,7 +73,7 @@ def test_bridge_call_probe_sends_snapshot_to_the_real_bridge(tmp_path):
 
     unopenable_request = run_godot_script(
         GAME,
-        "res://scripts/bridge_call_probe.gd",
+        "res://tests/bridge_call_probe.gd",
         "true",
         str(tmp_path / "missing-directory" / "request.jsonl"),
         timeout=30,
@@ -82,7 +82,7 @@ def test_bridge_call_probe_sends_snapshot_to_the_real_bridge(tmp_path):
 
     default_request_path = run_godot_script(
         GAME,
-        "res://scripts/bridge_call_probe.gd",
+        "res://tests/bridge_call_probe.gd",
         command,
         timeout=30,
     )
@@ -93,7 +93,7 @@ def test_bridge_call_probe_sends_snapshot_to_the_real_bridge(tmp_path):
 
     missing_command = run_godot_script(
         GAME,
-        "res://scripts/bridge_call_probe.gd",
+        "res://tests/bridge_call_probe.gd",
         timeout=30,
     )
     assert missing_command.returncode == 2

@@ -16,10 +16,10 @@ BATCH_PREFIX = "BRIDGE_BATCH "
 def test_bridge_protocol_exposes_the_required_public_entrypoints():
     """G71.2a1: Godot receives a protocol client and a parse probe."""
     client_path = SCRIPTS / "bridge_client.gd"
-    probe_path = SCRIPTS / "bridge_parse_probe.gd"
+    probe_path = GAME / "tests" / "bridge_parse_probe.gd"
 
     assert client_path.is_file(), "missing res://scripts/bridge_client.gd"
-    assert probe_path.is_file(), "missing res://scripts/bridge_parse_probe.gd"
+    assert probe_path.is_file(), "missing res://tests/bridge_parse_probe.gd"
 
     client = client_path.read_text(encoding="utf-8")
     assert "extends RefCounted" in client
@@ -44,7 +44,7 @@ def test_bridge_protocol_exposes_send_many_entrypoint():
 
 def run_batch_probe(*args: str):
     return run_godot_script(
-        GAME, "res://scripts/bridge_batch_probe.gd", *args, timeout=30
+        GAME, "res://tests/bridge_batch_probe.gd", *args, timeout=30
     )
 
 
@@ -84,7 +84,7 @@ def run_parse_probe(tmp_path, output: str):
     output_path = tmp_path / "bridge-output.txt"
     output_path.write_text(output, encoding="utf-8")
     result = run_godot_script(
-        GAME, "res://scripts/bridge_parse_probe.gd", str(output_path), timeout=30
+        GAME, "res://tests/bridge_parse_probe.gd", str(output_path), timeout=30
     )
 
     assert result.returncode == 0, result.stderr
@@ -120,7 +120,7 @@ def test_bridge_parse_probe_serializes_request_and_first_dictionary_response(
 @pytest.mark.parametrize("args", [(), ("/definitely/missing/bridge-output.txt",)])
 def test_bridge_parse_probe_reports_missing_or_unreadable_input(args):
     result = run_godot_script(
-        GAME, "res://scripts/bridge_parse_probe.gd", *args, timeout=30
+        GAME, "res://tests/bridge_parse_probe.gd", *args, timeout=30
     )
 
     assert result.returncode == 2

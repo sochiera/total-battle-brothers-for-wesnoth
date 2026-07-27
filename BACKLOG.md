@@ -334,13 +334,11 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
       cichej martwej sceny)*
 
 ## Dług/refaktor
-- [ ] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
-      (`game/scripts/*_probe.gd`) wymieszane z kodem produkcyjnym klienta —
-      przenieść do `game/tests/` obok pozostałych sond i zaktualizować ścieżki w
-      testach Pythona; wersjonowane artefakty w `out/` (`game.html`,
-      `state.json`, `state.json.ref`) — usunąć z gita i dopisać do `.gitignore`,
-      chyba że `state.json.ref` jest realnym fixture (wtedy przenieść do
-      `tests/`). Bramka zielona przed i po. *(standard)*
+- [ ] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: wersjonowane
+      artefakty w `out/` (`game.html`, `state.json`, `state.json.ref`) — usunąć
+      z gita i dopisać do `.gitignore`, chyba że `state.json.ref` jest realnym
+      fixture (wtedy przenieść do `tests/`). Bramka zielona przed i po.
+      *(standard; część o sondach `*_probe.gd` zamknięta w R82.1a / task-469)*
 - [x] **R73.1 (dług techniczny)** Jedno źródło reguł poprawnej konfiguracji
       startowej: `main.gd._is_valid_session_config` duplikował warunki
       `BridgeConfig.from_values`; scalone w `BridgeConfig` + testy regresji.

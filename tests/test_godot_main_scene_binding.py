@@ -20,7 +20,7 @@ def test_scene_bind_probe_applies_model_date_regions_and_result(tmp_path):
     )
 
     result = run_godot_script(
-        GAME, "res://scripts/scene_bind_probe.gd", str(response_path), timeout=30
+        GAME, "res://tests/scene_bind_probe.gd", str(response_path), timeout=30
     )
 
     assert result.returncode == 0, result.stderr
@@ -51,7 +51,7 @@ def test_scene_bind_probe_uses_result_from_model_not_constant(tmp_path):
     )
 
     result = run_godot_script(
-        GAME, "res://scripts/scene_bind_probe.gd", str(response_path), timeout=30
+        GAME, "res://tests/scene_bind_probe.gd", str(response_path), timeout=30
     )
 
     assert result.returncode == 0, result.stderr
@@ -81,7 +81,7 @@ def test_scene_bind_probe_skips_regions_without_string_name(tmp_path):
     )
 
     result = run_godot_script(
-        GAME, "res://scripts/scene_bind_probe.gd", str(response_path), timeout=30
+        GAME, "res://tests/scene_bind_probe.gd", str(response_path), timeout=30
     )
 
     assert result.returncode == 0, result.stderr
@@ -103,11 +103,11 @@ def test_scene_bind_probe_is_idempotent_for_repeated_model_application(tmp_path)
     )
 
     single = run_godot_script(
-        GAME, "res://scripts/scene_bind_probe.gd", str(response_path), timeout=30
+        GAME, "res://tests/scene_bind_probe.gd", str(response_path), timeout=30
     )
     repeated = run_godot_script(
         GAME,
-        "res://scripts/scene_bind_probe.gd",
+        "res://tests/scene_bind_probe.gd",
         str(response_path),
         "3",
         timeout=30,
@@ -139,7 +139,7 @@ def test_scene_bind_probe_rejects_invalid_application_count(tmp_path, applicatio
 
     result = run_godot_script(
         GAME,
-        "res://scripts/scene_bind_probe.gd",
+        "res://tests/scene_bind_probe.gd",
         str(response_path),
         applications,
         timeout=30,

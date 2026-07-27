@@ -10,7 +10,7 @@ from godot_runner import run_godot_script
 
 ROOT = Path(__file__).resolve().parents[1]
 GAME = ROOT / "game"
-PROBE = GAME / "scripts" / "bridge_persisted_sequence_probe.gd"
+PROBE = GAME / "tests" / "bridge_persisted_sequence_probe.gd"
 PREFIX = "BRIDGE_PERSISTED_SEQUENCE "
 
 
@@ -28,7 +28,7 @@ PREFIX = "BRIDGE_PERSISTED_SEQUENCE "
     ids=["command_rejected", "save_rejected", "missing_save", "success"],
 )
 def test_persisted_commands_share_rejection_rules_and_save_request(tmp_path, program, expected_models):
-    assert PROBE.is_file(), "missing res://scripts/bridge_persisted_sequence_probe.gd"
+    assert PROBE.is_file(), "missing res://tests/bridge_persisted_sequence_probe.gd"
     state_path = tmp_path / "campaign-state.json"
     bridge_script = tmp_path / "bridge.py"
     bridge_script.write_text(program, encoding="utf-8")
@@ -36,7 +36,7 @@ def test_persisted_commands_share_rejection_rules_and_save_request(tmp_path, pro
 
     result = run_godot_script(
         GAME,
-        "res://scripts/bridge_persisted_sequence_probe.gd",
+        "res://tests/bridge_persisted_sequence_probe.gd",
         command,
         str(state_path),
         str(tmp_path / "advance-request.jsonl"),

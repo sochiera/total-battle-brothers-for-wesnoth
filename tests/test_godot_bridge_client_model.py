@@ -8,7 +8,7 @@ from tbbbridge.session import new_session
 
 ROOT = Path(__file__).resolve().parents[1]
 GAME = ROOT / "game"
-PROBE = GAME / "scripts" / "bridge_model_probe.gd"
+PROBE = GAME / "tests" / "bridge_model_probe.gd"
 PREFIX = "BRIDGE_MODEL "
 SEED = 7
 
@@ -22,7 +22,7 @@ def _model_output(result):
 
 
 def test_bridge_model_probe_projects_snapshot_from_the_real_bridge(tmp_path):
-    assert PROBE.is_file(), "missing res://scripts/bridge_model_probe.gd"
+    assert PROBE.is_file(), "missing res://tests/bridge_model_probe.gd"
 
     request_path = tmp_path / "bridge-request.jsonl"
     command = (
@@ -31,7 +31,7 @@ def test_bridge_model_probe_projects_snapshot_from_the_real_bridge(tmp_path):
     )
     result = run_godot_script(
         GAME,
-        "res://scripts/bridge_model_probe.gd",
+        "res://tests/bridge_model_probe.gd",
         command,
         str(request_path),
         timeout=30,
@@ -56,12 +56,12 @@ def test_bridge_model_probe_projects_snapshot_from_the_real_bridge(tmp_path):
 
 
 def test_bridge_model_probe_returns_null_for_unusable_responses(tmp_path):
-    assert PROBE.is_file(), "missing res://scripts/bridge_model_probe.gd"
+    assert PROBE.is_file(), "missing res://tests/bridge_model_probe.gd"
 
     for command in ("exit 3", "printf '%s\\n' '{\"ok\": false, \"error\": \"boom\"}'"):
         result = run_godot_script(
             GAME,
-            "res://scripts/bridge_model_probe.gd",
+            "res://tests/bridge_model_probe.gd",
             command,
             str(tmp_path / "bridge-request.jsonl"),
             timeout=30,
@@ -70,10 +70,10 @@ def test_bridge_model_probe_returns_null_for_unusable_responses(tmp_path):
 
 
 def test_bridge_model_probe_reports_a_missing_command():
-    assert PROBE.is_file(), "missing res://scripts/bridge_model_probe.gd"
+    assert PROBE.is_file(), "missing res://tests/bridge_model_probe.gd"
 
     result = run_godot_script(
-        GAME, "res://scripts/bridge_model_probe.gd", timeout=30
+        GAME, "res://tests/bridge_model_probe.gd", timeout=30
     )
 
     assert result.returncode == 2

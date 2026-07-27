@@ -10,7 +10,7 @@ from tbbbridge.session import new_session
 
 ROOT = Path(__file__).resolve().parents[1]
 GAME = ROOT / "game"
-PROBE = GAME / "scripts" / "bridge_many_probe.gd"
+PROBE = GAME / "tests" / "bridge_many_probe.gd"
 PREFIX = "BRIDGE_MANY "
 SEED = 7
 ONE_RESPONSE_COMMAND = "echo eyJvayI6IHRydWV9 | base64 -d"
@@ -35,7 +35,7 @@ def _payload(result) -> dict:
 def _run(tmp_path, command: str, *options: str):
     return run_godot_script(
         GAME,
-        "res://scripts/bridge_many_probe.gd",
+        "res://tests/bridge_many_probe.gd",
         command,
         str(tmp_path / "bridge-request.jsonl"),
         *options,
@@ -44,7 +44,7 @@ def _run(tmp_path, command: str, *options: str):
 
 
 def test_bridge_many_probe_sends_ordered_turn_batch_to_the_real_bridge(tmp_path):
-    assert PROBE.is_file(), "missing res://scripts/bridge_many_probe.gd"
+    assert PROBE.is_file(), "missing res://tests/bridge_many_probe.gd"
 
     payload = _payload(_run(tmp_path, _command()))
     session = new_session(SEED)
@@ -80,7 +80,7 @@ def test_bridge_many_returns_empty_list_for_process_failure_or_empty_stdout(tmp_
 def test_bridge_many_returns_empty_list_when_request_file_cannot_be_written(tmp_path):
     result = run_godot_script(
         GAME,
-        "res://scripts/bridge_many_probe.gd",
+        "res://tests/bridge_many_probe.gd",
         _command(),
         str(tmp_path / "missing-directory" / "bridge-request.jsonl"),
         "--allow-empty",

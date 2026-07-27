@@ -12,17 +12,17 @@ from tbbbridge.session import new_session
 
 ROOT = Path(__file__).resolve().parents[1]
 GAME = ROOT / "game"
-PROBE = GAME / "scripts" / "bridge_persistent_api_probe.gd"
-PERSISTENT_PROBE = GAME / "scripts" / "bridge_persistent_probe.gd"
-ADVANCE_PROBE = GAME / "scripts" / "bridge_advance_turn_probe.gd"
-ADVANCE_FAILURE_PROBE = GAME / "scripts" / "bridge_advance_turn_failure_probe.gd"
+PROBE = GAME / "tests" / "bridge_persistent_api_probe.gd"
+PERSISTENT_PROBE = GAME / "tests" / "bridge_persistent_probe.gd"
+ADVANCE_PROBE = GAME / "tests" / "bridge_advance_turn_probe.gd"
+ADVANCE_FAILURE_PROBE = GAME / "tests" / "bridge_advance_turn_failure_probe.gd"
 
 
 def test_persistent_bridge_client_exposes_command_selection_api():
-    assert PROBE.is_file(), "missing res://scripts/bridge_persistent_api_probe.gd"
+    assert PROBE.is_file(), "missing res://tests/bridge_persistent_api_probe.gd"
 
     result = run_godot_script(
-        GAME, "res://scripts/bridge_persistent_api_probe.gd", timeout=30
+        GAME, "res://tests/bridge_persistent_api_probe.gd", timeout=30
     )
 
     assert result.returncode == 0, result.stderr
@@ -30,7 +30,7 @@ def test_persistent_bridge_client_exposes_command_selection_api():
 
 
 def test_persistent_bridge_switches_to_a_quoted_resume_command_and_executes_it(tmp_path):
-    assert PERSISTENT_PROBE.is_file(), "missing res://scripts/bridge_persistent_probe.gd"
+    assert PERSISTENT_PROBE.is_file(), "missing res://tests/bridge_persistent_probe.gd"
     saved_state = tmp_path / "saved-session.json"
     save_session(new_session(seed=73), saved_state)
     state_path = tmp_path / "state file's copy.json"
@@ -38,7 +38,7 @@ def test_persistent_bridge_switches_to_a_quoted_resume_command_and_executes_it(t
 
     result = run_godot_script(
         GAME,
-        "res://scripts/bridge_persistent_probe.gd",
+        "res://tests/bridge_persistent_probe.gd",
         prefix,
         str(state_path),
         str(saved_state),
@@ -56,7 +56,7 @@ def test_persistent_bridge_switches_to_a_quoted_resume_command_and_executes_it(t
 
 
 def test_persistent_bridge_advance_turn_persists_across_bridge_processes(tmp_path):
-    assert ADVANCE_PROBE.is_file(), "missing res://scripts/bridge_advance_turn_probe.gd"
+    assert ADVANCE_PROBE.is_file(), "missing res://tests/bridge_advance_turn_probe.gd"
 
     seed = 73
     state_path = tmp_path / "campaign-state.json"
@@ -64,7 +64,7 @@ def test_persistent_bridge_advance_turn_persists_across_bridge_processes(tmp_pat
     prefix = f"PYTHONPATH={shlex.quote(str(ROOT / 'src'))} python3 -m tbbbridge"
     result = run_godot_script(
         GAME,
-        "res://scripts/bridge_advance_turn_probe.gd",
+        "res://tests/bridge_advance_turn_probe.gd",
         prefix,
         str(state_path),
         str(request_path),
@@ -90,12 +90,12 @@ def test_persistent_bridge_advance_turn_persists_across_bridge_processes(tmp_pat
 
 
 def test_persistent_bridge_advance_turn_probe_returns_nonzero_when_corrupted(tmp_path):
-    assert ADVANCE_PROBE.is_file(), "missing res://scripts/bridge_advance_turn_probe.gd"
+    assert ADVANCE_PROBE.is_file(), "missing res://tests/bridge_advance_turn_probe.gd"
 
     prefix = f"PYTHONPATH={shlex.quote(str(ROOT / 'src'))} python3 -m tbbbridge"
     result = run_godot_script(
         GAME,
-        "res://scripts/bridge_advance_turn_probe.gd",
+        "res://tests/bridge_advance_turn_probe.gd",
         prefix,
         str(tmp_path / "campaign-state.json"),
         str(tmp_path / "bridge-request.jsonl"),
@@ -131,13 +131,13 @@ def test_persistent_bridge_advance_turn_probe_returns_nonzero_when_corrupted(tmp
 )
 def test_persistent_bridge_advance_turn_discards_partial_failures(tmp_path, program):
     assert ADVANCE_FAILURE_PROBE.is_file(), (
-        "missing res://scripts/bridge_advance_turn_failure_probe.gd"
+        "missing res://tests/bridge_advance_turn_failure_probe.gd"
     )
 
     command = f"{shlex.quote(sys.executable)} -c {shlex.quote(program)}"
     result = run_godot_script(
         GAME,
-        "res://scripts/bridge_advance_turn_failure_probe.gd",
+        "res://tests/bridge_advance_turn_failure_probe.gd",
         command,
         str(tmp_path / "campaign-state.json"),
         str(tmp_path / "bridge-request.jsonl"),
@@ -157,7 +157,7 @@ def test_persistent_bridge_advance_turn_discards_partial_failures(tmp_path, prog
 
 def test_non_persistent_bridge_advance_turn_returns_null_without_running_the_bridge(tmp_path):
     assert ADVANCE_FAILURE_PROBE.is_file(), (
-        "missing res://scripts/bridge_advance_turn_failure_probe.gd"
+        "missing res://tests/bridge_advance_turn_failure_probe.gd"
     )
 
     snapshot = (
@@ -168,7 +168,7 @@ def test_non_persistent_bridge_advance_turn_returns_null_without_running_the_bri
     command = f"{shlex.quote(sys.executable)} -c {shlex.quote(program)}"
     result = run_godot_script(
         GAME,
-        "res://scripts/bridge_advance_turn_failure_probe.gd",
+        "res://tests/bridge_advance_turn_failure_probe.gd",
         command,
         str(tmp_path / "campaign-state.json"),
         str(tmp_path / "bridge-request.jsonl"),
