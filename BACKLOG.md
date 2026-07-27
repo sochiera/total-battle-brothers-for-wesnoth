@@ -368,19 +368,47 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > plasterek rysuje jednostki, a nie całe pole bitwy — pełna siatka terenu
 > wymagałaby rozszerzenia mostu i jest świadomie odłożona. Rdzeń `tbb` bez zmian;
 > wzorzec kafla i rozmieszczenia reużywamy z `MapView` (K84).
-- [ ] **G85.1a** `SnapshotModel` wystawia stan ostatniej bitwy: lista heksów
+- [x] **G85.1a** `SnapshotModel` wystawia stan ostatniej bitwy: lista heksów
       gotowych do pokazania (`q`, `r`, `terrain`, `side`, `hp`) i wynik bitwy
       albo jednoznaczny brak, gdy snapshot nie ma klucza `battle`; heks bez
       poprawnych współrzędnych lub strony odpada; atomowa walidacja modelu bez
       zmian. *(simple, task-476)*
-- [ ] **G85.1b** Widok bitwy `BattleView`: jeden kafel na heks bitwy,
+- [x] **G85.1b** Widok bitwy `BattleView`: jeden kafel na heks bitwy,
       rozmieszczenie po współrzędnych osiowych `(q, r)`, kafle parami rozłączne,
       strona (atakujący/broniący) rozróżnialna wzrokowo; brak bitwy → pusty
       widok bez błędu. *(standard, task-477)*
-- [ ] **G85.1c** Klik „Szturmuj osadę" pokazuje bitwę na siatce zamiast samego
+- [x] **G85.1c** Klik „Szturmuj osadę” pokazuje bitwę na siatce zamiast samego
       tekstu: po rozkazie widok ma kafle obu stron, wynik bitwy jest czytelny na
       ekranie, a partia zostaje utrwalona (e2e przez dwa procesy mostu).
-      *(standard, task-478)*
+      *(standard, task-478, commit a4966d4)*
+
+## Kamień milowy 86 — zapis i odczyt partii z UI — PRIORYTET
+> Po widoku mapy (K84) i bitwy (K85) zostaje punkt kryterium „gotowe”, który
+> gracz dziś **w ogóle nie ma jak wykonać**: zapisać i wczytać stan bez
+> terminala. Protokół ma `save`/`load` od K68/K69, klient ich nie używa i nie
+> zna żadnej ścieżki zapisu. Zweryfikowane empirycznie (`serve 73`, trzy procesy
+> na wspólnym pliku stanu): `save SLOT` → `{"kind":"save"}`; po `--resume`
+> `next_turn` → `rok 1, miesiąc 2`; `load SLOT` → `{"kind":"load"}` i kalendarz
+> z powrotem `rok 1, miesiąc 1`; kolejny proces to potwierdza, o ile po `load`
+> poszedł `save` do pliku stanu; `load` nieistniejącego pliku → `ok:false`.
+> Rdzeń `tbb` i most bez zmian.
+> **Odłożone świadomie:** „rozkaz klikiem na cel na mapie” (następny punkt listy
+> kierunków) — most przyjmuje `target` w `march`/`assault`, ale w obecnym
+> trzyregionowym świecie (`player lands` — `border` — `ai lands`) rozkaz celowany
+> daje **ten sam** skutek co automatyczny (`next_march_step` zwraca `None`, gdy
+> cel sąsiaduje). Nie da się dziś napisać kryterium, które odróżnia klik od
+> automatu; wraca po większej mapie albo po zmianie semantyki celu.
+- [ ] **G86.1a** Konfiguracja niesie ścieżkę zapisu partii gracza (`save_path`
+      w katalogu danych użytkownika, `TBB_SAVE_PATH` nadpisuje, walidacja sesji
+      jej wymaga). *(simple, task-479)*
+- [ ] **G86.1b** `BridgeClient` zapisuje partię do pliku i wczytuje ją z
+      utrwaleniem w pliku stanu (kolejny proces widzi wczytany stan); błąd →
+      `null`. *(standard, task-480)*
+- [ ] **G86.2a** Scena ma nazwane przyciski „Zapisz partię” / „Wczytaj partię”
+      (bez wiązania). *(simple, task-481)*
+- [ ] **G86.2b** Klik zapisu i wczytania przywraca zapisany stan na ekranie,
+      pokazuje czytelny skutek i utrwala partię (e2e przez dwa procesy mostu).
+      *(standard, task-482)*
 
 ## Dług/refaktor
 - [x] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
@@ -400,7 +428,7 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > kolejnych przycisków rozkazu ani reguł rdzenia, dopóki te punkty stoją** —
 > most obsługuje więcej rozkazów, niż klient potrafi pokazać.
 - Rozkaz wybierany klikiem na cel na mapie, nie globalnym przyciskiem (po K84).
-- Zapis/odczyt z UI: jawne „Zapisz"/„Wczytaj" (protokół ma to od K68/K69).
+- ~~Zapis/odczyt z UI: jawne „Zapisz”/„Wczytaj”~~ — rozplanowane jako K86.
 - Pakiet na Linuksa x86-64: preset eksportu + runtime Pythona, uruchomienie
   jedną ikoną — domknięcie kryterium „gotowe". **Uwaga z przeglądu:** domyślna
   komenda mostu składa ścieżkę `res://../src`, co działa wyłącznie w drzewie
