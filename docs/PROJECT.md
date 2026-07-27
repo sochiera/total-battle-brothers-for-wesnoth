@@ -60,18 +60,33 @@ mały — po kilka kafli terenu, sylwetek jednostek i budynków — ale prawdziw
   właściciel rozróżnialny, oddział gracza oznaczony i przesuwający się.
 - **Widok bitwy działa** (K85): `BattleView` rysuje kafle heksów po `(q, r)`,
   strony rozróżnialne, wynik bitwy czytelny po kliknięciu „Szturmuj osadę".
-- **Zapis/odczyt z UI — w toku** (K86): konfiguracja niesie `save_path`, a
-  `BridgeClient` zapisuje i wczytuje partię gracza; brakuje jeszcze przycisków
-  w scenie i ich wiązania.
+- **Zapis/odczyt z UI działa** (K86): konfiguracja niesie `save_path`, scena ma
+  przyciski „Zapisz partię"/„Wczytaj partię", a klik przywraca zapisany stan na
+  ekranie i utrwala partię między procesami.
+- **Prawdziwe assety w repo — częściowo** (K87): `game/assets/` zawiera 8 plików
+  PNG z Kenney Hexagon Pack (CC0) z atrybucją w `CREDITS.md`, `.godot/` jest poza
+  gitem, `MapView` rysuje grunt/osadę/oddział teksturami, a `BattleView` teren
+  heksu (`Plains`/`Forest`/`Hills`). **Sylwetek jednostek w repo nie ma** —
+  audyt przy przeglądzie 2026-07-27 pokazał, że pliki nazwane
+  `side_attacker.png` / `side_defender.png` to w rzeczywistości budynki
+  (`medieval_smallCastle.png` i `medieval_tower.png` wg `CREDITS.md`; obejrzane:
+  kamienny zamek i kafel z wieżą). Hexagon Pack **nie zawiera żadnych postaci** —
+  sprawdzone w liście plików paczki. Zostają więc dwa plasterki, nie jeden
+  (patrz „Czego brakuje", wniosek 11).
 - `tbbui` (HTML/SVG) — **wyłącznie narzędzie diagnostyczne**, nie docelowy klient.
 
 **Czego brakuje do celu (nazwane wprost, bo tu jest cała reszta pracy):**
-1. **Zero assetów.** W repo nie ma ani jednego pliku graficznego — cała warstwa
-   wizualna to `ColorRect` w jednolitym kolorze plus `Label` z nazwą. Wedle
-   nowego kryterium to **nie jest** MVP (patrz sekcja „Cel docelowy").
-2. Zapis/odczyt z poziomu UI niedokończony (K86: zostały przyciski i wiązanie).
-3. Nie ma presetu eksportu ani pakietu na Linuksa — i to może podważyć start bez
-   terminala (patrz wniosek 4).
+1. **Sylwetki jednostek — najpierw w repo, potem w widoku** (K87, dwa plasterki):
+   (a) prawdziwe pliki z figurą ludzką w `game/assets/` + atrybucja; źródło
+   rozstrzygnięte przy przeglądzie: **Kenney „RTS Pack: Medieval" (CC0)**,
+   katalog `PNG/Default size/Unit/medievalUnit_*.png` — 24 top-downowe figurki
+   piechoty w wariantach kolorystycznych stron, licencja `License.txt` = CC0,
+   zip pobrany i obejrzany przy przeglądzie. (b) `BattleView` rysuje stronę tą
+   sylwetką zamiast samego tintu kafla (G87.1c-2).
+2. **Nie ma pakietu na Linuksa.** Jedyny sposób uruchomienia gry to
+   `godot --path game` z konsoli — dokładnie to, czego brief zabrania. To
+   **jedyny nieodhaczony fragment kryterium sukcesu** i po K87 cała pozostała
+   praca w stronę „gotowe". Szczegóły ryzyka: wniosek 4.
 
 ## Ograniczenia i priorytety
 - **[W]** Rdzeń `tbb` jest **jedynym źródłem reguł gry**. Godot nie duplikuje
@@ -92,6 +107,8 @@ mały — po kilka kafli terenu, sylwetek jednostek i budynków — ale prawdziw
 - **[P]** Źródłem assetów są gotowe paczki open source (CC0: Kenney,
   OpenGameArt) zamiast rysowania własnych; licencja i atrybucja zapisane w repo.
   Grafika ma być czytelna, nie ładna.
+- **[P]** Pakiet na Linuksa zakłada **systemowy `python3`**; nie wnosimy własnego
+  runtime'u Pythona (patrz wniosek 10). Bundling CPythona: **[O]**.
 - **[O]** Wykorzystanie kodu/zasobów z Battle for Wesnoth.
 
 **Wnioski z dotychczasowej pracy, które zmieniają kierunek:**
@@ -104,11 +121,14 @@ mały — po kilka kafli terenu, sylwetek jednostek i budynków — ale prawdziw
 3. Odchudzanie kontraktu na liście (jedno pole / jedna grupa pól na zadanie)
    ratuje mikro-TDD tam, gdzie „cały słownik naraz" wcześniej wykładał kodera.
 4. **Start bez terminala jest zweryfikowany tylko w drzewie źródeł.** Domyślna
-   komenda mostu składa `PYTHONPATH=res://../src python3 -m tbbbridge`; po
-   eksporcie `res://` przestaje wskazywać na repo, więc kamień „pakiet na
-   Linuksa" musi *od nowa* udowodnić start bez terminala i dołączyć `src/` do
-   pakietu. Dodatkowo w środowisku nie ma zainstalowanych szablonów eksportu
-   Godota — to prerekwizyt toolchainu, nie zaskoczenie na koniec.
+   komenda mostu składa `PYTHONPATH=res://../src python3 -m tbbbridge`
+   (`game/scripts/bridge_config.gd:27`); po eksporcie `res://` wskazuje wnętrze
+   PCK, więc K88 musi *od nowa* udowodnić start bez terminala i położyć `src/`
+   obok binarium. Stan toolchainu sprawdzony 2026-07-27: `godot 4.2.2` jest w
+   `PATH`, katalog szablonów eksportu istnieje, ale jest **pusty**; paczka
+   `.tpz` na GitHubie odpowiada `200`, więc da się ją pobrać;
+   `game/export_presets.cfg` nie istnieje. To prerekwizyt toolchainu i pierwszy
+   plasterek K88, nie zaskoczenie na koniec.
 5. Snapshot bitwy (`battle.hexes`) niesie **wyłącznie heksy zajęte przez
    jednostki**, bez wymiarów pola i terenu pustych heksów. Pierwszy widok bitwy
    rysuje więc jednostki, nie całą planszę; pełna siatka to osobna, późniejsza
@@ -118,11 +138,12 @@ mały — po kilka kafli terenu, sylwetek jednostek i budynków — ale prawdziw
    rozróżnialne strony), lecz autor briefu nazwał brakujący element wprost:
    assety. Kolejny kamień podmienia `ColorRect` na tekstury — geometria i testy
    rozmieszczenia z K84/K85 zostają, zmienia się nośnik.
-7. **Import tekstur w Godocie to prerekwizyt toolchainu, nie detal.** Sondy
-   headless ładują dziś wyłącznie skrypty; `load("res://assets/…png")` wymaga
-   wygenerowanych artefaktów importu (`godot --headless --import`) i katalogu
-   `.godot/`, którego nie ma w `.gitignore`. Pierwszy plasterek assetów musi to
-   udowodnić w bramce, zanim ktokolwiek zacznie podmieniać widoki.
+7. **Import tekstur w Godocie to był prerekwizyt toolchainu, nie detal — i to
+   się potwierdziło.** G87.1a rozstrzygnęło całą ścieżkę import→tekstura w
+   osobnej bramce (`godot --headless --import`, `.godot/` w `.gitignore`,
+   `load("res://assets/…")` → `Texture2D`), zanim ktokolwiek ruszył widoki.
+   Dwa kolejne plasterki widoków poszły potem bez niespodzianek. **Ten wzorzec
+   powtarzamy w K88: najpierw bramka eksportu, dopiero potem treść pakietu.**
 8. **Teren istnieje tylko w warstwie bitwy — mapa strategiczna go nie zna.**
    `tbb.terrain` (`PLAINS`/`FOREST`/`HILLS`) obsługuje `Battlefield.terrain_at`,
    a most wystawia `terrain` wyłącznie per heks bitwy. `tbb.world.Region` ma samo
@@ -132,6 +153,29 @@ mały — po kilka kafli terenu, sylwetek jednostek i budynków — ale prawdziw
    mostu** — świadomie odłożona, bo brief żąda prawdziwych assetów, nie
    bogatszej mapy. Klientowi nie wolno wymyślić terenu regionu u siebie: rdzeń
    jest jedynym źródłem reguł.
+9. **Podmiana nośnika nie kosztowała czytelności.** Kafle są dziś teksturą
+   przyciemnianą `modulate` w kolorze właściciela/strony, więc kryteria
+   rozróżnialności z K84/K85 przeszły bez jednej zmiany. Wniosek na przyszłość:
+   warstwa tekstury + tint zamiast osobnego assetu na każdy wariant — mała
+   paczka wystarcza, a testy geometrii zostają w mocy.
+10. **Pakiet nie wnosi własnego Pythona.** Odbiorcą jest jeden użytkownik na
+    Linuksie x86-64, który ma `python3` w systemie (zweryfikowane: 3.14.4).
+    Bundling CPythona podwoiłby zakres K88 i nie wynika z briefu, więc pakiet
+    zakłada systemowy `python3`, a jego brak daje czytelny komunikat w scenie
+    (ścieżka błędu istnieje od K82). To decyzja zakresowa, nie ograniczenie
+    techniczne — jeśli okaże się za wąska, wraca jako osobny plasterek.
+11. **Bramka „plik się ładuje" nie sprawdza, *co* jest na obrazku — i to nas
+    kosztowało plasterek.** G87.1a przyjęło jako „sylwetki stron" dwa budynki z
+    Hexagon Packa tylko dlatego, że nazwa pliku brzmiała `side_*.png`, a
+    `load()` zwracał `Texture2D`. Gdyby G87.1c-2 poszło na tym, pole bitwy
+    pokazywałoby dwa budynki jako obie walczące strony — czyli formalnie
+    „tekstura", a merytorycznie nadal nie ta treść, i to wprost przeciw
+    kryterium „da się grać patrząc". **Wniosek na każdy kolejny plasterek
+    assetowy:** kryterium akceptacji ma wiązać plik z jego *źródłem* w
+    `CREDITS.md` (konkretna ścieżka w paczce, nie sama nazwa paczki) i z
+    maszynowo sprawdzalnym kształtem (przezroczyste tło dla nakładki, rozmiar
+    mniejszy od kafla, obie strony różne), a człowiek ogląda obrazek przy
+    review. Dobór paczki sprawdzamy po **liście plików**, zanim wejdzie do repo.
 
 ## Klimat, ton, kierunek wizualny
 Średniowiecze **bez magii i fantastyki**, surowy i realistyczny ton. **[W]**
@@ -161,19 +205,18 @@ spójna paczka bije zlepek najładniejszych pojedynczych obrazków. **[P]**
 
 ## Kolejne prawdopodobne etapy
 1. ~~Start bez terminala~~ (K82), ~~czytelny układ ekranu~~ (K83), ~~widok mapy~~
-   (K84) i ~~widok bitwy~~ (K85) — **zrobione**.
-2. **Zapis/odczyt z UI**: dokończyć K86 — przyciski „Zapisz"/„Wczytaj" w scenie
-   i ich wiązanie. Zostały dwa cienkie zadania; przerywanie kamienia w połowie
-   zostawiłoby save/load podpięty w kliencie, ale nieosiągalny dla gracza.
-3. **Prawdziwe assety** (K87) — nowy priorytet z briefu: paczka CC0 w repo z
-   atrybucją, kafle mapy i heksy bitwy rysowane teksturą zamiast `ColorRect`.
-   Geometria z K84/K85 zostaje, zmienia się nośnik. Zakres trzymany po stronie
-   `game/`: mapa różnicuje właściciela i osadę, teren teksturujemy tam, gdzie
-   most go niesie — na polu bitwy (wniosek 8).
-4. **Pakiet na Linuksa**: preset eksportu, dołączony/wykryty runtime Pythona i
-   `src/`, uruchomienie jedną ikoną — domknięcie kryterium sukcesu. Zakłada
-   ponowną weryfikację startu bez terminala (wniosek 4) oraz spakowanie assetów.
-5. **Klik na cel na mapie** zamiast globalnych przycisków „Rozwiń/Szturmuj" —
+   (K84), ~~widok bitwy~~ (K85) i ~~zapis/odczyt z UI~~ (K86) — **zrobione**.
+2. **Prawdziwe assety** (K87) — priorytet z briefu, w 3/4 gotowy: paczka CC0 z
+   atrybucją, kafle mapy i teren heksów rysowane teksturą. Zostaje sylwetka
+   jednostki na stronie bitwy (G87.1c-2) i kamień się domyka. Zakres trzymany po
+   stronie `game/`: mapa różnicuje właściciela i osadę, teren teksturujemy tam,
+   gdzie most go niesie — na polu bitwy (wniosek 8).
+3. **Pakiet na Linuksa** (K88) — po K87 **jedyna droga do „gotowe"**: bramka
+   eksportu (szablony + `export_presets.cfg` + wykonywalny artefakt), odporne na
+   eksport rozwiązywanie ścieżki `src/`, spakowanie `src/` i assetów obok
+   binarium, ponowny dowód startu bez terminala (wniosek 4) i uruchomienie jednym
+   kliknięciem. Bez własnego runtime'u Pythona (wniosek 10).
+4. **Klik na cel na mapie** zamiast globalnych przycisków „Rozwiń/Szturmuj" —
    czeka na większą mapę (dziś rozkaz celowany daje ten sam skutek co
    automatyczny; patrz nota przy K86 w `BACKLOG.md`).
 

@@ -404,11 +404,12 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 - [x] **G86.1b** `BridgeClient` zapisuje partię do pliku i wczytuje ją z
       utrwaleniem w pliku stanu (kolejny proces widzi wczytany stan); błąd →
       `null`. *(standard, task-480, commit 9ebf1be)*
-- [ ] **G86.2a** Scena ma nazwane przyciski „Zapisz partię” / „Wczytaj partię”
-      (bez wiązania). *(simple, task-481)*
-- [ ] **G86.2b** Klik zapisu i wczytania przywraca zapisany stan na ekranie,
+- [x] **G86.2a** Scena ma nazwane przyciski „Zapisz partię” / „Wczytaj partię”
+      (bez wiązania). *(simple, task-481, commit ed6cf89)*
+- [x] **G86.2b** Klik zapisu i wczytania przywraca zapisany stan na ekranie,
       pokazuje czytelny skutek i utrwala partię (e2e przez dwa procesy mostu).
-      *(standard, task-482)*
+      *(standard, task-482, commit bad91bd)*
+> **Kamień 86 — UKOŃCZONY.** Gracz zapisuje i wczytuje partię z UI, bez terminala.
 
 ## Kamień milowy 87 — prawdziwe assety zamiast kolorowych prostokątów — PRIORYTET
 > **Nowe wymaganie z briefu (feedback autora, 2026-07-27):** *„prawdziwe MVP
@@ -446,13 +447,14 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > `HexBattle(Battlefield())`, więc każdy heks zwraca `Plains`. Mapowanie
 > teren→tekstura testuj na fixture snapshotu (`Forest`/`Hills` też), nie licz na
 > zróżnicowany teren w e2e szturmu.
-- [ ] **G87.1a** Paczka assetów CC0 w repo i ładowalna z Godota: pliki w
+- [x] **G87.1a** Paczka assetów CC0 w repo i ładowalna z Godota: pliki w
       `game/assets/` (kafle terenu + sylwetki stron), `game/assets/CREDITS.md` z
       licencją i źródłem, `.godot/` poza gitem, a bramka headless dowodzi, że
       `load("res://assets/…")` zwraca `Texture2D` (nie `null`) po kroku importu.
       *(complex, ryzyko: import Godota w headless, brak szablonów/edytora,
-      licencja assetów — bez CC0/CC-BY nie wchodzi do repo)*
-- [ ] **G87.1b** `MapView` rysuje kafel regionu **teksturą** zamiast
+      licencja assetów — bez CC0/CC-BY nie wchodzi do repo; task-485,
+      commit 9fd4b0a — paczka Kenney Hexagon Pack, CC0, `game/assets/CREDITS.md`)*
+- [x] **G87.1b** `MapView` rysuje kafel regionu **teksturą** zamiast
       `ColorRect`: kafel to węzeł z prawdziwą `Texture2D` z `game/assets/`,
       właściciel (`player`/`ai`/brak) nadal jednoznacznie rozróżnialny wzrokowo,
       obecność osady (klucz `settlement` z mostu) widoczna jako obrazek, oddział
@@ -460,12 +462,60 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
       rozłączne. **Bez pojęcia terenu na mapie strategicznej** — most go nie
       niesie (patrz „Kontrakt terenu" wyżej); nie wolno wymyślać terenu regionu
       po stronie klienta ani zmieniać rdzenia/mostu w tym zadaniu. Testy
-      rozmieszczenia z K84 przechodzą bez zmian w kryteriach. *(standard)*
-- [ ] **G87.1c** `BattleView` rysuje heks **teksturą terenu** i stronę
-      **sylwetką jednostki** zamiast koloru: `terrain` z `battle.hexes` (jedyne
-      miejsce, gdzie most niesie teren) wybiera obrazek kafla, `side` wybiera
-      sylwetkę, nieznany teren → kafel domyślny bez błędu, brak bitwy → pusty
-      widok bez błędu. Rozmieszczenie po `(q, r)` z K85 bez zmian. *(standard)*
+      rozmieszczenia z K84 przechodzą bez zmian w kryteriach. *(standard,
+      task-486, commit 8424b73)*
+- [x] **G87.1c-1** `BattleView` rysuje heks **teksturą terenu**: `terrain`
+      z `battle.hexes` wybiera obrazek kafla, nieznany teren → kafel domyślny bez
+      błędu, brak bitwy → pusty widok bez błędu. Rozmieszczenie po `(q, r)` z K85
+      bez zmian. *(standard, task-487, commit 4bf7b09)*
+- [ ] **G87.1c-2** `BattleView` rysuje stronę **sylwetką jednostki** zamiast
+      koloru: `side` (`attacker`/`defender`) wybiera obrazek z `game/assets/`
+      (`side_attacker.png` / `side_defender.png`) nałożony na kafel terenu,
+      nieznana strona → kafel bez sylwetki i bez błędu, rozróżnialność stron
+      i rozmieszczenie z K85 zachowane. *(standard, task-488)*
+> **Nota po G87.1b/1c-1:** rozróżnialność właściciela/strony przetrwała podmianę
+> nośnika dzięki `modulate` na warstwie tekstury — kryteria K84/K85 przeszły bez
+> zmian. Ten sam wzorzec (warstwa tekstury + tint) stosuj w G87.1c-2.
+
+## Kamień milowy 88 — natywny pakiet na Linuksa (domknięcie kryterium „gotowe") — PRIORYTET
+> Po G87.1c-2 zamyka się K87 i **znika ostatni brak treściowy**: rdzeń, most,
+> obie warstwy widoku, rozkazy, zapis/odczyt i assety są na miejscu. Zostaje
+> jedyny nieodhaczony fragment kryterium sukcesu z briefu: *„użytkownik uruchamia
+> **natywną aplikację** na Linuksie… bez terminala"*. Dziś jedyny sposób
+> uruchomienia gry to `godot --path game` z konsoli — czyli dokładnie to, czego
+> brief zabrania.
+>
+> **Zweryfikowane przy przeglądzie 2026-07-27:** `godot 4.2.2.stable` jest w
+> `PATH`; katalog `~/.local/share/godot/export_templates/` **istnieje, ale jest
+> pusty** — szablonów eksportu nie ma; `Godot_v4.2.2-stable_export_templates.tpz`
+> na GitHubie odpowiada `200`, więc są do pobrania; `game/export_presets.cfg`
+> **nie istnieje**; w systemie jest `python3` 3.14.4.
+>
+> **Rozstrzygnięcie zakresu (patrz `docs/PROJECT.md`):** pakiet **nie** wnosi
+> własnego runtime'u Pythona — zakładamy `python3` obecny w systemie odbiorcy
+> (jeden użytkownik na Linuksie x86-64). Brak Pythona ma dać czytelny komunikat
+> w scenie, nie martwy ekran (ścieżka błędu istnieje od K82). Bundling CPythona
+> to **[O]**, świadomie odłożone.
+>
+> **Ryzyko nazwane z góry:** `BridgeConfig._source_directory()`
+> (`game/scripts/bridge_config.gd:27`) składa
+> `ProjectSettings.globalize_path("res://") + "../src"`. Po eksporcie `res://`
+> wskazuje wnętrze PCK, więc **domyślna komenda mostu przestaje działać** —
+> „start bez terminala" (K82) trzeba udowodnić od nowa na wyeksportowanym
+> binarium, a `src/` musi trafić obok niego.
+- [ ] **G88.1a** Bramka toolchainu eksportu: szablony eksportu 4.2.2 dostępne
+      lokalnie (poza gitem), `game/export_presets.cfg` w repo z presetem
+      „Linux/X11" x86-64, a `godot --headless --export-release` produkuje
+      **wykonywalny plik** (istnieje, ma bit `+x`, niezerowy rozmiar) razem z
+      `.pck`; artefakty eksportu poza gitem. Test dowodzi eksportu, nie działania
+      gry. *(complex, ryzyko: pobranie/rozpakowanie szablonów ~700 MB, brak
+      edytora GUI do wygenerowania presetu, ścieżka wyjściowa poza repo)*
+- [ ] **G88.1b** Katalog źródeł mostu rozwiązywany odpornie na eksport: czysta
+      funkcja w `BridgeConfig` wybiera katalog `src/` niezależnie od `res://`
+      (kandydat obok wykonywalnego pliku gry, potem drzewo źródeł), pierwszy
+      istniejący wygrywa, brak kandydata → ta sama czytelna ścieżka błędu co przy
+      braku mostu. Domyślna komenda w drzewie źródeł zachowuje się jak dziś
+      (testy K82 przechodzą bez zmian). *(standard)*
 
 ## Dług/refaktor
 - [x] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
@@ -501,13 +551,12 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
   `SnapshotModel` → wybór tekstury w `MapView`. Świadomie odłożone przy
   przeglądzie 2026-07-27: nie jest warunkiem „prawdziwych assetów" z briefu, a
   wpuszczone do K87 rozsadziłoby plasterek deklarowany jako „tylko `game/`".
-- Pakiet na Linuksa x86-64: preset eksportu + runtime Pythona, uruchomienie
-  jedną ikoną — domknięcie kryterium „gotowe". **Uwaga z przeglądu:** domyślna
-  komenda mostu składa ścieżkę `res://../src`, co działa wyłącznie w drzewie
-  źródeł — po eksporcie „start bez terminala" (K82) trzeba zweryfikować od nowa,
-  a `src/` dołączyć do pakietu. W środowisku brak zainstalowanych szablonów
-  eksportu Godota — to prerekwizyt toolchainu tego kamienia. Po K87 dochodzi
-  dołączenie assetów i pliku atrybucji do pakietu.
+- ~~Pakiet na Linuksa x86-64: preset eksportu, uruchomienie jedną ikoną~~ —
+  rozplanowane jako K88 (pierwsze dwa plasterki: bramka eksportu i odporne
+  rozwiązywanie ścieżki `src/`). Do dorobienia w dalszych plasterkach K88:
+  spakowanie `src/` i assetów obok binarium, ponowny dowód „start bez terminala"
+  na wyeksportowanej grze oraz uruchomienie jednym kliknięciem (plik `.desktop`
+  albo skrypt startowy).
 - Pełne pole bitwy (teren pustych heksów, wymiary pola) — wymaga rozszerzenia
   `tbbbridge.snapshot.battle_state`; dopiero gdy sam widok bitwy (K85) stoi.
 - Sterowanie pojedynczą jednostką w bitwie — po K85.
