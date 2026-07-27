@@ -30,10 +30,15 @@ def test_godot_bootstrap_exposes_the_configured_main_control_scene_without_tbb_c
         path.name == "tbb" or path.name.startswith("tbb.")
         for path in game.rglob("*")
     )
+    # Text-only: binary assets under game/assets/*.png must not be decoded as UTF-8.
     assert not any(
-        re.search(r"^\s*(?:from|import)\s+tbb(?:\.|\s|$)", path.read_text(), re.MULTILINE)
+        re.search(
+            r"^\s*(?:from|import)\s+tbb(?:\.|\s|$)",
+            path.read_text(encoding="utf-8"),
+            re.MULTILINE,
+        )
         for path in game.rglob("*")
-        if path.is_file()
+        if path.is_file() and path.suffix in _CONTRACT_SUFFIXES
     )
 
 
