@@ -18,17 +18,12 @@ func _init() -> void:
 		return
 	root.add_child(scene_root)
 
-	var before_controls := _controls(scene_root)
 	var save_button := scene_root.get_node_or_null("%SaveGameButton") as Button
 	var load_button := scene_root.get_node_or_null("%LoadGameButton") as Button
-	if save_button != null:
-		save_button.emit_signal("pressed")
-	if load_button != null:
-		load_button.emit_signal("pressed")
+	# Presence/labels only; binding/status is save_load_binding_probe.
 	print(PREFIX, JSON.stringify({
 		"save": _button_payload(save_button),
 		"load": _button_payload(load_button),
-		"controls_unchanged": _controls(scene_root) == before_controls,
 	}))
 	call_deferred("quit", 0)
 
@@ -41,15 +36,4 @@ func _button_payload(button: Button) -> Variant:
 		"text": button.text,
 		"disabled": button.disabled,
 		"visible": button.visible,
-		"pressed_connections": button.get_signal_connection_list("pressed").size(),
-	}
-
-
-func _controls(scene_root: Control) -> Dictionary:
-	# Public control texts only — not scene tree shape (MainLayout nests children).
-	return {
-		"date": (scene_root.find_child("DateLabel", true, false) as Label).text,
-		"result": (scene_root.find_child("ResultLabel", true, false) as Label).text,
-		"duchy_status": (scene_root.find_child("PlayerDuchyStatusLabel", true, false) as Label).text,
-		"order_status": (scene_root.find_child("LastOrderStatusLabel", true, false) as Label).text,
 	}

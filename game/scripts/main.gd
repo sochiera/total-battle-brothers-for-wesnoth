@@ -6,9 +6,14 @@ const BridgeClient = preload("res://scripts/bridge_client.gd")
 const BridgeConfig = preload("res://scripts/bridge_config.gd")
 const OrderResult = preload("res://scripts/order_result.gd")
 const START_FAILURE_STATUS := "Nie udało się uruchomić mostu ani rozpocząć partii."
+const SAVE_SUCCESS_STATUS := "Partia została zapisana."
+const SAVE_FAILURE_STATUS := "Nie udało się zapisać partii."
+const LOAD_SUCCESS_STATUS := "Partia została wczytana."
+const LOAD_FAILURE_STATUS := "Nie udało się wczytać partii."
 
 
 var _client: Variant = null
+var _save_path := ""
 
 func _ready() -> void:
 	start_session(BridgeConfig.from_environment())
@@ -21,6 +26,7 @@ func start_session(config) -> bool:
 
 	var command: String = config["command"]
 	var state_path: String = config["state_path"]
+	_save_path = config["save_path"]
 	var seed: int = config["seed"]
 	var client := BridgeClient.create_persistent(command, state_path, seed)
 	bind_client(client)
@@ -41,6 +47,8 @@ func bind_client(client) -> void:
 	_connect_pressed_once(%MusterButton, _on_muster_button_pressed)
 	_connect_pressed_once(%MarchButton, _on_march_button_pressed)
 	_connect_pressed_once(%AssaultButton, _on_assault_button_pressed)
+	_connect_pressed_once(%SaveGameButton, _on_save_game_button_pressed)
+	_connect_pressed_once(%LoadGameButton, _on_load_game_button_pressed)
 	_refresh_bound_client()
 
 
@@ -77,6 +85,20 @@ func _on_march_button_pressed() -> void:
 
 func _on_assault_button_pressed() -> void:
 	_send_bound_order("assault")
+
+
+func _on_save_game_button_pressed() -> void:
+	if _client != null:
+		_apply_save_load_result(
+			_client.save_party(_save_path), SAVE_SUCCESS_STATUS, SAVE_FAILURE_STATUS
+		)
+
+
+func _on_load_game_button_pressed() -> void:
+	if _client != null:
+		_apply_save_load_result(
+			_client.load_party(_save_path), LOAD_SUCCESS_STATUS, LOAD_FAILURE_STATUS
+		)
 
 
 func _send_bound_order(order_name: String) -> void:
@@ -118,6 +140,16 @@ func _apply_model_if_present(model: SnapshotModel) -> bool:
 		return false
 	apply_model(model)
 	return true
+
+
+func _apply_save_load_result(
+	model: SnapshotModel, success_status: String, failure_status: String
+) -> bool:
+	if _apply_model_if_present(model):
+		%LastOrderStatusLabel.text = success_status
+		return true
+	%LastOrderStatusLabel.text = failure_status
+	return false
 
 
 func apply_model(model: SnapshotModel) -> void:
