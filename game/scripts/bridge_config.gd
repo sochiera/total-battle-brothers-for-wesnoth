@@ -25,7 +25,21 @@ static func _default_command() -> String:
 
 
 static func _source_directory() -> String:
-	return ProjectSettings.globalize_path("res://").path_join("../src").simplify_path()
+	var executable_directory := OS.get_executable_path().get_base_dir()
+	var source_tree_directory := (
+		ProjectSettings.globalize_path("res://").path_join("../src").simplify_path()
+	)
+	return resolve_source_directory([
+		executable_directory.path_join("src"),
+		source_tree_directory,
+	])
+
+
+static func resolve_source_directory(candidates: Array) -> String:
+	for candidate in candidates:
+		if DirAccess.dir_exists_absolute(String(candidate)):
+			return String(candidate)
+	return ""
 
 
 static func _shell_quote(value: String) -> String:

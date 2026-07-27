@@ -19,6 +19,8 @@ DEFAULT_PROBE = "res://tests/bridge_config_default_probe.gd"
 DEFAULT_PREFIX = "BRIDGE_CONFIG_DEFAULT "
 DEFAULT_LIVE_PROBE = "res://tests/bridge_config_default_live_probe.gd"
 DEFAULT_LIVE_PREFIX = "BRIDGE_CONFIG_DEFAULT_LIVE "
+SOURCE_DIR_PROBE = "res://tests/bridge_config_source_directory_probe.gd"
+SOURCE_DIR_PREFIX = "BRIDGE_CONFIG_SOURCE_DIR "
 TBB_VARIABLES = (
     "TBB_BRIDGE_COMMAND",
     "TBB_STATE_PATH",
@@ -195,6 +197,54 @@ def test_bridge_config_from_environment_defaults_missing_or_blank_fields_indepen
     assert isinstance(payload["config"].get("save_path"), str)
     assert payload["config"]["save_path"].strip()
     assert payload["config"]["save_path"] != payload["config"]["state_path"]
+
+
+def test_bridge_config_resolve_source_directory_picks_first_existing_candidate(
+    tmp_path,
+):
+    """G88.1b: czysta selekcja katalogu źródeł z uporządkowanej listy.
+
+    Realistic defect: ``_source_directory()`` hardkoduje wyłącznie
+    ``res://../src`` i nie ma publicznej funkcji wyboru pierwszego
+    istniejącego kandydata. Po eksporcie ``res://`` leży w PCK, więc
+    PYTHONPATH wskazuje w nieistniejące miejsce — a istniejące bramki
+    K82 przechodzą tylko w drzewie źródeł, gdzie ten pojedynczy kandydat
+    istnieje. Ten test nie czyta ``res://`` ani env: kandydaci to
+    katalogi tymczasowe.
+    """
+    missing = tmp_path / "missing-src"
+    present = tmp_path / "present-src"
+    present.mkdir()
+    as_file = tmp_path / "not-a-directory"
+    as_file.write_text("file", encoding="utf-8")
+
+    result = run_godot_script(
+        GAME,
+        SOURCE_DIR_PROBE,
+        str(missing),
+        str(present),
+        str(as_file),
+        timeout=30,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "SCRIPT ERROR" not in result.stderr, result.stderr
+    lines = [
+        line
+        for line in result.stdout.splitlines()
+        if line.startswith(SOURCE_DIR_PREFIX)
+    ]
+    assert len(lines) == 1, result.stdout
+    payload = json.loads(lines[0][len(SOURCE_DIR_PREFIX) :])
+
+    assert payload["available"] is True
+    present_s = str(present)
+    assert payload["first_when_present"] == present_s
+    assert payload["second_when_first_missing"] == present_s
+    assert payload["none_exist"] == ""
+    assert payload["empty_list"] == ""
+    # Plik nie jest katalogiem — pomijamy go, bierzemy następny katalog.
+    assert payload["file_is_not_directory"] == present_s
 
 
 def test_bridge_config_default_values_are_valid_deterministic_and_stay_in_user_data(
