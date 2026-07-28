@@ -106,6 +106,13 @@ class HexBattle:
             if self.sides[position] is side
         )
 
+    def side_fallen(self, side: BattleSide) -> tuple[Unit, ...]:
+        """Return one side's fallen units in order they fell."""
+        return tuple(
+            unit for fallen_side, unit in self._fallen
+            if fallen_side is side
+        )
+
     def nearest_enemy(self, position: Hex) -> Hex | None:
         """Return the nearest active enemy, breaking ties by deployment order."""
         if not self.is_occupied(position):
@@ -213,8 +220,7 @@ class HexBattle:
 
         def for_side(side: BattleSide) -> BattleSideReport:
             return BattleSideReport(
-                fallen=tuple(unit for fallen_side, unit in self._fallen
-                             if fallen_side is side),
+                fallen=self.side_fallen(side),
                 stunned=tuple(self.units[position] for position in self._deployment_order
                               if self.sides[position] is side
                               and self.units[position].stunned),

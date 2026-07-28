@@ -804,6 +804,141 @@ def test_side_survivors_contains_surviving_units_but_not_fallen_units():
     assert battle.side_survivors(BattleSide.ATTACKER) == (survivor,)
 
 
+def test_side_fallen_lists_fallen_units_on_unfinished_battle():
+    """Fallen are readable without report() while both sides still fight.
+
+    Defect: casualties live only in private _fallen and exit solely via
+    report(), which raises on unfinished battles — so a mid-assault bridge
+    cannot assemble loss data for either side.
+    """
+    survivor = Unit(training=1)
+    fallen = Unit(training=2)
+    defender = Unit(training=3)
+    survivor_position = Hex(0, 0)
+    fallen_position = Hex(1, 0)
+    defender_position = Hex(2, 0)
+    battle = (
+        HexBattle(Battlefield())
+        .deploy(survivor, survivor_position, BattleSide.ATTACKER)
+        .deploy(fallen, fallen_position, BattleSide.ATTACKER)
+        .deploy(defender, defender_position, BattleSide.DEFENDER)
+    )
+    battle = battle.damage(fallen_position, fallen.hp).resolve_defeat(
+        fallen_position, ControlledRng(True)
+    )
+
+    assert battle.result() is None
+    assert hasattr(HexBattle, "side_fallen"), (
+        "HexBattle must expose public side_fallen(side) for mid-battle losses"
+    )
+    assert battle.side_fallen(BattleSide.ATTACKER) == (fallen,)
+    assert battle.side_fallen(BattleSide.DEFENDER) == ()
+    with pytest.raises(ValueError, match="cannot report an unfinished battle"):
+        battle.report()
+
+
+def test_side_fallen_matches_report_fallen_on_resolved_battle():
+    """Resolved battle: side_fallen and report() share one fallen source."""
+    survivor = Unit(training=1)
+    fallen_attacker = Unit(training=2)
+    fallen_defender = Unit(training=3)
+    positions = (Hex(0, 0), Hex(1, 0), Hex(2, 0))
+    battle = (
+        HexBattle(Battlefield())
+        .deploy(survivor, positions[0], BattleSide.ATTACKER)
+        .deploy(fallen_attacker, positions[1], BattleSide.ATTACKER)
+        .deploy(fallen_defender, positions[2], BattleSide.DEFENDER)
+    )
+    battle = battle.damage(positions[1], fallen_attacker.hp).resolve_defeat(
+        positions[1], ControlledRng(True)
+    )
+    battle = battle.damage(positions[2], fallen_defender.hp).resolve_defeat(
+        positions[2], ControlledRng(True)
+    )
+
+    report = battle.report()
+    assert battle.result() is BattleResult.ATTACKER_WIN
+    assert battle.side_fallen(BattleSide.ATTACKER) == report.attacker.fallen
+    assert battle.side_fallen(BattleSide.DEFENDER) == report.defender.fallen
+    assert battle.side_fallen(BattleSide.ATTACKER) == (fallen_attacker,)
+    assert battle.side_fallen(BattleSide.DEFENDER) == (fallen_defender,)
+
+
+def test_side_fallen_empty_when_nobody_fell():
+    attacker = Unit(training=1)
+    defender = Unit(training=2)
+    battle = (
+        HexBattle(Battlefield())
+        .deploy(attacker, Hex(0, 0), BattleSide.ATTACKER)
+        .deploy(defender, Hex(1, 0), BattleSide.DEFENDER)
+    )
+
+    assert battle.side_fallen(BattleSide.ATTACKER) == ()
+    assert battle.side_fallen(BattleSide.DEFENDER) == ()
+
+
+def test_side_fallen_preserves_order_units_fell():
+    first = Unit(training=1)
+    second = Unit(training=2)
+    defender = Unit(training=3)
+    first_pos, second_pos, defender_pos = Hex(0, 0), Hex(1, 0), Hex(2, 0)
+    battle = (
+        HexBattle(Battlefield())
+        .deploy(first, first_pos, BattleSide.ATTACKER)
+        .deploy(second, second_pos, BattleSide.ATTACKER)
+        .deploy(defender, defender_pos, BattleSide.DEFENDER)
+    )
+    battle = battle.damage(second_pos, second.hp).resolve_defeat(
+        second_pos, ControlledRng(True)
+    )
+    battle = battle.damage(first_pos, first.hp).resolve_defeat(
+        first_pos, ControlledRng(True)
+    )
+
+    assert battle.side_fallen(BattleSide.ATTACKER) == (second, first)
+
+
+def test_side_fallen_is_repeatable_and_does_not_mutate_battle_state():
+    survivor = Unit(training=1)
+    fallen = Unit(training=2)
+    defender = Unit(training=3)
+    survivor_pos, fallen_pos, defender_pos = Hex(0, 0), Hex(1, 0), Hex(2, 0)
+    battle = (
+        HexBattle(Battlefield())
+        .deploy(survivor, survivor_pos, BattleSide.ATTACKER)
+        .deploy(fallen, fallen_pos, BattleSide.ATTACKER)
+        .deploy(defender, defender_pos, BattleSide.DEFENDER)
+    )
+    battle = battle.damage(fallen_pos, fallen.hp).resolve_defeat(
+        fallen_pos, ControlledRng(True)
+    )
+    units_before = dict(battle.units)
+    sides_before = dict(battle.sides)
+    result_before = battle.result()
+    survivors_before = {
+        BattleSide.ATTACKER: battle.side_survivors(BattleSide.ATTACKER),
+        BattleSide.DEFENDER: battle.side_survivors(BattleSide.DEFENDER),
+    }
+
+    first = battle.side_fallen(BattleSide.ATTACKER)
+    second = battle.side_fallen(BattleSide.ATTACKER)
+    defender_fallen = battle.side_fallen(BattleSide.DEFENDER)
+
+    assert first == second == (fallen,)
+    assert defender_fallen == ()
+    assert dict(battle.units) == units_before
+    assert dict(battle.sides) == sides_before
+    assert battle.result() is result_before is None
+    assert battle.side_survivors(BattleSide.ATTACKER) == survivors_before[
+        BattleSide.ATTACKER
+    ]
+    assert battle.side_survivors(BattleSide.DEFENDER) == survivors_before[
+        BattleSide.DEFENDER
+    ]
+    with pytest.raises(ValueError, match="cannot report an unfinished battle"):
+        battle.report()
+
+
 def test_side_survivors_interleaves_stunned_and_active_by_deployment_order():
     stunned = Unit(training=1)
     active = Unit(training=2)
