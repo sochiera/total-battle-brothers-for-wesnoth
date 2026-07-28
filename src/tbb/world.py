@@ -330,7 +330,7 @@ class WorldMap:
     def start_settlement_battle(
         self, source: Region, destination: Region
     ) -> HexBattle:
-        """Create a battle between a party and an adjacent settlement garrison."""
+        """Create a battle between a party and an adjacent settlement garrison, plus any enemy party already standing in that region."""
         if source not in self._neighbors or destination not in self._neighbors:
             raise ValueError("region is outside the world map")
         if source == destination:
@@ -350,6 +350,10 @@ class WorldMap:
             battle = battle.deploy(unit, Hex(0, row), BattleSide.ATTACKER)
         for row, unit in enumerate(settlement.garrison):
             battle = battle.deploy(unit, Hex(2, row), BattleSide.DEFENDER)
+        home_party = self.parties.get(destination)
+        if home_party is not None and home_party.owner_id != party.owner_id:
+            for row, unit in enumerate((home_party.hero, *home_party.units)):
+                battle = battle.deploy(unit, Hex(3, row), BattleSide.DEFENDER)
         return battle
 
     def apply_settlement_battle_result(

@@ -1,5 +1,6 @@
 """Tests for the immutable strategic world graph."""
 
+from collections import Counter
 from dataclasses import FrozenInstanceError, replace
 
 import pytest
@@ -37,6 +38,14 @@ def _battle_with_fallen_subordinates(attacker, defender):
         battle = battle.damage(position, battle.unit_at(position).hp)
         battle = battle.resolve_defeat(position, Rng(1))
     return battle
+
+
+def _units_by_side(battle):
+    """Group deployed units by battle side (order follows battle.units)."""
+    by_side = {BattleSide.ATTACKER: [], BattleSide.DEFENDER: []}
+    for position in battle.units:
+        by_side[battle.side_at(position)].append(battle.unit_at(position))
+    return by_side
 
 
 def test_neighbors_are_bidirectional_and_follow_region_order():
@@ -1164,6 +1173,78 @@ def test_start_settlement_battle_deploys_party_and_garrison_in_deterministic_row
         battle.battlefield.terrain_at(position) == PLAINS
         for position in battle.units
     )
+
+
+def test_start_settlement_battle_includes_enemy_party_at_destination_with_garrison():
+    """Enemy party in the assaulted region fights with the garrison.
+
+    Defect: start_settlement_battle deploys only settlement.garrison as
+    DEFENDER, so a hostile party standing on the destination region never
+    enters the battle (home army watches its capital fall). Hex placement is
+    not the contract — membership, side, and distinct positions are.
+    """
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(
+        Unit(training=3), [Unit(equipment=1), Unit(experience=2)], "north"
+    )
+    home = Party(Unit(training=5), [Unit(equipment=3)], "south")
+    garrison = (Unit(training=4), Unit(equipment=2))
+    settlement = Settlement(
+        "Oakrest", population=5, garrison=garrison, owner_id="south"
+    )
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        settlements={vale: settlement},
+        parties={camp: attacker, vale: home},
+    )
+
+    battle = world.start_settlement_battle(camp, vale)
+
+    by_side = _units_by_side(battle)
+    assert Counter(by_side[BattleSide.ATTACKER]) == Counter(
+        [attacker.hero, *attacker.units]
+    )
+    assert Counter(by_side[BattleSide.DEFENDER]) == Counter(
+        [*garrison, home.hero, *home.units]
+    )
+    # Playable end-to-end on a fixed seed (no exception / hang past max_rounds).
+    resolved = battle.auto_resolve(1, Rng(0))
+    assert resolved.result() is not None
+
+
+def test_start_settlement_battle_does_not_deploy_same_owner_party_as_defender():
+    """A same-owner party on the destination is not a settlement defender.
+
+    Defect: a naive "deploy any party at destination" would put the attacker's
+    own second party on DEFENDER. Only an enemy of the attacker joins.
+    """
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(Unit(training=3), [Unit(equipment=1)], "north")
+    friendly = Party(Unit(training=9), [Unit(experience=4)], "north")
+    garrison = (Unit(training=4),)
+    settlement = Settlement(
+        "Oakrest", population=3, garrison=garrison, owner_id="south"
+    )
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        settlements={vale: settlement},
+        parties={camp: attacker, vale: friendly},
+    )
+
+    battle = world.start_settlement_battle(camp, vale)
+
+    by_side = _units_by_side(battle)
+    friendly_roster = (friendly.hero, *friendly.units)
+    assert Counter(by_side[BattleSide.DEFENDER]) == Counter(garrison)
+    assert Counter(by_side[BattleSide.ATTACKER]) == Counter(
+        [attacker.hero, *attacker.units]
+    )
+    assert all(unit not in by_side[BattleSide.DEFENDER] for unit in friendly_roster)
+    assert all(unit not in by_side[BattleSide.ATTACKER] for unit in friendly_roster)
 
 
 def test_start_settlement_battle_does_not_change_world_party_or_settlement():
