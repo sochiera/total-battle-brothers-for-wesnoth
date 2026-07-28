@@ -147,16 +147,32 @@ class HexBattle:
             return attacked
 
         reachable = self.reachable(position, move_points)
-        if not reachable:
-            return self
         destination = min(
             reachable, key=lambda candidate: (
                 candidate.distance(enemy), candidate.q, candidate.r
-            )
+            ),
+            default=None,
         )
-        if destination.distance(enemy) >= position.distance(enemy):
-            return self
-        return self.move(position, destination, move_points)
+        if (
+            destination is not None
+            and destination.distance(enemy) < position.distance(enemy)
+        ):
+            return self.move(position, destination, move_points)
+        if move_points > 0:
+            swap_target = min(
+                (
+                    neighbor for neighbor in position.neighbors()
+                    if self.is_occupied(neighbor)
+                    and self.sides[neighbor] is self.sides[position]
+                    and self.units[neighbor].stunned
+                    and neighbor.distance(enemy) < position.distance(enemy)
+                ),
+                key=lambda candidate: (candidate.distance(enemy), candidate.q, candidate.r),
+                default=None,
+            )
+            if swap_target is not None:
+                return self._swap(position, swap_target)
+        return self
 
     def auto_resolve(
         self,
@@ -173,24 +189,41 @@ class HexBattle:
         battle = self
         rounds = 0
         while battle.result() is None and rounds < max_rounds:
-            turn_positions = battle._deployment_order
-            for position in turn_positions:
+            turn_order = tuple(
+                (position, battle.unit_at(position))
+                for position in battle._deployment_order
+            )
+            acted = set()
+            for position, unit_at_round_start in turn_order:
                 if battle.result() is not None:
                     break
-                unit = battle.unit_at(position)
+                if id(unit_at_round_start) in acted:
+                    continue
+                current_position = next(
+                    (
+                        pos
+                        for pos, unit in battle.units.items()
+                        if unit is unit_at_round_start
+                    ),
+                    None,
+                )
+                if current_position is None:
+                    continue
+                unit = battle.unit_at(current_position)
                 if (
                     unit is None
-                    or battle.current_hp_at(position) == 0
+                    or battle.current_hp_at(current_position) == 0
                     or unit.stunned
                 ):
                     continue
-                side = battle.sides[position]
+                acted.add(id(unit))
+                side = battle.sides[current_position]
                 morale = (
                     attacker_morale
                     if side is BattleSide.ATTACKER
                     else defender_morale
                 )
-                battle = battle.take_unit_turn(position, move_points, morale, rng)
+                battle = battle.take_unit_turn(current_position, move_points, morale, rng)
             rounds += 1
         return battle
 
@@ -397,6 +430,23 @@ class HexBattle:
         sides[destination] = sides.pop(source)
         deployment_order = tuple(
             destination if position == source else position
+            for position in self._deployment_order
+        )
+        return HexBattle(
+            self.battlefield, units, current_hp, sides, self._fallen,
+            deployment_order,
+        )
+
+    def _swap(self, first: Hex, second: Hex) -> "HexBattle":
+        """Return a new state with the units at ``first`` and ``second`` exchanged."""
+        units = dict(self.units)
+        units[first], units[second] = units[second], units[first]
+        current_hp = dict(self._current_hp)
+        current_hp[first], current_hp[second] = current_hp[second], current_hp[first]
+        sides = dict(self.sides)
+        sides[first], sides[second] = sides[second], sides[first]
+        deployment_order = tuple(
+            second if position == first else first if position == second else position
             for position in self._deployment_order
         )
         return HexBattle(

@@ -1135,6 +1135,170 @@ def test_take_unit_turn_when_fully_blocked_is_no_op():
     assert battle.take_unit_turn(source, 3, 0, Rng(1)) is battle
 
 
+@pytest.mark.parametrize(
+    "fill_other_neighbors",
+    [
+        pytest.param(False, id="free_reachable_do_not_shorten"),
+        pytest.param(True, id="no_free_reachable"),
+    ],
+)
+def test_take_unit_turn_swaps_past_own_stunned_ally_when_only_closer_hex(
+    fill_other_neighbors,
+):
+    """G89.2a-1: only closer hex holds own stunned ally → swap past them.
+
+    Realistic defects:
+    - free reachable hexes do not shorten distance and the sole closer hex is
+      a same-side stunned unit (hp=0) → no-op instead of swap.
+    - reachable is empty (all neighbors occupied, including own stunned on the
+      only closer hex) → early return skips the swap branch (review G89.2a-1).
+    """
+    source, blocked, enemy = Hex(0, 0), Hex(1, 0), Hex(3, 0)
+    unit = Unit(training=2)
+    stunned_ally = Unit(stunned=True)
+    enemy_unit = Unit()
+    battle = (
+        HexBattle(Battlefield())
+        .deploy(unit, source, BattleSide.ATTACKER)
+        .deploy(stunned_ally, blocked, BattleSide.ATTACKER)
+        .deploy(enemy_unit, enemy, BattleSide.DEFENDER)
+    )
+    battle = battle.damage(blocked, battle.current_hp_at(blocked))
+    if fill_other_neighbors:
+        for neighbor in source.neighbors():
+            if neighbor != blocked and not battle.is_occupied(neighbor):
+                battle = battle.deploy(Unit(), neighbor, BattleSide.ATTACKER)
+    free_reachable = battle.reachable(source, move_points=1)
+
+    if fill_other_neighbors:
+        assert not free_reachable
+    else:
+        assert free_reachable
+        assert all(
+            hex_.distance(enemy) >= source.distance(enemy) for hex_ in free_reachable
+        )
+    assert blocked.distance(enemy) < source.distance(enemy)
+    assert battle.unit_at(blocked).stunned is True
+    assert battle.current_hp_at(blocked) == 0
+
+    result = battle.take_unit_turn(source, move_points=1, morale=0, rng=Rng(1))
+
+    assert result.unit_at(blocked) == unit
+    assert result.unit_at(source) == stunned_ally
+    assert result.current_hp_at(source) == 0
+    assert result.unit_at(source).stunned is True
+    assert result.side_at(source) is BattleSide.ATTACKER
+    assert result.side_at(blocked) is BattleSide.ATTACKER
+    assert result.unit_at(enemy) == enemy_unit
+    assert result.current_hp_at(enemy) == battle.current_hp_at(enemy)
+    assert result._fallen == battle._fallen
+    assert result is not battle
+    assert battle.unit_at(source) == unit
+    assert battle.unit_at(blocked) == stunned_ally
+
+
+def test_take_unit_turn_prefers_free_closer_hex_over_swap_with_own_stunned():
+    """G89.2a-1 AC2: free closer hex wins over swap with own stunned on another closer.
+
+    Regression: swap-first would land on the stunned ally even when a free
+    closer neighbor exists (review suggestions after G89.2a-1 accept).
+    """
+    source, free_closer, stunned_hex, enemy = (
+        Hex(0, 0), Hex(1, -1), Hex(1, 0), Hex(2, -1),
+    )
+    unit = Unit(training=2)
+    stunned_ally = Unit(stunned=True)
+    battle = (
+        HexBattle(Battlefield())
+        .deploy(unit, source, BattleSide.ATTACKER)
+        .deploy(stunned_ally, stunned_hex, BattleSide.ATTACKER)
+        .deploy(Unit(), enemy, BattleSide.DEFENDER)
+    )
+    battle = battle.damage(stunned_hex, battle.current_hp_at(stunned_hex))
+
+    assert free_closer.distance(enemy) < source.distance(enemy)
+    assert stunned_hex.distance(enemy) < source.distance(enemy)
+    assert free_closer in battle.reachable(source, move_points=1)
+
+    result = battle.take_unit_turn(source, move_points=1, morale=0, rng=Rng(1))
+
+    assert result.unit_at(free_closer) == unit
+    assert result.unit_at(stunned_hex) == stunned_ally
+    assert not result.is_occupied(source)
+    assert result.unit_at(enemy) == battle.unit_at(enemy)
+
+
+def test_take_unit_turn_does_not_swap_with_stunned_enemy_on_closer_hex():
+    """G89.2a-1 AC3: stunned enemy on the only closer neighbor → no swap (no-op).
+
+    Living active enemy stays further away so nearest_enemy is not the stunned
+    blocker; sides filter must refuse swap with DEFENDER.
+    """
+    source, blocked, enemy = Hex(0, 0), Hex(1, 0), Hex(3, 0)
+    unit = Unit(training=2)
+    stunned_enemy = Unit(stunned=True)
+    living_enemy = Unit()
+    battle = (
+        HexBattle(Battlefield())
+        .deploy(unit, source, BattleSide.ATTACKER)
+        .deploy(stunned_enemy, blocked, BattleSide.DEFENDER)
+        .deploy(living_enemy, enemy, BattleSide.DEFENDER)
+    )
+    battle = battle.damage(blocked, battle.current_hp_at(blocked))
+
+    assert blocked.distance(enemy) < source.distance(enemy)
+    assert battle.nearest_enemy(source) == enemy
+    assert battle.side_at(blocked) is BattleSide.DEFENDER
+    assert battle.unit_at(blocked).stunned is True
+
+    result = battle.take_unit_turn(source, move_points=1, morale=0, rng=Rng(1))
+
+    assert result is battle
+    assert result.unit_at(source) == unit
+    assert result.unit_at(blocked) == stunned_enemy
+    assert result.unit_at(enemy) == living_enemy
+
+
+def test_take_unit_turn_does_not_swap_with_active_ally_on_closer_hex():
+    """G89.2a-1 AC3: living (non-stunned) ally on the only closer neighbor → no-op.
+
+    Mirror of stunned-enemy no-op: same geometry, own side, active body with
+    hp>0 and stunned=False. Free neighbors do not get closer, so only a bad
+    swap would move. Regression: dropping the ``stunned`` filter (or mistaking
+    it for hp==0 alone) would exchange places with a fighting ally.
+    """
+    source, blocked, enemy = Hex(0, 0), Hex(1, 0), Hex(3, 0)
+    unit = Unit(training=2)
+    active_ally = Unit()
+    living_enemy = Unit()
+    battle = (
+        HexBattle(Battlefield())
+        .deploy(unit, source, BattleSide.ATTACKER)
+        .deploy(active_ally, blocked, BattleSide.ATTACKER)
+        .deploy(living_enemy, enemy, BattleSide.DEFENDER)
+    )
+
+    assert blocked.distance(enemy) < source.distance(enemy)
+    assert battle.nearest_enemy(source) == enemy
+    assert battle.side_at(blocked) is BattleSide.ATTACKER
+    assert battle.unit_at(blocked).stunned is False
+    assert battle.current_hp_at(blocked) > 0
+    free_closer = [
+        neighbor
+        for neighbor in source.neighbors()
+        if not battle.is_occupied(neighbor)
+        and neighbor.distance(enemy) < source.distance(enemy)
+    ]
+    assert free_closer == []
+
+    result = battle.take_unit_turn(source, move_points=1, morale=0, rng=Rng(1))
+
+    assert result is battle
+    assert result.unit_at(source) == unit
+    assert result.unit_at(blocked) == active_ally
+    assert result.unit_at(enemy) == living_enemy
+
+
 def test_take_unit_turn_when_reachable_hexes_do_not_get_closer_is_no_op():
     source, enemy = Hex(0, 0), Hex(3, 0)
     battle = HexBattle(Battlefield()).deploy(Unit(), source, BattleSide.ATTACKER)
@@ -1228,6 +1392,40 @@ def test_auto_resolve_stops_after_maximum_rounds_before_resolution():
     assert partial.result() is None
 
 
+def test_auto_resolve_active_acts_at_most_once_per_round_after_swap_past_stunned():
+    """G89.2a-1 / auto_resolve: swap must not grant a second turn same round.
+
+    Realistic defect: auto_resolve freezes turn hexes from deployment order for
+    the round. Ordinary move vacates the old hex so the unit is not revisited,
+    but _swap leaves the active body on the stunned ally's hex, which is still
+    upcoming when the active unit was deployed earlier than that ally. The same
+    unit then takes a second turn (swap + move) — two hexes of progress with
+    move_points=1 in a single round. Reverse deploy order (stunned before
+    active) hides the bug; this layout is active → stunned → enemy.
+    """
+    source, blocked, enemy_hex = Hex(0, 0), Hex(1, 0), Hex(3, 0)
+    active = Unit()
+    stunned_ally = Unit(stunned=True)
+    battle = (
+        HexBattle(Battlefield())
+        .deploy(active, source, BattleSide.ATTACKER)
+        .deploy(stunned_ally, blocked, BattleSide.ATTACKER)
+        .deploy(Unit(), enemy_hex, BattleSide.DEFENDER)
+    )
+    battle = battle.damage(blocked, battle.current_hp_at(blocked))
+    assert source.distance(enemy_hex) == 3
+    assert blocked.distance(enemy_hex) == 2
+
+    resolved = battle.auto_resolve(move_points=1, rng=Rng(1), max_rounds=1)
+
+    # One turn (mp=1): only swap onto the closer stunned hex. Do not assert
+    # emptiness of Hex(2, 0): the defender may step there on its own turn.
+    assert resolved.unit_at(blocked) is active
+    assert resolved.unit_at(source) is stunned_ally
+    assert resolved.unit_at(source).stunned is True
+    assert resolved.current_hp_at(source) == 0
+
+
 def test_auto_resolve_does_not_mutate_the_input_battle():
     attacker, defender = Hex(0, 0), Hex(1, 0)
     battle = HexBattle(Battlefield()).deploy(
@@ -1282,7 +1480,9 @@ def test_auto_resolve_equal_side_morale_matches_uniform_morale_semantics():
     """Equal attacker/defender morale matches the former uniform morale=X path.
 
     Same seed and multi-unit layout → same result and full battle state as
-    driving every unit turn with a single morale value X (old auto_resolve).
+    driving every unit turn with a single morale value X. The reference loop
+    tracks unit identity across the round (like production auto_resolve), so a
+    body that _swap moved onto a later deployment hex still acts at most once.
     """
     x = 30
     seed = 42
@@ -1302,24 +1502,42 @@ def test_auto_resolve_equal_side_morale_matches_uniform_morale_semantics():
         defender_morale=x,
     )
 
-    # Reference: former uniform-morale auto_resolve loop (every turn gets X).
+    # Reference: uniform morale X on each turn, unit-identity round order.
     reference = battle
     rng = Rng(seed)
     rounds = 0
     max_rounds = 1000
     while reference.result() is None and rounds < max_rounds:
-        for position in reference._deployment_order:
+        turn_order = tuple(
+            (position, reference.unit_at(position))
+            for position in reference._deployment_order
+        )
+        acted = set()
+        for _position, unit_at_round_start in turn_order:
             if reference.result() is not None:
                 break
-            unit = reference.unit_at(position)
+            if id(unit_at_round_start) in acted:
+                continue
+            current_position = next(
+                (
+                    pos
+                    for pos, unit in reference.units.items()
+                    if unit is unit_at_round_start
+                ),
+                None,
+            )
+            if current_position is None:
+                continue
+            unit = reference.unit_at(current_position)
             if (
                 unit is None
-                or reference.current_hp_at(position) == 0
+                or reference.current_hp_at(current_position) == 0
                 or unit.stunned
             ):
                 continue
+            acted.add(id(unit))
             reference = reference.take_unit_turn(
-                position, move_points, x, rng
+                current_position, move_points, x, rng
             )
         rounds += 1
 

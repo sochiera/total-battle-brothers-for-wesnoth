@@ -1,10 +1,15 @@
 """G89.1b-4 e2e: natural player sequence ends with a visible battle effect.
 
-On seed 73 the path recruit×2 → muster → march → assault yields an unresolved
-settlement battle. Slice tests (core, protocol, order_result, assault e2e
-without the two recruits) already pass, but they do not drive this natural
-sequence across a live bridge process bound to the Godot client — the unique
-risk named in task-504 / PROJECT.md conclusion 13.
+On seed 73 the path recruit×2 → muster → march → assault drives a settlement
+battle across a live bridge process bound to the Godot client — the unique risk
+named in task-504 / PROJECT.md conclusion 13. Slice tests (core, protocol,
+order_result, assault e2e without the two recruits) already pass; this path
+must still surface a readable battle outcome, not a failed-order message.
+
+After G89.2a-1 (swap past own stunned ally) the seed-73 natural fight is no
+longer a round-limit stalemate: the last active attacker can advance and the
+strong garrison resolves the fight as porażka (0 fallen / 0 enemy losses; all
+attackers stunned). Unresolved remains a legal contract elsewhere (K89.1).
 """
 
 from __future__ import annotations
@@ -21,12 +26,13 @@ GAME = ROOT / "game"
 PROBE = "res://tests/persistent_natural_assault_e2e_probe.gd"
 PREFIX = "PERSISTENT_NATURAL_ASSAULT "
 SEED = 73
-EXPECTED_ORDER_STATUS = "Szturm: nierozstrzygnięta (straty: 0, wróg: 0)."
-EXPECTED_PARTY_POSITION = "Położenie oddziału: border"
+# Matches G85 assault e2e status shape; natural path with recruits now resolves.
+EXPECTED_ORDER_STATUS = "Szturm: porażka (straty: 0, wróg: 0)."
+EXPECTED_PARTY_POSITION = "Położenie oddziału: brak"
 EXPECTED_BATTLE_RESULT = {
     "kind": "battle",
     "order": "assault",
-    "outcome": "nierozstrzygnięta",
+    "outcome": "porażka",
     "attacker_losses": 0,
     "defender_losses": 0,
 }
@@ -52,7 +58,7 @@ def _run_process(
     return json.loads(lines[0][len(PREFIX) :])
 
 
-def _assert_successful_unresolved_assault(play: dict) -> None:
+def _assert_successful_resolved_assault(play: dict) -> None:
     """Criteria 1–2: live order succeeds; client shows readable battle effect."""
     assert play["state_exists"] is True
     assert play["controls"]["order_status"] == EXPECTED_ORDER_STATUS, (
@@ -61,8 +67,9 @@ def _assert_successful_unresolved_assault(play: dict) -> None:
     )
     assert play["controls"]["party_position"] == EXPECTED_PARTY_POSITION
     # Settlement ownership lives in duchy_status (regions list shows names only).
+    # Defender win: party destroyed, player keep retained.
     assert "osady: 1" in play["controls"]["duchy_status"]
-    assert "oddziały: 1" in play["controls"]["duchy_status"]
+    assert "oddziały: 0" in play["controls"]["duchy_status"]
 
     # Machine result from the bridge response projected by the client (kryt-1).
     last = play["order_results"][-1]
@@ -73,9 +80,9 @@ def test_natural_sequence_ends_with_visible_battle_effect_on_live_bridge(tmp_pat
     """Recruit×2 → muster → march → assault on seed 73 must not surface as a failed order.
 
     Realistic defect: G89.1a/b unit tests and the G85 assault e2e (muster→march→
-    assault without recruits, expecting porażka) stay green while the natural
-    seed-73 sequence still returns ok:false / "unknown battle result" at the
-    client↔live-bridge boundary, or resumes a corrupted campaign.
+    assault without recruits) stay green while the natural seed-73 sequence still
+    returns ok:false / "unknown battle result" at the client↔live-bridge
+    boundary, or resumes a corrupted campaign.
     """
     command_prefix = f"PYTHONPATH={shlex.quote(str(ROOT / 'src'))} python3 -m tbbbridge"
 
@@ -85,10 +92,10 @@ def test_natural_sequence_ends_with_visible_battle_effect_on_live_bridge(tmp_pat
         state_path = tmp_path / f"natural-assault-{run_id}.json"
         request_path = tmp_path / f"bridge-request-{run_id}.jsonl"
         play = _run_process(command_prefix, state_path, request_path, "play")
-        _assert_successful_unresolved_assault(play)
+        _assert_successful_resolved_assault(play)
         outcomes.append(play["order_results"][-1])
 
-        # Kryt-3: resume the persisted party; world matches post-assault result.
+        # Kryt-3: resume the persisted campaign; world matches post-assault result.
         resumed = _run_process(
             command_prefix,
             state_path,
@@ -101,9 +108,9 @@ def test_natural_sequence_ends_with_visible_battle_effect_on_live_bridge(tmp_pat
         assert resumed["state_exists"] is True
         assert resumed["controls"]["party_position"] == EXPECTED_PARTY_POSITION
         assert resumed["controls"]["date"] == play["controls"]["date"]
-        # Unresolved assault: party survives on border; player still has 1 settlement.
+        # Defender win: party gone; player still has 1 settlement.
         assert "osady: 1" in resumed["controls"]["duchy_status"]
-        assert "oddziały: 1" in resumed["controls"]["duchy_status"]
+        assert "oddziały: 0" in resumed["controls"]["duchy_status"]
         assert resumed["controls"]["regions"] == play["controls"]["regions"]
 
     assert outcomes[0] == outcomes[1] == EXPECTED_BATTLE_RESULT
