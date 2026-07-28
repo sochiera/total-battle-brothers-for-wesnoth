@@ -61,6 +61,15 @@ def test_godot_order_result_projects_only_complete_successful_order_results():
         "attacker_losses": 0,
         "defender_losses": 2,
     }
+    # Most (G89.1b-2) oddaje outcome "nierozstrzygnięta" — klient musi projektować
+    # ten skutek jak każdy inny wynik bitwy, nie odrzucać go ani mapować na null.
+    assert payload["battle_unresolved"] == {
+        "kind": "battle",
+        "order": "assault",
+        "outcome": "nierozstrzygnięta",
+        "attacker_losses": 0,
+        "defender_losses": 0,
+    }
     for case in (
         "missing_ok",
         "not_ok",
@@ -105,6 +114,8 @@ def test_godot_order_result_returns_polish_status_text_for_projected_orders():
         "assault_unchanged": "Rozkaz szturmu nie zmienił stanu.",
         "assault_battle": "Szturm: porażka (straty: 0, wróg: 0).",
         "assault_battle_from_wire": "Szturm: zwycięstwo (straty: 0, wróg: 2).",
+        # Ten sam szablon co zwycięstwo/porażka/remis; outcome mostu wprost w tekście.
+        "assault_battle_unresolved": "Szturm: nierozstrzygnięta (straty: 0, wróg: 0).",
         "missing_result": "",
         "non_dictionary": "",
         "missing_order": "",
@@ -114,3 +125,9 @@ def test_godot_order_result_returns_polish_status_text_for_projected_orders():
         "deterministic": "Rozkaz rozwoju zmienił stan.",
         "deterministic_muster": "Rozkaz zbiórki zmienił stan.",
     }
+    unresolved = payload["assault_battle_unresolved"]
+    assert unresolved != payload["assault_battle"]
+    assert unresolved != payload["assault_battle_from_wire"]
+    assert unresolved != "Szturm: remis (straty: 0, wróg: 0)."
+    assert unresolved != "Rozkaz nie powiódł się."
+    assert "nierozstrzyg" in unresolved.lower()
