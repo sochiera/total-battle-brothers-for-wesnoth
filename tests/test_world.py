@@ -1640,6 +1640,424 @@ def test_apply_settlement_non_win_with_battle_removes_attacking_party(result):
     assert world.settlement_at(vale) is settlement
 
 
+@pytest.mark.parametrize(
+    "result",
+    [BattleResult.DEFENDER_WIN, BattleResult.DRAW, None],
+    ids=["defender-win", "draw", "unresolved"],
+)
+def test_apply_settlement_non_attacker_win_splits_defenders_by_origin(result):
+    """Defended settlement: garrison and home party each keep their own survivors.
+
+    Defect: apply_settlement_battle_result feeds every DEFENDER survivor into
+    Settlement.absorb_defenders and leaves the destination party roster
+    unchanged. Fallen party members stay on the map; surviving party members
+    can land in the garrison (and more survivors than garrison slots raises).
+    Partition must follow unit origin from task-518 deployment, not headcount.
+    """
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(
+        Unit(experience=6),
+        [Unit(training=2), Unit(equipment=4)],
+        owner_id="north",
+    )
+    home = Party(
+        Unit(experience=5),
+        [Unit(equipment=3)],
+        owner_id="south",
+    )
+    garrison = (Unit(training=4), Unit(equipment=2))
+    settlement = Settlement(
+        "Oakrest",
+        population=5,
+        occupied=2,
+        garrison=garrison,
+        owner_id="south",
+    )
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        settlements={vale: settlement},
+        parties={camp: attacker, vale: home},
+    )
+    battle = world.start_settlement_battle(camp, vale)
+    fallen = {attacker.units[1], garrison[1], home.units[0]}
+    for position in list(battle.units):
+        unit = battle.unit_at(position)
+        if unit in fallen:
+            battle = battle.damage(position, unit.hp)
+            battle = battle.resolve_defeat(position, Rng(1))
+
+    defender_survivors = battle.side_survivors(BattleSide.DEFENDER)
+    garrison_survivors = tuple(
+        unit for unit in defender_survivors if unit in garrison
+    )
+    party_survivors = tuple(
+        unit
+        for unit in defender_survivors
+        if unit in (home.hero, *home.units)
+    )
+    assert garrison_survivors == (garrison[0],)
+    assert party_survivors == (home.hero,)
+
+    resolved = world.apply_settlement_battle_result(
+        camp, vale, result, battle=battle
+    )
+
+    defended = resolved.settlement_at(vale)
+    assert defended.owner_id == "south"
+    assert defended.garrison == garrison_survivors
+    assert home.hero not in defended.garrison
+    home_after = resolved.party_at(vale)
+    assert home_after == Party.reconstruct(home, party_survivors)
+    assert home.units[0] not in (home_after.hero, *home_after.units)
+    assert garrison[0] not in (home_after.hero, *home_after.units)
+    if result is None:
+        assert resolved.party_at(camp) == Party.reconstruct(
+            attacker, battle.side_survivors(BattleSide.ATTACKER)
+        )
+    else:
+        assert resolved.party_at(camp) is None
+    assert world.party_at(vale) is home
+    assert world.settlement_at(vale) is settlement
+
+
+@pytest.mark.parametrize(
+    "result",
+    [BattleResult.DEFENDER_WIN, BattleResult.DRAW, None],
+    ids=["defender-win", "draw", "unresolved"],
+)
+def test_apply_settlement_non_attacker_win_removes_wiped_home_party(result):
+    """Defended settlement: home party vanishes when every party member falls.
+
+    Garrison keeps its own survivors; settlement owner is unchanged. Party must
+    leave the region so fallen party members do not remain on the map.
+    """
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(
+        Unit(experience=6),
+        [Unit(training=2)],
+        owner_id="north",
+    )
+    home = Party(
+        Unit(experience=5),
+        [Unit(equipment=3)],
+        owner_id="south",
+    )
+    garrison = (Unit(training=4), Unit(equipment=2))
+    settlement = Settlement(
+        "Oakrest",
+        population=5,
+        occupied=2,
+        garrison=garrison,
+        owner_id="south",
+    )
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        settlements={vale: settlement},
+        parties={camp: attacker, vale: home},
+    )
+    battle = world.start_settlement_battle(camp, vale)
+    fallen = {home.hero, home.units[0], garrison[1]}
+    for position in list(battle.units):
+        unit = battle.unit_at(position)
+        if unit in fallen:
+            battle = battle.damage(position, unit.hp)
+            battle = battle.resolve_defeat(position, Rng(1))
+
+    defender_survivors = battle.side_survivors(BattleSide.DEFENDER)
+    assert home.hero not in defender_survivors
+    assert home.units[0] not in defender_survivors
+    assert garrison[0] in defender_survivors
+
+    resolved = world.apply_settlement_battle_result(
+        camp, vale, result, battle=battle
+    )
+
+    defended = resolved.settlement_at(vale)
+    assert defended.owner_id == "south"
+    assert defended.garrison == (garrison[0],)
+    assert resolved.party_at(vale) is None
+    assert world.party_at(vale) is home
+    assert world.settlement_at(vale) is settlement
+
+
+@pytest.mark.parametrize(
+    "result",
+    [BattleResult.DEFENDER_WIN, BattleResult.DRAW, None],
+    ids=["defender-win", "draw", "unresolved"],
+)
+def test_apply_settlement_non_attacker_win_reconstructs_home_after_hero_fall(
+    result,
+):
+    """Defended settlement: fallen home hero yields Party.reconstruct leadership.
+
+    First surviving party member leads; garrison survivors stay in the garrison.
+    """
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(
+        Unit(experience=6),
+        [Unit(training=2)],
+        owner_id="north",
+    )
+    home = Party(
+        Unit(experience=5),
+        [Unit(equipment=3), Unit(training=1)],
+        owner_id="south",
+    )
+    garrison = (Unit(training=4), Unit(equipment=2))
+    settlement = Settlement(
+        "Oakrest",
+        population=5,
+        occupied=2,
+        garrison=garrison,
+        owner_id="south",
+    )
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        settlements={vale: settlement},
+        parties={camp: attacker, vale: home},
+    )
+    battle = world.start_settlement_battle(camp, vale)
+    fallen = {home.hero, garrison[1], home.units[1]}
+    for position in list(battle.units):
+        unit = battle.unit_at(position)
+        if unit in fallen:
+            battle = battle.damage(position, unit.hp)
+            battle = battle.resolve_defeat(position, Rng(1))
+
+    party_survivors = tuple(
+        unit
+        for unit in battle.side_survivors(BattleSide.DEFENDER)
+        if unit in (home.hero, *home.units)
+    )
+    assert party_survivors == (home.units[0],)
+
+    resolved = world.apply_settlement_battle_result(
+        camp, vale, result, battle=battle
+    )
+
+    defended = resolved.settlement_at(vale)
+    assert defended.owner_id == "south"
+    assert defended.garrison == (garrison[0],)
+    assert home.hero not in defended.garrison
+    assert home.units[0] not in defended.garrison
+    home_after = resolved.party_at(vale)
+    assert home_after == Party.reconstruct(home, party_survivors)
+    assert home_after.hero is home.units[0]
+    assert home.hero not in (home_after.hero, *home_after.units)
+    assert world.party_at(vale) is home
+    assert world.settlement_at(vale) is settlement
+
+
+class _DefeatRng:
+    """Deterministic resolve_defeat: True → death, False → stun + Bruise."""
+
+    def __init__(self, dies: bool) -> None:
+        self._dies = dies
+
+    def chance(self, probability: float) -> bool:
+        return self._dies
+
+
+@pytest.mark.parametrize(
+    "result",
+    [BattleResult.DEFENDER_WIN, BattleResult.DRAW, None],
+    ids=["defender-win", "draw", "unresolved"],
+)
+def test_apply_settlement_non_attacker_win_partitions_value_equal_units_by_origin(
+    result,
+):
+    """Garrison and home party keep origin even when Unit values are equal.
+
+    Defect: partition uses ``unit in home_party_members`` (Unit value equality).
+    Two value-equal units from different origins both match the party roster,
+    so the garrison unit is reconstructed into the party, garrison empties, and
+    population/occupied fall as if the garrison fell.
+    """
+    camp = Region("Camp")
+    vale = Region("Vale")
+    twin = dict(training=1, equipment=1)
+    attacker = Party(Unit(experience=6), [Unit(training=2)], owner_id="north")
+    garrison_unit = Unit(**twin)
+    party_sub = Unit(**twin)
+    home = Party(Unit(experience=5), [party_sub], owner_id="south")
+    settlement = Settlement(
+        "Oakrest",
+        population=5,
+        occupied=1,
+        garrison=(garrison_unit,),
+        owner_id="south",
+    )
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        settlements={vale: settlement},
+        parties={camp: attacker, vale: home},
+    )
+    battle = world.start_settlement_battle(camp, vale)
+    assert garrison_unit == party_sub and garrison_unit is not party_sub
+
+    resolved = world.apply_settlement_battle_result(
+        camp, vale, result, battle=battle
+    )
+
+    defended = resolved.settlement_at(vale)
+    assert defended.owner_id == "south"
+    assert defended.garrison == (garrison_unit,)
+    assert defended.population == settlement.population
+    assert defended.occupied == settlement.occupied
+    home_after = resolved.party_at(vale)
+    assert home_after == Party.reconstruct(home, (home.hero, party_sub))
+    assert home_after.hero is home.hero
+    # Value-equal twins: membership ``in`` cannot separate origins — use identity.
+    assert any(unit is party_sub for unit in (home_after.hero, *home_after.units))
+    assert not any(
+        unit is garrison_unit for unit in (home_after.hero, *home_after.units)
+    )
+    assert defended.garrison[0] is garrison_unit
+    assert world.party_at(vale) is home
+    assert world.settlement_at(vale) is settlement
+
+
+@pytest.mark.parametrize(
+    "result",
+    [BattleResult.DEFENDER_WIN, BattleResult.DRAW, None],
+    ids=["defender-win", "draw", "unresolved"],
+)
+def test_apply_settlement_non_attacker_win_keeps_stunned_party_member_with_party(
+    result,
+):
+    """Stunned home-party survivor stays with the party (with wounds), not garrison.
+
+    Defect: resolve_defeat yields replace(unit, stunned=True, wounds+=BRUISE),
+    which is not value-equal to the original party member. Membership partition
+    treats that survivor as garrison → absorb_defenders raises
+    ValueError('cannot have more survivors than defenders') or merges the party
+    hero into the garrison.
+    """
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(Unit(experience=6), [Unit(training=2)], owner_id="north")
+    home = Party(
+        Unit(experience=5),
+        [Unit(equipment=3)],
+        owner_id="south",
+    )
+    garrison = (Unit(training=4),)
+    settlement = Settlement(
+        "Oakrest",
+        population=5,
+        occupied=1,
+        garrison=garrison,
+        owner_id="south",
+    )
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        settlements={vale: settlement},
+        parties={camp: attacker, vale: home},
+    )
+    battle = world.start_settlement_battle(camp, vale)
+    hero_pos = next(
+        position
+        for position in battle.units
+        if battle.side_at(position) is BattleSide.DEFENDER
+        and battle.unit_at(position) is home.hero
+    )
+    battle = battle.damage(hero_pos, home.hero.hp)
+    battle = battle.resolve_defeat(hero_pos, _DefeatRng(dies=False))
+    stunned_hero = battle.unit_at(hero_pos)
+    assert stunned_hero is not None
+    assert stunned_hero.stunned is True
+    assert stunned_hero.wounds == (BRUISE,)
+    assert stunned_hero != home.hero
+
+    resolved = world.apply_settlement_battle_result(
+        camp, vale, result, battle=battle
+    )
+
+    defended = resolved.settlement_at(vale)
+    assert defended.owner_id == "south"
+    assert defended.garrison == garrison
+    assert defended.population == settlement.population
+    assert defended.occupied == settlement.occupied
+    assert home.hero not in defended.garrison
+    assert stunned_hero not in defended.garrison
+    home_after = resolved.party_at(vale)
+    assert home_after == Party.reconstruct(
+        home, (stunned_hero, home.units[0])
+    )
+    assert home_after.hero == replace(home.hero, wounds=(BRUISE,))
+    assert home_after.hero.stunned is False
+    assert home.units[0] in (home_after.hero, *home_after.units)
+    assert world.party_at(vale) is home
+    assert world.settlement_at(vale) is settlement
+
+
+@pytest.mark.parametrize(
+    "result",
+    [BattleResult.DEFENDER_WIN, BattleResult.DRAW, None],
+    ids=["defender-win", "draw", "unresolved"],
+)
+def test_apply_settlement_non_attacker_win_leaves_allied_destination_party(
+    result,
+):
+    """Allied party on destination did not fight and must remain untouched.
+
+    Defect: any party at destination is treated as the defending home party.
+    start_settlement_battle deploys destination party only when
+    home_party.owner_id != attacker.owner_id; an allied party yields empty
+    party_survivors and is deleted, while all DEFENDER survivors go to garrison.
+    """
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(Unit(experience=6), [Unit(training=2)], owner_id="north")
+    ally = Party(Unit(experience=3), [Unit(equipment=1)], owner_id="north")
+    garrison = (Unit(training=4), Unit(equipment=2))
+    settlement = Settlement(
+        "Oakrest",
+        population=5,
+        occupied=2,
+        garrison=garrison,
+        owner_id="south",
+    )
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        settlements={vale: settlement},
+        parties={camp: attacker, vale: ally},
+    )
+    battle = world.start_settlement_battle(camp, vale)
+    assert all(
+        battle.unit_at(position) is not ally.hero
+        and battle.unit_at(position) not in ally.units
+        for position in battle.units
+        if battle.side_at(position) is BattleSide.DEFENDER
+    )
+    fallen = {garrison[1]}
+    for position in list(battle.units):
+        unit = battle.unit_at(position)
+        if unit in fallen:
+            battle = battle.damage(position, unit.hp)
+            battle = battle.resolve_defeat(position, Rng(1))
+
+    resolved = world.apply_settlement_battle_result(
+        camp, vale, result, battle=battle
+    )
+
+    defended = resolved.settlement_at(vale)
+    assert defended.owner_id == "south"
+    assert defended.garrison == (garrison[0],)
+    assert resolved.party_at(vale) == ally
+    assert world.party_at(vale) is ally
+    assert world.settlement_at(vale) is settlement
+
+
 def test_apply_settlement_unresolved_keeps_attacker_survivors_and_settlement():
     """result=None is a legal unresolved assault, not ValueError.
 
