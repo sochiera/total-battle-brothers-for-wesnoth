@@ -3071,8 +3071,17 @@ def test_game_app_render_order_section_headers_precede_their_forms():
     - player_duchy_id=None (observer) still renders the page without error
     """
     start, near = map(Region, ("Start", "Near"))
-    world = WorldMap((start, near))
-    game = GameState((Duchy("north", Unit()), Duchy("south", Unit())))
+    start_keep = Settlement("Start Keep", 1, owner_id="north")
+    near_keep = Settlement("Near Keep", 1, owner_id="south")
+    world = WorldMap(
+        (start, near), settlements={start: start_keep, near: near_keep}
+    )
+    game = GameState(
+        (
+            Duchy("north", Unit(), settlements=(start_keep,)),
+            Duchy("south", Unit(), settlements=(near_keep,)),
+        )
+    )
     calendar = Calendar(year=1, month=1)
     app = GameApp(world, game, calendar, Rng(3), player_duchy_id=None)
 
@@ -4411,18 +4420,18 @@ def test_get_recommended_march_form_balanced_with_target():
     home = Region("Home")
     road = Region("Road")
     far_enemy = Region("FarEnemy")
+    player_party = Party(hero=Unit(), units=(), owner_id="player")
+    far_keep = Settlement("FarS", population=2, owner_id="enemy")
     world = WorldMap(
         [home, road, far_enemy],
         [(home, road), (road, far_enemy)],
-        parties={home: Party(hero=Unit(), units=(), owner_id="player")},
-        settlements={
-            far_enemy: Settlement("FarS", population=2, owner_id="enemy"),
-        },
+        parties={home: player_party},
+        settlements={far_enemy: far_keep},
     )
     game = GameState(
         (
-            Duchy("player", Unit()),
-            Duchy("enemy", Unit()),
+            Duchy("player", Unit(), parties=(player_party,)),
+            Duchy("enemy", Unit(), settlements=(far_keep,)),
         )
     )
     assert not game.is_over
@@ -4489,15 +4498,16 @@ def test_get_recommended_muster_form_then_post_reuses_order_muster():
     enemy_camp = Region("EnemyCamp")
     hero = Unit(training=3)
     keep_s = Settlement("KeepS", population=2, owner_id="player")
+    enemy_keep = Settlement("EnemyCampS", population=2, owner_id="enemy")
     world = WorldMap(
         [keep, enemy_camp],
         [(keep, enemy_camp)],
-        settlements={keep: keep_s},
+        settlements={keep: keep_s, enemy_camp: enemy_keep},
     )
     game = GameState(
         (
             Duchy("player", hero, settlements=(keep_s,)),
-            Duchy("enemy", Unit()),
+            Duchy("enemy", Unit(), settlements=(enemy_keep,)),
         )
     )
     assert not game.is_over
@@ -4627,21 +4637,19 @@ def test_get_recommended_order_form_action_matches_path_and_target():
     # region named (assault): path + ?target=quote(region)
     home = Region("Home")
     enemy_camp = Region("EnemyCamp")
+    assault_party = Party(hero=Unit(), units=(), owner_id="player")
+    enemy_keep = Settlement("EnemyS", population=2, owner_id="enemy")
     assault_game = GameState(
         (
-            Duchy("player", Unit()),
-            Duchy("enemy", Unit()),
+            Duchy("player", Unit(), parties=(assault_party,)),
+            Duchy("enemy", Unit(), settlements=(enemy_keep,)),
         )
     )
     assault_world = WorldMap(
         [home, enemy_camp],
         [(home, enemy_camp)],
-        parties={home: Party(hero=Unit(), units=(), owner_id="player")},
-        settlements={
-            enemy_camp: Settlement(
-                "EnemyS", population=2, owner_id="enemy"
-            ),
-        },
+        parties={home: assault_party},
+        settlements={enemy_camp: enemy_keep},
     )
     assert not assault_game.is_over
     assault_order = recommended_order(assault_world, assault_game, "player")
@@ -4734,21 +4742,19 @@ def test_get_recommended_order_button_label_uses_recommended_order_text():
     # named region (assault): label follows recommended_order_text + escape
     home = Region("Home")
     enemy_camp = Region("EnemyCamp")
+    assault_party = Party(hero=Unit(), units=(), owner_id="player")
+    enemy_keep = Settlement("EnemyS", population=2, owner_id="enemy")
     assault_game = GameState(
         (
-            Duchy("player", Unit()),
-            Duchy("enemy", Unit()),
+            Duchy("player", Unit(), parties=(assault_party,)),
+            Duchy("enemy", Unit(), settlements=(enemy_keep,)),
         )
     )
     assault_world = WorldMap(
         [home, enemy_camp],
         [(home, enemy_camp)],
-        parties={home: Party(hero=Unit(), units=(), owner_id="player")},
-        settlements={
-            enemy_camp: Settlement(
-                "EnemyS", population=2, owner_id="enemy"
-            ),
-        },
+        parties={home: assault_party},
+        settlements={enemy_camp: enemy_keep},
     )
     assault_order = recommended_order(assault_world, assault_game, "player")
     assert assault_order is not None
@@ -4843,18 +4849,18 @@ def test_recommended_order_form_embeds_reason_after_button():
     home = Region("Home")
     road = Region("Road")
     far_enemy = Region("FarEnemy")
+    player_party = Party(hero=Unit(), units=(), owner_id="player")
+    far_keep = Settlement("FarS", population=2, owner_id="enemy")
     world = WorldMap(
         [home, road, far_enemy],
         [(home, road), (road, far_enemy)],
-        parties={home: Party(hero=Unit(), units=(), owner_id="player")},
-        settlements={
-            far_enemy: Settlement("FarS", population=2, owner_id="enemy"),
-        },
+        parties={home: player_party},
+        settlements={far_enemy: far_keep},
     )
     game = GameState(
         (
-            Duchy("player", Unit()),
-            Duchy("enemy", Unit()),
+            Duchy("player", Unit(), parties=(player_party,)),
+            Duchy("enemy", Unit(), settlements=(far_keep,)),
         )
     )
     assert not game.is_over
@@ -4945,20 +4951,18 @@ def test_recommended_order_form_embeds_forecast_after_reason_when_nonempty():
 
     home = Region("Home")
     enemy_camp = Region("EnemyCamp")
+    player_party = Party(hero=Unit(), units=(), owner_id="player")
+    enemy_keep = Settlement("EnemyS", population=2, owner_id="enemy")
     world = WorldMap(
         [home, enemy_camp],
         [(home, enemy_camp)],
-        parties={home: Party(hero=Unit(), units=(), owner_id="player")},
-        settlements={
-            enemy_camp: Settlement(
-                "EnemyS", population=2, owner_id="enemy"
-            ),
-        },
+        parties={home: player_party},
+        settlements={enemy_camp: enemy_keep},
     )
     game = GameState(
         (
-            Duchy("player", Unit()),
-            Duchy("enemy", Unit()),
+            Duchy("player", Unit(), parties=(player_party,)),
+            Duchy("enemy", Unit(), settlements=(enemy_keep,)),
         )
     )
     assert not game.is_over
@@ -5065,12 +5069,6 @@ def test_recommended_order_form_data_recommended_risk_when_battle_is_risky():
     field = Region("Field")
     other_n = Region("OtherN")
     enemy_camp = Region("EnemyCamp")
-    game = GameState(
-        (
-            Duchy("player", Unit()),
-            Duchy("enemy", Unit()),
-        )
-    )
     # own < enemy → risky defend (same fixture shape as K52.1a/K52.1b ryzyko)
     field_hero = Unit(training=3, equipment=2)
     field_units = (Unit(training=1),)
@@ -5079,17 +5077,19 @@ def test_recommended_order_form_data_recommended_risk_when_battle_is_risky():
     enemy_strong = sum(combat_totals((field_enemy_hero,)))
     assert own_weak < enemy_strong
 
+    player_party = Party(hero=field_hero, units=field_units, owner_id="player")
+    enemy_party = Party(hero=field_enemy_hero, units=(), owner_id="enemy")
+    game = GameState(
+        (
+            Duchy("player", Unit(), parties=(player_party,)),
+            Duchy("enemy", Unit(), parties=(enemy_party,)),
+        )
+    )
+
     world = WorldMap(
         [field, other_n, enemy_camp],
         [(field, other_n), (field, enemy_camp)],
-        parties={
-            field: Party(
-                hero=field_hero, units=field_units, owner_id="player"
-            ),
-            enemy_camp: Party(
-                hero=field_enemy_hero, units=(), owner_id="enemy"
-            ),
-        },
+        parties={field: player_party, enemy_camp: enemy_party},
         settlements={},
     )
     assert not game.is_over
@@ -5170,10 +5170,12 @@ def test_recommended_order_form_omits_data_recommended_risk_when_not_risky():
     """
     from html import escape
 
+    player_home_keep = Settlement("PlayerHome", population=1, owner_id="player")
+    enemy_home_keep = Settlement("EnemyHome", population=1, owner_id="enemy")
     game = GameState(
         (
-            Duchy("player", Unit()),
-            Duchy("enemy", Unit()),
+            Duchy("player", Unit(), settlements=(player_home_keep,)),
+            Duchy("enemy", Unit(), settlements=(enemy_home_keep,)),
         )
     )
 
@@ -5332,12 +5334,6 @@ def test_recommended_order_form_caution_after_forecast_when_battle_is_risky():
     field = Region("Field")
     other_n = Region("OtherN")
     enemy_camp = Region("EnemyCamp")
-    game = GameState(
-        (
-            Duchy("player", Unit()),
-            Duchy("enemy", Unit()),
-        )
-    )
     # own < enemy → risky defend (same fixture shape as K52.1d risky path)
     field_hero = Unit(training=3, equipment=2)
     field_units = (Unit(training=1),)
@@ -5346,16 +5342,21 @@ def test_recommended_order_form_caution_after_forecast_when_battle_is_risky():
     enemy_strong = sum(combat_totals((field_enemy_hero,)))
     assert own_weak < enemy_strong
 
+    player_party = Party(hero=field_hero, units=field_units, owner_id="player")
+    enemy_party = Party(hero=field_enemy_hero, units=(), owner_id="enemy")
+    game = GameState(
+        (
+            Duchy("player", Unit(), parties=(player_party,)),
+            Duchy("enemy", Unit(), parties=(enemy_party,)),
+        )
+    )
+
     world = WorldMap(
         [field, other_n, enemy_camp],
         [(field, other_n), (field, enemy_camp)],
         parties={
-            field: Party(
-                hero=field_hero, units=field_units, owner_id="player"
-            ),
-            enemy_camp: Party(
-                hero=field_enemy_hero, units=(), owner_id="enemy"
-            ),
+            field: player_party,
+            enemy_camp: enemy_party,
         },
         settlements={},
     )
@@ -5446,10 +5447,12 @@ def test_recommended_order_form_omits_caution_when_not_risky():
     """
     from html import escape
 
+    player_home_keep = Settlement("PlayerHome", population=1, owner_id="player")
+    enemy_home_keep = Settlement("EnemyHome", population=1, owner_id="enemy")
     game = GameState(
         (
-            Duchy("player", Unit()),
-            Duchy("enemy", Unit()),
+            Duchy("player", Unit(), settlements=(player_home_keep,)),
+            Duchy("enemy", Unit(), settlements=(enemy_home_keep,)),
         )
     )
 

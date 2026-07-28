@@ -4,6 +4,7 @@ from xml.etree import ElementTree as ET
 
 from tbb.duchy import Duchy
 from tbb.game import GameState
+from tbb.party import Party
 from tbb.settlement import Settlement
 from tbb.unit import Unit
 from tbbui.nextobjective import render_next_objective
@@ -34,7 +35,13 @@ def test_render_next_objective_empty_root_when_none_or_unknown_duchy():
                     Settlement("North Keep", population=1, owner_id="north"),
                 ),
             ),
-            Duchy("south", Unit()),
+            Duchy(
+                "south",
+                Unit(),
+                settlements=(
+                    Settlement("South Keep", population=1, owner_id="south"),
+                ),
+            ),
         )
     )
 
@@ -82,9 +89,16 @@ def test_render_next_objective_remaining_enemy_settlements():
     ``game``.
     """
     # undefeated enemies: south (2 settlements), east (1); west defeated → S = 3
+    # north keeps a settlement so the player is a living contender under G90.2a-2
     game = GameState(
         (
-            Duchy("north", Unit()),
+            Duchy(
+                "north",
+                Unit(),
+                settlements=(
+                    Settlement("North Keep", population=1, owner_id="north"),
+                ),
+            ),
             Duchy(
                 "south",
                 Unit(),
@@ -121,13 +135,19 @@ def test_render_next_objective_finish_enemy_heroes_when_no_settlements():
     ``Dobij wrogich bohaterów (pozostało: H)`` with ``H`` = count of undefeated
     enemies that ``has_hero``.
     """
-    # undefeated enemies with 0 settlements: south (hero), east (hero);
-    # west defeated → H = 2
+    # undefeated enemies with 0 settlements: south (hero + party), east (hero + party);
+    # west defeated → H = 2. Player north keeps a settlement (living contender).
     game = GameState(
         (
-            Duchy("north", Unit()),
-            Duchy("south", Unit()),
-            Duchy("east", Unit()),
+            Duchy(
+                "north",
+                Unit(),
+                settlements=(
+                    Settlement("North Keep", population=1, owner_id="north"),
+                ),
+            ),
+            Duchy("south", Unit(), parties=(Party(Unit(), owner_id="south"),)),
+            Duchy("east", Unit(), parties=(Party(Unit(), owner_id="east"),)),
             Duchy("west", None),
         )
     )

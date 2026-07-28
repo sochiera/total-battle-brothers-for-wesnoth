@@ -527,15 +527,24 @@ def test_positive_safety_limit_runs_every_active_duchy_each_turn(monkeypatch):
     assert result_game.is_over is False
 
 
-def test_idle_hero_without_strategic_assets_does_not_succeed(monkeypatch):
-    region = Region("South")
+def test_idle_living_hero_does_not_trigger_succession(monkeypatch):
+    """A living hero is not succeeded even when AI turns are idle no-ops.
+
+    Both duchies keep a settlement so they remain contenders under G90.2a-2;
+    the point is succession, not landlessness.
+    """
+    north_region, south_region = Region("North"), Region("South")
+    north_keep = Settlement("North Keep", 1, owner_id="north")
     south_keep = Settlement("South Keep", 1, owner_id="south")
-    world = WorldMap((region,), settlements={region: south_keep})
+    world = WorldMap(
+        (north_region, south_region),
+        settlements={north_region: north_keep, south_region: south_keep},
+    )
     hero = Unit(training=2)
     heir = Unit(training=1)
     game = GameState(
         (
-            Duchy("north", hero, morale=3, heir=heir),
+            Duchy("north", hero, morale=3, heir=heir, settlements=(north_keep,)),
             Duchy("south", Unit(), settlements=(south_keep,)),
         )
     )
@@ -554,13 +563,14 @@ def test_idle_hero_without_strategic_assets_does_not_succeed(monkeypatch):
     assert result_game.is_over is False
 
 
-def test_default_game_is_deterministic_safety_limit_draw_after_succession():
-    """Default setup + D12.3: landless survivors hit the safety-limit draw.
+def test_default_game_is_deterministic_early_ai_win_when_player_landless():
+    """Default setup + G90.2a-2: a landless, partyless survivor is defeated.
 
     With equal starting gold both duchies can seat heirs. After the opening
-    assault the losing side keeps a landless hero (is_defeated stays False), so
-    the fixed seed no longer yields an early AI win — it exhausts max_turns
-    deterministically with winner is None.
+    assault the losing side keeps a landless, partyless hero, which is now
+    defeated (settlements == () and parties == ()) instead of dragging the
+    game to the max_turns safety limit, so the fixed seed deterministically
+    ends with an early AI win (criterion 2: player defeat in finite turns).
     """
     first_world, first_game = create_headless_game()
     second_world, second_game = create_headless_game()
@@ -572,11 +582,15 @@ def test_default_game_is_deterministic_safety_limit_draw_after_succession():
     result_world, result_game, result_calendar = first_result
     assert isinstance(result_world, WorldMap)
     assert isinstance(result_calendar, Calendar)
-    assert result_game.is_over is False
-    assert result_game.winner is None
-    assert result_calendar == Calendar(year=77, month=13)
-    assert all(not duchy.is_defeated for duchy in result_game.duchies)
-    assert any(duchy.has_hero for duchy in result_game.duchies)
+    assert result_game.is_over is True
+    assert result_game.winner is not None
+    assert result_game.winner.duchy_id == "ai"
+    assert result_calendar == Calendar(year=1, month=2)
+    player = next(d for d in result_game.duchies if d.duchy_id == "player")
+    assert player.has_hero is True
+    assert player.settlements == ()
+    assert player.parties == ()
+    assert player.is_defeated is True
 
 
 def _development_scenario():
@@ -931,8 +945,11 @@ def test_raise_duchy_hero_runs_before_take_duchy_turn_with_sync(monkeypatch):
 
 def test_exit_conditions_return_typed_exact_unchanged_inputs():
     region = Region("Last Keep")
-    finished_world = WorldMap((region,))
-    finished_game = GameState((Duchy("north", Unit(training=2)),))
+    last_keep = Settlement("Last Keep", 1, owner_id="north")
+    finished_world = WorldMap((region,), settlements={region: last_keep})
+    finished_game = GameState(
+        (Duchy("north", Unit(training=2), settlements=(last_keep,)),)
+    )
     finished_calendar = Calendar(year=3, month=7)
     finished_snapshot = (
         finished_world.regions,
@@ -963,11 +980,20 @@ def test_exit_conditions_return_typed_exact_unchanged_inputs():
         finished_game.duchies,
     )
 
-    running_world = WorldMap((Region("North"), Region("South")))
+    running_north, running_south = Region("North"), Region("South")
+    running_north_keep = Settlement("North", 1, owner_id="north")
+    running_south_keep = Settlement("South", 1, owner_id="south")
+    running_world = WorldMap(
+        (running_north, running_south),
+        settlements={
+            running_north: running_north_keep,
+            running_south: running_south_keep,
+        },
+    )
     running_game = GameState(
         (
-            Duchy("north", Unit(training=2)),
-            Duchy("south", Unit(training=2)),
+            Duchy("north", Unit(training=2), settlements=(running_north_keep,)),
+            Duchy("south", Unit(training=2), settlements=(running_south_keep,)),
         )
     )
     running_calendar = Calendar(year=6, month=13)

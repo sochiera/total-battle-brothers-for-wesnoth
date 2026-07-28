@@ -15,8 +15,10 @@ from tbb.world import Region, WorldMap
 
 
 def test_two_contenders_keep_game_running_in_input_order():
-    north = Duchy("north", Unit())
-    south = Duchy("south", Unit())
+    north_settlement = Settlement("North", 1, owner_id="north")
+    south_settlement = Settlement("South", 1, owner_id="south")
+    north = Duchy("north", Unit(), settlements=(north_settlement,))
+    south = Duchy("south", Unit(), settlements=(south_settlement,))
     game = GameState([north, south])
 
     assert game.contenders == (north, south)
@@ -26,7 +28,8 @@ def test_two_contenders_keep_game_running_in_input_order():
 
 def test_only_undefeated_duchy_wins():
     defeated_north = Duchy("north", None)
-    south = Duchy("south", Unit())
+    south_settlement = Settlement("South", 1, owner_id="south")
+    south = Duchy("south", Unit(), settlements=(south_settlement,))
     defeated_west = Duchy("west", None)
     game = GameState([defeated_north, south, defeated_west])
 
@@ -54,7 +57,8 @@ def test_rejects_non_duchy_member():
 
 
 def test_copies_input_and_is_frozen():
-    north = Duchy("north", Unit())
+    north_settlement = Settlement("North", 1, owner_id="north")
+    north = Duchy("north", Unit(), settlements=(north_settlement,))
     source = [north]
     game = GameState(source)
     source.append(Duchy("south", Unit()))
@@ -67,13 +71,20 @@ def test_copies_input_and_is_frozen():
 
 
 def test_equal_inputs_produce_deterministic_queries():
-    duchies = [Duchy("north", Unit()), Duchy("south", None)]
+    north_settlement = Settlement("North", 1, owner_id="north")
+    # Living contender + defeated foe: equal inputs must yield identical queries.
+    duchies = [
+        Duchy("north", Unit(), settlements=(north_settlement,)),
+        Duchy("south", None),
+    ]
     first = GameState(duchies)
     second = GameState(duchies)
 
     assert first.contenders == second.contenders
     assert first.is_over == second.is_over
     assert first.winner == second.winner
+    assert first.is_over is True
+    assert first.winner is first.duchies[0]
 
 
 def test_sync_from_world_rebuilds_settlements_in_region_order_by_owner():

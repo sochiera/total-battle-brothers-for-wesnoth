@@ -261,8 +261,14 @@ def test_duchy_without_hero_or_settlements_is_defeated():
     assert Duchy("north", None).is_defeated is True
 
 
-def test_duchy_with_hero_and_without_settlements_is_not_defeated():
-    assert Duchy("north", Unit()).is_defeated is False
+def test_duchy_with_hero_but_no_settlements_and_no_parties_is_defeated():
+    """G90.2a-2: a living hero alone does not keep a duchy in the game forever.
+
+    Realistic defect: is_defeated only checked has_hero and settlements, so a
+    landless, partyless duchy stayed a contender and player_result stayed
+    ongoing after the last settlement fell (task-511 repro).
+    """
+    assert Duchy("north", Unit()).is_defeated is True
 
 
 def test_duchy_without_hero_but_with_settlement_is_not_defeated():
@@ -277,7 +283,13 @@ def test_duchy_with_hero_and_settlement_is_not_defeated():
     assert Duchy("north", Unit(), settlements=[settlement]).is_defeated is False
 
 
-def test_parties_do_not_prevent_defeat_without_hero_or_settlements():
+@pytest.mark.parametrize(
+    "hero",
+    [None, Unit()],
+    ids=["without_hero", "with_hero"],
+)
+def test_duchy_with_party_but_no_settlements_is_not_defeated(hero):
+    """G90.2a-2: a field party keeps the duchy in play (settlement OR party)."""
     party = Party(Unit(), owner_id="north")
 
-    assert Duchy("north", None, parties=[party]).is_defeated is True
+    assert Duchy("north", hero, parties=[party]).is_defeated is False

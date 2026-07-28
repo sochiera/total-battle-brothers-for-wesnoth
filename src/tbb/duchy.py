@@ -70,8 +70,8 @@ class Duchy:
 
     @property
     def is_defeated(self) -> bool:
-        """Report whether the duchy has neither a hero nor settlements."""
-        return not self.has_hero and self.settlements == ()
+        """Report whether the duchy has no settlements and no parties left."""
+        return self.settlements == () and self.parties == ()
 
     def succeed(self) -> "Duchy":
         """Resolve the hero's death by promoting an heir when available."""

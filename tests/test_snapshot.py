@@ -256,9 +256,13 @@ def _rich_player_duchy() -> Duchy:
 
 
 def _ai_duchy(*, alive: bool) -> Duchy:
-    """An AI duchy; alive keeps a hero, otherwise it is defeated."""
+    """An AI duchy; alive keeps a hero and a settlement, otherwise it is defeated."""
     if alive:
-        return Duchy(duchy_id="ai", hero=Unit(), settlements=())
+        return Duchy(
+            duchy_id="ai",
+            hero=Unit(),
+            settlements=(_duchy_settlement("ai", "AI Keep"),),
+        )
     return Duchy(duchy_id="ai", hero=None, settlements=())
 
 

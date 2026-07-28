@@ -4,6 +4,7 @@ from xml.etree import ElementTree as ET
 
 from tbb.duchy import Duchy
 from tbb.game import GameState
+from tbb.party import Party
 from tbb.settlement import Settlement
 from tbb.unit import Unit
 from tbbui.victoryprogress import render_victory_progress
@@ -28,7 +29,7 @@ def test_render_victory_progress_counts_undefeated_enemies_and_is_pure():
                     Settlement("North Keep", population=1, owner_id="north"),
                 ),
             ),
-            Duchy("south", Unit()),
+            Duchy("south", Unit(), parties=(Party(Unit(), owner_id="south"),)),
             Duchy(
                 "east",
                 None,
@@ -71,7 +72,7 @@ def test_render_victory_progress_empty_root_when_none_or_unknown_duchy():
                     Settlement("North Keep", population=1, owner_id="north"),
                 ),
             ),
-            Duchy("south", Unit()),
+            Duchy("south", Unit(), parties=(Party(Unit(), owner_id="south"),)),
         )
     )
 
@@ -106,7 +107,7 @@ def test_render_victory_progress_one_row_per_enemy_in_duchies_order():
                     Settlement("North Keep", population=1, owner_id="north"),
                 ),
             ),
-            Duchy("south", Unit()),
+            Duchy("south", Unit(), parties=(Party(Unit(), owner_id="south"),)),
             Duchy(
                 "east",
                 None,
@@ -162,7 +163,7 @@ def test_render_victory_progress_enemy_row_data_defeated_and_pokonany_suffix():
                     Settlement("North Keep", population=1, owner_id="north"),
                 ),
             ),
-            Duchy("south", Unit()),
+            Duchy("south", Unit(), parties=(Party(Unit(), owner_id="south"),)),
             Duchy(
                 "east",
                 None,
