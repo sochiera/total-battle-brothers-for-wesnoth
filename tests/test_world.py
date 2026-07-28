@@ -816,6 +816,100 @@ def test_apply_party_battle_result_draw_with_battle_removes_both_parties():
     assert resolved.party_at(vale) is None
 
 
+def test_apply_party_unresolved_keeps_both_parties_with_survivors():
+    """result=None is a legal unresolved party battle, not ValueError.
+
+    Defect: apply_party_battle_result falls through to
+    ValueError("unknown battle result") for non-enum results, so
+    HexBattle.result() is None after a stalemate never becomes a coherent
+    map. Contract: attacker stays at source with battle survivors, defender
+    stays at destination with battle survivors; neither party vanishes.
+    """
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(
+        Unit(experience=6),
+        [Unit(training=2), Unit(equipment=4)],
+        owner_id="north",
+    )
+    defender = Party(
+        Unit(experience=5),
+        [Unit(training=3), Unit(equipment=2)],
+        owner_id="south",
+    )
+    world = WorldMap(
+        [camp, vale], [(camp, vale)], parties={camp: attacker, vale: defender}
+    )
+    battle = _battle_with_fallen_subordinates(attacker, defender)
+    attacker_survivors = battle.side_survivors(BattleSide.ATTACKER)
+    defender_survivors = battle.side_survivors(BattleSide.DEFENDER)
+
+    resolved = world.apply_party_battle_result(
+        camp, vale, None, battle=battle
+    )
+
+    assert resolved.party_at(camp) == Party.reconstruct(
+        attacker, attacker_survivors
+    )
+    assert resolved.party_at(vale) == Party.reconstruct(
+        defender, defender_survivors
+    )
+    assert world.party_at(camp) is attacker
+    assert world.party_at(vale) is defender
+
+
+def test_apply_party_unknown_result_still_rejected():
+    """Genuinely unknown results remain ValueError; only None is unresolved."""
+    camp = Region("Camp")
+    vale = Region("Vale")
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        parties={
+            camp: Party(Unit(), owner_id="north"),
+            vale: Party(Unit(), owner_id="south"),
+        },
+    )
+
+    with pytest.raises(ValueError, match="unknown battle result"):
+        world.apply_party_battle_result(camp, vale, object())
+
+
+def test_resolve_party_unresolved_returns_world_without_raising():
+    """Full resolve path on a stalemate (result None) returns a coherent map.
+
+    Zero-damage 1v1 (equipment=0) exhausts auto_resolve rounds with both
+    sides still active. resolve_party_battle* must apply that None outcome:
+    attacker stays at source, defender stays at destination; neither vanishes.
+    """
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(Unit(equipment=0), owner_id="north")
+    defender = Party(Unit(equipment=0), owner_id="south")
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        parties={camp: attacker, vale: defender},
+    )
+    seed = 0
+
+    plain = world.resolve_party_battle(camp, vale, Rng(seed))
+    recorded_world, recorded_battle = world.resolve_party_battle_recorded(
+        camp, vale, Rng(seed)
+    )
+
+    assert recorded_battle.result() is None
+    assert plain == recorded_world
+    assert plain.party_at(camp) == Party.reconstruct(
+        attacker, recorded_battle.side_survivors(BattleSide.ATTACKER)
+    )
+    assert plain.party_at(vale) == Party.reconstruct(
+        defender, recorded_battle.side_survivors(BattleSide.DEFENDER)
+    )
+    assert world.party_at(camp) is attacker
+    assert world.party_at(vale) is defender
+
+
 @pytest.mark.parametrize(
     "party_regions, source_name, destination_name",
     [
