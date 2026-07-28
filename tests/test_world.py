@@ -1465,6 +1465,105 @@ def test_apply_settlement_non_win_with_battle_removes_attacking_party(result):
     assert world.settlement_at(vale) is settlement
 
 
+def test_apply_settlement_unresolved_keeps_attacker_survivors_and_settlement():
+    """result=None is a legal unresolved assault, not ValueError.
+
+    Defect: apply_settlement_battle_result rejects non-BattleResult via
+    isinstance, so HexBattle.result() is None after max rounds (stalemate)
+    becomes ValueError("unknown battle result") instead of a coherent map:
+    attacker remains at source with battle survivors; destination settlement
+    owner and garrison stay unchanged.
+    """
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(
+        Unit(experience=6),
+        [Unit(training=2), Unit(equipment=4)],
+        owner_id="north",
+    )
+    garrison = (Unit(training=3), Unit(equipment=2), Unit(experience=1))
+    settlement = Settlement(
+        "Oakrest", 5, garrison=garrison, owner_id="south"
+    )
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        settlements={vale: settlement},
+        parties={camp: attacker},
+    )
+    battle = _battle_with_fallen_subordinates(
+        attacker, Party(garrison[0], garrison[1:], owner_id="south")
+    )
+    survivors = battle.side_survivors(BattleSide.ATTACKER)
+
+    resolved = world.apply_settlement_battle_result(
+        camp, vale, None, battle=battle
+    )
+
+    assert resolved.party_at(camp) == Party.reconstruct(attacker, survivors)
+    assert resolved.party_at(vale) is None
+    assert resolved.settlement_at(vale) is settlement
+    assert resolved.settlement_at(vale).owner_id == "south"
+    assert resolved.settlement_at(vale).garrison is garrison
+    assert world.party_at(camp) is attacker
+    assert world.settlement_at(vale) is settlement
+
+
+def test_apply_settlement_unknown_result_still_rejected():
+    """Genuinely unknown results remain ValueError; only None is unresolved."""
+    camp = Region("Camp")
+    vale = Region("Vale")
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        settlements={vale: Settlement("Oakrest", 2, owner_id="south")},
+        parties={camp: Party(Unit(), owner_id="north")},
+    )
+
+    with pytest.raises(ValueError, match="unknown battle result"):
+        world.apply_settlement_battle_result(camp, vale, object())
+
+
+def test_resolve_settlement_unresolved_returns_world_without_raising():
+    """Full resolve path on a stalemate (result None) returns a coherent map.
+
+    Zero-damage 1v1 (equipment=0) exhausts auto_resolve rounds with both
+    sides still active. resolve_settlement_battle* must apply that None
+    outcome: attacker stays at source, settlement owner/garrison untouched.
+    """
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(Unit(equipment=0), owner_id="north")
+    garrison = (Unit(equipment=0),)
+    settlement = Settlement(
+        "Oakrest", population=2, garrison=garrison, owner_id="south"
+    )
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        settlements={vale: settlement},
+        parties={camp: attacker},
+    )
+    seed = 0
+
+    plain = world.resolve_settlement_battle(camp, vale, Rng(seed))
+    recorded_world, recorded_battle = world.resolve_settlement_battle_recorded(
+        camp, vale, Rng(seed)
+    )
+
+    assert recorded_battle.result() is None
+    assert plain == recorded_world
+    assert plain.party_at(camp) == Party.reconstruct(
+        attacker, recorded_battle.side_survivors(BattleSide.ATTACKER)
+    )
+    assert plain.party_at(vale) is None
+    assert plain.settlement_at(vale) is settlement
+    assert plain.settlement_at(vale).owner_id == "south"
+    assert plain.settlement_at(vale).garrison is garrison
+    assert world.party_at(camp) is attacker
+    assert world.settlement_at(vale) is settlement
+
+
 def test_resolve_settlement_battle_attacker_morale_advantage_changes_map_outcome():
     """Per-side morale on resolve_settlement_battle: +45 attacker vs 0/0 flips the map.
 

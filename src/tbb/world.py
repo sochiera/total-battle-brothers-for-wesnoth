@@ -341,7 +341,7 @@ class WorldMap:
         self,
         source: Region,
         destination: Region,
-        result: BattleResult,
+        result: BattleResult | None,
         battle: HexBattle | None = None,
     ) -> "WorldMap":
         """Return a new world with a settlement battle's result applied."""
@@ -355,7 +355,7 @@ class WorldMap:
             raise ValueError("source region has no party")
         if destination not in self.settlements:
             raise ValueError("destination region has no settlement")
-        if not isinstance(result, BattleResult):
+        if result is not None and not isinstance(result, BattleResult):
             raise ValueError("unknown battle result")
         if (
             result is BattleResult.ATTACKER_WIN
@@ -366,7 +366,15 @@ class WorldMap:
         parties = dict(self.parties)
         attacker = parties.pop(source)
         settlement = self.settlements[destination]
-        if result is BattleResult.ATTACKER_WIN:
+        if result is None:
+            parties[source] = (
+                attacker
+                if battle is None
+                else Party.reconstruct(
+                    attacker, battle.side_survivors(BattleSide.ATTACKER)
+                )
+            )
+        elif result is BattleResult.ATTACKER_WIN:
             parties[destination] = (
                 attacker
                 if battle is None
