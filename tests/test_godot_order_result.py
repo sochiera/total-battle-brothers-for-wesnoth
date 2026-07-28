@@ -47,6 +47,12 @@ def test_godot_order_result_projects_only_complete_successful_order_results():
 
     assert payload["changed"] == {"order": "develop", "changed": True}
     assert payload["unchanged"] == {"order": "develop", "changed": False}
+    # G91.2b: projected shape must keep game_over (not only status_text).
+    assert payload["game_over_order"] == {
+        "order": "recruit",
+        "changed": False,
+        "game_over": True,
+    }
     assert payload["battle"] == {
         "kind": "battle",
         "order": "assault",
@@ -112,6 +118,8 @@ def test_godot_order_result_returns_polish_status_text_for_projected_orders():
         "muster_changed": "Rozkaz zbiórki zmienił stan.",
         "muster_unchanged": "Rozkaz zbiórki nie zmienił stanu.",
         "assault_unchanged": "Rozkaz szturmu nie zmienił stanu.",
+        # G91.2b: odpowiedź mostu z game_over:true nie może wyglądać jak no-op w trwającej partii.
+        "game_over_order": "Partia jest zakończona.",
         "assault_battle": "Szturm: porażka (straty: 0, wróg: 0).",
         "assault_battle_from_wire": "Szturm: zwycięstwo (straty: 0, wróg: 2).",
         # Ten sam szablon co zwycięstwo/porażka/remis; outcome mostu wprost w tekście.

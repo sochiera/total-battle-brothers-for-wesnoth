@@ -4,6 +4,8 @@ const OrderResult = preload("res://scripts/order_result.gd")
 const EXPECTED := {
 	"changed": {"order": "develop", "changed": true},
 	"unchanged": {"order": "develop", "changed": false},
+	# G91.2b: from_response musi przenieść game_over z mostu (UI może czytać flagę wprost).
+	"game_over_order": {"order": "recruit", "changed": false, "game_over": true},
 	"battle": {"kind": "battle", "order": "assault", "outcome": "porażka", "attacker_losses": 0, "defender_losses": 0},
 	"battle_from_wire": {"kind": "battle", "order": "assault", "outcome": "zwycięstwo", "attacker_losses": 0, "defender_losses": 2},
 	"battle_unresolved": {"kind": "battle", "order": "assault", "outcome": "nierozstrzygnięta", "attacker_losses": 0, "defender_losses": 0},
@@ -37,6 +39,8 @@ const EXPECTED_STATUS_TEXT := {
 	"muster_changed": "Rozkaz zbiórki zmienił stan.",
 	"muster_unchanged": "Rozkaz zbiórki nie zmienił stanu.",
 	"assault_unchanged": "Rozkaz szturmu nie zmienił stanu.",
+	# G91.2b: most (task-516) dodaje game_over — status nie może brzmieć jak no-op w trwającej partii.
+	"game_over_order": "Partia jest zakończona.",
 	"assault_battle": "Szturm: porażka (straty: 0, wróg: 0).",
 	"assault_battle_from_wire": "Szturm: zwycięstwo (straty: 0, wróg: 2).",
 	"assault_battle_unresolved": "Szturm: nierozstrzygnięta (straty: 0, wróg: 0).",
@@ -57,6 +61,10 @@ func _init() -> void:
 	var cases := {
 		"changed": {"ok": true, "result": {"kind": "order", "order": "develop", "changed": true}},
 		"unchanged": {"ok": true, "result": {"kind": "order", "order": "develop", "changed": false}},
+		"game_over_order": {
+			"ok": true,
+			"result": {"kind": "order", "order": "recruit", "changed": false, "game_over": true},
+		},
 		"missing_ok": {"result": {"kind": "order", "order": "develop", "changed": true}},
 		"not_ok": {"ok": false, "result": {"kind": "order", "order": "develop", "changed": true}},
 		"missing_result": {"ok": true},
@@ -96,6 +104,10 @@ func _init() -> void:
 		"muster_changed": OrderResult.from_response({"ok": true, "result": {"kind": "order", "order": "muster", "changed": true}}),
 		"muster_unchanged": OrderResult.from_response({"ok": true, "result": {"kind": "order", "order": "muster", "changed": false}}),
 		"assault_unchanged": OrderResult.from_response({"ok": true, "result": {"kind": "order", "order": "assault", "changed": false}}),
+		"game_over_order": OrderResult.from_response({
+			"ok": true,
+			"result": {"kind": "order", "order": "recruit", "changed": false, "game_over": true},
+		}),
 		"assault_battle": projected["battle"],
 		"assault_battle_from_wire": projected["battle_from_wire"],
 		"assault_battle_unresolved": projected["battle_unresolved"],

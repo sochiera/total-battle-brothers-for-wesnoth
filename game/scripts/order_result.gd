@@ -12,6 +12,9 @@ static func status_text(order_result: Variant) -> String:
 	if not order_result.has("order") or not order_result["order"] is String:
 		return ""
 
+	if order_result.has("game_over") and order_result["game_over"] is bool and order_result["game_over"]:
+		return "Partia jest zakończona."
+
 	var order: String = order_result["order"]
 	if order_result.has("kind"):
 		if order_result["kind"] != "battle" or order != "assault":
@@ -75,7 +78,10 @@ static func from_response(response: Dictionary) -> Variant:
 			var changed: Variant = result["changed"]
 			if not changed is bool:
 				return null
-			return {"order": order, "changed": changed}
+			var projected = {"order": order, "changed": changed}
+			if result.has("game_over") and result["game_over"] is bool and result["game_over"]:
+				projected["game_over"] = true
+			return projected
 		"battle":
 			if not result.has("outcome"):
 				return null
