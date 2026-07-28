@@ -12,7 +12,7 @@ import re
 import shlex
 from pathlib import Path
 
-from godot_runner import run_godot_script
+from godot_runner import map_player_result, run_godot_script
 from tbbbridge.session import new_session
 
 
@@ -44,7 +44,7 @@ def _controls(snapshot: dict) -> dict:
             f"Rok {snapshot['calendar']['year']}, "
             f"miesiąc {snapshot['calendar']['month']}"
         ),
-        "result": f"Wynik: {snapshot['result']['player_result']}",
+        "result": map_player_result(snapshot['result']['player_result']),
         "duchy_status": (
             f"Morale: {player_status['morale']}, "
             f"osady: {player_status['settlements']}, "

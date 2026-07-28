@@ -4,6 +4,26 @@ from collections.abc import Mapping
 from pathlib import Path
 import subprocess
 
+# Single test-side contract for ResultLabel copy (G90.2b).
+# MUST stay in sync with game/scripts/main.gd `_get_result_text` (and its
+# fallback "Wynik: brak"). Tests assert these exact strings against Godot
+# output — change copy in both places in the same change, or expect red tests.
+# Bridge tokens: tbbbridge.snapshot._player_result (ongoing|victory|defeat|draw).
+PLAYER_RESULT_PL = {
+    "ongoing": "Wynik: gra trwa",
+    "victory": "Wynik: zwycięstwo",
+    "defeat": "Wynik: porażka",
+    "draw": "Wynik: remis",
+}
+MISSING_PLAYER_RESULT_PL = "Wynik: brak"
+
+
+def map_player_result(token: str | None) -> str:
+    """Map a bridge player_result token (or None/empty) to on-screen Polish text."""
+    if token is None or token == "":
+        return MISSING_PLAYER_RESULT_PL
+    return PLAYER_RESULT_PL.get(token, MISSING_PLAYER_RESULT_PL)
+
 
 def run_godot_script(
     project: Path,

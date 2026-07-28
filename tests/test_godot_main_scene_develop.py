@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from godot_runner import run_godot_script
+from godot_runner import MISSING_PLAYER_RESULT_PL, PLAYER_RESULT_PL, run_godot_script
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -25,7 +25,7 @@ def test_develop_from_bridge_applies_post_order_model_and_preserves_scene_on_fai
         "success_orders": ["develop"],
         "after_success": {
             "date": "Rok 1, miesiąc 1",
-            "result": "Wynik: developed",
+            "result": PLAYER_RESULT_PL["ongoing"],
             "regions": ["Po rozkazie"],
             "order_status": "Rozkaz rozwoju zmienił stan.",
         },
@@ -33,7 +33,7 @@ def test_develop_from_bridge_applies_post_order_model_and_preserves_scene_on_fai
         "unchanged_orders": ["develop"],
         "after_unchanged": {
             "date": "Rok 1, miesiąc 1",
-            "result": "Wynik: unchanged",
+            "result": PLAYER_RESULT_PL["ongoing"],
             "regions": ["Bez zmiany"],
             "order_status": "Rozkaz rozwoju nie zmienił stanu.",
         },
@@ -41,7 +41,7 @@ def test_develop_from_bridge_applies_post_order_model_and_preserves_scene_on_fai
         "failure_orders": ["develop"],
         "after_failure": {
             "date": "Rok 1, miesiąc 1",
-            "result": "Wynik: unchanged",
+            "result": PLAYER_RESULT_PL["ongoing"],
             "regions": ["Bez zmiany"],
             "order_status": "Rozkaz nie powiódł się.",
         },
@@ -49,7 +49,7 @@ def test_develop_from_bridge_applies_post_order_model_and_preserves_scene_on_fai
         "missing_order_result_orders": ["develop"],
         "after_missing_order_result": {
             "date": "Rok 1, miesiąc 1",
-            "result": "Wynik: missing result",
+            "result": MISSING_PLAYER_RESULT_PL,
             "regions": ["Bez wyniku"],
             "order_status": "",
         },
@@ -71,7 +71,7 @@ def test_send_order_from_bridge_uses_the_order_result_status_for_recruitment():
         "recruit_orders": ["recruit"],
         "after_recruit": {
             "date": "Rok 2, miesiąc 3",
-            "result": "Wynik: recruited",
+            "result": PLAYER_RESULT_PL["ongoing"],
             "regions": ["Po rekrutacji"],
             "order_status": "Rozkaz rekrutacji zmienił stan.",
         },
@@ -79,7 +79,7 @@ def test_send_order_from_bridge_uses_the_order_result_status_for_recruitment():
         "failure_orders": ["recruit"],
         "after_failure": {
             "date": "Rok 2, miesiąc 3",
-            "result": "Wynik: recruited",
+            "result": PLAYER_RESULT_PL["ongoing"],
             "regions": ["Po rekrutacji"],
             "order_status": "Rozkaz nie powiódł się.",
         },

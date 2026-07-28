@@ -11,7 +11,7 @@ const REQUIRED_LEAVES := {
 		"month": NUMERIC_TYPES,
 	},
 	"map": {"regions": [TYPE_ARRAY]},
-	"result": {"player_result": [TYPE_STRING]},
+	"result": {"player_result": [TYPE_STRING, TYPE_NIL]},
 }
 
 
@@ -151,7 +151,7 @@ static func from_response(response: Dictionary) -> SnapshotModel:
 	model.year = int(calendar["year"])
 	model.month = int(calendar["month"])
 	model.regions = _placeable_regions(map["regions"])
-	model.player_result = result["player_result"]
+	model.player_result = "" if result["player_result"] == null else result["player_result"]
 	model.player_duchy_status = _player_duchy_status(snapshot)
 	model.player_party_region = _player_party_region(snapshot)
 	model.battle = _battle(snapshot)

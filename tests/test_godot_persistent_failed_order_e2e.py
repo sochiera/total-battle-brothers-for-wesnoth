@@ -2,7 +2,7 @@ import json
 import shlex
 from pathlib import Path
 
-from godot_runner import run_godot_script
+from godot_runner import map_player_result, run_godot_script
 from tbbbridge.session import apply_command, new_session
 
 
@@ -23,7 +23,7 @@ def _controls(develops: int, status: str) -> dict:
     )
     return {
         "date": f"Rok {snapshot['calendar']['year']}, miesiąc {snapshot['calendar']['month']}",
-        "result": f"Wynik: {snapshot['result']['player_result']}",
+        "result": map_player_result(snapshot['result']['player_result']),
         "duchy_status": (
             f"Morale: {player['morale']}, osady: {player['settlements']}, "
             f"oddziały: {player['parties']}"

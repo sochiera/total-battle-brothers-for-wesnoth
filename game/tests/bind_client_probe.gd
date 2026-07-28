@@ -53,8 +53,8 @@ func _init() -> void:
 		return
 
 	var first_client := StubClient.new([
-		_model(2, 3, "first", ["Pierwsza"]),
-		_model(2, 4, "second", ["Druga"]),
+		_model(2, 3, "ongoing", ["Pierwsza"]),
+		_model(2, 4, "victory", ["Druga"]),
 	])
 	scene_root.bind_client(first_client)
 	button.emit_signal("pressed")
@@ -62,7 +62,7 @@ func _init() -> void:
 	button.emit_signal("pressed")
 	var after_second_press := _controls(scene_root)
 
-	var second_client := StubClient.new([_model(7, 8, "rebound", ["Nowa"]), null])
+	var second_client := StubClient.new([_model(7, 8, "draw", ["Nowa"]), null])
 	scene_root.bind_client(second_client)
 	button.emit_signal("pressed")
 	var after_rebind_press := _controls(scene_root)

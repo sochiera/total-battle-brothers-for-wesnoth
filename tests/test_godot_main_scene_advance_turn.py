@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from godot_runner import run_godot_script
+from godot_runner import PLAYER_RESULT_PL, run_godot_script
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,7 +28,7 @@ def test_advance_turn_from_bridge_applies_post_turn_model_once_and_preserves_sce
         "success_snapshot_calls": 0,
         "after_success": {
             "date": "Rok 8, miesiąc 4",
-            "result": "Wynik: after-turn",
+            "result": PLAYER_RESULT_PL["ongoing"],
             "regions": ["Po turze"],
         },
         "rejected": False,
@@ -36,7 +36,7 @@ def test_advance_turn_from_bridge_applies_post_turn_model_once_and_preserves_sce
         "failure_snapshot_calls": 0,
         "after_failure": {
             "date": "Rok 8, miesiąc 4",
-            "result": "Wynik: after-turn",
+            "result": PLAYER_RESULT_PL["ongoing"],
             "regions": ["Po turze"],
         },
     }

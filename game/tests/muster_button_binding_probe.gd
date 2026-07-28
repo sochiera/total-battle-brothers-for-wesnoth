@@ -44,8 +44,8 @@ func _init() -> void:
 	button.emit_signal("pressed")
 	var after_unbound_press := _controls(scene_root)
 	var client := StubClient.new([
-		_model("zebrano oddział"),
-		_model("brak oddziału do zebrania"),
+		_model("ongoing"),
+		_model("ongoing"),
 	], [
 		{"order": "muster", "changed": true},
 		{"order": "muster", "changed": false},

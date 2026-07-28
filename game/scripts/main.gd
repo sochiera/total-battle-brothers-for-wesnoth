@@ -161,7 +161,8 @@ func _apply_save_load_result(
 
 func apply_model(model: SnapshotModel) -> void:
 	%DateLabel.text = "Rok %d, miesiąc %d" % [model.year, model.month]
-	%ResultLabel.text = "Wynik: %s" % model.player_result
+	%ResultLabel.text = _get_result_text(model.player_result)
+	_apply_result_visual_style(model.player_result)
 	%PlayerPartyPositionLabel.text = _player_party_position_text(model.player_party_region)
 	var player_duchy_status_label: Label = %PlayerDuchyStatusLabel
 	var player_duchy_status: Variant = model.player_duchy_status
@@ -188,3 +189,28 @@ func _player_party_position_text(player_party_region: Variant) -> String:
 	if player_party_region is String and not player_party_region.is_empty():
 		return "Położenie oddziału: %s" % player_party_region
 	return "Położenie oddziału: brak"
+
+
+func _apply_result_visual_style(player_result: String) -> void:
+	var result_label: Label = %ResultLabel
+	match player_result:
+		"victory":
+			result_label.modulate = Color.GREEN
+		"defeat":
+			result_label.modulate = Color.RED
+		"draw":
+			result_label.modulate = Color.YELLOW
+		_:
+			result_label.modulate = Color.WHITE
+
+
+func _get_result_text(player_result: String) -> String:
+	var result_map := {
+		"ongoing": "Wynik: gra trwa",
+		"victory": "Wynik: zwycięstwo",
+		"defeat": "Wynik: porażka",
+		"draw": "Wynik: remis",
+	}
+	if player_result in result_map:
+		return result_map[player_result]
+	return "Wynik: brak"

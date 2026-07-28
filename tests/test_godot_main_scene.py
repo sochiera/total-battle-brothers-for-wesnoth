@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from godot_runner import run_godot_script
+from godot_runner import PLAYER_RESULT_PL, run_godot_script
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -181,7 +181,7 @@ def test_assault_button_sends_the_assault_order_and_projects_a_battle_result():
     assert payload == {
         "orders": ["assault"],
         "date": "Rok 1, miesiąc 1",
-        "result": "Wynik: ongoing",
+        "result": PLAYER_RESULT_PL["ongoing"],
         "regions": ["Północ"],
         "duchy_status": "Morale: 2, osady: 1, oddziały: 1",
         "order_status": "Szturm: porażka (straty: 0, wróg: 0).",

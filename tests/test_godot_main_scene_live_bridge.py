@@ -3,7 +3,7 @@ import shlex
 import shutil
 from pathlib import Path
 
-from godot_runner import run_godot_script
+from godot_runner import map_player_result, run_godot_script
 from tbbbridge.session import new_session
 
 
@@ -52,7 +52,7 @@ def test_scene_live_probe_renders_snapshot_from_real_bridge(tmp_path):
             f"Rok {snapshot['calendar']['year']}, "
             f"miesiąc {snapshot['calendar']['month']}"
         ),
-        "result": f"Wynik: {snapshot['result']['player_result']}",
+        "result": map_player_result(snapshot['result']['player_result']),
         "regions": len(snapshot["map"]["regions"]),
         "region_names": [
             region["name"] for region in snapshot["map"]["regions"]

@@ -3,13 +3,38 @@ from pathlib import Path
 
 import pytest
 
-from godot_runner import run_godot_script
+from godot_runner import (
+    MISSING_PLAYER_RESULT_PL,
+    PLAYER_RESULT_PL,
+    run_godot_script,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
 GAME = ROOT / "game"
 FIXTURE = GAME / "tests" / "fixtures" / "session_snapshot.json"
 PREFIX = "SCENE_TEXT "
+
+
+def _bind_payload(tmp_path, player_result) -> dict:
+    """Bind fixture snapshot; player_result may be str or None (JSON null from bridge)."""
+    fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    response_fixture = fixture.copy()
+    response_result = fixture["result"].copy()
+    response_result["player_result"] = player_result
+    response_fixture["result"] = response_result
+    response_path = tmp_path / "response.json"
+    response_path.write_text(
+        json.dumps({"ok": True, "snapshot": response_fixture}), encoding="utf-8"
+    )
+    result = run_godot_script(
+        GAME, "res://tests/scene_bind_probe.gd", str(response_path), timeout=30
+    )
+    assert result.returncode == 0, result.stderr
+    lines = [line for line in result.stdout.splitlines() if line.startswith(PREFIX)]
+    assert len(lines) == 1, result.stdout
+    assert "SCRIPT ERROR" not in result.stderr, result.stderr
+    return json.loads(lines[0][len(PREFIX) :])
 
 
 def test_scene_bind_probe_applies_model_date_regions_and_result(tmp_path):
@@ -32,38 +57,90 @@ def test_scene_bind_probe_applies_model_date_regions_and_result(tmp_path):
     assert payload["date"] == (
         f"Rok {fixture['calendar']['year']}, miesiąc {fixture['calendar']['month']}"
     )
-    assert payload["result"] == f"Wynik: {fixture['result']['player_result']}"
+    token = fixture["result"]["player_result"]
+    assert payload["result"] == PLAYER_RESULT_PL[token]
     assert payload["regions"] == len(fixture["map"]["regions"])
     assert payload["region_names"] == [
         region["name"] for region in fixture["map"]["regions"]
     ]
 
 
+@pytest.mark.parametrize(
+    "token,expected",
+    list(PLAYER_RESULT_PL.items()),
+    ids=list(PLAYER_RESULT_PL),
+)
+def test_scene_bind_probe_shows_polish_player_result_not_bridge_token(
+    tmp_path, token, expected
+):
+    """G90.2b: ResultLabel maps bridge tokens to Polish; English token stays off-screen.
+
+    Realistic defect: apply_model formats ``Wynik: %s`` with raw player_result
+    (ongoing/victory/defeat/draw), so a Polish UI shows English status tokens.
+    Existing binding probes asserted that same English format and never caught it.
+    """
+    payload = _bind_payload(tmp_path, token)
+    assert payload["result"] == expected
+    assert token not in payload["result"]
+
+
+@pytest.mark.parametrize(
+    "missing_value",
+    ["", None],
+    ids=["empty_string", "json_null"],
+)
+def test_scene_bind_probe_missing_player_result_is_readable_polish(
+    tmp_path, missing_value
+):
+    """G90.2b AC2: missing result is readable Polish — empty string or bridge null.
+
+    Realistic defect: tbbbridge emits player_result JSON null when there is no
+    player duchy; SnapshotModel.from_response requires TYPE_STRING and rejects
+    the whole model, so apply_model never runs and ResultLabel stays blank.
+    The empty-string case alone did not catch null rejection.
+    """
+    payload = _bind_payload(tmp_path, missing_value)
+    assert payload["result"] == MISSING_PLAYER_RESULT_PL
+    assert payload["result"].strip() != ""
+    assert payload["result"].strip() != "Wynik:"
+
+
+def _result_visual(payload: dict) -> tuple:
+    """Visual fingerprint of ResultLabel (modulate + font color)."""
+    return (
+        tuple(payload["result_modulate"]),
+        tuple(payload["result_font_color"]),
+    )
+
+
+@pytest.mark.parametrize("token", ["victory", "defeat", "draw"])
+def test_scene_bind_probe_finished_party_is_visually_distinct_from_ongoing(
+    tmp_path, token
+):
+    """G90.2b AC3: finished party must stand out without reading the result text.
+
+    Realistic defect: apply_model only changes ResultLabel.text; modulate/font stay
+    default for victory/defeat/draw and ongoing alike, so a ended game looks like
+    an in-progress one until the player reads the line carefully.
+    """
+    ongoing = _bind_payload(tmp_path, "ongoing")
+    finished = _bind_payload(tmp_path, token)
+    assert _result_visual(finished) != _result_visual(ongoing), (
+        f"finished token {token!r} must style ResultLabel differently from ongoing; "
+        f"got finished={_result_visual(finished)} ongoing={_result_visual(ongoing)}"
+    )
+
+
 def test_scene_bind_probe_uses_result_from_model_not_constant(tmp_path):
     fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
-    response_fixture = fixture.copy()
-    response_result = fixture["result"].copy()
-    response_result["player_result"] = "won"
-    response_fixture["result"] = response_result
-    response_path = tmp_path / "response.json"
-    response_path.write_text(
-        json.dumps({"ok": True, "snapshot": response_fixture}), encoding="utf-8"
-    )
-
-    result = run_godot_script(
-        GAME, "res://tests/scene_bind_probe.gd", str(response_path), timeout=30
-    )
-
-    assert result.returncode == 0, result.stderr
-    lines = [line for line in result.stdout.splitlines() if line.startswith(PREFIX)]
-    assert len(lines) == 1, result.stdout
-    assert "SCRIPT ERROR" not in result.stderr, result.stderr
-
-    payload = json.loads(lines[0][len(PREFIX) :])
+    # Unknown token still comes from the model (not a hardcoded ongoing),
+    # but must render a readable Polish fallback — never the raw English token.
+    payload = _bind_payload(tmp_path, "won")
     assert payload["date"] == (
         f"Rok {fixture['calendar']['year']}, miesiąc {fixture['calendar']['month']}"
     )
-    assert payload["result"] == "Wynik: won"
+    assert payload["result"] == MISSING_PLAYER_RESULT_PL
+    assert "won" not in payload["result"]
     assert payload["regions"] == len(fixture["map"]["regions"])
 
 

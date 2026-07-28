@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from godot_runner import run_godot_script
+from godot_runner import PLAYER_RESULT_PL, run_godot_script
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,23 +28,23 @@ def test_bind_client_advances_once_per_press_rebinds_without_duplicate_connectio
         "first_calls": 2,
         "after_first_press": {
             "date": "Rok 2, miesiąc 3",
-            "result": "Wynik: first",
+            "result": PLAYER_RESULT_PL["ongoing"],
             "regions": ["Pierwsza"],
         },
         "after_second_press": {
             "date": "Rok 2, miesiąc 4",
-            "result": "Wynik: second",
+            "result": PLAYER_RESULT_PL["victory"],
             "regions": ["Druga"],
         },
         "second_calls": 2,
         "after_rebind_press": {
             "date": "Rok 7, miesiąc 8",
-            "result": "Wynik: rebound",
+            "result": PLAYER_RESULT_PL["draw"],
             "regions": ["Nowa"],
         },
         "after_failed_press": {
             "date": "Rok 7, miesiąc 8",
-            "result": "Wynik: rebound",
+            "result": PLAYER_RESULT_PL["draw"],
             "regions": ["Nowa"],
         },
     }

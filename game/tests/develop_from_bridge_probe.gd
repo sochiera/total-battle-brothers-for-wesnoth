@@ -52,14 +52,14 @@ func _init() -> void:
 		return
 
 	var successful_client := StubClient.new(
-		_model(1, 1, "developed", ["Po rozkazie"]),
+		_model(1, 1, "ongoing", ["Po rozkazie"]),
 		{"order": "develop", "changed": true},
 	)
 	var refreshed: bool = scene_root.develop_from_bridge(successful_client)
 	var after_success := _controls(scene_root)
 
 	var unchanged_client := StubClient.new(
-		_model(1, 1, "unchanged", ["Bez zmiany"]),
+		_model(1, 1, "ongoing", ["Bez zmiany"]),
 		{"order": "develop", "changed": false},
 	)
 	var refreshed_without_change: bool = scene_root.develop_from_bridge(unchanged_client)
@@ -67,7 +67,7 @@ func _init() -> void:
 	var failed_client := StubClient.new(null, null)
 	var rejected: bool = scene_root.develop_from_bridge(failed_client)
 	var after_failure := _controls(scene_root)
-	var client_without_order_result := NoOrderResultClient.new(_model(1, 1, "missing result", ["Bez wyniku"]))
+	var client_without_order_result := NoOrderResultClient.new(_model(1, 1, "", ["Bez wyniku"]))
 	var refreshed_without_order_result: bool = scene_root.develop_from_bridge(client_without_order_result)
 	var after_missing_order_result := _controls(scene_root)
 

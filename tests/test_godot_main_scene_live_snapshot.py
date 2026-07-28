@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from godot_runner import run_godot_script
+from godot_runner import map_player_result, run_godot_script
 from tbbbridge.session import new_session
 
 
@@ -41,7 +41,7 @@ def test_scene_bind_probe_applies_live_snapshot_after_three_turns(tmp_path, monk
     assert payload["date"] == (
         f"Rok {snapshot['calendar']['year']}, miesiąc {snapshot['calendar']['month']}"
     )
-    assert payload["result"] == f"Wynik: {snapshot['result']['player_result']}"
+    assert payload["result"] == map_player_result(snapshot['result']['player_result'])
     player_status = next(
         duchy
         for duchy in snapshot["duchies"]

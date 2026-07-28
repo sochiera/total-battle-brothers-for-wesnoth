@@ -45,8 +45,8 @@ func _init() -> void:
 		call_deferred("quit", 0)
 		return
 
-	var after_turn := _model(8, 4, "after-turn", ["Po turze"])
-	var stale_snapshot := _model(1, 1, "stale", ["Przed turą"])
+	var after_turn := _model(8, 4, "ongoing", ["Po turze"])
+	var stale_snapshot := _model(1, 1, "defeat", ["Przed turą"])
 	var successful_client := StubClient.new(after_turn, stale_snapshot)
 	var refreshed: bool = scene_root.advance_turn_from_bridge(successful_client)
 	var after_success := _controls(scene_root)

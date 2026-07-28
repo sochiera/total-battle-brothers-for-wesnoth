@@ -72,9 +72,23 @@ func _init() -> void:
 	var region_names: Array[String] = []
 	for index: int in region_list.item_count:
 		region_names.append(region_list.get_item_text(index))
+	var result_modulate: Color = result_label.modulate
+	var result_font_color: Color = result_label.get_theme_color("font_color")
 	print("SCENE_TEXT ", JSON.stringify({
 		"date": date_label.text,
 		"result": result_label.text,
+		"result_modulate": [
+			result_modulate.r,
+			result_modulate.g,
+			result_modulate.b,
+			result_modulate.a,
+		],
+		"result_font_color": [
+			result_font_color.r,
+			result_font_color.g,
+			result_font_color.b,
+			result_font_color.a,
+		],
 		"duchy_status_before_clear": duchy_status_before_clear,
 		"duchy_status": duchy_status_label.text if duchy_status_label != null else null,
 		"regions": region_list.item_count,

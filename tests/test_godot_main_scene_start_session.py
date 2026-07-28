@@ -3,7 +3,7 @@ import os
 import shlex
 from pathlib import Path
 
-from godot_runner import run_godot_script
+from godot_runner import map_player_result, run_godot_script
 from tbbbridge.persist import read_session
 from tbbbridge.session import apply_command, new_session
 
@@ -20,7 +20,6 @@ START_STATUS_PROBE = "res://tests/start_status_probe.gd"
 START_STATUS_PREFIX = "START_STATUS "
 SEED = 73
 BROKEN_BRIDGE_COMMAND = "/nonexistent/python-brak"
-# Publiczny kontrakt tekstu błędu startu — ten sam co START_FAILURE_STATUS w main.gd.
 START_FAILURE_STATUS = "Nie udało się uruchomić mostu ani rozpocząć partii."
 
 
@@ -35,7 +34,7 @@ def _controls(snapshot: dict) -> dict:
             f"Rok {snapshot['calendar']['year']}, "
             f"miesiąc {snapshot['calendar']['month']}"
         ),
-        "result": f"Wynik: {snapshot['result']['player_result']}",
+        "result": map_player_result(snapshot['result']['player_result']),
         "duchy_status": (
             f"Morale: {player_status['morale']}, "
             f"osady: {player_status['settlements']}, "

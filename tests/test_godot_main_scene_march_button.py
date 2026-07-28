@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from godot_runner import run_godot_script
+from godot_runner import PLAYER_RESULT_PL, run_godot_script
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -35,14 +35,14 @@ def test_march_button_is_a_single_safe_binding_and_renders_the_post_order_snapsh
         "orders": ["march", "march"],
         "after_changed_press": {
             "date": "Rok 3, miesiąc 4",
-            "result": "Wynik: oddział wyruszył w pole",
+            "result": PLAYER_RESULT_PL["ongoing"],
             "regions": ["Północ"],
             "duchy_status": "Morale: 2, osady: 3, oddziały: 1",
             "order_status": "Rozkaz marszu zmienił stan.",
         },
         "after_unchanged_press": {
             "date": "Rok 3, miesiąc 4",
-            "result": "Wynik: brak oddziału do marszu",
+            "result": PLAYER_RESULT_PL["ongoing"],
             "regions": ["Północ"],
             "duchy_status": "Morale: 2, osady: 3, oddziały: 1",
             "order_status": "Rozkaz marszu nie zmienił stanu.",
@@ -50,7 +50,7 @@ def test_march_button_is_a_single_safe_binding_and_renders_the_post_order_snapsh
         "failure_orders": ["march"],
         "after_failure_press": {
             "date": "Rok 3, miesiąc 4",
-            "result": "Wynik: brak oddziału do marszu",
+            "result": PLAYER_RESULT_PL["ongoing"],
             "regions": ["Północ"],
             "duchy_status": "Morale: 2, osady: 3, oddziały: 1",
             "order_status": "Rozkaz nie powiódł się.",

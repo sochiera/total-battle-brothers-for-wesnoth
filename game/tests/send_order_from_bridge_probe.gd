@@ -40,7 +40,7 @@ func _init() -> void:
 		return
 
 	var recruited_client := StubClient.new(
-		_model(2, 3, "recruited", ["Po rekrutacji"]),
+		_model(2, 3, "ongoing", ["Po rekrutacji"]),
 		{"order": "recruit", "changed": true},
 	)
 	var refreshed: bool = scene_root.send_order_from_bridge(recruited_client, "recruit")

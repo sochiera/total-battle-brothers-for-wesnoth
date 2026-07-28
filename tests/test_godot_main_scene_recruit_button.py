@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from godot_runner import run_godot_script
+from godot_runner import PLAYER_RESULT_PL, run_godot_script
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -35,14 +35,14 @@ def test_recruit_button_is_a_single_safe_binding_and_renders_the_post_order_snap
         "orders": ["recruit", "recruit"],
         "after_changed_press": {
             "date": "Rok 3, miesiąc 4",
-            "result": "Wynik: zrekrutowano",
+            "result": PLAYER_RESULT_PL["ongoing"],
             "regions": ["Północ"],
             "duchy_status": "Morale: 2, osady: 3, oddziały: 1",
             "order_status": "Rozkaz rekrutacji zmienił stan.",
         },
         "after_unchanged_press": {
             "date": "Rok 3, miesiąc 4",
-            "result": "Wynik: brak rekrutów",
+            "result": PLAYER_RESULT_PL["ongoing"],
             "regions": ["Północ"],
             "duchy_status": "Morale: 2, osady: 3, oddziały: 1",
             "order_status": "Rozkaz rekrutacji nie zmienił stanu.",
