@@ -30,9 +30,16 @@ func start_session(config) -> bool:
 	var seed: int = config["seed"]
 	var client := BridgeClient.create_persistent(command, state_path, seed)
 	bind_client(client)
-	var started := refresh_from_bridge(client)
+	var started := _persist_start_snapshot(client)
 	_apply_start_failure_status(started)
 	return started
+
+
+func _persist_start_snapshot(client) -> bool:
+	if not client.has_method("persist_snapshot"):
+		return refresh_from_bridge(client)
+	var model: SnapshotModel = client.persist_snapshot()
+	return _apply_model_if_present(model)
 
 
 func _apply_start_failure_status(started: bool) -> void:

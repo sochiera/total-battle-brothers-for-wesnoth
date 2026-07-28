@@ -173,3 +173,7 @@ func snapshot_model() -> SnapshotModel:
 	if response == null or not response is Dictionary:
 		return null
 	return SnapshotModel.from_response(response)
+
+
+func persist_snapshot() -> SnapshotModel:
+	return _send_persisted_sequence({"type": "snapshot"})

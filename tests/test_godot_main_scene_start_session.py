@@ -4,6 +4,7 @@ import shlex
 from pathlib import Path
 
 from godot_runner import run_godot_script
+from tbbbridge.persist import read_session
 from tbbbridge.session import apply_command, new_session
 
 
@@ -107,9 +108,15 @@ def _assert_successful_start_has_no_error_status(payload: dict, snapshot: dict) 
         f"oddziały: {player_status['parties']}"
     )
     assert payload["regions"] == [region["name"] for region in snapshot["map"]["regions"]]
+    # G88.1e: udany start utrwala partię; nieudany (powyżej) zostawia brak pliku.
+    assert payload["state_exists"] is True
 
 
 def test_start_session_renders_fresh_game_without_advancing_then_binds_next_turn(tmp_path):
+    """Defekt: start sesji tylko czyta snapshot, więc plik stanu nie powstaje —
+    gracz zamyka grę po samym starcie i przy kolejnym uruchomieniu traci partię.
+    Kontrakt G88.1e: sam start utrwala partię (wznawialny plik stanu), bez tury.
+    """
     command_prefix = (
         f"PYTHONPATH={shlex.quote(str(ROOT / 'src'))} python3 -m tbbbridge"
     )
@@ -127,7 +134,8 @@ def test_start_session_renders_fresh_game_without_advancing_then_binds_next_turn
     assert json.loads(lines[0][len(PREFIX) :]) == {
         "available": True,
         "started": True,
-        "state_exists_after_start": False,
+        # G88.1e: plik stanu zaraz po starcie (przed pierwszym rozkazem/turą).
+        "state_exists_after_start": True,
         "after_start": _controls(session.snapshot()),
         "after_first_press": _controls(session.next_turn().snapshot()),
     }
@@ -396,6 +404,7 @@ def test_scene_autostart_shows_start_status_when_bridge_command_cannot_run(tmp_p
 
 
 def test_start_session_start_status_is_not_an_error_when_bridge_starts(tmp_path):
+    """Udany start bez tury: brak komunikatu błędu + wznawialny plik stanu (G88.1e)."""
     state_path = tmp_path / "start-status-ok-session.json"
     environment = os.environ.copy()
     environment["XDG_DATA_HOME"] = str(tmp_path / "xdg-data")
@@ -416,5 +425,10 @@ def test_start_session_start_status_is_not_an_error_when_bridge_starts(tmp_path)
     )
     payload = _start_status_payload(result)
     assert payload["started"] is True
-    _assert_successful_start_has_no_error_status(payload, new_session(SEED).snapshot())
+    fresh = new_session(SEED).snapshot()
+    _assert_successful_start_has_no_error_status(payload, fresh)
+    # Sonda nie naciska tury — plik musi być zapisem świeżej partii, nie śmieciem.
+    resumed = read_session(state_path)
+    assert resumed.snapshot()["calendar"] == fresh["calendar"]
+    assert resumed.seed == SEED
 
