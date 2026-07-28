@@ -48,9 +48,10 @@ esac
 
 BINARY="$DEST/$BINARY_NAME"
 PCK="${BINARY%.x86_64}.pck"
+DESKTOP="$DEST/total-battle-brothers.desktop"
 
 remove_package_artifacts() {
-    rm -rf "$BINARY" "$PCK" "$DEST/src"
+    rm -rf "$BINARY" "$PCK" "$DEST/src" "$DESKTOP"
 }
 
 # Artefakty z poprzednich prób nie mogą uchodzić za wynik tej budowy: usuwamy je
@@ -98,7 +99,20 @@ tar -C "$ROOT/src" --exclude='__pycache__' --exclude='*.pyc' -cf - . \
 
 [ -d "$DEST/src/tbbbridge" ] || fail_package "pakiet nie zawiera $DEST/src/tbbbridge"
 
+# G88.1g: wpis .desktop obok gry — klik w menedżerze plików bez terminala.
+# Exec wskazuje bezwzględną ścieżkę binarium TEGO pakietu (nie miejsca instalacji).
+cat > "$DESKTOP" <<EOF
+[Desktop Entry]
+Type=Application
+Name=Total Battle Brothers
+Exec="$BINARY"
+Terminal=false
+Categories=Game;
+EOF
+chmod +x "$DESKTOP"
+
 echo "package: gotowe — $DEST"
 echo "package:   binarium: $BINARY"
 echo "package:   pck:      $PCK"
 echo "package:   źródła:   $DEST/src"
+echo "package:   desktop:  $DESKTOP"

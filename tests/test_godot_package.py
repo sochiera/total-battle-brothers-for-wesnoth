@@ -21,6 +21,8 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
+import shutil
 import stat
 import subprocess
 import sys
@@ -58,12 +60,13 @@ def _run_package(
 
 
 def _find_game_binary(package_dir: Path) -> Path:
-    """Znajdź wykonywalne binarium gry w katalogu pakietu (nie katalog, nie .sh)."""
+    """Znajdź wykonywalne binarium gry w katalogu pakietu (nie .desktop, nie .pck)."""
     candidates = [
         p
         for p in package_dir.iterdir()
         if p.is_file()
         and not p.name.endswith(".pck")
+        and p.suffix != ".desktop"
         and (p.stat().st_mode & stat.S_IXUSR)
         and p.stat().st_size > 0
     ]
@@ -105,14 +108,101 @@ def _looks_like_complete_package(dest: Path) -> bool:
     )
 
 
+def _desktop_entries(package_dir: Path) -> list[Path]:
+    return sorted(
+        p for p in package_dir.iterdir() if p.is_file() and p.suffix == ".desktop"
+    )
+
+
+def _parse_desktop_entry(path: Path) -> dict[str, str]:
+    """Minimalny parser kluczy grupy [Desktop Entry] (bez kontynuacji wierszy)."""
+    text = path.read_text(encoding="utf-8")
+    keys: dict[str, str] = {}
+    in_entry = False
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            in_entry = line == "[Desktop Entry]"
+            continue
+        if not in_entry or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        keys[key.strip()] = value.strip()
+    return keys
+
+
+def _assert_executable_validated_desktop(package_dir: Path, binary: Path) -> None:
+    """G88.1g: klikalny .desktop obok gry — validate OK, Exec=abs. binarium pakietu.
+
+    ``Exec`` jest tokenizowany jak launcher (shlex): ścieżka ze spacją musi być
+    w cudzysłowach, inaczej pierwszy token nie wskaże binarium.
+    """
+    assert shutil.which("desktop-file-validate"), (
+        "desktop-file-validate must be on PATH (task-498 verified on host)"
+    )
+    entries = _desktop_entries(package_dir)
+    assert entries, (
+        "package must include a .desktop entry beside the game binary "
+        f"(one-click launch without a terminal); contents: "
+        f"{sorted(p.name for p in package_dir.iterdir())}"
+    )
+    desktop = entries[0]
+    mode = desktop.stat().st_mode
+    assert mode & stat.S_IXUSR, (
+        f"desktop entry must be executable (+x) so a file manager can trust "
+        f"and launch it on double-click; path={desktop} mode={oct(mode)}"
+    )
+
+    validate = subprocess.run(
+        ["desktop-file-validate", str(desktop)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    # Spec: błędy walidatora = fail; ostrzeżenia (rc=0 z tekstem) dopuszczalne.
+    assert validate.returncode == 0, (
+        f"desktop entry must pass desktop-file-validate without errors; "
+        f"rc={validate.returncode} path={desktop}\n"
+        f"stdout={validate.stdout!r}\nstderr={validate.stderr!r}\n"
+        f"file:\n{desktop.read_text(encoding='utf-8')}"
+    )
+
+    keys = _parse_desktop_entry(desktop)
+    assert keys.get("Type") == "Application", (
+        f"desktop Type must be Application (menu/app entry); got {keys!r}"
+    )
+    assert keys.get("Name") == "Total Battle Brothers", (
+        "desktop Name (menu label) must be the game name "
+        f"'Total Battle Brothers'; got {keys.get('Name')!r}"
+    )
+    exec_line = keys.get("Exec", "")
+    assert exec_line, f"desktop must set Exec; keys={keys!r}"
+    # Desktop Entry Spec: spacje w argumencie wymagają cudzysłowów; shlex jak launcher.
+    exec_tokens = shlex.split(exec_line)
+    assert exec_tokens, f"Exec must yield at least one token; Exec={exec_line!r}"
+    exec_cmd = exec_tokens[0]
+    assert os.path.isabs(exec_cmd), (
+        "Exec must use an absolute path to the package binary so a click runs "
+        f"this copy after build in any directory; got Exec={exec_line!r}"
+    )
+    assert Path(exec_cmd).resolve() == binary.resolve(), (
+        "Exec must point at the game binary from the same package directory "
+        f"(quoted if the path contains spaces); "
+        f"Exec={exec_line!r} binary={binary}"
+    )
+
+
 def test_package_script_builds_complete_dir_with_src_beside_binary(tmp_path):
-    """Polecenie pakietu kładzie binarium, .pck i src/ obok siebie — most działa.
+    """Polecenie pakietu kładzie bin+.pck+src oraz klikalny .desktop — most działa.
 
     Realistic defect: G88.1a dowodzi samego eksportu (binarium+.pck), G88.1b
     uczy BridgeConfig szukać ``src/`` obok binarium, ale brak kroku, który ten
     katalog tam kładzie. Wyeksportowana gra nie ma czym uruchomić mostu.
-    Istniejące bramki nie wołają żadnego polecenia pakietu ani nie sprawdzają
-    samowystarczalności skopiowanych źródeł poza drzewem repo.
+    G88.1g: bez walidowanego ``.desktop`` z abs. ``Exec`` gracz i tak startuje
+    z terminala. Jedna udana budowa weryfikuje komplet (bin+.pck+src) **oraz**
+    wpis pulpitu; dest ze spacją w nazwie łapie niecytowany ``Exec``.
     """
     assert PACKAGE_SCRIPT.is_file(), (
         "scripts/package.sh must exist as the single package-build command "
@@ -124,7 +214,9 @@ def test_package_script_builds_complete_dir_with_src_beside_binary(tmp_path):
     )
 
     before = _porcelain()
-    dest = tmp_path / "dist-package"
+    # Spacja w dest: legalny „dowolny katalog”; bez cudzysłowów w Exec launcher
+    # rozbija ścieżkę na tokeny (AC3/AC5).
+    dest = tmp_path / "dist package"
     result = _run_package(dest)
     log = f"{result.stdout}\n{result.stderr}"
     assert result.returncode == 0, (
@@ -173,6 +265,8 @@ def test_package_script_builds_complete_dir_with_src_beside_binary(tmp_path):
     payload = json.loads(lines[0])
     assert payload.get("ok") is True, payload
     assert isinstance(payload.get("snapshot"), dict), payload
+
+    _assert_executable_validated_desktop(dest, binary)
 
     after = _porcelain()
     assert after == before, (
