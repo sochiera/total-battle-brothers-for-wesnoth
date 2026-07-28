@@ -26,7 +26,7 @@ def _expected_controls(recruits: int) -> dict:
         "result": f"Wynik: {snapshot['result']['player_result']}",
         "order_status": (
             "Rozkaz rekrutacji zmienił stan."
-            if recruits <= 5
+            if recruits <= 4
             else "Rozkaz rekrutacji nie zmienił stanu."
         ),
     }

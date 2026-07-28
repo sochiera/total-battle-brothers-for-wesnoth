@@ -181,10 +181,13 @@ def test_apply_command_next_turn_delegates_to_session_next_turn():
     no own turn logic). The input session is not mutated.
     """
     s = new_session(73, "player")
+    # Twin: next_turn mutates shared Rng by reference; comparing apply_command(s)
+    # against s.next_turn() would advance the same RNG twice after G90.1a battles.
+    twin = new_session(73, "player")
     before = copy.deepcopy(s.snapshot())
 
     via_command = apply_command(s, {"type": "next_turn"})
-    via_method = s.next_turn()
+    via_method = twin.next_turn()
 
     assert via_command.snapshot() == via_method.snapshot()
     assert s.snapshot() == before

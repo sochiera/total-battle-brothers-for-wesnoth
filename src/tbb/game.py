@@ -18,7 +18,12 @@ def create_headless_game() -> tuple[WorldMap, "GameState"]:
     ai_region = Region("ai lands")
 
     player_settlement = Settlement(
-        "Player Keep", 5, storage=Resources(10, 10), owner_id="player"
+        "Player Keep",
+        5,
+        occupied=1,
+        storage=Resources(10, 10),
+        garrison=(Unit(training=5, equipment=12),),
+        owner_id="player",
     )
     ai_settlement = Settlement(
         "AI Keep",

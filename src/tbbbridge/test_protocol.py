@@ -24,9 +24,11 @@ def test_handle_command_line_next_turn_returns_apply_command_result_and_snapshot
     ``json.dumps(resp)`` nie rzuca. Wejściowa sesja nie jest mutowana.
     """
     s = new_session(73, "player")
+    # Twin: next_turn mutates shared Rng by reference; do not reuse s for expected.
+    twin = new_session(73, "player")
     before = copy.deepcopy(s.snapshot())
 
-    expected_new = apply_command(s, {"type": "next_turn"})
+    expected_new = apply_command(twin, {"type": "next_turn"})
     assert expected_new.snapshot()["calendar"] != {"year": 1, "month": 1}
 
     result_session, resp = handle_command_line(s, '{"type": "next_turn"}')
@@ -121,7 +123,9 @@ def test_serve_stream_two_next_turn_commands_writes_two_json_lines_advances_sess
     sekwencyjnego zastosowania obu komend (świat/gra posunięte o dwie tury).
     """
     s = new_session(73, "player")
-    before_one = apply_command(s, {"type": "next_turn"})
+    # Twin: next_turn mutates shared Rng by reference; do not reuse s for expected.
+    twin = new_session(73, "player")
+    before_one = apply_command(twin, {"type": "next_turn"})
     expected_final = apply_command(before_one, {"type": "next_turn"})
     assert expected_final.snapshot()["calendar"] != s.snapshot()["calendar"]
 
@@ -202,9 +206,11 @@ def test_serve_stream_skips_blank_lines_bad_json_does_not_break_loop_and_flushes
     assert s.snapshot() == before
 
     # Zwrócona sesja = sekwencyjne zastosowanie dwóch next_turn (pośrednie błędy
-    # nie psują kumulacji stanu).
+    # nie psują kumulacji stanu). Twin: next_turn mutuje współdzielony Rng przez
+    # referencję — nie buduj oczekiwanego wyniku na tej samej sesji co serve_stream.
+    twin = new_session(73, "player")
     expected = apply_command(
-        apply_command(s, {"type": "next_turn"}),
+        apply_command(twin, {"type": "next_turn"}),
         {"type": "next_turn"},
     )
     assert returned.snapshot() == expected.snapshot()

@@ -4,9 +4,11 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
+from tbb.driver import run_headless_game
 from tbb.duchy import Duchy
 from tbb.game import GameState, create_headless_game
 from tbb.party import Party
+from tbb.rng import Rng
 from tbb.settlement import Settlement
 from tbb.unit import Unit
 from tbb.world import Region, WorldMap
@@ -238,3 +240,43 @@ def test_headless_setup_is_deterministic_and_independent():
     assert first_world.settlements is not second_world.settlements
     assert first_world.parties is not second_world.parties
     assert first_game.duchies is not second_game.duchies
+
+
+def test_headless_start_is_symmetric_and_player_keeps_lands_after_one_passive_turn():
+    """G90.1a: symmetric start so passive play does not hand the keep to AI.
+
+    Existing headless setup tests check population/storage/heroes, but not
+    garrison symmetry. Without a matching starting garrison the AI conquers
+    ``player lands`` on a fully passive first turn (seed 73), so the party
+    cannot begin. Covers AC1–AC4: symmetry, one passive turn, ten passive
+    turns, and deterministic twin runs on the same seed.
+    """
+    world, game = create_headless_game()
+    player_region, _border, ai_region = world.regions
+    player_keep = world.settlement_at(player_region)
+    ai_keep = world.settlement_at(ai_region)
+
+    assert player_keep is not None and ai_keep is not None
+    assert player_keep.occupied == ai_keep.occupied
+    assert player_keep.garrison == ai_keep.garrison
+
+    result_world, result_game, _ = run_headless_game(
+        world, game, Rng(73), max_turns=1, player_duchy_id="player"
+    )
+
+    assert result_world.settlement_at(player_region).owner_id == "player"
+    player = next(duchy for duchy in result_game.duchies if duchy.duchy_id == "player")
+    assert len(player.settlements) >= 1
+
+    after_ten_a = run_headless_game(
+        *create_headless_game(), Rng(73), max_turns=10, player_duchy_id="player"
+    )
+    after_ten_b = run_headless_game(
+        *create_headless_game(), Rng(73), max_turns=10, player_duchy_id="player"
+    )
+    world10, game10, _ = after_ten_a
+    assert world10.settlement_at(player_region).owner_id == "player"
+    player10 = next(d for d in game10.duchies if d.duchy_id == "player")
+    assert len(player10.settlements) >= 1
+    # AC4: full run_headless_game triple (world, game, calendar), not just [:2].
+    assert after_ten_a == after_ten_b

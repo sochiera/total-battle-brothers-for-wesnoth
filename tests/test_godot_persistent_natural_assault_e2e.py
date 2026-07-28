@@ -8,8 +8,11 @@ must still surface a readable battle outcome, not a failed-order message.
 
 After G89.2a-1 (swap past own stunned ally) the seed-73 natural fight is no
 longer a round-limit stalemate: the last active attacker can advance and the
-strong garrison resolves the fight as porażka (0 fallen / 0 enemy losses; all
-attackers stunned). Unresolved remains a legal contract elsewhere (K89.1).
+strong garrison resolves the fight as porażka. After G90.1a the player keep
+starts with a veteran garrison (symmetric with AI), so the mustered party on
+this path is larger and seed-73 records attacker_losses=1 (still porażka,
+0 enemy losses; remaining attackers stunned). Unresolved remains a legal
+contract elsewhere (K89.1).
 """
 
 from __future__ import annotations
@@ -27,13 +30,13 @@ PROBE = "res://tests/persistent_natural_assault_e2e_probe.gd"
 PREFIX = "PERSISTENT_NATURAL_ASSAULT "
 SEED = 73
 # Matches G85 assault e2e status shape; natural path with recruits now resolves.
-EXPECTED_ORDER_STATUS = "Szturm: porażka (straty: 0, wróg: 0)."
+EXPECTED_ORDER_STATUS = "Szturm: porażka (straty: 1, wróg: 0)."
 EXPECTED_PARTY_POSITION = "Położenie oddziału: brak"
 EXPECTED_BATTLE_RESULT = {
     "kind": "battle",
     "order": "assault",
     "outcome": "porażka",
-    "attacker_losses": 0,
+    "attacker_losses": 1,
     "defender_losses": 0,
 }
 
