@@ -137,6 +137,103 @@ def test_headless_export_release_produces_executable_and_pck():
         assert pck.stat().st_size > 0, f"export .pck is empty: {pck}"
 
 
+# Ścieżki zasobów w .pck są zapisane jako surowe bajty ``res://…`` (Godot 4.2.2).
+_PCK_TEST_PROBE_MARKER = b"res://tests/"
+_PCK_TEXTURE_PATHS = (
+    b"res://assets/map_ground.png",
+    b"res://assets/party_player.png",
+    b"res://assets/settlement.png",
+    b"res://assets/side_attacker.png",
+    b"res://assets/side_defender.png",
+    b"res://assets/terrain_forest.png",
+    b"res://assets/terrain_hills.png",
+    b"res://assets/terrain_plains.png",
+)
+# Fragmenty logu Godota 4.2.2 przy braku zasobu w pakiecie (nie pełna semantyka sesji).
+_MISSING_RESOURCE_MARKERS = (
+    "Failed loading resource",
+    "Failed to load",
+    "Cannot open file",
+    "Can't open file",
+    "No loader found for resource",
+)
+
+
+def _pck_required_production_paths() -> tuple[bytes, ...]:
+    """Scena główna + wszystkie skrypty z game/scripts/ + osiem tekstur (AC2)."""
+    script_paths = tuple(
+        f"res://scripts/{p.name}".encode()
+        for p in sorted((GAME / "scripts").glob("*.gd"))
+    )
+    return (b"res://scenes/main.tscn",) + script_paths + _PCK_TEXTURE_PATHS
+
+
+def test_export_pck_excludes_test_probes_keeps_production_resources():
+    """Wyeksportowany .pck nie niesie sond z res://tests/, zostawia produkcję.
+
+    Realistic defect: preset ma ``export_filter="all_resources"`` i pusty
+    ``exclude_filter``, więc Godot pakuje cały ``game/tests/`` (sondy
+    ``*_probe.gd``) do artefaktu gracza. G88.1a sprawdza tylko istnienie
+    niepustego .pck — nie jego zawartość. Kontrakt G88.1d: zero
+    ``res://tests/…`` w .pck, przy zachowaniu sceny, skryptów i ośmiu tekstur;
+    headless start pakietu bez błędu brakującego zasobu (AC3).
+    """
+    assert PRESETS.is_file(), (
+        "game/export_presets.cfg missing — cannot exercise --export-release"
+    )
+    required = _pck_required_production_paths()
+    assert any(p.startswith(b"res://scripts/") for p in required), (
+        "game/scripts/ must contribute at least one .gd path to the PCK contract"
+    )
+
+    with tempfile.TemporaryDirectory(prefix="tbb-export-pck-") as tmp:
+        out_dir = Path(tmp)
+        binary = out_dir / "TotalBattleBrothers.x86_64"
+        result = _export_release(binary)
+        log = _combined(result)
+
+        pck = binary.with_suffix(".pck")
+        if not pck.is_file():
+            pck = out_dir / (binary.name + ".pck")
+        assert pck.is_file() and pck.stat().st_size > 0, (
+            f"export must write non-empty .pck to inspect contents; "
+            f"found: {sorted(p.name for p in out_dir.iterdir())}\n"
+            f"rc={result.returncode} output:\n{log}"
+        )
+
+        data = pck.read_bytes()
+        assert _PCK_TEST_PROBE_MARKER not in data, (
+            "exported .pck must not contain any res://tests/… probe paths "
+            "(exclude test probes from the Linux/X11 export preset); "
+            "found test-probe marker in package"
+        )
+        missing = [p.decode() for p in required if p not in data]
+        assert not missing, (
+            "exported .pck must still carry production resources "
+            f"(main scene, all game/scripts/*.gd, eight textures); missing: {missing}"
+        )
+
+        # AC3: krótki headless start binarium+.pck — błąd brakującego zasobu
+        # nie może przejść na samym skanie bajtów .pck.
+        assert binary.is_file() and (binary.stat().st_mode & stat.S_IXUSR), (
+            f"export binary must exist and be +x for headless package start: {binary}"
+        )
+        run = subprocess.run(
+            [str(binary), "--headless", "--quit-after", "2"],
+            cwd=out_dir,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=60,
+        )
+        run_log = f"{run.stdout}\n{run.stderr}"
+        hit = [m for m in _MISSING_RESOURCE_MARKERS if m in run_log]
+        assert not hit, (
+            "headless start of exported package must not report missing resources "
+            f"(markers={hit}); rc={run.returncode} output:\n{run_log}"
+        )
+
+
 def test_headless_export_leaves_git_worktree_clean():
     """Eksport do katalogu poza repo nie zmienia ``git status`` (snapshot przed→po).
 
