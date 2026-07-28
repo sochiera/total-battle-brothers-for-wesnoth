@@ -666,7 +666,7 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > się liczba jednostek w oczekiwaniach testu, nie sam fakt rozstrzygnięcia.
 > **To nie jest odłożony „balans" z sekcji „Później"** — to warunek, żeby pętla
 > sandboxa miała jak się zacząć (patrz `docs/PROJECT.md`, wnioski 15 i 16).
-- [ ] **G90.1a** Start partii jest **symetryczny**: `create_headless_game` daje
+- [x] **G90.1a** Start partii jest **symetryczny**: `create_headless_game` daje
       osadzie gracza garnizon startowy równy garnizonowi AI (ta sama jednostka i
       ta sama `occupied`), a nie pustą załogę. Test dowodzi na `seed=73`, że po
       **jednej** turze (`Session.next_turn`) `player lands` nadal ma
@@ -675,13 +675,13 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
       świadomie (zmiana pozycji startowej, nie reguły). *(standard, ryzyko:
       dotyka rdzenia i fixture'ów wielu testów; nie zmieniać przy okazji reguł
       bitwy, obrażeń ani polityki AI)*
-- [ ] **G90.1b** Gracz **widzi**, że przetrwał pierwszą turę: e2e na żywym moście
+- [x] **G90.1b** Gracz **widzi**, że przetrwał pierwszą turę: e2e na żywym moście
       (dwa procesy, jak w K89.1b) klika „Następna tura" na świeżej partii i
       sprawdza, że kafel `player lands` w `MapView` nadal jest kafelkiem gracza,
       a status księstwa pokazuje ≥1 osadę; partia zostaje utrwalona. *(standard,
       wymaga G90.1a; wniosek 13 — kamień domykamy sekwencją gracza, nie samym
       `pytest`)*
-- [ ] **G90.2a** Przegrana gracza jest **osiągalna**: utrata oddziału na ścieżce
+- [x] **G90.2a** Przegrana gracza jest **osiągalna**: utrata oddziału na ścieżce
       rozkazów gracza rozstrzyga los bohatera tak samo jak u AI (reużycie
       `driver.resolve_hero_survival`, sukcesja przez dziedzica bez zmian), więc
       gracz bez osad, bez oddziałów i bez następcy dostaje
@@ -690,11 +690,64 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
       K89 (bitwa nierozstrzygnięta) przechodzą bez zmian w kryteriach.
       *(standard, wymaga G90.1a; ryzyko: reguła rdzenia współdzielona z driverem
       — jedno źródło, nie kopia w moście)*
-- [ ] **G90.2b** Koniec gry jest **czytelny po polsku**: scena pokazuje wynik
+- [x] **G90.2b** Koniec gry jest **czytelny po polsku**: scena pokazuje wynik
       partii jako polski tekst (np. „gra trwa" / „zwycięstwo" / „porażka" /
       „remis") zamiast surowego tokenu `ongoing`, a stan zakończonej gry jest
       wyróżniony na ekranie. Pozostałe teksty statusu bez zmian; e2e przez dwa
       procesy mostu. *(simple, wymaga G90.2a)*
+> **Kamień 90 — UKOŃCZONY** *(task-508…512)*: symetryczny start, gracz widzi, że
+> przetrwał pierwszą turę, los bohatera gracza rozstrzygany tą samą regułą co u
+> AI, koniec partii osiągalny i czytelny po polsku.
+> **Kamień 89 — UKOŃCZONY** *(task-505…507)*: reguła ruchu przez własnego
+> ogłuszonego sojusznika, szturm z repro kończy się rozstrzygnięciem, e2e na
+> żywym moście.
+
+## Kamień milowy 91 — naturalne ruchy gracza mają sens (rekrutacja, koniec partii) — PRIORYTET
+> **Ustalenie z przeglądu planowania 2026-07-28, z uruchomienia kodu.** Po K90
+> partię da się przegrać **i wygrać** (zmierzone: bierny gracz przez 3 tury,
+> potem `muster`→`march`→`assault` → `victory` na ziarnach 73 i 1). Ale dwa
+> naturalne zachowania gracza wciąż kłócą się z grą:
+>
+> **Fakt 1 — rekrutacja karze.** `Settlement.recruit()` daje `Unit()`, czyli
+> `damage == equipment == 0` i `defense == 0`. Sam dodatek takiej jednostki do
+> garnizonu odwraca wynik obrony: na zestawie ziaren `73,1,2,7,11,42,5,9` gracz
+> utrzymuje osadę po pierwszej turze w **4/8** partii bez rekrutacji i tylko w
+> **1/8** po jednym `recruit`. Aktywna sekwencja (`recruit`×2 → `muster` →
+> `march` → `assault`) daje dziś **3/8 zwycięstw**; z rekrutem o niezerowym
+> wyposażeniu (prototyp poza gitem, `training=2, equipment=4`) — **7/8**.
+>
+> **Fakt 2 — zakończona partia udaje trwającą.** Po `is_over` sesja jest
+> no-opem (poprawnie), ale most odpowiada `{"kind":"order","changed":false}` i
+> `{"kind":"turn"}` z niezmienioną datą — nieodróżnialnie od rozkazu bez skutku.
+> Gracz klika dalej i widzi „bez zmian" (sprawdzone 25 tur po przegranej).
+>
+> **Rozstrzygnięte pomiarem, nie planowane:** pozycja „`muster` zabiera cały
+> garnizon" — zostawienie ostatniego obrońcy w osadzie **nie poprawia** wyniku
+> gracza (identyczne rezultaty na tym samym zestawie ziaren, a przy silniejszym
+> rekrucie wręcz osłabia wypad). Plasterek niepotrzebny.
+- [ ] **G91.1a** Rekrutacja wzmacnia obronę, zamiast ją osłabiać: jednostka z
+      rekrutacji ma dodatnie obrażenia i obronę, dorekrutowanie obrońcy nie
+      obniża liczby utrzymanych osad na ustalonym zestawie ziaren, koszt i
+      ograniczenia rekrutacji bez zmian, jedna reguła dla gracza i AI.
+      *(standard, task-513)*
+- [ ] **R91.1 (dług techniczny)** Jedno źródło reguły „rozkaz gracza → los
+      bohatera → synchronizacja stanu gry" w `tbbbridge.session` (dziś powtórzone
+      w ścieżce bez bitwy i z bitwą) + testy regresji obu ścieżek.
+      *(simple, task-514)*
+- [ ] **G91.1b** Gracz wygrywa partię, patrząc na ekran: e2e na żywym moście
+      doprowadza partię do zwycięstwa, klient pokazuje je po polsku, stan
+      utrwalony. *(standard, task-515, wymaga task-513)*
+- [ ] **G91.2a** Most odróżnia zakończoną partię od rozkazu bez skutku (rozkaz i
+      tura po `is_over`); reguły i snapshot bez zmian. *(simple, task-516)*
+- [ ] **G91.2b** Klient mówi po polsku, że partia jest zakończona — zamiast „bez
+      zmian" po każdym kliknięciu; e2e przez dwa procesy. *(simple, task-517,
+      wymaga task-516)*
+> **Do rozstrzygnięcia przez przegląd kierunku, nie przez planistę:** partia
+> kończy się dziś **w pierwszej turze** przy aktywnej grze (jedna osada na
+> stronę, AI wyprowadza garnizon od razu). To nie jest defekt do naprawienia
+> plasterkiem, tylko pytanie o skalę świata startowego — i ono samo odblokowuje
+> odłożony „rozkaz klikiem na cel na mapie". Osobno: po zakończonej partii
+> klient nie ma jak zacząć nowej (most ma `new_game`, scena nie).
 
 ## Dług/refaktor
 - [x] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
