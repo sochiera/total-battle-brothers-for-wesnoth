@@ -725,11 +725,11 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > garnizon" — zostawienie ostatniego obrońcy w osadzie **nie poprawia** wyniku
 > gracza (identyczne rezultaty na tym samym zestawie ziaren, a przy silniejszym
 > rekrucie wręcz osłabia wypad). Plasterek niepotrzebny.
-- [ ] **G91.1a** Rekrutacja wzmacnia obronę, zamiast ją osłabiać: jednostka z
+- [x] **G91.1a** Rekrutacja wzmacnia obronę, zamiast ją osłabiać: jednostka z
       rekrutacji ma dodatnie obrażenia i obronę, dorekrutowanie obrońcy nie
       obniża liczby utrzymanych osad na ustalonym zestawie ziaren, koszt i
       ograniczenia rekrutacji bez zmian, jedna reguła dla gracza i AI.
-      *(standard, task-513)*
+      *(standard, task-513, commit 42ed7f9)*
 - [ ] **R91.1 (dług techniczny)** Jedno źródło reguły „rozkaz gracza → los
       bohatera → synchronizacja stanu gry" w `tbbbridge.session` (dziś powtórzone
       w ścieżce bez bitwy i z bitwą) + testy regresji obu ścieżek.
@@ -742,12 +742,90 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 - [ ] **G91.2b** Klient mówi po polsku, że partia jest zakończona — zamiast „bez
       zmian" po każdym kliknięciu; e2e przez dwa procesy. *(simple, task-517,
       wymaga task-516)*
-> **Do rozstrzygnięcia przez przegląd kierunku, nie przez planistę:** partia
-> kończy się dziś **w pierwszej turze** przy aktywnej grze (jedna osada na
-> stronę, AI wyprowadza garnizon od razu). To nie jest defekt do naprawienia
-> plasterkiem, tylko pytanie o skalę świata startowego — i ono samo odblokowuje
-> odłożony „rozkaz klikiem na cel na mapie". Osobno: po zakończonej partii
-> klient nie ma jak zacząć nowej (most ma `new_game`, scena nie).
+> **Rozstrzygnięte przez przegląd kierunku 2026-07-28:** tak, skala świata
+> startowego jest właściwym następnym krokiem — ale **nie pierwszym**. Przegląd
+> znalazł, uruchamiając grę obronną, defekt cięższy od wszystkiego w tej
+> kolejce: „Zbierz oddział" + „Następna tura" zakleszcza partię na amen (patrz
+> K92). Skalowanie idzie po nim, bo przy dwóch osadach ten sam błąd wywala turę
+> AI. Osobno, bez zmian: po zakończonej partii klient nie ma jak zacząć nowej
+> (most ma `new_game`, scena nie).
+> **Kolejność wobec kolejki K91:** task-514…517 zostają sensowne i nie kolidują
+> z K92 (dotykają mostu i tekstów klienta, nie reguły bitwy). Priorytet ma
+> jednak **G92.1a przed nimi** — dopóki partia się zakleszcza, „gracz wygrywa
+> partię, patrząc na ekran" (task-515) opisuje ścieżkę, której gracz grający
+> obronnie i tak nie przejdzie.
+
+## Kamień milowy 92 — obrona własnej osady w ogóle działa — PRIORYTET
+> **Defekt sięgający gracza, znaleziony przez uruchomienie gry obronnej przy
+> przeglądzie kierunku 2026-07-28.** Gracz klika „Zbierz oddział", potem
+> „Następna tura" — i partia **zakleszcza się na amen**. Most odpowiada
+> `{"ok": false, "error": "destination is already occupied by a party"}`
+> (sprawdzone na żywym `serve 73` przez stdio), klient pokazuje „rozkaz nie
+> powiódł się", a kalendarz stoi: **20/20 kolejnych kliknięć „Następna tura"
+> daje ten sam błąd**, rok 1 miesiąc 1, na 3/3 sprawdzonych ziarnach. Trafienie
+> w **50/50 ziaren** w turze 1, także gdy gracz nie rekrutuje, tylko zbiera
+> oddział. To jest dziś najkrótsza droga gracza do zepsutej gry — krótsza niż
+> jakikolwiek wpis w K91.
+>
+> **Mechanizm ustalony przez uruchomienie kodu, nie z lektury.** Po `muster`
+> oddział gracza stoi w regionie własnej osady. AI szturmuje ten region,
+> **wygrywa** z garnizonem — i `WorldMap.apply_settlement_battle_result`
+> (`src/tbb/world.py:375-379`) rzuca `ValueError("destination is already
+> occupied by a party")`, bo zwycięski atakujący ma wejść na pole zajęte przez
+> oddział obrońcy. Ślad wyjątku: `session.next_turn` → `driver.run_headless_game`
+> → `ai.take_duchy_turn` → `ai.assault_nearest_enemy_settlement` →
+> `world.resolve_settlement_battle` → `apply_settlement_battle_result`. Świat po
+> nieudanej turze zostaje niezmieniony, więc kolejne kliknięcia powtarzają błąd
+> w nieskończoność.
+>
+> **Sedno rozgrywkowe, nie tylko kontraktowe:** oddział stojący w regionie
+> bronionej osady **nie bierze udziału w jej obronie** — patrzy, jak pada jego
+> własna stolica, i przy okazji blokuje kod. Reguła do domknięcia jest ta sama,
+> którą gracz zakłada intuicyjnie: armia w domu broni domu.
+>
+> **Korekta poprzedniego przeglądu (patrz `docs/PROJECT.md`, wniosek 18):**
+> zapisano tam, że ten `ValueError` jest dziś nieosiągalny („200 ziaren × 12
+> tur, 0 trafień") i czeka na większy świat. Tamta sonda chodziła **wyłącznie
+> grą agresywną** (`muster`→`march`→`assault`), która wyprowadza oddział z domu.
+> Gra obronna to osobne zachowanie i trafia w defekt natychmiast.
+>
+> **Zmierzone przy przeglądzie także dla skalowania świata** (prototyp poza
+> gitem: pięć regionów w linii, dwie osady na stronę, garnizony jak dziś): przy
+> aktywnej grze **ten sam `ValueError` wywala turę AI na 8/8 ziaren**
+> (`73,1,2,7,11,42,5,9`) w turze 1–2. Czyli kolejność jest wymuszona pomiarem:
+> **najpierw reguła obrony, potem druga osada** — odwrotnie dowozimy grę, która
+> się wywala.
+- [ ] **G92.1a** Oddział stojący w regionie bronionej osady **bierze udział w
+      jej obronie**, a zwycięski szturm na taki region przestaje być wyjątkiem:
+      `resolve_settlement_battle*` z obcym oddziałem w regionie docelowym
+      zwraca świat w spójnym stanie zamiast
+      `ValueError("destination is already occupied by a party")` — jednostki
+      broniącego oddziału walczą po stronie obrońcy razem z garnizonem, a po
+      zwycięstwie atakującego oddział broniącego znika ze świata (jego ocalali
+      rozstrzygnięci tą samą regułą co garnizon). Test odtwarza układ z repro
+      (oddział gracza w regionie własnej osady, szturm AI kończący się
+      `ATTACKER_WIN`) na ustalonym ziarnie i sprawdza brak wyjątku oraz spójny
+      świat; przy porażce i przy bitwie nierozstrzygniętej (K89) oddział
+      broniącego **zostaje** w regionie ze swoimi ocalałymi. Jedna reguła dla
+      gracza i AI. Dotychczasowe testy zwycięstwa/porażki/remisu i testy K89
+      przechodzą bez zmian w kryteriach. *(standard, ryzyko: dotyka rdzenia —
+      jedynego źródła reguł; nie zmieniać przy okazji reguł ruchu, obrażeń ani
+      polityki AI, i nie skalować przy tym świata — to osobny plasterek)*
+- [ ] **G92.1b** Gracz **widzi**, że gra obronna działa: e2e na żywym moście
+      (dwa procesy, jak w K90.1b) wydaje `muster` i klika „Następna tura" — most
+      odpowiada `ok:true`, kalendarz przesuwa się o miesiąc, klient pokazuje
+      polski status zamiast „rozkaz nie powiódł się", a partia zostaje
+      utrwalona. Test dowodzi też, że **druga** „Następna tura" znowu przechodzi
+      (kalendarz idzie dalej), czyli zakleszczenie zniknęło. *(standard, wymaga
+      G92.1a; wniosek 13 — kamień domykamy sekwencją gracza, nie samym
+      `pytest`)*
+> **Dalszy ciąg K92, do rozplanowania dopiero po G92.1b** (nie planować teraz):
+> druga osada na stronę i większy świat startowy (wniosek 17), a potem „gracz
+> widzi wieloturową partię na ekranie". Pomiary z przeglądu, żeby nie robić ich
+> drugi raz: dziś partia kończy się w turze 1 na 8/8 ziaren przy aktywnej grze
+> (4 zwycięstwa gracza, 4 porażki) i na 4/8 przy grze biernej; w prototypie
+> pięcioregionowym z dwiema osadami na stronę gra bierna dociąga do tury 2+ i na
+> 5/8 ziaren nie kończy się przez 60 tur. Skalę trzymamy **minimalną**.
 
 ## Dług/refaktor
 - [x] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
@@ -788,6 +866,13 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 - ~~Gra jest przegrana po pierwszym kliknięciu „Następna tura", a przegrana
   nigdy się nie kończy~~ — **rozplanowane jako K90** (start symetryczny,
   osiągalny koniec gry, polski tekst wyniku). Pełna diagnoza w sekcji K90.
+- ~~Gra obronna („Zbierz oddział" + „Następna tura") zakleszcza partię na amen~~
+  — **rozplanowane jako K92** (G92.1a reguła obrony w rdzeniu, G92.1b widoczny
+  skutek na żywym moście). Pełna diagnoza w sekcji K92.
+- **Druga osada na stronę i większy świat startowy** — warunek istnienia pętli
+  sandboxa (`docs/PROJECT.md`, wniosek 17), zmierzony przy dwóch przeglądach.
+  **Nie planować przed G92.1b:** w prototypie pięcioregionowym ten sam
+  `ValueError` co w K92 wywala turę AI na 8/8 ziaren.
 - **`muster` zabiera cały garnizon osady** — obserwacja z przeglądu 2026-07-28:
   po zbiórce osada gracza zostaje pusta, więc każde wyjście w pole odsłania dom.
   Dziś to podwaja skutki asymetrycznego startu; po K90 warto sprawdzić, czy

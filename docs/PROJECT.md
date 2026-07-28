@@ -49,63 +49,52 @@ mały — po kilka kafli terenu, sylwetek jednostek i budynków — ale prawdziw
   księstwa, położeniem oddziału, statusem ostatniego rozkazu oraz przyciskami
   „Następna tura", „Rozwiń osadę", „Rekrutuj jednostkę", „Zbierz oddział",
   „Wyrusz w pole", „Szturmuj osadę".
-- **Start bez terminala działa w drzewie źródeł** (K82): bez żadnej zmiennej
-  `TBB_*` klient sam składa komendę mostu, ścieżkę stanu i ziarno, a gdy most nie
-  wstanie — pokazuje komunikat zamiast martwej sceny. Repo gry posprzątane
-  (R82.1); układ ekranu czytelny, kontrolki w kontenerach (K83).
-- **Oba widoki działają** (K84/K85): `MapView` rysuje kafel na region po
-  `col`/`row` z rozróżnialnym właścicielem i przesuwającym się oddziałem gracza;
-  `BattleView` rysuje heksy po `(q, r)` z rozróżnialnymi stronami i czytelnym
-  wynikiem po kliknięciu „Szturmuj osadę".
-- **Zapis/odczyt z UI działa** (K86): konfiguracja niesie `save_path`, scena ma
-  przyciski „Zapisz partię"/„Wczytaj partię", a klik przywraca zapisany stan na
-  ekranie i utrwala partię między procesami.
-- **Prawdziwe assety w repo — DOMKNIĘTE** (K87): `game/assets/` niesie 10 plików
-  PNG z dwóch paczek CC0 (Kenney Hexagon Pack — kafle mapy i terenu; Kenney „RTS
-  Pack: Medieval" — sylwetki stron) z atrybucją **per plik** w `CREDITS.md`;
-  `.godot/` poza gitem. `MapView` rysuje grunt/osadę/oddział teksturami,
-  `BattleView` teren heksu i sylwetkę strony; R87.1 scalił warstwę tekstury
-  kafla w jedno źródło dla obu widoków.
-- **Pakiet na Linuksa — DOMKNIĘTY** (K88, 7 z 7): preset „Linux/X11" x86-64 w
-  repo + szablony 4.2.2 poza gitem (G88.1a), `src/` mostu rozwiązywane odpornie
-  na eksport (G88.1b), `scripts/package.sh <cel>` składa katalog dystrybucyjny
-  (G88.1c), `.pck` bez sond testowych (G88.1d), sam start gry utrwala partię
-  (G88.1e), **e2e na wyeksportowanym pakiecie dowodzi startu bez terminala**
-  (G88.1f), wpis `.desktop` daje uruchomienie jednym kliknięciem (G88.1g).
-  Formalne kryterium „natywna aplikacja bez terminala" jest odhaczone.
-- **Bitwa zawsze daje wynik — w połowie** (K89): K89.1 domknięte (rdzeń traktuje
-  bitwę bez rozstrzygnięcia jako legalny wynik, most zwraca ją z własnym
-  `outcome`, scena pokazuje „szturm nierozstrzygnięty" ze stratami, e2e na żywym
-  moście). Z K89.2 zrobiony jest rdzeń (G89.2a-1: jednostka przechodzi przez
-  własnego ogłuszonego sojusznika); w kolejce planisty zostają dwa plasterki.
+- **Klient bez terminala, oba widoki, zapis/odczyt** (K82–K86): domyślna
+  konfiguracja bez `TBB_*`, układ w kontenerach, `MapView` (kafel na region po
+  `col`/`row`), `BattleView` (heksy po `(q, r)`), „Zapisz/Wczytaj partię".
+- **Prawdziwe assety — DOMKNIĘTE** (K87): 10 plików PNG z dwóch paczek CC0
+  (Kenney Hexagon Pack — kafle; Kenney „RTS Pack: Medieval" — sylwetki stron),
+  atrybucja **per plik** w `CREDITS.md`, `.godot/` poza gitem.
+- **Pakiet na Linuksa — DOMKNIĘTY** (K88, 7 z 7): preset „Linux/X11" x86-64,
+  `src/` mostu rozwiązywane odpornie na eksport, `scripts/package.sh`, `.pck`
+  bez sond, wpis `.desktop` i **e2e startu bez terminala na samym pakiecie** —
+  formalne kryterium „natywna aplikacja bez terminala" odhaczone.
+- **Bitwa zawsze daje wynik — DOMKNIĘTE** (K89): bitwa nierozstrzygnięta jest
+  legalnym wynikiem rdzenia, most niesie własny `outcome`, scena mówi „szturm
+  nierozstrzygnięty" ze stratami, a jednostka omija własnego ogłuszonego.
+- **Partia da się rozegrać — DOMKNIĘTE** (K90): symetryczny start, los bohatera
+  gracza rozstrzygany tą samą regułą co u AI, `is_over` osiągalne, wynik po
+  polsku i wyróżniony na ekranie.
+- **Rekrutacja wzmacnia obronę** (G91.1a, commit 42ed7f9): rekrut ma
+  `training=2, equipment=4` zamiast zer. W kolejce zostają cztery plasterki K91.
 - `tbbui` (HTML/SVG) — **wyłącznie narzędzie diagnostyczne**, nie docelowy klient.
 
-**Czego brakuje do celu (nazwane wprost, bo tu jest cała reszta pracy):**
-1. **K89 do domknięcia** — dwa plasterki w kolejce planisty: szturm z repro ma
-   kończyć się realnym rozstrzygnięciem, a gracz ma zobaczyć rozstrzygniętą
-   bitwę na żywym moście. Kontrakt wyniku (K89.1) i reguła ruchu (G89.2a-1) są
-   już w rdzeniu.
-2. **Gracz przegrywa całą partię po pierwszym kliknięciu „Następna tura" —
-   i nikt mu tego nie mówi.** Odtworzone uruchomieniem kodu 2026-07-28: start
-   jest **asymetryczny** (`tbb.game.create_headless_game`) — AI Keep dostaje
-   `garrison=(Unit(training=5, equipment=12),)`, Player Keep **pustą załogę** —
-   więc AI w jednej turze robi muster → march → assault na bezbronną osadę
-   gracza i ją przejmuje. Rekrutacja przed turą nie ratuje: rekrut ma
-   `equipment=0`, a `Unit.damage == equipment`, czyli **zadaje zero obrażeń**
-   (sprawdzone dla 1, 2 i 3 rekrutów — osada pada tak samo). Od drugiej tury
-   księstwo gracza ma 0 osad i 0 oddziałów, a każdy rozkaz jest no-opem.
-3. **Koniec gry jest nieosiągalny dla gracza.** `driver.resolve_hero_survival`
-   jest wołany **wyłącznie dla księstw AI** (`driver.py` robi `continue` dla
-   `player_duchy_id` przed akcją militarną), a `session.apply_command` po
-   rozkazach gracza robi tylko `sync_from_world`. Bohater gracza nigdy nie
-   ginie → `Duchy.is_defeated` nigdy nie jest prawdą → `game.is_over` zostaje
-   `False`, a klient w nieskończoność pokazuje `Wynik: ongoing` (surowy token
-   angielski w polskim UI, `game/scripts/main.gd:164`). Sprawdzone symulacją 150
-   tur: gracz bez osad i oddziałów gra dalej „w nic".
+**Czego brakuje do celu — dwie rzeczy, obie zmierzone 2026-07-28 na HEAD:**
 
-Punkty 2 i 3 to **realny stan grywalności**, nie hipoteza: pełny pythonowy
-zestaw testów jest zielony (4 s), a mimo to partia jest rozstrzygnięta przeciw
-graczowi zanim zdąży cokolwiek zrobić. Rozplanowane jako **K90**.
+**1. Gra obronna zakleszcza partię na amen.** Gracz klika „Zbierz oddział",
+potem „Następna tura" — i dostaje `rozkaz nie powiódł się`. Most zwraca
+`{"ok": false, "error": "destination is already occupied by a party"}`
+(sprawdzone na żywym `serve 73`), a kalendarz **stoi na zawsze**: 20/20
+kolejnych kliknięć „Następna tura" daje ten sam błąd, rok 1 miesiąc 1.
+Trafienie w **50/50 ziaren**, w turze 1, także bez wcześniejszej rekrutacji.
+Przyczyna: oddział stojący we własnym regionie **nie broni osady**, tylko
+blokuje pole, na które ma wejść zwycięski atakujący (wniosek 18).
+
+**2. Cała partia trwa jedną turę.** Na ziarnach `73,1,2,7,11,42,5,9` gra kończy
+się **w turze 1 na 8/8 ziaren przy aktywnej grze** (4 zwycięstwa, 4 porażki) i w
+turze 1 na 4/8 przy grze biernej — pozostałe 4 nie kończą się nigdy, bo nikt nie
+ma czym zaatakować. Pełny `pytest` jest przy tym zielony.
+
+Przyczyna punktu 2 nie jest defektem, tylko **skalą świata startowego**:
+`create_headless_game` daje **jedną osadę na stronę** i po jednym oddziale
+garnizonu, a `Duchy.is_defeated` to „brak osad **i** brak oddziałów"
+(`duchy.py:72-74`). Pierwsza przegrana bitwa = koniec księstwa. Nie ma czego
+„zarządzać": nie ma drugiej osady, nie ma odwrotu, nie ma odbudowy — cały brief
+(„zarządzanie osadami i armiami", „sandbox") sprowadza się do jednego rzutu
+kostką. Wszystko widać, wszystko działa, tylko **nie ma w co grać**.
+
+Kolejność: **najpierw punkt 1** (defekt sięga gracza dziś, na wyeksportowanym
+pakiecie), potem punkt 2. Rozplanowane jako **K92** (patrz wnioski 17 i 18).
 
 ## Ograniczenia i priorytety
 - **[W]** Rdzeń `tbb` jest **jedynym źródłem reguł gry**. Godot nie duplikuje
@@ -131,60 +120,46 @@ graczowi zanim zdąży cokolwiek zrobić. Rozplanowane jako **K90**.
 - **[O]** Wykorzystanie kodu/zasobów z Battle for Wesnoth.
 
 **Wnioski z dotychczasowej pracy, które zmieniają kierunek:**
-1. K75–K81 to była seria „kolejny przycisk rozkazu"; ścieżka rozkazu jest
-   sparametryzowana, więc szósty przycisk nie zbliża do celu. Cała ta kolejka
-   (start bez terminala → układ ekranu → mapa → bitwa → pakiet) jest wykonana.
-2. Godot 4.2.2 nie ma `OS.execute_with_pipe`, więc most wołamy jedno-strzałowo,
-   a ciągłość partii daje plik stanu (`serve --resume`). To zadziałało i zostaje.
-3. Odchudzanie kontraktu na liście (jedno pole / jedna grupa pól na zadanie)
-   ratuje mikro-TDD tam, gdzie „cały słownik naraz" wcześniej wykładał kodera.
-4. **Start bez terminala trzeba było udowodnić dwa razy — i to zadziałało.**
-   Po eksporcie `res://` wskazuje wnętrze PCK, więc domyślna komenda mostu z K82
-   przestawała działać; K88 rozwiązał `src/` względem binarium i **powtórzył
-   dowód startu na wyeksportowanym pakiecie** (G88.1b, G88.1f). Wzorzec zostaje:
-   dowód „działa" jest ważny tylko dla tego artefaktu, na którym go zrobiono.
-5. Snapshot bitwy (`battle.hexes`) niesie **wyłącznie heksy zajęte przez
-   jednostki**, bez wymiarów pola i terenu pustych heksów. Pierwszy widok bitwy
-   rysuje więc jednostki, nie całą planszę; pełna siatka to osobna, późniejsza
-   zmiana mostu.
-6. **Kolorowy prostokąt wystarczył na „widać stan gry", ale nie na MVP.** K84/K85
-   domknęły to kryterium strukturalnie, brakującym elementem były assety (K87);
-   podmiana nośnika nie ruszyła geometrii ani testów rozmieszczenia.
-7. **Prerekwizyt toolchainu idzie w osobną bramkę, przed treścią.** Import
-   tekstur (G87.1a) i eksport binarium (G88.1a) rozstrzygnięto tak zanim
-   ktokolwiek ruszył widoki i zawartość pakietu — w obu kamieniach reszta
-   plasterków poszła potem bez niespodzianek. Wzorzec zostaje.
+*(Wnioski 1–12 pochodzą z domkniętych kamieni K82–K88 i są tu w formie
+skróconej; pełne uzasadnienia w `docs/DECISIONS.md` i w `BACKLOG.md`.)*
+1. K75–K81 to była seria „kolejny przycisk rozkazu" — ścieżka rozkazu jest
+   sparametryzowana, więc kolejny przycisk nie zbliża do celu.
+2. Godot 4.2.2 nie ma `OS.execute_with_pipe`: most wołamy jedno-strzałowo, a
+   ciągłość partii daje plik stanu (`serve --resume`). Zadziałało, zostaje.
+3. Odchudzanie kontraktu (jedno pole na zadanie) ratuje mikro-TDD tam, gdzie
+   „cały słownik naraz" wykładał kodera.
+4. **Dowód „działa" jest ważny tylko dla tego artefaktu, na którym go
+   zrobiono.** Po eksporcie `res://` wskazuje wnętrze PCK, więc start bez
+   terminala (K82) trzeba było udowodnić drugi raz — już na pakiecie (G88.1b,
+   G88.1f).
+5. Snapshot bitwy (`battle.hexes`) niesie **tylko heksy zajęte przez
+   jednostki**, bez wymiarów pola i terenu pustych heksów; pełna siatka to
+   osobna, późniejsza zmiana mostu.
+6. **Kolorowy prostokąt wystarczył na „widać stan gry", ale nie na MVP.**
+   K84/K85 dały geometrię, K87 nośnik; podmiana nośnika nie ruszyła ani
+   geometrii, ani testów rozmieszczenia.
+7. **Prerekwizyt toolchainu idzie w osobną bramkę, przed treścią** (import
+   tekstur G87.1a, eksport binarium G88.1a) — potem reszta plasterków szła bez
+   niespodzianek. Wzorzec zostaje.
 8. **Teren istnieje tylko w warstwie bitwy — mapa strategiczna go nie zna.**
-   `tbb.world.Region` ma samo `name`, więc `map_state` daje `name`, `col`, `row`,
-   `owner`, `settlement`, `party`; kafle mapy teksturujemy po właścicielu i
-   obecności osady. Teren regionu to **osobna zmiana rdzenia i mostu**,
-   świadomie odłożona; klientowi nie wolno wymyślić go u siebie.
-9. **Podmiana nośnika nie kosztowała czytelności.** Kafle są dziś teksturą
-   przyciemnianą `modulate` w kolorze właściciela/strony, więc kryteria
-   rozróżnialności z K84/K85 przeszły bez jednej zmiany. Wniosek na przyszłość:
-   warstwa tekstury + tint zamiast osobnego assetu na każdy wariant — mała
-   paczka wystarcza, a testy geometrii zostają w mocy.
-10. **Pakiet nie wnosi własnego Pythona.** Odbiorcą jest jeden użytkownik na
-    Linuksie x86-64, który ma `python3` w systemie (zweryfikowane: 3.14.4).
-    Bundling CPythona podwoiłby zakres K88 i nie wynika z briefu, więc pakiet
-    zakłada systemowy `python3`, a jego brak daje czytelny komunikat w scenie
-    (ścieżka błędu istnieje od K82). To decyzja zakresowa, nie ograniczenie
-    techniczne — jeśli okaże się za wąska, wraca jako osobny plasterek.
-11. **Bramka „plik się ładuje" nie sprawdza, *co* jest na obrazku — i to nas
-    kosztowało plasterek.** G87.1a przyjęło jako „sylwetki stron" dwa budynki z
-    Hexagon Packa tylko dlatego, że nazwa pliku brzmiała `side_*.png`, a `load()`
-    zwracał `Texture2D`. **Wniosek na każdy kolejny plasterek assetowy:**
-    kryterium akceptacji wiąże plik z jego *źródłem* w `CREDITS.md` (konkretna
-    ścieżka w paczce, nie sama nazwa paczki) i z maszynowo sprawdzalnym kształtem
-    (przezroczyste tło, rozmiar mniejszy od kafla, obie strony różne bajtowo), a
-    człowiek ogląda obrazek przy review. Dobór paczki sprawdzamy po **liście
-    plików**, zanim wejdzie do repo. To szczególny przypadek wniosku 13.
-12. **Jedna paczka nie wystarczy — świadome odstępstwo od [P].** Hexagon Pack nie
-    ma postaci, więc sylwetki przyszły z drugiej paczki CC0 (RTS Pack: Medieval).
-    Lepiej mieszany styl z prawdziwą figurą niż spójny styl z budynkiem
-    udającym żołnierza. Rozróżnialność stron wzięła się z **dwóch różnych
-    plików**, nie z `modulate` (tint zaszarza już pokolorowaną figurkę);
-    „tekstura + tint" z wniosku 9 zostaje dla kafli terenu.
+   `tbb.world.Region` ma samo `name`, więc `map_state` daje `name`, `col`,
+   `row`, `owner`, `settlement`, `party`, a kafle mapy teksturujemy po
+   właścicielu i obecności osady. Teren regionu to **osobna zmiana rdzenia i
+   mostu**; klientowi nie wolno wymyślić go u siebie.
+9. Warianty kafla robimy **teksturą + `modulate`** zamiast osobnego pliku na
+   wariant — mała paczka wystarcza, a testy geometrii zostają w mocy.
+10. **Pakiet nie wnosi własnego Pythona** — odbiorca ma systemowy `python3`
+    (zweryfikowane: 3.14.4), a jego brak daje czytelny komunikat w scenie.
+    Decyzja zakresowa, nie techniczna; jeśli okaże się za wąska, wraca jako
+    osobny plasterek.
+11. **Bramka „plik się ładuje" nie sprawdza, *co* jest na obrazku** — G87.1a
+    wpuściło dwa budynki jako „sylwetki stron". Każdy plasterek assetowy wiąże
+    plik z jego *źródłem* w `CREDITS.md` (konkretna ścieżka w paczce) i z
+    maszynowo sprawdzalnym kształtem, a człowiek ogląda obrazek przy review.
+    Szczególny przypadek wniosku 13.
+12. **Jedna paczka nie wystarczy — świadome odstępstwo od [P]:** Hexagon Pack
+    nie ma postaci, więc sylwetki przyszły z RTS Packa: Medieval, a strony
+    rozróżnia **para różnych plików**, nie tint (zaszarza pokolorowaną figurkę).
 13. **Zielony zestaw testów nie znaczy, że dało się zagrać — defekt szturmu
     znalazło dopiero uruchomienie gry ręką.** Rdzeń jest pokryty TDD, most też,
     klient ma e2e przez dwa procesy — a mimo to najbardziej naturalna sekwencja
@@ -196,22 +171,15 @@ graczowi zanim zdąży cokolwiek zrobić. Rozplanowane jako **K90**.
     gracza na żywym moście**, nie samym `pytest`. Po K88 ta sekwencja idzie na
     wyeksportowanym pakiecie, nie w drzewie źródeł — bo to jest artefakt, który
     dostaje odbiorca.
-14. **Kontrakt „wynik bitwy" był niepełny, nie tylko zabugowany.** `HexBattle`
-    dopuszcza stan „nikt nie wygrał po wyczerpaniu rund" (`result() is None`), a
-    `WorldMap` nie ma dla niego przypadku i rzuca `ValueError`. Naprawa reguły
-    ruchu (żeby akurat ten pat nie występował) **nie zamyka klasy problemu** —
-    inny pat wróci tą samą ścieżką. Dlatego K89 najpierw domyka kontrakt
-    (nierozstrzygnięta bitwa = legalny wynik, świat spójny, gracz widzi tekst),
-    a dopiero potem rusza reguły ruchu. Kolejność jest tu decyzją, nie wygodą.
-15. **Pozycja startowa to reguła gry, nie balans — i dziś jest wywrotowa.**
-    Player Keep startuje bez garnizonu, AI Keep z weteranem
-    (`training=5, equipment=12`). To nie jest „za trudno": to znaczy, że gracz
-    traci jedyną osadę w pierwszej turze, cokolwiek zrobi. Sprawdzone
-    prototypem: **symetryczny start** (obie osady z takim samym garnizonem)
-    utrzymuje osadę gracza przez ≥10 tur biernej gry, a AI traci przy tym własny
-    garnizon na szturmach — czyli powstaje realna sytuacja do rozegrania.
-    Wyrównanie startu **nie** jest odłożonym „balansem ekonomii i AI": bez niego
-    pętla sandboxa nie ma jak się zacząć.
+14. **Kontrakt „wynik bitwy" bywa niepełny, nie tylko zabugowany** — i wtedy
+    legalny stan gry dociera do gracza jako błąd rozkazu. Naprawa reguły, przez
+    którą akurat ten przypadek nie występuje, **nie zamyka klasy problemu**;
+    dlatego K89 najpierw domknął kontrakt wyniku, a dopiero potem ruszył reguły
+    ruchu. Ta sama kolejność obowiązuje w K92 (patrz wniosek 18).
+15. **Pozycja startowa to reguła gry, nie balans.** Asymetryczny start (gracz
+    bez garnizonu, AI z weteranem) oddawał partię w turze 1 niezależnie od gry;
+    wyrównanie startu **nie** było odłożonym „balansem ekonomii i AI" — bez
+    niego pętla sandboxa nie miała jak się zacząć. Domknięte w K90.
 16. **Warunek końca gry jest opisany, ale nieosiągalny — bo śmierć bohatera
     rozstrzygamy tylko za AI.** `resolve_hero_survival` żyje w pętli drivera,
     którą księstwo gracza omija z definicji (gracz ma grać rozkazami, nie
@@ -220,6 +188,37 @@ graczowi zanim zdąży cokolwiek zrobić. Rozplanowane jako **K90**.
     nigdy. **Wniosek na kierunek:** każda reguła świata, którą wykonuje driver
     za AI, musi mieć swój odpowiednik na ścieżce rozkazów gracza — inaczej
     gracz i AI grają w dwie różne gry. Do sprawdzenia przy kolejnych regułach.
+17. **Świat startowy jest za mały na grę, którą opisuje brief — i to jest
+    następny krok, nie „balans".** Jedna osada na stronę plus
+    `is_defeated == brak osad i brak oddziałów` znaczy, że pierwsza przegrana
+    bitwa kończy partię. Zmierzone: dziś 8/8 ziaren kończy się w turze 1.
+    **Prototyp poza gitem (dwie osady na stronę, świat pięcioregionowy w linii)
+    daje partie 7–20 tur** na tych samych ziarnach — czyli dopiero wtedy
+    rozkazy, ekonomia i morale zaczynają cokolwiek znaczyć. To nie jest
+    strojenie liczb: to warunek istnienia pętli sandboxa, ta sama klasa co
+    wnioski 15 i 16. Skalę trzymamy **minimalną** (druga osada, nie mapa 20
+    regionów) — plasterek ma być cienki, nie ma rozsadzać zakresu.
+18. **Oddział w obronie własnej osady zakleszcza partię — i to nie czeka na
+    większy świat, dzieje się dziś.** `WorldMap.apply_settlement_battle_result`
+    (`world.py:375-379`) rzuca `ValueError("destination is already occupied by a
+    party")`, gdy atakujący **wygrywa** szturm na region, w którym stoi obcy
+    oddział. Zmierzone 2026-07-28 na HEAD: „Zbierz oddział" → „Następna tura"
+    trafia w to w turze 1 na **50/50 ziaren** (także bez rekrutacji), most
+    odpowiada `ok:false`, klient mówi „rozkaz nie powiódł się", a kalendarz stoi
+    już na zawsze (20/20 kolejnych tur → ten sam błąd). Przy dwóch osadach na
+    stronę to samo wysypuje **turę AI** (`ai.assault_nearest_enemy_settlement`
+    → ten sam `ValueError`) na 8/8 ziaren.
+    **Korekta poprzedniego przeglądu:** uznał to za dziś nieosiągalne („200
+    ziaren × 12 tur, 0 trafień") — bo sondował **wyłącznie grę agresywną**
+    (`muster`→`march`→`assault`), która wyprowadza oddział z domu. Gra obronna
+    to osobne zachowanie i musi być w każdym takim pomiarze; sonda „to się nie
+    zdarza" jest warta tyle, ile zestaw zachowań, przez które przeszła
+    (rozszerzenie wniosku 13).
+    To ta sama klasa co K89 („legalny stan gry dociera do gracza jako błąd
+    rozkazu"), więc kolejność zostaje: **najpierw kontrakt wyniku, potem większy
+    świat**. Sama reguła do domknięcia jest przy tym rozgrywkowo oczywista:
+    oddział stojący w regionie bronionej osady ma **brać udział w jej obronie**,
+    a nie patrzeć, jak pada jego własna stolica.
 
 ## Klimat, ton, kierunek wizualny
 Średniowiecze **bez magii i fantastyki**, surowy i realistyczny ton. **[W]**
@@ -257,16 +256,29 @@ spójna paczka bije zlepek najładniejszych pojedynczych obrazków. **[P]**
 3. ~~Pakiet na Linuksa~~ (K88) — **domknięty**, 7 z 7 plasterków, z dowodem
    startu bez terminala na samym pakiecie i wpisem `.desktop`. Bez własnego
    runtime'u Pythona (wniosek 10).
-4. **Bitwa zawsze daje wynik** (K89) — kontrakt wyniku i reguła ruchu są w
-   rdzeniu; zostają dwa plasterki w kolejce (realne rozstrzygnięcie szturmu z
-   repro + e2e na żywym moście).
-5. **Partia da się w ogóle rozegrać** (K90) — pierwsza tura nie może odbierać
-   gracza z gry (wniosek 15), a przegrana i zwycięstwo muszą być osiągalne i
-   widoczne po polsku (wniosek 16). To jest dziś **najkrótsza droga od
-   „wszystko widać" do „da się grać"**.
-6. **Klik na cel na mapie** zamiast globalnych przycisków „Rozwiń/Szturmuj" —
-   czeka na większą mapę (dziś rozkaz celowany daje ten sam skutek co
-   automatyczny; patrz nota przy K86 w `BACKLOG.md`).
+4. ~~Bitwa zawsze daje wynik~~ (K89) i ~~partia da się rozegrać~~ (K90) —
+   **domknięte**: szturm zawsze kończy się widocznym skutkiem, a zwycięstwo i
+   przegrana są osiągalne i czytelne po polsku.
+5. **Naturalne ruchy gracza mają sens** (K91) — rekrutacja już wzmacnia obronę
+   (G91.1a); w kolejce zostaje dług R91.1, zwycięstwo widziane na ekranie oraz
+   odróżnienie zakończonej partii od rozkazu bez skutku.
+6. **Obrona własnej osady w ogóle działa** (K92, pierwsze plasterki) — oddział
+   stojący w regionie bronionej osady dołącza do obrony, więc zwycięski szturm
+   przestaje być `ValueError`, a „Zbierz oddział" + „Następna tura" przestaje
+   zakleszczać partię (wniosek 18). To jest **najpilniejsze**: defekt sięga
+   gracza na wyeksportowanym pakiecie i odbiera mu grę obronną.
+7. **Partia trwa dłużej niż jedną turę** (dalszy ciąg K92) — druga osada na
+   stronę (wniosek 17), potem gracz widzi wieloturową partię na ekranie. To
+   jest dziś **najkrótsza droga od „da się rozegrać" do „jest w co grać"**;
+   wymaga wcześniejszego punktu 6, bo przy dwóch osadach ten sam `ValueError`
+   wywala turę AI na 8/8 ziaren.
+8. **Klik na cel na mapie** zamiast globalnych przycisków „Rozwiń/Szturmuj" —
+   odblokowuje się dopiero po K92: przy pięciu regionach i dwóch osadach na
+   stronę rozkaz celowany **przestaje** dawać ten sam skutek co automatyczny
+   (dziś daje — patrz nota przy K86 w `BACKLOG.md`).
+9. **Nowa partia z UI po zakończonej grze** — most ma `new_game`, scena nie ma
+   przycisku. Po K92 gracz kończy partię regularnie, więc brak restartu zacznie
+   boleć. Cienki plasterek, nieplanowany jeszcze.
 
 ## Świadomie odłożone
 - Scenariuszowa kampania/fabuła, multiplayer, magia, oddziały masowe, grafika
@@ -275,8 +287,8 @@ spójna paczka bije zlepek najładniejszych pojedynczych obrazków. **[P]**
   tylko diagnostyką.
 - Bogatszy model ran/terenu/budynków, więcej typów jednostek, balans i strojenie
   AI, pełna maszyna faz `StrategicTurn` — po domknięciu widocznej, grywalnej gry.
-  **Uwaga na granicę:** wyrównanie pozycji startowej i osiągalność warunku końca
-  gry (K90) **nie** wchodzą w to odłożenie — bez nich nie ma czego balansować
-  (wnioski 15 i 16).
+  **Uwaga na granicę:** pozycja startowa i koniec gry (K90), reguła obrony
+  osady oraz skala świata startowego (K92) **nie** wchodzą w to odłożenie — bez
+  nich nie ma czego balansować (wnioski 15–18).
 - Podział przerośniętych dokumentów (`ARCHITECTURE.md` ~119 KB, `DECISIONS.md`
   ~74 KB, `DESIGN.md` ~28 KB) — dług dokumentacji, nie blokuje celu.
