@@ -92,6 +92,14 @@ mały — po kilka kafli terenu, sylwetek jednostek i budynków — ale prawdziw
    `godot --path game` z konsoli — dokładnie to, czego brief zabrania. To
    **jedyny nieodhaczony fragment kryterium sukcesu** i po K87 cała pozostała
    praca w stronę „gotowe". Szczegóły ryzyka: wniosek 4.
+3. **Szturm potrafi zwrócić graczowi błąd zamiast wyniku bitwy.** Odtworzone
+   uruchomieniem kodu 2026-07-28 (`serve 73`, recruit ×2 → muster → march →
+   assault): bitwa nie rozstrzyga się w 1000 rundach, bo ogłuszeni sojusznicy
+   zostają na planszy i blokują jedyne pole skracające dystans do obrońcy.
+   Przyczyną jest **ruch, nie obrażenia** — podniesienie obrażeń bazowych do ≥ 1
+   sprawdzono i nic nie zmienia. Rozpisane w BACKLOG.md („Kolejne kierunki");
+   nie planować na to plasterka bez przeczytania tamtej notatki, bo pierwszy
+   nasuwający się trop jest fałszywy.
 
 ## Ograniczenia i priorytety
 - **[W]** Rdzeń `tbb` jest **jedynym źródłem reguł gry**. Godot nie duplikuje

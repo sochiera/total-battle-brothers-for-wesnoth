@@ -591,6 +591,28 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 - Pełne pole bitwy (teren pustych heksów, wymiary pola) — wymaga rozszerzenia
   `tbbbridge.snapshot.battle_state`; dopiero gdy sam widok bitwy (K85) stoi.
 - Sterowanie pojedynczą jednostką w bitwie — po K85.
+- **Szturm potrafi się nie rozstrzygnąć i wywala rozkaz — przyczyną jest ruch,
+  nie obrażenia.** Odtwarzalne na `serve 73` (recruit ×2 → muster → march →
+  assault): gracz dostaje `unknown battle result`. Zweryfikowane przez
+  uruchomienie kodu 2026-07-28, nie z lektury: `auto_resolve` kończy 1000 rund z
+  `result() is None`, bo z trzech atakujących dwaj są **ogłuszeni** (`hp=0`,
+  `stunned=True`) i **zostają na planszy jako przeszkoda**, a jedyny czynny
+  atakujący stoi na `Hex(0,2)`. Jego jedyny sąsiad skracający dystans do
+  obrońcy na `Hex(2,0)` to `Hex(1,1)` — zajęty przez własnego ogłuszonego. Skoro
+  `reachable()` pomija zajęte heksy, `take_unit_turn` co rundę zwraca `self`,
+  obrońca sam nie naciera, a `result()` nie widzi czynnej strony po stronie
+  atakującej (ogłuszeni się nie liczą). Dwie rzeczy do rozdzielenia na osobne
+  plasterki, **żadna nie jest „obrażenia bazowe ≥ 1"**: (a) jednostka musi umieć
+  ominąć sojusznika albo ogłuszony przestaje blokować pole; (b)
+  `apply_settlement_battle_result` na nierozstrzygniętej bitwie rzuca
+  `ValueError("unknown battle result")` zamiast potraktować remis/przerwanie jako
+  legalny wynik — dlatego defekt dociera do gracza jako błąd rozkazu.
+  **Uwaga na fałszywy trop:** polegli NIE blokują (przy śmierci znikają z
+  `units`, tu `_fallen` jest puste), a podniesienie obrażeń bazowych do ≥ 1
+  sprawdzono empirycznie — wynik identyczny, `result()` nadal `None`. Zerowe
+  obrażenia ma rekrut z `settlement.recruit()`, bohater ma `equipment=1`.
+  *(Ustalenie z recenzji przeglądu kierunku 2026-07-28, którą przerwał
+  zatrzymany przebieg; zapisane ręcznie, żeby nie zginęło.)*
 
 ## Później (poza MVP)
 - [ ] **K62 (WSTRZYMANE — DECISIONS G63.0)** Rozbudowa alertu gospodarczego HTML
