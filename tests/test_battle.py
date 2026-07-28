@@ -1000,6 +1000,85 @@ def test_side_survivors_is_repeatable_and_does_not_mutate_battle_state():
     assert dict(battle._current_hp) == hp_before
 
 
+def test_side_survivors_with_slots_keeps_distinct_ids_for_value_equal_units_after_move():
+    """Public survivor read pairs each unit with a stable deploy-place id.
+
+    Realistic defect: side_survivors returns bare Units in deploy order. Unit is
+    compared by value, so two identical recruits from different deploy places
+    (e.g. garrison vs defending party) become indistinguishable after either
+    moves — the world layer cannot map survivors back to their origin slots.
+    """
+    twin_a = Unit(training=1, equipment=1)
+    twin_b = Unit(training=1, equipment=1)
+    assert twin_a == twin_b
+    pos_a, pos_b = Hex(0, 0), Hex(2, 0)
+    battle = (
+        HexBattle(Battlefield())
+        .deploy(twin_a, pos_a, BattleSide.ATTACKER)
+        .deploy(twin_b, pos_b, BattleSide.ATTACKER)
+    )
+
+    before = battle.side_survivors_with_slots(BattleSide.ATTACKER)
+    ids_before = tuple(slot for slot, _unit in before)
+    assert len(ids_before) == 2
+    assert len(set(ids_before)) == 2
+    assert [unit for _slot, unit in before] == list(
+        battle.side_survivors(BattleSide.ATTACKER)
+    )
+
+    moved = battle.move(pos_a, Hex(0, 1), move_points=1)
+    after = moved.side_survivors_with_slots(BattleSide.ATTACKER)
+    assert tuple(slot for slot, _unit in after) == ids_before
+    assert [unit for _slot, unit in after] == list(
+        moved.side_survivors(BattleSide.ATTACKER)
+    )
+
+
+def test_side_survivors_with_slots_stable_across_swap_stun_and_ally_death():
+    """Slot ids survive swap and ally death; stunned stays, fallen drops out."""
+    twin = Unit(training=1, equipment=1)
+    ally = Unit(training=2)
+    pos_a, pos_b, pos_ally = Hex(0, 0), Hex(1, 0), Hex(2, 0)
+    battle = (
+        HexBattle(Battlefield())
+        .deploy(twin, pos_a, BattleSide.ATTACKER)
+        .deploy(twin, pos_b, BattleSide.ATTACKER)
+        .deploy(ally, pos_ally, BattleSide.ATTACKER)
+    )
+    baseline = battle.side_survivors_with_slots(BattleSide.ATTACKER)
+    ids_by_order = tuple(slot for slot, _unit in baseline)
+    assert len(set(ids_by_order)) == 3
+    id_a, id_b, id_ally = ids_by_order
+
+    swapped = battle._swap(pos_a, pos_b)
+    after_swap = swapped.side_survivors_with_slots(BattleSide.ATTACKER)
+    assert tuple(slot for slot, _unit in after_swap) == (id_a, id_b, id_ally)
+    assert [unit for _slot, unit in after_swap] == list(
+        swapped.side_survivors(BattleSide.ATTACKER)
+    )
+
+    stunned_state = swapped.damage(pos_a, twin.hp).resolve_defeat(
+        pos_a, ControlledRng(False)
+    )
+    after_stun = stunned_state.side_survivors_with_slots(BattleSide.ATTACKER)
+    assert tuple(slot for slot, _unit in after_stun) == (id_a, id_b, id_ally)
+    assert after_stun[1][1].stunned is True
+    assert [unit for _slot, unit in after_stun] == list(
+        stunned_state.side_survivors(BattleSide.ATTACKER)
+    )
+
+    after_death = stunned_state.damage(pos_ally, ally.hp).resolve_defeat(
+        pos_ally, ControlledRng(True)
+    )
+    survivors = after_death.side_survivors_with_slots(BattleSide.ATTACKER)
+    assert tuple(slot for slot, _unit in survivors) == (id_a, id_b)
+    assert id_ally not in {slot for slot, _unit in survivors}
+    assert [unit for _slot, unit in survivors] == list(
+        after_death.side_survivors(BattleSide.ATTACKER)
+    )
+    assert after_death.side_fallen(BattleSide.ATTACKER) == (ally,)
+
+
 def test_award_experience_rewards_only_survivors_and_preserves_report():
     active = Unit(training=1, experience=2, wounds=(MAIMED,))
     stunned = Unit(equipment=2, experience=4, wounds=(MAIMED,))

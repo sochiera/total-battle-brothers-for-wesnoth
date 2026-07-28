@@ -59,6 +59,8 @@ class HexBattle:
         default_factory=tuple, repr=False
     )
     _deployment_order: tuple[Hex, ...] = field(default_factory=tuple, repr=False)
+    _slot_ids: Mapping[Hex, int] | None = field(default=None, repr=False)
+    _next_slot_id: int = field(default=0, repr=False)
 
     def __post_init__(self) -> None:
         """Protect deployment data from mutation through the public mapping."""
@@ -66,17 +68,29 @@ class HexBattle:
         current_hp = dict(self._current_hp)
         sides = dict(self.sides)
         deployment_order = self._deployment_order or tuple(units)
+        next_slot_id = self._next_slot_id
         for position, unit in units.items():
             current_hp.setdefault(position, unit.hp)
         if sides.keys() != units.keys():
             raise ValueError("every deployed unit must have exactly one battle side")
         if len(deployment_order) != len(units) or set(deployment_order) != set(units):
             raise ValueError("deployment order must contain every deployed position")
+        if self._slot_ids is None:
+            slot_ids = {position: i for i, position in enumerate(deployment_order)}
+            next_slot_id = len(slot_ids)
+        else:
+            slot_ids = dict(self._slot_ids)
+            if set(slot_ids) != set(units):
+                raise ValueError("slot_ids must contain exactly the deployed positions")
+            if len(slot_ids) != len(set(slot_ids.values())):
+                raise ValueError("slot_ids values must be unique")
         object.__setattr__(self, "units", MappingProxyType(units))
         object.__setattr__(self, "_current_hp", MappingProxyType(current_hp))
         object.__setattr__(self, "sides", MappingProxyType(sides))
+        object.__setattr__(self, "_slot_ids", MappingProxyType(slot_ids))
         object.__setattr__(self, "_fallen", tuple(self._fallen))
         object.__setattr__(self, "_deployment_order", tuple(deployment_order))
+        object.__setattr__(self, "_next_slot_id", next_slot_id)
 
     def unit_at(self, position: Hex) -> Unit | None:
         """Return the unit at ``position``, if any."""
@@ -102,6 +116,14 @@ class HexBattle:
         """Return one side's deployed survivors in deployment order."""
         return tuple(
             self.units[position]
+            for position in self._deployment_order
+            if self.sides[position] is side
+        )
+
+    def side_survivors_with_slots(self, side: BattleSide) -> tuple[tuple[int, Unit], ...]:
+        """Return survivors paired with their stable deployment-place slot id."""
+        return tuple(
+            (self._slot_ids[position], self.units[position])
             for position in self._deployment_order
             if self.sides[position] is side
         )
@@ -304,9 +326,12 @@ class HexBattle:
         current_hp[position] = unit.hp
         sides = dict(self.sides)
         sides[position] = side
+        slot_ids = dict(self._slot_ids)
+        slot_ids[position] = self._next_slot_id
         return HexBattle(
             self.battlefield, units, current_hp, sides, self._fallen,
-            self._deployment_order + (position,),
+            self._deployment_order + (position,), slot_ids,
+            self._next_slot_id + 1,
         )
 
     def damage(self, position: Hex, amount: int) -> "HexBattle":
@@ -319,7 +344,7 @@ class HexBattle:
         current_hp[position] = max(0, current_hp[position] - amount)
         return HexBattle(
             self.battlefield, self.units, current_hp, self.sides, self._fallen,
-            self._deployment_order,
+            self._deployment_order, self._slot_ids, self._next_slot_id,
         )
 
     def melee_attack(
@@ -428,13 +453,15 @@ class HexBattle:
         current_hp[destination] = current_hp.pop(source)
         sides = dict(self.sides)
         sides[destination] = sides.pop(source)
+        slot_ids = dict(self._slot_ids)
+        slot_ids[destination] = slot_ids.pop(source)
         deployment_order = tuple(
             destination if position == source else position
             for position in self._deployment_order
         )
         return HexBattle(
             self.battlefield, units, current_hp, sides, self._fallen,
-            deployment_order,
+            deployment_order, slot_ids, self._next_slot_id,
         )
 
     def _swap(self, first: Hex, second: Hex) -> "HexBattle":
@@ -445,13 +472,15 @@ class HexBattle:
         current_hp[first], current_hp[second] = current_hp[second], current_hp[first]
         sides = dict(self.sides)
         sides[first], sides[second] = sides[second], sides[first]
+        slot_ids = dict(self._slot_ids)
+        slot_ids[first], slot_ids[second] = slot_ids[second], slot_ids[first]
         deployment_order = tuple(
             second if position == first else first if position == second else position
             for position in self._deployment_order
         )
         return HexBattle(
             self.battlefield, units, current_hp, sides, self._fallen,
-            deployment_order,
+            deployment_order, slot_ids, self._next_slot_id,
         )
 
     def resolve_defeat(self, position: Hex, rng: Rng) -> "HexBattle":
@@ -467,6 +496,7 @@ class HexBattle:
         units = dict(self.units)
         current_hp = dict(self._current_hp)
         sides = dict(self.sides)
+        slot_ids = dict(self._slot_ids)
         fallen = self._fallen
         deployment_order = self._deployment_order
         if rng.chance(0.5):
@@ -474,6 +504,7 @@ class HexBattle:
             del units[position]
             del current_hp[position]
             del sides[position]
+            del slot_ids[position]
             deployment_order = tuple(
                 deployed for deployed in deployment_order if deployed != position
             )
@@ -482,5 +513,6 @@ class HexBattle:
                 unit, stunned=True, wounds=unit.wounds + (BRUISE,)
             )
         return HexBattle(
-            self.battlefield, units, current_hp, sides, fallen, deployment_order
+            self.battlefield, units, current_hp, sides, fallen, deployment_order,
+            slot_ids, self._next_slot_id
         )
