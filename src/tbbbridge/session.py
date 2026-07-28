@@ -2,7 +2,7 @@
 
 import tbb.ai as ai
 from tbb.battle import HexBattle
-from tbb.driver import run_headless_game
+from tbb.driver import resolve_hero_survival, run_headless_game
 from tbb.duchy import Duchy
 from tbb.game import create_headless_game, GameState
 from tbb.rng import Rng
@@ -194,13 +194,24 @@ def _resolve_player_duchy(session: Session) -> Duchy | None:
     )
 
 
+def _replace_duchy(game: GameState, replacement: Duchy) -> GameState:
+    """Return a game with the matching duchy replaced in place."""
+    return GameState(
+        replacement if duchy.duchy_id == replacement.duchy_id else duchy
+        for duchy in game.duchies
+    )
+
+
 def _apply_order(session: Session, transition) -> Session:
     """Apply a no-battle player order transition and return a new Session.
 
     The transition receives ``(world, player_duchy)`` and returns a new
-    ``WorldMap``.  The resulting ``GameState`` is ``sync_from_world`` of the
-    new map.  When the order is illegal (game over, no player id, or missing
-    duchy), the input world/game/calendar are returned unchanged.
+    ``WorldMap``.  ``resolve_hero_survival`` is applied to the player duchy
+    (``player_duchy``, ``session.world``, ``new_world``), the resolved duchy
+    replaces the player duchy in ``session.game`` via ``_replace_duchy``, and
+    the resulting ``GameState`` is ``sync_from_world`` of the new map.  When
+    the order is illegal (game over, no player id, or missing duchy), the
+    input world/game/calendar are returned unchanged.
 
     Calendar, RNG, seed and ``player_duchy_id`` are preserved; the RNG is not
     advanced.  The input session is never mutated.  Any previous ``last_battle``
@@ -210,7 +221,8 @@ def _apply_order(session: Session, transition) -> Session:
     if player_duchy is None:
         return session._derive(session.world, session.game, session.calendar)
     new_world = transition(session.world, player_duchy)
-    new_game = session.game.sync_from_world(new_world)
+    resolved = resolve_hero_survival(player_duchy, session.world, new_world)
+    new_game = _replace_duchy(session.game, resolved).sync_from_world(new_world)
     return session._derive(new_world, new_game, session.calendar)
 
 
@@ -221,11 +233,14 @@ def _apply_battle_order(
     """Apply a battle player order transition and return a new Session.
 
     The transition receives ``(world, player_duchy, rng, game)`` and returns
-    ``(new_world, battle | None)``.  The resulting ``GameState`` is
-    ``sync_from_world`` of the new map and ``last_battle`` is set to the
-    returned battle (or ``None`` when the order was a no-op).  When the order
-    is illegal, the input world/game/calendar are returned unchanged with
-    ``last_battle is None``.
+    ``(new_world, battle | None)``.  ``resolve_hero_survival`` is applied to
+    the player duchy (``player_duchy``, ``session.world``, ``new_world``), the
+    resolved duchy replaces the player duchy in ``session.game`` via
+    ``_replace_duchy``, and the resulting ``GameState`` is ``sync_from_world``
+    of the new map, with ``last_battle`` set to the returned battle (or
+    ``None`` when the order was a no-op).  When the order is illegal, the
+    input world/game/calendar are returned unchanged with ``last_battle is
+    None``.
 
     Calendar, RNG, seed and ``player_duchy_id`` are preserved.  The input
     session is never mutated.
@@ -234,7 +249,8 @@ def _apply_battle_order(
     if player_duchy is None:
         return session._derive(session.world, session.game, session.calendar)
     new_world, battle = transition(session.world, player_duchy, session.rng, session.game)
-    new_game = session.game.sync_from_world(new_world)
+    resolved = resolve_hero_survival(player_duchy, session.world, new_world)
+    new_game = _replace_duchy(session.game, resolved).sync_from_world(new_world)
     return session._derive(new_world, new_game, session.calendar, last_battle=battle)
 
 

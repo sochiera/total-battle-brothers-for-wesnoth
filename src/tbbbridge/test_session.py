@@ -1420,3 +1420,134 @@ def test_natural_seed73_assault_resolves_with_world_matching_battle_result():
 
     # Kryt-3: same seed → same battle result and same world shape.
     assert outcomes[0] == outcomes[1]
+
+
+def test_player_order_path_resolves_hero_survival_like_ai_when_party_is_lost():
+    """G90.2a-1: player command path applies the same hero-survival rule as AI.
+
+    Realistic defect: ``resolve_hero_survival`` runs only in the AI driver loop;
+    ``apply_command`` for player orders ends with ``sync_from_world`` alone. After
+    a natural seed-73 assault that wipes the player party, the duchy still reports
+    ``has_hero=True`` / unchanged morale, so the player hero is immortal and
+    succession never fires on the bridge path.
+
+    Public contract: after a player order that removes the player's field party,
+    the returned session (and its snapshot) reflects succession — without an heir
+    ``has_hero``/``has_heir`` are false and morale drops by
+    ``SUCCESSION_MORALE_PENALTY``. Orders that do not destroy the party leave
+    hero/heir/morale unchanged. Same seed → same outcome.
+    """
+    from tbb.duchy import SUCCESSION_MORALE_PENALTY
+
+    outcomes = []
+    for _ in range(2):
+        session = new_session(seed=73, player_duchy_id="player")
+        start = next(d for d in session.game.duchies if d.duchy_id == "player")
+        start_morale = start.morale
+        assert start.has_hero is True
+        assert start.heir is None
+
+        for order in ("recruit", "muster", "march"):
+            session = apply_command(session, {"type": "order", "order": order})
+            player = next(d for d in session.game.duchies if d.duchy_id == "player")
+            assert player.has_hero is True
+            assert player.heir is None
+            assert player.morale == start_morale
+
+        before_assault = session
+        assert any(
+            party.owner_id == "player" for party in before_assault.world.parties.values()
+        )
+
+        after = apply_command(before_assault, {"type": "order", "order": "assault"})
+        player = next(d for d in after.game.duchies if d.duchy_id == "player")
+        # Party lost on the natural seed-73 assault (DEFENDER_WIN).
+        assert not any(
+            party.owner_id == "player" for party in after.world.parties.values()
+        )
+        assert len(player.parties) == 0
+        # Kryt-1/3: succession as for AI without heir — no hero, morale penalty.
+        assert player.has_hero is False
+        assert player.heir is None
+        assert player.morale == start_morale - SUCCESSION_MORALE_PENALTY
+
+        snap_player = next(d for d in after.snapshot()["duchies"] if d["id"] == "player")
+        assert snap_player["has_hero"] is False
+        assert snap_player["has_heir"] is False
+        assert snap_player["morale"] == start_morale - SUCCESSION_MORALE_PENALTY
+
+        outcomes.append(
+            (
+                player.has_hero,
+                player.heir is not None,
+                player.morale,
+                snap_player["has_hero"],
+                snap_player["has_heir"],
+                snap_player["morale"],
+            )
+        )
+
+    # Kryt-5: deterministic on fixed seed.
+    assert outcomes[0] == outcomes[1]
+
+
+def test_player_order_path_promotes_heir_when_party_is_lost_with_successor():
+    """G90.2a-1 AC1: with an heir, party loss on the player path promotes them.
+
+    The no-heir branch is covered by
+    ``test_player_order_path_resolves_hero_survival_like_ai_when_party_is_lost``.
+    This scenario injects a successor onto the natural seed-73 path (party wiped
+    by assault) so the bridge must surface ``succeed()`` with an heir: new hero is
+    the former heir, ``has_heir`` is false, morale drops by
+    ``SUCCESSION_MORALE_PENALTY`` — in game state and snapshot.
+    """
+    from tbb.duchy import Duchy, SUCCESSION_MORALE_PENALTY
+    from tbb.unit import Unit
+
+    session = new_session(seed=73, player_duchy_id="player")
+    for order in ("recruit", "muster", "march"):
+        session = apply_command(session, {"type": "order", "order": order})
+
+    player = next(d for d in session.game.duchies if d.duchy_id == "player")
+    start_morale = player.morale
+    heir = Unit(training=2, equipment=1, experience=3)
+    assert player.hero is not None
+    assert heir is not player.hero
+
+    with_heir = Duchy(
+        duchy_id=player.duchy_id,
+        hero=player.hero,
+        morale=player.morale,
+        heir=heir,
+        settlements=player.settlements,
+        parties=player.parties,
+    )
+    before = Session(
+        world=session.world,
+        game=GameState(
+            with_heir if d.duchy_id == "player" else d for d in session.game.duchies
+        ),
+        calendar=session.calendar,
+        rng=session.rng,
+        player_duchy_id=session.player_duchy_id,
+        seed=session.seed,
+        last_battle=session.last_battle,
+    )
+    assert any(party.owner_id == "player" for party in before.world.parties.values())
+
+    after = apply_command(before, {"type": "order", "order": "assault"})
+    player = next(d for d in after.game.duchies if d.duchy_id == "player")
+    assert not any(
+        party.owner_id == "player" for party in after.world.parties.values()
+    )
+    assert len(player.parties) == 0
+    # Kryt-1/3: succession with heir — promoted, no spare heir, morale penalty.
+    assert player.has_hero is True
+    assert player.hero == heir
+    assert player.heir is None
+    assert player.morale == start_morale - SUCCESSION_MORALE_PENALTY
+
+    snap_player = next(d for d in after.snapshot()["duchies"] if d["id"] == "player")
+    assert snap_player["has_hero"] is True
+    assert snap_player["has_heir"] is False
+    assert snap_player["morale"] == start_morale - SUCCESSION_MORALE_PENALTY
