@@ -312,6 +312,12 @@ def test_tick_immigration_returns_new_state_without_mutating_original():
 
 
 def test_recruit_creates_fresh_recruit_and_occupies_population():
+    """Default recruit is a real defender: positive damage and defense (G91.1a).
+
+    Realistic defect: Settlement.recruit() inserts bare Unit() so damage and
+    defense are both 0 — the unit cannot hit and dilutes garrison defense.
+    Existing equality-to-Unit() checks codified that bug instead of catching it.
+    """
     settlement = Settlement("A", population=2, storage=Resources(0, 1))
 
     recruited = settlement.recruit()
@@ -319,7 +325,10 @@ def test_recruit_creates_fresh_recruit_and_occupies_population():
     assert recruited.population == 2
     assert recruited.occupied == 1
     assert recruited.free == 1
-    assert recruited.garrison == (Unit(),)
+    assert len(recruited.garrison) == 1
+    recruit = recruited.garrison[0]
+    assert recruit.damage > 0
+    assert recruit.defense > 0
 
 
 def test_recruit_pays_exported_gold_cost_without_mutating_input_or_using_rng():
@@ -338,7 +347,9 @@ def test_recruit_pays_exported_gold_cost_without_mutating_input_or_using_rng():
     assert first.storage == Resources(wheat=4, gold=2)
     assert first.population == original.population
     assert first.occupied == original.occupied + 1
-    assert first.garrison == (Unit(),)
+    assert len(first.garrison) == 1
+    assert first.garrison[0].damage > 0
+    assert first.garrison[0].defense > 0
     assert original.storage == Resources(
         wheat=4, gold=settlement_module.RECRUIT_GOLD_COST + 2
     )

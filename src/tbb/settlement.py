@@ -11,6 +11,8 @@ from tbb.unit import Unit
 
 TRAINING_MONTHS_PER_TURN: int = 1
 RECRUIT_GOLD_COST: int = 1
+RECRUIT_TRAINING: int = 2
+RECRUIT_EQUIPMENT: int = 4
 HERO_GOLD_COST: int = 2
 EQUIP_GOLD_COST: int = 1
 EQUIP_INVESTMENT_PER_TURN: int = 1
@@ -146,7 +148,11 @@ class Settlement:
         storage = staffed.storage.subtract(
             Resources(wheat=0, gold=RECRUIT_GOLD_COST)
         )
-        recruit = Unit() if unit is None else unit
+        recruit = (
+            Unit(training=RECRUIT_TRAINING, equipment=RECRUIT_EQUIPMENT)
+            if unit is None
+            else unit
+        )
         return replace(
             staffed,
             storage=storage,

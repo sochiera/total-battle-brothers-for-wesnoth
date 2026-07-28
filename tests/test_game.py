@@ -291,3 +291,39 @@ def test_headless_start_is_symmetric_and_player_keeps_lands_after_one_passive_tu
     assert len(player10.settlements) >= 1
     # AC4: full run_headless_game triple (world, game, calendar), not just [:2].
     assert after_ten_a == after_ten_b
+
+
+def test_one_default_recruit_before_first_turn_does_not_reduce_keep_rate():
+    """G91.1a AC2: recruiting one defender must not make the first turn worse.
+
+    Realistic defect: default recruit() inserts a unit with positive damage and
+    defense (AC1) that is still too weak; on the fixed headless seed set the
+    keep-rate after one passive AI turn falls (measured 4/8 passive → 1/8 with
+    one recruit). Unit-stat gates only check damage>0/defense>0 and miss this.
+    """
+    seeds = (73, 1, 2, 7, 11, 42, 5, 9)
+    assert len(seeds) >= 6
+
+    def player_keeps_after_one_turn(seed: int, *, recruit: bool) -> bool:
+        world, game = create_headless_game()
+        player_region = world.regions[0]
+        if recruit:
+            keep = world.settlement_at(player_region)
+            world = world.with_settlement(player_region, keep.recruit())
+            game = game.sync_from_world(world)
+        result_world, _, _ = run_headless_game(
+            world, game, Rng(seed), max_turns=1, player_duchy_id="player"
+        )
+        kept = result_world.settlement_at(player_region)
+        return kept is not None and kept.owner_id == "player"
+
+    passive_keeps = sum(
+        1 for seed in seeds if player_keeps_after_one_turn(seed, recruit=False)
+    )
+    recruit_keeps = sum(
+        1 for seed in seeds if player_keeps_after_one_turn(seed, recruit=True)
+    )
+    assert recruit_keeps >= passive_keeps, (
+        f"one default recruit reduced first-turn keep-rate: "
+        f"passive={passive_keeps}/{len(seeds)} recruit={recruit_keeps}/{len(seeds)}"
+    )

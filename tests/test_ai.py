@@ -1153,7 +1153,10 @@ def test_recruit_duchy_unit_adds_exactly_one_fresh_unit_without_mutating_inputs(
 
     updated = recruited.settlement_at(home)
     assert updated.occupied == settlement.occupied + 1
-    assert updated.garrison == settlement.garrison + (Unit(),)
+    assert len(updated.garrison) == len(settlement.garrison) + 1
+    assert updated.garrison[:-1] == settlement.garrison
+    assert updated.garrison[-1].damage > 0
+    assert updated.garrison[-1].defense > 0
     assert world.settlement_at(home) is settlement
     assert settlement.occupied == 1
     assert settlement.garrison == (Unit(training=1),)
@@ -1175,7 +1178,10 @@ def test_recruit_duchy_unit_uses_region_order_not_settlement_mapping_order():
 
     recruited = recruit_duchy_unit(world, Duchy("ai", Unit()))
 
-    assert recruited.settlement_at(first).garrison == (Unit(),)
+    first_garrison = recruited.settlement_at(first).garrison
+    assert len(first_garrison) == 1
+    assert first_garrison[0].damage > 0
+    assert first_garrison[0].defense > 0
     assert recruited.settlement_at(second) is second_settlement
 
 
@@ -1196,7 +1202,10 @@ def test_recruit_duchy_unit_uses_settlement_module_gold_cost(monkeypatch):
     recruited = recruit_duchy_unit(world, Duchy("ai", Unit()))
 
     assert recruited.settlement_at(first) is first_settlement
-    assert recruited.settlement_at(second).garrison == (Unit(),)
+    second_garrison = recruited.settlement_at(second).garrison
+    assert len(second_garrison) == 1
+    assert second_garrison[0].damage > 0
+    assert second_garrison[0].defense > 0
     assert recruited.settlement_at(second).storage == Resources(0, 0)
 
 
@@ -1222,7 +1231,10 @@ def test_recruit_duchy_unit_skips_every_ineligible_settlement():
 
     recruited = recruit_duchy_unit(world, Duchy("ai", Unit()))
 
-    assert recruited.settlement_at(eligible).garrison == (Unit(),)
+    eligible_garrison = recruited.settlement_at(eligible).garrison
+    assert len(eligible_garrison) == 1
+    assert eligible_garrison[0].damage > 0
+    assert eligible_garrison[0].defense > 0
     for region in (foreign, unowned, no_free, full):
         assert recruited.settlement_at(region) is settlements[region]
 
@@ -1327,7 +1339,9 @@ def test_duchy_turn_develops_farm_before_recruiting_one_unit():
 
     updated = result.settlement_at(home)
     assert updated.active_buildings == (tbb.FARM,)
-    assert updated.garrison == (Unit(),)
+    assert len(updated.garrison) == 1
+    assert updated.garrison[0].damage > 0
+    assert updated.garrison[0].defense > 0
     assert world.settlement_at(home) is settlement
     assert settlement.active_buildings == ()
     assert settlement.garrison == ()
@@ -1406,7 +1420,13 @@ def test_duchy_turn_recruits_and_marches_when_all_buildings_are_already_open():
 
     result = take_duchy_turn(world, duchy, _ForbiddenRng())
 
-    assert result.party_at(road) == Party(hero, (Unit(),), owner_id="ai")
+    marched = result.party_at(road)
+    assert marched is not None
+    assert marched.hero is hero
+    assert marched.owner_id == "ai"
+    assert len(marched.units) == 1
+    assert marched.units[0].damage > 0
+    assert marched.units[0].defense > 0
     assert result.settlement_at(home).active_buildings == settlement.active_buildings
     assert result.settlement_at(home).storage == Resources(0, 0)
     assert world.settlement_at(home) is settlement
@@ -1436,7 +1456,10 @@ def test_duchy_turn_recruits_before_muster_march_and_adjacent_assault():
 
     assert result == expected
     assert result.settlement_at(home).garrison == ()
-    assert result.party_at(target).units == (Unit(),)
+    assault_units = result.party_at(target).units
+    assert len(assault_units) == 1
+    assert assault_units[0].damage > 0
+    assert assault_units[0].defense > 0
 
 
 def test_duchy_turn_leaves_recruit_in_garrison_when_party_already_exists():
@@ -1457,7 +1480,10 @@ def test_duchy_turn_leaves_recruit_in_garrison_when_party_already_exists():
 
     result = take_duchy_turn(world, duchy, _ForbiddenRng())
 
-    assert result.settlement_at(home).garrison == (Unit(),)
+    home_garrison = result.settlement_at(home).garrison
+    assert len(home_garrison) == 1
+    assert home_garrison[0].damage > 0
+    assert home_garrison[0].defense > 0
     assert result.party_at(target).units == (veteran,)
 
 

@@ -7,12 +7,12 @@ order_result, assault e2e without the two recruits) already pass; this path
 must still surface a readable battle outcome, not a failed-order message.
 
 After G89.2a-1 (swap past own stunned ally) the seed-73 natural fight is no
-longer a round-limit stalemate: the last active attacker can advance and the
-strong garrison resolves the fight as porażka. After G90.1a the player keep
-starts with a veteran garrison (symmetric with AI), so the mustered party on
-this path is larger and seed-73 records attacker_losses=1 (still porażka,
-0 enemy losses; remaining attackers stunned). Unresolved remains a legal
-contract elsewhere (K89.1).
+longer a round-limit stalemate. After G90.1a the player keep starts with a
+veteran garrison (symmetric with AI), so the mustered party on this path is
+larger. After G91.1a default recruits enter with positive training/equipment,
+so the same recruit×2 path on seed 73 resolves as attacker zwycięstwo
+(defender_losses=1, no attacker losses; party holds the captured keep).
+Unresolved remains a legal contract elsewhere (K89.1).
 """
 
 from __future__ import annotations
@@ -29,15 +29,15 @@ GAME = ROOT / "game"
 PROBE = "res://tests/persistent_natural_assault_e2e_probe.gd"
 PREFIX = "PERSISTENT_NATURAL_ASSAULT "
 SEED = 73
-# Matches G85 assault e2e status shape; natural path with recruits now resolves.
-EXPECTED_ORDER_STATUS = "Szturm: porażka (straty: 1, wróg: 0)."
-EXPECTED_PARTY_POSITION = "Położenie oddziału: brak"
+# Matches G85 assault e2e status shape; natural path with G91.1a recruits wins.
+EXPECTED_ORDER_STATUS = "Szturm: zwycięstwo (straty: 0, wróg: 1)."
+EXPECTED_PARTY_POSITION = "Położenie oddziału: ai lands"
 EXPECTED_BATTLE_RESULT = {
     "kind": "battle",
     "order": "assault",
-    "outcome": "porażka",
-    "attacker_losses": 1,
-    "defender_losses": 0,
+    "outcome": "zwycięstwo",
+    "attacker_losses": 0,
+    "defender_losses": 1,
 }
 
 
@@ -70,9 +70,9 @@ def _assert_successful_resolved_assault(play: dict) -> None:
     )
     assert play["controls"]["party_position"] == EXPECTED_PARTY_POSITION
     # Settlement ownership lives in duchy_status (regions list shows names only).
-    # Defender win: party destroyed, player keep retained.
-    assert "osady: 1" in play["controls"]["duchy_status"]
-    assert "oddziały: 0" in play["controls"]["duchy_status"]
+    # Attacker win (G91.1a): enemy keep taken; party remains on captured region.
+    assert "osady: 2" in play["controls"]["duchy_status"]
+    assert "oddziały: 1" in play["controls"]["duchy_status"]
 
     # Machine result from the bridge response projected by the client (kryt-1).
     last = play["order_results"][-1]
@@ -111,9 +111,9 @@ def test_natural_sequence_ends_with_visible_battle_effect_on_live_bridge(tmp_pat
         assert resumed["state_exists"] is True
         assert resumed["controls"]["party_position"] == EXPECTED_PARTY_POSITION
         assert resumed["controls"]["date"] == play["controls"]["date"]
-        # Defender win: party gone; player still has 1 settlement.
-        assert "osady: 1" in resumed["controls"]["duchy_status"]
-        assert "oddziały: 0" in resumed["controls"]["duchy_status"]
+        # Attacker win: party holds captured keep; player has 2 settlements.
+        assert "osady: 2" in resumed["controls"]["duchy_status"]
+        assert "oddziały: 1" in resumed["controls"]["duchy_status"]
         assert resumed["controls"]["regions"] == play["controls"]["regions"]
 
     assert outcomes[0] == outcomes[1] == EXPECTED_BATTLE_RESULT

@@ -54,7 +54,10 @@ def test_monthly_tick_precedes_recruitment_and_syncs_the_grown_settlement():
     assert grown_keep.population == 3
     assert grown_keep.storage == Resources(wheat=1, gold=0)
     assert grown_keep.occupied == 3
-    assert grown_keep.garrison == (veteran.train(1), Unit())
+    assert len(grown_keep.garrison) == 2
+    assert grown_keep.garrison[0] == veteran.train(1)
+    assert grown_keep.garrison[1].damage > 0
+    assert grown_keep.garrison[1].defense > 0
     assert north_duchy.settlements == (grown_keep,)
     assert world.settlement_at(north) is north_keep
     assert game.duchies[0].settlements == (north_keep,)
@@ -236,9 +239,15 @@ def test_one_turn_delegates_to_live_ai_api_in_duchy_order(monkeypatch):
     assert calls[0][0] is not world
     assert calls[1][0] is calls[0][2]
     assert result_world is calls[1][2]
-    assert result_world.settlement_at(north).garrison == (Unit(),)
+    north_garrison = result_world.settlement_at(north).garrison
+    south_garrison = result_world.settlement_at(south).garrison
+    assert len(north_garrison) == 1
+    assert north_garrison[0].damage > 0
+    assert north_garrison[0].defense > 0
     assert result_world.settlement_at(fallen).garrison == ()
-    assert result_world.settlement_at(south).garrison == (Unit(),)
+    assert len(south_garrison) == 1
+    assert south_garrison[0].damage > 0
+    assert south_garrison[0].defense > 0
     assert result_game is not game
     assert result_game == game.sync_from_world(result_world)
     assert snapshot == (
@@ -344,7 +353,10 @@ def test_player_duchy_skips_take_duchy_turn_keeps_raise_and_heir(monkeypatch):
     assert raise_calls == ["north", "south"]
     assert designate_calls == ["north", "south"]
     assert result_world.settlement_at(north).garrison == ()
-    assert result_world.settlement_at(south).garrison == (Unit(),)
+    south_garrison = result_world.settlement_at(south).garrison
+    assert len(south_garrison) == 1
+    assert south_garrison[0].damage > 0
+    assert south_garrison[0].defense > 0
     assert result_world is not world
     assert result_game is not game
     assert snapshot == (
