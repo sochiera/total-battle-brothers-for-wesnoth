@@ -551,12 +551,16 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 - [x] **G88.1c** Pakiet dystrybucyjny: `scripts/package.sh <cel>` buduje katalog
       z binarium, `.pck` i `src/` mostu obok binarium; niekompletny build →
       niezerowy kod i brak „udawanego" pakietu. *(standard, commit 398cb2b)*
-> **W kolejce planisty (nie planować ponownie):** G88.1d — pakiet bez sond
-> testowych w `.pck` *(task-495)*; G88.1e — sam start gry utrwala partię, czyli
-> ciągłość między uruchomieniami *(task-496)*; G88.1f — wyeksportowana gra
-> startuje partię bez terminala, e2e **na pakiecie** *(task-497)*; G88.1g —
-> uruchomienie jednym kliknięciem, wpis `.desktop` w pakiecie *(task-498)*.
-> Po G88.1g formalne kryterium „natywna aplikacja bez terminala" jest odhaczone.
+- [x] **G88.1d** Pakiet bez sond testowych w `.pck`. *(task-495, commit c2a7683)*
+- [x] **G88.1e** Sam start gry utrwala partię — ciągłość między uruchomieniami.
+      *(task-496, commit f4a0bad)*
+- [x] **G88.1f** Wyeksportowana gra startuje partię bez terminala, e2e **na
+      pakiecie**. *(task-497, commit 55e5a1e)*
+- [x] **G88.1g** Uruchomienie jednym kliknięciem — wpis `.desktop` w pakiecie.
+      *(task-498, commit 787316c)*
+> **Kamień 88 — UKOŃCZONY.** Formalne kryterium „natywna aplikacja bez terminala"
+> jest odhaczone: pakiet startuje partię z binarium, `src/` mostu leży obok,
+> `.pck` nie niesie sond testowych, a e2e dowodzi startu na samym pakiecie.
 
 ## Kamień milowy 89 — bitwa zawsze daje wynik, nigdy błędu rozkazu — PRIORYTET
 > **Defekt sięgający gracza, potwierdzony ponownym uruchomieniem kodu przy
@@ -619,6 +623,79 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > zwycięstwo obrońcy, a cały pythonowy zestaw testów (bez sond Godota) zostaje
 > zielony. Po task-507 K89 jest domknięty.
 
+## Kamień milowy 90 — partia da się w ogóle rozegrać (pierwsza tura, koniec gry) — PRIORYTET
+> **Ustalenie z przeglądu kierunku 2026-07-28, z uruchomienia kodu, nie z
+> lektury.** Po K88 i K89 wszystko *widać*, ale gry nadal **nie da się grać**:
+> jedno kliknięcie „Następna tura" na starcie partii oddaje graczowi przegraną,
+> a przegrana nigdy się nie kończy. Pełny pythonowy zestaw testów jest przy tym
+> zielony (4 s) — to dokładnie wzorzec z wniosku 13 w `docs/PROJECT.md`.
+>
+> **Fakt 1 — start jest asymetryczny.** `tbb.game.create_headless_game`
+> (`src/tbb/game.py:20-30`) daje AI Keep `occupied=1` i
+> `garrison=(Unit(training=5, equipment=12),)`, a Player Keep **pustą załogę**.
+> W pierwszej turze `ai.take_duchy_turn` robi develop → recruit → muster → march
+> → assault i przejmuje bezbronną osadę gracza. Zweryfikowane na `seed=73`:
+> po jednym `next_turn` `player lands` ma `owner_id="ai"`, a księstwo gracza ma
+> 0 osad i 0 oddziałów **do końca partii** (150 tur symulacji — nic się już nie
+> zmienia, każdy rozkaz gracza to no-op).
+> **Fałszywy trop:** „gracz po prostu ma najpierw rekrutować". Sprawdzone dla 1,
+> 2 i 3 rekrutów przed turą — osada pada tak samo, bo rekrut ma `equipment=0`,
+> a `Unit.damage == equipment` (`src/tbb/unit.py:102`), czyli zadaje **zero**
+> obrażeń weteranowi AI.
+> **Prototyp rozwiązania sprawdzony (poza gitem):** gdy Player Keep startuje z
+> takim samym garnizonem jak AI Keep, osada gracza stoi ≥10 tur biernej gry, a
+> AI traci przy tym własny garnizon na kolejnych szturmach — czyli powstaje
+> realna sytuacja do rozegrania (AI Keep zostaje bez obrony i da się je wziąć).
+>
+> **Fakt 2 — koniec gry jest nieosiągalny dla gracza.**
+> `driver.resolve_hero_survival` (`src/tbb/driver.py:23-33`) jest wołane
+> **tylko dla księstw AI**: pętla drivera robi `continue` dla `player_duchy_id`
+> przed akcją militarną (`driver.py:96`), a `session.apply_command` po rozkazach
+> gracza robi wyłącznie `sync_from_world`. Bohater gracza nigdy nie ginie →
+> `Duchy.is_defeated` (brak osad **i** brak bohatera) nigdy nie zachodzi →
+> `game.is_over` zostaje `False`. Klient pokazuje wtedy w nieskończoność
+> `Wynik: ongoing` — na dodatek surowym tokenem angielskim
+> (`game/scripts/main.gd:164`, wartości `_player_result`: `ongoing`/`victory`/
+> `defeat`/`draw`).
+>
+> **Kolejność wobec kolejki K89:** najpierw kończymy K89 (task-506, task-507) —
+> te zadania stoją na `seed=73` i są o krok od domknięcia. Dopiero potem G90.1a,
+> bo zmiana startu zmienia skład oddziału z repro (3 jednostki zamiast 2).
+> Sprawdzone: sekwencja repro na symetrycznym starcie **nadal się rozstrzyga**
+> (`BattleResult.DEFENDER_WIN`), więc kryterium K89 zostaje w mocy — zmienić może
+> się liczba jednostek w oczekiwaniach testu, nie sam fakt rozstrzygnięcia.
+> **To nie jest odłożony „balans" z sekcji „Później"** — to warunek, żeby pętla
+> sandboxa miała jak się zacząć (patrz `docs/PROJECT.md`, wnioski 15 i 16).
+- [ ] **G90.1a** Start partii jest **symetryczny**: `create_headless_game` daje
+      osadzie gracza garnizon startowy równy garnizonowi AI (ta sama jednostka i
+      ta sama `occupied`), a nie pustą załogę. Test dowodzi na `seed=73`, że po
+      **jednej** turze (`Session.next_turn`) `player lands` nadal ma
+      `owner_id="player"`, a księstwo gracza ma ≥1 osadę w snapshocie; testy
+      startu/ekonomii/AI, które zakładały pusty garnizon gracza, aktualizowane
+      świadomie (zmiana pozycji startowej, nie reguły). *(standard, ryzyko:
+      dotyka rdzenia i fixture'ów wielu testów; nie zmieniać przy okazji reguł
+      bitwy, obrażeń ani polityki AI)*
+- [ ] **G90.1b** Gracz **widzi**, że przetrwał pierwszą turę: e2e na żywym moście
+      (dwa procesy, jak w K89.1b) klika „Następna tura" na świeżej partii i
+      sprawdza, że kafel `player lands` w `MapView` nadal jest kafelkiem gracza,
+      a status księstwa pokazuje ≥1 osadę; partia zostaje utrwalona. *(standard,
+      wymaga G90.1a; wniosek 13 — kamień domykamy sekwencją gracza, nie samym
+      `pytest`)*
+- [ ] **G90.2a** Przegrana gracza jest **osiągalna**: utrata oddziału na ścieżce
+      rozkazów gracza rozstrzyga los bohatera tak samo jak u AI (reużycie
+      `driver.resolve_hero_survival`, sukcesja przez dziedzica bez zmian), więc
+      gracz bez osad, bez oddziałów i bez następcy dostaje
+      `result.player_result == "defeat"` i `is_over == true` w snapshocie.
+      Zwycięstwo (`victory`) po tej samej regule dla AI zostaje bez zmian; testy
+      K89 (bitwa nierozstrzygnięta) przechodzą bez zmian w kryteriach.
+      *(standard, wymaga G90.1a; ryzyko: reguła rdzenia współdzielona z driverem
+      — jedno źródło, nie kopia w moście)*
+- [ ] **G90.2b** Koniec gry jest **czytelny po polsku**: scena pokazuje wynik
+      partii jako polski tekst (np. „gra trwa" / „zwycięstwo" / „porażka" /
+      „remis") zamiast surowego tokenu `ongoing`, a stan zakończonej gry jest
+      wyróżniony na ekranie. Pozostałe teksty statusu bez zmian; e2e przez dwa
+      procesy mostu. *(simple, wymaga G90.2a)*
+
 ## Dług/refaktor
 - [x] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
       poza kodem produkcyjnym klienta (R82.1a) i wygenerowane artefakty `out/`
@@ -654,10 +731,16 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
   przeglądzie 2026-07-27: nie jest warunkiem „prawdziwych assetów" z briefu, a
   wpuszczone do K87 rozsadziłoby plasterek deklarowany jako „tylko `game/`".
 - ~~Pakiet na Linuksa x86-64: preset eksportu, uruchomienie jedną ikoną~~ —
-  rozplanowane jako K88 i w większości wykonane (bramka eksportu, odporne
-  rozwiązywanie `src/`, `scripts/package.sh`). W kolejce zostają G88.1d–g:
-  czysty `.pck`, ciągłość partii przy samym starcie, dowód „bez terminala" na
-  pakiecie i wpis `.desktop`.
+  **wykonane w całości jako K88** (G88.1a–g).
+- ~~Gra jest przegrana po pierwszym kliknięciu „Następna tura", a przegrana
+  nigdy się nie kończy~~ — **rozplanowane jako K90** (start symetryczny,
+  osiągalny koniec gry, polski tekst wyniku). Pełna diagnoza w sekcji K90.
+- **`muster` zabiera cały garnizon osady** — obserwacja z przeglądu 2026-07-28:
+  po zbiórce osada gracza zostaje pusta, więc każde wyjście w pole odsłania dom.
+  Dziś to podwaja skutki asymetrycznego startu; po K90 warto sprawdzić, czy
+  potrzebny jest osobny plasterek (zbiórka części garnizonu albo garnizon
+  minimalny). **Nie planować przed K90** — najpierw musi istnieć partia, w
+  której ta decyzja w ogóle ma znaczenie.
 - Pełne pole bitwy (teren pustych heksów, wymiary pola) — wymaga rozszerzenia
   `tbbbridge.snapshot.battle_state`; dopiero gdy sam widok bitwy (K85) stoi.
 - Sterowanie pojedynczą jednostką w bitwie — po K85.
