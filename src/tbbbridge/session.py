@@ -202,6 +202,28 @@ def _replace_duchy(game: GameState, replacement: Duchy) -> GameState:
     )
 
 
+def _after_player_world_change(
+    session: Session,
+    player_duchy: Duchy,
+    new_world: WorldMap,
+    *,
+    last_battle: HexBattle | None = None,
+) -> Session:
+    """Apply hero survival, duchy replacement, and world sync after a player order.
+
+    Called from both _apply_order and _apply_battle_order after the world
+    transition is complete.  Resolves hero survival, replaces the player duchy
+    in the game state, syncs the game state to the new world, and derives a new
+    session with the updated state.
+
+    ``last_battle`` defaults to ``None`` so transitions that do not carry an
+    explicit battle reset the field.
+    """
+    resolved = resolve_hero_survival(player_duchy, session.world, new_world)
+    new_game = _replace_duchy(session.game, resolved).sync_from_world(new_world)
+    return session._derive(new_world, new_game, session.calendar, last_battle=last_battle)
+
+
 def _apply_order(session: Session, transition) -> Session:
     """Apply a no-battle player order transition and return a new Session.
 
@@ -221,9 +243,7 @@ def _apply_order(session: Session, transition) -> Session:
     if player_duchy is None:
         return session._derive(session.world, session.game, session.calendar)
     new_world = transition(session.world, player_duchy)
-    resolved = resolve_hero_survival(player_duchy, session.world, new_world)
-    new_game = _replace_duchy(session.game, resolved).sync_from_world(new_world)
-    return session._derive(new_world, new_game, session.calendar)
+    return _after_player_world_change(session, player_duchy, new_world)
 
 
 def _apply_battle_order(
@@ -249,9 +269,7 @@ def _apply_battle_order(
     if player_duchy is None:
         return session._derive(session.world, session.game, session.calendar)
     new_world, battle = transition(session.world, player_duchy, session.rng, session.game)
-    resolved = resolve_hero_survival(player_duchy, session.world, new_world)
-    new_game = _replace_duchy(session.game, resolved).sync_from_world(new_world)
-    return session._derive(new_world, new_game, session.calendar, last_battle=battle)
+    return _after_player_world_change(session, player_duchy, new_world, last_battle=battle)
 
 
 def apply_command(session: Session, command: dict) -> Session:
