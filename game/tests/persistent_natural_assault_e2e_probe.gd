@@ -1,13 +1,17 @@
 extends SceneTree
 
 
-## G89.1b-4 e2e: natural recruit×2 → muster → march → assault on a live bridge
-## process must end with a readable battle outcome (not a failed order), and
-## resume must load the post-assault world without error.
+## G89.1b-4 / G91.1b e2e: natural recruit×2 → muster → march → assault on a
+## live bridge process must end with a readable battle outcome, game-level
+## player victory on screen, map ownership of the captured keep, and resume
+## of that finished state.
 
 const MAIN_SCENE_PATH := "res://scenes/main.tscn"
 const BridgeClient = preload("res://scripts/bridge_client.gd")
+const PartyMapMark = preload("res://tests/party_map_mark_helpers.gd")
 const PREFIX := "PERSISTENT_NATURAL_ASSAULT "
+const PLAYER_LANDS := "player lands"
+const AI_LANDS := "ai lands"
 
 
 func _init() -> void:
@@ -32,8 +36,10 @@ func _run() -> void:
 
 	var phase: String = args[4]
 	var order_results: Array = []
+	var after_start: Dictionary = {}
 	match phase:
 		"play":
+			after_start = _observation(scene_root)
 			for button_name in ["RecruitButton", "RecruitButton", "MusterButton", "MarchButton", "AssaultButton"]:
 				if not _press(scene_root, button_name):
 					return
@@ -47,13 +53,17 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 
-	print(PREFIX, JSON.stringify({
+	var payload: Dictionary = {
 		"phase": phase,
 		"controls": _controls(scene_root),
 		"order_results": order_results,
 		"state_exists": FileAccess.file_exists(args[1]),
 		"session_command": client.session_command(),
-	}))
+		"map_view": _map_view_observation(scene_root),
+	}
+	if phase == "play":
+		payload["after_start"] = after_start
+	print(PREFIX, JSON.stringify(payload))
 	quit(0)
 
 
@@ -92,6 +102,59 @@ func _controls(scene_root: Control) -> Dictionary:
 		"duchy_status": (scene_root.find_child("PlayerDuchyStatusLabel", true, false) as Label).text,
 		"order_status": (scene_root.find_child("LastOrderStatusLabel", true, false) as Label).text,
 	}
+
+
+func _observation(scene_root: Control) -> Dictionary:
+	## Same top-level shape as the final payload slice: controls + map_view.
+	return {
+		"controls": _controls(scene_root),
+		"map_view": _map_view_observation(scene_root),
+	}
+
+
+func _map_view_observation(scene_root: Control) -> Dictionary:
+	var map_view: Node = scene_root.find_child("MapView", true, false)
+	var tile_visuals: Dictionary = {}
+	if map_view != null:
+		for region_name: String in [PLAYER_LANDS, AI_LANDS]:
+			var visual: String = _tile_visual(map_view, region_name)
+			if not visual.is_empty():
+				tile_visuals[region_name] = visual
+	return {
+		"map_view_found": map_view != null,
+		"tile_visuals": tile_visuals,
+	}
+
+
+func _tile_visual(map_view: Node, region_name: String) -> String:
+	var label: Label = PartyMapMark.find_label_with_text(map_view, region_name)
+	if label == null:
+		return ""
+	var tile: Control = PartyMapMark.tile_control(label, map_view)
+	return _visual_key(tile)
+
+
+func _visual_key(tile: Control) -> String:
+	## Same ownership observation as persistent_next_turn_e2e_probe / map_view_probe.
+	if tile is ColorRect:
+		return _color_key((tile as ColorRect).color)
+	if tile is TextureRect:
+		var root_mod: Color = (tile as CanvasItem).modulate
+		if root_mod != Color(1, 1, 1, 1):
+			return _color_key(root_mod)
+	for child: Node in tile.get_children():
+		var child_name: String = str(child.name)
+		if child_name == "PlayerPartyMarker" or child_name == "Settlement":
+			continue
+		if child is ColorRect:
+			return _color_key((child as ColorRect).color)
+		if child is TextureRect:
+			return _color_key((child as CanvasItem).modulate)
+	return _color_key(tile.modulate)
+
+
+func _color_key(color: Color) -> String:
+	return "%.4f,%.4f,%.4f,%.4f" % [color.r, color.g, color.b, color.a]
 
 
 func _fail(message: String) -> void:
