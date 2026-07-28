@@ -397,6 +397,119 @@ def test_command_result_battle_order_with_last_battle_returns_kind_battle_with_o
     json.dumps(result)
 
 
+def _build_stalemate_battle_session(*, order: str) -> Session:
+    """Sesja, w której ``assault``/``engage`` kończy bitwę bez rozstrzygnięcia.
+
+    Jednostki z ``equipment=0`` nie zadają obrażeń, więc ``auto_resolve``
+    wyczerpuje rundy przy ``result() is None`` i nikt nie pada.
+    """
+    from tbb.duchy import Duchy
+    from tbb.party import Party
+    from tbb.settlement import Settlement
+    from tbb.unit import Unit
+    from tbb.world import Region, WorldMap
+    from tbb.turn import Calendar
+    from tbb.rng import Rng
+    from tbb.game import GameState
+
+    start, near = Region("Start"), Region("Near")
+    party = Party(Unit(equipment=0), owner_id="north")
+    if order == "assault":
+        keep = Settlement(
+            "Near Keep",
+            population=1,
+            garrison=(Unit(equipment=0),),
+            owner_id="south",
+        )
+        world = WorldMap(
+            [start, near],
+            [(start, near)],
+            settlements={near: keep},
+            parties={start: party},
+        )
+        game = GameState(
+            (
+                Duchy("north", party.hero, morale=10, parties=(party,)),
+                Duchy("south", Unit(), morale=-5, settlements=(keep,)),
+            )
+        )
+    elif order == "engage":
+        enemy = Party(Unit(equipment=0), owner_id="south")
+        world = WorldMap(
+            [start, near],
+            [(start, near)],
+            parties={start: party, near: enemy},
+        )
+        game = GameState(
+            (
+                Duchy("north", party.hero, morale=10, parties=(party,)),
+                Duchy("south", enemy.hero, morale=-5, parties=(enemy,)),
+            )
+        )
+    else:
+        raise ValueError(f"unsupported order for stalemate fixture: {order!r}")
+    return Session(
+        world=world,
+        game=game,
+        calendar=Calendar(year=2, month=3),
+        rng=Rng(2),
+        player_duchy_id="north",
+        seed=2,
+    )
+
+
+def test_command_result_unresolved_battle_is_success_with_distinct_outcome():
+    """G89.1b-2: nierozstrzygnięta bitwa to udany wynik rozkazu, nie wyjątek.
+
+    Defekt: ``command_result`` buduje podsumowanie przez ``last_battle.report()``,
+    a ``report()`` rzuca ``ValueError("cannot report an unfinished battle")`` gdy
+    ``result() is None``. Most albo wywala się przy składaniu odpowiedzi, albo
+    (gdyby wyjątek złapać wyżej) oddaje błąd zamiast ``kind: "battle"`` z
+    niepustym polskim ``outcome`` innym niż zwycięstwo/porażka/remis oraz
+    stratami z rzeczywistej bitwy (tu zera — nikt nie padł).
+
+    Istniejące testy G66.2b pokrywają tylko bitwę rozstrzygniętą albo brak
+    ``last_battle``; ścieżki patowej nie widać.
+    """
+    from tbb.battle import BattleSide
+
+    resolved_outcomes = frozenset({"zwycięstwo", "porażka", "remis"})
+
+    for order in ("assault", "engage"):
+        s = _build_stalemate_battle_session(order=order)
+        command = {"type": "order", "order": order}
+        after = apply_command(s, command)
+
+        assert after.last_battle is not None
+        assert after.last_battle.result() is None
+        expected_attacker = len(after.last_battle.side_fallen(BattleSide.ATTACKER))
+        expected_defender = len(after.last_battle.side_fallen(BattleSide.DEFENDER))
+        assert expected_attacker == 0
+        assert expected_defender == 0
+
+        result = command_result(s, after, command)
+
+        assert result["kind"] == "battle"
+        assert result["order"] == order
+        assert "changed" not in result
+        assert isinstance(result["outcome"], str)
+        assert result["outcome"]
+        assert result["outcome"] not in resolved_outcomes
+        assert result["attacker_losses"] == expected_attacker
+        assert result["defender_losses"] == expected_defender
+        json.dumps(result)
+
+        # Protokół: sukces ze snapshotem, nie {"ok": false, "error": ...}.
+        next_session, resp = handle_command_line(s, json.dumps(command))
+        assert next_session.last_battle is not None
+        assert next_session.last_battle.result() is None
+        assert resp["ok"] is True
+        assert "error" not in resp
+        assert resp["snapshot"] == next_session.snapshot()
+        assert resp["result"] == result
+        json.dumps(resp)
+
+
 def test_command_result_battle_order_without_last_battle_returns_kind_order_changed():
     """G66.2b kryt-2: gdy rozkaz bojowy (``assault``) nie rozegrał bitwy
     (``after.last_battle is None`` — guard albo brak sąsiedniego celu) →

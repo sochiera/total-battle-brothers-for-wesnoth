@@ -2,6 +2,7 @@
 
 import json
 
+from tbb.battle import BattleSide
 from tbbbridge.persist import read_session, save_session
 from tbbbridge.session import Session, apply_command, new_session
 
@@ -49,14 +50,19 @@ def command_result(before: Session, after: Session, command: dict) -> dict:
     if command_type == "order":
         order_name = command["order"]
         if order_name in _BATTLE_ORDERS and after.last_battle is not None:
-            report = after.last_battle.report()
-            outcome = _BATTLE_OUTCOME.get(report.result.value)
+            battle = after.last_battle
+            result = battle.result()
+            outcome = (
+                _BATTLE_OUTCOME[result.value]
+                if result is not None
+                else "nierozstrzygnięta"
+            )
             return {
                 "kind": "battle",
                 "order": order_name,
                 "outcome": outcome,
-                "attacker_losses": len(report.attacker.fallen),
-                "defender_losses": len(report.defender.fallen),
+                "attacker_losses": len(battle.side_fallen(BattleSide.ATTACKER)),
+                "defender_losses": len(battle.side_fallen(BattleSide.DEFENDER)),
             }
         return {
             "kind": "order",
