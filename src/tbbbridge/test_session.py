@@ -1319,3 +1319,101 @@ def test_apply_command_order_engage_fallback_and_guards_and_no_op_no_rng():
     assert s_iso.snapshot() == iso_before
     # RNG proxy nie rzuciło — dowód braku konsumpcji na no-op path.
     # (gdyby kod pobrał liczbę, _ForbiddenRng.randint/chance rzuciłby AssertionError)
+
+
+def test_natural_seed73_assault_resolves_with_world_matching_battle_result():
+    """G89.2a-2: natural seed-73 assault ends with a real result, not round-limit None.
+
+    Realistic defect: G89.2a-1 unit-level swap tests on synthetic three-hex
+    layouts stay green while the live recruit×2 → muster → march → assault path
+    still exhausts auto_resolve with ``result() is None``. Unresolved remains
+    legal (K89.1) and keeps the party on border — so without this gate the
+    repro looks like "nothing happened" again even though swap unit tests pass.
+
+    Public contract: ``apply_command`` assault on seed 73 (which drives
+    ``resolve_settlement_battle_recorded``) yields a decided ``BattleResult``
+    and a world consistent with that decision; two runs match.
+    """
+    from tbb.battle import BattleResult
+    from tbb.world import Region
+    from tbbbridge.protocol import command_result
+
+    resolved = frozenset(BattleResult)
+    border = Region("border")
+    player_lands = Region("player lands")
+    ai_lands = Region("ai lands")
+
+    outcomes = []
+    for _ in range(2):
+        before_assault = new_session(seed=73, player_duchy_id="player")
+        for order in ("recruit", "recruit", "muster", "march"):
+            before_assault = apply_command(
+                before_assault, {"type": "order", "order": order}
+            )
+        assert before_assault.world.party_at(border) is not None
+
+        after = apply_command(
+            before_assault, {"type": "order", "order": "assault"}
+        )
+        battle = after.last_battle
+        assert battle is not None
+        result = battle.result()
+        # Kryt-1: real resolution (win or draw), not stalemate after max rounds.
+        assert result is not None, (
+            "natural seed-73 assault must resolve; got result() is None "
+            "(round-limit stalemate — G89.2a-1 swap not closing the repro)"
+        )
+        assert result in resolved
+
+        # Kryt-2: world matches the battle result (not the unresolved shape).
+        player = next(d for d in after.game.duchies if d.duchy_id == "player")
+        ai_keep = after.world.settlement_at(ai_lands)
+        player_keep = after.world.settlement_at(player_lands)
+        if result is BattleResult.DEFENDER_WIN:
+            assert after.world.party_at(border) is None
+            assert after.world.party_at(ai_lands) is None
+            assert len(player.parties) == 0
+            assert player_keep.owner_id == "player"
+            assert ai_keep.owner_id == "ai"
+            assert len(ai_keep.garrison) >= 1
+        elif result is BattleResult.ATTACKER_WIN:
+            # Victor occupies the keep region; duchy parties stay non-empty.
+            winner = after.world.party_at(ai_lands)
+            assert winner is not None
+            assert winner.owner_id == "player"
+            assert after.world.party_at(border) is None
+            assert len(player.parties) >= 1
+            assert player_keep.owner_id == "player"
+            assert ai_keep.owner_id == "player"
+        else:
+            # DRAW wipes the attacking party; settlement stays AI-owned.
+            assert result is BattleResult.DRAW
+            assert after.world.party_at(border) is None
+            assert after.world.party_at(ai_lands) is None
+            assert len(player.parties) == 0
+            assert player_keep.owner_id == "player"
+            assert ai_keep.owner_id == "ai"
+
+        # Bridge-facing summary must also report a decided outcome.
+        summary = command_result(
+            before_assault, after, {"type": "order", "order": "assault"}
+        )
+        assert summary["kind"] == "battle"
+        assert summary["outcome"] in ("zwycięstwo", "porażka", "remis")
+        assert summary["outcome"] != "nierozstrzygnięta"
+
+        outcomes.append(
+            (
+                result,
+                summary,
+                after.world.parties,
+                after.world.settlements,
+                tuple(
+                    (d.duchy_id, len(d.settlements), len(d.parties))
+                    for d in after.game.duchies
+                ),
+            )
+        )
+
+    # Kryt-3: same seed → same battle result and same world shape.
+    assert outcomes[0] == outcomes[1]
