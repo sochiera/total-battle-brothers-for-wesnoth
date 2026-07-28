@@ -1384,7 +1384,124 @@ def test_apply_settlement_battle_result_updates_world(
     assert resolved is not world
 
 
-def test_apply_settlement_attacker_win_rejects_occupied_destination():
+def test_apply_settlement_attacker_win_clears_enemy_party_at_destination():
+    """Attacker win on a region with a hostile party is a legal conquest.
+
+    Defect: apply_settlement_battle_result raises
+    ValueError("destination is already occupied by a party") whenever the
+    destination hosts any party, so AI assaults that beat a defended
+    settlement hard-lock next_turn. Hostile occupants must leave the map;
+    the attacker enters with its (battle=None: full) roster; settlement
+    ownership flips. Same-owner occupancy stays illegal (next test).
+    """
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(Unit(), owner_id="north")
+    defender_party = Party(Unit(), owner_id="third")
+    settlement = Settlement("Oakrest", 2, owner_id="south")
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        settlements={vale: settlement},
+        parties={camp: attacker, vale: defender_party},
+    )
+
+    resolved = world.apply_settlement_battle_result(
+        camp, vale, BattleResult.ATTACKER_WIN
+    )
+
+    assert resolved.party_at(camp) is None
+    assert resolved.party_at(vale) is attacker
+    assert resolved.settlement_at(vale).owner_id == "north"
+    assert world.party_at(vale) is defender_party
+    assert world.settlement_at(vale).owner_id == "south"
+    assert resolved is not world
+
+
+def test_apply_settlement_attacker_win_clears_enemy_party_with_battle_survivors():
+    """ATTACKER_WIN with a fighting home party uses garrison-only survivors.
+
+    Defect (after occupied-destination unlock): apply_settlement_battle_result
+    pops the hostile party then still calls Settlement.absorb_defenders on
+    *all* DEFENDER side_survivors. Party members that fought with the garrison
+    make len(survivors) > len(garrison) → ValueError("cannot have more
+    survivors than defenders"), so Session.next_turn still hard-locks on seeds
+    where AI wins a defended assault (e.g. 73, 7, 11). Partition must follow
+    the same deployment slot window as non-win paths; party survivors vanish
+    with the party; only garrison-origin units rebuild the conquered garrison.
+    """
+    camp = Region("Camp")
+    vale = Region("Vale")
+    attacker = Party(
+        Unit(experience=6),
+        [Unit(training=2), Unit(equipment=4)],
+        owner_id="north",
+    )
+    home = Party(
+        Unit(experience=5),
+        [Unit(equipment=3)],
+        owner_id="south",
+    )
+    garrison = (Unit(training=4), Unit(equipment=2))
+    settlement = Settlement(
+        "Oakrest",
+        population=5,
+        occupied=2,
+        garrison=garrison,
+        owner_id="south",
+    )
+    world = WorldMap(
+        [camp, vale],
+        [(camp, vale)],
+        settlements={vale: settlement},
+        parties={camp: attacker, vale: home},
+    )
+    battle = world.start_settlement_battle(camp, vale)
+    # Kill only a party subordinate so both garrison units and the home hero
+    # survive — total DEFENDER survivors (3) exceeds garrison size (2), which
+    # is the realistic path that raises absorb_defenders without a split.
+    fallen = {attacker.units[1], home.units[0]}
+    for position in list(battle.units):
+        unit = battle.unit_at(position)
+        if unit in fallen:
+            battle = battle.damage(position, unit.hp)
+            battle = battle.resolve_defeat(position, Rng(1))
+
+    # Partition by observable origin (same as non-win path), not private
+    # deployment-slot arithmetic from _absorb_settlement_defenders.
+    defender_survivors = battle.side_survivors(BattleSide.DEFENDER)
+    garrison_survivors = tuple(
+        unit for unit in defender_survivors if unit in garrison
+    )
+    party_survivors = tuple(
+        unit
+        for unit in defender_survivors
+        if unit in (home.hero, *home.units)
+    )
+    assert garrison_survivors == garrison
+    assert party_survivors == (home.hero,)
+    assert len(defender_survivors) > len(garrison)
+
+    resolved = world.apply_settlement_battle_result(
+        camp, vale, BattleResult.ATTACKER_WIN, battle=battle
+    )
+
+    conquered = resolved.settlement_at(vale)
+    assert conquered.owner_id == "north"
+    assert conquered.garrison == garrison_survivors
+    assert home.hero not in conquered.garrison
+    assert all(
+        unit not in conquered.garrison for unit in (home.hero, *home.units)
+    )
+    assert resolved.party_at(vale) == Party.reconstruct(
+        attacker, battle.side_survivors(BattleSide.ATTACKER)
+    )
+    assert resolved.party_at(camp) is None
+    assert world.party_at(vale) is home
+    assert world.settlement_at(vale) is settlement
+
+
+def test_apply_settlement_attacker_win_rejects_friendly_occupied_destination():
     camp = Region("Camp")
     vale = Region("Vale")
     world = WorldMap(
@@ -1393,11 +1510,11 @@ def test_apply_settlement_attacker_win_rejects_occupied_destination():
         settlements={vale: Settlement("Oakrest", 2, owner_id="south")},
         parties={
             camp: Party(Unit(), owner_id="north"),
-            vale: Party(Unit(), owner_id="third"),
+            vale: Party(Unit(), owner_id="north"),
         },
     )
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="destination is already occupied"):
         world.apply_settlement_battle_result(
             camp, vale, BattleResult.ATTACKER_WIN
         )

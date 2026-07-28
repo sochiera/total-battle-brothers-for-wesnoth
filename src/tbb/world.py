@@ -363,6 +363,8 @@ class WorldMap:
         destination: Region,
         attacker: Party,
         battle: HexBattle,
+        *,
+        keep_home_party_survivors: bool = True,
     ) -> Settlement:
         """Split defender survivors between garrison and home party by deployment slot.
 
@@ -372,6 +374,9 @@ class WorldMap:
         change the surviving units' slot ids, so a slot-id boundary tells
         garrison-origin survivors from party-origin ones even when Unit value
         equality or post-damage identity (e.g. stunning) can't.
+
+        When ``keep_home_party_survivors`` is false, home-party survivors are
+        discarded after the garrison survivors are absorbed.
         """
         home_party = parties.get(destination)
         fought = home_party is not None and home_party.owner_id != attacker.owner_id
@@ -397,7 +402,7 @@ class WorldMap:
             raise ValueError(
                 "defender survivor lost outside deployment slot window"
             )
-        if party_survivors:
+        if party_survivors and keep_home_party_survivors:
             parties[destination] = Party.reconstruct(home_party, party_survivors)
         else:
             del parties[destination]
@@ -423,14 +428,17 @@ class WorldMap:
             raise ValueError("destination region has no settlement")
         if result is not None and not isinstance(result, BattleResult):
             raise ValueError("unknown battle result")
+        attacker = self.parties[source]
+        destination_party = self.parties.get(destination)
         if (
             result is BattleResult.ATTACKER_WIN
-            and destination in self.parties
+            and destination_party is not None
+            and destination_party.owner_id == attacker.owner_id
         ):
             raise ValueError("destination is already occupied by a party")
 
         parties = dict(self.parties)
-        attacker = parties.pop(source)
+        parties.pop(source)
         settlement = self.settlements[destination]
         if result is None:
             parties[source] = (
@@ -445,6 +453,20 @@ class WorldMap:
                     settlement, parties, destination, attacker, battle
                 )
         elif result is BattleResult.ATTACKER_WIN:
+            if battle is not None:
+                if settlement.occupied < len(settlement.garrison):
+                    settlement = replace(
+                        settlement,
+                        occupied=len(settlement.garrison),
+                    )
+                settlement = self._absorb_settlement_defenders(
+                    settlement,
+                    parties,
+                    destination,
+                    attacker,
+                    battle,
+                    keep_home_party_survivors=False,
+                )
             parties[destination] = (
                 attacker
                 if battle is None
@@ -452,15 +474,6 @@ class WorldMap:
                     attacker, battle.side_survivors(BattleSide.ATTACKER)
                 )
             )
-            if battle is not None:
-                if settlement.occupied < len(settlement.garrison):
-                    settlement = replace(
-                        settlement,
-                        occupied=len(settlement.garrison),
-                    )
-                settlement = settlement.absorb_defenders(
-                    battle.side_survivors(BattleSide.DEFENDER)
-                )
             settlement = replace(settlement, owner_id=attacker.owner_id)
         elif battle is not None:
             settlement = self._absorb_settlement_defenders(
