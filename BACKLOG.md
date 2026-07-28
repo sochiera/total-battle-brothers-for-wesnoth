@@ -583,7 +583,7 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > Kolejność jest celowa: **najpierw domykamy kontrakt wyniku** (żaden szturm nie
 > może dotrzeć do gracza jako błąd), dopiero potem ruszamy reguły ruchu. Odwrotna
 > kolejność zostawia otwartą klasę „inny pat = znowu wyjątek".
-- [ ] **G89.1a** Nierozstrzygnięta bitwa jest **legalnym wynikiem rdzenia**, nie
+- [x] **G89.1a** Nierozstrzygnięta bitwa jest **legalnym wynikiem rdzenia**, nie
       wyjątkiem: `resolve_settlement_battle*` i `resolve_party_battle*` na bitwie
       bez rozstrzygnięcia (`result() is None` po wyczerpaniu rund) zwracają świat
       w spójnym stanie — atakujący **zostaje w regionie źródłowym** ze
@@ -595,7 +595,7 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
       *naprawdę* nieznanego wyniku (obiekt spoza `BattleResult`) zostaje błędem.
       *(standard, ryzyko: dotyka rdzenia — jedynego źródła reguł; nie zmieniać
       przy okazji reguł ruchu ani obrażeń, to osobny plasterek G89.2a)*
-- [ ] **G89.1b** Gracz widzi nierozstrzygnięty szturm jako **czytelny skutek, nie
+- [x] **G89.1b** Gracz widzi nierozstrzygnięty szturm jako **czytelny skutek, nie
       błąd**: most zwraca dla takiego szturmu `ok:true` z wynikiem bitwy
       odróżnialnym od zwycięstwa i porażki (dodatkowa wartość `outcome`), a
       scena Godota pokazuje polski status w rodzaju „szturm nierozstrzygnięty"
@@ -603,10 +603,21 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
       odtwarza sekwencję z repro (`recruit`×2 → `muster` → `march` → `assault`,
       ziarno 73) i dowodzi, że partia zostaje utrwalona. Pozostałe teksty statusu
       bez zmian. *(standard, wymaga G89.1a)*
-> **Do rozplanowania po K89.1 (nie zaczynaj bez powyższych):** G89.2a — jednostka
-> potrafi ominąć własnego ogłuszonego albo ogłuszony przestaje blokować pole,
-> tak żeby sekwencja z repro kończyła się **realnym rozstrzygnięciem**, a nie
-> tylko legalnym patem. To zmiana reguł rdzenia i osobne ryzyko balansowe.
+> **K89.1 — UKOŃCZONE** *(G89.1a: task-499…500; G89.1b: task-501…504)*: rdzeń
+> traktuje bitwę bez rozstrzygnięcia jako legalny wynik (szturm i starcie
+> oddziałów), most zwraca ją jako wynik z własnym `outcome`, scena pokazuje
+> polski status „szturm nierozstrzygnięty" ze stratami, a e2e na żywym moście
+> dowodzi, że naturalna sekwencja gracza kończy się widocznym skutkiem.
+>
+> **W kolejce planisty (nie planować ponownie):** G89.2a rozcięte na trzy
+> plasterki — task-505 (rdzeń: jednostka przekracza własnego ogłuszonego
+> sojusznika, gdy to jedyne dojście do wroga), task-506 (sekwencja z repro na
+> ziarnie 73 kończy się realnym rozstrzygnięciem, świat spójny z wynikiem),
+> task-507 (e2e na żywym moście: gracz widzi rozstrzygniętą bitwę, partia
+> utrwalona). **Zweryfikowane prototypem 2026-07-28** na kopii repo poza gitem:
+> zamiana miejsc z ogłuszonym sojusznikiem rusza pat i daje na ziarnie 73
+> zwycięstwo obrońcy, a cały pythonowy zestaw testów (bez sond Godota) zostaje
+> zielony. Po task-507 K89 jest domknięty.
 
 ## Dług/refaktor
 - [x] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
