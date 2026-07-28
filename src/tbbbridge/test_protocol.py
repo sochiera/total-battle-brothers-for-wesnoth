@@ -266,6 +266,96 @@ def test_command_result_non_battle_order_changed_flag_matches_world_identity():
     json.dumps(result_unchanged)
 
 
+def _session_with_game_over() -> Session:
+    """Sesja z ``game.is_over`` — ten sam wzorzec co w test_session (jeden duchy)."""
+    from tbb.game import GameState
+
+    base = new_session(73, "player")
+    ended_game = GameState([base.game.duchies[0]])
+    assert ended_game.is_over is True
+    return Session(
+        world=base.world,
+        game=ended_game,
+        calendar=base.calendar,
+        rng=base.rng,
+        player_duchy_id=base.player_duchy_id,
+        seed=base.seed,
+    )
+
+
+def test_handle_command_line_order_and_next_turn_when_game_over_are_ok_noop_distinct_from_ineffective_order():
+    """G91.2a: po ``is_over`` rozkaz i next_turn zostają no-opem (ok:true,
+    stan/kalendarz/ziarno nienaruszone), ale ``result`` jest jednoznacznie
+    odróżnialny od legalnego rozkazu bez skutku w trwającej partii.
+
+    Realistyczny defekt: ``command_result`` patrzy tylko na tożsamość world /
+    datę kalendarza, więc zakończona partia emituje ten sam kształt co no-op
+    (``changed:false`` / ``kind:turn`` z tą samą datą) — klient nie ma sygnału
+    w ``result`` i pokazuje „bez zmian". Rozróżnienie jest addytywne:
+    ``result["game_over"] is True`` wyłącznie gdy partia jest zakończona;
+    odpowiedź trwającej partii bez tego klucza (albo z wartością fałszywą)
+    pozostaje bez zmian kształtu dla dotychczasowych asercji.
+    """
+    # --- Kontrola: legalny no-op w trwającej partii (brak player_duchy) ---
+    ongoing_noop = new_session(73, player_duchy_id=None)
+    before_ongoing = copy.deepcopy(ongoing_noop.snapshot())
+    _, resp_ongoing = handle_command_line(
+        ongoing_noop, json.dumps({"type": "order", "order": "recruit"})
+    )
+    assert resp_ongoing["ok"] is True
+    assert resp_ongoing["result"] == {
+        "kind": "order",
+        "order": "recruit",
+        "changed": False,
+    }
+    assert resp_ongoing["result"].get("game_over") is not True
+    assert ongoing_noop.snapshot() == before_ongoing
+
+    # --- Zakończona partia: rozkaz ---
+    ended = _session_with_game_over()
+    before_ended = copy.deepcopy(ended.snapshot())
+    after_order, resp_order = handle_command_line(
+        ended, json.dumps({"type": "order", "order": "recruit"})
+    )
+    assert resp_order["ok"] is True
+    assert "error" not in resp_order
+    assert after_order.world is ended.world
+    assert after_order.game is ended.game
+    assert after_order.calendar is ended.calendar
+    assert after_order.rng is ended.rng
+    assert after_order.seed == ended.seed
+    assert ended.snapshot() == before_ended
+    assert after_order.snapshot() == before_ended
+    assert after_order.snapshot()["result"]["is_over"] is True
+    assert resp_order["result"]["kind"] == "order"
+    assert resp_order["result"]["order"] == "recruit"
+    assert resp_order["result"]["changed"] is False
+    assert resp_order["result"]["game_over"] is True
+    assert resp_order["result"] != resp_ongoing["result"]
+    json.dumps(resp_order)
+
+    # --- Zakończona partia: next_turn (bez porównywania dat po stronie klienta) ---
+    after_turn, resp_turn = handle_command_line(ended, '{"type": "next_turn"}')
+    assert resp_turn["ok"] is True
+    assert "error" not in resp_turn
+    assert after_turn.world is ended.world
+    assert after_turn.game is ended.game
+    assert after_turn.calendar is ended.calendar
+    assert after_turn.rng is ended.rng
+    assert ended.snapshot() == before_ended
+    assert after_turn.snapshot()["calendar"] == before_ended["calendar"]
+    assert resp_turn["result"]["kind"] == "turn"
+    assert resp_turn["result"]["date"] == before_ended["calendar"]
+    assert resp_turn["result"]["game_over"] is True
+    # Trwająca tura nie niesie game_over:
+    ongoing = new_session(73, "player")
+    after_live = apply_command(ongoing, {"type": "next_turn"})
+    live_turn = command_result(ongoing, after_live, {"type": "next_turn"})
+    assert live_turn.get("game_over") is not True
+    assert resp_turn["result"] != live_turn
+    json.dumps(resp_turn)
+
+
 def test_command_result_turn_and_new_game_kinds_match_after_calendar_and_are_json_serializable():
     """G66.2a kryt-1 (gałęzie turn/new_game): ``command_result(before, after,
     {"type": "next_turn"})`` zwraca ``{"kind": "turn", "date": {"year":

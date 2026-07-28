@@ -30,10 +30,13 @@ def command_result(before: Session, after: Session, command: dict) -> dict:
     command_type = command.get("type")
 
     if command_type == "next_turn":
-        return {
+        result = {
             "kind": "turn",
             "date": {"year": after.calendar.year, "month": after.calendar.month},
         }
+        if after.game.is_over:
+            result["game_over"] = True
+        return result
 
     if command_type == "new_game":
         return {"kind": "new_game"}
@@ -64,11 +67,14 @@ def command_result(before: Session, after: Session, command: dict) -> dict:
                 "attacker_losses": len(battle.side_fallen(BattleSide.ATTACKER)),
                 "defender_losses": len(battle.side_fallen(BattleSide.DEFENDER)),
             }
-        return {
+        result = {
             "kind": "order",
             "order": order_name,
             "changed": after.world is not before.world,
         }
+        if after.game.is_over:
+            result["game_over"] = True
+        return result
 
     return {}
 
