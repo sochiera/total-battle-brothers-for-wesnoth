@@ -478,7 +478,7 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > Gdyby G87.1c-2 poszło na tych plikach, pole bitwy pokazałoby dwa budynki jako
 > obie walczące strony. Dlatego **najpierw wchodzą prawdziwe figurki (G87.1c-1b),
 > dopiero potem widok (G87.1c-2)**.
-- [ ] **G87.1c-1b** Prawdziwe sylwetki jednostek w repo: `game/assets/side_attacker.png`
+- [x] **G87.1c-1b** Prawdziwe sylwetki jednostek w repo: `game/assets/side_attacker.png`
       i `game/assets/side_defender.png` niosą **figurę ludzką**, nie budynek, a
       `game/assets/CREDITS.md` wskazuje dla każdego z nich **konkretną ścieżkę
       pliku w paczce źródłowej** (nie samą nazwę paczki) wraz z licencją.
@@ -493,20 +493,21 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
       się bajtowo**. Człowiek ogląda oba obrazki przy review — to jedyny sposób
       sprawdzenia, że na obrazku jest postać. *(standard, ryzyko: pobranie paczki
       spoza repo, drugi krok importu Godota, styl niespójny z Hexagon Packiem —
-      świadomie zaakceptowany, bo Hexagon Pack nie ma postaci)*
-- [ ] **G87.1c-2** `BattleView` rysuje stronę **sylwetką jednostki** zamiast
+      świadomie zaakceptowany, bo Hexagon Pack nie ma postaci; commit 1101cc1)*
+- [x] **G87.1c-2** `BattleView` rysuje stronę **sylwetką jednostki** zamiast
       koloru: `side` (`attacker`/`defender`) wybiera obrazek z `game/assets/`
       (`side_attacker.png` / `side_defender.png`) nałożony na kafel terenu,
       nieznana strona → kafel bez sylwetki i bez błędu, rozróżnialność stron
       i rozmieszczenie z K85 zachowane. **Wymaga wcześniejszego G87.1c-1b** —
       przed nim te pliki są budynkami i zadanie dałoby wynik wprost sprzeczny
-      z kryterium „da się grać patrząc". *(standard, task-488 — do
-      przeplanowania po G87.1c-1b)*
-> **Nota po G87.1b/1c-1:** rozróżnialność właściciela/strony przetrwała podmianę
-> nośnika dzięki `modulate` na warstwie tekstury — kryteria K84/K85 przeszły bez
-> zmian. W G87.1c-2 stosuj ten sam wzorzec **z zastrzeżeniem**: figurki z RTS
-> Packa są już kolorowe per strona, więc tint na nich może zabrać czytelność —
-> najpierw sprawdź, czy dwa różne pliki nie wystarczą (patrz wniosek 12).
+      z kryterium „da się grać patrząc". *(standard, commit 3df63d6)*
+- [x] **R87.1 (dług techniczny)** Jedno źródło warstwy tekstury kafla w obu
+      widokach + testy regresji. *(commit 6d10839)*
+> **Kamień 87 — UKOŃCZONY.** Oba widoki rysują prawdziwe assety CC0: kafle mapy i
+> terenu (Kenney Hexagon Pack), sylwetki stron bitwy (Kenney RTS Pack: Medieval),
+> atrybucja per plik w `game/assets/CREDITS.md`. Rozróżnialność stron wzięła się
+> z **dwóch różnych plików**, nie z `modulate` — tak jak przewidywał wniosek 12.
+> Podmiana nośnika nie ruszyła geometrii: kryteria K84/K85 przeszły bez zmian.
 
 ## Kamień milowy 88 — natywny pakiet na Linuksa (domknięcie kryterium „gotowe") — PRIORYTET
 > Po G87.1c-2 zamyka się K87 i **znika ostatni brak treściowy**: rdzeń, most,
@@ -534,19 +535,78 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > wskazuje wnętrze PCK, więc **domyślna komenda mostu przestaje działać** —
 > „start bez terminala" (K82) trzeba udowodnić od nowa na wyeksportowanym
 > binarium, a `src/` musi trafić obok niego.
-- [ ] **G88.1a** Bramka toolchainu eksportu: szablony eksportu 4.2.2 dostępne
+- [x] **G88.1a** Bramka toolchainu eksportu: szablony eksportu 4.2.2 dostępne
       lokalnie (poza gitem), `game/export_presets.cfg` w repo z presetem
       „Linux/X11" x86-64, a `godot --headless --export-release` produkuje
       **wykonywalny plik** (istnieje, ma bit `+x`, niezerowy rozmiar) razem z
       `.pck`; artefakty eksportu poza gitem. Test dowodzi eksportu, nie działania
-      gry. *(complex, ryzyko: pobranie/rozpakowanie szablonów ~700 MB, brak
-      edytora GUI do wygenerowania presetu, ścieżka wyjściowa poza repo)*
-- [ ] **G88.1b** Katalog źródeł mostu rozwiązywany odpornie na eksport: czysta
+      gry. *(complex, commit 2effacd — `game/export_presets.cfg` w repo,
+      szablony 4.2.2 doinstalowane lokalnie poza gitem)*
+- [x] **G88.1b** Katalog źródeł mostu rozwiązywany odpornie na eksport: czysta
       funkcja w `BridgeConfig` wybiera katalog `src/` niezależnie od `res://`
       (kandydat obok wykonywalnego pliku gry, potem drzewo źródeł), pierwszy
       istniejący wygrywa, brak kandydata → ta sama czytelna ścieżka błędu co przy
       braku mostu. Domyślna komenda w drzewie źródeł zachowuje się jak dziś
-      (testy K82 przechodzą bez zmian). *(standard)*
+      (testy K82 przechodzą bez zmian). *(standard, commit 96c3b5c)*
+- [x] **G88.1c** Pakiet dystrybucyjny: `scripts/package.sh <cel>` buduje katalog
+      z binarium, `.pck` i `src/` mostu obok binarium; niekompletny build →
+      niezerowy kod i brak „udawanego" pakietu. *(standard, commit 398cb2b)*
+> **W kolejce planisty (nie planować ponownie):** G88.1d — pakiet bez sond
+> testowych w `.pck` *(task-495)*; G88.1e — sam start gry utrwala partię, czyli
+> ciągłość między uruchomieniami *(task-496)*; G88.1f — wyeksportowana gra
+> startuje partię bez terminala, e2e **na pakiecie** *(task-497)*; G88.1g —
+> uruchomienie jednym kliknięciem, wpis `.desktop` w pakiecie *(task-498)*.
+> Po G88.1g formalne kryterium „natywna aplikacja bez terminala" jest odhaczone.
+
+## Kamień milowy 89 — bitwa zawsze daje wynik, nigdy błędu rozkazu — PRIORYTET
+> **Defekt sięgający gracza, potwierdzony ponownym uruchomieniem kodu przy
+> przeglądzie 2026-07-28** (`serve 73`, `recruit`×2 → `muster` → `march` →
+> `assault`): most odpowiada `{"ok": false, "error": "unknown battle result"}`,
+> a klient pokazuje „rozkaz nie powiódł się". Kryterium sukcesu z briefu żąda,
+> żeby gracz mógł **rozegrać bitwę** — dziś najbardziej naturalna sekwencja
+> (dorekrutuj, zbierz, ruszaj, szturmuj) tę możliwość odbiera. Bez tego pakiet z
+> K88 dowiezie grywalną-tylko-częściowo grę: wszystko widać, ale szturm w
+> typowym składzie wywala rozkaz.
+>
+> **Mechanizm ustalony (nie zgadywany):** `HexBattle.auto_resolve` kończy 1000
+> rund z `result() is None`, bo obie strony wciąż mają czynne jednostki, lecz
+> atakujący **nie ma jak dojść** — jego jedyne pole skracające dystans zajmuje
+> własny ogłuszony sojusznik (`hp=0`, `stunned=True`, zostaje na planszy), a
+> `reachable()` pomija zajęte heksy. `WorldMap.resolve_settlement_battle_recorded`
+> (`src/tbb/world.py:413-420`) podaje wtedy `None` do
+> `apply_settlement_battle_result`, które na nie-`BattleResult` rzuca
+> `ValueError("unknown battle result")` (`world.py:359`).
+> **Fałszywe tropy sprawdzone empirycznie — nie zaczynaj od nich:** polegli NIE
+> blokują pól (przy śmierci znikają z `units`), a podniesienie obrażeń bazowych
+> do ≥ 1 nic nie zmienia (`result()` nadal `None`).
+>
+> Kolejność jest celowa: **najpierw domykamy kontrakt wyniku** (żaden szturm nie
+> może dotrzeć do gracza jako błąd), dopiero potem ruszamy reguły ruchu. Odwrotna
+> kolejność zostawia otwartą klasę „inny pat = znowu wyjątek".
+- [ ] **G89.1a** Nierozstrzygnięta bitwa jest **legalnym wynikiem rdzenia**, nie
+      wyjątkiem: `resolve_settlement_battle*` i `resolve_party_battle*` na bitwie
+      bez rozstrzygnięcia (`result() is None` po wyczerpaniu rund) zwracają świat
+      w spójnym stanie — atakujący **zostaje w regionie źródłowym** ze
+      swoimi ocalałymi, osada i jej garnizon bez zmian, właściciel bez zmian —
+      zamiast `ValueError("unknown battle result")`. Test odtwarza dokładnie
+      układ z repro (ogłuszeni sojusznicy blokujący dojście) na ustalonym ziarnie
+      i sprawdza brak wyjątku oraz nienaruszony stan świata; dotychczasowe testy
+      zwycięstwa/porażki/remisu przechodzą bez zmian w kryteriach. Walidacja
+      *naprawdę* nieznanego wyniku (obiekt spoza `BattleResult`) zostaje błędem.
+      *(standard, ryzyko: dotyka rdzenia — jedynego źródła reguł; nie zmieniać
+      przy okazji reguł ruchu ani obrażeń, to osobny plasterek G89.2a)*
+- [ ] **G89.1b** Gracz widzi nierozstrzygnięty szturm jako **czytelny skutek, nie
+      błąd**: most zwraca dla takiego szturmu `ok:true` z wynikiem bitwy
+      odróżnialnym od zwycięstwa i porażki (dodatkowa wartość `outcome`), a
+      scena Godota pokazuje polski status w rodzaju „szturm nierozstrzygnięty"
+      wraz ze stratami, zamiast „rozkaz nie powiódł się". E2e na żywym moście
+      odtwarza sekwencję z repro (`recruit`×2 → `muster` → `march` → `assault`,
+      ziarno 73) i dowodzi, że partia zostaje utrwalona. Pozostałe teksty statusu
+      bez zmian. *(standard, wymaga G89.1a)*
+> **Do rozplanowania po K89.1 (nie zaczynaj bez powyższych):** G89.2a — jednostka
+> potrafi ominąć własnego ogłuszonego albo ogłuszony przestaje blokować pole,
+> tak żeby sekwencja z repro kończyła się **realnym rozstrzygnięciem**, a nie
+> tylko legalnym patem. To zmiana reguł rdzenia i osobne ryzyko balansowe.
 
 ## Dług/refaktor
 - [x] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
@@ -583,14 +643,16 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
   przeglądzie 2026-07-27: nie jest warunkiem „prawdziwych assetów" z briefu, a
   wpuszczone do K87 rozsadziłoby plasterek deklarowany jako „tylko `game/`".
 - ~~Pakiet na Linuksa x86-64: preset eksportu, uruchomienie jedną ikoną~~ —
-  rozplanowane jako K88 (pierwsze dwa plasterki: bramka eksportu i odporne
-  rozwiązywanie ścieżki `src/`). Do dorobienia w dalszych plasterkach K88:
-  spakowanie `src/` i assetów obok binarium, ponowny dowód „start bez terminala"
-  na wyeksportowanej grze oraz uruchomienie jednym kliknięciem (plik `.desktop`
-  albo skrypt startowy).
+  rozplanowane jako K88 i w większości wykonane (bramka eksportu, odporne
+  rozwiązywanie `src/`, `scripts/package.sh`). W kolejce zostają G88.1d–g:
+  czysty `.pck`, ciągłość partii przy samym starcie, dowód „bez terminala" na
+  pakiecie i wpis `.desktop`.
 - Pełne pole bitwy (teren pustych heksów, wymiary pola) — wymaga rozszerzenia
   `tbbbridge.snapshot.battle_state`; dopiero gdy sam widok bitwy (K85) stoi.
 - Sterowanie pojedynczą jednostką w bitwie — po K85.
+- ~~Szturm potrafi się nie rozstrzygnąć i wywala rozkaz~~ — **rozplanowane jako
+  K89** (G89.1a kontrakt wyniku, G89.1b widoczny skutek, G89.2a reguła ruchu).
+  Pełna diagnoza zostaje niżej, bo koder jej potrzebuje.
 - **Szturm potrafi się nie rozstrzygnąć i wywala rozkaz — przyczyną jest ruch,
   nie obrażenia.** Odtwarzalne na `serve 73` (recruit ×2 → muster → march →
   assault): gracz dostaje `unknown battle result`. Zweryfikowane przez

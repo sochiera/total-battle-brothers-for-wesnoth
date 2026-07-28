@@ -49,57 +49,53 @@ mały — po kilka kafli terenu, sylwetek jednostek i budynków — ale prawdziw
   księstwa, położeniem oddziału, statusem ostatniego rozkazu oraz przyciskami
   „Następna tura", „Rozwiń osadę", „Rekrutuj jednostkę", „Zbierz oddział",
   „Wyrusz w pole", „Szturmuj osadę".
-- **Start bez terminala działa** (K82): bez żadnej zmiennej `TBB_*` klient sam
-  składa komendę mostu, ścieżkę stanu w katalogu użytkownika i ziarno, a gdy
-  most nie wstanie — pokazuje komunikat zamiast martwej sceny.
-- **Układ ekranu czytelny** (K83): kontrolki w kontenerach, grupa stanu oddzielona
-  od grupy rozkazów, prostokąty parami rozłączne.
-- Repo gry posprzątane (R82.1): sondy testowe poza kodem produkcyjnym, `out/`
-  poza gitem.
-- **Widok mapy działa** (K84): `MapView` rysuje kafel na region po `col`/`row`,
-  właściciel rozróżnialny, oddział gracza oznaczony i przesuwający się.
-- **Widok bitwy działa** (K85): `BattleView` rysuje kafle heksów po `(q, r)`,
-  strony rozróżnialne, wynik bitwy czytelny po kliknięciu „Szturmuj osadę".
+- **Start bez terminala działa w drzewie źródeł** (K82): bez żadnej zmiennej
+  `TBB_*` klient sam składa komendę mostu, ścieżkę stanu i ziarno, a gdy most nie
+  wstanie — pokazuje komunikat zamiast martwej sceny. Repo gry posprzątane
+  (R82.1); układ ekranu czytelny, kontrolki w kontenerach (K83).
+- **Oba widoki działają** (K84/K85): `MapView` rysuje kafel na region po
+  `col`/`row` z rozróżnialnym właścicielem i przesuwającym się oddziałem gracza;
+  `BattleView` rysuje heksy po `(q, r)` z rozróżnialnymi stronami i czytelnym
+  wynikiem po kliknięciu „Szturmuj osadę".
 - **Zapis/odczyt z UI działa** (K86): konfiguracja niesie `save_path`, scena ma
   przyciski „Zapisz partię"/„Wczytaj partię", a klik przywraca zapisany stan na
   ekranie i utrwala partię między procesami.
-- **Prawdziwe assety w repo — częściowo** (K87): `game/assets/` zawiera 8 plików
-  PNG z Kenney Hexagon Pack (CC0) z atrybucją w `CREDITS.md`, `.godot/` jest poza
-  gitem, `MapView` rysuje grunt/osadę/oddział teksturami, a `BattleView` teren
-  heksu (`Plains`/`Forest`/`Hills`). **Sylwetek jednostek w repo nie ma** —
-  audyt przy przeglądzie 2026-07-27 pokazał, że pliki nazwane
-  `side_attacker.png` / `side_defender.png` to w rzeczywistości budynki
-  (`medieval_smallCastle.png` i `medieval_tower.png` wg `CREDITS.md`; obejrzane:
-  kamienny zamek i kafel z wieżą). Hexagon Pack **nie zawiera żadnych postaci** —
-  sprawdzone w liście plików paczki. Zostają więc dwa plasterki, nie jeden
-  (patrz „Czego brakuje", wniosek 11).
+- **Prawdziwe assety w repo — DOMKNIĘTE** (K87): `game/assets/` niesie 10 plików
+  PNG z dwóch paczek CC0 — kafle mapy i terenu z Kenney Hexagon Pack, sylwetki
+  stron bitwy z Kenney „RTS Pack: Medieval" — z atrybucją **per plik** w
+  `CREDITS.md`; `.godot/` poza gitem. `MapView` rysuje grunt/osadę/oddział
+  teksturami, `BattleView` teren heksu (`Plains`/`Forest`/`Hills`) i sylwetkę
+  strony. Rozróżnialność stron wzięła się z dwóch różnych plików, nie z
+  `modulate` (wniosek 12 potwierdzony w praktyce). R87.1 scalił warstwę tekstury
+  kafla w jedno źródło dla obu widoków.
+- **Pakiet na Linuksa — w toku** (K88, 3 z 7 plasterków): `game/export_presets.cfg`
+  z presetem „Linux/X11" x86-64 jest w repo, szablony 4.2.2 doinstalowane lokalnie
+  poza gitem, `godot --headless --export-release` produkuje wykonywalne binarium
+  + `.pck` (G88.1a); `BridgeConfig` szuka `src/` odpornie na eksport — najpierw
+  obok binarium, potem w drzewie źródeł (G88.1b); `scripts/package.sh <cel>`
+  składa katalog dystrybucyjny z binarium, `.pck` i `src/` mostu (G88.1c).
 - `tbbui` (HTML/SVG) — **wyłącznie narzędzie diagnostyczne**, nie docelowy klient.
 
 **Czego brakuje do celu (nazwane wprost, bo tu jest cała reszta pracy):**
-1. **Sylwetki jednostek — najpierw w repo, potem w widoku** (K87, dwa plasterki):
-   (a) prawdziwe pliki z figurą ludzką w `game/assets/` + atrybucja wskazująca
-   ścieżkę w paczce źródłowej (**G87.1c-1b**, dopisane do backlogu przy
-   przeglądzie 2026-07-27); (b) `BattleView` rysuje stronę tą sylwetką zamiast
-   samego tintu kafla (G87.1c-2, wymaga (a)).
-   Źródło rozstrzygnięte i **zweryfikowane 2026-07-27**: **Kenney „RTS Pack:
-   Medieval" (CC0)**, strona `https://kenney.nl/assets/medieval-rts` (poprzedni
-   przegląd zapisał slug `rts-pack` — daje `404`, sprostowane), katalog
-   `PNG/Default size/Unit/medievalUnit_01…24.png` — 24 top-downowe figurki
-   piechoty, 64×64 RGBA z przezroczystym tłem, w wariantach kolorystycznych
-   stron; `License.txt` w zipie mówi wprost „Creative Commons Zero, CC0".
-   Zip pobrany, lista plików sprawdzona, trzy figurki obejrzane.
-2. **Nie ma pakietu na Linuksa.** Jedyny sposób uruchomienia gry to
-   `godot --path game` z konsoli — dokładnie to, czego brief zabrania. To
-   **jedyny nieodhaczony fragment kryterium sukcesu** i po K87 cała pozostała
-   praca w stronę „gotowe". Szczegóły ryzyka: wniosek 4.
-3. **Szturm potrafi zwrócić graczowi błąd zamiast wyniku bitwy.** Odtworzone
-   uruchomieniem kodu 2026-07-28 (`serve 73`, recruit ×2 → muster → march →
-   assault): bitwa nie rozstrzyga się w 1000 rundach, bo ogłuszeni sojusznicy
-   zostają na planszy i blokują jedyne pole skracające dystans do obrońcy.
+1. **Pakiet nie jest jeszcze dowiedziony jako grywalny.** Zbudować się buduje,
+   ale nikt nie uruchomił *wyeksportowanej* gry i nie pokazał, że startuje partię
+   bez terminala — a to jedyny nieodhaczony fragment kryterium sukcesu. W kolejce:
+   czysty `.pck` (bez sond testowych), ciągłość partii przy samym starcie, e2e na
+   pakiecie i uruchomienie jednym kliknięciem (`.desktop`). Szczegóły ryzyka:
+   wniosek 4.
+2. **Szturm potrafi zwrócić graczowi błąd zamiast wyniku bitwy.** Odtworzone
+   uruchomieniem kodu **ponownie 2026-07-28** (`serve 73`, recruit ×2 → muster →
+   march → assault): most odpowiada `{"ok": false, "error": "unknown battle
+   result"}`, klient pokazuje „rozkaz nie powiódł się". Bitwa nie rozstrzyga się
+   w 1000 rundach, bo ogłuszeni sojusznicy zostają na planszy i blokują jedyne
+   pole skracające dystans do obrońcy; `resolve_settlement_battle_recorded` podaje
+   wtedy `None` do `apply_settlement_battle_result`, a to rzuca `ValueError`.
    Przyczyną jest **ruch, nie obrażenia** — podniesienie obrażeń bazowych do ≥ 1
-   sprawdzono i nic nie zmienia. Rozpisane w BACKLOG.md („Kolejne kierunki");
-   nie planować na to plasterka bez przeczytania tamtej notatki, bo pierwszy
-   nasuwający się trop jest fałszywy.
+   sprawdzono i nic nie zmienia. Rozplanowane jako **K89**; nie planować nic
+   ponad to bez przeczytania diagnozy w `BACKLOG.md`, bo pierwszy nasuwający się
+   trop jest fałszywy. To **drugi warunek „gotowe"**, obok pakietu: kryterium
+   mówi wprost „rozegrać bitwę", a najbardziej naturalna sekwencja gracza tę
+   możliwość dziś odbiera.
 
 ## Ograniczenia i priorytety
 - **[W]** Rdzeń `tbb` jest **jedynym źródłem reguł gry**. Godot nie duplikuje
@@ -179,16 +175,13 @@ mały — po kilka kafli terenu, sylwetek jednostek i budynków — ale prawdziw
     techniczne — jeśli okaże się za wąska, wraca jako osobny plasterek.
 11. **Bramka „plik się ładuje" nie sprawdza, *co* jest na obrazku — i to nas
     kosztowało plasterek.** G87.1a przyjęło jako „sylwetki stron" dwa budynki z
-    Hexagon Packa tylko dlatego, że nazwa pliku brzmiała `side_*.png`, a
-    `load()` zwracał `Texture2D`. Gdyby G87.1c-2 poszło na tym, pole bitwy
-    pokazywałoby dwa budynki jako obie walczące strony — czyli formalnie
-    „tekstura", a merytorycznie nadal nie ta treść, i to wprost przeciw
-    kryterium „da się grać patrząc". **Wniosek na każdy kolejny plasterek
-    assetowy:** kryterium akceptacji ma wiązać plik z jego *źródłem* w
-    `CREDITS.md` (konkretna ścieżka w paczce, nie sama nazwa paczki) i z
-    maszynowo sprawdzalnym kształtem (przezroczyste tło dla nakładki, rozmiar
-    mniejszy od kafla, obie strony różne), a człowiek ogląda obrazek przy
-    review. Dobór paczki sprawdzamy po **liście plików**, zanim wejdzie do repo.
+    Hexagon Packa tylko dlatego, że nazwa pliku brzmiała `side_*.png`, a `load()`
+    zwracał `Texture2D`. **Wniosek na każdy kolejny plasterek assetowy:**
+    kryterium akceptacji wiąże plik z jego *źródłem* w `CREDITS.md` (konkretna
+    ścieżka w paczce, nie sama nazwa paczki) i z maszynowo sprawdzalnym kształtem
+    (przezroczyste tło, rozmiar mniejszy od kafla, obie strony różne bajtowo), a
+    człowiek ogląda obrazek przy review. Dobór paczki sprawdzamy po **liście
+    plików**, zanim wejdzie do repo. To szczególny przypadek wniosku 13.
 12. **Jedna paczka nie wystarczy — i to jest świadome odstępstwo od [P].**
     Hexagon Pack nie ma postaci, więc sylwetki jednostek muszą przyjść z drugiej
     paczki CC0 (RTS Pack: Medieval). Preferencja „spójna paczka bije zlepek"
@@ -199,6 +192,25 @@ mały — po kilka kafli terenu, sylwetek jednostek i budynków — ale prawdziw
     wziąć się z **wyboru dwóch różnych plików**, a nie z `modulate` — tint na już
     pokolorowanej figurce może ją zaszarzeć. Wzorzec „tekstura + tint" z wniosku
     9 zostaje dla kafli terenu, gdzie wariant koloru nie istnieje w paczce.
+    *(Potwierdzone wykonaniem: K87 domknięty właśnie tak.)*
+13. **Zielony zestaw testów nie znaczy, że dało się zagrać — defekt szturmu
+    znalazło dopiero uruchomienie gry ręką.** Rdzeń jest pokryty TDD, most też,
+    klient ma e2e przez dwa procesy — a mimo to najbardziej naturalna sekwencja
+    gracza (dorekrutuj → zbierz → wyrusz → szturmuj) kończy się błędem rozkazu.
+    Testy bitwy sprawdzały składy, które *rozstrzygają się*; pat, w którym własny
+    ogłuszony blokuje jedyne dojście, nie miał testu, bo nikt go nie wymyślił
+    przy biurku. **Wniosek na kierunek:** od teraz każdy przegląd (i najlepiej
+    każdy plasterek domykający kamień) kończy się **przejściem pełnej sekwencji
+    gracza na żywym moście**, nie samym `pytest`. Po K88 ta sekwencja idzie na
+    wyeksportowanym pakiecie, nie w drzewie źródeł — bo to jest artefakt, który
+    dostaje odbiorca.
+14. **Kontrakt „wynik bitwy" był niepełny, nie tylko zabugowany.** `HexBattle`
+    dopuszcza stan „nikt nie wygrał po wyczerpaniu rund" (`result() is None`), a
+    `WorldMap` nie ma dla niego przypadku i rzuca `ValueError`. Naprawa reguły
+    ruchu (żeby akurat ten pat nie występował) **nie zamyka klasy problemu** —
+    inny pat wróci tą samą ścieżką. Dlatego K89 najpierw domyka kontrakt
+    (nierozstrzygnięta bitwa = legalny wynik, świat spójny, gracz widzi tekst),
+    a dopiero potem rusza reguły ruchu. Kolejność jest tu decyzją, nie wygodą.
 
 ## Klimat, ton, kierunek wizualny
 Średniowiecze **bez magii i fantastyki**, surowy i realistyczny ton. **[W]**
@@ -229,19 +241,22 @@ spójna paczka bije zlepek najładniejszych pojedynczych obrazków. **[P]**
 ## Kolejne prawdopodobne etapy
 1. ~~Start bez terminala~~ (K82), ~~czytelny układ ekranu~~ (K83), ~~widok mapy~~
    (K84), ~~widok bitwy~~ (K85) i ~~zapis/odczyt z UI~~ (K86) — **zrobione**.
-2. **Prawdziwe assety** (K87) — priorytet z briefu, w 3/4 gotowy: paczka CC0 z
-   atrybucją, kafle mapy i teren heksów rysowane teksturą. Zostają **dwa**
-   plasterki: figurki jednostek do repo (G87.1c-1b) i dopiero potem sylwetka na
-   stronie bitwy (G87.1c-2) — kolejność wymuszona wnioskiem 11, nie kosmetyczna.
-   Po nich kamień się domyka. Zakres trzymany po
-   stronie `game/`: mapa różnicuje właściciela i osadę, teren teksturujemy tam,
-   gdzie most go niesie — na polu bitwy (wniosek 8).
-3. **Pakiet na Linuksa** (K88) — po K87 **jedyna droga do „gotowe"**: bramka
+2. ~~Prawdziwe assety~~ (K87) — **domknięte**: obie paczki CC0 z atrybucją per
+   plik, kafle mapy, teren heksów i sylwetki stron rysowane teksturami. Zakres
+   został po stronie `game/`: mapa różnicuje właściciela i osadę, teren
+   teksturujemy tam, gdzie most go niesie — na polu bitwy (wniosek 8).
+3. **Pakiet na Linuksa** (K88) — **w toku**, 3 z 7 plasterków. Zrobione: bramka
    eksportu (szablony + `export_presets.cfg` + wykonywalny artefakt), odporne na
-   eksport rozwiązywanie ścieżki `src/`, spakowanie `src/` i assetów obok
-   binarium, ponowny dowód startu bez terminala (wniosek 4) i uruchomienie jednym
-   kliknięciem. Bez własnego runtime'u Pythona (wniosek 10).
-4. **Klik na cel na mapie** zamiast globalnych przycisków „Rozwiń/Szturmuj" —
+   eksport rozwiązywanie ścieżki `src/`, `scripts/package.sh` kładący `src/` obok
+   binarium. Zostają: czysty `.pck` bez sond testowych, ciągłość partii przy samym
+   starcie, ponowny dowód startu bez terminala **na wyeksportowanej grze**
+   (wniosek 4) i uruchomienie jednym kliknięciem. Bez własnego runtime'u Pythona
+   (wniosek 10).
+4. **Bitwa zawsze daje wynik** (K89) — drugi warunek „gotowe" obok pakietu:
+   nierozstrzygnięty szturm ma być legalnym wynikiem widocznym jako tekst, nie
+   `ValueError` docierającym do gracza jako „rozkaz nie powiódł się" (wniosek 14).
+   Dopiero po tym reguła ruchu, która ten konkretny pat likwiduje.
+5. **Klik na cel na mapie** zamiast globalnych przycisków „Rozwiń/Szturmuj" —
    czeka na większą mapę (dziś rozkaz celowany daje ten sam skutek co
    automatyczny; patrz nota przy K86 w `BACKLOG.md`).
 
