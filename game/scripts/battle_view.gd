@@ -5,7 +5,14 @@ const SnapshotModel = preload("res://scripts/snapshot_model.gd")
 const TileTextureLayer = preload("res://scripts/tile_texture_layer.gd")
 const BASE_HEX_SIZE := Vector2(120, 140)
 const AXIAL_ROW_PITCH := BASE_HEX_SIZE.y * 0.75
+const FALLBACK_BATTLE_HEADER_HEIGHT := 34.0
+const HEADER_GAP := 8.0
 const RESULT_LABEL_GAP := 8.0
+const BATTLE_RESULT_TEXTS := {
+	"attacker_win": "Zwycięstwo",
+	"defender_win": "Porażka",
+	"draw": "Remis",
+}
 
 const TERRAIN_PLAINS := preload("res://assets/terrain_plains.png")
 const TERRAIN_FOREST := preload("res://assets/terrain_forest.png")
@@ -54,10 +61,14 @@ func _layout_result_label(max_hex_bottom: float) -> void:
 
 func _reset_and_hide_view() -> void:
 	visible = false
+	_clear_hex_tiles()
+	%BattleResultLabel.text = ""
+
+
+func _clear_hex_tiles() -> void:
 	for child: Node in get_children():
 		if str(child.name).begins_with("HexTile_"):
 			child.free()
-	%BattleResultLabel.text = ""
 
 
 func _battle_data(model: SnapshotModel) -> Variant:
@@ -166,8 +177,23 @@ func _apply_hex_paint_order(tile: Control, row: int) -> void:
 func _axial_position(q: int, r: int) -> Vector2:
 	return Vector2(
 		float(q) * BASE_HEX_SIZE.x + float(r) * BASE_HEX_SIZE.x * 0.5,
-		float(r) * AXIAL_ROW_PITCH,
+		_battle_header_band_height() + float(r) * AXIAL_ROW_PITCH,
 	)
+
+
+func _battle_header_band_height() -> float:
+	return _battle_header_height() + HEADER_GAP
+
+
+func _battle_header_height() -> float:
+	var header := get_node_or_null("BattleHeaderLabel") as Control
+	if header == null:
+		return FALLBACK_BATTLE_HEADER_HEIGHT
+
+	var header_height := maxf(header.size.y, header.offset_bottom - header.offset_top)
+	if header_height <= 0.0:
+		header_height = FALLBACK_BATTLE_HEADER_HEIGHT
+	return header_height
 
 
 func _terrain_decoration_texture(terrain: Variant) -> Texture2D:
@@ -191,12 +217,4 @@ func _side_silhouette_texture(side: Variant) -> Texture2D:
 
 
 func _result_text(result: Variant) -> String:
-	match result:
-		"attacker_win":
-			return "Bitwa: zwycięstwo"
-		"defender_win":
-			return "Bitwa: porażka"
-		"draw":
-			return "Bitwa: remis"
-		_:
-			return ""
+	return BATTLE_RESULT_TEXTS.get(result, "")

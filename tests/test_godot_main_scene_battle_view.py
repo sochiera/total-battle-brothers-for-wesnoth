@@ -7,12 +7,24 @@ import re
 import subprocess
 from pathlib import Path
 
+from godot_png_assets import assert_asset_credited
 from godot_runner import run_godot_script
 from godot_tile_layer import MOUSE_FILTER_IGNORE, layer_fills_tile
 
 ROOT = Path(__file__).resolve().parents[1]
 GAME = ROOT / "game"
 PREFIX = "BATTLE_VIEW "
+
+# G98.1d: battle panel frame + exact Polish result banners (public contract).
+PANEL_BACKGROUND = "battle_panel_background.png"
+PANEL_BACKGROUND_RES = f"res://assets/{PANEL_BACKGROUND}"
+# Exact BattleResultLabel banners (not the legacy combined „Bitwa: …” form).
+RESULT_BANNER = {
+    "attacker_win": "Zwycięstwo",
+    "defender_win": "Porażka",
+    "draw": "Remis",
+}
+BATTLE_HEADER = "Bitwa"
 
 # Public asset paths for battle terrain (G87.1a / G87.1c-1).
 TERRAIN_ASSETS: dict[str, str] = {
@@ -1072,4 +1084,134 @@ def test_battle_view_base_hexes_form_pointy_top_axial_grid_from_plains_asset():
 
     # Inter-row overlap stack independent of battle.hexes array order.
     _assert_pointy_top_cross_row_paint_order(by_qr)
+
+
+def _chrome_has_exact(labels: object, text: str) -> bool:
+    """True when a chrome Label carries exactly *text* (not a longer compound)."""
+    if not isinstance(labels, list):
+        return False
+    return any(isinstance(item, str) and item.strip() == text for item in labels)
+
+
+def test_battle_view_panel_frame_and_exact_polish_result_banners():
+    """G98.1d: panel frame asset + header „Bitwa” + exact outcome banners.
+
+    Realistic defect existing gates miss: BattleView already maps outcomes with
+    a single BattleResultLabel as the combined string ``Bitwa: zwycięstwo`` /
+    ``Bitwa: porażka`` / ``Bitwa: remis``. The older Polish gate only substring-
+    matches ``zwycięstwo`` / ``porażka`` / ``remis``, so that compound form stays
+    green while the public contract requires exact banners ``Zwycięstwo`` /
+    ``Porażka`` / ``Remis`` plus a separate header ``Bitwa``. Layout and terrain
+    gates never require ``battle_panel_background.png`` under BattleView or its
+    CREDITS row, so a bare Control panel without a parchment frame also stays
+    green. No-battle cleanup of tiles is covered elsewhere; this gate also
+    requires the chrome not to keep a leftover exact banner when battle is null.
+
+    Further defect (review): header text alone is green while r=0 HexTile_* share
+    the top strip (header y∈[0,34], axial r=0 at y=0) and paint over „Bitwa“ as
+    later siblings. Contract needs a readable header and grid together — header
+    rect must not intersect any hex tile rect (reserve chrome band or offset grid).
+    """
+    assets_dir = GAME / "assets"
+    background_path = assets_dir / PANEL_BACKGROUND
+    assert background_path.is_file(), (
+        f"required battle panel background missing on disk: {background_path} "
+        "(G98.1d; missing file must red-gate, not leave a bare BattleView)"
+    )
+    # Full table row on the asset line (file|source|author|license), not only a
+    # ±3-line window that can inherit PNG/ from neighbouring Kenney rows.
+    _assert_credits_table_row(PANEL_BACKGROUND)
+    assert_asset_credited(
+        assets_dir / "CREDITS.md",
+        PANEL_BACKGROUND,
+        source_re=re.compile(r"https?://\S+|PNG/|original artwork", re.I),
+    )
+
+    imported = _import_game_assets()
+    assert imported.returncode == 0, (
+        f"godot --import failed rc={imported.returncode} "
+        f"stderr={imported.stderr!r} stdout={imported.stdout!r}"
+    )
+
+    payload = _load_battle_view()
+    assert payload["battle_view_found"] is True, payload
+    assert payload["has_render_model"] is True, payload
+
+    # Exact public banners on BattleResultLabel (scene contract name).
+    assert payload["result_text_attacker_win"] == RESULT_BANNER["attacker_win"], (
+        "attacker_win must map to exact banner "
+        f"{RESULT_BANNER['attacker_win']!r} (not a combined „Bitwa: …” string), "
+        f"got {payload['result_text_attacker_win']!r}"
+    )
+    assert payload["result_text_defender_win"] == RESULT_BANNER["defender_win"], (
+        "defender_win must map to exact banner "
+        f"{RESULT_BANNER['defender_win']!r}, "
+        f"got {payload['result_text_defender_win']!r}"
+    )
+    assert payload["result_text_draw"] == RESULT_BANNER["draw"], (
+        "draw must map to exact banner "
+        f"{RESULT_BANNER['draw']!r}, got {payload['result_text_draw']!r}"
+    )
+
+    # Header „Bitwa” is visible chrome alongside each public outcome.
+    for key, banner in (
+        ("chrome_labels_attacker_win", RESULT_BANNER["attacker_win"]),
+        ("chrome_labels_defender_win", RESULT_BANNER["defender_win"]),
+        ("chrome_labels_draw", RESULT_BANNER["draw"]),
+    ):
+        chrome = payload.get(key) or []
+        assert _chrome_has_exact(chrome, BATTLE_HEADER), (
+            f"with battle, chrome must show exact header {BATTLE_HEADER!r} "
+            f"(separate from the outcome banner), {key}={chrome!r}"
+        )
+        assert _chrome_has_exact(chrome, banner), (
+            f"with battle, chrome must show exact banner {banner!r}, "
+            f"{key}={chrome!r}"
+        )
+
+    # Header chrome rect must not share pixels with any HexTile_* (readable „Bitwa”).
+    header_rect = payload.get("header_label_rect")
+    assert isinstance(header_rect, dict) and header_rect.get("w", 0) > 0 and header_rect.get(
+        "h", 0
+    ) > 0, (
+        f"header {BATTLE_HEADER!r} Label must be present with non-zero size while "
+        f"battle is shown, got {header_rect!r}"
+    )
+    tiles = payload.get("tiles_after_first") or []
+    assert tiles, "expected hex tiles after first battle render for header overlap check"
+    for tile in tiles:
+        tile_rect = _rect_of(tile)
+        assert not _rects_overlap(tile_rect, header_rect), (
+            f"header {BATTLE_HEADER!r} must not be covered by hex tile "
+            f"{tile.get('name')!r} (q={tile.get('q')}, r={tile.get('r')}): "
+            f"header={header_rect} tile={tile_rect} "
+            f"(reserve top chrome margin or offset the axial grid)"
+        )
+
+    # No battle: no leftover exact outcome banner (and no empty outcome claim).
+    no_battle_result = str(payload.get("result_text_no_battle") or "")
+    assert no_battle_result == "", (
+        "model without battle must clear BattleResultLabel, "
+        f"got {no_battle_result!r}"
+    )
+    chrome_empty = payload.get("chrome_labels_no_battle") or []
+    for banner in RESULT_BANNER.values():
+        assert not _chrome_has_exact(chrome_empty, banner), (
+            "no-battle chrome must not keep a leftover exact outcome banner "
+            f"{banner!r}, chrome={chrome_empty!r}"
+        )
+
+    # Panel frame texture under BattleView covers the visible battle panel.
+    assert payload.get("panel_background_path_with_battle") == PANEL_BACKGROUND_RES, (
+        "visible BattleView must paint panel frame "
+        f"{PANEL_BACKGROUND_RES}, got "
+        f"{payload.get('panel_background_path_with_battle')!r}"
+    )
+    assert payload.get("panel_background_covers_view") is True, (
+        "battle_panel_background must cover the BattleView rect when battle is "
+        f"shown, got payload panel fields: "
+        f"path={payload.get('panel_background_path_with_battle')!r} "
+        f"covers={payload.get('panel_background_covers_view')!r} "
+        f"view={payload.get('view_rect')!r}"
+    )
 

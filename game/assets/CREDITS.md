@@ -12,6 +12,7 @@ by Kenney Vleugels for Kenney (https://kenney.nl), licensed under
 | terrain_plains.png | PNG/Tiles/Terrain/Grass/grass_02.png | Kenney Vleugels | CC0 |
 | terrain_forest.png | PNG/Objects/treePine_large.png | Kenney Vleugels | CC0 |
 | terrain_hills.png | PNG/Objects/rockGrey_large.png | Kenney Vleugels | CC0 |
+| battle_panel_background.png | original artwork generated for the project with OpenAI image generation, game/assets/battle_panel_background.png | Total Battle Brothers contributors | CC0 1.0 Universal (CC0) |
 | settlement.png | PNG/Tiles/Medieval/medieval_smallCastle.png | Kenney Vleugels | CC0 |
 | settlement_keep.png | PNG/Tiles/Medieval/medieval_largeCastle.png | Kenney Vleugels | CC0 |
 | settlement_outpost.png | PNG/Tiles/Medieval/medieval_tower.png | Kenney Vleugels | CC0 |

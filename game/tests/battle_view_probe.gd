@@ -8,6 +8,8 @@ extends SceneTree
 const MAIN_SCENE_PATH := "res://scenes/main.tscn"
 const SnapshotModel = preload("res://scripts/snapshot_model.gd")
 const PREFIX := "BATTLE_VIEW "
+# G98.1d: panel frame asset (public contract path under res://assets/).
+const PANEL_BACKGROUND_RES := "res://assets/battle_panel_background.png"
 
 
 func _init() -> void:
@@ -48,8 +50,16 @@ func _run() -> void:
 			"result_text_defender_win": "",
 			"result_text_draw": "",
 			"result_text_no_battle": "",
+			"chrome_labels_attacker_win": [],
+			"chrome_labels_defender_win": [],
+			"chrome_labels_draw": [],
+			"chrome_labels_no_battle": [],
+			"panel_background_path_with_battle": "",
+			"panel_background_covers_view": false,
+			"panel_background_path_no_battle": "",
 			"view_rect": null,
 			"result_label_rect": null,
+			"header_label_rect": null,
 		}))
 		quit(0)
 		return
@@ -82,8 +92,14 @@ func _run() -> void:
 	var tiles_first: Array = _collect_tiles(battle_view, hexes_full)
 	var count_first: int = _count_hex_tiles(battle_view)
 	var result_attacker: String = _result_text(battle_view)
+	var chrome_attacker: Array = _chrome_label_texts(battle_view)
 	var view_rect: Variant = _control_rect(battle_view as Control)
 	var result_label_rect: Variant = _result_label_rect(battle_view)
+	# G98.1d: header „Bitwa” chrome rect while hexes are present (overlap gate).
+	var header_label_rect: Variant = _header_label_rect(battle_view)
+	var panel_bg_with: Dictionary = _panel_background_state(
+		battle_view as Control, view_rect as Dictionary
+	)
 
 	scene_root.apply_model(_model_with_battle(hexes_full, "attacker_win"))
 	await process_frame
@@ -97,6 +113,12 @@ func _run() -> void:
 	var tiles_empty: Array = _collect_tiles(battle_view, hexes_full)
 	var count_empty: int = _count_hex_tiles(battle_view)
 	var result_no_battle: String = _result_text(battle_view)
+	var chrome_no_battle: Array = _chrome_label_texts(battle_view)
+	var view_rect_empty: Variant = _control_rect(battle_view as Control)
+	var panel_bg_empty: Dictionary = _panel_background_state(
+		battle_view as Control,
+		view_rect_empty if view_rect_empty is Dictionary else {},
+	)
 
 	var tiles_direct: Array = []
 	var count_direct: int = 0
@@ -105,6 +127,8 @@ func _run() -> void:
 	var tiles_fallback: Array = []
 	var result_defender: String = ""
 	var result_draw: String = ""
+	var chrome_defender: Array = []
+	var chrome_draw: Array = []
 	var has_render := battle_view.has_method("render_model")
 	if has_render:
 		battle_view.call("render_model", _model_with_battle(hexes_full, "defender_win"))
@@ -113,11 +137,13 @@ func _run() -> void:
 		tiles_direct = _collect_tiles(battle_view, hexes_full)
 		count_direct = _count_hex_tiles(battle_view)
 		result_defender = _result_text(battle_view)
+		chrome_defender = _chrome_label_texts(battle_view)
 
 		battle_view.call("render_model", _model_with_battle(hexes_full, "draw"))
 		await process_frame
 		await process_frame
 		result_draw = _result_text(battle_view)
+		chrome_draw = _chrome_label_texts(battle_view)
 
 		battle_view.call("render_model", _model_with_battle(hexes_fallback, "draw"))
 		await process_frame
@@ -150,8 +176,16 @@ func _run() -> void:
 		"result_text_defender_win": result_defender,
 		"result_text_draw": result_draw,
 		"result_text_no_battle": result_no_battle,
+		"chrome_labels_attacker_win": chrome_attacker,
+		"chrome_labels_defender_win": chrome_defender,
+		"chrome_labels_draw": chrome_draw,
+		"chrome_labels_no_battle": chrome_no_battle,
+		"panel_background_path_with_battle": str(panel_bg_with.get("path", "")),
+		"panel_background_covers_view": bool(panel_bg_with.get("covers", false)),
+		"panel_background_path_no_battle": str(panel_bg_empty.get("path", "")),
 		"view_rect": view_rect,
 		"result_label_rect": result_label_rect,
+		"header_label_rect": header_label_rect,
 	}))
 	quit(0)
 
@@ -369,12 +403,99 @@ func _result_label_rect(battle_view: Node) -> Variant:
 	return null
 
 
+func _header_label_rect(battle_view: Node) -> Variant:
+	# Public chrome: first non-hex Label whose exact text is the battle header „Bitwa”.
+	# Geometry is the contract for readability — rect must not sit under HexTile_*.
+	return _chrome_label_rect_with_exact_text(battle_view, "Bitwa")
+
+
+func _chrome_label_rect_with_exact_text(node: Node, wanted: String) -> Variant:
+	if str(node.name).begins_with("HexTile_"):
+		return null
+	if node is Label:
+		var label: Label = node as Label
+		if label.text.strip_edges() == wanted:
+			return _control_rect(label)
+	for child: Node in node.get_children():
+		var found: Variant = _chrome_label_rect_with_exact_text(child, wanted)
+		if found != null:
+			return found
+	return null
+
+
 func _result_text(battle_view: Node) -> String:
 	# Contractual outcome only: do not mix terrain Labels under HexTile_*.
 	var label: Node = battle_view.find_child("BattleResultLabel", true, false)
 	if label is Label:
 		return (label as Label).text.strip_edges()
 	return ""
+
+
+func _chrome_label_texts(battle_view: Node) -> Array:
+	# Labels under BattleView that are not hex-surface markers (not under HexTile_*).
+	# G98.1d: header „Bitwa” + exact banners live in this chrome, not on tiles.
+	var texts: Array = []
+	_collect_chrome_labels(battle_view, texts)
+	return texts
+
+
+func _collect_chrome_labels(node: Node, out: Array) -> void:
+	if str(node.name).begins_with("HexTile_"):
+		return
+	if node is Label:
+		var text: String = (node as Label).text.strip_edges()
+		if not text.is_empty():
+			out.append(text)
+	for child: Node in node.get_children():
+		_collect_chrome_labels(child, out)
+
+
+func _panel_background_state(battle_view: Control, view_rect: Dictionary) -> Dictionary:
+	# Observable panel frame: TextureRect using PANEL_BACKGROUND_RES under BattleView
+	# whose global rect covers the battle panel (edges may match; 1px snap).
+	# Do not pin a fixed child name — only path + coverage of the view rect.
+	var best_path := ""
+	var covers := false
+	if battle_view == null:
+		return {"path": best_path, "covers": covers}
+	var stack: Array[Node] = [battle_view]
+	while not stack.is_empty():
+		var node: Node = stack.pop_back()
+		for child: Node in node.get_children():
+			stack.append(child)
+		if not node is TextureRect:
+			continue
+		var tr: TextureRect = node as TextureRect
+		if tr.texture == null:
+			continue
+		var path: String = str(tr.texture.resource_path)
+		if path != PANEL_BACKGROUND_RES:
+			continue
+		best_path = path
+		if view_rect.is_empty():
+			continue
+		var bg_rect: Rect2 = tr.get_global_rect()
+		if bg_rect.size.x <= 0.0 or bg_rect.size.y <= 0.0:
+			continue
+		var view := Rect2(
+			float(view_rect.get("x", 0.0)),
+			float(view_rect.get("y", 0.0)),
+			float(view_rect.get("w", 0.0)),
+			float(view_rect.get("h", 0.0)),
+		)
+		if _rect_covers(bg_rect, view, 1.0):
+			covers = true
+			break
+	return {"path": best_path, "covers": covers}
+
+
+func _rect_covers(outer: Rect2, inner: Rect2, tol: float) -> bool:
+	return (
+		outer.position.x <= inner.position.x + tol
+		and outer.position.y <= inner.position.y + tol
+		and outer.position.x + outer.size.x >= inner.position.x + inner.size.x - tol
+		and outer.position.y + outer.size.y >= inner.position.y + inner.size.y - tol
+	)
 
 
 func _visual_key(tile: Control) -> String:
