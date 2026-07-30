@@ -30,3 +30,11 @@ also licensed under CC0.
 
 The RTS pack is available at:
 https://kenney.nl/media/pages/assets/medieval-rts/0863f2c62a-1677693589/kenney_medieval-rts.zip
+
+The strategic map background is derived from **Pergament.1.jpg** by Membeth
+(https://commons.wikimedia.org/wiki/File:Pergament.1.jpg), licensed under
+Creative Commons Zero 1.0 Universal (CC0).
+
+| File | Source page | Author | License |
+|------|-------------|--------|---------|
+| strategic_map_background.png | https://commons.wikimedia.org/wiki/File:Pergament.1.jpg | Membeth | CC0 |

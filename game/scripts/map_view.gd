@@ -4,11 +4,12 @@ extends Control
 const SnapshotModel = preload("res://scripts/snapshot_model.gd")
 const TileTextureLayer = preload("res://scripts/tile_texture_layer.gd")
 # AABB is intentionally flatter than native map_ground's pointy-top shape so
-# the rendered tiles fit the 420x180 map panel.
+# the rendered tiles fit the stretchable map panel (minimum about 420x240;
+# at 1152x648 its width comes from the scene layout).
 const TILE_SIZE := Vector2(84, 48)
 const GRID_PITCH := Vector2(TILE_SIZE.x, TILE_SIZE.y * 0.75)
-# An odd-row col=4 reaches x=378..462 past the 420px minimum width; the panel
-# clips that edge, while the fresh party layout is intentionally one row.
+# Keep the odd-row offset from the pointy-top grid while allowing the panel's
+# layout-provided width to determine how much of the grid is visible.
 const ODD_ROW_OFFSET := TILE_SIZE.x * 0.5
 const REGION_LABEL_FONT_SIZE := 11
 const PLAYER_COLOR := Color(0.16, 0.38, 0.78)

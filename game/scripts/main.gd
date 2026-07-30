@@ -174,6 +174,10 @@ func apply_model(model: SnapshotModel) -> void:
 			player_duchy_status["parties"],
 		]
 	_render_region_list(model.regions)
+	_render_world_views(model)
+
+
+func _render_world_views(model: SnapshotModel) -> void:
 	%MapView.render_model(model)
 	%BattleView.render_model(model)
 

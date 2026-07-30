@@ -20,14 +20,12 @@ const SIDE_SILHOUETTE_MARGIN := Vector2(20, 14)
 
 
 func render_model(model: SnapshotModel) -> void:
-	_clear_view()
-	if model == null:
+	_reset_and_hide_view()
+	var battle: Variant = _battle_data(model)
+	if battle == null:
 		return
 
-	var battle: Variant = model.battle
-	if not battle is Dictionary:
-		return
-
+	visible = true
 	%BattleResultLabel.text = _result_text(battle.get("result"))
 	var hexes: Variant = battle.get("hexes")
 	if not hexes is Array:
@@ -41,11 +39,18 @@ func _render_hexes(hexes: Array) -> void:
 			_add_tile(hex)
 
 
-func _clear_view() -> void:
+func _reset_and_hide_view() -> void:
+	visible = false
 	for child: Node in get_children():
 		if str(child.name).begins_with("HexTile_"):
 			child.free()
 	%BattleResultLabel.text = ""
+
+
+func _battle_data(model: SnapshotModel) -> Variant:
+	if model == null or not model.battle is Dictionary:
+		return null
+	return model.battle
 
 
 func _add_tile(hex: Dictionary) -> void:

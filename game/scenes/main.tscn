@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/map_view.gd" id="2_map_view"]
 [ext_resource type="Script" path="res://scripts/battle_view.gd" id="3_battle_view"]
+[ext_resource type="Texture2D" path="res://assets/strategic_map_background.png" id="4_map_background"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -20,68 +21,99 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_constants/separation = 8
 
-[node name="StatusControls" type="VBoxContainer" parent="MainLayout"]
+[node name="ContentRow" type="HBoxContainer" parent="MainLayout"]
 layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 8
 
-[node name="DateLabel" type="Label" parent="MainLayout/StatusControls"]
+[node name="StatusControls" type="VBoxContainer" parent="MainLayout/ContentRow"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="DateLabel" type="Label" parent="MainLayout/ContentRow/StatusControls"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(420, 24)
 layout_mode = 2
 
-[node name="StartStatusLabel" type="Label" parent="MainLayout/StatusControls"]
+[node name="StartStatusLabel" type="Label" parent="MainLayout/ContentRow/StatusControls"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(420, 24)
 layout_mode = 2
 
-[node name="RegionList" type="ItemList" parent="MainLayout/StatusControls"]
+[node name="RegionList" type="ItemList" parent="MainLayout/ContentRow/StatusControls"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(420, 180)
+custom_minimum_size = Vector2(420, 140)
 layout_mode = 2
 
-[node name="MapView" type="Control" parent="MainLayout/StatusControls"]
+[node name="ResultLabel" type="Label" parent="MainLayout/ContentRow/StatusControls"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(420, 180)
+custom_minimum_size = Vector2(420, 24)
 layout_mode = 2
-clip_contents = true
-script = ExtResource("2_map_view")
 
-[node name="BattleView" type="Control" parent="MainLayout/StatusControls"]
+[node name="PlayerDuchyStatusLabel" type="Label" parent="MainLayout/ContentRow/StatusControls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(420, 24)
+layout_mode = 2
+
+[node name="LastOrderStatusLabel" type="Label" parent="MainLayout/ContentRow/StatusControls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(420, 24)
+layout_mode = 2
+
+[node name="PlayerPartyPositionLabel" type="Label" parent="MainLayout/ContentRow/StatusControls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(420, 24)
+layout_mode = 2
+
+[node name="MapAndBattle" type="VBoxContainer" parent="MainLayout/ContentRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="MapView" type="Control" parent="MainLayout/ContentRow/MapAndBattle"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(420, 240)
 layout_mode = 2
+size_flags_vertical = 3
+clip_contents = true
+script = ExtResource("2_map_view")
+
+[node name="StrategicMapBackground" type="TextureRect" parent="MainLayout/ContentRow/MapAndBattle/MapView"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("4_map_background")
+expand_mode = 1
+stretch_mode = 6
+modulate = Color(0.72, 0.57, 0.38, 1)
+mouse_filter = 2
+
+[node name="BattleView" type="Control" parent="MainLayout/ContentRow/MapAndBattle"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(420, 240)
+layout_mode = 2
+size_flags_vertical = 3
+visible = false
 clip_contents = true
 script = ExtResource("3_battle_view")
 
-[node name="BattleResultLabel" type="Label" parent="MainLayout/StatusControls/BattleView"]
+[node name="BattleResultLabel" type="Label" parent="MainLayout/ContentRow/MapAndBattle/BattleView"]
 unique_name_in_owner = true
 layout_mode = 0
 offset_top = 204.0
 offset_right = 420.0
 offset_bottom = 228.0
 
-[node name="ResultLabel" type="Label" parent="MainLayout/StatusControls"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(420, 24)
-layout_mode = 2
-
-[node name="PlayerDuchyStatusLabel" type="Label" parent="MainLayout/StatusControls"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(420, 24)
-layout_mode = 2
-
-[node name="LastOrderStatusLabel" type="Label" parent="MainLayout/StatusControls"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(420, 24)
-layout_mode = 2
-
-[node name="PlayerPartyPositionLabel" type="Label" parent="MainLayout/StatusControls"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(420, 24)
-layout_mode = 2
-
 [node name="OrderControls" type="VBoxContainer" parent="MainLayout"]
 layout_mode = 2
+theme_override_constants/separation = 4
 
 [node name="OrderButtons" type="HBoxContainer" parent="MainLayout/OrderControls"]
 layout_mode = 2

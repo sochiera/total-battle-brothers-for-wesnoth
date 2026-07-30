@@ -242,11 +242,13 @@ func _party_mark_sample(
 
 
 func _count_tiles(map_view: Node) -> int:
-	# Absolute tile count under MapView (catches re-render accumulation that
-	# first-label-per-name collection would miss).
+	# Absolute RegionTile_* count under MapView (catches re-render accumulation
+	# that first-label-per-name collection would miss). Non-tile children
+	# (e.g. a map-panel background TextureRect) must not inflate the count —
+	# the public contract is one region tile per region, not all Controls.
 	var count := 0
 	for child: Node in map_view.get_children():
-		if child is Control:
+		if child is Control and str(child.name).begins_with("RegionTile_"):
 			count += 1
 	return count
 

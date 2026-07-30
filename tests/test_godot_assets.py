@@ -31,6 +31,8 @@ REQUIRED_ASSETS: tuple[str, ...] = (
     "assets/terrain_hills.png",
     "assets/side_attacker.png",
     "assets/side_defender.png",
+    # G94.1d: strategic screen panel background (task-539).
+    "assets/strategic_map_background.png",
 )
 
 _LICENSE_RE = re.compile(r"\bCC0\b|\bCC-BY\b|\bCC BY\b", re.IGNORECASE)
