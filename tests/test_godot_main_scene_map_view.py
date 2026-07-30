@@ -564,6 +564,67 @@ def test_map_view_marks_ai_party_with_distinct_unit_silhouette_from_party_owner(
     )
 
 
+def test_map_view_army_projection_replaces_previous_party_set_on_rerender():
+    """Re-render must show only the current regions[*].party army set.
+
+    Realistic defect existing gates miss: MapView paints a correct dual-army
+    snapshot once (player@Alpha + AI@Gamma) but on the next model — when both
+    armies relocate — leaves the previous silhouettes (stale Gamma AI, duplicate
+    player mark, or both). Static AI-silhouette and player-only mark-move gates
+    never re-render a multi-army ``region.party`` projection, so leftover /
+    incomplete refresh stays green while the map lies after orders.
+
+    Uses probe samples ``party_army_before_move`` / ``party_army_after_move``
+    (own fixtures; not the AI silhouette gate sample).
+    """
+    imported = _import_game_assets()
+    assert imported.returncode == 0, (
+        f"godot --import failed rc={imported.returncode} "
+        f"stderr={imported.stderr!r} stdout={imported.stdout!r}"
+    )
+
+    payload = _load_map_view()
+    assert payload["map_view_found"] is True, payload
+    assert payload["has_render_model"] is True, payload
+
+    before = payload.get("party_army_before_move") or {}
+    after = payload.get("party_army_after_move") or {}
+    assert before.get("skipped") is not True, (
+        "party_army_before_move was skipped; cannot assert pre-move army set, "
+        f"before={before!r}"
+    )
+    assert after.get("skipped") is not True, (
+        "party_army_after_move was skipped; cannot assert replaced army set, "
+        f"after={after!r}"
+    )
+
+    before_by = before.get("unit_paths_by_region") or {}
+    after_by = after.get("unit_paths_by_region") or {}
+
+    # Pre-move reference only: which regions carried a party before the move.
+    # Path/owner checks live on the after set (this gate's real contract).
+    assert set(before_by) == {"Alpha", "Gamma"}, before_by
+
+    # After move: player→Beta, AI→Alpha; Gamma empty. No stale Gamma mark,
+    # no leftover player@Alpha, exactly one silhouette per present party.
+    assert after_by.get("Beta") == PARTY_PLAYER_UNIT_RES, (
+        f"player party on Beta after move must show {PARTY_PLAYER_UNIT_RES}, "
+        f"got unit_paths_by_region={after_by!r}"
+    )
+    assert after_by.get("Alpha") == PARTY_AI_UNIT_RES, (
+        f"AI party on Alpha after move must show {PARTY_AI_UNIT_RES}, "
+        f"got unit_paths_by_region={after_by!r}"
+    )
+    assert "Gamma" not in after_by, (
+        f"region that no longer has a party must not keep a silhouette "
+        f"(stale previous projection), got unit_paths_by_region={after_by!r}"
+    )
+    assert set(after_by) == {"Alpha", "Beta"}, (
+        f"army projection after re-render must be exactly the current party "
+        f"set {{Alpha:ai, Beta:player}}, got {after_by!r}"
+    )
+
+
 def test_map_view_adjacent_tiles_form_connected_grid_fitting_panel():
     """Grid neighbours must touch (no card gaps); five-region line fits MapView.
 

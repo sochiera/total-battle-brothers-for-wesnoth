@@ -149,6 +149,36 @@ func _run() -> void:
 			map_view, regions_owner_parties, names_owner_parties, "Alpha"
 		)
 
+	# G96.1a complete army projection: own before/after samples (not the AI
+	# silhouette gate's party_owner_silhouettes). Before: player@Alpha, AI@Gamma.
+	# After: player@Beta, AI@Alpha (Gamma empty). player_party_region null so
+	# marks come only from regions[*].party. After is a deep copy of before with
+	# only party fields changed — geometry/settlement stay fixed.
+	var regions_army_before_move: Array = []
+	for region: Variant in regions_owner_parties:
+		regions_army_before_move.append((region as Dictionary).duplicate(true))
+	var regions_army_after_move: Array = []
+	for region: Variant in regions_army_before_move:
+		regions_army_after_move.append((region as Dictionary).duplicate(true))
+	for region: Variant in regions_army_after_move:
+		var r: Dictionary = region
+		match str(r["name"]):
+			"Alpha":
+				r["party"] = {"owner": "ai"}
+			"Beta":
+				r["party"] = {"owner": "player"}
+			"Gamma":
+				r["party"] = null
+	var party_army_before_move: Dictionary = {"skipped": true}
+	var party_army_after_move: Dictionary = {"skipped": true}
+	if has_render:
+		party_army_before_move = await _party_owner_silhouette_sample(
+			map_view, regions_army_before_move, names_owner_parties, null
+		)
+		party_army_after_move = await _party_owner_silhouette_sample(
+			map_view, regions_army_after_move, names_owner_parties, null
+		)
+
 	# G94.1a: five-region line matches a fresh headless party (col 0..4, row 0).
 	# Real snapshot names exercise label readability; short R0.. aliases would
 	# hide overflow when TILE_SIZE shrinks. Settlements on outposts/keeps match
@@ -212,6 +242,8 @@ func _run() -> void:
 		"party_on_beta": party_on_beta,
 		"party_direct_gamma": party_direct_gamma,
 		"party_owner_silhouettes": party_owner_silhouettes,
+		"party_army_before_move": party_army_before_move,
+		"party_army_after_move": party_army_after_move,
 		"line_regions": regions_line,
 		"line_tiles": tiles_line,
 		"map_view_rect": {
