@@ -179,6 +179,55 @@ func _run() -> void:
 			map_view, regions_army_after_move, names_owner_parties, null
 		)
 
+	# G96.1a composition: silhouettes on keep / outpost / bare region at once.
+	# Public contract is scale + placement (not snapshot rules) — synthetic
+	# multi-party is OK so one render exposes all three settlement states.
+	# Row-1 "south" (listed after row-0) exposes vertical grid pitch: MapView
+	# paints in model.regions order, so later children cover the lower
+	# TILE_SIZE.y - GRID_PITCH.y strip of the row above.
+	var regions_composition: Array = [
+		{
+			"name": "player lands",
+			"col": 0,
+			"row": 0,
+			"owner": "player",
+			"settlement": {"name": "Player Keep"},
+			"party": {"owner": "player"},
+		},
+		{
+			"name": "player outpost",
+			"col": 1,
+			"row": 0,
+			"owner": "player",
+			"settlement": {"name": "Player Outpost"},
+			"party": {"owner": "ai"},
+		},
+		{
+			"name": "border",
+			"col": 2,
+			"row": 0,
+			"owner": null,
+			"settlement": null,
+			"party": {"owner": "player"},
+		},
+		{
+			"name": "south",
+			"col": 0,
+			"row": 1,
+			"owner": null,
+			"settlement": null,
+			"party": null,
+		},
+	]
+	var names_composition: Array[String] = []
+	for region: Variant in regions_composition:
+		names_composition.append(region["name"])
+	var party_silhouette_composition: Dictionary = {"skipped": true}
+	if has_render:
+		party_silhouette_composition = await _party_silhouette_composition_sample(
+			map_view, regions_composition, names_composition
+		)
+
 	# G94.1a: five-region line matches a fresh headless party (col 0..4, row 0).
 	# Real snapshot names exercise label readability; short R0.. aliases would
 	# hide overflow when TILE_SIZE shrinks. Settlements on outposts/keeps match
@@ -244,6 +293,7 @@ func _run() -> void:
 		"party_owner_silhouettes": party_owner_silhouettes,
 		"party_army_before_move": party_army_before_move,
 		"party_army_after_move": party_army_after_move,
+		"party_silhouette_composition": party_silhouette_composition,
 		"line_regions": regions_line,
 		"line_tiles": tiles_line,
 		"map_view_rect": {
@@ -304,6 +354,87 @@ func _party_unit_path_on_tile(tile: Control) -> String:
 		):
 			return path
 	return ""
+
+
+func _party_silhouette_composition_sample(
+	map_view: Node,
+	regions: Array,
+	names: Array[String],
+) -> Dictionary:
+	# Geometry of unit silhouettes for composition review: local rect inside the
+	# tile, unit path (player vs AI), observed Settlement layer path. Placement
+	# and scale are the public contract; node names are not.
+	#
+	# Occlusion of local y ∈ [GRID_PITCH.y, TILE_SIZE.y) assumes MapView paint
+	# order: later children cover earlier ones, and model.regions is iterated
+	# without sorting by row. This fixture therefore lists row=1 after row=0 so
+	# the lower band of row 0 is covered by the south tile's opaque Ground.
+	# A snapshot that places a higher row before a lower one would reverse
+	# z-order; that is a pre-existing MapView stacking contract, not asserted
+	# here as a product policy.
+	if not map_view.has_method("render_model"):
+		_fail("silhouette composition sample requires MapView.render_model")
+		return {}
+	map_view.call("render_model", _model(regions, null))
+	await process_frame
+	await process_frame
+	# One pass: markers per region + observed vertical pitch from row 0→1.
+	var markers_by_region: Dictionary = {}
+	var grid_pitch_y: Variant = null
+	var row0_y: Variant = null
+	var row1_y: Variant = null
+	for region: Variant in regions:
+		if not region is Dictionary:
+			continue
+		var region_name: String = str(region["name"])
+		var label: Label = PartyMapMark.find_label_with_text(map_view, region_name)
+		if label == null:
+			continue
+		var tile: Control = PartyMapMark.tile_control(label, map_view)
+		var tile_rect: Rect2 = tile.get_global_rect()
+		var row: int = int(region.get("row", 0))
+		var gy: float = tile_rect.position.y
+		if row == 0 and row0_y == null:
+			row0_y = gy
+		elif row == 1 and row1_y == null:
+			row1_y = gy
+		var settlement_path: Variant = _settlement_layer_path_on_tile(tile)
+		var unit_markers: Array = []
+		for layer: Variant in _collect_texture_layers(tile):
+			if not layer is Dictionary:
+				continue
+			var path: String = str(layer.get("path", ""))
+			if not (
+				path.ends_with("party_player_unit.png")
+				or path.ends_with("party_ai_unit.png")
+			):
+				continue
+			var copy: Dictionary = (layer as Dictionary).duplicate()
+			copy["tile_name"] = region_name
+			copy["tile_w"] = tile_rect.size.x
+			copy["tile_h"] = tile_rect.size.y
+			copy["settlement_path"] = settlement_path
+			unit_markers.append(copy)
+		if not unit_markers.is_empty():
+			markers_by_region[region_name] = unit_markers
+	if row0_y != null and row1_y != null:
+		grid_pitch_y = float(row1_y) - float(row0_y)
+	return {
+		"markers_by_region": markers_by_region,
+		"grid_pitch_y": grid_pitch_y,
+	}
+
+
+func _settlement_layer_path_on_tile(tile: Control) -> Variant:
+	# Observed Settlement TextureRect path, or null when the tile has no settlement.
+	for layer: Variant in _collect_texture_layers(tile):
+		if not layer is Dictionary:
+			continue
+		if str(layer.get("name", "")) != "Settlement":
+			continue
+		var spath: String = str(layer.get("path", ""))
+		return spath if not spath.is_empty() else null
+	return null
 
 
 func _party_mark_sample(
@@ -423,18 +554,28 @@ func _collect_texture_layers(node: Node) -> Array:
 	if not path.is_empty() and node is CanvasItem:
 		var size: Vector2 = Vector2.ZERO
 		var mouse_filter: int = -1
+		# Local position relative to immediate parent (RegionTile_* for markers).
+		var local_x: float = 0.0
+		var local_y: float = 0.0
 		if node is Control:
 			var ctrl: Control = node as Control
 			size = ctrl.get_global_rect().size
 			mouse_filter = ctrl.mouse_filter
+			local_x = ctrl.position.x
+			local_y = ctrl.position.y
 		elif node is Sprite2D:
 			var sp: Sprite2D = node as Sprite2D
 			if sp.texture != null:
 				var tex_size: Vector2 = sp.texture.get_size()
 				size = Vector2(tex_size.x * absf(sp.scale.x), tex_size.y * absf(sp.scale.y))
+			local_x = sp.position.x
+			local_y = sp.position.y
 		layers.append({
 			"path": path,
 			"name": str(node.name),
+			# Local to parent (RegionTile_* for markers). w/h are global rect size.
+			"local_x": local_x,
+			"local_y": local_y,
 			"w": size.x,
 			"h": size.y,
 			"mouse_filter": mouse_filter,

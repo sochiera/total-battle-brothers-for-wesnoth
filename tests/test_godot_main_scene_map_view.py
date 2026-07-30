@@ -625,6 +625,149 @@ def test_map_view_army_projection_replaces_previous_party_set_on_rerender():
     )
 
 
+def test_map_view_army_silhouettes_use_readable_subordinate_composition():
+    """Keep/outpost/bare: shared subordinate scale, visible lower-edge badge.
+
+    Realistic defects existing gates miss:
+    - MapView still pins both unit silhouettes to a fixed top-right corner
+      (``y = PARTY_MARKER_MARGIN``) with only a weak ``w < tile_w`` /
+      ``h < tile_h`` check on the player path. Identity/path/re-render gates
+      never observe local (x, y) or dual-side geometry on keep, outpost, and
+      bare-region tiles at once, so a badge on the keep/outpost roof mass
+      stays green while G96.1a composition fails.
+    - Bottom-right placement against full ``TILE_SIZE.y`` leaves the lower
+      band of the badge under the next row's opaque Ground
+      (``GRID_PITCH.y < TILE_SIZE.y``). A local ``y+h <= tile_h`` check on a
+      single-row fixture never sees that occlusion.
+    """
+    imported = _import_game_assets()
+    assert imported.returncode == 0, (
+        f"godot --import failed rc={imported.returncode} "
+        f"stderr={imported.stderr!r} stdout={imported.stdout!r}"
+    )
+
+    payload = _load_map_view()
+    assert payload["map_view_found"] is True, payload
+    assert payload["has_render_model"] is True, payload
+
+    sample = payload.get("party_silhouette_composition") or {}
+    assert sample.get("skipped") is not True, (
+        "party_silhouette_composition was skipped; cannot assert scale/placement, "
+        f"sample={sample!r}"
+    )
+    by_region = sample.get("markers_by_region") or {}
+    grid_pitch_y = sample.get("grid_pitch_y")
+    assert grid_pitch_y is not None, (
+        "composition sample must expose observed vertical grid pitch from a "
+        f"row-below neighbour, sample={sample!r}"
+    )
+    pitch_y = float(grid_pitch_y)
+    assert pitch_y > 0.0, sample
+
+    # Three settlement states from the probe fixture (keep / outpost / bare).
+    # settlement_path is the observed Settlement layer texture (not a name-rule
+    # reimplementation of MapView._settlement_texture).
+    expected = {
+        "player lands": {
+            "settlement_path": _SETTLEMENT_KEEP_RES,
+            "path": PARTY_PLAYER_UNIT_RES,
+        },
+        "player outpost": {
+            "settlement_path": _SETTLEMENT_OUTPOST_RES,
+            "path": PARTY_AI_UNIT_RES,
+        },
+        "border": {
+            "settlement_path": None,
+            "path": PARTY_PLAYER_UNIT_RES,
+        },
+    }
+    assert set(by_region) == set(expected), (
+        f"composition sample must expose keep/outpost/bare markers, "
+        f"got regions={sorted(by_region)!r}"
+    )
+
+    observed: list[dict] = []
+    for region_name, expect in expected.items():
+        markers = by_region.get(region_name) or []
+        assert len(markers) == 1, (
+            f"{region_name!r} must carry exactly one unit silhouette, "
+            f"got {markers!r}"
+        )
+        marker = markers[0]
+        assert marker.get("settlement_path") == expect["settlement_path"], (
+            f"{region_name!r}: Settlement layer path must be "
+            f"{expect['settlement_path']!r}, got {marker!r}"
+        )
+        assert marker.get("path") == expect["path"], (
+            f"{region_name!r} must use {expect['path']}, got {marker!r}"
+        )
+        observed.append(marker)
+
+    # Shared scale language: both sides (and all settlement states) match.
+    sizes = {(float(m["w"]), float(m["h"])) for m in observed}
+    assert len(sizes) == 1, (
+        f"player and AI silhouettes must share one subordinate scale, "
+        f"got sizes={sizes!r} markers={observed!r}"
+    )
+
+    # Fixture must actually expose the overlapping strip (pitch < tile AABB).
+    # If pitch_y == tile_h the lower-edge occlusion regression becomes vacuous.
+    sample_tile_h = float(observed[0]["tile_h"])
+    assert pitch_y < sample_tile_h - _LAYOUT_TOL_PX, (
+        "composition fixture must yield pitch_y < tile_h so next-row Ground "
+        f"occlusion is live; pitch_y={pitch_y} tile_h={sample_tile_h} "
+        f"sample={sample!r}"
+    )
+
+    for marker in observed:
+        tile_w = float(marker["tile_w"])
+        tile_h = float(marker["tile_h"])
+        x = float(marker["local_x"])
+        y = float(marker["local_y"])
+        w = float(marker["w"])
+        h = float(marker["h"])
+        region_name = str(marker.get("tile_name"))
+
+        # Still a badge, not a full-tile body layer / UI chrome stretch.
+        assert w < tile_w * 0.5 and h < tile_h * 0.6, (
+            f"{region_name!r}: silhouette must stay subordinate to the tile "
+            f"(max ~half width / 60% height), got {marker!r}"
+        )
+        # Fully inside the tile AABB (no spill into neighbours).
+        assert x >= -_LAYOUT_TOL_PX and y >= -_LAYOUT_TOL_PX, marker
+        assert x + w <= tile_w + _LAYOUT_TOL_PX, marker
+        assert y + h <= tile_h + _LAYOUT_TOL_PX, marker
+        # Visible strip only: next row's Ground covers local y ∈ [pitch_y, tile_h).
+        # Bottom-right against full TILE_SIZE.y (y+h ≈ 40, pitch_y ≈ 36) fails here.
+        assert y + h <= pitch_y + _LAYOUT_TOL_PX, (
+            f"{region_name!r}: silhouette bottom must stay within the visible "
+            f"vertical pitch (not under the next row's opaque ground); "
+            f"local_y+h={y + h} pitch_y={pitch_y} tile_h={tile_h} marker={marker!r}"
+        )
+
+        # Public composition: badge must not sit above the tile mid-line, so
+        # keep/outpost roof mass and the centered region name stay readable.
+        # With bottom-edge placement against GRID_PITCH.y the geometric center
+        # may land exactly on mid (TILE_SIZE.y/2); that is accepted. A top-right
+        # roof pin (legacy banner) fails. This is "not upper half", not a
+        # demand for strict lower-half slack below the axis.
+        center_y = y + h * 0.5
+        assert center_y >= tile_h * 0.5 - _LAYOUT_TOL_PX, (
+            f"{region_name!r}: silhouette center must not sit above the tile "
+            f"mid-line (not on keep/outpost roof / upper mass); "
+            f"center_y={center_y} mid={tile_h * 0.5} marker={marker!r}"
+        )
+        # Keep the centered label zone free: badge center outside the middle
+        # third on at least one axis (corner/edge badge, not over the name).
+        center_x = x + w * 0.5
+        in_mid_x = tile_w / 3.0 < center_x < 2.0 * tile_w / 3.0
+        in_mid_y = tile_h / 3.0 < center_y < 2.0 * tile_h / 3.0
+        assert not (in_mid_x and in_mid_y), (
+            f"{region_name!r}: silhouette must not cover the tile center "
+            f"(region name / building mass); marker={marker!r}"
+        )
+
+
 def test_map_view_adjacent_tiles_form_connected_grid_fitting_panel():
     """Grid neighbours must touch (no card gaps); five-region line fits MapView.
 

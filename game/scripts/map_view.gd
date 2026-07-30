@@ -26,7 +26,9 @@ const SETTLEMENT_OUTPOST_TEXTURE := preload("res://assets/settlement_outpost.png
 const PARTY_PLAYER_UNIT_TEXTURE := preload("res://assets/party_player_unit.png")
 const PARTY_AI_UNIT_TEXTURE := preload("res://assets/party_ai_unit.png")
 const PARTY_MARKER_SIZE := Vector2(16, 16)
-const PARTY_MARKER_MARGIN := Vector2(8, 8)
+# The vertical grid pitch is shorter than a tile, so the lower-edge margin is
+# measured against the visible part of this row rather than the full AABB.
+const PARTY_MARKER_MARGIN := Vector2(8, 4)
 const PLAYER_PARTY_MARKER_NAME := "PlayerPartyMarker"
 const AI_PARTY_MARKER_NAME := "AIPartyMarker"
 
@@ -98,12 +100,18 @@ func _party_owner_for_region(region: Dictionary, player_party_region: Variant) -
 func _add_party_marker(tile: Control, owner: Variant) -> void:
 	var marker := TileTextureLayer.stretched(_party_texture(owner))
 	marker.name = PLAYER_PARTY_MARKER_NAME if owner == "player" else AI_PARTY_MARKER_NAME
-	marker.position = Vector2(
-		TILE_SIZE.x - PARTY_MARKER_SIZE.x - PARTY_MARKER_MARGIN.x,
-		PARTY_MARKER_MARGIN.y,
-	)
+	marker.position = _party_marker_position()
 	marker.size = PARTY_MARKER_SIZE
 	tile.add_child(marker)
+
+
+func _party_marker_position() -> Vector2:
+	var right_edge := TILE_SIZE.x - PARTY_MARKER_MARGIN.x
+	var bottom_edge := GRID_PITCH.y - PARTY_MARKER_MARGIN.y
+	return Vector2(
+		right_edge - PARTY_MARKER_SIZE.x,
+		bottom_edge - PARTY_MARKER_SIZE.y,
+	)
 
 
 func _party_texture(owner: Variant) -> Texture2D:
