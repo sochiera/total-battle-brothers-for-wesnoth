@@ -38,7 +38,32 @@ func _init() -> void:
 		_fail("NextTurnButton is disabled")
 		return
 
-	print(PREFIX, JSON.stringify({"name": button.name, "text": button.text, "disabled": button.disabled}))
+	var btn := button as Button
+	var icon_path := ""
+	var icon_w := 0
+	var icon_h := 0
+	var has_icon := false
+	if btn.icon != null and btn.icon is Texture2D:
+		var tex := btn.icon as Texture2D
+		has_icon = true
+		icon_path = tex.resource_path
+		icon_w = int(tex.get_width())
+		icon_h = int(tex.get_height())
+
+	print(
+		PREFIX,
+		JSON.stringify(
+			{
+				"name": btn.name,
+				"text": btn.text,
+				"disabled": btn.disabled,
+				"has_icon": has_icon,
+				"icon_path": icon_path,
+				"icon_w": icon_w,
+				"icon_h": icon_h,
+			}
+		)
+	)
 	call_deferred("quit", 0)
 
 

@@ -38,3 +38,11 @@ Creative Commons Zero 1.0 Universal (CC0).
 | File | Source page | Author | License |
 |------|-------------|--------|---------|
 | strategic_map_background.png | https://commons.wikimedia.org/wiki/File:Pergament.1.jpg | Membeth | CC0 |
+
+The next-turn icon is adapted from the Game-icons **hourglass** by Lorc.
+The SVG source is available at:
+https://github.com/game-icons/icons/blob/master/lorc/hourglass.svg
+
+| File | Source page/file | Author | License |
+|------|------------------|--------|---------|
+| icon_next_turn.png | https://github.com/game-icons/icons/blob/master/lorc/hourglass.svg | Lorc | CC-BY 3.0 |

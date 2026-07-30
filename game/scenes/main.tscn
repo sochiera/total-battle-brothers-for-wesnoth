@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/map_view.gd" id="2_map_view"]
 [ext_resource type="Script" path="res://scripts/battle_view.gd" id="3_battle_view"]
 [ext_resource type="Texture2D" path="res://assets/strategic_map_background.png" id="4_map_background"]
+[ext_resource type="Texture2D" path="res://assets/icon_next_turn.png" id="5_next_turn_icon"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -122,6 +123,7 @@ layout_mode = 2
 unique_name_in_owner = true
 custom_minimum_size = Vector2(140, 40)
 layout_mode = 2
+icon = ExtResource("5_next_turn_icon")
 text = "Następna tura"
 
 [node name="DevelopButton" type="Button" parent="MainLayout/OrderControls/OrderButtons"]

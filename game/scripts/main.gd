@@ -60,8 +60,12 @@ func bind_client(client) -> void:
 
 
 func _refresh_bound_client() -> void:
-	if _client != null and _client.has_method("snapshot_model"):
+	if _has_bound_client() and _client.has_method("snapshot_model"):
 		refresh_from_bridge(_client)
+
+
+func _has_bound_client() -> bool:
+	return _client != null
 
 
 func _connect_pressed_once(button: Button, handler: Callable) -> void:
@@ -70,7 +74,7 @@ func _connect_pressed_once(button: Button, handler: Callable) -> void:
 
 
 func _on_next_turn_button_pressed() -> void:
-	if _client != null:
+	if _has_bound_client():
 		advance_turn_from_bridge(_client)
 
 
@@ -95,21 +99,21 @@ func _on_assault_button_pressed() -> void:
 
 
 func _on_save_game_button_pressed() -> void:
-	if _client != null:
+	if _has_bound_client():
 		_apply_save_load_result(
 			_client.save_party(_save_path), SAVE_SUCCESS_STATUS, SAVE_FAILURE_STATUS
 		)
 
 
 func _on_load_game_button_pressed() -> void:
-	if _client != null:
+	if _has_bound_client():
 		_apply_save_load_result(
 			_client.load_party(_save_path), LOAD_SUCCESS_STATUS, LOAD_FAILURE_STATUS
 		)
 
 
 func _send_bound_order(order_name: String) -> void:
-	if _client != null:
+	if _has_bound_client():
 		send_order_from_bridge(_client, order_name)
 
 
