@@ -86,6 +86,10 @@ static func click_region(tree: SceneTree, map_view: Node, region_name: String) -
 
 
 static func find_region_tile(map_view: Node, region_name: String) -> Control:
+	# Public MapView naming first; label-text fallback covers legacy bare labels.
+	var by_name: Control = PartyMapMark.find_region_tile(map_view, region_name)
+	if by_name != null:
+		return by_name
 	var label: Label = PartyMapMark.find_label_with_text(map_view, region_name)
 	if label == null:
 		return null

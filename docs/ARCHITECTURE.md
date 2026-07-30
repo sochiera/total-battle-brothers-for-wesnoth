@@ -658,6 +658,28 @@ musi zakończyć się przez `call_deferred("quit", …)`. Błąd przed tym wywo�
 pozostawia drzewo scen aktywne, dlatego pythonowa bramka
 `run_godot_script` ma limit czasu i propaguje `subprocess.TimeoutExpired`.
 
+**MapView — nazwy regionów i własność (G99.1b):** `game/scripts/map_view.gd`
+rysuje na każdym `RegionTile_<canonical>` widoczny węzeł `RegionNamePlate`
+(Label ze stylem tabliczki) jako **wąski pasek u góry** kafla (nie full-rect),
+żeby nie zasłaniać osady, armii ani ramki. Tekst prezentacyjny mapuje
+kanoniczne id świeżej partii na polskie etykiety (`player lands`→`Ziemie
+gracza`, `player outpost`→`Posterunek gracza`, `border`→`Pogranicze`,
+`ai outpost`→`Posterunek wroga`, `ai lands`→`Ziemie wroga`); nieznane nazwy
+zostają kanoniczne. Sygnał `region_selected` i rozkazy nadal emitują wyłącznie
+nazwę kanoniczną. Czcionka i wysokość tabliczki są ograniczane do **płytkiego paska** (ułamek
+wysokości kafla) oraz do prześwitu nad AABB markera armii (prawy dół), żeby
+`RegionNamePlate` nie przecinał `PlayerPartyMarker` / `AIPartyMarker` przy
+dłuższych etykietach PL. Ukryty `RegionCanonicalId` utrzymuje starsze sondy
+szukające kafla po `Label.text`.
+
+Własność: `Ground.modulate` to **lekki tint**
+(`WHITE.lerp(owner_color, OWNER_GROUND_TINT_STRENGTH)`), a pełny kolor
+właściciela nosi mały `OwnershipMark` (ColorRect, lewy dolny róg kafla, meta
+`owner_kind` ∈ {player, neutral, ai}). Legenda `OwnerLegend` jest dzieckiem
+`MapView` (nie kafla) w lewym dolnym rogu panelu: trzy swatche + etykiety
+Gracz / Neutralny / Wróg. Sondy e2e wyprowadzają tożsamość regionu z
+`RegionTile_<canonical>` / `RegionCanonicalId` — nie z tekstu `RegionNamePlate`.
+
 
 ## RNG / rdzeń (G67.3a)
 

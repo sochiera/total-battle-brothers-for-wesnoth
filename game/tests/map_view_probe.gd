@@ -268,11 +268,22 @@ func _run() -> void:
 	for region: Variant in regions_line:
 		names_line.append(region["name"])
 	var tiles_line: Array = []
+	# G99.1b: Polish RegionNamePlate presentation + click still emits canonical.
+	var region_name_plates: Dictionary = {"skipped": true}
+	var presentation_selection: Dictionary = {"skipped": true}
+	var ownership_presentation: Dictionary = {"skipped": true}
 	if has_render:
-		map_view.call("render_model", _model(regions_line))
+		map_view.call("render_model", _model(regions_line, names_line[0]))
 		await process_frame
 		await process_frame
 		tiles_line = _collect_tiles(map_view, names_line)
+		presentation_selection = await _presentation_selection_sample(
+			map_view, names_line
+		)
+		region_name_plates = _observe_region_name_plates(map_view, names_line)
+		ownership_presentation = _observe_ownership_presentation(
+			map_view, names_line
+		)
 	var map_rect: Rect2 = (map_view as Control).get_global_rect()
 
 	# G97.1d before G97.1c: hover sample needs a MapView with empty durable
@@ -314,6 +325,9 @@ func _run() -> void:
 		"party_silhouette_composition": party_silhouette_composition,
 		"line_regions": regions_line,
 		"line_tiles": tiles_line,
+		"region_name_plates": region_name_plates,
+		"presentation_selection": presentation_selection,
+		"ownership_presentation": ownership_presentation,
 		"map_view_rect": {
 			"x": map_rect.position.x,
 			"y": map_rect.position.y,
@@ -655,10 +669,179 @@ func _region_for_frame(
 
 
 func _find_region_tile(map_view: Node, region_name: String) -> Control:
+	# Prefer public RegionTile_* naming so presentation labels may differ from
+	# the canonical identity used by region_selected / orders (G99.1b).
+	var by_name: Control = PartyMapMark.find_region_tile(map_view, region_name)
+	if by_name != null:
+		return by_name
 	var label: Label = PartyMapMark.find_label_with_text(map_view, region_name)
 	if label == null:
 		return null
 	return PartyMapMark.tile_control(label, map_view)
+
+
+func _observe_region_name_plates(
+	map_view: Node, names: Array[String]
+) -> Dictionary:
+	# Public G99.1b observation: each RegionTile_* carries a visible
+	# RegionNamePlate and a presentation label string (may differ from
+	# canonical name). No mapping logic here — Python asserts Polish table.
+	var plates: Array = []
+	for region_name: String in names:
+		var tile: Control = _find_region_tile(map_view, region_name)
+		if tile == null:
+			plates.append({
+				"canonical": region_name,
+				"tile_found": false,
+				"name_plate_visible": false,
+				"presentation": "",
+			})
+			continue
+		var plate_nodes: Array = PartyMapMark.find_all_named(tile, "RegionNamePlate")
+		var plate_visible := false
+		var presentation := ""
+		var plate_payload: Dictionary = {
+			"canonical": region_name,
+			"tile_found": true,
+			"name_plate_visible": false,
+			"presentation": "",
+		}
+		for plate: Node in plate_nodes:
+			if not (plate is CanvasItem):
+				continue
+			if not (plate as CanvasItem).is_visible_in_tree():
+				continue
+			plate_visible = true
+			var plate_label: Label = PartyMapMark.find_first_label(plate)
+			if plate_label != null:
+				presentation = plate_label.text
+			var plate_rect: Rect2 = (plate as Control).get_global_rect()
+			var tile_rect: Rect2 = tile.get_global_rect()
+			var collisions: Array[String] = []
+			# Settlement is a transparent full-tile TextureRect, so its AABB
+			# cannot represent the visible building pixels. Party markers are
+			# compact controls whose AABBs are a meaningful overlap contract.
+			for sibling_name: String in ["PlayerPartyMarker", "AIPartyMarker"]:
+				for sibling: Node in PartyMapMark.find_all_named(tile, sibling_name):
+					if sibling is Control:
+						var sibling_rect: Rect2 = (sibling as Control).get_global_rect()
+						if plate_rect.intersects(sibling_rect):
+							collisions.append(sibling_name)
+			plate_payload = {
+				"canonical": region_name,
+				"tile_found": true,
+				"name_plate_visible": plate_visible,
+				"presentation": presentation,
+				"rect": _rect_payload(plate_rect),
+				"tile_rect": _rect_payload(tile_rect),
+				"collisions": collisions,
+			}
+			break
+		if presentation.is_empty():
+			var any_label: Label = PartyMapMark.find_first_label(tile)
+			if any_label != null:
+				presentation = any_label.text
+		plate_payload["presentation"] = presentation
+		plates.append(plate_payload)
+	return {"skipped": false, "plates": plates}
+
+
+func _observe_ownership_presentation(
+	map_view: Node, names: Array[String]
+) -> Dictionary:
+	var tiles: Array = []
+	for region_name: String in names:
+		var tile: Control = _find_region_tile(map_view, region_name)
+		if tile == null:
+			continue
+		var marks: Array = PartyMapMark.find_all_named(tile, "OwnershipMark")
+		var grounds: Array = PartyMapMark.find_all_named(tile, "Ground")
+		var mark_payloads: Array = []
+		for mark: Node in marks:
+			if mark is ColorRect:
+				mark_payloads.append({
+					"owner_kind": str(mark.get_meta("owner_kind", "")),
+					"color": _color_key((mark as ColorRect).color),
+					"rect": _rect_payload((mark as Control).get_global_rect()),
+				})
+		var ground_modulate := ""
+		if not grounds.is_empty() and grounds[0] is CanvasItem:
+			ground_modulate = _color_key((grounds[0] as CanvasItem).modulate)
+		tiles.append({
+			"canonical": region_name,
+			"marks": mark_payloads,
+			"ground_modulate": ground_modulate,
+			"tile_rect": _rect_payload(tile.get_global_rect()),
+		})
+	var legends: Array = PartyMapMark.find_all_named(map_view, "OwnerLegend")
+	var legend_payload: Dictionary = {"count": legends.size()}
+	if legends.size() == 1 and legends[0] is Control:
+		var legend: Control = legends[0] as Control
+		var rows: Array = []
+		for kind: String in ["player", "neutral", "ai"]:
+			var swatches: Array = PartyMapMark.find_all_named(
+				legend, "OwnerLegendSwatch_%s" % kind
+			)
+			var labels: Array = PartyMapMark.find_all_named(
+				legend, "OwnerLegendLabel_%s" % kind
+			)
+			var swatch_color := ""
+			if swatches.size() == 1 and swatches[0] is ColorRect:
+				swatch_color = _color_key((swatches[0] as ColorRect).color)
+			rows.append({
+				"kind": kind,
+				"swatch_count": swatches.size(),
+				"swatch_color": swatch_color,
+				"label": (
+					(labels[0] as Label).text
+					if labels.size() == 1 and labels[0] is Label
+					else ""
+				),
+			})
+		legend_payload["rows"] = rows
+		legend_payload["rect"] = _rect_payload(legend.get_global_rect())
+		legend_payload["parent_is_map_view"] = legend.get_parent() == map_view
+	return {"skipped": false, "tiles": tiles, "legend": legend_payload}
+
+
+func _rect_payload(rect: Rect2) -> Dictionary:
+	return {
+		"x": rect.position.x,
+		"y": rect.position.y,
+		"w": rect.size.x,
+		"h": rect.size.y,
+	}
+
+
+func _presentation_selection_sample(
+	map_view: Node, names: Array[String]
+) -> Dictionary:
+	# G99.1b: clicking a tile that shows a Polish plate must still emit the
+	# unchanged canonical region name on region_selected.
+	if not map_view.has_method("render_model"):
+		return {"skipped": true}
+	if names.is_empty():
+		return {"skipped": true, "reason": "no regions"}
+	var has_signal: bool = map_view.has_signal("region_selected")
+	var emitted: Array = []
+	if has_signal:
+		map_view.connect(
+			"region_selected",
+			func(region_name: Variant) -> void:
+				emitted.append(str(region_name))
+		)
+	var target: String = names[0]
+	var tile: Control = _find_region_tile(map_view, target)
+	await _simulate_region_click(map_view, target)
+	await process_frame
+	await process_frame
+	return {
+		"skipped": false,
+		"has_region_selected_signal": has_signal,
+		"clicked_canonical": target,
+		"tile_found": tile != null,
+		"emitted": emitted.duplicate(),
+	}
 
 
 func _simulate_region_click(map_view: Node, region_name: String) -> void:
@@ -898,10 +1081,11 @@ func _count_tiles(map_view: Node) -> int:
 func _collect_tiles(map_view: Node, expected_names: Array[String]) -> Array:
 	var tiles: Array = []
 	for region_name: String in expected_names:
-		var label: Label = PartyMapMark.find_label_with_text(map_view, region_name)
-		if label == null:
+		# Tile identity is RegionTile_{canonical}; presentation label may differ.
+		var tile: Control = _find_region_tile(map_view, region_name)
+		if tile == null:
 			continue
-		var tile: Control = PartyMapMark.tile_control(label, map_view)
+		var label: Label = PartyMapMark.find_first_label(tile)
 		var rect: Rect2 = tile.get_global_rect()
 		# Public observation: each TextureRect/Sprite2D under the tile with path,
 		# size, and mouse_filter (R87.1: full-tile stretch layers must fill the
@@ -926,14 +1110,19 @@ func _collect_tiles(map_view: Node, expected_names: Array[String]) -> Array:
 		# Unwrapped single-line content size (ignores the FULL_RECT control size).
 		# Used by G94.1a to catch names wider than the tile that spill into
 		# neighbours when clip_text is off.
-		var label_content: Vector2 = label.get_minimum_size()
+		var label_content: Vector2 = (
+			label.get_minimum_size() if label != null else Vector2.ZERO
+		)
+		var label_visible: bool = (
+			label != null and label.is_visible_in_tree()
+		)
 		tiles.append({
 			"name": region_name,
 			"x": rect.position.x,
 			"y": rect.position.y,
 			"w": rect.size.x,
 			"h": rect.size.y,
-			"visible": tile.is_visible_in_tree() and label.is_visible_in_tree(),
+			"visible": tile.is_visible_in_tree() and label_visible,
 			"visual": _visual_key(tile),
 			"has_texture": not texture_paths.is_empty(),
 			"texture_paths": texture_paths,

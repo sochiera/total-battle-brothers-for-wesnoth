@@ -44,10 +44,15 @@ static func marked_party_regions(map_view: Node, expected_names: Array[String]) 
 	var marked: Array = []
 	var markers: Array = find_all_named(map_view, "PlayerPartyMarker")
 	for region_name: String in expected_names:
-		var label: Label = find_label_with_text(map_view, region_name)
-		if label == null:
+		# Resolve by public tile name / RegionCanonicalId, not presentation plate text.
+		var tile: Control = find_region_tile(map_view, region_name)
+		if tile == null:
+			var label: Label = find_label_with_text(map_view, region_name)
+			if label == null:
+				continue
+			tile = tile_control(label, map_view)
+		if tile == null:
 			continue
-		var tile: Control = tile_control(label, map_view)
 		for marker: Node in markers:
 			if not (marker is CanvasItem):
 				continue
@@ -95,11 +100,42 @@ static func tile_control(label: Label, map_view: Node) -> Control:
 	return label
 
 
+## Resolve RegionTile_* by canonical region name (public MapView tile naming).
+## Prefer this over label-text lookup so presentation labels (Polish plates)
+## can diverge from the identity used by selection / orders.
+static func find_region_tile(map_view: Node, region_name: String) -> Control:
+	if map_view == null or region_name.is_empty():
+		return null
+	var expected := "RegionTile_%s" % region_name
+	for child: Node in map_view.get_children():
+		if child is Control and str(child.name) == expected:
+			return child as Control
+	# Nested layouts / alternate parenting: recursive by name.
+	for tile: Node in _region_tile_nodes(map_view):
+		if str(tile.name) == expected:
+			return tile as Control
+	return null
+
+
 static func find_label_with_text(root: Node, text: String) -> Label:
 	if root is Label and (root as Label).text == text:
 		return root as Label
 	for child: Node in root.get_children():
 		var found: Label = find_label_with_text(child, text)
+		if found != null:
+			return found
+	return null
+
+
+## First Label under root (depth-first). Used when presentation text is on a
+## RegionNamePlate rather than a bare tile Label equal to the canonical name.
+static func find_first_label(root: Node) -> Label:
+	if root == null:
+		return null
+	if root is Label:
+		return root as Label
+	for child: Node in root.get_children():
+		var found: Label = find_first_label(child)
 		if found != null:
 			return found
 	return null
@@ -114,19 +150,37 @@ static func find_all_named(root: Node, node_name: String) -> Array:
 	return found
 
 
-## Collect region display names from MapView RegionTile_* controls.
-## Recursive on descendants so a nested tile layout still works; label→tile
-## attribution for markers/frames uses find_label_with_text/tile_control and
-## stays hierarchy-agnostic for known names.
+## Collect canonical region ids from MapView RegionTile_* controls.
+## Identity is the public tile node name ``RegionTile_<canonical>`` (or a
+## hidden ``RegionCanonicalId`` label). Presentation text on RegionNamePlate
+## is intentionally ignored so order/e2e probes keep the core contract names.
 static func region_names_from_map(map_view: Node) -> Array[String]:
 	var names: Array[String] = []
 	for tile: Node in _region_tile_nodes(map_view):
-		for nested: Node in tile.get_children():
-			if nested is Label:
-				var text: String = (nested as Label).text
-				if not text.is_empty() and not names.has(text):
-					names.append(text)
+		var canonical := canonical_region_id(tile)
+		if not canonical.is_empty() and not names.has(canonical):
+			names.append(canonical)
 	return names
+
+
+## Canonical id for a RegionTile_* node: strip the public prefix, else read
+## RegionCanonicalId, else fall back to any Label (legacy bare-label tiles).
+static func canonical_region_id(tile: Node) -> String:
+	if tile == null:
+		return ""
+	var node_name := str(tile.name)
+	const PREFIX := "RegionTile_"
+	if node_name.begins_with(PREFIX) and node_name.length() > PREFIX.length():
+		return node_name.substr(PREFIX.length())
+	for child: Node in tile.get_children():
+		if child is Label and str(child.name) == "RegionCanonicalId":
+			var identity_text: String = (child as Label).text
+			if not identity_text.is_empty():
+				return identity_text
+	var label: Label = find_first_label(tile)
+	if label != null and not label.text.is_empty():
+		return label.text
+	return ""
 
 
 static func _region_tile_nodes(root: Node) -> Array:

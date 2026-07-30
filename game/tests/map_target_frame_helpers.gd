@@ -62,10 +62,14 @@ static func framed_regions(map_view: Node, names: Array[String]) -> Array:
 	var frames: Array = collect_target_frame_nodes(map_view)
 	var framed: Array = []
 	for region_name: String in names:
-		var label: Label = PartyMapMark.find_label_with_text(map_view, region_name)
-		if label == null:
-			continue
-		var tile: Control = PartyMapMark.tile_control(label, map_view)
+		# Prefer RegionTile_<canonical> so Polish RegionNamePlate text is not
+		# mistaken for the order/selection identity used by e2e contracts.
+		var tile: Control = PartyMapMark.find_region_tile(map_view, region_name)
+		if tile == null:
+			var label: Label = PartyMapMark.find_label_with_text(map_view, region_name)
+			if label == null:
+				continue
+			tile = PartyMapMark.tile_control(label, map_view)
 		if tile == null:
 			continue
 		for frame: Node in frames:

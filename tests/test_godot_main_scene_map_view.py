@@ -81,6 +81,12 @@ def _rects_overlap(a: dict, b: dict) -> bool:
     return True
 
 
+def _rgba_key_components(value: object) -> tuple[float, float, float, float]:
+    components = tuple(float(part) for part in str(value).split(","))
+    assert len(components) == 4, f"expected RGBA color key, got {value!r}"
+    return components
+
+
 # Overlay / marker layer names that are not ground or settlement body fill.
 # G97.1c selection frame is full-rect but must not enter body path assertions.
 _BODY_LAYER_EXCLUDE_NAMES = frozenset(
@@ -1064,6 +1070,179 @@ def test_map_view_five_region_map_is_enlarged_and_centered_in_panel():
     )
 
 
+# G99.1b: presentation Polish labels on RegionNamePlate; selection stays canonical.
+# Canonical names match the fresh-party line fixture / session_snapshot.json.
+REGION_PRESENTATION_PL: dict[str, str] = {
+    "player lands": "Ziemie gracza",
+    "player outpost": "Posterunek gracza",
+    "border": "Pogranicze",
+    "ai outpost": "Posterunek wroga",
+    "ai lands": "Ziemie wroga",
+}
+
+
+def test_map_view_region_name_plates_use_polish_presentation_not_canonical_id():
+    """Five tiles show Polish plates; click still emits canonical region ids.
+
+    Realistic defect existing gates miss: MapView paints bare Labels with the
+    English/canonical snapshot names (``player lands`` …) and has no visible
+    ``RegionNamePlate``. Geometry, selection, and party gates only require some
+    label text equal to the identity they look up — they never require the
+    public Polish presentation table, and never check that presentation can
+    diverge from the string carried by ``region_selected`` / march target.
+    A map that stays fully English with identity-as-label stays green while the
+    G99.1b player-facing contract fails.
+    """
+    payload = _load_map_view()
+    assert payload["map_view_found"] is True, payload
+    assert payload["has_render_model"] is True, payload
+
+    plates_sample = payload.get("region_name_plates") or {}
+    assert plates_sample.get("skipped") is not True, (
+        "region_name_plates was skipped (no MapView.render_model); "
+        f"cannot assert presentation plates, sample={plates_sample!r}"
+    )
+    plates = plates_sample.get("plates") or []
+    by_canonical = {
+        str(entry.get("canonical")): entry
+        for entry in plates
+        if isinstance(entry, dict)
+    }
+    assert set(by_canonical) == set(REGION_PRESENTATION_PL), (
+        f"probe must report plates for the five fresh-party canonical regions, "
+        f"got {sorted(by_canonical)!r} expected {sorted(REGION_PRESENTATION_PL)!r}"
+    )
+
+    for canonical, polish in REGION_PRESENTATION_PL.items():
+        entry = by_canonical[canonical]
+        assert entry.get("tile_found") is True, (
+            f"RegionTile_{canonical} must exist for plate observation, got {entry!r}"
+        )
+        assert entry.get("name_plate_visible") is True, (
+            f"region {canonical!r} must expose a visible RegionNamePlate, got {entry!r}"
+        )
+        presentation = str(entry.get("presentation") or "")
+        assert presentation == polish, (
+            f"region {canonical!r} must show Polish presentation {polish!r} "
+            f"on its name plate, got {presentation!r} (entry={entry!r})"
+        )
+        assert presentation != canonical, (
+            f"presentation for {canonical!r} must not be the raw canonical id "
+            f"(selection/orders keep that identity), got {presentation!r}"
+        )
+
+    selection = payload.get("presentation_selection") or {}
+    assert selection.get("skipped") is not True, (
+        "presentation_selection was skipped; cannot assert click still uses "
+        f"canonical ids, sample={selection!r}"
+    )
+    assert selection.get("has_region_selected_signal") is True, selection
+    assert selection.get("tile_found") is True, selection
+    clicked = str(selection.get("clicked_canonical") or "")
+    assert clicked in REGION_PRESENTATION_PL, (
+        f"presentation_selection must click a known line region, got {clicked!r}"
+    )
+    emitted = selection.get("emitted") or []
+    assert emitted == [clicked], (
+        f"click on a Polish-plated tile must emit region_selected once with the "
+        f"unchanged canonical name {clicked!r}, not the presentation label; "
+        f"got emitted={emitted!r} sample={selection!r}"
+    )
+
+
+def test_map_view_name_plates_are_narrow_and_avoid_tile_content():
+    payload = _load_map_view()
+    sample = payload.get("region_name_plates") or {}
+    assert sample.get("skipped") is not True, sample
+    plates = sample.get("plates") or []
+    assert len(plates) == 5, plates
+    for plate in plates:
+        rect = plate.get("rect") or {}
+        tile = plate.get("tile_rect") or {}
+        assert float(rect.get("w", 0)) > 0 and float(rect.get("h", 0)) > 0, plate
+        assert float(rect["w"]) < float(tile["w"]), (
+            f"RegionNamePlate must be a narrow banner, not full-tile: {plate!r}"
+        )
+        assert float(rect["h"]) < float(tile["h"]) * 0.5, (
+            f"RegionNamePlate must stay in a shallow top band: {plate!r}"
+        )
+        assert plate.get("collisions") == [], (
+            f"plate must not cover a party marker: {plate!r}"
+        )
+
+
+def test_map_view_uses_small_owner_marks_soft_tint_and_external_legend():
+    payload = _load_map_view()
+    sample = payload.get("ownership_presentation") or {}
+    assert sample.get("skipped") is not True, sample
+    tiles = sample.get("tiles") or []
+    assert len(tiles) == 5, tiles
+
+    expected_kinds = {
+        "player lands": "player",
+        "player outpost": "player",
+        "border": "neutral",
+        "ai outpost": "ai",
+        "ai lands": "ai",
+    }
+    mark_colors: dict[str, str] = {}
+    for tile in tiles:
+        canonical = str(tile.get("canonical"))
+        marks = tile.get("marks") or []
+        assert len(marks) == 1, (
+            f"{canonical!r} must have exactly one small OwnershipMark: {tile!r}"
+        )
+        mark = marks[0]
+        assert mark.get("owner_kind") == expected_kinds[canonical], tile
+        owner_kind = str(mark["owner_kind"])
+        mark_color = str(mark["color"])
+        previous_color = mark_colors.setdefault(owner_kind, mark_color)
+        assert mark_color == previous_color, (
+            f"OwnershipMark color must be consistent for {owner_kind!r}: {tile!r}"
+        )
+        rect = mark.get("rect") or {}
+        tile_rect = tile.get("tile_rect") or {}
+        mark_w = float(rect.get("w", 0))
+        mark_h = float(rect.get("h", 0))
+        tile_short_side = min(
+            float(tile_rect.get("w", 0)), float(tile_rect.get("h", 0))
+        )
+        assert 0 < mark_w <= tile_short_side * 0.20, tile
+        assert 0 < mark_h <= tile_short_side * 0.20, tile
+        ground_rgba = _rgba_key_components(tile.get("ground_modulate"))
+        mark_rgba = _rgba_key_components(mark_color)
+        ground_distance_from_white = sum((1.0 - value) ** 2 for value in ground_rgba[:3])
+        mark_distance_from_white = sum((1.0 - value) ** 2 for value in mark_rgba[:3])
+        assert ground_distance_from_white < mark_distance_from_white, (
+            f"ground tint must be softer (closer to white) than owner mark: {tile!r}"
+        )
+    assert set(mark_colors) == {"player", "neutral", "ai"}
+    assert len(set(mark_colors.values())) == 3, mark_colors
+
+    legend = sample.get("legend") or {}
+    assert legend.get("count") == 1, legend
+    assert legend.get("parent_is_map_view") is True, legend
+    rows = legend.get("rows") or []
+    assert [(row.get("kind"), row.get("label")) for row in rows] == [
+        ("player", "Gracz"),
+        ("neutral", "Neutralny"),
+        ("ai", "Wróg"),
+    ], rows
+    assert all(row.get("swatch_count") == 1 for row in rows), rows
+    assert {
+        str(row["kind"]): str(row["swatch_color"]) for row in rows
+    } == mark_colors, (
+        f"legend swatches must explain the same colors used by OwnershipMark: "
+        f"rows={rows!r}, marks={mark_colors!r}"
+    )
+    legend_rect = legend.get("rect") or {}
+    for tile in payload.get("line_tiles") or []:
+        assert not _rects_overlap(legend_rect, tile), (
+            f"OwnerLegend must be outside every tile AABB: legend={legend_rect!r} "
+            f"tile={tile!r}"
+        )
+
+
 # G94.1b: decorative strategic ground variants (not mechanical terrain).
 DECORATIVE_GROUND_ASSETS: tuple[str, ...] = (
     "map_ground_grass.png",
@@ -1780,4 +1959,3 @@ def test_map_view_region_hover_distinct_from_selection():
         "post-re-render hover must not emit region_selected, "
         f"got {sample.get('emitted_after_hover_post_rerender')!r}"
     )
-
