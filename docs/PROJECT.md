@@ -82,15 +82,15 @@ placeholderach, licencje są kompletne, człowiek akceptuje screenshoty, a
 - **Spójny widok bitwy — DOMKNIĘTY** (K98): wspólny heks pointy-top, drzewo
   i skała jako dekoracje, sylwetki stron z PŻ oraz własna rama z polskim
   wynikiem są widoczne w natywnym kliencie.
+- **Hierarchia ekranu strategicznego — DOMKNIĘTA** (K99): większa mapa, polskie
+  tabliczki, karta statusu, kontrastowy pasek rozkazów; bez `RegionList`.
 - `tbbui` (HTML/SVG) — **wyłącznie narzędzie diagnostyczne**, nie docelowy klient.
 
-**Najbliższa luka do celu: hierarchia ekranu strategicznego nadal wygląda jak
-formularz diagnostyczny.** Żywe screenshoty 1152×648 z 2026-07-30 pokazują
-maleńki pas mapy przy górnej krawędzi wielkiego pergaminu, surową szarą
-kolumnę z drugą listą regionów, angielskie nazwy świata i ciemne ikony na
-domyślnych przyciskach. K99 powiększa i centruje mapę, daje polskie tabliczki,
-średniowieczną kartę statusu i kontrastowy pasek rozkazów. Nie wymaga zmian
-snapshotu ani mechaniki.
+**Najbliższa luka: po K99 hierarchia stoi, lecz UI wciąż wpuszcza angielskie
+tokeny i pustą scenografię.** Screenshoty 1152×648 (`task-565-*`): status
+`Położenie oddziału: player lands`, panel wyboru i „Wyrusz: …” z kanonicznymi
+nazwami, pas heksów w pustym pergaminie. K100 — prezentacja PL, teatr mapy,
+karta wyboru, tło okna; bez snapshotu/mostu/reguł.
 
 ## Ograniczenia i priorytety
 - **[W]** Rdzeń `tbb` jest **jedynym źródłem reguł gry**. Godot nie duplikuje
@@ -213,6 +213,9 @@ skróconej; pełne uzasadnienia w `docs/DECISIONS.md` i w `BACKLOG.md`.)*
     duplikację listy regionów, domyślne szare chrome i słaby kontrast ikon.
     Następne przyrosty oceniamy na pełnym ekranie świeżej partii i bitwy, nie
     tylko na wyciętym komponencie.
+26. **Tabliczki na kaflach ≠ pełna warstwa PL.** K99 zostawiło status, panel
+    wyboru i „Wyrusz: …” z tokenami (`player lands`, `Player Keep`). Jedno
+    mapowanie PL dla *wszystkich* etykiet; kanon tylko w kontrakcie.
 
 ## Klimat, ton, kierunek wizualny
 Średniowiecze **bez magii i fantastyki**, surowy i realistyczny ton. **[W]**
@@ -233,7 +236,8 @@ technicznym i może być wymieniane etapami. **[P]**
 Obowiązująca kolejność poprawy: (1) spójność/różnorodność kafli mapy,
 (2) osady i budynki, (3) tło/kompozycja mapy, (4) ikony rozkazów,
 (5) sylwetki i strony, (6) zaznaczenie celu/stan gry, (7) spójność obu widoków,
-(8) hierarchia pełnego ekranu strategicznego.
+(8) hierarchia pełnego ekranu strategicznego, (9) polska warstwa prezentacji
+i teatr mapy (domknięcie residualnego prototypu po K99).
 **[W]**
 
 ## Sugestie autora briefu
@@ -270,9 +274,11 @@ Obowiązująca kolejność poprawy: (1) spójność/różnorodność kafli mapy,
     legalnym krokiem, blokadą i wznowieniem.
 11. ~~Spójny widok bitwy~~ (K98) — **domknięty**: bazowy heks, dekoracje,
     jednostki z PŻ i polski panel wyniku.
-12. **Spójna hierarchia ekranu strategicznego** (K99) — następny batch:
-    większa mapa, polskie tabliczki, karta statusu i pasek rozkazów.
-13. **Nowa partia z UI po zakończonej grze** — most ma `new_game`, scena nie ma
+12. ~~Spójna hierarchia ekranu strategicznego~~ (K99) — **zrobione**: większa
+    mapa, polskie tabliczki, karta statusu i pasek rozkazów.
+13. **Polska prezentacja i teatr mapy** (K100) — następny batch: etykiety PL
+    poza kaflem, rama teatru mapy, karta wyboru i spójne tło okna.
+14. **Nowa partia z UI po zakończonej grze** — most ma `new_game`, scena nie ma
    przycisku. Po K92 gracz kończy partię regularnie, więc brak restartu zacznie
    boleć. Odłożone do zakończenia priorytetu graficznego.
 
