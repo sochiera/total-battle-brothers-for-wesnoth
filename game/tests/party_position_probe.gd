@@ -18,7 +18,7 @@ class StubClient extends RefCounted:
 	func advance_turn() -> SnapshotModel:
 		return model
 
-	func send_order(_order_name: String) -> SnapshotModel:
+	func send_order(_order_name: String, _target: String = "") -> SnapshotModel:
 		return model
 
 

@@ -15,8 +15,10 @@ const LOAD_FAILURE_STATUS := "Nie udało się wczytać partii."
 var _client: Variant = null
 var _save_path := ""
 var _current_regions: Array = []
+var _default_march_label := ""
 
 func _ready() -> void:
+	_default_march_label = %MarchButton.text
 	%MapView.region_selected.connect(_on_region_selected)
 	start_session(BridgeConfig.from_environment())
 
@@ -93,7 +95,9 @@ func _on_muster_button_pressed() -> void:
 
 
 func _on_march_button_pressed() -> void:
-	_send_bound_order("march")
+	var selected_region_name: String = %MapView.selected_region_name
+	var order_name := "march" if selected_region_name.is_empty() else "move"
+	_send_bound_order(order_name, selected_region_name)
 
 
 func _on_assault_button_pressed() -> void:
@@ -114,9 +118,9 @@ func _on_load_game_button_pressed() -> void:
 		)
 
 
-func _send_bound_order(order_name: String) -> void:
+func _send_bound_order(order_name: String, target: String = "") -> void:
 	if _has_bound_client():
-		send_order_from_bridge(_client, order_name)
+		send_order_from_bridge(_client, order_name, target)
 
 
 func refresh_from_bridge(client) -> bool:
@@ -133,8 +137,8 @@ func develop_from_bridge(client) -> bool:
 	return send_order_from_bridge(client, "develop")
 
 
-func send_order_from_bridge(client, order_name: String) -> bool:
-	var model: SnapshotModel = client.send_order(order_name)
+func send_order_from_bridge(client, order_name: String, target: String = "") -> bool:
+	var model: SnapshotModel = client.send_order(order_name, target)
 	if _apply_model_if_present(model):
 		_set_last_order_status(OrderResult.status_text(_last_order_result(client)))
 		return true
@@ -203,6 +207,13 @@ func _render_region_list(regions: Array) -> void:
 
 func _on_region_selected(region_name: String) -> void:
 	_update_selected_region_panel(_current_regions)
+	_update_march_button_label(region_name)
+
+
+func _update_march_button_label(region_name: String) -> void:
+	%MarchButton.text = (
+		_default_march_label if region_name.is_empty() else "Wyrusz: %s" % region_name
+	)
 
 
 func _update_selected_region_panel(regions: Array) -> void:

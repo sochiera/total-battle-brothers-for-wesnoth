@@ -16,7 +16,7 @@ class StubClient extends RefCounted:
 		models = next_models
 		last_order_results = next_order_results
 
-	func send_order(order_name: String) -> Variant:
+	func send_order(order_name: String, _target: String = "") -> Variant:
 		orders.append(order_name)
 		_last_order_result = last_order_results.pop_front()
 		return models.pop_front()

@@ -15,7 +15,7 @@ class StubClient extends RefCounted:
 		model = next_model
 		_last_order_result = next_order_result
 
-	func send_order(order_name: String) -> Variant:
+	func send_order(order_name: String, _target: String = "") -> Variant:
 		orders.append(order_name)
 		return model
 
@@ -30,7 +30,7 @@ class NoOrderResultClient extends RefCounted:
 	func _init(next_model: Variant) -> void:
 		model = next_model
 
-	func send_order(order_name: String) -> Variant:
+	func send_order(order_name: String, _target: String = "") -> Variant:
 		orders.append(order_name)
 		return model
 

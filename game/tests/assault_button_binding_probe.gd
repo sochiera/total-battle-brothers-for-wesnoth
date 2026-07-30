@@ -10,7 +10,7 @@ class StubClient extends RefCounted:
 	var orders: Array[String] = []
 	var _last_order_result: Variant
 
-	func send_order(order_name: String) -> Variant:
+	func send_order(order_name: String, _target: String = "") -> Variant:
 		orders.append(order_name)
 		_last_order_result = {
 			"kind": "battle",

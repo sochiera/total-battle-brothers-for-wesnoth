@@ -13,7 +13,7 @@ class TrackingScene extends MainScene:
 		calls.append("develop_from_bridge")
 		return true
 
-	func send_order_from_bridge(_client, order_name: String) -> bool:
+	func send_order_from_bridge(_client, order_name: String, _target: String = "") -> bool:
 		calls.append("send_order_from_bridge:%s" % order_name)
 		return true
 
