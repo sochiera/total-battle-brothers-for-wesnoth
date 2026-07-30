@@ -52,47 +52,35 @@ placeholderach, licencje są kompletne, człowiek akceptuje screenshoty, a
 - Most `tbbbridge`: snapshot JSON (OUT), komendy i rozkazy gracza (IN), protokół
   JSON Lines na stdio, `serve` / `serve --resume`, round-trip persystencji
   (save/load całej sesji łącznie z RNG i `last_battle`) — **gotowe**.
-- Klient Godot 4 w `game/`: `SnapshotModel`, `BridgeClient` (jedno-strzałowe
-  wywołania procesu mostu + plik stanu), scena z datą, listą regionów, statusem
-  księstwa, położeniem oddziału, statusem ostatniego rozkazu oraz przyciskami
-  „Następna tura", „Rozwiń osadę", „Rekrutuj jednostkę", „Zbierz oddział",
-  „Wyrusz w pole", „Szturmuj osadę".
+- Klient Godot 4 w `game/`: `SnapshotModel`, trwały przez plik `BridgeClient`,
+  oba widoki, statusy oraz komplet bieżących rozkazów gracza.
 - **Klient bez terminala, oba widoki, zapis/odczyt** (K82–K86): domyślna
   konfiguracja bez `TBB_*`, układ w kontenerach, `MapView` (kafel na region po
   `col`/`row`), `BattleView` (heksy po `(q, r)`), „Zapisz/Wczytaj partię".
-- **Techniczne minimum assetów — GOTOWE, jakość wizualna — NIEOSIĄGNIĘTA**
-  (K87): 8 plików PNG z dwóch paczek CC0 (Kenney Hexagon Pack — kafle;
-  Kenney „RTS Pack: Medieval" — sylwetki stron), atrybucja per plik w
-  `game/assets/CREDITS.md`, `.godot/` poza gitem. To dowodzi ścieżki importu,
-  nie domknięcia grafiki.
-- **Pakiet na Linuksa — DOMKNIĘTY** (K88, 7 z 7): preset „Linux/X11" x86-64,
-  `src/` mostu rozwiązywane odpornie na eksport, `scripts/package.sh`, `.pck`
-  bez sond, wpis `.desktop` i **e2e startu bez terminala na samym pakiecie** —
-  formalne kryterium „natywna aplikacja bez terminala" odhaczone.
-- **Bitwa zawsze daje wynik — DOMKNIĘTE** (K89): bitwa nierozstrzygnięta jest
-  legalnym wynikiem rdzenia, most niesie własny `outcome`, scena mówi „szturm
-  nierozstrzygnięty" ze stratami, a jednostka omija własnego ogłuszonego.
-- **Partia da się rozegrać — DOMKNIĘTE** (K90): symetryczny start, los bohatera
-  gracza rozstrzygany tą samą regułą co u AI, `is_over` osiągalne, wynik po
-  polsku i wyróżniony na ekranie.
-- **Naturalne ruchy i koniec partii — DOMKNIĘTE** (K91): rekrut wzmacnia
-  obronę, zwycięstwo jest widoczne i trwałe, a dalsze kliknięcia po końcu gry
-  dostają jednoznaczny polski komunikat.
-- **Obrona osady — DOMKNIĘTA** (G92.1): oddział stojący w regionie osady walczy
-  z garnizonem, ocalali wracają do właściwych składów, zwycięski szturm nie
-  zakleszcza świata, a e2e na żywym moście przechodzi dwie kolejne tury.
+- **Minimum assetów — GOTOWE, próg wizualny — NIEOSIĄGNIĘTY** (K87): pliki
+  Kenney CC0 z atrybucją dowodzą importu, nie domknięcia oprawy.
+- **Pakiet Linuksa — DOMKNIĘTY** (K88): x86-64, `.desktop`, `package.sh` i e2e
+  startu bez terminala na artefakcie odbiorcy.
+- **Pętla partii — DOMKNIĘTA** (K89–K91): bitwa zawsze ma legalny, widoczny
+  wynik; symetryczny start prowadzi do zwycięstwa/przegranej; koniec jest trwały.
+- **Obrona osady — DOMKNIĘTA** (G92.1): armia w osadzie walczy z garnizonem,
+  a zwycięski szturm nie zakleszcza świata.
 - **Minimalny wieloosadowy świat — DOMKNIĘTY** (G92.2a): pięć połączonych
   regionów, pusty region graniczny i po dwie osady na stronę są wystawione
   istniejącym snapshotem i rysowane przez `MapView`. Utrata jednej osady nie
   kończy księstwa.
+- **Strategiczna kompozycja — DOMKNIĘTA** (K94): pięć stykających się heksów,
+  trzy dekoracyjne podłoża, osobne keep/outpost, pergaminowe tło i układ
+  mieszczący wszystkie przyciski przy 1152×648.
+- **Ikony rozkazów — W TOKU** (K95): klepsydra „Następnej tury” ustaliła
+  spójny język; ikony osady, pola oraz zapisu/odczytu są już zaplanowane.
 - `tbbui` (HTML/SVG) — **wyłącznie narzędzie diagnostyczne**, nie docelowy klient.
 
-**Najbliższa luka do celu: klient ma pliki graficzne, lecz nadal wygląda jak
-prototyp.** Review uruchomionej świeżej partii 2026-07-30 przy 1152×648 pokazało
-pięć odseparowanych ikon regionów na szarej pustce, nazwy nałożone na zamki,
-domyślny tekstowy interfejs, pusty `BattleView` zajmujący większość wysokości
-oraz przyciski poza dolną krawędzią. K94 najpierw scala i różnicuje kafle,
-rozróżnia keep/outpost oraz naprawia tło i kompozycję.
+**Najbliższa luka do celu: armie na mapie nadal są prototypowym znacznikiem.**
+Po K94 i rozpoczęciu K95 mapa oraz sterowanie idą w dobrym kierunku, ale gracz
+ma tylko małą chorągiew własnego oddziału, a oddział AI nie ma znacznika.
+Snapshot już niesie `region.party.owner`, więc następny przyrost może pokazać
+dwie różne sylwetki bez nowej mechaniki ani kontraktu.
 
 G93.1a-1 zdążyło dostarczyć bezpieczny prymityw ruchu do sąsiada (commit
 `c0470da`) i zostaje. Niezaczęte task-531…535 wracają do planisty: ich batch ma
@@ -211,6 +199,10 @@ skróconej; pełne uzasadnienia w `docs/DECISIONS.md` i w `BACKLOG.md`.)*
     ujawnił, że K87 zostawił rozłączne kafle, napisy na budynkach, dominującą
     szarą pustkę i sterowanie poza ekranem. Od teraz każdy przyrost oprawy ma
     dowód wizualny; test `Texture2D` pozostaje tylko bramką techniczną.
+22. **K94 potwierdził, że oprawę można poprawiać bez ruszania reguł.** Połączona
+    siatka, warianty dekoracyjne, osady i kompozycja wykorzystały istniejący
+    snapshot. Tak samo właściciel obu armii jest już w `region.party.owner`;
+    najpierw rysujemy go czytelnie, zamiast rozszerzać most.
 
 ## Klimat, ton, kierunek wizualny
 Średniowiecze **bez magii i fantastyki**, surowy i realistyczny ton. **[W]**
@@ -268,14 +260,16 @@ Obowiązująca kolejność poprawy: (1) spójność/różnorodność kafli mapy,
 7. ~~Minimalny wieloosadowy świat~~ (G92.2a) — **domknięty**: pięć regionów,
    dwie osady na stronę, trwająca partia po utracie pierwszej osady oraz e2e
    naturalnego szturmu na żywym moście.
-8. **Strategiczna mapa przestaje wyglądać jak prototyp** (K94) — cztery
-   graficzne przyrosty: połączona siatka, warianty podłoża, osobne keep/outpost
-   oraz tło i kompozycja mieszcząca sterowanie. Każdy ma screenshot/review i
-   per-plikowe licencje.
-9. **Pierwszy celowany rozkaz z mapy** (G93.1a) — ukończony jest tylko
+8. ~~Strategiczna mapa przestaje wyglądać jak prototyp~~ (K94) — **zrobione**:
+   siatka, podłoża, keep/outpost oraz tło i kompozycja.
+9. **Ikony rozkazów** (K95) — pierwsza gotowa; trzy kolejne zadania są już
+   zaplanowane i pozostają właściwą kolejką.
+10. **Sylwetki obu armii na mapie** (G96.1a) — następny cienki przyrost,
+    oparty na istniejącym `region.party.owner`.
+11. **Pierwszy celowany rozkaz z mapy** (G93.1a) — ukończony jest tylko
    bezpieczny prymityw rdzenia. Most, wybór i e2e wracają do planowania dopiero
    w batchu zgodnym z bramką grafiki.
-10. **Nowa partia z UI po zakończonej grze** — most ma `new_game`, scena nie ma
+12. **Nowa partia z UI po zakończonej grze** — most ma `new_game`, scena nie ma
    przycisku. Po K92 gracz kończy partię regularnie, więc brak restartu zacznie
    boleć. Odłożone do zakończenia priorytetu graficznego.
 

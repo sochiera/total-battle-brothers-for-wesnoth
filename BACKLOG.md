@@ -925,7 +925,7 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
       task-534 (wybór steruje ruchem), task-535 (e2e). Zachowane jako informacja
       o kolejce, nie są zgodą na wykonanie nieprawidłowego batcha.
 
-## Kamień milowy 94 — strategiczna mapa przestaje wyglądać jak prototyp — PRIORYTET
+## Kamień milowy 94 — strategiczna mapa przestaje wyglądać jak prototyp — UKOŃCZONY
 > **Najcieńszy następny plasterek po zmianie briefu: dokładnie cztery zadania
 > graficzne, zero mechanicznych.** Screenshot klienta uruchomionego 2026-07-30
 > w 1152×648 pokazał pięć odseparowanych ikon na szarym tle, napisy położone na
@@ -933,7 +933,7 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
 > K87 dowiódł importu plików, lecz nie jakości kompozycji. K94 poprawia najpierw
 > punkty 1–3 obowiązującego zakresu wizualnego: kafle, osady i tło mapy. Nie
 > zmienia snapshotu, mostu, rdzenia ani reguł gry.
-- [ ] **G94.1a [GRAFIKA] — spójna, połączona siatka mapy.** `MapView` układa
+- [x] **G94.1a [GRAFIKA] — spójna, połączona siatka mapy.** `MapView` układa
       pięć istniejących `RegionTile_*` jako stykające się heksy o poprawnej
       skali i kolejności warstw, zamiast rzędu rozdzielonych kart; używa
       istniejącego `game/assets/map_ground.png` jako konkretnego nośnika i nie
@@ -942,7 +942,7 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
       mieści się w panelu. Akceptacja: test geometrii + screenshot 1152×648 i
       ludzkie review czytelności; wpis źródłowy `map_ground.png` w
       `CREDITS.md` zostaje sprawdzony i zachowany. *(standard)*
-- [ ] **G94.1b [GRAFIKA] — spójna różnorodność podłoża strategicznego.** Do
+- [x] **G94.1b [GRAFIKA] — spójna różnorodność podłoża strategicznego.** Do
       `game/assets/` wchodzą co najmniej trzy jawnie nazwane warianty
       `map_ground_grass.png`, `map_ground_earth.png`,
       `map_ground_stone.png` z jednej zgodnej stylistycznie paczki CC0/CC-BY.
@@ -952,7 +952,7 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
       screenshot działającej mapy i ludzkie review spójności; dokładna strona
       źródłowa, autor, licencja i ścieżka każdego pliku w `CREDITS.md`.
       *(standard; ryzyko: dobór/licencja assetów)*
-- [ ] **G94.1c [GRAFIKA] — keep i outpost wyglądają jak różne osady.** Zastąpić
+- [x] **G94.1c [GRAFIKA] — keep i outpost wyglądają jak różne osady.** Zastąpić
       pojedyncze `settlement.png` dwoma konkretnymi assetami docelowymi
       `settlement_keep.png` i `settlement_outpost.png` w średniowiecznej,
       możliwie realistycznej stylistyce CC0/CC-BY. `MapView` dobiera je z
@@ -961,7 +961,7 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
       jednocześnie widoczne w natywnym Godocie, nie zasłaniają nazw, screenshot
       1152×648 przechodzi ludzkie review; per-plikowe źródło i licencja trafiają
       do `CREDITS.md`. *(standard; ryzyko: dobór/licencja assetów)*
-- [ ] **G94.1d [GRAFIKA] — tło i kompozycja strategiczna mieszczą sterowanie.**
+- [x] **G94.1d [GRAFIKA] — tło i kompozycja strategiczna mieszczą sterowanie.**
       Dodać konkretny asset `strategic_map_background.png` (subtelna ziemia,
       płótno lub pergamin, CC0/CC-BY) jako tło panelu mapy i rozdzielić na
       ekranie mapę, status oraz rozkazy. Pusty `BattleView` nie rezerwuje
@@ -971,6 +971,36 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
       układu + screenshot uruchomionej świeżej partii oraz ludzkie review
       kompozycji/kontrastu; źródło, autor i licencja tła w `CREDITS.md`.
       *(standard; ryzyko: layout przy różnych rozdzielczościach)*
+
+> **K94 — UKOŃCZONY** *(commity 7fa895d, ca5d274, 8f7ee0e, 1a5a7dd)*:
+> mapa tworzy połączony pas pięciu heksów, ma trzy dekoracyjne podłoża,
+> odrębne keep/outpost i pergaminową kompozycję, w której sterowanie mieści
+> się przy 1152×648.
+
+## Kamień milowy 95 — ikony rozkazów — W TOKU
+> G95 realizuje punkt 4 kolejności wizualnej. `G95.1a` ustaliło język ikon
+> godziną klepsydry z Game-icons. `task-541` (G95.1b — ikony rozkazów osady),
+> `task-542` (G95.1c — ikony rozkazów polowych) i `task-543` (G95.1d — ikony
+> zapisu/odczytu) są już zaplanowane i niezaczęte; ten przegląd ich nie
+> duplikuje ani nie przeplanowuje.
+- [x] **G95.1a [GRAFIKA] — ikona „Następna tura” wyznacza język ikon
+      rozkazów.** Przycisk używa czytelnej klepsydry `icon_next_turn.png`,
+      zachowuje polską etykietę, źródło i licencję CC-BY 3.0. Test i review
+      obejmują działający przycisk w natywnym Godocie. *(commit 1b4471c)*
+
+## Kamień milowy 96 — armie są czytelne na mapie strategicznej — NASTĘPNY
+- [ ] **G96.1a [GRAFIKA] — sylwetki oddziałów gracza i AI na mapie
+      strategicznej.** Zastąpić małą chorągiew `party_player.png` dwiema
+      czytelnymi, różnymi sylwetkami `party_player_unit.png` i
+      `party_ai_unit.png` z jednej spójnej, średniowiecznej paczki CC0/CC-BY.
+      `MapView` dobiera je z istniejącego `region.party.owner`, pokazuje każdą
+      obecną armię — także AI — i nie utożsamia właściciela z kontekstową rolą
+      atakujący/obrońca. Bez zmian snapshotu, mostu i reguł. Akceptacja: test
+      przemieszczenia znacznika wraz z danymi regionu oraz screenshot
+      natywnego Godota w stanie z oddziałami obu stron; sylwetki nie zasłaniają
+      osad ani nazw i przechodzą ludzkie review, a źródło, autor, licencja
+      i ścieżka każdego pliku trafiają do `game/assets/CREDITS.md`.
+      *(standard; ryzyko: dobór/licencja i czytelność przy małej skali)*
 
 ## Dług/refaktor
 - [x] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
@@ -990,8 +1020,9 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
 > osiągnięcia progu wizualnego każdy kolejny batch spełnia regułę 4 graficzne /
 > najwyżej 2 mechaniczne / najwyżej 6 łącznie. Niezależne przyciski, reguły
 > rdzenia, AI, ekonomia, walka, ruch, protokół i porządki są wstrzymane.
-- **Najpierw K94:** spójność i różnorodność kafli, wygląd keep/outpost oraz tło
-  i kompozycja mapy strategicznej — cztery gotowe zadania graficzne.
+- ~~K94: spójność kafli, keep/outpost, tło i kompozycja~~ — **wykonane**.
+- **Teraz K95:** trzy niezaczęte zadania ikon są już w kolejce; po nich
+  **G96.1a** pokazuje sylwetki armii obu stron na mapie bez nowej mechaniki.
 - Rozkaz wybierany klikiem na cel na mapie — G93.1a-1 jest gotowe, a
   task-531…535 wracają do planowania. Reszta może wrócić tylko jako
   bezpośrednia zależność efektów graficznych i w prawidłowym batchu.
