@@ -145,6 +145,15 @@ def _tile_inside_panel(
     )
 
 
+def _union_bbox(rects: list[dict]) -> dict[str, float]:
+    """Axis-aligned union of rect dicts with x/y/w/h keys (global coords)."""
+    left = min(float(r["x"]) for r in rects)
+    top = min(float(r["y"]) for r in rects)
+    right = max(float(r["x"]) + float(r["w"]) for r in rects)
+    bottom = max(float(r["y"]) + float(r["h"]) for r in rects)
+    return {"x": left, "y": top, "w": right - left, "h": bottom - top}
+
+
 def test_map_view_shows_one_grid_tile_per_region_with_owner_paint():
     """MapView must place one non-overlapping tile per region on the grid.
 
@@ -978,6 +987,81 @@ def test_map_view_adjacent_tiles_form_connected_grid_fitting_panel():
             f"regions_full tile {tile['name']!r} (incl. odd row) must fit "
             f"inside MapView: tile={tile!r} panel={panel!r}"
         )
+
+
+# G99.1a: five-region line must use MapView space (scale + center), not sit as a
+# top-left strip. Legacy fixed TILE_SIZE was 84×48 → five-col union width 420.
+_LEGACY_TILE_WIDTH_PX = 84.0
+# Width fill for a horizontal five-region line (limiting axis). Legacy ≈0.75 on
+# the probe MapView; require a clear step up toward the panel edges.
+_MAP_WIDTH_FILL_MIN = 0.88
+# Centering slack: layout snap + small intentional padding around the union.
+_MAP_CENTER_TOL_PX = 12.0
+
+
+def test_map_view_five_region_map_is_enlarged_and_centered_in_panel():
+    """Five-region map must fill MapView at readable scale and be centered.
+
+    Realistic defect existing gates miss: MapView still places fixed 84×48
+    ``RegionTile_*`` at the top-left origin. Connected-grid / fit-panel gates only
+    require neighbours to touch and tiles to lie inside the panel, so a thin
+    top strip (≈11% of panel height, left-aligned with ≈25% unused width) stays
+    green while the strategic parchment is mostly empty — the G99.1a gap.
+    """
+    payload = _load_map_view()
+    assert payload["map_view_found"] is True, payload
+    assert payload["has_render_model"] is True, payload
+
+    line_tiles = payload.get("line_tiles") or []
+    panel = payload.get("map_view_rect")
+    assert len(line_tiles) == 5, (
+        f"probe must emit five fresh-party line tiles for G99.1a, got {line_tiles!r}"
+    )
+    assert isinstance(panel, dict) and float(panel.get("w", 0)) > 0, (
+        f"probe must emit MapView global rect, got {panel!r}"
+    )
+    panel_w = float(panel["w"])
+    panel_h = float(panel["h"])
+    assert panel_h > 0, panel
+
+    for tile in line_tiles:
+        assert tile["visible"] is True, tile
+        assert _tile_inside_panel(tile, panel), (
+            f"enlarged five-region tile {tile['name']!r} must fit fully inside "
+            f"MapView (no clipping): tile={tile!r} panel={panel!r}"
+        )
+
+    union = _union_bbox(line_tiles)
+    width_fill = union["w"] / panel_w
+    assert width_fill >= _MAP_WIDTH_FILL_MIN, (
+        f"five-region map must use most of MapView width (readable scale), "
+        f"got width_fill={width_fill:.3f} (min {_MAP_WIDTH_FILL_MIN}); "
+        f"union={union!r} panel={panel!r}. Legacy top-left 84px tiles leave "
+        f"~25% empty width."
+    )
+
+    sample_w = float(line_tiles[0]["w"])
+    assert sample_w > _LEGACY_TILE_WIDTH_PX + _LAYOUT_TOL_PX, (
+        f"region tiles must be larger than legacy TILE_SIZE.x="
+        f"{_LEGACY_TILE_WIDTH_PX:g}px after G99.1a scale-up, got tile_w={sample_w} "
+        f"tile={line_tiles[0]!r}"
+    )
+
+    left_m = union["x"] - float(panel["x"])
+    right_m = float(panel["x"]) + panel_w - (union["x"] + union["w"])
+    top_m = union["y"] - float(panel["y"])
+    bottom_m = float(panel["y"]) + panel_h - (union["y"] + union["h"])
+    assert abs(left_m - right_m) <= _MAP_CENTER_TOL_PX, (
+        f"five-region map must be horizontally centered in MapView: "
+        f"left_margin={left_m:.1f} right_margin={right_m:.1f} "
+        f"(tol={_MAP_CENTER_TOL_PX}); union={union!r} panel={panel!r}"
+    )
+    assert abs(top_m - bottom_m) <= _MAP_CENTER_TOL_PX, (
+        f"five-region map must be vertically centered in MapView (not a strip "
+        f"pinned to the top edge): top_margin={top_m:.1f} "
+        f"bottom_margin={bottom_m:.1f} (tol={_MAP_CENTER_TOL_PX}); "
+        f"union={union!r} panel={panel!r}"
+    )
 
 
 # G94.1b: decorative strategic ground variants (not mechanical terrain).
