@@ -220,6 +220,9 @@ func _collect_tiles(battle_view: Node, hexes: Array) -> Array:
 		for layer: Variant in texture_layers:
 			if layer is Dictionary and layer.has("path"):
 				texture_paths.append(layer["path"])
+		# Surface Labels under the hex (not BattleResultLabel): G98.1b forbids
+		# English Plains/Forest/Hills text painted on the tile face.
+		var surface_labels: Array = _collect_surface_labels(tile)
 		tiles.append({
 			"q": q,
 			"r": r,
@@ -235,6 +238,7 @@ func _collect_tiles(battle_view: Node, hexes: Array) -> Array:
 			"has_texture": not texture_paths.is_empty(),
 			"texture_paths": texture_paths,
 			"texture_layers": texture_layers,
+			"surface_labels": surface_labels,
 			"tile_mouse_filter": tile.mouse_filter,
 			# Canvas draw order among HexTile_* siblings (G98.1a overlap stacking):
 			# higher z_index wins; equal z_index → later get_index() draws on top.
@@ -244,27 +248,61 @@ func _collect_tiles(battle_view: Node, hexes: Array) -> Array:
 	return tiles
 
 
+func _collect_surface_labels(node: Node) -> Array:
+	var labels: Array = []
+	if node is Label:
+		labels.append((node as Label).text.strip_edges())
+	for child: Node in node.get_children():
+		labels.append_array(_collect_surface_labels(child))
+	return labels
+
+
 func _collect_texture_layers(node: Node) -> Array:
 	var layers: Array = []
 	var path: String = _direct_texture_path(node)
 	if not path.is_empty() and node is CanvasItem:
 		var size: Vector2 = Vector2.ZERO
+		var pos: Vector2 = Vector2.ZERO
 		var mouse_filter: int = -1
+		var stretch_mode: int = -1
+		var texture_w: float = 0.0
+		var texture_h: float = 0.0
+		var mod: Color = (node as CanvasItem).modulate
 		if node is Control:
 			var ctrl: Control = node as Control
-			size = ctrl.get_global_rect().size
+			var g: Rect2 = ctrl.get_global_rect()
+			pos = g.position
+			size = g.size
 			mouse_filter = ctrl.mouse_filter
 		elif node is Sprite2D:
 			var sp: Sprite2D = node as Sprite2D
 			if sp.texture != null:
 				var tex_size: Vector2 = sp.texture.get_size()
 				size = Vector2(tex_size.x * absf(sp.scale.x), tex_size.y * absf(sp.scale.y))
+				pos = sp.global_position
+		if node is TextureRect:
+			var tr: TextureRect = node as TextureRect
+			stretch_mode = int(tr.stretch_mode)
+			if tr.texture != null:
+				var tsize: Vector2 = tr.texture.get_size()
+				texture_w = tsize.x
+				texture_h = tsize.y
+		elif node is Sprite2D and (node as Sprite2D).texture != null:
+			var tsize2: Vector2 = (node as Sprite2D).texture.get_size()
+			texture_w = tsize2.x
+			texture_h = tsize2.y
 		layers.append({
 			"path": path,
 			"name": str(node.name),
+			"x": pos.x,
+			"y": pos.y,
 			"w": size.x,
 			"h": size.y,
 			"mouse_filter": mouse_filter,
+			"stretch_mode": stretch_mode,
+			"texture_w": texture_w,
+			"texture_h": texture_h,
+			"modulate": [mod.r, mod.g, mod.b, mod.a],
 		})
 	for child: Node in node.get_children():
 		layers.append_array(_collect_texture_layers(child))
@@ -312,7 +350,10 @@ func _result_text(battle_view: Node) -> String:
 
 
 func _visual_key(tile: Control) -> String:
-	# Side paint: ColorRect fill, root/child modulate on textured tiles (MapView-style).
+	# Side identity (exported as tile["visual"]):
+	# 1) legacy ColorRect / non-identity modulate (pre-G98.1b ground tint);
+	# 2) side silhouette Texture2D paths only (G98.1b — not terrain layers).
+	# Terrain decoration alone must not mint a distinct visual key.
 	if tile is ColorRect:
 		return _color_key((tile as ColorRect).color)
 	if tile is TextureRect:
@@ -326,7 +367,28 @@ func _visual_key(tile: Control) -> String:
 			var child_mod: Color = (child as CanvasItem).modulate
 			if child_mod != Color(1, 1, 1, 1):
 				return _color_key(child_mod)
+	var side_paths: PackedStringArray = _side_texture_paths_under(tile)
+	if not side_paths.is_empty():
+		side_paths.sort()
+		return "|".join(side_paths)
 	return _color_key(tile.modulate)
+
+
+func _side_texture_paths_under(node: Node) -> PackedStringArray:
+	var paths: PackedStringArray = PackedStringArray()
+	var path: String = _direct_texture_path(node)
+	if not path.is_empty() and _is_side_texture_layer(node, path):
+		paths.append(path)
+	for child: Node in node.get_children():
+		paths.append_array(_side_texture_paths_under(child))
+	return paths
+
+
+func _is_side_texture_layer(node: Node, path: String) -> bool:
+	# Production names SideSilhouette; public assets side_attacker / side_defender.
+	if str(node.name) == "SideSilhouette":
+		return true
+	return path.contains("side_attacker") or path.contains("side_defender")
 
 
 func _color_key(color: Color) -> String:

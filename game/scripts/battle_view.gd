@@ -6,9 +6,6 @@ const TileTextureLayer = preload("res://scripts/tile_texture_layer.gd")
 const BASE_HEX_SIZE := Vector2(120, 140)
 const AXIAL_ROW_PITCH := BASE_HEX_SIZE.y * 0.75
 const RESULT_LABEL_GAP := 8.0
-const ATTACKER_COLOR := Color(0.78, 0.22, 0.16)
-const DEFENDER_COLOR := Color(0.16, 0.38, 0.78)
-const OTHER_SIDE_COLOR := Color(0.38, 0.38, 0.38)
 
 const TERRAIN_PLAINS := preload("res://assets/terrain_plains.png")
 const TERRAIN_FOREST := preload("res://assets/terrain_forest.png")
@@ -80,23 +77,7 @@ func _add_tile(hex: Dictionary) -> void:
 	_apply_hex_paint_order(tile, r)
 	tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(tile)
-
-	var base := TileTextureLayer.full_rect(TERRAIN_PLAINS, "Base")
-	base.modulate = _side_color(hex.get("side"))
-	tile.add_child(base)
-
-	var terrain_decoration: Texture2D = _terrain_decoration_texture(hex.get("terrain"))
-	if terrain_decoration != null:
-		var decoration := TileTextureLayer.full_rect(terrain_decoration, "TerrainDecoration")
-		tile.add_child(decoration)
-
-	var label := Label.new()
-	label.text = str(hex.get("terrain", ""))
-	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_color_override("font_color", Color.WHITE)
-	tile.add_child(label)
+	_add_terrain_layers(tile, hex.get("terrain"))
 
 	var silhouette_texture: Texture2D = _side_silhouette_texture(hex.get("side"))
 	if silhouette_texture != null:
@@ -112,6 +93,17 @@ func _add_tile(hex: Dictionary) -> void:
 		silhouette.offset_top += SIDE_SILHOUETTE_MARGIN.y
 		silhouette.offset_bottom -= SIDE_SILHOUETTE_MARGIN.y
 		tile.add_child(silhouette)
+
+
+func _add_terrain_layers(tile: Control, terrain: Variant) -> void:
+	var base := TileTextureLayer.full_rect(TERRAIN_PLAINS, "Base")
+	tile.add_child(base)
+
+	var decoration_texture: Texture2D = _terrain_decoration_texture(terrain)
+	if decoration_texture != null:
+		tile.add_child(
+			TileTextureLayer.native_rect(decoration_texture, "TerrainDecoration", BASE_HEX_SIZE)
+		)
 
 
 func _apply_hex_paint_order(tile: Control, row: int) -> void:
@@ -134,16 +126,6 @@ func _terrain_decoration_texture(terrain: Variant) -> Texture2D:
 			return TERRAIN_HILLS
 		_:
 			return null
-
-
-func _side_color(side: Variant) -> Color:
-	match side:
-		"attacker":
-			return ATTACKER_COLOR
-		"defender":
-			return DEFENDER_COLOR
-		_:
-			return OTHER_SIDE_COLOR
 
 
 func _side_silhouette_texture(side: Variant) -> Texture2D:

@@ -89,10 +89,12 @@ def test_assault_button_shows_battle_view_across_godot_processes(tmp_path):
     assert battle["battle_before_order"]["result_text"] == "", battle["battle_before_order"]
 
     # After assault: both sides' tiles + Polish result readable on BattleView.
+    # paint_groups: distinct visuals (G98.1b = side silhouettes, not ground tint).
     after = battle["battle"]
     assert after["tile_count"] >= 2, after
     assert after["paint_groups"] >= 2, (
-        "attacker and defender tiles must differ visually, got one paint group: %r" % after
+        "attacker and defender tiles must differ visually "
+        "(silhouette or paint groups), got one paint group: %r" % after
     )
     assert all(t.get("visible") for t in after["tiles"]), after
     assert _polish_battle_result(after["result_text"]), after
@@ -102,7 +104,10 @@ def test_assault_button_shows_battle_view_across_godot_processes(tmp_path):
     # (two-process persistence of last battle — the core K85.1c risk).
     resume_before = resumed["battle_before_order"]
     assert resume_before["tile_count"] >= 2, resume_before
-    assert resume_before["paint_groups"] >= 2, resume_before
+    assert resume_before["paint_groups"] >= 2, (
+        "resume must keep distinct side visuals (silhouette/paint groups): %r"
+        % resume_before
+    )
     assert resume_before["result_text"] == after["result_text"], (
         f"resume must restore same Polish battle result: after={after} resume={resume_before}"
     )

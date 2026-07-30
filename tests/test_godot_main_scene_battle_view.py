@@ -22,9 +22,21 @@ TERRAIN_ASSETS: dict[str, str] = {
 
 # Native base hex from terrain_plains.png (G98.1a public visual contract).
 PLAINS_ASSET = TERRAIN_ASSETS["Plains"]
+FOREST_ASSET = TERRAIN_ASSETS["Forest"]
+HILLS_ASSET = TERRAIN_ASSETS["Hills"]
 BASE_HEX_W = 120
 BASE_HEX_H = 140
 _LAYOUT_TOL_PX = 1.0
+
+# Native decoration pixel sizes (public contract from audited PNGs, G98.1b).
+# Forest = tree 26×40, Hills = rock 74×92 — proportions, not stretch-to-hex.
+DECORATION_NATIVE: dict[str, tuple[float, float]] = {
+    "Forest": (26.0, 40.0),
+    "Hills": (74.0, 92.0),
+}
+_ENGLISH_TERRAIN_LABELS = frozenset({"Plains", "Forest", "Hills"})
+# TextureRect.STRETCH_SCALE — full-rect scaled fill (forbidden for decorations).
+_STRETCH_SCALE = 0
 
 # Public side silhouette paths (G87.1a / G87.1c-2).
 SIDE_ATTACKER = "res://assets/side_attacker.png"
@@ -84,6 +96,28 @@ def _terrain_layers(tile: dict, terrain_path: str) -> list[dict]:
         for layer in layers
         if isinstance(layer, dict) and layer.get("path") == terrain_path
     ]
+
+
+def _assert_credits_table_row(asset_name: str) -> None:
+    """Complete per-file CREDITS.md row: file | source | author | license."""
+    credits = (GAME / "assets" / "CREDITS.md").read_text(encoding="utf-8")
+    assert asset_name in credits, (
+        f"CREDITS.md must keep a per-file attribution for {asset_name}"
+    )
+    credits_row = next(
+        (
+            line
+            for line in credits.splitlines()
+            if line.strip().startswith("|") and asset_name in line
+        ),
+        "",
+    )
+    assert credits_row, f"CREDITS.md must have a table row for {asset_name}"
+    cells = [c.strip() for c in credits_row.strip("|").split("|")]
+    assert len(cells) >= 4 and cells[0] == asset_name and all(cells[:4]), (
+        f"CREDITS row for {asset_name} must list file|source|author|license, "
+        f"got {credits_row!r}"
+    )
 
 
 def _fully_inside(outer: dict, inner: dict) -> bool:
@@ -255,14 +289,18 @@ def test_battle_view_shows_one_axial_tile_per_hex_with_side_paint_and_polish_res
                     f"{by_qr[left]} vs {by_qr[right]}"
                 )
 
-    # Side is machine-readable paint, not only label text.
+    # Side is machine-readable via distinct silhouettes (G98.1b removes whole-ground
+    # side tint; G87.1c-2 / silhouette gate owns figure paint). Do not require
+    # modulate colour keys on the terrain base.
     sides = {h["side"]: (int(h["q"]), int(h["r"])) for h in hexes}
     assert "attacker" in sides and "defender" in sides, hexes
-    attacker_v = by_qr[sides["attacker"]]["visual"]
-    defender_v = by_qr[sides["defender"]]["visual"]
-    assert attacker_v != defender_v, (
-        f"attacker and defender tiles must differ visually: "
-        f"{attacker_v!r} vs {defender_v!r}"
+    attacker_paths = set(by_qr[sides["attacker"]].get("texture_paths") or [])
+    defender_paths = set(by_qr[sides["defender"]].get("texture_paths") or [])
+    assert SIDE_ATTACKER in attacker_paths and SIDE_DEFENDER not in attacker_paths, (
+        f"attacker tile must carry attacker silhouette only, paths={attacker_paths!r}"
+    )
+    assert SIDE_DEFENDER in defender_paths and SIDE_ATTACKER not in defender_paths, (
+        f"defender tile must carry defender silhouette only, paths={defender_paths!r}"
     )
 
     # Idempotent re-render; no-battle and null clear tiles.
@@ -316,14 +354,90 @@ def test_battle_view_shows_one_axial_tile_per_hex_with_side_paint_and_polish_res
         )
 
 
-def test_battle_view_hex_tiles_carry_terrain_textures_from_assets():
-    """Each battle hex tile must show terrain Texture2D from game/assets/.
+def _layer_rect(layer: dict) -> dict:
+    return {
+        "x": float(layer.get("x", 0.0)),
+        "y": float(layer.get("y", 0.0)),
+        "w": float(layer["w"]),
+        "h": float(layer["h"]),
+    }
 
-    Realistic defect this catches: BattleView still paints solid ColorRect tiles
-    with a terrain name Label (K85 geometry / side-color / Polish-result gates
-    stay green) while the player never sees Plains/Forest/Hills art. Missing
-    terrain PNGs must fail at the disk gate, not yield a silent color tile.
-    Unknown / empty / missing terrain must still paint a default asset tile.
+
+def _modulate_is_neutral(mod: object, *, tol: float = 0.02) -> bool:
+    """True when modulate is identity white (no side tint on the ground)."""
+    if not isinstance(mod, (list, tuple)) or len(mod) < 3:
+        return False
+    r, g, b = float(mod[0]), float(mod[1]), float(mod[2])
+    a = float(mod[3]) if len(mod) > 3 else 1.0
+    return (
+        abs(r - 1.0) <= tol
+        and abs(g - 1.0) <= tol
+        and abs(b - 1.0) <= tol
+        and abs(a - 1.0) <= tol
+    )
+
+
+def _assert_native_decoration(layer: dict, tile: dict, *, terrain: str, qr: tuple) -> None:
+    """G98.1b: decoration keeps audited PNG proportions and stays inside the hex."""
+    native_w, native_h = DECORATION_NATIVE[terrain]
+    lw, lh = float(layer["w"]), float(layer["h"])
+    assert lw > 0 and lh > 0, f"hex {qr} {terrain} decoration must have size, {layer!r}"
+    # Must not be stretched to the shared hex body (full-rect 120×140).
+    assert not layer_fills_tile(layer, tile), (
+        f"hex {qr} terrain={terrain!r} decoration must not fill the hex bounds "
+        f"(tree/rock is not a stretched ground tile), layer={layer!r} "
+        f"tile_w={tile['w']} tile_h={tile['h']}"
+    )
+    assert lw < float(tile["w"]) and lh < float(tile["h"]), (
+        f"hex {qr} terrain={terrain!r} decoration must be smaller than the hex "
+        f"in both axes, layer={layer!r} tile={tile!r}"
+    )
+    # Proportions of the audited PNG (scale may differ; aspect must match).
+    expected_aspect = native_w / native_h
+    actual_aspect = lw / lh
+    assert abs(actual_aspect - expected_aspect) <= 0.05, (
+        f"hex {qr} terrain={terrain!r} decoration must keep native aspect "
+        f"{native_w}×{native_h} (ratio {expected_aspect:.4f}), "
+        f"got {lw}×{lh} (ratio {actual_aspect:.4f}), layer={layer!r}"
+    )
+    # Prefer near-native control size so small art stays readable; allow ≤1px tol.
+    assert abs(lw - native_w) <= _LAYOUT_TOL_PX, (
+        f"hex {qr} terrain={terrain!r} decoration width should match native "
+        f"{native_w}px (not scaled to hex), got w={lw}, layer={layer!r}"
+    )
+    assert abs(lh - native_h) <= _LAYOUT_TOL_PX, (
+        f"hex {qr} terrain={terrain!r} decoration height should match native "
+        f"{native_h}px (not scaled to hex), got h={lh}, layer={layer!r}"
+    )
+    # STRETCH_SCALE on a decoration control would distort even if size were fixed.
+    stretch = layer.get("stretch_mode")
+    if stretch is not None and int(stretch) >= 0:
+        assert int(stretch) != _STRETCH_SCALE, (
+            f"hex {qr} terrain={terrain!r} decoration must not use STRETCH_SCALE "
+            f"(distorts tree/rock), stretch_mode={stretch}, layer={layer!r}"
+        )
+    assert layer.get("mouse_filter") == MOUSE_FILTER_IGNORE, (
+        f"hex {qr} terrain={terrain!r} decoration must not capture mouse, "
+        f"layer={layer!r}"
+    )
+    # Anchored inside the shared hex AABB (readable, not clipped outside).
+    if "x" in layer and "y" in layer:
+        assert _fully_inside(_rect_of(tile), _layer_rect(layer)), (
+            f"hex {qr} terrain={terrain!r} decoration must sit inside the hex, "
+            f"layer={layer!r} tile={tile!r}"
+        )
+
+
+def test_battle_view_hex_tiles_carry_terrain_textures_from_assets():
+    """G98.1b: shared plains base + unstretched Forest/Hills decorations.
+
+    Realistic defect existing gates miss: BattleView already paints a shared
+    plains body (G98.1a geometry green) and still includes Forest/Hills asset
+    paths, but stretches those PNGs with ``TileTextureLayer.full_rect`` to the
+    120×140 hex, tints the whole base with side colour, and overlays English
+    ``Plains``/``Forest``/``Hills`` Labels. The old R87.1 full-rect ground rule
+    greened that defect. Missing PNGs must still fail at the disk gate.
+    Unknown / empty / missing terrain must still paint the plains base only.
     """
     assets_dir = GAME / "assets"
     for asset_name in (
@@ -336,6 +450,7 @@ def test_battle_view_hex_tiles_carry_terrain_textures_from_assets():
             f"required battle terrain asset missing on disk: {asset_path} "
             "(missing file must red-gate, not paint an empty color tile)"
         )
+        _assert_credits_table_row(asset_name)
 
     imported = _import_game_assets()
     assert imported.returncode == 0, (
@@ -362,42 +477,112 @@ def test_battle_view_hex_tiles_carry_terrain_textures_from_assets():
         qr = (int(hex_row["q"]), int(hex_row["r"]))
         tile = by_qr[qr]
         terrain = str(hex_row["terrain"])
+        paths = list(tile.get("texture_paths") or [])
         assert tile["has_texture"] is True, (
             f"hex {qr} terrain={terrain!r} must carry Texture2D from assets, "
             f"got {tile!r}"
         )
-        assert tile["texture_paths"], tile
-        for path in tile["texture_paths"]:
+        assert paths, tile
+        for path in paths:
             assert isinstance(path, str) and path.startswith("res://assets/"), (
                 f"hex {qr} texture must come from res://assets/, got {path!r} "
                 f"in {tile!r}"
             )
-        expected = TERRAIN_ASSETS[terrain]
-        assert expected in tile["texture_paths"], (
-            f"hex {qr} terrain={terrain!r} must include {expected}, "
-            f"got paths={tile['texture_paths']!r}"
-        )
-        # R87.1: named terrain texture is present and sized to hex bounds (Plains
-        # as base; Forest/Hills as full-rect decoration on the G98.1a plains body).
-        # Size = PRESET_FULL_RECT extents, not stretch_mode. MOUSE_FILTER_IGNORE
-        # so terrain layers do not steal battle clicks.
         assert tile.get("tile_mouse_filter") == MOUSE_FILTER_IGNORE, (
             f"hex {qr} root must ignore mouse, got {tile!r}"
         )
-        ground_layers = _terrain_layers(tile, expected)
-        assert ground_layers, (
-            f"hex {qr} must report sized terrain layer for {expected}, got {tile!r}"
+
+        # Shared plains base fills the hex; never side-tinted as whole ground.
+        assert PLAINS_ASSET in paths, (
+            f"hex {qr} terrain={terrain!r} must paint shared base {PLAINS_ASSET}, "
+            f"got paths={paths!r}"
         )
-        for layer in ground_layers:
+        base_layers = _terrain_layers(tile, PLAINS_ASSET)
+        assert base_layers, (
+            f"hex {qr} must expose a sized plains base layer, got {tile!r}"
+        )
+        for layer in base_layers:
             assert layer_fills_tile(layer, tile), (
-                f"hex {qr} terrain layer must fill the tile bounds (FULL_RECT size), "
-                f"layer={layer!r} tile_w={tile['w']} tile_h={tile['h']}"
+                f"hex {qr} plains base must fill the hex bounds undistorted "
+                f"(120×140), layer={layer!r} tile_w={tile['w']} tile_h={tile['h']}"
             )
             assert layer.get("mouse_filter") == MOUSE_FILTER_IGNORE, (
-                f"hex {qr} terrain layer must not capture mouse, got layer={layer!r}"
+                f"hex {qr} plains base must not capture mouse, got layer={layer!r}"
+            )
+            assert "modulate" in layer, (
+                f"hex {qr} plains base probe must expose modulate for side-tint "
+                f"checks (G98.1b), layer={layer!r}"
+            )
+            assert _modulate_is_neutral(layer["modulate"]), (
+                f"hex {qr} plains base must not carry side-colour tint on the "
+                f"whole ground (G98.1b), modulate={layer.get('modulate')!r}, "
+                f"layer={layer!r}"
             )
 
-    # Three core terrains must be three different images (not one shared fill).
+        # Role mapping: Plains = base only; Forest/Hills overlay native decoration.
+        forest_layers = _terrain_layers(tile, FOREST_ASSET)
+        hills_layers = _terrain_layers(tile, HILLS_ASSET)
+        if terrain == "Plains":
+            assert FOREST_ASSET not in paths and HILLS_ASSET not in paths, (
+                f"hex {qr} Plains must leave only the base (no tree/rock overlay), "
+                f"got paths={paths!r}"
+            )
+            assert forest_layers == [] and hills_layers == [], (
+                f"hex {qr} Plains must not report decoration layers, "
+                f"forest={forest_layers!r} hills={hills_layers!r}"
+            )
+        elif terrain == "Forest":
+            assert FOREST_ASSET in paths, (
+                f"hex {qr} Forest must include {FOREST_ASSET}, got paths={paths!r}"
+            )
+            assert HILLS_ASSET not in paths, (
+                f"hex {qr} Forest must not also paint Hills rock, paths={paths!r}"
+            )
+            assert forest_layers, (
+                f"hex {qr} Forest must expose a sized tree decoration layer, "
+                f"got {tile!r}"
+            )
+            assert paths.index(PLAINS_ASSET) < paths.index(FOREST_ASSET), (
+                f"hex {qr} Forest must draw tree over plains base "
+                f"(base path before decoration in tree order), paths={paths!r}"
+            )
+            for layer in forest_layers:
+                _assert_native_decoration(layer, tile, terrain="Forest", qr=qr)
+        elif terrain == "Hills":
+            assert HILLS_ASSET in paths, (
+                f"hex {qr} Hills must include {HILLS_ASSET}, got paths={paths!r}"
+            )
+            assert FOREST_ASSET not in paths, (
+                f"hex {qr} Hills must not also paint Forest tree, paths={paths!r}"
+            )
+            assert hills_layers, (
+                f"hex {qr} Hills must expose a sized rock decoration layer, "
+                f"got {tile!r}"
+            )
+            assert paths.index(PLAINS_ASSET) < paths.index(HILLS_ASSET), (
+                f"hex {qr} Hills must draw rock over plains base "
+                f"(base path before decoration in tree order), paths={paths!r}"
+            )
+            for layer in hills_layers:
+                _assert_native_decoration(layer, tile, terrain="Hills", qr=qr)
+        else:
+            # Named terrains outside the three roles still keep the base only.
+            assert FOREST_ASSET not in paths and HILLS_ASSET not in paths, (
+                f"hex {qr} terrain={terrain!r} must not invent decorations, "
+                f"paths={paths!r}"
+            )
+
+        # English terrain names must not sit on the hex face.
+        surface_labels = [
+            str(t).strip() for t in (tile.get("surface_labels") or []) if str(t).strip()
+        ]
+        for label in surface_labels:
+            assert label not in _ENGLISH_TERRAIN_LABELS, (
+                f"hex {qr} must not show English terrain label {label!r} on the "
+                f"tile surface (G98.1b), labels={surface_labels!r}"
+            )
+
+    # Three core terrains remain three distinct mapped images (roles differ).
     path_sets = {
         name: {
             p
@@ -414,8 +599,8 @@ def test_battle_view_hex_tiles_carry_terrain_textures_from_assets():
     )
 
     # Fallback: unknown, empty string, and missing terrain key still paint tiles
-    # with the default asset (Plains) — no drop, no script error, no empty color.
-    default_path = TERRAIN_ASSETS["Plains"]
+    # with the default plains base only — no drop, no script error, no empty color.
+    default_path = PLAINS_ASSET
     fallback_hexes = payload["hexes_fallback"]
     fallback_tiles = payload["tiles_after_fallback"]
     assert len(fallback_hexes) >= 3, fallback_hexes
@@ -436,6 +621,14 @@ def test_battle_view_hex_tiles_carry_terrain_textures_from_assets():
         assert default_path in tile["texture_paths"], (
             f"fallback hex ({tile['q']},{tile['r']}) must use default {default_path}, "
             f"got paths={tile['texture_paths']!r}"
+        )
+        assert FOREST_ASSET not in tile["texture_paths"], (
+            f"fallback hex ({tile['q']},{tile['r']}) must not invent Forest art, "
+            f"paths={tile['texture_paths']!r}"
+        )
+        assert HILLS_ASSET not in tile["texture_paths"], (
+            f"fallback hex ({tile['q']},{tile['r']}) must not invent Hills art, "
+            f"paths={tile['texture_paths']!r}"
         )
 
 
@@ -598,27 +791,7 @@ def test_battle_view_base_hexes_form_pointy_top_axial_grid_from_plains_asset():
         f"base hex asset missing on disk: {plains_disk} "
         "(G98.1a requires terrain_plains.png as the shared hex body)"
     )
-    credits = (GAME / "assets" / "CREDITS.md").read_text(encoding="utf-8")
-    assert "terrain_plains.png" in credits, (
-        "CREDITS.md must keep a per-file attribution for terrain_plains.png"
-    )
-    credits_row = next(
-        (
-            line
-            for line in credits.splitlines()
-            if line.strip().startswith("|") and "terrain_plains.png" in line
-        ),
-        "",
-    )
-    assert credits_row, "CREDITS.md must have a table row for terrain_plains.png"
-    cells = [c.strip() for c in credits_row.strip("|").split("|")]
-    assert len(cells) >= 4, (
-        f"CREDITS row for terrain_plains.png must list file|source|author|license, "
-        f"got {credits_row!r}"
-    )
-    assert cells[0] == "terrain_plains.png" and all(cells[:4]), (
-        f"CREDITS row for terrain_plains.png must be complete, got {credits_row!r}"
-    )
+    _assert_credits_table_row("terrain_plains.png")
 
     imported = _import_game_assets()
     assert imported.returncode == 0, (

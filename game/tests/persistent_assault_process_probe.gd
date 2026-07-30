@@ -153,7 +153,11 @@ func _battle_observation(battle_view: Node) -> Dictionary:
 
 
 func _visual_key(tile: Control) -> String:
-	# Side paint: ColorRect fill, root/child TextureRect.modulate (BattleView MapView-style).
+	# paint_groups must mean "distinct side paint", not "distinct terrain".
+	# 1) legacy ColorRect / non-identity modulate (pre-G98.1b ground tint);
+	# 2) side silhouette Texture2D paths only (G98.1b). Fingerprinting all
+	# textures under the hex would let attacker/defender terrain differences
+	# alone green paint_groups >= 2 without visible side figures.
 	if tile is ColorRect:
 		return _color_key((tile as ColorRect).color)
 	if tile is TextureRect:
@@ -167,7 +171,42 @@ func _visual_key(tile: Control) -> String:
 			var child_mod: Color = (child as CanvasItem).modulate
 			if child_mod != Color(1, 1, 1, 1):
 				return _color_key(child_mod)
+	var side_paths: PackedStringArray = _side_texture_paths_under(tile)
+	if not side_paths.is_empty():
+		side_paths.sort()
+		return "|".join(side_paths)
 	return _color_key(tile.modulate)
+
+
+func _side_texture_paths_under(node: Node) -> PackedStringArray:
+	var paths: PackedStringArray = PackedStringArray()
+	var path: String = _direct_texture_path(node)
+	if not path.is_empty() and _is_side_texture_layer(node, path):
+		paths.append(path)
+	for child: Node in node.get_children():
+		paths.append_array(_side_texture_paths_under(child))
+	return paths
+
+
+func _is_side_texture_layer(node: Node, path: String) -> bool:
+	# Production names SideSilhouette; public assets side_attacker / side_defender.
+	if str(node.name) == "SideSilhouette":
+		return true
+	return path.contains("side_attacker") or path.contains("side_defender")
+
+
+func _direct_texture_path(node: Node) -> String:
+	if node is TextureRect:
+		var tr: TextureRect = node as TextureRect
+		if tr.texture != null:
+			var p: String = tr.texture.resource_path
+			return p if not p.is_empty() else "<embedded>"
+	if node is Sprite2D:
+		var sp: Sprite2D = node as Sprite2D
+		if sp.texture != null:
+			var p2: String = sp.texture.resource_path
+			return p2 if not p2.is_empty() else "<embedded>"
+	return ""
 
 
 func _color_key(color: Color) -> String:
