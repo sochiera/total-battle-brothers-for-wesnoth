@@ -57,8 +57,8 @@ placeholderach, licencje są kompletne, człowiek akceptuje screenshoty, a
 - **Klient bez terminala, oba widoki, zapis/odczyt** (K82–K86): domyślna
   konfiguracja bez `TBB_*`, układ w kontenerach, `MapView` (kafel na region po
   `col`/`row`), `BattleView` (heksy po `(q, r)`), „Zapisz/Wczytaj partię".
-- **Minimum assetów — GOTOWE, próg wizualny — NIEOSIĄGNIĘTY** (K87): pliki
-  Kenney CC0 z atrybucją dowodzą importu, nie domknięcia oprawy.
+- **Minimum assetów — GOTOWE, próg wizualny — NIEOSIĄGNIĘTY** (K87): jeden
+  bazowy heks plus dekoracje drzewa/skały; import Kenney CC0 to tylko minimum.
 - **Pakiet Linuksa — DOMKNIĘTY** (K88): x86-64, `.desktop`, `package.sh` i e2e
   startu bez terminala na artefakcie odbiorcy.
 - **Pętla partii — DOMKNIĘTA** (K89–K91): bitwa zawsze ma legalny, widoczny
@@ -76,18 +76,18 @@ placeholderach, licencje są kompletne, człowiek akceptuje screenshoty, a
   zapis/odczyt mają odrębne ikony z jednej rodziny Game-icons.
 - **Armie na mapie — DOMKNIĘTE** (G96.1a): snapshotowe `region.party.owner`
   wybiera odrębne sylwetki gracza i AI; aktualny komplet armii jest widoczny.
+- **Wybór celu — FUNDAMENT GOTOWY, SKUTEK RUCHU W KOLEJCE** (K97): most i
+  klient niosą `move(target)`, kafle mają hover/ramkę, panel opisuje cel po
+  polsku, a przycisk pokazuje jego nazwę. Task-555…557 domykają legalny krok,
+  blokadę wrogiej osady i pozycję po wznowieniu.
 - `tbbui` (HTML/SVG) — **wyłącznie narzędzie diagnostyczne**, nie docelowy klient.
 
-**Najbliższa luka do celu: mapa pokazuje stan, lecz nie przyjmuje wyboru celu.**
-Screenshot 1152×648 po K95/G96 potwierdza spójniejsze assety, ale
-`RegionTile_*` nadal nie reagują na mysz, a „Wyrusz w pole” wysyła automatyczny
-`march` bez celu. Następny przyrost ma zaznaczyć kliknięty region, pokazać jego
-stan i wykonać bezpieczny pojedynczy krok istniejącym prymitywem `move`.
-
-G93.1a-1 zdążyło dostarczyć bezpieczny prymityw ruchu do sąsiada (commit
-`c0470da`) i zostaje. Dawne task-531…535 nie wracają w pierwotnym składzie:
-K97 zastępuje je batchiem dwóch niezbędnych zadań integracyjnych i czterech
-widocznych efektów wyboru celu.
+**Najbliższa luka do celu: K97 ma wybór, lecz jeszcze nie dowód pełnego ruchu.**
+Zaplanowane task-555…557 słusznie kończą tę ścieżkę i nie wymagają
+przeplanowania. Po nich `BattleView` wymaga spójności: prostokątny układ
+rozciąga drzewo i skałę jak heksy, tintuje teren i nakłada angielskie nazwy.
+K98 zbuduje geometrię z bazowego heksu, a drzewo/skałę nałoży jako dekoracje,
+bez zmian snapshotu i mechaniki.
 
 ## Ograniczenia i priorytety
 - **[W]** Rdzeń `tbb` jest **jedynym źródłem reguł gry**. Godot nie duplikuje
@@ -205,6 +205,12 @@ skróconej; pełne uzasadnienia w `docs/DECISIONS.md` i w `BACKLOG.md`.)*
     Siatka, osady, ikony i sylwetki obu armii wykorzystały istniejący snapshot.
     Kolejna wartość wymaga już wejścia użytkownika, ale reguła bezpiecznego
     kroku istnieje; rozszerzamy tylko najwęższą ścieżkę most→wybór→feedback.
+23. **K97 potwierdziło najwęższą ścieżkę celu.** `move(target)`, zaznaczenie,
+    hover, panel i przycisk powstały bez zmiany reguł; task-555…557 kończą e2e.
+24. **Rolę assetu potwierdza obraz/źródło, nie nazwa.**
+    `terrain_plains.png` to heks 120×140, `terrain_forest.png` — drzewo 26×40,
+    a `terrain_hills.png` — skała 74×92. Bazowy heks buduje siatkę; pozostałe
+    pliki są dekoracjami bez rozciągania.
 
 ## Klimat, ton, kierunek wizualny
 Średniowiecze **bez magii i fantastyki**, surowy i realistyczny ton. **[W]**
@@ -267,9 +273,11 @@ Obowiązująca kolejność poprawy: (1) spójność/różnorodność kafli mapy,
 9. ~~Ikony rozkazów~~ (K95) — **zrobione** dla tury, osady, pola i zapisu.
 10. ~~Sylwetki obu armii na mapie~~ (G96.1a) — **zrobione** z istniejącego
     `region.party.owner`.
-11. **Pierwszy celowany rozkaz z mapy** (K97) — następny batch: dwie wąskie
-    zależności integracyjne oraz cztery widoczne stany wyboru i skutku ruchu.
-12. **Nowa partia z UI po zakończonej grze** — most ma `new_game`, scena nie ma
+11. **Pierwszy celowany rozkaz z mapy** (K97) — fundament gotowy; task-555…557
+    domykają widoczny legalny krok, blokadę i wznowienie.
+12. **Spójny widok bitwy** (K98) — cztery zadania graficzne na obecnym
+    snapshotcie: bazowy heks + dekoracje, jednostki z PŻ, polski panel wyniku.
+13. **Nowa partia z UI po zakończonej grze** — most ma `new_game`, scena nie ma
    przycisku. Po K92 gracz kończy partię regularnie, więc brak restartu zacznie
    boleć. Odłożone do zakończenia priorytetu graficznego.
 
