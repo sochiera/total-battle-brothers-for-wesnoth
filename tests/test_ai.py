@@ -400,6 +400,127 @@ def test_march_duchy_party_to_is_noop_when_next_march_step_is_none():
     assert world.party_at(target) is None
 
 
+def test_move_duchy_party_to_adjacent_occupies_empty_neighbor():
+    """move_duchy_party_to_adjacent moves into an empty direct neighbor.
+
+    Realistic defect: reusing march_duchy_party_to / next_march_step for a map
+    click leaves adjacent targets as no-ops (next_march_step is None when the
+    target is already a neighbor). Existing march tests only lock that older
+    contract; they never require occupying the designated adjacent region.
+    """
+    start, neighbor, elsewhere = Region("Start"), Region("Neighbor"), Region("Elsewhere")
+    party = _owned_party("Hero", "player")
+    bystander = _owned_party("Bystander", "other")
+    own_home = _settlement("Home", "player")
+    world = WorldMap(
+        [start, neighbor, elsewhere],
+        [(start, neighbor)],
+        settlements={start: own_home},
+        parties={start: party, elsewhere: bystander},
+    )
+    duchy = Duchy("player", party.hero, parties=(party,))
+
+    # Same inputs stay a no-op under the preserved march-toward contract.
+    assert ai.march_duchy_party_to(world, duchy, neighbor) is world
+
+    moved = ai.move_duchy_party_to_adjacent(world, duchy, neighbor)
+
+    assert moved is not world
+    assert moved.party_at(neighbor) is party
+    assert moved.party_at(start) is None
+    assert moved.party_at(elsewhere) is bystander
+    assert moved.settlement_at(start) is own_home
+    assert world.party_at(start) is party
+    assert world.party_at(neighbor) is None
+    assert world.party_at(elsewhere) is bystander
+    assert world.settlement_at(start) is own_home
+
+
+def test_move_duchy_party_to_adjacent_occupies_own_settlement_neighbor():
+    """Adjacent own settlement without a party is a legal one-step destination."""
+    start, neighbor = Region("Start"), Region("Neighbor")
+    party = _owned_party("Hero", "player")
+    own = _settlement("Own", "player")
+    world = WorldMap(
+        [start, neighbor],
+        [(start, neighbor)],
+        settlements={neighbor: own},
+        parties={start: party},
+    )
+    duchy = Duchy("player", party.hero, parties=(party,))
+
+    moved = ai.move_duchy_party_to_adjacent(world, duchy, neighbor)
+
+    assert moved is not world
+    assert moved.party_at(neighbor) is party
+    assert moved.party_at(start) is None
+    assert moved.settlement_at(neighbor) is own
+    assert world.party_at(start) is party
+    assert world.settlement_at(neighbor) is own
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        "current",
+        "distant",
+        "occupied_party",
+        "enemy_settlement",
+        "unowned_settlement",
+        "no_party",
+    ],
+)
+def test_move_duchy_party_to_adjacent_is_noop(case):
+    """Unsafe or impossible adjacent targets leave the world unchanged.
+
+    Realistic defect: treating any non-party neighbor as walkable (including an
+    enemy or unowned settlement) or falling through to move_party without the
+    adjacency / ownership guards listed in the acceptance criteria.
+    """
+    start, neighbor, far = Region("Start"), Region("Neighbor"), Region("Far")
+    party = _owned_party("Hero", "player")
+    foreign = _owned_party("Blocker", "enemy")
+    settlements: dict[Region, Settlement] = {}
+    parties: dict[Region, Party] = {}
+    target = neighbor
+    edges = [(start, neighbor), (neighbor, far)]
+
+    if case == "current":
+        parties = {start: party}
+        target = start
+    elif case == "distant":
+        parties = {start: party}
+        target = far
+    elif case == "occupied_party":
+        parties = {start: party, neighbor: foreign}
+    elif case == "enemy_settlement":
+        parties = {start: party}
+        settlements = {neighbor: _settlement("Enemy", "enemy")}
+    elif case == "unowned_settlement":
+        parties = {start: party}
+        settlements = {neighbor: _settlement("Neutral", None)}
+    elif case == "no_party":
+        parties = {neighbor: foreign}
+    else:  # pragma: no cover
+        raise AssertionError(case)
+
+    world = WorldMap(
+        [start, neighbor, far],
+        edges,
+        settlements=settlements,
+        parties=parties,
+    )
+    duchy = Duchy("player", party.hero, parties=(party,))
+    before_parties = dict(world.parties)
+    before_settlements = dict(world.settlements)
+
+    result = ai.move_duchy_party_to_adjacent(world, duchy, target)
+
+    assert result is world
+    assert dict(world.parties) == before_parties
+    assert dict(world.settlements) == before_settlements
+
+
 def test_assault_duchy_party_applies_assault_from_party_position():
     """assault_duchy_party finds the duchy party and assaults from its region."""
     start, target = Region("Start"), Region("Target")

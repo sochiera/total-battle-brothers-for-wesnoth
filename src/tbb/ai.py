@@ -208,6 +208,21 @@ def next_march_step(
     return None
 
 
+def _move_party_one_step(
+    world: WorldMap, source: Region, destination: Region
+) -> WorldMap:
+    return world.move_party(source, destination, 1)
+
+
+def _can_enter_adjacent_region(
+    world: WorldMap, source: Region, target: Region, owner_id: str
+) -> bool:
+    if target not in world.neighbors(source) or target in world.parties:
+        return False
+    settlement = world.settlement_at(target)
+    return settlement is None or settlement.owner_id == owner_id
+
+
 def march_toward_nearest_enemy(world: WorldMap, start: Region) -> WorldMap:
     """Move the party at ``start`` one step toward its nearest enemy settlement."""
     if start not in world.regions:
@@ -224,7 +239,7 @@ def march_toward_nearest_enemy(world: WorldMap, start: Region) -> WorldMap:
     step = next_march_step(world, start, target)
     if step is None:
         return world
-    return world.move_party(start, step, 1)
+    return _move_party_one_step(world, start, step)
 
 
 def march_duchy_party(world: WorldMap, duchy: Duchy) -> WorldMap:
@@ -245,7 +260,19 @@ def march_duchy_party_to(
     step = next_march_step(world, position, target)
     if step is None:
         return world
-    return world.move_party(position, step, 1)
+    return _move_party_one_step(world, position, step)
+
+
+def move_duchy_party_to_adjacent(
+    world: WorldMap, duchy: Duchy, target: Region
+) -> WorldMap:
+    """Move one step to an adjacent empty region or one with the duchy's settlement."""
+    position = _duchy_party_position(world, duchy.duchy_id)
+    if position is None:
+        return world
+    if not _can_enter_adjacent_region(world, position, target, duchy.duchy_id):
+        return world
+    return _move_party_one_step(world, position, target)
 
 
 def assault_duchy_party(
