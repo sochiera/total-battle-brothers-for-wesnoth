@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/map_view.gd" id="2_map_view"]
@@ -6,6 +6,7 @@
 [ext_resource type="Texture2D" path="res://assets/strategic_map_background.png" id="4_map_background"]
 [ext_resource type="Texture2D" path="res://assets/strategic_status_background.png" id="14_status_background"]
 [ext_resource type="Texture2D" path="res://assets/battle_panel_background.png" id="13_battle_panel_background"]
+[ext_resource type="Texture2D" path="res://assets/order_bar_background.png" id="15_order_bar_background"]
 [ext_resource type="Texture2D" path="res://assets/icon_next_turn.png" id="5_next_turn_icon"]
 [ext_resource type="Texture2D" path="res://assets/icon_develop.png" id="6_develop_icon"]
 [ext_resource type="Texture2D" path="res://assets/icon_recruit.png" id="7_recruit_icon"]
@@ -255,66 +256,92 @@ horizontal_alignment = 1
 vertical_alignment = 1
 mouse_filter = 2
 
-[node name="OrderControls" type="VBoxContainer" parent="MainLayout"]
+[node name="OrderControls" type="Control" parent="MainLayout"]
+custom_minimum_size = Vector2(0, 104)
 layout_mode = 2
+
+[node name="OrderBarBackground" type="TextureRect" parent="MainLayout/OrderControls"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("15_order_bar_background")
+expand_mode = 1
+stretch_mode = 6
+z_index = -10
+mouse_filter = 2
+
+[node name="OrderBarContent" type="VBoxContainer" parent="MainLayout/OrderControls"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 8.0
+offset_right = -10.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 2
 theme_override_constants/separation = 4
 
-[node name="OrderButtons" type="HBoxContainer" parent="MainLayout/OrderControls"]
+[node name="OrderButtons" type="HBoxContainer" parent="MainLayout/OrderControls/OrderBarContent"]
 layout_mode = 2
 
-[node name="NextTurnButton" type="Button" parent="MainLayout/OrderControls/OrderButtons"]
+[node name="NextTurnButton" type="Button" parent="MainLayout/OrderControls/OrderBarContent/OrderButtons"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(140, 40)
 layout_mode = 2
 icon = ExtResource("5_next_turn_icon")
 text = "Następna tura"
 
-[node name="DevelopButton" type="Button" parent="MainLayout/OrderControls/OrderButtons"]
+[node name="DevelopButton" type="Button" parent="MainLayout/OrderControls/OrderBarContent/OrderButtons"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(140, 40)
 layout_mode = 2
 icon = ExtResource("6_develop_icon")
 text = "Rozwiń osadę"
 
-[node name="RecruitButton" type="Button" parent="MainLayout/OrderControls/OrderButtons"]
+[node name="RecruitButton" type="Button" parent="MainLayout/OrderControls/OrderBarContent/OrderButtons"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(140, 40)
 layout_mode = 2
 icon = ExtResource("7_recruit_icon")
 text = "Rekrutuj jednostkę"
 
-[node name="MusterButton" type="Button" parent="MainLayout/OrderControls/OrderButtons"]
+[node name="MusterButton" type="Button" parent="MainLayout/OrderControls/OrderBarContent/OrderButtons"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(140, 40)
 layout_mode = 2
 icon = ExtResource("8_muster_icon")
 text = "Zbierz oddział"
 
-[node name="MarchButton" type="Button" parent="MainLayout/OrderControls/OrderButtons"]
+[node name="MarchButton" type="Button" parent="MainLayout/OrderControls/OrderBarContent/OrderButtons"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(140, 40)
 layout_mode = 2
 icon = ExtResource("9_march_icon")
 text = "Wyrusz w pole"
 
-[node name="AssaultButton" type="Button" parent="MainLayout/OrderControls/OrderButtons"]
+[node name="AssaultButton" type="Button" parent="MainLayout/OrderControls/OrderBarContent/OrderButtons"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(140, 40)
 layout_mode = 2
 icon = ExtResource("10_assault_icon")
 text = "Szturmuj osadę"
 
-[node name="SaveLoadButtons" type="HBoxContainer" parent="MainLayout/OrderControls"]
+[node name="SaveLoadButtons" type="HBoxContainer" parent="MainLayout/OrderControls/OrderBarContent"]
 layout_mode = 2
 
-[node name="SaveGameButton" type="Button" parent="MainLayout/OrderControls/SaveLoadButtons"]
+[node name="SaveGameButton" type="Button" parent="MainLayout/OrderControls/OrderBarContent/SaveLoadButtons"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(140, 40)
 layout_mode = 2
 icon = ExtResource("11_save_icon")
 text = "Zapisz partię"
 
-[node name="LoadGameButton" type="Button" parent="MainLayout/OrderControls/SaveLoadButtons"]
+[node name="LoadGameButton" type="Button" parent="MainLayout/OrderControls/OrderBarContent/SaveLoadButtons"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(140, 40)
 layout_mode = 2

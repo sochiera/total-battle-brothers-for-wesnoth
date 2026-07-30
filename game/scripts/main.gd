@@ -10,6 +10,10 @@ const SAVE_SUCCESS_STATUS := "Partia została zapisana."
 const SAVE_FAILURE_STATUS := "Nie udało się zapisać partii."
 const LOAD_SUCCESS_STATUS := "Partia została wczytana."
 const LOAD_FAILURE_STATUS := "Nie udało się wczytać partii."
+# OrderBarContent scene offsets: left/right 10 each, top/bottom 8 each.
+# Both axes feed OrderControls.custom_minimum_size so the parchment bar does
+# not under-report size when MainLayout sizes from content minima.
+const ORDER_BAR_CONTENT_PAD := Vector2(20.0, 16.0)
 
 
 var _client: Variant = null
@@ -19,8 +23,90 @@ var _default_march_label := ""
 
 func _ready() -> void:
 	_default_march_label = %MarchButton.text
+	_apply_order_button_state_styles()
+	_sync_order_controls_minimum_size()
 	%MapView.region_selected.connect(_on_region_selected)
 	start_session(BridgeConfig.from_environment())
+
+
+func _order_action_buttons() -> Array[Button]:
+	return [
+		%NextTurnButton,
+		%DevelopButton,
+		%RecruitButton,
+		%MusterButton,
+		%MarchButton,
+		%AssaultButton,
+		%SaveGameButton,
+		%LoadGameButton,
+	]
+
+
+func _sync_order_controls_minimum_size() -> void:
+	## OrderControls is a plain Control so the parchment TextureRect can pin
+	## full-rect behind the two button rows. Unlike VBoxContainer, Control does
+	## not inherit child minimums — without an explicit min width MainLayout
+	## collapses to Status+Map minima (848px) and MapView/BattleView stick at
+	## custom_minimum_size.x=420. Headless map/battle probes (and any window
+	## that sizes from content) then paint legacy 84px tiles and clip hex (2,2).
+	var bar := $MainLayout/OrderControls as Control
+	var content := $MainLayout/OrderControls/OrderBarContent as Control
+	if bar == null or content == null:
+		return
+	var content_min := content.get_combined_minimum_size()
+	var padded := content_min + ORDER_BAR_CONTENT_PAD
+	bar.custom_minimum_size = Vector2(
+		padded.x,
+		maxf(padded.y, bar.custom_minimum_size.y)
+	)
+
+
+func _apply_order_button_state_styles() -> void:
+	## G99.1d: explicit StyleBoxFlat per interaction state on every order button.
+	## Built once here so main.tscn stays free of eight-fold style duplication while
+	## probes still see has_theme_stylebox_override for normal/hover/pressed.
+	var style_by_state := {
+		"normal": _make_order_button_style(
+			Color(0.88, 0.78, 0.58, 1.0), Color(0.42, 0.28, 0.12, 0.9)
+		),
+		"hover": _make_order_button_style(
+			Color(0.95, 0.88, 0.68, 1.0), Color(0.55, 0.38, 0.14, 1.0)
+		),
+		"pressed": _make_order_button_style(
+			Color(0.72, 0.58, 0.38, 1.0), Color(0.32, 0.2, 0.08, 1.0)
+		),
+	}
+	var font_theme_key := {
+		"normal": "font_color",
+		"hover": "font_hover_color",
+		"pressed": "font_pressed_color",
+	}
+	var font_by_state := {
+		"normal": Color(0.18, 0.11, 0.06, 1.0),
+		"hover": Color(0.14, 0.08, 0.04, 1.0),
+		"pressed": Color(0.1, 0.05, 0.02, 1.0),
+	}
+	for button: Button in _order_action_buttons():
+		for state_name: String in ["normal", "hover", "pressed"]:
+			button.add_theme_stylebox_override(
+				state_name, style_by_state[state_name].duplicate()
+			)
+			button.add_theme_color_override(
+				font_theme_key[state_name], font_by_state[state_name]
+			)
+
+
+func _make_order_button_style(bg: Color, border: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = bg
+	style.border_color = border
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(4)
+	style.content_margin_left = 8.0
+	style.content_margin_right = 8.0
+	style.content_margin_top = 4.0
+	style.content_margin_bottom = 4.0
+	return style
 
 
 func start_session(config) -> bool:

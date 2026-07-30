@@ -34,6 +34,9 @@ const REGION_NAME_PLATE_SIDE_MARGIN := 3.0
 const REGION_NAME_PLATE_PARTY_GAP := 2.0
 # Plate stays in a shallow top band of the tile AABB (fraction of tile height).
 const REGION_NAME_PLATE_MAX_TILE_FRACTION := 0.32
+const REGION_NAME_PLATE_BAND_META := "region_name_plate_band"
+const REGION_NAME_PLATE_BAND_BOUND_META := "region_name_plate_band_bound"
+const REGION_NAME_PLATE_FONT_FLOOR := 7
 const GROUND_TEXTURES: Array[Texture2D] = [
 	preload("res://assets/map_ground_grass.png"),
 	preload("res://assets/map_ground_earth.png"),
@@ -303,31 +306,75 @@ func _region_name_plate_max_size() -> Vector2:
 
 
 func _measure_region_name_plate(text: String, font_size: int) -> Vector2:
-	var measure := Label.new()
-	measure.text = text
-	measure.add_theme_stylebox_override("normal", _region_name_plate_style())
-	measure.add_theme_font_size_override("font_size", font_size)
-	var content := measure.get_minimum_size()
-	measure.free()
-	return content
+	# Font metrics — not a detached Label.get_minimum_size() — so headless
+	# layout matches in-tree theme resolution and does not over-report height.
+	var style := _region_name_plate_style()
+	var font: Font = ThemeDB.fallback_font
+	if font == null:
+		return Vector2(8.0, 8.0)
+	var text_size := font.get_string_size(
+		text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size
+	)
+	var pad_x := (
+		style.content_margin_left
+		+ style.content_margin_right
+		+ float(style.get_border_width(SIDE_LEFT) + style.get_border_width(SIDE_RIGHT))
+	)
+	var pad_y := (
+		style.content_margin_top
+		+ style.content_margin_bottom
+		+ float(style.get_border_width(SIDE_TOP) + style.get_border_width(SIDE_BOTTOM))
+	)
+	return Vector2(text_size.x + pad_x, text_size.y + pad_y)
 
 
 func _layout_region_name_plate(plate: Label) -> void:
 	var max_size := _region_name_plate_max_size()
-	# Measure with a detached twin so layout works before the plate is in the tree.
-	var font_size: int = plate.get_theme_font_size("font_size")
-	if font_size <= 0:
-		font_size = _region_label_font_size_for_text(plate.text)
+	var font_size := _region_label_font_size_for_text(plate.text)
+	plate.add_theme_font_size_override("font_size", font_size)
 	var content := _measure_region_name_plate(plate.text, font_size)
+	# Always clamp both axes — including when max is 0 — so a collapsed party
+	# clearance band cannot leave the plate oversized over the mark.
 	var plate_w := minf(max_size.x, maxf(content.x, 8.0))
-	var plate_h := minf(max_size.y, maxf(content.y, 8.0))
+	var plate_h := minf(max_size.y, maxf(content.y, 1.0))
 	# Keep the plate in the upper band of the tile AABB (away from party mark
 	# bottom-right and the central settlement art).
-	plate.position = Vector2(
+	var band_pos := Vector2(
 		(_tile_size.x - plate_w) * 0.5,
 		REGION_NAME_PLATE_TOP_MARGIN * _layout_scale,
 	)
-	plate.size = Vector2(plate_w, plate_h)
+	var band_size := Vector2(plate_w, plate_h)
+	plate.position = band_pos
+	plate.size = band_size
+	# Label reapplies content min after font/style notifications and can grow
+	# past the party-clearance band; re-clamp on the next idle frame with the
+	# latest band (schedule again after each completed clamp).
+	plate.set_meta(REGION_NAME_PLATE_BAND_META, {"pos": band_pos, "size": band_size})
+	_schedule_region_name_plate_band_clamp(plate)
+
+
+func _schedule_region_name_plate_band_clamp(plate: Control) -> void:
+	# At most one pending deferred pass; later layouts only refresh band meta
+	# until the clamp runs and clears the bound flag.
+	if plate.has_meta(REGION_NAME_PLATE_BAND_BOUND_META):
+		return
+	plate.set_meta(REGION_NAME_PLATE_BAND_BOUND_META, true)
+	# Do not use call_deferred("method", plate): MessageQueue fails typed Node
+	# args with "Cannot convert argument 1 from Object to Object". Bound
+	# Callable + untyped receiver is safe and keeps the clamp re-entrant.
+	_clamp_region_name_plate_band.bind(plate).call_deferred()
+
+
+func _clamp_region_name_plate_band(plate: Variant) -> void:
+	if plate == null or not is_instance_valid(plate) or not (plate is Control):
+		return
+	if plate.has_meta(REGION_NAME_PLATE_BAND_BOUND_META):
+		plate.remove_meta(REGION_NAME_PLATE_BAND_BOUND_META)
+	var band: Variant = plate.get_meta(REGION_NAME_PLATE_BAND_META, null)
+	if not band is Dictionary:
+		return
+	plate.position = band.get("pos", plate.position)
+	plate.size = band.get("size", plate.size)
 
 
 func _region_identity_label(canonical: String) -> Label:
@@ -358,10 +405,13 @@ func _region_label_font_size() -> int:
 
 func _region_label_font_size_for_text(text: String) -> int:
 	# Unwrapped content must fit the plate band: tile width and clearance above
-	# the party mark (G94.1a / G99.1b longer PL labels).
+	# the party mark (G94.1a / G99.1b longer PL labels). Floor stays absolute so
+	# scaled lower bounds cannot block shrinking under a short party gap.
 	var font_size := _region_label_font_size()
-	var floor_size := maxi(7, roundi(7.0 * _layout_scale))
+	var floor_size := REGION_NAME_PLATE_FONT_FLOOR
 	var max_size := _region_name_plate_max_size()
+	if max_size.x <= 0.0 or max_size.y <= 0.0:
+		return floor_size
 	while font_size > floor_size:
 		var measured := _measure_region_name_plate(text, font_size)
 		if measured.x <= max_size.x and measured.y <= max_size.y:

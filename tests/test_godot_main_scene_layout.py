@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import json
 import re
+import struct
+import zlib
 from pathlib import Path
 
-from godot_png_assets import assert_asset_credited
+from godot_png_assets import assert_asset_credited, png_rgba8
 from godot_runner import run_godot_script
 from test_godot_assets import _import_game_assets
 
@@ -44,12 +46,31 @@ STRATEGIC_BACKGROUND = "strategic_map_background.png"
 STRATEGIC_BACKGROUND_RES = f"res://assets/{STRATEGIC_BACKGROUND}"
 STATUS_BACKGROUND = "strategic_status_background.png"
 STATUS_BACKGROUND_RES = f"res://assets/{STATUS_BACKGROUND}"
+ORDER_BAR_BACKGROUND = "order_bar_background.png"
+ORDER_BAR_BACKGROUND_RES = f"res://assets/{ORDER_BAR_BACKGROUND}"
+ORDER_BAR_SCREENSHOTS = (
+    GAME / "screenshots" / "task-565-fresh-order-states-1152x648.png",
+    GAME / "screenshots" / "task-565-visible-battle-1152x648.png",
+)
+ORDER_ICON_FILES = {
+    "NextTurnButton": "icon_next_turn.png",
+    "DevelopButton": "icon_develop.png",
+    "RecruitButton": "icon_recruit.png",
+    "MusterButton": "icon_muster.png",
+    "MarchButton": "icon_march.png",
+    "AssaultButton": "icon_assault.png",
+    "SaveGameButton": "icon_save.png",
+    "LoadGameButton": "icon_load.png",
+}
 
 
 def _load_layout_payload() -> dict:
     result = run_godot_script(GAME, "res://tests/scene_layout_probe.gd", timeout=30)
     assert result.returncode == 0, result.stderr
     assert "SCRIPT ERROR" not in result.stderr, result.stderr
+    # Runtime call/deferred argument failures use the plain ``ERROR:`` prefix
+    # and can leave the probe's JSON and exit status looking successful.
+    assert "ERROR:" not in result.stderr, result.stderr
     lines = [line for line in result.stdout.splitlines() if line.startswith(PREFIX)]
     assert len(lines) == 1, result.stdout
     return json.loads(lines[0][len(PREFIX) :])
@@ -105,6 +126,66 @@ def _battle_view_takes_layout_space(state: dict) -> bool:
     return float(state.get("h") or 0) > 1.0
 
 
+def _relative_luminance(rgb: tuple[float, float, float]) -> float:
+    linear = tuple(
+        channel / 12.92
+        if channel <= 0.04045
+        else ((channel + 0.055) / 1.055) ** 2.4
+        for channel in rgb
+    )
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+
+def _median_opaque_icon_luminance(
+    path: Path, modulate_rgb: tuple[float, float, float] = (1.0, 1.0, 1.0)
+) -> float:
+    _width, _height, rgba = png_rgba8(path)
+    luminances = sorted(
+        _relative_luminance(
+            (
+                rgba[i] / 255 * modulate_rgb[0],
+                rgba[i + 1] / 255 * modulate_rgb[1],
+                rgba[i + 2] / 255 * modulate_rgb[2],
+            )
+        )
+        for i in range(0, len(rgba), 4)
+        if rgba[i + 3] >= 192
+    )
+    assert luminances, f"icon must contain visible pixels: {path}"
+    return luminances[len(luminances) // 2]
+
+
+def _png_dimensions(path: Path) -> tuple[int, int]:
+    data = path.read_bytes()
+    assert data[:8] == b"\x89PNG\r\n\x1a\n", f"not a PNG: {path}"
+    pos = 8
+    dimensions = None
+    saw_iend = False
+    while pos + 12 <= len(data):
+        length = struct.unpack(">I", data[pos : pos + 4])[0]
+        chunk_end = pos + 12 + length
+        assert chunk_end <= len(data), f"truncated PNG chunk: {path}"
+        chunk_type = data[pos + 4 : pos + 8]
+        chunk = data[pos + 8 : pos + 8 + length]
+        expected_crc = struct.unpack(">I", data[pos + 8 + length : chunk_end])[0]
+        assert zlib.crc32(chunk_type + chunk) & 0xFFFFFFFF == expected_crc, (
+            f"invalid PNG chunk CRC: {path}"
+        )
+        if chunk_type == b"IHDR":
+            assert length == 13 and dimensions is None, f"invalid PNG IHDR: {path}"
+            dimensions = struct.unpack(">II", chunk[:8])
+        if chunk_type == b"IEND":
+            assert length == 0, f"invalid PNG IEND: {path}"
+            saw_iend = True
+            pos = chunk_end
+            break
+        pos = chunk_end
+    assert dimensions is not None and saw_iend and pos == len(data), (
+        f"incomplete PNG structure: {path}"
+    )
+    return dimensions
+
+
 def test_main_scene_controls_have_disjoint_layout_and_hidden_region_list():
     """Visible controls must not overlap; the map replaces the hidden RegionList.
 
@@ -146,6 +227,120 @@ def test_main_scene_controls_have_disjoint_layout_and_hidden_region_list():
         "status controls and order buttons must form separate groups, "
         f"got status={status_box} orders={order_box}"
     )
+
+
+def test_order_bar_uses_credited_background_covering_all_order_controls():
+    """G99.1d: the complete order bar is visibly backed by its public texture.
+
+    Realistic defect existing gates miss: ``OrderControls`` remains a transparent
+    VBox containing otherwise functional buttons. Layout and icon tests stay
+    green because they only check control rectangles, labels and icon paths;
+    they do not require the named, credited bar artwork or verify that it is
+    actually rendered behind the full group. A copied ``.import`` may also retain
+    the status background's UID, making Godot treat two public textures as the
+    same resource identity even though both PNG paths exist and load.
+    """
+    assets_dir = GAME / "assets"
+    background_path = assets_dir / ORDER_BAR_BACKGROUND
+    assert background_path.is_file(), (
+        f"required order-bar background missing on disk: {background_path}"
+    )
+    assert_asset_credited(
+        assets_dir / "CREDITS.md",
+        ORDER_BAR_BACKGROUND,
+        source_re=re.compile(r"https?://\S+"),
+    )
+    order_import = (background_path.with_suffix(".png.import")).read_text(
+        encoding="utf-8"
+    )
+    status_import = (
+        assets_dir / f"{STATUS_BACKGROUND}.import"
+    ).read_text(encoding="utf-8")
+    order_uid = re.search(r'^uid="([^"]+)"$', order_import, re.MULTILINE)
+    status_uid = re.search(r'^uid="([^"]+)"$', status_import, re.MULTILINE)
+    assert order_uid and status_uid, "both background imports must declare a UID"
+    assert order_uid.group(1) != status_uid.group(1), (
+        "order-bar and strategic-status backgrounds must have distinct Godot UIDs"
+    )
+
+    payload = _load_layout_payload()
+    order_bar = payload.get("order_bar") or {}
+    assert order_bar.get("found") is True, order_bar
+    assert order_bar.get("background_path") == ORDER_BAR_BACKGROUND_RES, order_bar
+    assert order_bar.get("background_covers_panel") is True, (
+        "order-bar background must cover the complete OrderControls rect, "
+        f"got {order_bar!r}"
+    )
+
+
+def test_order_buttons_expose_distinct_states_and_review_screenshots():
+    """G99.1d: button-state styling and both human-review frames are observable.
+
+    Realistic defect existing gates miss: functional buttons can retain one
+    indistinguishable/default-looking surface in every interaction state, and
+    no 1152×648 evidence may exist for reviewing those states or the battle
+    composition. Geometry, icon-path and background gates all remain green.
+
+    Pixel-level artistic approval intentionally remains human-owned. This gate
+    requires explicit public theme states with distinct background colours and
+    registers the two required, correctly sized PNG review artifacts.
+    """
+    payload = _load_layout_payload()
+    states = (payload.get("order_bar") or {}).get("button_states") or {}
+    assert set(states) == set(ORDER_CONTROLS), states
+    for button_name, button in states.items():
+        assert button.get("found") is True, (button_name, button)
+        colors = []
+        for state_name in ("normal", "hover", "pressed"):
+            state = button.get(state_name) or {}
+            assert state.get("explicit") is True, (
+                f"{button_name} must explicitly style {state_name}, got {state!r}"
+            )
+            rgba = state.get("background_rgba")
+            assert isinstance(rgba, list) and len(rgba) == 4, (
+                f"{button_name} {state_name} needs a measurable flat background, "
+                f"got {rgba!r}"
+            )
+            colors.append(tuple(round(float(channel), 3) for channel in rgba))
+        assert len(set(colors)) == 3, (
+            f"{button_name} normal/hover/pressed backgrounds must be distinct, "
+            f"got {colors!r}"
+        )
+        icon_modulate = button.get("icon_modulate_rgba")
+        assert isinstance(icon_modulate, list) and len(icon_modulate) == 4, (
+            f"{button_name} needs a measurable normal icon modulate, "
+            f"got {icon_modulate!r}"
+        )
+        assert float(icon_modulate[3]) >= 0.95, (
+            f"{button_name} icon modulate must remain effectively opaque, "
+            f"got {icon_modulate!r}"
+        )
+        icon_luminance = _median_opaque_icon_luminance(
+            GAME / "assets" / ORDER_ICON_FILES[button_name],
+            tuple(float(channel) for channel in icon_modulate[:3]),
+        )
+        for state_name, rgba in zip(("normal", "hover", "pressed"), colors):
+            background_luminance = _relative_luminance(rgba[:3])
+            contrast = (
+                max(icon_luminance, background_luminance) + 0.05
+            ) / (
+                min(icon_luminance, background_luminance) + 0.05
+            )
+            assert contrast >= 3.0, (
+                f"{button_name} icon needs >=3:1 median-pixel contrast in "
+                f"{state_name}, got {contrast:.2f}:1"
+            )
+
+    for screenshot in ORDER_BAR_SCREENSHOTS:
+        assert screenshot.is_file(), f"required human-review screenshot missing: {screenshot}"
+        width, height = _png_dimensions(screenshot)
+        assert (width, height) == (int(VIEWPORT_W), int(VIEWPORT_H)), (
+            f"{screenshot} must be 1152×648, got {width}×{height}"
+        )
+        assert screenshot.stat().st_size >= 100_000, (
+            f"{screenshot} must contain a detailed live-game review frame, "
+            "not a tiny flat-colour placeholder"
+        )
 
 
 def test_strategic_composition_fits_review_viewport_collapses_empty_battle_and_uses_background():

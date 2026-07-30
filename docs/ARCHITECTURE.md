@@ -658,6 +658,27 @@ musi zakończyć się przez `call_deferred("quit", …)`. Błąd przed tym wywo�
 pozostawia drzewo scen aktywne, dlatego pythonowa bramka
 `run_godot_script` ma limit czasu i propaguje `subprocess.TimeoutExpired`.
 
+**OrderControls — tło paska rozkazów (G99.1d):** w `game/scenes/main.tscn`
+węzeł `OrderControls` to `Control` z `OrderBarBackground` (`TextureRect`,
+`res://assets/order_bar_background.png`, full-rect, `mouse_filter = ignore`)
+oraz `OrderBarContent` (`VBoxContainer`: `OrderButtons` + `SaveLoadButtons`).
+Przyciski i unikalne nazwy/`pressed` pozostają bez zmian; tło tylko oprawia
+pasek. Kredyt w `game/assets/CREDITS.md` (pochodna Pergament.1.jpg, CC0).
+
+`main.gd` w `_ready()` wywołuje `_apply_order_button_state_styles()`: na
+każdym z ośmiu przycisków ustawia jawne `add_theme_stylebox_override` dla
+`normal` / `hover` / `pressed` (`StyleBoxFlat` — jasny pergamin / jaśniejszy
+miód / wciśnięty brąz; kontrast z ciemnymi ikonami Game-icons ≥ 3:1) oraz
+ciemne kolory czcionki. Artefakty przeglądu 1152×648 to **żywe zrzuty**
+głównej sceny (nie placeholdery): regeneracja skryptem
+`game/tests/capture_order_bar_review.gd` przy realnym display (nie
+`--headless` — dummy renderer nie ma pikseli).
+`task-565-fresh-order-states-1152x648.png` — świeża partia z demo
+normal/hover/pressed na różnych przyciskach paska;
+`task-565-visible-battle-1152x648.png` — ten sam pasek przy widocznym
+`BattleView`. Ocena artystyczna (kontrast, grupowanie, spójność) należy do
+człowieka.
+
 **MapView — nazwy regionów i własność (G99.1b):** `game/scripts/map_view.gd`
 rysuje na każdym `RegionTile_<canonical>` widoczny węzeł `RegionNamePlate`
 (Label ze stylem tabliczki) jako **wąski pasek u góry** kafla (nie full-rect),

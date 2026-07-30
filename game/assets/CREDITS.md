@@ -48,6 +48,7 @@ Creative Commons Zero 1.0 Universal (CC0).
 |------|-------------|--------|---------|
 | strategic_map_background.png | https://commons.wikimedia.org/wiki/File:Pergament.1.jpg | Membeth | CC0 |
 | strategic_status_background.png | derived crop/retouch of https://commons.wikimedia.org/wiki/File:Pergament.1.jpg for status-card panel; path game/assets/strategic_status_background.png | Membeth (source); Total Battle Brothers contributors (panel derivation) | CC0 |
+| order_bar_background.png | derived crop/retouch of https://commons.wikimedia.org/wiki/File:Pergament.1.jpg for order-bar panel; path game/assets/order_bar_background.png | Membeth (source); Total Battle Brothers contributors (panel derivation) | CC0 |
 
 The next-turn icon is adapted from the Game-icons **hourglass** by Lorc.
 The SVG source is available at:

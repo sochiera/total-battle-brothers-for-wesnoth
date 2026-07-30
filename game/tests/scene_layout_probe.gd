@@ -19,6 +19,7 @@ const VIEWPORT_W := 1152.0
 const VIEWPORT_H := 648.0
 const BACKGROUND_RES := "res://assets/strategic_map_background.png"
 const STATUS_BACKGROUND_RES := "res://assets/strategic_status_background.png"
+const ORDER_BAR_BACKGROUND_RES := "res://assets/order_bar_background.png"
 
 const CONTROL_NAMES: Array[String] = [
 	"DateLabel",
@@ -114,6 +115,7 @@ func _run() -> void:
 		"battle_result_text_with_battle": battle_result_text,
 		"map_view": map_state,
 		"status_card": _status_card_state(scene_root),
+		"order_bar": _order_bar_state(scene_root),
 		"background_res": BACKGROUND_RES,
 	}))
 	quit(0)
@@ -188,6 +190,62 @@ func _status_card_state(scene_root: Node) -> Dictionary:
 		"background_path": str(bg.get("path", "")),
 		"background_covers_panel": bool(bg.get("covers", false)),
 	}
+
+
+func _order_bar_state(scene_root: Node) -> Dictionary:
+	var bar: Control = scene_root.find_child("OrderControls", true, false) as Control
+	if bar == null:
+		return {"found": false}
+	var rect: Rect2 = bar.get_global_rect()
+	var bg: Dictionary = _background_over(scene_root, rect, ORDER_BAR_BACKGROUND_RES)
+	return {
+		"found": true,
+		"background_path": str(bg.get("path", "")),
+		"background_covers_panel": bool(bg.get("covers", false)),
+		"button_states": _order_button_states(scene_root),
+	}
+
+
+func _order_button_states(scene_root: Node) -> Dictionary:
+	var states: Dictionary = {}
+	for button_name: String in [
+		"NextTurnButton",
+		"DevelopButton",
+		"RecruitButton",
+		"MusterButton",
+		"MarchButton",
+		"AssaultButton",
+		"SaveGameButton",
+		"LoadGameButton",
+	]:
+		var button: Button = scene_root.find_child(button_name, true, false) as Button
+		if button == null:
+			states[button_name] = {"found": false}
+			continue
+		var button_state: Dictionary = {"found": true}
+		for state_name: String in ["normal", "hover", "pressed"]:
+			var style: StyleBox = button.get_theme_stylebox(state_name)
+			var color: Variant = null
+			if style is StyleBoxFlat:
+				var flat: StyleBoxFlat = style as StyleBoxFlat
+				color = [
+					flat.bg_color.r,
+					flat.bg_color.g,
+					flat.bg_color.b,
+					flat.bg_color.a,
+				]
+			button_state[state_name] = {
+				"explicit": button.has_theme_stylebox_override(state_name),
+				"background_rgba": color,
+			}
+		button_state["icon_modulate_rgba"] = [
+			button.get_theme_color("icon_normal_color").r,
+			button.get_theme_color("icon_normal_color").g,
+			button.get_theme_color("icon_normal_color").b,
+			button.get_theme_color("icon_normal_color").a,
+		]
+		states[button_name] = button_state
+	return states
 
 
 func _strategic_background_over(scene_root: Node, map_rect: Rect2) -> Dictionary:
