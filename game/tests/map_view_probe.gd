@@ -108,6 +108,47 @@ func _run() -> void:
 		scene_root, map_view, regions_full, names_full, "Gamma", true
 	)
 
+	# G96.1a AI: silhouette identity from region.party.owner (not battle side roles).
+	# Alpha carries a player party, Gamma an AI party; Beta has none. player_party_region
+	# stays Alpha so the player mark path still works if MapView dual-keys on it;
+	# AI mark must still come from party.owner == "ai" on Gamma.
+	var regions_owner_parties: Array = [
+		{
+			"name": "Alpha",
+			"col": 0,
+			"row": 0,
+			"owner": "player",
+			"settlement": {"name": "Alpha Keep"},
+			"party": {"owner": "player"},
+		},
+		{
+			"name": "Beta",
+			"col": 1,
+			"row": 0,
+			"owner": null,
+			"settlement": null,
+			"party": null,
+		},
+		{
+			"name": "Gamma",
+			"col": 0,
+			"row": 1,
+			"owner": "ai",
+			"settlement": null,
+			"party": {"owner": "ai"},
+		},
+	]
+	var names_owner_parties: Array[String] = []
+	for region: Variant in regions_owner_parties:
+		names_owner_parties.append(region["name"])
+	# Explicit skip marker when render_model is missing — empty {} would make
+	# Python assert on Gamma silhouette and hide the real "no render" cause.
+	var party_owner_silhouettes: Dictionary = {"skipped": true}
+	if has_render:
+		party_owner_silhouettes = await _party_owner_silhouette_sample(
+			map_view, regions_owner_parties, names_owner_parties, "Alpha"
+		)
+
 	# G94.1a: five-region line matches a fresh headless party (col 0..4, row 0).
 	# Real snapshot names exercise label readability; short R0.. aliases would
 	# hide overflow when TILE_SIZE shrinks. Settlements on outposts/keeps match
@@ -170,6 +211,7 @@ func _run() -> void:
 		"party_absent": party_absent,
 		"party_on_beta": party_on_beta,
 		"party_direct_gamma": party_direct_gamma,
+		"party_owner_silhouettes": party_owner_silhouettes,
 		"line_regions": regions_line,
 		"line_tiles": tiles_line,
 		"map_view_rect": {
@@ -190,6 +232,46 @@ func _model(regions: Array, party_region: Variant = null) -> SnapshotModel:
 	model.regions = regions
 	model.player_party_region = party_region
 	return model
+
+
+func _party_owner_silhouette_sample(
+	map_view: Node,
+	regions: Array,
+	names: Array[String],
+	player_party_region: Variant,
+) -> Dictionary:
+	# Observe public unit-carrier paths under each tile after render_model.
+	# Paths are the contract (party_player_unit / party_ai_unit); node names are not.
+	if not map_view.has_method("render_model"):
+		_fail("party-owner silhouette sample requires MapView.render_model")
+		return {}
+	map_view.call("render_model", _model(regions, player_party_region))
+	await process_frame
+	await process_frame
+	var unit_paths_by_region: Dictionary = {}
+	for region_name: String in names:
+		var label: Label = PartyMapMark.find_label_with_text(map_view, region_name)
+		if label == null:
+			continue
+		var tile: Control = PartyMapMark.tile_control(label, map_view)
+		var unit_path: String = _party_unit_path_on_tile(tile)
+		if not unit_path.is_empty():
+			unit_paths_by_region[region_name] = unit_path
+	return {"unit_paths_by_region": unit_paths_by_region}
+
+
+func _party_unit_path_on_tile(tile: Control) -> String:
+	# Public G96.1a carriers only — ignore ground/settlement/banner leftovers.
+	for layer: Variant in _collect_texture_layers(tile):
+		if not layer is Dictionary:
+			continue
+		var path: String = str(layer.get("path", ""))
+		if (
+			path.ends_with("party_player_unit.png")
+			or path.ends_with("party_ai_unit.png")
+		):
+			return path
+	return ""
 
 
 func _party_mark_sample(
@@ -267,14 +349,20 @@ func _collect_tiles(map_view: Node, expected_names: Array[String]) -> Array:
 		var texture_layers: Array = _collect_texture_layers(tile)
 		# Region body textures only — exclude party marker so settlement/owner
 		# comparison stays independent of whether the army is parked here.
+		# Drop both player/AI unit carriers even if the layer is misnamed.
 		var texture_paths: Array = []
 		for layer: Variant in texture_layers:
+			if not (layer is Dictionary and layer.has("path")):
+				continue
+			if str(layer.get("name", "")) == "PlayerPartyMarker":
+				continue
+			var body_path: String = str(layer["path"])
 			if (
-				layer is Dictionary
-				and layer.has("path")
-				and str(layer.get("name", "")) != "PlayerPartyMarker"
+				body_path.ends_with("party_player_unit.png")
+				or body_path.ends_with("party_ai_unit.png")
 			):
-				texture_paths.append(layer["path"])
+				continue
+			texture_paths.append(layer["path"])
 		# Unwrapped single-line content size (ignores the FULL_RECT control size).
 		# Used by G94.1a to catch names wider than the tile that spill into
 		# neighbours when clip_text is off.

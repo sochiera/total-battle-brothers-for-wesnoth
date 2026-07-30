@@ -28,6 +28,7 @@ also licensed under CC0.
 | side_attacker.png | PNG/Default size/Unit/medievalUnit_01.png | Kenney Vleugels | CC0 |
 | side_defender.png | PNG/Default size/Unit/medievalUnit_13.png | Kenney Vleugels | CC0 |
 | party_player_unit.png | PNG/Default size/Unit/medievalUnit_01.png | Kenney Vleugels | CC0 |
+| party_ai_unit.png | PNG/Default size/Unit/medievalUnit_13.png | Kenney Vleugels | CC0 |
 
 The RTS pack is available at:
 https://kenney.nl/media/pages/assets/medieval-rts/0863f2c62a-1677693589/kenney_medieval-rts.zip

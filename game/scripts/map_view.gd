@@ -23,9 +23,12 @@ const GROUND_TEXTURES: Array[Texture2D] = [
 const SETTLEMENT_TEXTURE := preload("res://assets/settlement.png")
 const SETTLEMENT_KEEP_TEXTURE := preload("res://assets/settlement_keep.png")
 const SETTLEMENT_OUTPOST_TEXTURE := preload("res://assets/settlement_outpost.png")
-const PARTY_UNIT_TEXTURE := preload("res://assets/party_player_unit.png")
+const PARTY_PLAYER_UNIT_TEXTURE := preload("res://assets/party_player_unit.png")
+const PARTY_AI_UNIT_TEXTURE := preload("res://assets/party_ai_unit.png")
 const PARTY_MARKER_SIZE := Vector2(16, 16)
 const PARTY_MARKER_MARGIN := Vector2(8, 8)
+const PLAYER_PARTY_MARKER_NAME := "PlayerPartyMarker"
+const AI_PARTY_MARKER_NAME := "AIPartyMarker"
 
 
 func render_model(model: SnapshotModel) -> void:
@@ -58,8 +61,9 @@ func _add_tile(region: Dictionary, player_party_region: Variant) -> void:
 	_add_settlement(tile, region.get("settlement"))
 
 	tile.add_child(_region_label(str(region["name"])))
-	if _is_player_party_region(region, player_party_region):
-		_add_player_party_marker(tile)
+	var party_owner: Variant = _party_owner_for_region(region, player_party_region)
+	if party_owner != null:
+		_add_party_marker(tile, party_owner)
 
 
 func _region_label(region_name: String) -> Label:
@@ -81,15 +85,31 @@ func _is_player_party_region(region: Dictionary, player_party_region: Variant) -
 	)
 
 
-func _add_player_party_marker(tile: Control) -> void:
-	var marker := TileTextureLayer.stretched(PARTY_UNIT_TEXTURE)
-	marker.name = "PlayerPartyMarker"
+func _party_owner_for_region(region: Dictionary, player_party_region: Variant) -> Variant:
+	var party: Variant = region.get("party")
+	if party is Dictionary:
+		var owner: Variant = party.get("owner")
+		return owner if owner == "player" or owner == "ai" else null
+	if _is_player_party_region(region, player_party_region):
+		return "player"
+	return null
+
+
+func _add_party_marker(tile: Control, owner: Variant) -> void:
+	var marker := TileTextureLayer.stretched(_party_texture(owner))
+	marker.name = PLAYER_PARTY_MARKER_NAME if owner == "player" else AI_PARTY_MARKER_NAME
 	marker.position = Vector2(
 		TILE_SIZE.x - PARTY_MARKER_SIZE.x - PARTY_MARKER_MARGIN.x,
 		PARTY_MARKER_MARGIN.y,
 	)
 	marker.size = PARTY_MARKER_SIZE
 	tile.add_child(marker)
+
+
+func _party_texture(owner: Variant) -> Texture2D:
+	if owner == "ai":
+		return PARTY_AI_UNIT_TEXTURE
+	return PARTY_PLAYER_UNIT_TEXTURE
 
 
 func _grid_position(region: Dictionary) -> Vector2:

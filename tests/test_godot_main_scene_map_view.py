@@ -15,9 +15,11 @@ ROOT = Path(__file__).resolve().parents[1]
 GAME = ROOT / "game"
 PREFIX = "MAP_VIEW "
 
-# G96.1a public path: player army mark is a unit silhouette, not the old banner.
+# G96.1a public paths: army marks are unit silhouettes, not the old banner.
 PARTY_PLAYER_UNIT_REL = "assets/party_player_unit.png"
 PARTY_PLAYER_UNIT_RES = f"res://{PARTY_PLAYER_UNIT_REL}"
+PARTY_AI_UNIT_REL = "assets/party_ai_unit.png"
+PARTY_AI_UNIT_RES = f"res://{PARTY_AI_UNIT_REL}"
 # Replaced prototype banner (may remain on disk); must not be the unit source.
 PARTY_BANNER_REL = "assets/party_player.png"
 _CREDITS_ROW_RE = re.compile(
@@ -426,14 +428,7 @@ def test_player_party_marker_uses_credited_unit_silhouette_not_banner():
 
     credits_path = GAME / "assets" / "CREDITS.md"
     assert_asset_credited(credits_path, unit_path.name)
-    credits_text = credits_path.read_text(encoding="utf-8")
-    rows = {
-        m.group("file").strip(): {
-            "source": m.group("source").strip(),
-            "license": m.group("license").strip(),
-        }
-        for m in _CREDITS_ROW_RE.finditer(credits_text)
-    }
+    rows = _credits_table_rows(credits_path.read_text(encoding="utf-8"))
     unit_row = rows.get(unit_path.name)
     assert unit_row is not None, (
         f"CREDITS.md must have a table row attributing {unit_path.name}"
@@ -456,6 +451,117 @@ def test_player_party_marker_uses_credited_unit_silhouette_not_banner():
             f"CREDITS.md must not present the replaced banner source as the "
             f"unit silhouette source; both rows cite {unit_source!r}"
         )
+
+
+def _credits_table_rows(credits_text: str) -> dict[str, dict[str, str]]:
+    """Parse CREDITS.md pipe rows → file → {source, author, license}."""
+    return {
+        m.group("file").strip(): {
+            "source": m.group("source").strip(),
+            "author": m.group("author").strip(),
+            "license": m.group("license").strip(),
+        }
+        for m in _CREDITS_ROW_RE.finditer(credits_text)
+    }
+
+
+def test_map_view_marks_ai_party_with_distinct_unit_silhouette_from_party_owner():
+    """AI army mark must follow region.party.owner with party_ai_unit.png.
+
+    Realistic defect existing gates miss: MapView only paints PlayerPartyMarker
+    from ``player_party_region`` and always preloads ``party_player_unit.png``.
+    A region with ``party.owner == "ai"`` stays unmarked (or reuses the player
+    silhouette), so the AI army is invisible or indistinguishable. Player-mark
+    count/path and player-only CREDITS gates never set ``region.party`` nor look
+    for ``party_ai_unit.png``, so that gap stays green.
+    """
+    ai_path = GAME / PARTY_AI_UNIT_REL
+    assert ai_path.is_file(), (
+        f"committed AI unit silhouette missing on disk: {ai_path} "
+        "(public contract: game/assets/party_ai_unit.png)"
+    )
+    player_path = GAME / PARTY_PLAYER_UNIT_REL
+    assert player_path.is_file(), (
+        f"committed player unit silhouette missing on disk: {player_path} "
+        "(public contract: game/assets/party_player_unit.png)"
+    )
+    assert ai_path.read_bytes() != player_path.read_bytes(), (
+        "party_ai_unit.png must differ byte-wise from party_player_unit.png "
+        "(sides must be distinguishable without tint alone)"
+    )
+
+    # Public contract + AC: CREDITS must attribute party_ai_unit with a pack
+    # path/page, author, and license, and share the RTS unit family with player
+    # without reusing the same source file (shape, not tint-only).
+    credits_path = GAME / "assets" / "CREDITS.md"
+    assert_asset_credited(credits_path, ai_path.name)
+    rows = _credits_table_rows(credits_path.read_text(encoding="utf-8"))
+    ai_row = rows.get(ai_path.name)
+    assert ai_row is not None, (
+        f"CREDITS.md must have a table row attributing {ai_path.name}"
+    )
+    assert ai_row["source"], (
+        f"CREDITS.md row for {ai_path.name} must list a non-empty source path/page"
+    )
+    assert _CREDITS_SOURCE_RE.search(ai_row["source"]), (
+        f"CREDITS.md row for {ai_path.name} must give a pack-relative path "
+        f"(PNG/…) or http(s) page, got {ai_row['source']!r}"
+    )
+    assert LICENSE_RE.search(ai_row["license"]), (
+        f"CREDITS.md row for {ai_path.name} must state CC0 or CC-BY in the "
+        f"license cell, got {ai_row['license']!r}"
+    )
+    player_row = rows.get(player_path.name)
+    assert player_row is not None, (
+        f"CREDITS.md must have a table row attributing {player_path.name} "
+        "(public contract — required for shared-family check vs AI)"
+    )
+    assert player_row.get("source"), (
+        f"CREDITS.md row for {player_path.name} must list a non-empty source path/page"
+    )
+    assert ai_row["source"] != player_row["source"], (
+        "CREDITS.md must attribute distinct RTS unit sources for player vs AI "
+        f"silhouettes; both cite {ai_row['source']!r}"
+    )
+    # Shared family: both unit rows point at Kenney RTS unit PNGs (not banner).
+    for label, source in (
+        ("player", player_row["source"]),
+        ("ai", ai_row["source"]),
+    ):
+        assert "Unit/" in source or "unit" in source.lower(), (
+            f"CREDITS.md {label} unit source must stay in the RTS unit family, "
+            f"got {source!r}"
+        )
+
+    imported = _import_game_assets()
+    assert imported.returncode == 0, (
+        f"godot --import failed rc={imported.returncode} "
+        f"stderr={imported.stderr!r} stdout={imported.stdout!r}"
+    )
+
+    payload = _load_map_view()
+    assert payload["map_view_found"] is True, payload
+    assert payload["has_render_model"] is True, payload
+
+    sample = payload.get("party_owner_silhouettes") or {}
+    assert sample.get("skipped") is not True, (
+        "party_owner_silhouettes was skipped (no MapView.render_model); "
+        f"cannot assert AI/player unit paths, sample={sample!r}"
+    )
+    by_region = sample.get("unit_paths_by_region") or {}
+    assert by_region.get("Gamma") == PARTY_AI_UNIT_RES, (
+        f"region with party.owner=ai must show public AI unit silhouette "
+        f"{PARTY_AI_UNIT_RES}, got unit_paths_by_region={by_region!r}"
+    )
+    assert by_region.get("Alpha") == PARTY_PLAYER_UNIT_RES, (
+        f"region with party.owner=player must keep public player unit silhouette "
+        f"{PARTY_PLAYER_UNIT_RES} when an AI party is also present, "
+        f"got unit_paths_by_region={by_region!r}"
+    )
+    assert "Beta" not in by_region, (
+        f"region without party must not carry a unit silhouette, "
+        f"got unit_paths_by_region={by_region!r}"
+    )
 
 
 def test_map_view_adjacent_tiles_form_connected_grid_fitting_panel():
