@@ -49,6 +49,8 @@ func _run() -> void:
 
 	# Single source of truth for synthetic regions; emitted in payload for Python.
 	# settlement mirrors map_state (dict or null) so G87.1b can observe settlement art.
+	# Beta at col=1 (not 2) so the probe includes a horizontal grid neighbour
+	# (Alpha–Beta) as well as a vertical one (Alpha–Gamma) for connected-grid checks.
 	var regions_full: Array = [
 		{
 			"name": "Alpha",
@@ -57,7 +59,7 @@ func _run() -> void:
 			"owner": "player",
 			"settlement": {"name": "Alpha Keep"},
 		},
-		{"name": "Beta", "col": 2, "row": 0, "owner": null, "settlement": null},
+		{"name": "Beta", "col": 1, "row": 0, "owner": null, "settlement": null},
 		{"name": "Gamma", "col": 0, "row": 1, "owner": "ai", "settlement": null},
 	]
 	var names_full: Array[String] = []
@@ -106,6 +108,52 @@ func _run() -> void:
 		scene_root, map_view, regions_full, names_full, "Gamma", true
 	)
 
+	# G94.1a: five-region line matches a fresh headless party (col 0..4, row 0).
+	# Real snapshot names exercise label readability; short R0.. aliases would
+	# hide overflow when TILE_SIZE shrinks. Settlements on outposts/keeps match
+	# the fresh map so name-vs-settlement layout is observable.
+	var regions_line: Array = [
+		{
+			"name": "player lands",
+			"col": 0,
+			"row": 0,
+			"owner": "player",
+			"settlement": {"name": "Player Keep"},
+		},
+		{
+			"name": "player outpost",
+			"col": 1,
+			"row": 0,
+			"owner": "player",
+			"settlement": {"name": "Player Outpost"},
+		},
+		{"name": "border", "col": 2, "row": 0, "owner": null, "settlement": null},
+		{
+			"name": "ai outpost",
+			"col": 3,
+			"row": 0,
+			"owner": "ai",
+			"settlement": {"name": "AI Outpost"},
+		},
+		{
+			"name": "ai lands",
+			"col": 4,
+			"row": 0,
+			"owner": "ai",
+			"settlement": {"name": "AI Keep"},
+		},
+	]
+	var names_line: Array[String] = []
+	for region: Variant in regions_line:
+		names_line.append(region["name"])
+	var tiles_line: Array = []
+	if has_render:
+		map_view.call("render_model", _model(regions_line))
+		await process_frame
+		await process_frame
+		tiles_line = _collect_tiles(map_view, names_line)
+	var map_rect: Rect2 = (map_view as Control).get_global_rect()
+
 	print(PREFIX, JSON.stringify({
 		"map_view_found": true,
 		"has_render_model": has_render,
@@ -122,6 +170,14 @@ func _run() -> void:
 		"party_absent": party_absent,
 		"party_on_beta": party_on_beta,
 		"party_direct_gamma": party_direct_gamma,
+		"line_regions": regions_line,
+		"line_tiles": tiles_line,
+		"map_view_rect": {
+			"x": map_rect.position.x,
+			"y": map_rect.position.y,
+			"w": map_rect.size.x,
+			"h": map_rect.size.y,
+		},
 	}))
 	quit(0)
 
@@ -217,6 +273,10 @@ func _collect_tiles(map_view: Node, expected_names: Array[String]) -> Array:
 				and str(layer.get("name", "")) != "PlayerPartyMarker"
 			):
 				texture_paths.append(layer["path"])
+		# Unwrapped single-line content size (ignores the FULL_RECT control size).
+		# Used by G94.1a to catch names wider than the tile that spill into
+		# neighbours when clip_text is off.
+		var label_content: Vector2 = label.get_minimum_size()
 		tiles.append({
 			"name": region_name,
 			"x": rect.position.x,
@@ -229,6 +289,8 @@ func _collect_tiles(map_view: Node, expected_names: Array[String]) -> Array:
 			"texture_paths": texture_paths,
 			"texture_layers": texture_layers,
 			"tile_mouse_filter": tile.mouse_filter,
+			"label_content_w": label_content.x,
+			"label_content_h": label_content.y,
 		})
 	return tiles
 
