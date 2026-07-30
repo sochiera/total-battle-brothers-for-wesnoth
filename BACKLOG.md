@@ -702,7 +702,7 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > ogłuszonego sojusznika, szturm z repro kończy się rozstrzygnięciem, e2e na
 > żywym moście.
 
-## Kamień milowy 91 — naturalne ruchy gracza mają sens (rekrutacja, koniec partii) — PRIORYTET
+## Kamień milowy 91 — naturalne ruchy gracza mają sens (rekrutacja, koniec partii) — UKOŃCZONY
 > **Ustalenie z przeglądu planowania 2026-07-28, z uruchomienia kodu.** Po K90
 > partię da się przegrać **i wygrać** (zmierzone: bierny gracz przez 3 tury,
 > potem `muster`→`march`→`assault` → `victory` na ziarnach 73 i 1). Ale dwa
@@ -730,32 +730,30 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
       obniża liczby utrzymanych osad na ustalonym zestawie ziaren, koszt i
       ograniczenia rekrutacji bez zmian, jedna reguła dla gracza i AI.
       *(standard, task-513, commit 42ed7f9)*
-- [ ] **R91.1 (dług techniczny)** Jedno źródło reguły „rozkaz gracza → los
+- [x] **R91.1 (dług techniczny)** Jedno źródło reguły „rozkaz gracza → los
       bohatera → synchronizacja stanu gry" w `tbbbridge.session` (dziś powtórzone
       w ścieżce bez bitwy i z bitwą) + testy regresji obu ścieżek.
-      *(simple, task-514)*
-- [ ] **G91.1b** Gracz wygrywa partię, patrząc na ekran: e2e na żywym moście
+      *(simple, task-514, commit fdeb26b)*
+- [x] **G91.1b** Gracz wygrywa partię, patrząc na ekran: e2e na żywym moście
       doprowadza partię do zwycięstwa, klient pokazuje je po polsku, stan
-      utrwalony. *(standard, task-515, wymaga task-513)*
-- [ ] **G91.2a** Most odróżnia zakończoną partię od rozkazu bez skutku (rozkaz i
-      tura po `is_over`); reguły i snapshot bez zmian. *(simple, task-516)*
-- [ ] **G91.2b** Klient mówi po polsku, że partia jest zakończona — zamiast „bez
+      utrwalony. *(standard, task-515, commit afb2dfd)*
+- [x] **G91.2a** Most odróżnia zakończoną partię od rozkazu bez skutku (rozkaz i
+      tura po `is_over`); reguły i snapshot bez zmian.
+      *(simple, task-516, commit 3698741)*
+- [x] **G91.2b** Klient mówi po polsku, że partia jest zakończona — zamiast „bez
       zmian" po każdym kliknięciu; e2e przez dwa procesy. *(simple, task-517,
-      wymaga task-516)*
-> **Rozstrzygnięte przez przegląd kierunku 2026-07-28:** tak, skala świata
-> startowego jest właściwym następnym krokiem — ale **nie pierwszym**. Przegląd
-> znalazł, uruchamiając grę obronną, defekt cięższy od wszystkiego w tej
-> kolejce: „Zbierz oddział" + „Następna tura" zakleszcza partię na amen (patrz
-> K92). Skalowanie idzie po nim, bo przy dwóch osadach ten sam błąd wywala turę
-> AI. Osobno, bez zmian: po zakończonej partii klient nie ma jak zacząć nowej
-> (most ma `new_game`, scena nie).
-> **Kolejność wobec kolejki K91:** task-514…517 zostają sensowne i nie kolidują
-> z K92 (dotykają mostu i tekstów klienta, nie reguły bitwy). Priorytet ma
-> jednak **G92.1a przed nimi** — dopóki partia się zakleszcza, „gracz wygrywa
-> partię, patrząc na ekran" (task-515) opisuje ścieżkę, której gracz grający
-> obronnie i tak nie przejdzie.
+      commit 113f36b)*
+> **Kamień 91 — UKOŃCZONY** *(task-513…517)*: rekrut wzmacnia oddział, wspólna
+> ścieżka rozkazu synchronizuje los bohatera, a zwycięstwo i próba dalszej gry
+> są widoczne po polsku oraz trwałe.
+> Po K91 nadal nie ma w scenie wejścia `new_game`; przycisk nowej partii wraca
+> do oceny po powiększeniu świata, gdy regularne zakończenie gry ujawni jego
+> faktyczną wartość.
 
 ## Kamień milowy 92 — obrona własnej osady w ogóle działa — PRIORYTET
+> **Stan 2026-07-30:** G92.1 jest domknięte w rdzeniu i na żywym moście.
+> Poniższa diagnoza zakleszczenia zostaje jako uzasadnienie wykonanej reguły;
+> bieżącym priorytetem jest G92.2a.
 > **Defekt sięgający gracza, znaleziony przez uruchomienie gry obronnej przy
 > przeglądzie kierunku 2026-07-28.** Gracz klika „Zbierz oddział", potem
 > „Następna tura" — i partia **zakleszcza się na amen**. Most odpowiada
@@ -795,7 +793,7 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > (`73,1,2,7,11,42,5,9`) w turze 1–2. Czyli kolejność jest wymuszona pomiarem:
 > **najpierw reguła obrony, potem druga osada** — odwrotnie dowozimy grę, która
 > się wywala.
-- [ ] **G92.1a** Oddział stojący w regionie bronionej osady **bierze udział w
+- [x] **G92.1a** Oddział stojący w regionie bronionej osady **bierze udział w
       jej obronie**, a zwycięski szturm na taki region przestaje być wyjątkiem:
       `resolve_settlement_battle*` z obcym oddziałem w regionie docelowym
       zwraca świat w spójnym stanie zamiast
@@ -811,7 +809,7 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
       przechodzą bez zmian w kryteriach. *(standard, ryzyko: dotyka rdzenia —
       jedynego źródła reguł; nie zmieniać przy okazji reguł ruchu, obrażeń ani
       polityki AI, i nie skalować przy tym świata — to osobny plasterek)*
-- [ ] **G92.1b** Gracz **widzi**, że gra obronna działa: e2e na żywym moście
+- [x] **G92.1b** Gracz **widzi**, że gra obronna działa: e2e na żywym moście
       (dwa procesy, jak w K90.1b) wydaje `muster` i klika „Następna tura" — most
       odpowiada `ok:true`, kalendarz przesuwa się o miesiąc, klient pokazuje
       polski status zamiast „rozkaz nie powiódł się", a partia zostaje
@@ -819,7 +817,8 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
       (kalendarz idzie dalej), czyli zakleszczenie zniknęło. *(standard, wymaga
       G92.1a; wniosek 13 — kamień domykamy sekwencją gracza, nie samym
       `pytest`)*
-- [ ] **G92.1c** Wejścia AI `assault_duchy_party_recorded`,
+- [ ] **G92.1c (ODŁOŻONE — brak ścieżki w bieżącej grze)** Wejścia AI
+      `assault_duchy_party_recorded`,
       `assault_duchy_party_to_recorded` i `assault_nearest_enemy_settlement`
       **pomijają szturm**, gdy region docelowej osady zajmuje party **niebędące
       jej obrońcą** (inny `owner_id` niż osada). Dziś guard
@@ -828,14 +827,25 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
       zwycięstwo na takim polu kończy turę AI nieobsłużonym wyjątkiem. Bez
       zmiany kontraktu `WorldMap` ani reguł bitwy — tylko selekcja celu AI.
       *(standard, wymaga G92.1a; nie dodawać w tym samym zadaniu czerwonego
-      testu world — to plasterek AI)*
-> **Dalszy ciąg K92, do rozplanowania dopiero po G92.1b** (nie planować teraz):
-> druga osada na stronę i większy świat startowy (wniosek 17), a potem „gracz
-> widzi wieloturową partię na ekranie". Pomiary z przeglądu, żeby nie robić ich
-> drugi raz: dziś partia kończy się w turze 1 na 8/8 ziaren przy aktywnej grze
-> (4 zwycięstwa gracza, 4 porażki) i na 4/8 przy grze biernej; w prototypie
-> pięcioregionowym z dwiema osadami na stronę gra bierna dociąga do tury 2+ i na
-> 5/8 ziaren nie kończy się przez 60 tur. Skalę trzymamy **minimalną**.
+      testu world — to plasterek AI; wrócić, gdy pojawi się trzecie księstwo
+      albo reprodukcja w normalnej partii dwóch księstw)*
+> **G92.1 — UKOŃCZONE** *(task-518…523)*: oddział w osadzie walczy z garnizonem,
+> ocalali wracają do właściwego miejsca, zwycięski szturm nie zakleszcza świata,
+> a żywy most przechodzi dwie kolejne tury po `muster`.
+
+- [ ] **G92.2a — minimalny świat, w którym utrata jednej osady nie kończy
+      księstwa.** `create_headless_game` tworzy połączony świat pięciu regionów
+      z pustym regionem granicznym i **dwiema osadami na stronę**; oba księstwa
+      zaczynają z dwiema osadami, a każda osada zachowuje dzisiejszy mały,
+      symetryczny garnizon i zasoby. Snapshot świeżej sesji wystawia wszystkie
+      pięć regionów oraz po dwie osady w statusach księstw, więc istniejący
+      `MapView` pokazuje większy świat bez nowej logiki klienta. Test rdzenia
+      dowodzi też, że utrata jednej osady pozostawia księstwo żywe. Nie zmieniać
+      przy tym AI, ekonomii, warunku zwycięstwa ani sterowania rozkazami.
+      *(standard; ryzyko: startowy fixture jest konsumowany przez rdzeń, most,
+      persystencję i e2e Godota; wniosek 17)*
+> Następny przegląd po tym plasterku ma zmierzyć pełną sekwencję gracza na
+> żywym moście i dopiero z wyniku wybrać kolejną blokadę wieloturowej partii.
 
 ## Dług/refaktor
 - [x] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
@@ -877,12 +887,11 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
   nigdy się nie kończy~~ — **rozplanowane jako K90** (start symetryczny,
   osiągalny koniec gry, polski tekst wyniku). Pełna diagnoza w sekcji K90.
 - ~~Gra obronna („Zbierz oddział" + „Następna tura") zakleszcza partię na amen~~
-  — **rozplanowane jako K92** (G92.1a reguła obrony w rdzeniu, G92.1b widoczny
-  skutek na żywym moście). Pełna diagnoza w sekcji K92.
+  — **naprawione jako G92.1** w rdzeniu i na żywym moście. Pełna diagnoza
+  zostaje w sekcji K92.
 - **Druga osada na stronę i większy świat startowy** — warunek istnienia pętli
-  sandboxa (`docs/PROJECT.md`, wniosek 17), zmierzony przy dwóch przeglądach.
-  **Nie planować przed G92.1b:** w prototypie pięcioregionowym ten sam
-  `ValueError` co w K92 wywala turę AI na 8/8 ziaren.
+  sandboxa (`docs/PROJECT.md`, wniosek 17), **rozplanowany jako G92.2a** po
+  domknięciu G92.1.
 - **`muster` zabiera cały garnizon osady** — obserwacja z przeglądu 2026-07-28:
   po zbiórce osada gracza zostaje pusta, więc każde wyjście w pole odsłania dom.
   Dziś to podwaja skutki asymetrycznego startu; po K90 warto sprawdzić, czy

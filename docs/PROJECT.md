@@ -65,36 +65,23 @@ mały — po kilka kafli terenu, sylwetek jednostek i budynków — ale prawdziw
 - **Partia da się rozegrać — DOMKNIĘTE** (K90): symetryczny start, los bohatera
   gracza rozstrzygany tą samą regułą co u AI, `is_over` osiągalne, wynik po
   polsku i wyróżniony na ekranie.
-- **Rekrutacja wzmacnia obronę** (G91.1a, commit 42ed7f9): rekrut ma
-  `training=2, equipment=4` zamiast zer. W kolejce zostają cztery plasterki K91.
+- **Naturalne ruchy i koniec partii — DOMKNIĘTE** (K91): rekrut wzmacnia
+  obronę, zwycięstwo jest widoczne i trwałe, a dalsze kliknięcia po końcu gry
+  dostają jednoznaczny polski komunikat.
+- **Obrona osady — DOMKNIĘTA** (G92.1): oddział stojący w regionie osady walczy
+  z garnizonem, ocalali wracają do właściwych składów, zwycięski szturm nie
+  zakleszcza świata, a e2e na żywym moście przechodzi dwie kolejne tury.
 - `tbbui` (HTML/SVG) — **wyłącznie narzędzie diagnostyczne**, nie docelowy klient.
 
-**Czego brakuje do celu — dwie rzeczy, obie zmierzone 2026-07-28 na HEAD:**
-
-**1. Gra obronna zakleszcza partię na amen.** Gracz klika „Zbierz oddział",
-potem „Następna tura" — i dostaje `rozkaz nie powiódł się`. Most zwraca
-`{"ok": false, "error": "destination is already occupied by a party"}`
-(sprawdzone na żywym `serve 73`), a kalendarz **stoi na zawsze**: 20/20
-kolejnych kliknięć „Następna tura" daje ten sam błąd, rok 1 miesiąc 1.
-Trafienie w **50/50 ziaren**, w turze 1, także bez wcześniejszej rekrutacji.
-Przyczyna: oddział stojący we własnym regionie **nie broni osady**, tylko
-blokuje pole, na które ma wejść zwycięski atakujący (wniosek 18).
-
-**2. Cała partia trwa jedną turę.** Na ziarnach `73,1,2,7,11,42,5,9` gra kończy
-się **w turze 1 na 8/8 ziaren przy aktywnej grze** (4 zwycięstwa, 4 porażki) i w
-turze 1 na 4/8 przy grze biernej — pozostałe 4 nie kończą się nigdy, bo nikt nie
-ma czym zaatakować. Pełny `pytest` jest przy tym zielony.
-
-Przyczyna punktu 2 nie jest defektem, tylko **skalą świata startowego**:
+**Najbliższa luka do celu: świat startowy jest za mały na sandbox.**
 `create_headless_game` daje **jedną osadę na stronę** i po jednym oddziale
 garnizonu, a `Duchy.is_defeated` to „brak osad **i** brak oddziałów"
-(`duchy.py:72-74`). Pierwsza przegrana bitwa = koniec księstwa. Nie ma czego
-„zarządzać": nie ma drugiej osady, nie ma odwrotu, nie ma odbudowy — cały brief
-(„zarządzanie osadami i armiami", „sandbox") sprowadza się do jednego rzutu
-kostką. Wszystko widać, wszystko działa, tylko **nie ma w co grać**.
-
-Kolejność: **najpierw punkt 1** (defekt sięga gracza dziś, na wyeksportowanym
-pakiecie), potem punkt 2. Rozplanowane jako **K92** (patrz wnioski 17 i 18).
+(`duchy.py:72-74`). Pierwsza przegrana bitwa kończy księstwo; nie ma drugiej
+osady, odwrotu ani odbudowy, więc zarządzanie i ekonomia nie zdążą nabrać
+znaczenia. Naprawa obrony usunęła wcześniejszą blokadę skalowania. Następny
+plasterek K92.2a daje po dwie osady w minimalnym świecie pięciu regionów i
+wystawia go istniejącym widokiem mapy; dopiero potem mierzymy pełną sekwencję
+gracza i wybieramy kolejną realną blokadę.
 
 ## Ograniczenia i priorytety
 - **[W]** Rdzeń `tbb` jest **jedynym źródłem reguł gry**. Godot nie duplikuje
@@ -160,65 +147,26 @@ skróconej; pełne uzasadnienia w `docs/DECISIONS.md` i w `BACKLOG.md`.)*
 12. **Jedna paczka nie wystarczy — świadome odstępstwo od [P]:** Hexagon Pack
     nie ma postaci, więc sylwetki przyszły z RTS Packa: Medieval, a strony
     rozróżnia **para różnych plików**, nie tint (zaszarza pokolorowaną figurkę).
-13. **Zielony zestaw testów nie znaczy, że dało się zagrać — defekt szturmu
-    znalazło dopiero uruchomienie gry ręką.** Rdzeń jest pokryty TDD, most też,
-    klient ma e2e przez dwa procesy — a mimo to najbardziej naturalna sekwencja
-    gracza (dorekrutuj → zbierz → wyrusz → szturmuj) kończy się błędem rozkazu.
-    Testy bitwy sprawdzały składy, które *rozstrzygają się*; pat, w którym własny
-    ogłuszony blokuje jedyne dojście, nie miał testu, bo nikt go nie wymyślił
-    przy biurku. **Wniosek na kierunek:** od teraz każdy przegląd (i najlepiej
-    każdy plasterek domykający kamień) kończy się **przejściem pełnej sekwencji
-    gracza na żywym moście**, nie samym `pytest`. Po K88 ta sekwencja idzie na
-    wyeksportowanym pakiecie, nie w drzewie źródeł — bo to jest artefakt, który
-    dostaje odbiorca.
-14. **Kontrakt „wynik bitwy" bywa niepełny, nie tylko zabugowany** — i wtedy
-    legalny stan gry dociera do gracza jako błąd rozkazu. Naprawa reguły, przez
-    którą akurat ten przypadek nie występuje, **nie zamyka klasy problemu**;
-    dlatego K89 najpierw domknął kontrakt wyniku, a dopiero potem ruszył reguły
-    ruchu. Ta sama kolejność obowiązuje w K92 (patrz wniosek 18).
-15. **Pozycja startowa to reguła gry, nie balans.** Asymetryczny start (gracz
-    bez garnizonu, AI z weteranem) oddawał partię w turze 1 niezależnie od gry;
-    wyrównanie startu **nie** było odłożonym „balansem ekonomii i AI" — bez
-    niego pętla sandboxa nie miała jak się zacząć. Domknięte w K90.
-16. **Warunek końca gry jest opisany, ale nieosiągalny — bo śmierć bohatera
-    rozstrzygamy tylko za AI.** `resolve_hero_survival` żyje w pętli drivera,
-    którą księstwo gracza omija z definicji (gracz ma grać rozkazami, nie
-    polityką AI), a ścieżka rozkazów w moście nigdy jej nie woła. Skutek:
-    gracz może stracić wszystko i nie przegrać, więc `Wynik:` nie zmienia się
-    nigdy. **Wniosek na kierunek:** każda reguła świata, którą wykonuje driver
-    za AI, musi mieć swój odpowiednik na ścieżce rozkazów gracza — inaczej
-    gracz i AI grają w dwie różne gry. Do sprawdzenia przy kolejnych regułach.
-17. **Świat startowy jest za mały na grę, którą opisuje brief — i to jest
-    następny krok, nie „balans".** Jedna osada na stronę plus
-    `is_defeated == brak osad i brak oddziałów` znaczy, że pierwsza przegrana
-    bitwa kończy partię. Zmierzone: dziś 8/8 ziaren kończy się w turze 1.
-    **Prototyp poza gitem (dwie osady na stronę, świat pięcioregionowy w linii)
-    daje partie 7–20 tur** na tych samych ziarnach — czyli dopiero wtedy
-    rozkazy, ekonomia i morale zaczynają cokolwiek znaczyć. To nie jest
-    strojenie liczb: to warunek istnienia pętli sandboxa, ta sama klasa co
-    wnioski 15 i 16. Skalę trzymamy **minimalną** (druga osada, nie mapa 20
-    regionów) — plasterek ma być cienki, nie ma rozsadzać zakresu.
-18. **Oddział w obronie własnej osady zakleszcza partię — i to nie czeka na
-    większy świat, dzieje się dziś.** `WorldMap.apply_settlement_battle_result`
-    (`world.py:375-379`) rzuca `ValueError("destination is already occupied by a
-    party")`, gdy atakujący **wygrywa** szturm na region, w którym stoi obcy
-    oddział. Zmierzone 2026-07-28 na HEAD: „Zbierz oddział" → „Następna tura"
-    trafia w to w turze 1 na **50/50 ziaren** (także bez rekrutacji), most
-    odpowiada `ok:false`, klient mówi „rozkaz nie powiódł się", a kalendarz stoi
-    już na zawsze (20/20 kolejnych tur → ten sam błąd). Przy dwóch osadach na
-    stronę to samo wysypuje **turę AI** (`ai.assault_nearest_enemy_settlement`
-    → ten sam `ValueError`) na 8/8 ziaren.
-    **Korekta poprzedniego przeglądu:** uznał to za dziś nieosiągalne („200
-    ziaren × 12 tur, 0 trafień") — bo sondował **wyłącznie grę agresywną**
-    (`muster`→`march`→`assault`), która wyprowadza oddział z domu. Gra obronna
-    to osobne zachowanie i musi być w każdym takim pomiarze; sonda „to się nie
-    zdarza" jest warta tyle, ile zestaw zachowań, przez które przeszła
-    (rozszerzenie wniosku 13).
-    To ta sama klasa co K89 („legalny stan gry dociera do gracza jako błąd
-    rozkazu"), więc kolejność zostaje: **najpierw kontrakt wyniku, potem większy
-    świat**. Sama reguła do domknięcia jest przy tym rozgrywkowo oczywista:
-    oddział stojący w regionie bronionej osady ma **brać udział w jej obronie**,
-    a nie patrzeć, jak pada jego własna stolica.
+13. **Zielony zestaw testów nie dowodzi grywalności.** Każdy przegląd i
+    plasterek domykający kamień kończymy pełną sekwencją gracza na żywym moście,
+    a po K88 także na pakiecie, który dostaje odbiorca.
+14. **Legalny wynik bitwy nie może docierać jako błąd rozkazu.** K89 domknął
+    kontrakt wyniku przed zmianą ruchu; ten wzorzec rozdzielania kontraktu od
+    reguły zostaje.
+15. **Pozycja startowa jest regułą gry, nie odłożonym balansem.** Symetryczny
+    start K90 był warunkiem rozpoczęcia pętli sandboxa.
+16. **Gracz i AI muszą przechodzić przez te same reguły świata.** K90/K91
+    ujednoliciły los bohatera i synchronizację po akcji; sprawdzamy ten warunek
+    przy każdej kolejnej regule wykonywanej przez driver.
+17. **Jedna osada na stronę jest za mała na opisany sandbox.** Pierwsza
+    przegrana bitwa kończy księstwo, zanim ekonomia i decyzje nabiorą znaczenia.
+    Następny krok to minimalne dwie osady na stronę w pięciu regionach, nie
+    duża mapa ani strojenie liczb.
+18. **Obrona osady była blokadą skalowania; G92.1 ją usunęło.** Oddział w
+    regionie osady walczy po stronie jej garnizonu, ocalali zachowują
+    pochodzenie, a sekwencja `muster` → dwie tury przechodzi na żywym moście.
+    Skrajny stan z oddziałem niebędącym obrońcą pozostaje odłożony, dopóki nie
+    pojawi się trzecie księstwo lub reprodukcja w normalnej partii.
 
 ## Klimat, ton, kierunek wizualny
 Średniowiecze **bez magii i fantastyki**, surowy i realistyczny ton. **[W]**
@@ -259,19 +207,13 @@ spójna paczka bije zlepek najładniejszych pojedynczych obrazków. **[P]**
 4. ~~Bitwa zawsze daje wynik~~ (K89) i ~~partia da się rozegrać~~ (K90) —
    **domknięte**: szturm zawsze kończy się widocznym skutkiem, a zwycięstwo i
    przegrana są osiągalne i czytelne po polsku.
-5. **Naturalne ruchy gracza mają sens** (K91) — rekrutacja już wzmacnia obronę
-   (G91.1a); w kolejce zostaje dług R91.1, zwycięstwo widziane na ekranie oraz
-   odróżnienie zakończonej partii od rozkazu bez skutku.
-6. **Obrona własnej osady w ogóle działa** (K92, pierwsze plasterki) — oddział
-   stojący w regionie bronionej osady dołącza do obrony, więc zwycięski szturm
-   przestaje być `ValueError`, a „Zbierz oddział" + „Następna tura" przestaje
-   zakleszczać partię (wniosek 18). To jest **najpilniejsze**: defekt sięga
-   gracza na wyeksportowanym pakiecie i odbiera mu grę obronną.
-7. **Partia trwa dłużej niż jedną turę** (dalszy ciąg K92) — druga osada na
-   stronę (wniosek 17), potem gracz widzi wieloturową partię na ekranie. To
-   jest dziś **najkrótsza droga od „da się rozegrać" do „jest w co grać"**;
-   wymaga wcześniejszego punktu 6, bo przy dwóch osadach ten sam `ValueError`
-   wywala turę AI na 8/8 ziaren.
+5. ~~Naturalne ruchy i koniec partii~~ (K91) — **domknięte**: rekrut wzmacnia,
+   zwycięstwo jest widoczne i trwałe, a koniec gry ma jednoznaczny komunikat.
+6. ~~Obrona własnej osady~~ (G92.1) — **domknięta** w rdzeniu i e2e na żywym
+   moście; wcześniejsze zakleszczenie nie blokuje już skalowania świata.
+7. **Minimalny wieloosadowy świat** (G92.2a) — pięć regionów i dwie osady na
+   stronę, widoczne przez istniejący snapshot i `MapView`. Po tym plasterku
+   mierzymy pełną sekwencję gracza i planujemy tylko ujawnioną blokadę.
 8. **Klik na cel na mapie** zamiast globalnych przycisków „Rozwiń/Szturmuj" —
    odblokowuje się dopiero po K92: przy pięciu regionach i dwóch osadach na
    stronę rozkaz celowany **przestaje** dawać ten sam skutek co automatyczny
@@ -287,8 +229,9 @@ spójna paczka bije zlepek najładniejszych pojedynczych obrazków. **[P]**
   tylko diagnostyką.
 - Bogatszy model ran/terenu/budynków, więcej typów jednostek, balans i strojenie
   AI, pełna maszyna faz `StrategicTurn` — po domknięciu widocznej, grywalnej gry.
-  **Uwaga na granicę:** pozycja startowa i koniec gry (K90), reguła obrony
-  osady oraz skala świata startowego (K92) **nie** wchodzą w to odłożenie — bez
-  nich nie ma czego balansować (wnioski 15–18).
+  **Uwaga na granicę:** minimalna skala świata K92.2 nie jest balansem; bez niej
+  nie ma czego stroić.
+- Obsługa szturmu na osadę zajętą przez oddział niebędący jej obrońcą (G92.1c)
+  — wraca wraz z trzecim księstwem albo reprodukcją w normalnej partii.
 - Podział przerośniętych dokumentów (`ARCHITECTURE.md` ~119 KB, `DECISIONS.md`
   ~74 KB, `DESIGN.md` ~28 KB) — dług dokumentacji, nie blokuje celu.
