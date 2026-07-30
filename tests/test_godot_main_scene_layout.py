@@ -6,8 +6,9 @@ import json
 import re
 from pathlib import Path
 
+from godot_png_assets import assert_asset_credited
 from godot_runner import run_godot_script
-from test_godot_assets import _LICENSE_RE, _import_game_assets
+from test_godot_assets import _import_game_assets
 
 ROOT = Path(__file__).resolve().parents[1]
 GAME = ROOT / "game"
@@ -160,25 +161,12 @@ def test_strategic_composition_fits_review_viewport_collapses_empty_battle_and_u
     assert background_path.is_file(), (
         f"required strategic background missing on disk: {background_path}"
     )
-    credits = (assets_dir / "CREDITS.md").read_text(encoding="utf-8")
-    credit_lines = credits.splitlines()
-    credit_idx = next(
-        (i for i, line in enumerate(credit_lines) if STRATEGIC_BACKGROUND in line),
-        None,
-    )
-    assert credit_idx is not None, (
-        f"CREDITS.md must attribute {STRATEGIC_BACKGROUND} with source/author/license"
-    )
     # License and source URL must sit on the asset row (or adjacent prose), not
     # merely elsewhere in the pack credits (e.g. Kenney CC0 alone must not pass).
-    credit_window = "\n".join(
-        credit_lines[max(0, credit_idx - 3) : credit_idx + 4]
-    )
-    assert _LICENSE_RE.search(credit_window), (
-        "CREDITS.md must state CC0 or CC-BY next to strategic_map_background.png"
-    )
-    assert re.search(r"https?://\S+", credit_window), (
-        "CREDITS.md must give a source page URL for strategic_map_background.png"
+    assert_asset_credited(
+        assets_dir / "CREDITS.md",
+        STRATEGIC_BACKGROUND,
+        source_re=re.compile(r"https?://\S+"),
     )
 
     # Headless import so Texture2D path can resolve when MapView wires the asset.

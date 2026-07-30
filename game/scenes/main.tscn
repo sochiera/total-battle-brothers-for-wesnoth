@@ -1,10 +1,13 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/map_view.gd" id="2_map_view"]
 [ext_resource type="Script" path="res://scripts/battle_view.gd" id="3_battle_view"]
 [ext_resource type="Texture2D" path="res://assets/strategic_map_background.png" id="4_map_background"]
 [ext_resource type="Texture2D" path="res://assets/icon_next_turn.png" id="5_next_turn_icon"]
+[ext_resource type="Texture2D" path="res://assets/icon_develop.png" id="6_develop_icon"]
+[ext_resource type="Texture2D" path="res://assets/icon_recruit.png" id="7_recruit_icon"]
+[ext_resource type="Texture2D" path="res://assets/icon_muster.png" id="8_muster_icon"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -130,18 +133,21 @@ text = "Następna tura"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(140, 40)
 layout_mode = 2
+icon = ExtResource("6_develop_icon")
 text = "Rozwiń osadę"
 
 [node name="RecruitButton" type="Button" parent="MainLayout/OrderControls/OrderButtons"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(140, 40)
 layout_mode = 2
+icon = ExtResource("7_recruit_icon")
 text = "Rekrutuj jednostkę"
 
 [node name="MusterButton" type="Button" parent="MainLayout/OrderControls/OrderButtons"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(140, 40)
 layout_mode = 2
+icon = ExtResource("8_muster_icon")
 text = "Zbierz oddział"
 
 [node name="MarchButton" type="Button" parent="MainLayout/OrderControls/OrderButtons"]

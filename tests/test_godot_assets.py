@@ -12,6 +12,7 @@ import re
 import subprocess
 from pathlib import Path
 
+from godot_png_assets import LICENSE_RE
 from godot_runner import run_godot_script
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -35,7 +36,8 @@ REQUIRED_ASSETS: tuple[str, ...] = (
     "assets/strategic_map_background.png",
 )
 
-_LICENSE_RE = re.compile(r"\bCC0\b|\bCC-BY\b|\bCC BY\b", re.IGNORECASE)
+# Back-compat alias for callers that still import the private name.
+_LICENSE_RE = LICENSE_RE
 
 
 def _res_paths(rel_paths: tuple[str, ...] | list[str]) -> list[str]:

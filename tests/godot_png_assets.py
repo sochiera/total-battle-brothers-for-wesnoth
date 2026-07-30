@@ -2,13 +2,54 @@
 
 Decodes non-interlaced 8-bit RGBA PNGs as used by Kenney hex tiles and
 samples hex-floor rim alphas for owner-ground occlusion contracts.
+
+Also hosts shared CREDITS.md attribution checks used by asset/icon gates.
 """
 
 from __future__ import annotations
 
+import re
 import struct
 import zlib
 from pathlib import Path
+
+# License tokens accepted next to an attributed asset row in CREDITS.md.
+LICENSE_RE = re.compile(r"\bCC0\b|\bCC-BY\b|\bCC BY\b", re.IGNORECASE)
+
+# Default: page URL or pack-relative path (e.g. PNG/… from Kenney packs).
+_DEFAULT_SOURCE_RE = re.compile(r"https?://\S+|PNG/")
+
+
+def assert_asset_credited(
+    credits_path: Path,
+    asset_name: str,
+    *,
+    source_re: re.Pattern[str] | None = None,
+) -> None:
+    """Assert CREDITS.md attributes *asset_name* with license + source nearby.
+
+    Looks up the first line containing the file name, then requires a CC0/CC-BY
+    token and a source marker within a ±3 line window (row or adjacent prose).
+    """
+    credits = credits_path.read_text(encoding="utf-8")
+    credit_lines = credits.splitlines()
+    credit_idx = next(
+        (i for i, line in enumerate(credit_lines) if asset_name in line),
+        None,
+    )
+    assert credit_idx is not None, (
+        f"CREDITS.md must attribute {asset_name} with source/author/license"
+    )
+    credit_window = "\n".join(
+        credit_lines[max(0, credit_idx - 3) : credit_idx + 4]
+    )
+    assert LICENSE_RE.search(credit_window), (
+        f"CREDITS.md must state CC0 or CC-BY next to {asset_name}"
+    )
+    pattern = source_re if source_re is not None else _DEFAULT_SOURCE_RE
+    assert pattern.search(credit_window), (
+        f"CREDITS.md must give a source page or pack-relative path for {asset_name}"
+    )
 
 
 def png_rgba8(path: Path) -> tuple[int, int, bytes]:

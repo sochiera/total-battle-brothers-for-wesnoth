@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import json
-import re
 import subprocess
 from pathlib import Path
 
+from godot_png_assets import assert_asset_credited
 from godot_runner import run_godot_script
-from test_godot_assets import _LICENSE_RE, _import_game_assets
+from test_godot_assets import _import_game_assets
 
 ROOT = Path(__file__).resolve().parents[1]
 GAME = ROOT / "game"
@@ -63,26 +63,7 @@ def test_next_turn_button_shows_credited_time_icon_with_polish_label():
     assert icon_on_disk.is_file(), (
         f"committed next-turn icon missing on disk: {icon_on_disk}"
     )
-
-    credits = (GAME / "assets" / "CREDITS.md").read_text(encoding="utf-8")
-    credit_lines = credits.splitlines()
-    credit_idx = next(
-        (i for i, line in enumerate(credit_lines) if Path(ICON_REL).name in line),
-        None,
-    )
-    assert credit_idx is not None, (
-        f"CREDITS.md must attribute {Path(ICON_REL).name} with source/author/license"
-    )
-    credit_window = "\n".join(
-        credit_lines[max(0, credit_idx - 3) : credit_idx + 4]
-    )
-    assert _LICENSE_RE.search(credit_window), (
-        f"CREDITS.md must state CC0 or CC-BY next to {Path(ICON_REL).name}"
-    )
-    assert re.search(r"https?://\S+|PNG/", credit_window), (
-        f"CREDITS.md must give a source page or pack-relative path for "
-        f"{Path(ICON_REL).name}"
-    )
+    assert_asset_credited(GAME / "assets" / "CREDITS.md", Path(ICON_REL).name)
 
     # Headless import so scene-assigned Texture2D resources resolve after add.
     imported = _import_game_assets()
