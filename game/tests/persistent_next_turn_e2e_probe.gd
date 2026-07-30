@@ -4,6 +4,7 @@ extends SceneTree
 ## G78/G90 next-turn e2e on a live persistent bridge.
 ## Default (4 args): two NextTurn presses across two scene+bridge processes.
 ## Phase ``survive_first_turn`` (5th arg): one NextTurn, then resume-only — G90.1b.
+## Phase ``muster_then_two_turns``: muster + turn, then resume + turn — G92.1b.
 
 const MAIN_SCENE_PATH := "res://scenes/main.tscn"
 const BridgeClientScript = preload("res://scripts/bridge_client.gd")
@@ -15,6 +16,9 @@ const AI_LANDS := "ai lands"
 
 func _init() -> void:
 	var args: PackedStringArray = OS.get_cmdline_user_args()
+	if args.size() == 5 and args[4] == "muster_then_two_turns":
+		_run_muster_then_two_turns(args)
+		return
 	if args.size() == 5 and args[4] == "survive_first_turn":
 		_run_survive_first_turn(args)
 		return
@@ -22,6 +26,50 @@ func _init() -> void:
 		_fail("expected command prefix, state path, request path, seed [, survive_first_turn]")
 		return
 	_run_two_presses(args)
+
+
+func _run_muster_then_two_turns(args: PackedStringArray) -> void:
+	var seed := args[3].to_int()
+	var first_scene := _instantiate_scene()
+	if first_scene == null:
+		return
+	var first_client = BridgeClientScript.create_persistent(args[0], args[1], seed, args[2])
+	first_scene.bind_client(first_client)
+	var before_turn := _controls_with_order_status(first_scene)
+	var muster_button := first_scene.find_child("MusterButton", true, false) as Button
+	var first_turn_button := first_scene.find_child("NextTurnButton", true, false) as Button
+	if muster_button == null or first_turn_button == null:
+		_fail("missing MusterButton or NextTurnButton")
+		return
+	muster_button.emit_signal("pressed")
+	var after_muster := _controls_with_order_status(first_scene)
+	first_turn_button.emit_signal("pressed")
+	var after_first_turn := _controls_with_order_status(first_scene)
+	var state_exists := FileAccess.file_exists(args[1])
+	first_scene.queue_free()
+
+	var second_scene := _instantiate_scene()
+	if second_scene == null:
+		return
+	var second_client = BridgeClientScript.create_persistent(args[0], args[1], seed, args[2])
+	second_scene.bind_client(second_client)
+	var after_resume := _controls_with_order_status(second_scene)
+	var second_turn_button := second_scene.find_child("NextTurnButton", true, false) as Button
+	if second_turn_button == null:
+		_fail("missing NextTurnButton after resume")
+		return
+	second_turn_button.emit_signal("pressed")
+
+	print(PREFIX, JSON.stringify({
+		"phase": "muster_then_two_turns",
+		"state_exists_after_first_turn": state_exists,
+		"before_turn": before_turn,
+		"after_muster": after_muster,
+		"after_first_turn": after_first_turn,
+		"after_resume": after_resume,
+		"after_second_turn": _controls_with_order_status(second_scene),
+	}))
+	call_deferred("quit", 0)
 
 
 func _run_two_presses(args: PackedStringArray) -> void:
@@ -121,6 +169,14 @@ func _controls(scene_root: Control) -> Dictionary:
 		"duchy_status": (scene_root.find_child("PlayerDuchyStatusLabel", true, false) as Label).text,
 		"regions": names,
 	}
+
+
+func _controls_with_order_status(scene_root: Control) -> Dictionary:
+	var controls := _controls(scene_root)
+	controls["order_status"] = (
+		scene_root.find_child("LastOrderStatusLabel", true, false) as Label
+	).text
+	return controls
 
 
 func _survival_observation(scene_root: Control) -> Dictionary:

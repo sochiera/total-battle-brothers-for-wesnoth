@@ -21,6 +21,7 @@ GAME = ROOT / "game"
 PROBE = "res://tests/persistent_next_turn_e2e_probe.gd"
 PREFIX = "PERSISTENT_NEXT_TURN "
 SEED = 73
+ONGOING_AFTER_MUSTER_SEED = 1  # Seed 73 legally ends the game on turn 1.
 PLAYER_LANDS = "player lands"
 AI_LANDS = "ai lands"
 _SETTLEMENTS_RE = re.compile(r"osady:\s*(\d+)")
@@ -100,6 +101,40 @@ def test_next_turn_button_keeps_controls_empty_when_persistent_bridge_fails(tmp_
         "first": {"date": "", "result": "", "duchy_status": "", "regions": []},
         "second": {"date": "", "result": "", "duchy_status": "", "regions": []},
     }
+
+
+def test_muster_then_two_turns_advance_visible_persistent_game(tmp_path):
+    """G92.1b: the defensive player path stays playable on a live bridge.
+
+    Existing gates exercise muster and persistent next-turn separately, so they
+    miss the sequence-dependent lock where a mustered party occupies the
+    destination selected during the AI turn.
+    """
+    state_path = tmp_path / "muster-then-turn.json"
+    command_prefix = (
+        f"PYTHONPATH={shlex.quote(str(ROOT / 'src'))} python3 -m tbbbridge"
+    )
+    payload = _run_probe(
+        command_prefix,
+        str(state_path),
+        str(tmp_path / "bridge-request.jsonl"),
+        str(ONGOING_AFTER_MUSTER_SEED),
+        "muster_then_two_turns",
+        timeout=45,
+    )
+
+    assert payload["phase"] == "muster_then_two_turns"
+    assert payload["state_exists_after_first_turn"] is True
+    assert payload["before_turn"]["date"] == "Rok 1, miesiąc 1"
+    assert payload["after_muster"]["order_status"] == "Rozkaz zbiórki zmienił stan."
+
+    first = payload["after_first_turn"]
+    resumed = payload["after_resume"]
+    second = payload["after_second_turn"]
+    assert first["date"] == "Rok 1, miesiąc 2"
+    assert resumed["date"] == first["date"]
+    assert resumed["duchy_status"] == first["duchy_status"]
+    assert second["date"] == "Rok 1, miesiąc 3"
 
 
 def test_player_sees_survival_after_first_turn_on_live_bridge(tmp_path):
