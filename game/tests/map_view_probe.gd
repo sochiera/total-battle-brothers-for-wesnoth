@@ -274,6 +274,15 @@ func _run() -> void:
 		tiles_line = _collect_tiles(map_view, names_line)
 	var map_rect: Rect2 = (map_view as Control).get_global_rect()
 
+	# G97.1d before G97.1c: hover sample needs a MapView with empty durable
+	# selection (_selected_region_name survives render_model). Selection sample
+	# then starts from whatever hover left and re-selects explicitly.
+	var region_hover: Dictionary = {"skipped": true}
+	if has_render:
+		region_hover = await _region_hover_sample(
+			map_view, regions_full, names_full
+		)
+
 	# G97.1c: click selects one region (canonical name + single target frame).
 	# Own sample after layout probes so selection does not pollute tile lists.
 	var region_selection: Dictionary = {"skipped": true}
@@ -311,6 +320,7 @@ func _run() -> void:
 			"h": map_rect.size.y,
 		},
 		"region_selection": region_selection,
+		"region_hover": region_hover,
 	}))
 	quit(0)
 
@@ -394,6 +404,256 @@ func _region_selection_sample(
 		"after_rerender": after_rerender,
 		"after_reclick": after_reclick,
 	}
+
+
+func _region_hover_sample(
+	map_view: Node,
+	regions: Array,
+	names: Array[String],
+) -> Dictionary:
+	# Public G97.1d contract observed via MapView only:
+	# - pointer-over shows map_target_frame.png chrome on the hovered region
+	# - leave clears hover without emitting region_selected / changing durable
+	# - hover chrome is distinguishable from the durable selection frame
+	# - re-render drops orphaned hover; hover works again afterwards
+	if not map_view.has_method("render_model"):
+		return {"skipped": true}
+	map_view.call("render_model", _model(regions))
+	await process_frame
+	await process_frame
+
+	var has_signal: bool = map_view.has_signal("region_selected")
+	var emitted: Array = []
+	if has_signal:
+		map_view.connect(
+			"region_selected",
+			func(region_name: Variant) -> void:
+				emitted.append(str(region_name))
+		)
+
+	var tile_cursors: Dictionary = {}
+	var tile_filters: Dictionary = {}
+	# Wiring for the native client path: mouse_entered/exited on each tile.
+	# push_input alone only exercises MapView._input; without these connects
+	# the real client would never hover.
+	var tile_hover_signal_connections: Dictionary = {}
+	for region_name: String in names:
+		var tile: Control = _find_region_tile(map_view, region_name)
+		if tile != null:
+			tile_cursors[region_name] = tile.mouse_default_cursor_shape
+			tile_filters[region_name] = tile.mouse_filter
+			tile_hover_signal_connections[region_name] = {
+				"mouse_entered": tile.mouse_entered.get_connections().size(),
+				"mouse_exited": tile.mouse_exited.get_connections().size(),
+			}
+
+	# Baseline: no pointer over any tile.
+	await _simulate_pointer_outside(map_view)
+	await process_frame
+	await process_frame
+	var baseline: Dictionary = _observe_frame_overlays(map_view, names)
+
+	# Enter Alpha (nothing selected yet).
+	await _simulate_pointer_over_region(map_view, "Alpha")
+	await process_frame
+	await process_frame
+	var after_enter_alpha: Dictionary = _observe_frame_overlays(map_view, names)
+	var emitted_after_enter_alpha: Array = emitted.duplicate()
+
+	# Leave Alpha: hover must clear, still no selection signal.
+	await _simulate_pointer_outside(map_view)
+	await process_frame
+	await process_frame
+	var after_leave_alpha: Dictionary = _observe_frame_overlays(map_view, names)
+	var emitted_after_leave_alpha: Array = emitted.duplicate()
+
+	# Native path (Control.mouse_entered/exited): headless push_input does not
+	# always synthesize these. Emit them on the tile so the gate covers both
+	# MapView._input and the signal handlers used by a real client.
+	await _simulate_tile_mouse_entered(map_view, "Alpha")
+	await process_frame
+	await process_frame
+	var after_signal_enter_alpha: Dictionary = _observe_frame_overlays(
+		map_view, names
+	)
+	var emitted_after_signal_enter_alpha: Array = emitted.duplicate()
+
+	await _simulate_tile_mouse_exited(map_view, "Alpha")
+	await process_frame
+	await process_frame
+	var after_signal_leave_alpha: Dictionary = _observe_frame_overlays(
+		map_view, names
+	)
+	var emitted_after_signal_leave_alpha: Array = emitted.duplicate()
+
+	# Real player path: pointer already over Beta, then click. Click-without-
+	# prior-motion would miss stacked MapHoverFrame + MapTargetFrame (selection
+	# keeps _hovered_tile and early-returns on same-tile motion).
+	await _simulate_pointer_over_region(map_view, "Beta")
+	await process_frame
+	await process_frame
+	await _simulate_region_click(map_view, "Beta")
+	await process_frame
+	await process_frame
+	# Cursor still on Beta after click — observe overlays while hover state
+	# would still apply if production failed to clear it on select.
+	var after_select_beta: Dictionary = _observe_frame_overlays(map_view, names)
+	var emitted_after_select_beta: Array = emitted.duplicate()
+
+	await _simulate_pointer_over_region(map_view, "Alpha")
+	await process_frame
+	await process_frame
+	var after_hover_alpha_while_beta: Dictionary = _observe_frame_overlays(
+		map_view, names
+	)
+	var emitted_after_hover_while_selected: Array = emitted.duplicate()
+
+	await _simulate_pointer_outside(map_view)
+	await process_frame
+	await process_frame
+	var after_leave_while_beta: Dictionary = _observe_frame_overlays(
+		map_view, names
+	)
+
+	# Hover the already-selected region: must not stack a second frame on Beta.
+	await _simulate_pointer_over_region(map_view, "Beta")
+	await process_frame
+	await process_frame
+	var after_hover_selected_beta: Dictionary = _observe_frame_overlays(
+		map_view, names
+	)
+	var emitted_after_hover_selected: Array = emitted.duplicate()
+
+	await _simulate_pointer_outside(map_view)
+	await process_frame
+	await process_frame
+
+	# Re-render: durable Beta restored; no orphaned hover chrome.
+	map_view.call("render_model", _model(regions))
+	await process_frame
+	await process_frame
+	var after_rerender: Dictionary = _observe_frame_overlays(map_view, names)
+
+	# Hover still works after re-render (Gamma), without changing Beta selection.
+	await _simulate_pointer_over_region(map_view, "Gamma")
+	await process_frame
+	await process_frame
+	var after_hover_gamma_post_rerender: Dictionary = _observe_frame_overlays(
+		map_view, names
+	)
+	var emitted_after_hover_post_rerender: Array = emitted.duplicate()
+
+	return {
+		"skipped": false,
+		"tile_cursors": tile_cursors,
+		"tile_mouse_filters": tile_filters,
+		"tile_hover_signal_connections": tile_hover_signal_connections,
+		"baseline": baseline,
+		"after_enter_alpha": after_enter_alpha,
+		"emitted_after_enter_alpha": emitted_after_enter_alpha,
+		"after_leave_alpha": after_leave_alpha,
+		"emitted_after_leave_alpha": emitted_after_leave_alpha,
+		"after_signal_enter_alpha": after_signal_enter_alpha,
+		"emitted_after_signal_enter_alpha": emitted_after_signal_enter_alpha,
+		"after_signal_leave_alpha": after_signal_leave_alpha,
+		"emitted_after_signal_leave_alpha": emitted_after_signal_leave_alpha,
+		"after_select_beta": after_select_beta,
+		"emitted_after_select_beta": emitted_after_select_beta,
+		"after_hover_alpha_while_beta": after_hover_alpha_while_beta,
+		"emitted_after_hover_while_selected": emitted_after_hover_while_selected,
+		"after_leave_while_beta": after_leave_while_beta,
+		"after_hover_selected_beta": after_hover_selected_beta,
+		"emitted_after_hover_selected": emitted_after_hover_selected,
+		"after_rerender": after_rerender,
+		"after_hover_gamma_post_rerender": after_hover_gamma_post_rerender,
+		"emitted_after_hover_post_rerender": emitted_after_hover_post_rerender,
+	}
+
+
+func _simulate_pointer_over_region(map_view: Node, region_name: String) -> void:
+	var tile: Control = _find_region_tile(map_view, region_name)
+	if tile == null:
+		return
+	var center: Vector2 = tile.get_global_rect().get_center()
+	_push_mouse_motion(tile, center)
+
+
+func _simulate_pointer_outside(map_view: Node) -> void:
+	if not (map_view is Control):
+		return
+	var rect: Rect2 = (map_view as Control).get_global_rect()
+	# Just outside the map panel so no RegionTile_* is under the pointer.
+	var outside: Vector2 = rect.position + Vector2(-8.0, -8.0)
+	_push_mouse_motion(map_view as Control, outside)
+
+
+func _simulate_tile_mouse_entered(map_view: Node, region_name: String) -> void:
+	# Direct signal path: same handlers MapView connects in _add_tile.
+	var tile: Control = _find_region_tile(map_view, region_name)
+	if tile == null:
+		return
+	tile.mouse_entered.emit()
+
+
+func _simulate_tile_mouse_exited(map_view: Node, region_name: String) -> void:
+	var tile: Control = _find_region_tile(map_view, region_name)
+	if tile == null:
+		return
+	tile.mouse_exited.emit()
+
+
+func _push_mouse_motion(anchor: Control, global_pos: Vector2) -> void:
+	var vp: Viewport = anchor.get_viewport()
+	if vp == null:
+		return
+	var motion := InputEventMouseMotion.new()
+	motion.position = global_pos
+	motion.global_position = global_pos
+	vp.push_input(motion)
+
+
+func _observe_frame_overlays(map_view: Node, names: Array[String]) -> Dictionary:
+	# All visible map_target_frame.png carriers (hover and durable selection),
+	# attributed to a region by ancestor or center-in-tile. Includes modulate so
+	# Python can require hover ≠ durable without reading private GDScript vars.
+	var frames: Array = _collect_target_frame_nodes(map_view)
+	var overlays: Array = []
+	var by_region: Dictionary = {}
+	for frame: Node in frames:
+		if not (frame is CanvasItem):
+			continue
+		var item: CanvasItem = frame as CanvasItem
+		if not item.is_visible_in_tree():
+			continue
+		var region_name: String = _region_for_frame(frame, map_view, names)
+		var mod: Color = item.modulate
+		var entry: Dictionary = {
+			"region": region_name,
+			"node_name": str(frame.name),
+			"texture": _direct_texture_path(frame),
+			"modulate": [mod.r, mod.g, mod.b, mod.a],
+		}
+		overlays.append(entry)
+		if region_name.is_empty():
+			continue
+		if not by_region.has(region_name):
+			by_region[region_name] = []
+		(by_region[region_name] as Array).append(entry)
+	return {
+		"overlay_count": overlays.size(),
+		"overlays": overlays,
+		"by_region": by_region,
+	}
+
+
+func _region_for_frame(
+	frame: Node, map_view: Node, names: Array[String]
+) -> String:
+	for region_name: String in names:
+		var tile: Control = _find_region_tile(map_view, region_name)
+		if tile != null and _frame_belongs_to_tile(frame, tile):
+			return region_name
+	return ""
 
 
 func _find_region_tile(map_view: Node, region_name: String) -> Control:

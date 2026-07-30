@@ -34,11 +34,24 @@ const PARTY_MARKER_MARGIN := Vector2(8, 4)
 const PLAYER_PARTY_MARKER_NAME := "PlayerPartyMarker"
 const AI_PARTY_MARKER_NAME := "AIPartyMarker"
 const TARGET_FRAME_NAME := "MapTargetFrame"
+const HOVER_FRAME_NAME := "MapHoverFrame"
+const HOVER_FRAME_MODULATE := Color(0.95, 0.85, 0.35, 0.72)
 
 signal region_selected(region_name: String)
 
 var _selected_region_name := ""
 var _selected_tile: Control
+var _hovered_tile: Control
+
+
+func _input(event: InputEvent) -> void:
+	if not event is InputEventMouseMotion:
+		return
+	# Viewport.push_input() updates click hit-testing in headless probes but does
+	# not always synthesize Control.mouse_entered/exited. Keep the same hover
+	# contract by resolving the topmost tile from the motion position as well.
+	var motion := event as InputEventMouseMotion
+	_set_hovered_tile(_tile_at_global_position(motion.global_position))
 
 
 func render_model(model: SnapshotModel) -> void:
@@ -52,6 +65,7 @@ func render_model(model: SnapshotModel) -> void:
 
 func _clear_tiles() -> void:
 	_selected_tile = null
+	_hovered_tile = null
 	for child: Node in get_children():
 		if str(child.name).begins_with("RegionTile_"):
 			child.free()
@@ -64,6 +78,9 @@ func _add_tile(region: Dictionary, player_party_region: Variant) -> void:
 	tile.size = TILE_SIZE
 	# Control hit-testing uses the tile AABB; STOP lets the later overlapping child receive the click.
 	tile.mouse_filter = Control.MOUSE_FILTER_STOP
+	tile.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	tile.mouse_entered.connect(_on_tile_mouse_entered.bind(tile))
+	tile.mouse_exited.connect(_on_tile_mouse_exited.bind(tile))
 	tile.gui_input.connect(
 		_on_tile_gui_input.bind(tile, str(region["name"]))
 	)
@@ -103,6 +120,7 @@ func _on_tile_gui_input(event: InputEvent, tile: Control, region_name: String) -
 func _refresh_target_frame(tile: Control) -> void:
 	if is_instance_valid(_selected_tile) and _selected_tile != tile:
 		_remove_target_frame(_selected_tile)
+	_remove_hover_frame(tile)
 	_selected_tile = tile
 	_add_target_frame(tile)
 
@@ -114,9 +132,65 @@ func _add_target_frame(tile: Control) -> void:
 	tile.add_child(frame)
 
 
+func _on_tile_mouse_entered(tile: Control) -> void:
+	_set_hovered_tile(tile)
+
+
+func _on_tile_mouse_exited(tile: Control) -> void:
+	if _hovered_tile == tile:
+		_set_hovered_tile(null)
+	else:
+		_remove_hover_frame(tile)
+
+
+func _set_hovered_tile(tile: Control) -> void:
+	if tile == _hovered_tile:
+		return
+	if is_instance_valid(_hovered_tile):
+		_remove_hover_frame(_hovered_tile)
+	_hovered_tile = tile if is_instance_valid(tile) else null
+	if _can_add_hover_frame(_hovered_tile):
+		_add_hover_frame(_hovered_tile)
+
+
+func _tile_at_global_position(global_position: Vector2) -> Control:
+	# Children are painted and hit-tested in order; reverse iteration preserves
+	# the existing overlap rule where the later row tile wins.
+	for index in range(get_child_count() - 1, -1, -1):
+		var child: Node = get_child(index)
+		if not child is Control or not str(child.name).begins_with("RegionTile_"):
+			continue
+		var tile := child as Control
+		if tile.visible and tile.get_global_rect().has_point(global_position):
+			return tile
+	return null
+
+
+func _add_hover_frame(tile: Control) -> void:
+	if not _can_add_hover_frame(tile):
+		return
+	_remove_hover_frame(tile)
+	var frame := TileTextureLayer.full_rect(TARGET_FRAME_TEXTURE, HOVER_FRAME_NAME)
+	frame.modulate = HOVER_FRAME_MODULATE
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tile.add_child(frame)
+
+
+func _can_add_hover_frame(tile: Control) -> bool:
+	return is_instance_valid(tile) and tile != _selected_tile
+
+
+func _remove_hover_frame(tile: Node) -> void:
+	_remove_frame(tile, HOVER_FRAME_NAME)
+
+
 func _remove_target_frame(tile: Node) -> void:
+	_remove_frame(tile, TARGET_FRAME_NAME)
+
+
+func _remove_frame(tile: Node, frame_name: String) -> void:
 	for child: Node in tile.get_children():
-		if child.name == TARGET_FRAME_NAME:
+		if child.name == frame_name:
 			child.free()
 
 

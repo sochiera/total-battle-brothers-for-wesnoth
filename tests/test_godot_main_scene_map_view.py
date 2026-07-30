@@ -27,8 +27,11 @@ PARTY_AI_UNIT_RES = f"res://{PARTY_AI_UNIT_REL}"
 # Replaced prototype banner (may remain on disk); must not be the unit source.
 PARTY_BANNER_REL = "assets/party_player.png"
 # G97.1c: durable selection frame on the clicked region.
+# G97.1d: hover chrome reuses the same public carrier with a distinct look.
 TARGET_FRAME_REL = "assets/map_target_frame.png"
 TARGET_FRAME_RES = f"res://{TARGET_FRAME_REL}"
+# Godot Control.CursorShape.CURSOR_POINTING_HAND — clickability cue on tiles.
+CURSOR_POINTING_HAND = 2
 _CREDITS_ROW_RE = re.compile(
     r"^\|\s*(?P<file>[^|]+?)\s*\|\s*(?P<source>[^|]+?)\s*\|\s*(?P<author>[^|]+?)\s*\|\s*(?P<license>[^|]+?)\s*\|",
     re.MULTILINE,
@@ -1427,5 +1430,270 @@ def test_map_view_selects_region_with_single_target_frame():
     frames_reclick = after_reclick.get("frames_by_region") or {}
     assert set(frames_reclick) == {"Beta"}, (
         f"re-click must leave only Beta framed, got {frames_reclick!r}"
+    )
+
+
+def _frame_overlays_on(step: dict, region: str) -> list[dict]:
+    """Overlays attributed to ``region`` that use the public target-frame carrier."""
+    by_region = step.get("by_region") or {}
+    entries = by_region.get(region) or []
+    return [
+        entry
+        for entry in entries
+        if isinstance(entry, dict)
+        and str(entry.get("texture", "")).endswith("map_target_frame.png")
+    ]
+
+
+def _overlay_modulate(entry: dict) -> tuple:
+    """Visible modulate of one frame overlay (player-facing identity)."""
+    mod = entry.get("modulate") or []
+    return tuple(mod)
+
+
+def test_map_view_region_hover_distinct_from_selection():
+    """Pointer-over shows subtle target-frame hover; leave clears it.
+
+    Realistic defect existing gates miss: MapView accepts clicks and draws a
+    durable MapTargetFrame, but never reacts to enter/leave — no pre-click
+    chrome, so regions do not read as interactive until the click lands.
+    Selection/signal/CREDITS gates stay green while G97.1d fails for the
+    player. Also catches hover that mutates selection, leaves orphans after
+    re-render, or looks identical to the durable frame on another region.
+    Review follow-up: stacking hover+selection on the same selected tile
+    brightens the frame into a third look; node_name alone must not green
+    a same-modulate hover/selection pair. Also the real path hover-then-click
+    on the same tile (cursor still on it) must leave one frame only —
+    click-without-prior-motion greened while hover+target both stayed.
+    Dual-path: push_input exercises MapView._input; mouse_entered/exited
+    wiring + emit covers the native Control signal path used by real clients.
+    """
+    frame_path = GAME / TARGET_FRAME_REL
+    assert frame_path.is_file(), (
+        f"committed selection/hover frame missing on disk: {frame_path} "
+        "(public contract: game/assets/map_target_frame.png)"
+    )
+
+    imported = _import_game_assets()
+    assert imported.returncode == 0, (
+        f"godot --import failed rc={imported.returncode} "
+        f"stderr={imported.stderr!r} stdout={imported.stdout!r}"
+    )
+
+    payload = _load_map_view()
+    assert payload["map_view_found"] is True, payload
+    assert payload["has_render_model"] is True, payload
+
+    sample = payload.get("region_hover") or {}
+    assert sample.get("skipped") is not True, (
+        "region_hover was skipped (no MapView.render_model); "
+        f"cannot assert hover chrome, sample={sample!r}"
+    )
+
+    # Hit-testing: whole tile must accept the pointer (body layers stay IGNORE
+    # elsewhere) so enter/leave reach the region root.
+    filters = sample.get("tile_mouse_filters") or {}
+    for name in ("Alpha", "Beta", "Gamma"):
+        assert name in filters, (
+            f"probe must report mouse_filter for tile {name!r}, got {filters!r}"
+        )
+        assert filters[name] == MOUSE_FILTER_STOP, (
+            f"RegionTile_{name} must STOP mouse so hover reaches the tile, "
+            f"got mouse_filter={filters[name]!r} filters={filters!r}"
+        )
+
+    # Enter Alpha with nothing selected → hover chrome on Alpha only, no emit.
+    after_enter = sample.get("after_enter_alpha") or {}
+    alpha_hover = _frame_overlays_on(after_enter, "Alpha")
+    assert alpha_hover, (
+        "pointer-over Alpha must show visible map_target_frame.png hover chrome "
+        f"on Alpha, got after_enter_alpha={after_enter!r}"
+    )
+    assert not _frame_overlays_on(after_enter, "Beta"), (
+        f"hovering Alpha must not paint Beta, got {after_enter!r}"
+    )
+    assert not _frame_overlays_on(after_enter, "Gamma"), (
+        f"hovering Alpha must not paint Gamma, got {after_enter!r}"
+    )
+    assert sample.get("emitted_after_enter_alpha") == [], (
+        "hover must not emit region_selected (no selection until click), "
+        f"got emitted_after_enter_alpha={sample.get('emitted_after_enter_alpha')!r}"
+    )
+
+    # Pointing-hand cursor communicates clickability (with the hover chrome).
+    cursors = sample.get("tile_cursors") or {}
+    for name in ("Alpha", "Beta", "Gamma"):
+        assert name in cursors, (
+            f"probe must report cursor shape for tile {name!r}, got {cursors!r}"
+        )
+        assert cursors[name] == CURSOR_POINTING_HAND, (
+            f"RegionTile_{name} must use POINTING_HAND cursor for clickability "
+            f"(Godot CursorShape={CURSOR_POINTING_HAND}), got {cursors[name]!r} "
+            f"cursors={cursors!r}"
+        )
+
+    # Leave Alpha → chrome cleared, still no selection signal.
+    after_leave = sample.get("after_leave_alpha") or {}
+    assert (after_leave.get("overlay_count") or 0) == 0, (
+        "leaving the tile must clear hover chrome with nothing selected, "
+        f"got after_leave_alpha={after_leave!r}"
+    )
+    assert sample.get("emitted_after_leave_alpha") == [], (
+        "leave must not emit region_selected, "
+        f"got {sample.get('emitted_after_leave_alpha')!r}"
+    )
+
+    # Native client path: mouse_entered/exited must be wired and functional.
+    # push_input alone only hits MapView._input; dropping the connect() pair
+    # in _add_tile must not leave this gate green.
+    signal_conns = sample.get("tile_hover_signal_connections") or {}
+    for name in ("Alpha", "Beta", "Gamma"):
+        assert name in signal_conns, (
+            f"probe must report hover signal wiring for tile {name!r}, "
+            f"got {signal_conns!r}"
+        )
+        entered_n = signal_conns[name].get("mouse_entered", 0)
+        exited_n = signal_conns[name].get("mouse_exited", 0)
+        assert entered_n >= 1, (
+            f"RegionTile_{name} must connect mouse_entered (native hover path), "
+            f"got connections={entered_n!r} signal_conns={signal_conns!r}"
+        )
+        assert exited_n >= 1, (
+            f"RegionTile_{name} must connect mouse_exited (native hover path), "
+            f"got connections={exited_n!r} signal_conns={signal_conns!r}"
+        )
+
+    after_sig_enter = sample.get("after_signal_enter_alpha") or {}
+    assert _frame_overlays_on(after_sig_enter, "Alpha"), (
+        "tile.mouse_entered.emit on Alpha must show hover chrome (native path), "
+        f"got after_signal_enter_alpha={after_sig_enter!r}"
+    )
+    assert not _frame_overlays_on(after_sig_enter, "Beta"), (
+        f"signal enter Alpha must not paint Beta, got {after_sig_enter!r}"
+    )
+    assert sample.get("emitted_after_signal_enter_alpha") == [], (
+        "signal-path hover must not emit region_selected, "
+        f"got {sample.get('emitted_after_signal_enter_alpha')!r}"
+    )
+
+    after_sig_leave = sample.get("after_signal_leave_alpha") or {}
+    assert (after_sig_leave.get("overlay_count") or 0) == 0, (
+        "tile.mouse_exited.emit must clear hover chrome with nothing selected, "
+        f"got after_signal_leave_alpha={after_sig_leave!r}"
+    )
+    assert sample.get("emitted_after_signal_leave_alpha") == [], (
+        "signal-path leave must not emit region_selected, "
+        f"got {sample.get('emitted_after_signal_leave_alpha')!r}"
+    )
+
+    # Hover→click Beta (cursor still on tile): durable selection only, no
+    # residual MapHoverFrame stacked under/over MapTargetFrame.
+    after_select = sample.get("after_select_beta") or {}
+    beta_durable = _frame_overlays_on(after_select, "Beta")
+    assert len(beta_durable) == 1, (
+        "hover-then-click on Beta must leave exactly one map_target_frame "
+        "(durable selection); residual hover chrome stacks into a third look "
+        f"while the cursor stays on the tile. got {len(beta_durable)} overlays "
+        f"on Beta: {beta_durable!r} step={after_select!r}"
+    )
+    assert not _frame_overlays_on(after_select, "Alpha"), (
+        f"selecting Beta must not leave chrome on Alpha, got {after_select!r}"
+    )
+    assert not _frame_overlays_on(after_select, "Gamma"), (
+        f"selecting Beta must not leave chrome on Gamma, got {after_select!r}"
+    )
+    assert sample.get("emitted_after_select_beta") == ["Beta"], (
+        "only the Beta click may emit region_selected before hover-while-selected, "
+        f"got {sample.get('emitted_after_select_beta')!r}"
+    )
+
+    after_both = sample.get("after_hover_alpha_while_beta") or {}
+    alpha_while = _frame_overlays_on(after_both, "Alpha")
+    beta_while = _frame_overlays_on(after_both, "Beta")
+    assert alpha_while, (
+        "hovering Alpha while Beta is selected must show hover chrome on Alpha "
+        f"without dropping selection, got {after_both!r}"
+    )
+    assert beta_while, (
+        "durable Beta frame must remain while hovering Alpha, "
+        f"got {after_both!r}"
+    )
+    # Player-facing distinction is modulate only; node_name always differs
+    # (MapHoverFrame vs MapTargetFrame) and must not green a same-look pair.
+    assert any(
+        _overlay_modulate(a) != _overlay_modulate(b)
+        for a in alpha_while
+        for b in beta_while
+    ), (
+        "hover chrome on Alpha must be visually distinct from durable frame on "
+        f"Beta (modulate), got alpha={alpha_while!r} beta={beta_while!r}"
+    )
+    assert sample.get("emitted_after_hover_while_selected") == ["Beta"], (
+        "hovering another region must not emit or change selection, "
+        f"got {sample.get('emitted_after_hover_while_selected')!r}"
+    )
+
+    # Leave while Beta selected → only durable Beta remains.
+    after_leave_sel = sample.get("after_leave_while_beta") or {}
+    assert _frame_overlays_on(after_leave_sel, "Beta"), (
+        f"leave must keep durable Beta frame, got {after_leave_sel!r}"
+    )
+    assert not _frame_overlays_on(after_leave_sel, "Alpha"), (
+        f"leave must clear Alpha hover without clearing selection, "
+        f"got {after_leave_sel!r}"
+    )
+    assert not _frame_overlays_on(after_leave_sel, "Gamma"), (
+        f"leave must not leave chrome on Gamma, got {after_leave_sel!r}"
+    )
+
+    # Hover over the selected region: one frame only (already-selected look),
+    # not MapTargetFrame + MapHoverFrame stacking into a third brightness.
+    after_sel_hover = sample.get("after_hover_selected_beta") or {}
+    beta_on_self = _frame_overlays_on(after_sel_hover, "Beta")
+    assert len(beta_on_self) == 1, (
+        "hovering the selected region must not stack a second map_target_frame "
+        "on the same tile (durable selection already marks it); "
+        f"got {len(beta_on_self)} overlays on Beta: {beta_on_self!r} "
+        f"step={after_sel_hover!r}"
+    )
+    assert not _frame_overlays_on(after_sel_hover, "Alpha"), (
+        f"hovering selected Beta must not paint Alpha, got {after_sel_hover!r}"
+    )
+    assert not _frame_overlays_on(after_sel_hover, "Gamma"), (
+        f"hovering selected Beta must not paint Gamma, got {after_sel_hover!r}"
+    )
+    assert sample.get("emitted_after_hover_selected") == ["Beta"], (
+        "hovering the selected region must not re-emit region_selected, "
+        f"got {sample.get('emitted_after_hover_selected')!r}"
+    )
+
+    # Re-render: durable Beta restored, no orphaned hover.
+    after_rerender = sample.get("after_rerender") or {}
+    assert _frame_overlays_on(after_rerender, "Beta"), (
+        f"re-render must restore durable Beta frame, got {after_rerender!r}"
+    )
+    assert not _frame_overlays_on(after_rerender, "Alpha"), (
+        f"re-render must not leave orphaned Alpha hover, got {after_rerender!r}"
+    )
+    assert not _frame_overlays_on(after_rerender, "Gamma"), (
+        f"re-render must not leave orphaned Gamma hover, got {after_rerender!r}"
+    )
+
+    # Hover after re-render still works (Gamma) and does not steal selection.
+    after_gamma = sample.get("after_hover_gamma_post_rerender") or {}
+    assert _frame_overlays_on(after_gamma, "Gamma"), (
+        "after re-render, hovering Gamma must show map_target_frame hover chrome, "
+        f"got {after_gamma!r}"
+    )
+    assert _frame_overlays_on(after_gamma, "Beta"), (
+        "hover after re-render must keep durable Beta selection, "
+        f"got {after_gamma!r}"
+    )
+    assert not _frame_overlays_on(after_gamma, "Alpha"), (
+        f"hovering Gamma must not paint Alpha, got {after_gamma!r}"
+    )
+    assert sample.get("emitted_after_hover_post_rerender") == ["Beta"], (
+        "post-re-render hover must not emit region_selected, "
+        f"got {sample.get('emitted_after_hover_post_rerender')!r}"
     )
 
