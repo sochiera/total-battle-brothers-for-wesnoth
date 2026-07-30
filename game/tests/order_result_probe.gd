@@ -39,6 +39,9 @@ const EXPECTED_STATUS_TEXT := {
 	"muster_changed": "Rozkaz zbiórki zmienił stan.",
 	"muster_unchanged": "Rozkaz zbiórki nie zmienił stanu.",
 	"assault_unchanged": "Rozkaz szturmu nie zmienił stanu.",
+	# G97.1f: celowany move ma własne PL (nie szablon „Rozkaz … zmienił stan.”).
+	"move_changed": "Oddział przemieścił się.",
+	"move_unchanged": "Oddział nie przemieścił się.",
 	# G91.2b: most (task-516) dodaje game_over — status nie może brzmieć jak no-op w trwającej partii.
 	"game_over_order": "Partia jest zakończona.",
 	"assault_battle": "Szturm: porażka (straty: 0, wróg: 0).",
@@ -104,6 +107,8 @@ func _init() -> void:
 		"muster_changed": OrderResult.from_response({"ok": true, "result": {"kind": "order", "order": "muster", "changed": true}}),
 		"muster_unchanged": OrderResult.from_response({"ok": true, "result": {"kind": "order", "order": "muster", "changed": false}}),
 		"assault_unchanged": OrderResult.from_response({"ok": true, "result": {"kind": "order", "order": "assault", "changed": false}}),
+		"move_changed": OrderResult.from_response({"ok": true, "result": {"kind": "order", "order": "move", "changed": true}}),
+		"move_unchanged": OrderResult.from_response({"ok": true, "result": {"kind": "order", "order": "move", "changed": false}}),
 		"game_over_order": OrderResult.from_response({
 			"ok": true,
 			"result": {"kind": "order", "order": "recruit", "changed": false, "game_over": true},

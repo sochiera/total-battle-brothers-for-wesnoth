@@ -90,26 +90,13 @@ func _press(scene_root: Control, button_name: String) -> bool:
 
 func _party_mark_observation(scene_root: Control, map_view: Node) -> Dictionary:
 	var position_label := scene_root.find_child("PlayerPartyPositionLabel", true, false) as Label
-	var region_names: Array[String] = _region_names_from_map(map_view)
+	var region_names: Array[String] = PartyMapMark.region_names_from_map(map_view)
 	return {
 		"position_label": "" if position_label == null else position_label.text,
 		"marked_regions": PartyMapMark.marked_party_regions(map_view, region_names),
 		"marker_count": PartyMapMark.count_party_markers(map_view),
 		"region_names": region_names,
 	}
-
-
-func _region_names_from_map(map_view: Node) -> Array[String]:
-	var names: Array[String] = []
-	for child: Node in map_view.get_children():
-		if not str(child.name).begins_with("RegionTile_"):
-			continue
-		for nested: Node in child.get_children():
-			if nested is Label:
-				var text: String = (nested as Label).text
-				if not text.is_empty() and not names.has(text):
-					names.append(text)
-	return names
 
 
 func _fail(message: String) -> void:

@@ -61,24 +61,31 @@ static func marked_party_regions(map_view: Node, expected_names: Array[String]) 
 	return marked
 
 
-## Marker marks a tile when either:
-## - the tile is an ancestor of the marker (current MapView: marker under tile), or
-## - the marker is a Control whose global center lies inside the tile rect
-##   (valid alternative: marker as MapView child, positioned over the tile).
-## Geometry alone is intentional for hierarchy-agnostic observation; both paths
-## satisfy "this tile is observably marked".
-static func marker_belongs_to_tile(marker: Node, tile: Control) -> bool:
-	var walk: Node = marker
+## Node marks a tile when either:
+## - the tile is an ancestor of the node (current MapView: under tile), or
+## - the node is a Control whose global center lies inside the tile rect
+##   (valid alternative: MapView child positioned over the tile), or
+## - the node is a Node2D whose global position lies inside the tile rect
+##   (Sprite2D selection frames / alternate marker carriers).
+## Geometry alone is intentional for hierarchy-agnostic observation.
+## Used by party markers and map_target_frame attribution.
+static func node_belongs_to_tile(node: Node, tile: Control) -> bool:
+	var walk: Node = node
 	while walk != null:
 		if walk == tile:
 			return true
 		walk = walk.get_parent()
-	if marker is Control:
-		var m: Control = marker as Control
-		var rect: Rect2 = m.get_global_rect()
+	if node is Control:
+		var rect: Rect2 = (node as Control).get_global_rect()
 		var center: Vector2 = rect.position + rect.size * 0.5
 		return tile.get_global_rect().has_point(center)
+	if node is Node2D:
+		return tile.get_global_rect().has_point((node as Node2D).global_position)
 	return false
+
+
+static func marker_belongs_to_tile(marker: Node, tile: Control) -> bool:
+	return node_belongs_to_tile(marker, tile)
 
 
 static func tile_control(label: Label, map_view: Node) -> Control:
@@ -104,4 +111,28 @@ static func find_all_named(root: Node, node_name: String) -> Array:
 		found.append(root)
 	for child: Node in root.get_children():
 		found.append_array(find_all_named(child, node_name))
+	return found
+
+
+## Collect region display names from MapView RegionTile_* controls.
+## Recursive on descendants so a nested tile layout still works; label→tile
+## attribution for markers/frames uses find_label_with_text/tile_control and
+## stays hierarchy-agnostic for known names.
+static func region_names_from_map(map_view: Node) -> Array[String]:
+	var names: Array[String] = []
+	for tile: Node in _region_tile_nodes(map_view):
+		for nested: Node in tile.get_children():
+			if nested is Label:
+				var text: String = (nested as Label).text
+				if not text.is_empty() and not names.has(text):
+					names.append(text)
+	return names
+
+
+static func _region_tile_nodes(root: Node) -> Array:
+	var found: Array = []
+	if root is Control and str(root.name).begins_with("RegionTile_"):
+		found.append(root)
+	for child: Node in root.get_children():
+		found.append_array(_region_tile_nodes(child))
 	return found

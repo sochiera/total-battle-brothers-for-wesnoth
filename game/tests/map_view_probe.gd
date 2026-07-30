@@ -8,6 +8,7 @@ extends SceneTree
 const MAIN_SCENE_PATH := "res://scenes/main.tscn"
 const SnapshotModel = preload("res://scripts/snapshot_model.gd")
 const PartyMapMark = preload("res://tests/party_map_mark_helpers.gd")
+const MapTargetFrame = preload("res://tests/map_target_frame_helpers.gd")
 const PREFIX := "MAP_VIEW "
 
 
@@ -335,9 +336,6 @@ func _model(regions: Array, party_region: Variant = null) -> SnapshotModel:
 	return model
 
 
-const TARGET_FRAME_SUFFIX := "map_target_frame.png"
-
-
 func _region_selection_sample(
 	map_view: Node,
 	regions: Array,
@@ -616,7 +614,7 @@ func _observe_frame_overlays(map_view: Node, names: Array[String]) -> Dictionary
 	# All visible map_target_frame.png carriers (hover and durable selection),
 	# attributed to a region by ancestor or center-in-tile. Includes modulate so
 	# Python can require hover ≠ durable without reading private GDScript vars.
-	var frames: Array = _collect_target_frame_nodes(map_view)
+	var frames: Array = MapTargetFrame.collect_target_frame_nodes(map_view)
 	var overlays: Array = []
 	var by_region: Dictionary = {}
 	for frame: Node in frames:
@@ -630,7 +628,7 @@ func _observe_frame_overlays(map_view: Node, names: Array[String]) -> Dictionary
 		var entry: Dictionary = {
 			"region": region_name,
 			"node_name": str(frame.name),
-			"texture": _direct_texture_path(frame),
+			"texture": MapTargetFrame.direct_texture_path(frame),
 			"modulate": [mod.r, mod.g, mod.b, mod.a],
 		}
 		overlays.append(entry)
@@ -651,7 +649,7 @@ func _region_for_frame(
 ) -> String:
 	for region_name: String in names:
 		var tile: Control = _find_region_tile(map_view, region_name)
-		if tile != null and _frame_belongs_to_tile(frame, tile):
+		if tile != null and MapTargetFrame.frame_belongs_to_tile(frame, tile):
 			return region_name
 	return ""
 
@@ -694,7 +692,7 @@ func _simulate_region_click(map_view: Node, region_name: String) -> void:
 func _observe_target_frames(map_view: Node, names: Array[String]) -> Dictionary:
 	# Hierarchy-agnostic: frame may live under the tile or as a MapView child
 	# positioned over the region. Attribute by ancestor-or-center-in-tile.
-	var frames: Array = _collect_target_frame_nodes(map_view)
+	var frames: Array = MapTargetFrame.collect_target_frame_nodes(map_view)
 	var frames_by_region: Dictionary = {}
 	for region_name: String in names:
 		var tile: Control = _find_region_tile(map_view, region_name)
@@ -705,44 +703,14 @@ func _observe_target_frames(map_view: Node, names: Array[String]) -> Dictionary:
 				continue
 			if not (frame as CanvasItem).is_visible_in_tree():
 				continue
-			if _frame_belongs_to_tile(frame, tile):
-				var path: String = _direct_texture_path(frame)
+			if MapTargetFrame.frame_belongs_to_tile(frame, tile):
+				var path: String = MapTargetFrame.direct_texture_path(frame)
 				frames_by_region[region_name] = path
 				break
 	return {
 		"frame_count": frames.size(),
 		"frames_by_region": frames_by_region,
 	}
-
-
-func _collect_target_frame_nodes(map_view: Node) -> Array:
-	var found: Array = []
-	_collect_target_frame_nodes_into(map_view, found)
-	return found
-
-
-func _collect_target_frame_nodes_into(node: Node, found: Array) -> void:
-	var path: String = _direct_texture_path(node)
-	if path.ends_with(TARGET_FRAME_SUFFIX) and node is CanvasItem:
-		if (node as CanvasItem).is_visible_in_tree():
-			found.append(node)
-	for child: Node in node.get_children():
-		_collect_target_frame_nodes_into(child, found)
-
-
-func _frame_belongs_to_tile(frame: Node, tile: Control) -> bool:
-	var walk: Node = frame
-	while walk != null:
-		if walk == tile:
-			return true
-		walk = walk.get_parent()
-	if frame is Control:
-		var rect: Rect2 = (frame as Control).get_global_rect()
-		var center: Vector2 = rect.position + rect.size * 0.5
-		return tile.get_global_rect().has_point(center)
-	if frame is Node2D:
-		return tile.get_global_rect().has_point((frame as Node2D).global_position)
-	return false
 
 
 func _party_owner_silhouette_sample(
@@ -979,6 +947,8 @@ func _collect_tiles(map_view: Node, expected_names: Array[String]) -> Array:
 
 func _collect_texture_layers(node: Node) -> Array:
 	var layers: Array = []
+	# Local copy: general texture-layer inspection must not depend on the
+	# map_target_frame helper module (that name only describes selection frames).
 	var path: String = _direct_texture_path(node)
 	if not path.is_empty() and node is CanvasItem:
 		var size: Vector2 = Vector2.ZERO

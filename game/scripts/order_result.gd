@@ -6,6 +6,10 @@ static func failure_status_text() -> String:
 	return "Rozkaz nie powiódł się."
 
 
+static func _move_status_text(changed: bool) -> String:
+	return "Oddział przemieścił się." if changed else "Oddział nie przemieścił się."
+
+
 static func status_text(order_result: Variant) -> String:
 	if not order_result is Dictionary:
 		return ""
@@ -38,6 +42,9 @@ static func status_text(order_result: Variant) -> String:
 		return ""
 
 	var changed: bool = order_result["changed"]
+	if order == "move":
+		return _move_status_text(changed)
+
 	var order_name := ""
 	match order:
 		"develop":
