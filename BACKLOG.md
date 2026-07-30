@@ -891,8 +891,8 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
 > K97 jest ich obowiązującym przeplanowaniem: maksymalnie dwie niezbędne
 > zależności mechaniczne obok czterech efektów graficznych. Szeroki R93.1 nie
 > jest niezbędną zależnością grafiki i pozostaje odłożony.
-- [~] **G93.1a — bezpieczny, celowany ruch o jeden krok z mapy (WSTĘPNIE
-      ROZPOCZĘTY, RESZTA WSTRZYMANA).** Jawny
+- [x] **G93.1a — bezpieczny, celowany ruch o jeden krok z mapy (ZASTĄPIONY
+      I DOMKNIĘTY W K97).** Jawny
       prymityw rdzenia `move_duchy_party_to_adjacent` pozwala przenieść oddział
       wyłącznie do **wskazanego regionu sąsiedniego**, niezajętego przez party
       i niebędącego osadą wroga; dozwolone są pusty region oraz własna osada.
@@ -1011,7 +1011,7 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
 > osobne sylwetki obu stron są przypisane z `region.party.owner`, pełny
 > aktualny komplet armii jest rysowany, a kompozycja nie zasłania osad i nazw.
 
-## Kamień milowy 97 — wybór regionu prowadzi do bezpiecznego kroku — W TOKU
+## Kamień milowy 97 — wybór regionu prowadzi do bezpiecznego kroku — UKOŃCZONY
 > Najcieńszy interaktywny plasterek po K95/G96. Screenshot 1152×648
 > potwierdził, że mapa i armie są już assetami, ale kafle nadal nie reagują na
 > mysz, a „Wyrusz w pole” wysyła automatyczny `march` bez celu. K97 nie zmienia
@@ -1058,7 +1058,7 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
       test renderu celów własnego, neutralnego i AI + screenshot 1152×648,
       ludzkie review czytelności i weryfikacja, że panel nie wypycha przycisków
       poza ekran. *(commit a93aed2; standard; ryzyko: kompozycja)*
-- [~] **G97.1f [GRAFIKA] — zaznaczenie steruje widocznym bezpiecznym ruchem.**
+- [x] **G97.1f [GRAFIKA] — zaznaczenie steruje widocznym bezpiecznym ruchem.**
       Przy wyborze przycisk pokazuje kontekst „Wyrusz: <region>” i wysyła
       `move` z tą nazwą; bez wyboru zachowuje dotychczasowy automatyczny
       `march`. Po legalnym kroku sylwetka gracza przenosi się na wskazany kafel,
@@ -1069,13 +1069,12 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
       wpisy w `CREDITS.md`. Zastępuje task-534/535. *(complex; ryzyka:
       integracja Godot↔Python, persystencja i feedback)*
 
-> **Stan K97 po commitach 468fa3e…66b8fb5:** most, jeden kontrakt celu klienta,
-> ramka, hover, polski panel i kontekstowy przycisk są gotowe. Pełne G97.1f
-> domykają już zaplanowane i niezaczęte task-555 (widoczny legalny krok),
-> task-556 (czytelna blokada ruchu do wrogiej osady) oraz task-557 (widoczna
-> pozycja oddziału po wznowieniu). Nie tworzyć ich ponownie.
+> **K97 — UKOŃCZONY** *(commity 468fa3e…ea369ee)*: most i klient niosą
+> `move(target)`, mapa daje ramkę, hover, polski panel i kontekstowy przycisk,
+> a e2e pokazuje legalny krok, blokadę wrogiej osady i tę samą pozycję po
+> wznowieniu.
 
-## Kamień milowy 98 — widok bitwy dorównuje mapie strategicznej — PO K97
+## Kamień milowy 98 — widok bitwy dorównuje mapie strategicznej — UKOŃCZONY
 > **Najcieńszy kolejny plasterek wartości, bez nowej mechaniki:** istniejący
 > `BattleView` pokazuje tylko zajęte heksy z obecnego snapshotu, lecz układa je
 > jak prostokątną tabelę, tintuje całe podłoże kolorem strony i przykrywa je
@@ -1086,7 +1085,7 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
 > wyłącznie czytelność danych już wystawionych (`q`, `r`, `terrain`, `side`,
 > `hp`, `result`). Nie dodaje pustych heksów, wymiarów pola, sterowania jednostką
 > ani zmian mostu. Batch ma cztery zadania graficzne i zero mechanicznych.
-- [ ] **G98.1a [GRAFIKA] — bazowy heks buduje spójną siatkę osiową.**
+- [x] **G98.1a [GRAFIKA] — bazowy heks buduje spójną siatkę osiową.**
       `BattleView` rysuje `terrain_plains.png` jako nieodkształcony bazowy heks
       każdego istniejącego pola i układa te bazy jako stykającą się siatkę
       pointy-top według `(q, r)`, z poprawnym z-orderem i bez prostokątnych
@@ -1097,7 +1096,7 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
       natywnego Godota 1152×648 i ludzkie review; wpis źródłowy bazowego assetu
       w `game/assets/CREDITS.md` pozostaje kompletny. *(standard; ryzyko:
       geometria i clipping)*
-- [ ] **G98.1b [GRAFIKA] — drzewo i skała są dekoracjami terenu, nie
+- [x] **G98.1b [GRAFIKA] — drzewo i skała są dekoracjami terenu, nie
       rozciągniętymi heksami.** `Plains` pozostawia sam bazowy
       `terrain_plains.png`, `Forest` nakłada na niego `terrain_forest.png`
       (drzewo 26×40), a `Hills` — `terrain_hills.png` (skała 74×92), z
@@ -1108,7 +1107,7 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
       trzy tereny na identycznych bazach oraz obie strony; test pinujący role,
       rozmiary i brak rozciągania dekoracji, ludzkie review i kompletna
       atrybucja trzech plików. *(standard; ryzyko: z-order i czytelność)*
-- [ ] **G98.1c [GRAFIKA] — jednostka, strona i żywotność są jedną czytelną
+- [x] **G98.1c [GRAFIKA] — jednostka, strona i żywotność są jedną czytelną
       kompozycją heksu.** `side_attacker.png` i `side_defender.png` pozostają
       sylwetkami na terenie, a właściciela wskazuje mały obrys/podstawka, nie
       kolor całego podłoża. Każdy zajęty heks pokazuje istniejące `hp` jako
@@ -1116,7 +1115,7 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
       stron z różnym `hp`, screenshot 1152×648, ludzkie review w małej skali
       oraz kompletne źródła/licencje użytych plików. *(standard; ryzyko:
       czytelność i z-order)*
-- [ ] **G98.1d [GRAFIKA] — bitwa ma własną ramę i jednoznaczny polski wynik.**
+- [x] **G98.1d [GRAFIKA] — bitwa ma własną ramę i jednoznaczny polski wynik.**
       Dodać `battle_panel_background.png` jako spójne z mapą tło/ramę
       `BattleView` oraz wyeksponować istniejący `BattleResultLabel` jako nagłówek
       „Bitwa” i baner zwycięstwo/porażka/remis. Gdy bitwa jest widoczna, panel
@@ -1124,6 +1123,66 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
       Akceptacja: screenshot każdego wyniku w natywnym Godocie, ludzkie review
       hierarchii i kontrastu, test układu oraz źródło, autor, licencja i ścieżka
       nowego assetu w `game/assets/CREDITS.md`. *(standard; ryzyko: kompozycja)*
+
+> **K98 — UKOŃCZONY** *(commity 4ce8ad2…ed52d79)*: zajęte pola tworzą siatkę
+> pointy-top ze wspólnego heksu, drzewo i skała są dekoracjami, jednostki mają
+> odrębne strony i znaczniki PŻ, a bitwa własną ramę oraz polski baner wyniku.
+
+## Kamień milowy 99 — ekran strategiczny dostaje spójną hierarchię — PRIORYTET
+> **Najcieńszy następny plasterek wartości: cztery zadania graficzne, zero
+> mechanicznych.** Screenshoty świeżej partii i wznowionej bitwy wykonane
+> 2026-07-30 w natywnym Godocie 1152×648 potwierdzają wartość K98, ale ujawniają
+> następną lukę: pięć kafli mapy zajmuje tylko wąski pasek przy górnej
+> krawędzi wielkiego pergaminu, lewa kolumna pozostaje surowym szarym formularzem
+> z drugą listą tych samych regionów, nazwy świata są po angielsku, a ciemne
+> ikony giną na domyślnych ciemnych przyciskach. K99 zmienia wyłącznie
+> prezentację danych i kontrolek już obecnych w scenie; kanoniczne nazwy,
+> snapshot, most i reguły pozostają bez zmian.
+- [ ] **G99.1a [GRAFIKA] — mapa wykorzystuje swoją scenę i ma czytelną skalę.**
+      Powiększyć istniejące pięć `RegionTile_*` wraz z assetami
+      `map_ground_*.png`, osadami, armiami i ramką celu oraz wyśrodkować cały
+      połączony układ w `MapView`, zamiast przyklejać małe kafle do lewego
+      górnego rogu. Wszystkie pięć regionów ma mieścić się jednocześnie, zachować
+      geometrię `col`/`row`, warstwy, hover i klik; kompozycja ma działać zarówno
+      bez bitwy, jak i nad widocznym `BattleView`. Akceptacja: test globalnych
+      prostokątów i hit-testu po zmianie skali, screenshoty świeżej partii,
+      zaznaczenia i wznowionej bitwy 1152×648 oraz ludzkie review; per-plikowe
+      wpisy użytych assetów w `CREDITS.md` pozostają kompletne. *(standard;
+      ryzyko: skala, clipping i input)*
+- [ ] **G99.1b [GRAFIKA] — nazwy regionów są polskimi tabliczkami, a właściciel
+      nie niszczy podłoża.** Dodać na kaflach konkretny element
+      `RegionNamePlate`: kontrastową, niezasłaniającą osady ani armii tabliczkę
+      z prezentacyjnymi nazwami „Ziemie gracza”, „Posterunek gracza”,
+      „Pogranicze”, „Posterunek wroga”, „Ziemie wroga”. Wewnętrzne kanoniczne
+      nazwy (`player lands` itd.) nadal służą do wyboru i rozkazów. Własność
+      pokazuje mały, spójny obrys/znacznik gracz–neutralny–wróg zamiast ciężkiego
+      tintu całego assetu terenu; trzy strony dostają czytelną legendę poza
+      kaflami. Akceptacja: test rozdziału nazwy prezentacyjnej od celu rozkazu,
+      screenshot wszystkich pięciu kafli i zaznaczenia, ludzkie review
+      kontrastu; każdy nowy plik, jeśli powstanie, ma źródło i licencję w
+      `CREDITS.md`. *(standard; ryzyko: czytelność małych etykiet)*
+- [ ] **G99.1c [GRAFIKA] — status księstwa jest jedną średniowieczną kartą
+      zamiast surowej kolumny.** Dodać konkretny asset
+      `strategic_status_background.png` (pergamin/drewno, CC0/CC-BY) jako tło
+      panelu statusu i ułożyć na nim istniejące dane w jawnej hierarchii:
+      data i wynik, morale/osady/oddziały, położenie oddziału, ostatni komunikat
+      oraz szczegóły wybranego regionu. Usunąć z widoku `RegionList`, który
+      dubluje mapę; nie usuwać danych ani nie dodawać nowych statystyk.
+      Akceptacja: test obecności każdego istniejącego stanu bez zdublowanej
+      listy, screenshot świeżej partii, legalnego ruchu i wyniku bitwy 1152×648,
+      ludzkie review hierarchii/kontrastu oraz dokładne źródło, autor, licencja
+      i ścieżka tła w `CREDITS.md`. *(standard; ryzyko: layout tekstu)*
+- [ ] **G99.1d [GRAFIKA] — pasek rozkazów jest czytelny i należy do tej samej
+      oprawy.** Dodać konkretny asset `order_bar_background.png`
+      (drewno/pergamin, CC0/CC-BY) pod `OrderControls`, nadać przyciskom spójne
+      jasne stany normal/hover/pressed i taki kontrast, by istniejące ikony
+      Game-icons były wyraźne. Rozkazy tury/osady/pola oraz zapis/odczyt mają
+      tworzyć dwie czytelne grupy bez zmiany sygnałów, etykiet i zachowania.
+      Przy 1152×648 żaden przycisk nie wychodzi poza ekran także z widoczną
+      bitwą. Akceptacja: test układu i niezmienionych bindingów, screenshot
+      stanów normal/hover/pressed w świeżej partii i z bitwą, ludzkie review
+      kontrastu; nowy asset oraz wszystkie użyte ikony zachowują kompletne
+      źródła/licencje w `CREDITS.md`. *(standard; ryzyko: theme i responsywność)*
 
 ## Dług/refaktor
 - [x] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
@@ -1146,15 +1205,16 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
 - ~~K94: spójność kafli, keep/outpost, tło i kompozycja~~ — **wykonane**.
 - ~~K95: ikony wszystkich bieżących rozkazów~~ — **wykonane**.
 - ~~G96.1a: sylwetki armii obu stron na mapie~~ — **wykonane**.
-- **Teraz K97:** wybór i kontekst są gotowe; task-555…557 domykają widoczny
-  legalny krok, blokadę wrogiej osady i pozycję po wznowieniu.
-- **Potem K98:** bez zmian snapshotu siatka z bazowego heksu, dekoracyjne
-  drzewo/skała bez rozciągania, jednostki z PŻ oraz polski panel wyniku.
+- ~~K97: wybór regionu, bezpieczny krok, blokada i wznowienie~~ — **wykonane**.
+- ~~K98: osiowa siatka bitwy, dekoracje, jednostki z PŻ i polski wynik~~ —
+  **wykonane**.
+- **Teraz K99:** większa i wyśrodkowana mapa, polskie tabliczki regionów,
+  średniowieczna karta statusu oraz kontrastowy pasek rozkazów.
 - ~~Zapis/odczyt z UI: jawne „Zapisz”/„Wczytaj”~~ — rozplanowane jako K86.
 - ~~Prawdziwe assety i tekstury zamiast `ColorRect`~~ — rozplanowane jako K87.
 - Assety pozostałych elementów sceny — K87 dowiodło ścieżki import→tekstura;
-  osady i tło są teraz K94, potem kolejno ikony rozkazów, sylwetki/strony,
-  zaznaczenie celu i spójność widoku bitwy.
+  K94–K98 domknęły mapę, ikony, sylwetki, wybór i bitwę. K99 porządkuje nadal
+  prototypową hierarchię całego ekranu strategicznego.
 - **Mechaniczny teren regionu na mapie strategicznej — ODŁOŻONY DO PROGU
   WIZUALNEGO.** `tbb.world.Region` ma dziś tylko
   `name`, więc `snapshot.map_state` nie ma czego wystawić i kafel mapy w K87

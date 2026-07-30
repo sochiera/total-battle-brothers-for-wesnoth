@@ -76,18 +76,21 @@ placeholderach, licencje są kompletne, człowiek akceptuje screenshoty, a
   zapis/odczyt mają odrębne ikony z jednej rodziny Game-icons.
 - **Armie na mapie — DOMKNIĘTE** (G96.1a): snapshotowe `region.party.owner`
   wybiera odrębne sylwetki gracza i AI; aktualny komplet armii jest widoczny.
-- **Wybór celu — FUNDAMENT GOTOWY, SKUTEK RUCHU W KOLEJCE** (K97): most i
-  klient niosą `move(target)`, kafle mają hover/ramkę, panel opisuje cel po
-  polsku, a przycisk pokazuje jego nazwę. Task-555…557 domykają legalny krok,
-  blokadę wrogiej osady i pozycję po wznowieniu.
+- **Wybór celu i bezpieczny ruch — DOMKNIĘTE** (K97): most i klient niosą
+  `move(target)`, kafle mają hover/ramkę, panel opisuje cel po polsku, a e2e
+  pokazuje legalny krok, blokadę wrogiej osady i pozycję po wznowieniu.
+- **Spójny widok bitwy — DOMKNIĘTY** (K98): wspólny heks pointy-top, drzewo
+  i skała jako dekoracje, sylwetki stron z PŻ oraz własna rama z polskim
+  wynikiem są widoczne w natywnym kliencie.
 - `tbbui` (HTML/SVG) — **wyłącznie narzędzie diagnostyczne**, nie docelowy klient.
 
-**Najbliższa luka do celu: K97 ma wybór, lecz jeszcze nie dowód pełnego ruchu.**
-Zaplanowane task-555…557 słusznie kończą tę ścieżkę i nie wymagają
-przeplanowania. Po nich `BattleView` wymaga spójności: prostokątny układ
-rozciąga drzewo i skałę jak heksy, tintuje teren i nakłada angielskie nazwy.
-K98 zbuduje geometrię z bazowego heksu, a drzewo/skałę nałoży jako dekoracje,
-bez zmian snapshotu i mechaniki.
+**Najbliższa luka do celu: hierarchia ekranu strategicznego nadal wygląda jak
+formularz diagnostyczny.** Żywe screenshoty 1152×648 z 2026-07-30 pokazują
+maleńki pas mapy przy górnej krawędzi wielkiego pergaminu, surową szarą
+kolumnę z drugą listą regionów, angielskie nazwy świata i ciemne ikony na
+domyślnych przyciskach. K99 powiększa i centruje mapę, daje polskie tabliczki,
+średniowieczną kartę statusu i kontrastowy pasek rozkazów. Nie wymaga zmian
+snapshotu ani mechaniki.
 
 ## Ograniczenia i priorytety
 - **[W]** Rdzeń `tbb` jest **jedynym źródłem reguł gry**. Godot nie duplikuje
@@ -188,15 +191,9 @@ skróconej; pełne uzasadnienia w `docs/DECISIONS.md` i w `BACKLOG.md`.)*
     naturalna sekwencja zdobywa pierwszą z dwóch osad AI, pokazuje trwającą
     partię i wznawia ją z pliku. Następna wartość leży w wyborze celu na
     istniejącej mapie, nie w dalszym powiększaniu świata.
-20. **Istniejące `target` marszu nie jest kontraktem wyboru kafla — i nie wolno
-    go na taki kontrakt przepisać.** `march_duchy_party_to` zatrzymuje się obok
-    celu, więc odwrót na sąsiedni własny region jest no-opem; to jednak
-    utrwalona semantyka marszu ku odległej osadzie, używana przez `tbbui` oraz
-    K15.1a/K49.1d. G93.1a dodaje obok niej odrębny prymityw i rozkaz `move`:
-    dokładnie jeden krok do wskazanego sąsiada, bez wejścia do wrogiej osady.
-    Stary celowany i automatyczny `march` oraz celowane `assault`/`engage`
-    zachowują swoje reguły; celowanie rozwoju, rekrutacji i zbiórki pozostaje
-    poza tym plasterkiem.
+20. **`march` i wybór kafla mają różne kontrakty.** Zachowany `march` idzie ku
+    odległej osadzie; osobny `move` robi dokładnie jeden krok do wskazanego
+    sąsiada bez wejścia do wrogiej osady. Pozostałe rozkazy zachowują reguły.
 21. **Obecność tekstur nie dowodzi osiągniętego wyglądu.** Screenshot 1152×648
     ujawnił, że K87 zostawił rozłączne kafle, napisy na budynkach, dominującą
     szarą pustkę i sterowanie poza ekranem. Od teraz każdy przyrost oprawy ma
@@ -206,11 +203,16 @@ skróconej; pełne uzasadnienia w `docs/DECISIONS.md` i w `BACKLOG.md`.)*
     Kolejna wartość wymaga już wejścia użytkownika, ale reguła bezpiecznego
     kroku istnieje; rozszerzamy tylko najwęższą ścieżkę most→wybór→feedback.
 23. **K97 potwierdziło najwęższą ścieżkę celu.** `move(target)`, zaznaczenie,
-    hover, panel i przycisk powstały bez zmiany reguł; task-555…557 kończą e2e.
+    hover, panel, przycisk i trzy skutki e2e powstały bez zmiany reguł.
 24. **Rolę assetu potwierdza obraz/źródło, nie nazwa.**
     `terrain_plains.png` to heks 120×140, `terrain_forest.png` — drzewo 26×40,
     a `terrain_hills.png` — skała 74×92. Bazowy heks buduje siatkę; pozostałe
     pliki są dekoracjami bez rozciągania.
+25. **Lokalnie poprawny widok nie gwarantuje spójnego całego ekranu.** K98
+    wyraźnie poprawił bitwę, lecz screenshot pełnej sceny odsłonił skalę mapy,
+    duplikację listy regionów, domyślne szare chrome i słaby kontrast ikon.
+    Następne przyrosty oceniamy na pełnym ekranie świeżej partii i bitwy, nie
+    tylko na wyciętym komponencie.
 
 ## Klimat, ton, kierunek wizualny
 Średniowiecze **bez magii i fantastyki**, surowy i realistyczny ton. **[W]**
@@ -230,7 +232,8 @@ technicznym i może być wymieniane etapami. **[P]**
 
 Obowiązująca kolejność poprawy: (1) spójność/różnorodność kafli mapy,
 (2) osady i budynki, (3) tło/kompozycja mapy, (4) ikony rozkazów,
-(5) sylwetki i strony, (6) zaznaczenie celu/stan gry, (7) spójność obu widoków.
+(5) sylwetki i strony, (6) zaznaczenie celu/stan gry, (7) spójność obu widoków,
+(8) hierarchia pełnego ekranu strategicznego.
 **[W]**
 
 ## Sugestie autora briefu
@@ -250,33 +253,25 @@ Obowiązująca kolejność poprawy: (1) spójność/różnorodność kafli mapy,
   oprawy. **[W]**
 
 ## Kolejne prawdopodobne etapy
-1. ~~Start bez terminala~~ (K82), ~~czytelny układ ekranu~~ (K83), ~~widok mapy~~
-   (K84), ~~widok bitwy~~ (K85) i ~~zapis/odczyt z UI~~ (K86) — **zrobione**.
-2. **Techniczne minimum assetów** (K87) — gotowe: obie paczki CC0 z atrybucją
-   per plik, kafle mapy, teren heksów i sylwetki stron. Nie jest to zakończenie
-   grafiki ani spełnienie progu jakości.
-3. ~~Pakiet na Linuksa~~ (K88) — **domknięty**, 7 z 7 plasterków, z dowodem
-   startu bez terminala na samym pakiecie i wpisem `.desktop`. Bez własnego
-   runtime'u Pythona (wniosek 10).
-4. ~~Bitwa zawsze daje wynik~~ (K89) i ~~partia da się rozegrać~~ (K90) —
-   **domknięte**: szturm zawsze kończy się widocznym skutkiem, a zwycięstwo i
-   przegrana są osiągalne i czytelne po polsku.
-5. ~~Naturalne ruchy i koniec partii~~ (K91) — **domknięte**: rekrut wzmacnia,
-   zwycięstwo jest widoczne i trwałe, a koniec gry ma jednoznaczny komunikat.
-6. ~~Obrona własnej osady~~ (G92.1) — **domknięta** w rdzeniu i e2e na żywym
-   moście; wcześniejsze zakleszczenie nie blokuje już skalowania świata.
-7. ~~Minimalny wieloosadowy świat~~ (G92.2a) — **domknięty**: pięć regionów,
-   dwie osady na stronę, trwająca partia po utracie pierwszej osady oraz e2e
-   naturalnego szturmu na żywym moście.
-8. ~~Strategiczna mapa przestaje wyglądać jak prototyp~~ (K94) — **zrobione**:
+1. ~~Start, układ, oba widoki i zapis/odczyt~~ (K82–K86) — **zrobione**.
+2. **Techniczne minimum assetów** (K87) — gotowe z atrybucją per plik, lecz
+   samo nie spełnia progu wizualnego.
+3. ~~Pakiet na Linuksa bez własnego Pythona~~ (K88) — **domknięty**.
+4. ~~Legalny wynik i rozgrywalna partia~~ (K89–K91) — **domknięte**.
+5. ~~Obrona własnej osady~~ (G92.1) — **domknięta** w rdzeniu i e2e.
+6. ~~Minimalny wieloosadowy świat~~ (G92.2a) — **domknięty**: pięć regionów,
+   po dwie osady i trwająca partia po utracie pierwszej.
+7. ~~Strategiczna mapa przestaje wyglądać jak prototyp~~ (K94) — **zrobione**:
    siatka, podłoża, keep/outpost oraz tło i kompozycja.
-9. ~~Ikony rozkazów~~ (K95) — **zrobione** dla tury, osady, pola i zapisu.
-10. ~~Sylwetki obu armii na mapie~~ (G96.1a) — **zrobione** z istniejącego
+8. ~~Ikony rozkazów~~ (K95) — **zrobione** dla tury, osady, pola i zapisu.
+9. ~~Sylwetki obu armii na mapie~~ (G96.1a) — **zrobione** z istniejącego
     `region.party.owner`.
-11. **Pierwszy celowany rozkaz z mapy** (K97) — fundament gotowy; task-555…557
-    domykają widoczny legalny krok, blokadę i wznowienie.
-12. **Spójny widok bitwy** (K98) — cztery zadania graficzne na obecnym
-    snapshotcie: bazowy heks + dekoracje, jednostki z PŻ, polski panel wyniku.
+10. ~~Pierwszy celowany rozkaz z mapy~~ (K97) — **domknięty** razem z widocznym
+    legalnym krokiem, blokadą i wznowieniem.
+11. ~~Spójny widok bitwy~~ (K98) — **domknięty**: bazowy heks, dekoracje,
+    jednostki z PŻ i polski panel wyniku.
+12. **Spójna hierarchia ekranu strategicznego** (K99) — następny batch:
+    większa mapa, polskie tabliczki, karta statusu i pasek rozkazów.
 13. **Nowa partia z UI po zakończonej grze** — most ma `new_game`, scena nie ma
    przycisku. Po K92 gracz kończy partię regularnie, więc brak restartu zacznie
    boleć. Odłożone do zakończenia priorytetu graficznego.
