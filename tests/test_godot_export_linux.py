@@ -143,7 +143,7 @@ _PCK_TEXTURE_PATHS = (
     b"res://assets/map_ground_earth.png",
     b"res://assets/map_ground_grass.png",
     b"res://assets/map_ground_stone.png",
-    b"res://assets/party_player.png",
+    b"res://assets/party_player_unit.png",
     b"res://assets/settlement.png",
     b"res://assets/side_attacker.png",
     b"res://assets/side_defender.png",

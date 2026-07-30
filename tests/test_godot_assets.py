@@ -26,7 +26,8 @@ REQUIRED_ASSETS: tuple[str, ...] = (
     "assets/map_ground_earth.png",
     "assets/map_ground_stone.png",
     "assets/settlement.png",
-    "assets/party_player.png",
+    # G96.1a map carrier (replaces prototype banner party_player.png for MapView).
+    "assets/party_player_unit.png",
     "assets/terrain_plains.png",
     "assets/terrain_forest.png",
     "assets/terrain_hills.png",

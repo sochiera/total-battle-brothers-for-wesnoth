@@ -3,16 +3,29 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 from pathlib import Path
 
-from godot_png_assets import hex_floor_sample_alphas
+from godot_png_assets import LICENSE_RE, assert_asset_credited, hex_floor_sample_alphas
 from godot_runner import run_godot_script
 from godot_tile_layer import MOUSE_FILTER_IGNORE, layer_fills_tile
 
 ROOT = Path(__file__).resolve().parents[1]
 GAME = ROOT / "game"
 PREFIX = "MAP_VIEW "
+
+# G96.1a public path: player army mark is a unit silhouette, not the old banner.
+PARTY_PLAYER_UNIT_REL = "assets/party_player_unit.png"
+PARTY_PLAYER_UNIT_RES = f"res://{PARTY_PLAYER_UNIT_REL}"
+# Replaced prototype banner (may remain on disk); must not be the unit source.
+PARTY_BANNER_REL = "assets/party_player.png"
+_CREDITS_ROW_RE = re.compile(
+    r"^\|\s*(?P<file>[^|]+?)\s*\|\s*(?P<source>[^|]+?)\s*\|\s*(?P<author>[^|]+?)\s*\|\s*(?P<license>[^|]+?)\s*\|",
+    re.MULTILINE,
+)
+# Pack-relative path or URL — positive source signal (not a bare license token).
+_CREDITS_SOURCE_RE = re.compile(r"https?://\S+|PNG/")
 
 
 def _import_game_assets() -> subprocess.CompletedProcess[str]:
@@ -284,7 +297,8 @@ def test_map_view_tiles_carry_asset_textures_for_owner_settlement_and_party():
     for asset_name in (
         "map_ground_grass.png",
         "settlement.png",
-        "party_player.png",
+        # G96.1a carrier (not the prototype banner party_player.png).
+        "party_player_unit.png",
     ):
         asset_path = assets_dir / asset_name
         assert asset_path.is_file(), (
@@ -381,6 +395,67 @@ def test_map_view_tiles_carry_asset_textures_for_owner_settlement_and_party():
     assert marker.get("mouse_filter") == MOUSE_FILTER_IGNORE, (
         f"PlayerPartyMarker must not capture mouse, got {marker!r}"
     )
+    # G96.1a: mark texture path is the public unit carrier, not the banner.
+    assert marker.get("path") == PARTY_PLAYER_UNIT_RES, (
+        f"PlayerPartyMarker must use public unit silhouette {PARTY_PLAYER_UNIT_RES}, "
+        f"got {marker.get('path')!r} (prototype banner is not the G96.1a carrier)"
+    )
+
+
+def test_player_party_marker_uses_credited_unit_silhouette_not_banner():
+    """Disk + CREDITS for party_player_unit.png (unique vs geometry/texture gates).
+
+    Realistic defect existing gates miss: MapView still preloads the prototype
+    banner while CREDITS either omits the unit row or attributes a hollow/wrong
+    source. Marker count/texture presence and path wiring live in
+    ``test_map_view_tiles_carry_asset_textures_for_owner_settlement_and_party``;
+    this gate only asserts the public file on disk and a positive CREDITS row
+    (non-empty pack path/URL + CC0/CC-BY), not a single banned source literal.
+    """
+    unit_path = GAME / PARTY_PLAYER_UNIT_REL
+    assert unit_path.is_file(), (
+        f"committed player unit silhouette missing on disk: {unit_path} "
+        "(public contract: game/assets/party_player_unit.png)"
+    )
+    banner_path = GAME / PARTY_BANNER_REL
+    if banner_path.is_file():
+        assert unit_path.read_bytes() != banner_path.read_bytes(), (
+            "party_player_unit.png must not be a byte-copy of the prototype "
+            f"banner {PARTY_BANNER_REL}"
+        )
+
+    credits_path = GAME / "assets" / "CREDITS.md"
+    assert_asset_credited(credits_path, unit_path.name)
+    credits_text = credits_path.read_text(encoding="utf-8")
+    rows = {
+        m.group("file").strip(): {
+            "source": m.group("source").strip(),
+            "license": m.group("license").strip(),
+        }
+        for m in _CREDITS_ROW_RE.finditer(credits_text)
+    }
+    unit_row = rows.get(unit_path.name)
+    assert unit_row is not None, (
+        f"CREDITS.md must have a table row attributing {unit_path.name}"
+    )
+    unit_source = unit_row["source"]
+    assert unit_source, (
+        f"CREDITS.md row for {unit_path.name} must list a non-empty source path/page"
+    )
+    assert _CREDITS_SOURCE_RE.search(unit_source), (
+        f"CREDITS.md row for {unit_path.name} must give a pack-relative path "
+        f"(PNG/…) or http(s) page, got {unit_source!r}"
+    )
+    assert LICENSE_RE.search(unit_row["license"]), (
+        f"CREDITS.md row for {unit_path.name} must state CC0 or CC-BY in the "
+        f"license cell, got {unit_row['license']!r}"
+    )
+    banner_row = rows.get(Path(PARTY_BANNER_REL).name)
+    if banner_row is not None:
+        assert unit_source != banner_row["source"], (
+            f"CREDITS.md must not present the replaced banner source as the "
+            f"unit silhouette source; both rows cite {unit_source!r}"
+        )
 
 
 def test_map_view_adjacent_tiles_form_connected_grid_fitting_panel():

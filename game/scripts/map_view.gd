@@ -23,7 +23,7 @@ const GROUND_TEXTURES: Array[Texture2D] = [
 const SETTLEMENT_TEXTURE := preload("res://assets/settlement.png")
 const SETTLEMENT_KEEP_TEXTURE := preload("res://assets/settlement_keep.png")
 const SETTLEMENT_OUTPOST_TEXTURE := preload("res://assets/settlement_outpost.png")
-const PARTY_TEXTURE := preload("res://assets/party_player.png")
+const PARTY_UNIT_TEXTURE := preload("res://assets/party_player_unit.png")
 const PARTY_MARKER_SIZE := Vector2(16, 16)
 const PARTY_MARKER_MARGIN := Vector2(8, 8)
 
@@ -82,7 +82,7 @@ func _is_player_party_region(region: Dictionary, player_party_region: Variant) -
 
 
 func _add_player_party_marker(tile: Control) -> void:
-	var marker := TileTextureLayer.stretched(PARTY_TEXTURE)
+	var marker := TileTextureLayer.stretched(PARTY_UNIT_TEXTURE)
 	marker.name = "PlayerPartyMarker"
 	marker.position = Vector2(
 		TILE_SIZE.x - PARTY_MARKER_SIZE.x - PARTY_MARKER_MARGIN.x,
