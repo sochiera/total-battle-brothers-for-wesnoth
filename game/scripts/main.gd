@@ -5,6 +5,7 @@ const SnapshotModel = preload("res://scripts/snapshot_model.gd")
 const BridgeClient = preload("res://scripts/bridge_client.gd")
 const BridgeConfig = preload("res://scripts/bridge_config.gd")
 const OrderResult = preload("res://scripts/order_result.gd")
+const WorldPresentation = preload("res://scripts/world_presentation.gd")
 const START_FAILURE_STATUS := "Nie udało się uruchomić mostu ani rozpocząć partii."
 const SAVE_SUCCESS_STATUS := "Partia została zapisana."
 const SAVE_FAILURE_STATUS := "Nie udało się zapisać partii."
@@ -302,9 +303,10 @@ func _on_region_selected(region_name: String) -> void:
 
 
 func _update_march_button_label(region_name: String) -> void:
-	%MarchButton.text = (
-		_default_march_label if region_name.is_empty() else "Wyrusz: %s" % region_name
-	)
+	if region_name.is_empty():
+		%MarchButton.text = _default_march_label
+		return
+	%MarchButton.text = "Wyrusz: %s" % WorldPresentation.region_label(region_name)
 
 
 func _update_selected_region_panel(regions: Array) -> void:
@@ -317,7 +319,7 @@ func _selected_region_details_text(selected_region: Dictionary) -> String:
 	if selected_region.is_empty():
 		return "Nie wybrano regionu"
 	return "Nazwa: %s\nWłaściciel: %s\nOsada: %s\nArmia: %s" % [
-		selected_region.get("name", ""),
+		WorldPresentation.region_label(str(selected_region.get("name", ""))),
 		_side_text(selected_region.get("owner")),
 		_settlement_text(selected_region.get("settlement")),
 		_party_text(selected_region.get("party")),
@@ -350,7 +352,7 @@ func _settlement_text(settlement: Variant) -> String:
 	if settlement is Dictionary:
 		var settlement_name: Variant = settlement.get("name")
 		if settlement_name is String and not settlement_name.is_empty():
-			return settlement_name
+			return WorldPresentation.settlement_label(settlement_name)
 	return "brak osady"
 
 
@@ -364,7 +366,10 @@ func _party_text(party: Variant) -> String:
 
 func _player_party_position_text(player_party_region: Variant) -> String:
 	if player_party_region is String and not player_party_region.is_empty():
-		return "Położenie oddziału: %s" % player_party_region
+		return (
+			"Położenie oddziału: %s"
+			% WorldPresentation.region_label(player_party_region)
+		)
 	return "Położenie oddziału: brak"
 
 

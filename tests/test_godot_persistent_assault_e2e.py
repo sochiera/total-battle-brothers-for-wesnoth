@@ -64,9 +64,9 @@ def test_assault_button_shows_battle_view_across_godot_processes(tmp_path):
     assert resumed["session_command"] == f"{command_prefix} serve --resume '{state_path}'"
 
     # K80 regression: order status text still carries battle outcome / no-op.
-    assert prepared["controls_after_muster"]["party_position"] == "Położenie oddziału: player lands"
-    assert prepared["controls"]["party_position"] == "Położenie oddziału: border"
-    assert battle["controls_before_order"]["party_position"] == "Położenie oddziału: border"
+    assert prepared["controls_after_muster"]["party_position"] == "Położenie oddziału: Ziemie gracza"
+    assert prepared["controls"]["party_position"] == "Położenie oddziału: Pogranicze"
+    assert battle["controls_before_order"]["party_position"] == "Położenie oddziału: Pogranicze"
     assert battle["controls"]["party_position"] == "Położenie oddziału: brak"
     assert battle["controls"]["order_status"] == "Szturm: porażka (straty: 0, wróg: 0)."
     assert resumed["controls"]["order_status"] == "Rozkaz szturmu nie zmienił stanu."

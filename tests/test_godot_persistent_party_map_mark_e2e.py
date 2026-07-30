@@ -13,6 +13,8 @@ GAME = ROOT / "game"
 PROBE = "res://tests/persistent_party_map_mark_probe.gd"
 PREFIX = "PERSISTENT_PARTY_MAP_MARK "
 SEED = 73
+EXPECTED_MARKED_REGION = "player outpost"
+EXPECTED_POSITION_NAME = "Posterunek gracza"
 
 
 def _run_process(command_prefix: str, state_path: Path, request_path: Path, phase: str) -> dict:
@@ -60,12 +62,12 @@ def test_party_map_mark_moves_after_muster_and_march_across_two_processes(tmp_pa
     assert start["marked_regions"] == [], start
     assert "brak" in start["position_label"].lower(), start
 
-    # After muster→march the mark follows the party (border for seed 73).
+    # After muster→march the mark follows the party (player outpost for seed 73).
     assert after["marker_count"] == 1, after
     assert len(after["marked_regions"]) == 1, after
     marked = after["marked_regions"][0]
-    assert marked != "", after
-    assert marked in after["position_label"], after
+    assert marked == EXPECTED_MARKED_REGION, after
+    assert EXPECTED_POSITION_NAME in after["position_label"], after
     assert after["marked_regions"] != start["marked_regions"], (
         f"mark must change after muster+march: start={start} after={after}"
     )
@@ -73,4 +75,4 @@ def test_party_map_mark_moves_after_muster_and_march_across_two_processes(tmp_pa
     # Resume process shows the same mark without re-issuing orders.
     assert resumed["marker_count"] == 1, resumed
     assert resumed["marked_regions"] == after["marked_regions"], resumed
-    assert marked in resumed["position_label"], resumed
+    assert EXPECTED_POSITION_NAME in resumed["position_label"], resumed

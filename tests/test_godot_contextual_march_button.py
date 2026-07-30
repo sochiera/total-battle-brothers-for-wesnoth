@@ -35,25 +35,26 @@ def _assert_icon_visible(icon: dict, *, phase: str, march_icon_res: str) -> None
 
 
 def test_march_button_label_and_order_follow_selected_region():
-    """Selection rewires MarchButton text and public order; bare keeps march.
+    """World labels are Polish while the selected move target stays canonical.
 
     Realistic defect existing gates miss: MapView already selects a region and
-    the selected-region panel shows it (G97.1e), BridgeClient already accepts
-    optional target for ``move`` (R97.1), and MarchButton is bound to automatic
-    ``march`` (G79) with a credited icon (G95.1c) — but Main never updates the
-    button label to ``Wyrusz: <region>`` nor sends
-    ``{"order":"move","target":"<region>"}`` on press. Existing march binding /
-    field-icon / panel probes stay green while the contextual order stays
-    unlinked.
+    its Polish plate, but Main formats party position, selected-region details
+    and MarchButton from canonical snapshot names. Existing probes use custom
+    names that need no translation, so that split presentation dictionary can
+    stay green while a fresh party exposes English world tokens.
     """
     payload = _load()
     region_a = payload["region_a"]
     region_b = payload["region_b"]
+    region_c = payload["region_c"]
     default_label = payload["default_label"]
     label_a = payload["expected_label_a"]
     label_b = payload["expected_label_b"]
     march_icon = payload["march_icon_res"]
 
+    assert payload["party_position"] == (
+        f"Położenie oddziału: {payload['region_a_pl']}"
+    ), payload
     assert payload["unbound_label"] == default_label, payload
     _assert_icon_visible(payload["unbound_icon"], phase="unbound", march_icon_res=march_icon)
 
@@ -76,6 +77,10 @@ def test_march_button_label_and_order_follow_selected_region():
         f"after selecting {region_a!r} button must show {label_a!r}, "
         f"got {payload['after_select_a_label']!r}"
     )
+    assert payload["region_a_pl"] in payload["after_select_a_panel"], payload
+    assert "Twierdza gracza" in payload["after_select_a_panel"], payload
+    assert region_a not in payload["after_select_a_panel"], payload
+    assert payload["settlement_a"] not in payload["after_select_a_panel"], payload
     _assert_icon_visible(
         payload["after_select_a_icon"],
         phase="after_select_a",
@@ -93,6 +98,10 @@ def test_march_button_label_and_order_follow_selected_region():
         f"after selecting {region_b!r} button must show {label_b!r}, "
         f"got {payload['after_select_b_label']!r}"
     )
+    assert payload["region_b_pl"] in payload["after_select_b_panel"], payload
+    assert "Twierdza wroga" in payload["after_select_b_panel"], payload
+    assert region_b not in payload["after_select_b_panel"], payload
+    assert payload["settlement_b"] not in payload["after_select_b_panel"], payload
     _assert_icon_visible(
         payload["after_select_b_icon"],
         phase="after_select_b",
@@ -104,3 +113,10 @@ def test_march_button_label_and_order_follow_selected_region():
         f"with {region_b!r} selected press must send exactly one move with that "
         f"target, got {payload['after_select_b_press']!r}"
     )
+
+    # Unknown names fall back through Main UI without changing the order contract.
+    assert payload["after_select_c_label"] == f"Wyrusz: {region_c}", payload
+    assert f"Nazwa: {region_c}" in payload["after_select_c_panel"], payload
+    assert payload["after_select_c_press"] == [
+        {"order": "move", "target": region_c},
+    ], payload

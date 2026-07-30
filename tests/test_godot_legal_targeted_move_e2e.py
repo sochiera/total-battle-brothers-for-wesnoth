@@ -17,6 +17,7 @@ SEED = 73
 SUCCESS_STATUS = "Oddział przemieścił się."
 ARMY_PLAYER = "Armia: własny (gracz)"
 ARMY_NONE = "Armia: brak armii"
+PLAYER_OUTPOST_LABEL = "Posterunek gracza"
 
 EXPECTED_VIEWPORT = {"w": 1152.0, "h": 648.0, "scene_w": 1152.0, "scene_h": 648.0}
 
@@ -94,16 +95,17 @@ def test_legal_targeted_move_shows_unit_panel_frame_and_polish_status(tmp_path):
 
     # Selection targets the legal neighbour; contextual label follows.
     assert after_select["selected_region_name"] == target, after_select
-    assert after_select["march_label"] == f"Wyrusz: {target}", after_select
+    assert after_select["march_label"] == f"Wyrusz: {PLAYER_OUTPOST_LABEL}", after_select
     assert after_select["frame_count"] == 1, after_select
     assert after_select["framed_regions"] == [target], after_select
+    assert PLAYER_OUTPOST_LABEL in after_select["panel_text"], after_select
     # Before the step the selected neighbour has no party yet.
     assert ARMY_NONE in after_select["panel_text"], after_select
 
     # After legal move: one silhouette on target only (equality implies not on source).
     assert after_move["marker_count"] == 1, after_move
     assert after_move["marked_regions"] == [target], after_move
-    assert target in after_move["position_label"], after_move
+    assert PLAYER_OUTPOST_LABEL in after_move["position_label"], after_move
 
     # Selection chrome survives re-render exactly once on the same region.
     assert after_move["selected_region_name"] == target, after_move
@@ -112,7 +114,7 @@ def test_legal_targeted_move_shows_unit_panel_frame_and_polish_status(tmp_path):
 
     # Panel for the still-selected target shows the player army after the step.
     panel = after_move["panel_text"]
-    assert target in panel, after_move
+    assert PLAYER_OUTPOST_LABEL in panel, after_move
     assert ARMY_PLAYER in panel, (
         f"panel must show {ARMY_PLAYER!r} on {target!r} after legal move, got {panel!r}"
     )
@@ -170,7 +172,7 @@ def test_legal_targeted_move_resumes_with_unit_on_destination(tmp_path):
     # In-session after the targeted step: one mark on destination, calendar fixed.
     assert after_move["marker_count"] == 1, after_move
     assert after_move["marked_regions"] == [target], after_move
-    assert target in after_move["position_label"], after_move
+    assert PLAYER_OUTPOST_LABEL in after_move["position_label"], after_move
     assert source not in after_move["marked_regions"], after_move
     assert after_move["order_status"] == SUCCESS_STATUS, after_move
     move_date = after_move["date"]
@@ -193,7 +195,7 @@ def test_legal_targeted_move_resumes_with_unit_on_destination(tmp_path):
     # First paint after resume: same destination mark + matching label, no re-order.
     assert resumed["marker_count"] == 1, resumed
     assert resumed["marked_regions"] == [target], resumed
-    assert target in resumed["position_label"], resumed
+    assert PLAYER_OUTPOST_LABEL in resumed["position_label"], resumed
     assert source not in resumed["marked_regions"], resumed
     assert resumed["date"] == move_date, (
         f"resume must not advance DateLabel: after_move={move_date!r} "

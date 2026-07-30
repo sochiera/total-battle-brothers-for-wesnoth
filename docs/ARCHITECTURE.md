@@ -562,8 +562,9 @@ bez mapowania na napisy dla gracza. Korzeń `Main` (`Control`) oraz `DateLabel` 
 `LastOrderStatusLabel` (`Label`), `PlayerPartyPositionLabel` (`Label`), `NextTurnButton` (`Button`) i `DevelopButton` (`Button`) pozostają w tej kolejności.
 `PlayerDuchyStatusLabel`
 wiąże morale, osady i oddziały księstwa wskazanego przez model, a
-`PlayerPartyPositionLabel` nazwę regionu z `model.player_party_region` lub
-jednoznaczny tekst o jego braku. **Poza zakresem
+`PlayerPartyPositionLabel` polską etykietę regionu z
+`WorldPresentation.region_label(model.player_party_region)` albo jednoznaczny
+tekst o jego braku (G100.1a). **Poza zakresem
 bootstrapu:**
 spawn procesu Pythona, protokół JSON Lines, assety, eksport.
 
@@ -682,16 +683,28 @@ człowieka.
 **MapView — nazwy regionów i własność (G99.1b):** `game/scripts/map_view.gd`
 rysuje na każdym `RegionTile_<canonical>` widoczny węzeł `RegionNamePlate`
 (Label ze stylem tabliczki) jako **wąski pasek u góry** kafla (nie full-rect),
-żeby nie zasłaniać osady, armii ani ramki. Tekst prezentacyjny mapuje
-kanoniczne id świeżej partii na polskie etykiety (`player lands`→`Ziemie
-gracza`, `player outpost`→`Posterunek gracza`, `border`→`Pogranicze`,
-`ai outpost`→`Posterunek wroga`, `ai lands`→`Ziemie wroga`); nieznane nazwy
-zostają kanoniczne. Sygnał `region_selected` i rozkazy nadal emitują wyłącznie
-nazwę kanoniczną. Czcionka i wysokość tabliczki są ograniczane do **płytkiego paska** (ułamek
-wysokości kafla) oraz do prześwitu nad AABB markera armii (prawy dół), żeby
+żeby nie zasłaniać osady, armii ani ramki. Tekst prezentacyjny bierze z
+`WorldPresentation.region_label` (patrz niżej). Sygnał `region_selected` i
+rozkazy nadal emitują wyłącznie nazwę kanoniczną. Czcionka i wysokość
+tabliczki są ograniczane do **płytkiego paska** (ułamek wysokości kafla)
+oraz do prześwitu nad AABB markera armii (prawy dół), żeby
 `RegionNamePlate` nie przecinał `PlayerPartyMarker` / `AIPartyMarker` przy
 dłuższych etykietach PL. Ukryty `RegionCanonicalId` utrzymuje starsze sondy
 szukające kafla po `Label.text`.
+
+**Prezentacyjne nazwy świata (G100.1a):** jedno źródło
+`game/scripts/world_presentation.gd` (`WorldPresentation`) mapuje kanoniczne
+id regionów i osad na polskie etykiety UI: regiony jak w G99.1b
+(`player lands`→`Ziemie gracza`, `player outpost`→`Posterunek gracza`,
+`border`→`Pogranicze`, `ai outpost`→`Posterunek wroga`, `ai lands`→`Ziemie
+wroga`); osady `Player Keep`→`Twierdza gracza`, `Player Outpost`→`Posterunek
+gracza`, `AI Keep`→`Twierdza wroga`, `AI Outpost`→`Posterunek wroga`. Nieznane
+nazwy zostają kanoniczne (fallback bez błędu). `MapView` używa mapowania na
+tabliczkach kafli; `main.gd` — w `PlayerPartyPositionLabel` (`Położenie
+oddziału: …`), panelu `SelectedRegionDetailsLabel` (nazwa regionu i osady)
+oraz tekście kontekstowym `MarchButton` (`Wyrusz: …`). `region_selected`,
+cel `move`/`march` oraz snapshot/most/rdzeń nadal niosą wyłącznie id
+kanoniczne.
 
 Własność: `Ground.modulate` to **lekki tint**
 (`WHITE.lerp(owner_color, OWNER_GROUND_TINT_STRENGTH)`), a pełny kolor

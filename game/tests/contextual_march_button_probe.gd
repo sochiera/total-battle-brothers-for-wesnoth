@@ -11,8 +11,13 @@ const PREFIX := "CONTEXTUAL_MARCH_BUTTON "
 const VIEWPORT_W := 1152.0
 const VIEWPORT_H := 648.0
 
-const REGION_A := "Północ"
-const REGION_B := "Południe"
+const REGION_A := "player lands"
+const REGION_B := "ai lands"
+const REGION_C := "unknown region"
+const REGION_A_PL := "Ziemie gracza"
+const REGION_B_PL := "Ziemie wroga"
+const SETTLEMENT_A := "Player Keep"
+const SETTLEMENT_B := "AI Keep"
 const DEFAULT_LABEL := "Wyrusz w pole"
 const MARCH_ICON_RES := "res://assets/icon_march.png"
 
@@ -64,6 +69,15 @@ func _run() -> void:
 	if button == null:
 		_fail("missing MarchButton")
 		return
+	var party_position := scene_root.find_child(
+		"PlayerPartyPositionLabel", true, false
+	) as Label
+	var selected_region := scene_root.find_child(
+		"SelectedRegionDetailsLabel", true, false
+	) as Label
+	if party_position == null or selected_region == null:
+		_fail("missing world-name presentation labels")
+		return
 
 	var map_view: Node = scene_root.find_child("MapView", true, false)
 	if map_view == null or not map_view.has_method("render_model"):
@@ -93,6 +107,7 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 	var after_select_a_label: String = button.text
+	var after_select_a_panel: String = selected_region.text
 	var after_select_a_icon: Dictionary = _icon_info(button)
 	client.calls.clear()
 	button.emit_signal("pressed")
@@ -104,18 +119,36 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 	var after_select_b_label: String = button.text
+	var after_select_b_panel: String = selected_region.text
 	var after_select_b_icon: Dictionary = _icon_info(button)
 	client.calls.clear()
 	button.emit_signal("pressed")
 	await process_frame
 	var after_select_b_press: Array = client.calls.duplicate(true)
 
+	# Unknown region → canonical fallback remains visible and is still the target.
+	await _click_region(map_view, REGION_C)
+	await process_frame
+	await process_frame
+	var after_select_c_label: String = button.text
+	var after_select_c_panel: String = selected_region.text
+	client.calls.clear()
+	button.emit_signal("pressed")
+	await process_frame
+	var after_select_c_press: Array = client.calls.duplicate(true)
+
 	print(PREFIX, JSON.stringify({
 		"default_label": DEFAULT_LABEL,
 		"region_a": REGION_A,
 		"region_b": REGION_B,
-		"expected_label_a": "Wyrusz: %s" % REGION_A,
-		"expected_label_b": "Wyrusz: %s" % REGION_B,
+		"region_c": REGION_C,
+		"region_a_pl": REGION_A_PL,
+		"region_b_pl": REGION_B_PL,
+		"settlement_a": SETTLEMENT_A,
+		"settlement_b": SETTLEMENT_B,
+		"party_position": party_position.text,
+		"expected_label_a": "Wyrusz: %s" % REGION_A_PL,
+		"expected_label_b": "Wyrusz: %s" % REGION_B_PL,
 		"march_icon_res": MARCH_ICON_RES,
 		"unbound_label": unbound_label,
 		"unbound_icon": unbound_icon,
@@ -123,11 +156,16 @@ func _run() -> void:
 		"after_no_selection_icon": after_no_selection_icon,
 		"after_no_selection_press": after_no_selection_press,
 		"after_select_a_label": after_select_a_label,
+		"after_select_a_panel": after_select_a_panel,
 		"after_select_a_icon": after_select_a_icon,
 		"after_select_a_press": after_select_a_press,
 		"after_select_b_label": after_select_b_label,
+		"after_select_b_panel": after_select_b_panel,
 		"after_select_b_icon": after_select_b_icon,
 		"after_select_b_press": after_select_b_press,
+		"after_select_c_label": after_select_c_label,
+		"after_select_c_panel": after_select_c_panel,
+		"after_select_c_press": after_select_c_press,
 	}))
 	quit(0)
 
@@ -144,12 +182,20 @@ func _model() -> SnapshotModel:
 			"col": 0,
 			"row": 0,
 			"owner": "player",
-			"settlement": {"name": "Keep A"},
+			"settlement": {"name": SETTLEMENT_A},
 			"party": {"owner": "player"},
 		},
 		{
 			"name": REGION_B,
 			"col": 1,
+			"row": 0,
+			"owner": "ai",
+			"settlement": {"name": SETTLEMENT_B},
+			"party": null,
+		},
+		{
+			"name": REGION_C,
+			"col": 2,
 			"row": 0,
 			"owner": null,
 			"settlement": null,

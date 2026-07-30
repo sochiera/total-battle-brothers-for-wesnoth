@@ -20,6 +20,8 @@ SUCCESS_STATUS = "Oddział przemieścił się."
 TRANSPORT_FAILURE_STATUS = "Rozkaz nie powiódł się."
 OWNER_AI = "Właściciel: AI (wróg)"
 ARMY_NONE = "Armia: brak armii"
+BORDER_LABEL = "Pogranicze"
+AI_OUTPOST_LABEL = "Posterunek wroga"
 
 CREDITED_ASSETS = (
     "party_player_unit.png",
@@ -94,16 +96,17 @@ def test_blocked_move_into_enemy_settlement_keeps_unit_and_polish_status(tmp_pat
 
     # Selection names the hostile neighbour; contextual label follows.
     assert after_select["selected_region_name"] == target, after_select
-    assert after_select["march_label"] == f"Wyrusz: {target}", after_select
+    assert after_select["march_label"] == f"Wyrusz: {AI_OUTPOST_LABEL}", after_select
     assert after_select["frame_count"] == 1, after_select
     assert after_select["framed_regions"] == [target], after_select
+    assert AI_OUTPOST_LABEL in after_select["panel_text"], after_select
     assert OWNER_AI in after_select["panel_text"], after_select
     assert ARMY_NONE in after_select["panel_text"], after_select
 
     # After blocked move: one silhouette still only on source (equality ⇒ not target).
     assert after_blocked["marker_count"] == 1, after_blocked
     assert after_blocked["marked_regions"] == [source], after_blocked
-    assert source in after_blocked["position_label"], after_blocked
+    assert BORDER_LABEL in after_blocked["position_label"], after_blocked
 
     # Selection chrome survives re-render on the blocked enemy settlement.
     assert after_blocked["selected_region_name"] == target, after_blocked
@@ -112,7 +115,7 @@ def test_blocked_move_into_enemy_settlement_keeps_unit_and_polish_status(tmp_pat
 
     # Panel still describes the hostile settlement (owner + no army there).
     panel = after_blocked["panel_text"]
-    assert target in panel, after_blocked
+    assert AI_OUTPOST_LABEL in panel, after_blocked
     assert OWNER_AI in panel, (
         f"panel must keep {OWNER_AI!r} on blocked {target!r}, got {panel!r}"
     )

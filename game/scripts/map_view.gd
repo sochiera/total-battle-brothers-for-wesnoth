@@ -61,13 +61,7 @@ const HOVER_FRAME_MODULATE := Color(0.95, 0.85, 0.35, 0.72)
 const REGION_NAME_PLATE_NAME := "RegionNamePlate"
 # Hidden label for legacy probes that still resolve tiles by Label.text.
 const REGION_CANONICAL_ID_NAME := "RegionCanonicalId"
-const REGION_PRESENTATION_PL: Dictionary = {
-	"player lands": "Ziemie gracza",
-	"player outpost": "Posterunek gracza",
-	"border": "Pogranicze",
-	"ai outpost": "Posterunek wroga",
-	"ai lands": "Ziemie wroga",
-}
+const WorldPresentation = preload("res://scripts/world_presentation.gd")
 
 signal region_selected(region_name: String)
 
@@ -262,12 +256,6 @@ func _add_region_identity_and_plate(tile: Control, canonical: String) -> void:
 	tile.add_child(_region_identity_label(canonical))
 
 
-func _region_presentation_name(canonical: String) -> String:
-	if REGION_PRESENTATION_PL.has(canonical):
-		return str(REGION_PRESENTATION_PL[canonical])
-	return canonical
-
-
 func _region_name_plate(canonical: String) -> Label:
 	# Plate is the Label itself (public node name RegionNamePlate) so tile
 	# identity via parent RegionTile_* stays intact for probes that walk
@@ -276,7 +264,7 @@ func _region_name_plate(canonical: String) -> Label:
 	# stay readable in the tile body.
 	var plate := Label.new()
 	plate.name = REGION_NAME_PLATE_NAME
-	plate.text = _region_presentation_name(canonical)
+	plate.text = WorldPresentation.region_label(canonical)
 	plate.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	plate.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE

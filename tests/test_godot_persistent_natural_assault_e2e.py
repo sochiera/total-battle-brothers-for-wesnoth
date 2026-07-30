@@ -36,7 +36,7 @@ PLAYER_LANDS = "player lands"
 AI_OUTPOST = "ai outpost"
 # Matches G85 assault e2e status shape; natural path with G91.1a recruits wins.
 EXPECTED_ORDER_STATUS = "Szturm: zwycięstwo (straty: 0, wróg: 1)."
-EXPECTED_PARTY_POSITION = "Położenie oddziału: ai outpost"
+EXPECTED_PARTY_POSITION = "Położenie oddziału: Posterunek wroga"
 # One captured keep of two leaves both sides standing (G92.2a AC3).
 EXPECTED_PARTY_RESULT = PLAYER_RESULT_PL["ongoing"]
 EXPECTED_BATTLE_RESULT = {
