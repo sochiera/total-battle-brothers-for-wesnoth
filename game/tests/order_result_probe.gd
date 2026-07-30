@@ -40,8 +40,9 @@ const EXPECTED_STATUS_TEXT := {
 	"muster_unchanged": "Rozkaz zbiórki nie zmienił stanu.",
 	"assault_unchanged": "Rozkaz szturmu nie zmienił stanu.",
 	# G97.1f: celowany move ma własne PL (nie szablon „Rozkaz … zmienił stan.”).
+	# Blokada (changed=false), m.in. wroga osada: „Ruch nie nastąpił.”
 	"move_changed": "Oddział przemieścił się.",
-	"move_unchanged": "Oddział nie przemieścił się.",
+	"move_unchanged": "Ruch nie nastąpił.",
 	# G91.2b: most (task-516) dodaje game_over — status nie może brzmieć jak no-op w trwającej partii.
 	"game_over_order": "Partia jest zakończona.",
 	"assault_battle": "Szturm: porażka (straty: 0, wróg: 0).",

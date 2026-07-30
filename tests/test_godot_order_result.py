@@ -119,8 +119,9 @@ def test_godot_order_result_returns_polish_status_text_for_projected_orders():
         "muster_unchanged": "Rozkaz zbiórki nie zmienił stanu.",
         "assault_unchanged": "Rozkaz szturmu nie zmienił stanu.",
         # G97.1f: targeted move has dedicated PL (not the generic order template).
+        # Blocked move (changed=false), e.g. enemy settlement: exact AC wording.
         "move_changed": "Oddział przemieścił się.",
-        "move_unchanged": "Oddział nie przemieścił się.",
+        "move_unchanged": "Ruch nie nastąpił.",
         # G91.2b: odpowiedź mostu z game_over:true nie może wyglądać jak no-op w trwającej partii.
         "game_over_order": "Partia jest zakończona.",
         "assault_battle": "Szturm: porażka (straty: 0, wróg: 0).",

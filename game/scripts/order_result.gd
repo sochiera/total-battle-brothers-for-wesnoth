@@ -1,13 +1,16 @@
 class_name OrderResult
 extends RefCounted
 
+const MOVE_CHANGED_STATUS := "Oddział przemieścił się."
+const MOVE_UNCHANGED_STATUS := "Ruch nie nastąpił."
+
 
 static func failure_status_text() -> String:
 	return "Rozkaz nie powiódł się."
 
 
 static func _move_status_text(changed: bool) -> String:
-	return "Oddział przemieścił się." if changed else "Oddział nie przemieścił się."
+	return MOVE_CHANGED_STATUS if changed else MOVE_UNCHANGED_STATUS
 
 
 static func status_text(order_result: Variant) -> String:
