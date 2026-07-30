@@ -134,9 +134,9 @@ func develop_from_bridge(client) -> bool:
 func send_order_from_bridge(client, order_name: String) -> bool:
 	var model: SnapshotModel = client.send_order(order_name)
 	if _apply_model_if_present(model):
-		%LastOrderStatusLabel.text = OrderResult.status_text(_last_order_result(client))
+		_set_last_order_status(OrderResult.status_text(_last_order_result(client)))
 		return true
-	%LastOrderStatusLabel.text = OrderResult.failure_status_text()
+	_set_last_order_status(OrderResult.failure_status_text())
 	return false
 
 
@@ -157,10 +157,14 @@ func _apply_save_load_result(
 	model: SnapshotModel, success_status: String, failure_status: String
 ) -> bool:
 	if _apply_model_if_present(model):
-		%LastOrderStatusLabel.text = success_status
+		_set_last_order_status(success_status)
 		return true
-	%LastOrderStatusLabel.text = failure_status
+	_set_last_order_status(failure_status)
 	return false
+
+
+func _set_last_order_status(status: String) -> void:
+	%LastOrderStatusLabel.text = status
 
 
 func apply_model(model: SnapshotModel) -> void:

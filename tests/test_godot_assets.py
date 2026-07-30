@@ -13,7 +13,7 @@ import subprocess
 from pathlib import Path
 
 from godot_png_assets import LICENSE_RE
-from godot_runner import run_godot_script
+from godot_runner import import_game_assets, run_godot_script
 
 ROOT = Path(__file__).resolve().parents[1]
 GAME = ROOT / "game"
@@ -45,14 +45,8 @@ def _res_paths(rel_paths: tuple[str, ...] | list[str]) -> list[str]:
 
 
 def _import_game_assets() -> subprocess.CompletedProcess[str]:
-    """Generate Godot import cache so PNG resources become Texture2D."""
-    return subprocess.run(
-        ["godot", "--headless", "--path", str(GAME), "--import"],
-        capture_output=True,
-        text=True,
-        check=False,
-        timeout=120,
-    )
+    """Back-compat wrapper; prefer ``godot_runner.import_game_assets``."""
+    return import_game_assets(GAME)
 
 
 def _run_load_probe(*res_paths: str) -> subprocess.CompletedProcess[str]:

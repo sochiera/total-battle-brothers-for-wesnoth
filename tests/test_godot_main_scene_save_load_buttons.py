@@ -1,15 +1,66 @@
-"""G86.2a: main scene exposes Save/Load party buttons with Polish labels."""
+"""G86.2a: main scene exposes Save/Load party buttons with Polish labels.
 
+G95.1d: the same pair shows distinct credited direction icons.
+"""
+
+from __future__ import annotations
+
+import hashlib
 import json
+import subprocess
 from pathlib import Path
 
-from godot_runner import run_godot_script
+from godot_png_assets import assert_asset_credited
+from godot_runner import import_game_assets, run_godot_script
 
 
 ROOT = Path(__file__).resolve().parents[1]
 GAME = ROOT / "game"
+CREDITS = GAME / "assets" / "CREDITS.md"
 PROBE = "res://tests/save_load_buttons_probe.gd"
 PREFIX = "SAVE_LOAD_BUTTONS "
+
+# Public presentation paths for save/load icons (G95.1d).
+# Names mirror icon_next_turn.png / order-bar icons and the two Polish actions.
+BUTTONS: tuple[dict[str, str], ...] = (
+    {
+        "key": "save",
+        "name": "SaveGameButton",
+        "text": "Zapisz partię",
+        "icon_rel": "assets/icon_save.png",
+    },
+    {
+        "key": "load",
+        "name": "LoadGameButton",
+        "text": "Wczytaj partię",
+        "icon_rel": "assets/icon_load.png",
+    },
+)
+# Pin minimum source texture edge (pixels), not on-button rendered size.
+MIN_ICON_EDGE = 16
+
+# Order bar + save/load pair. Save/load icons must not reuse any existing
+# bar graphic as a renamed placeholder, and must differ from each other.
+CONTROL_ICON_RELS: tuple[str, ...] = (
+    "assets/icon_next_turn.png",
+    "assets/icon_develop.png",
+    "assets/icon_recruit.png",
+    "assets/icon_muster.png",
+    "assets/icon_march.png",
+    "assets/icon_assault.png",
+    "assets/icon_save.png",
+    "assets/icon_load.png",
+)
+
+
+def _run_probe(*script_args: str) -> subprocess.CompletedProcess[str]:
+    return run_godot_script(GAME, PROBE, *script_args, timeout=30)
+
+
+def _payload_from(result: subprocess.CompletedProcess[str]) -> dict:
+    lines = [line for line in result.stdout.splitlines() if line.startswith(PREFIX)]
+    assert len(lines) == 1, result.stdout
+    return json.loads(lines[0][len(PREFIX) :])
 
 
 def test_main_scene_exposes_save_and_load_party_buttons():
@@ -27,18 +78,76 @@ def test_main_scene_exposes_save_and_load_party_buttons():
     laid-out size and pairwise-disjoint rects (K83) are pinned by
     test_godot_main_scene_layout.
     """
-    result = run_godot_script(GAME, PROBE, timeout=30)
+    result = _run_probe()
 
     assert result.returncode == 0, result.stderr
     assert "SCRIPT ERROR" not in result.stderr, result.stderr
-    lines = [line for line in result.stdout.splitlines() if line.startswith(PREFIX)]
-    assert len(lines) == 1, result.stdout
-    payload = json.loads(lines[0][len(PREFIX) :])
-    assert payload["save"]["name"] == "SaveGameButton"
-    assert payload["save"]["text"] == "Zapisz partię"
-    assert payload["save"]["disabled"] is False
-    assert payload["save"]["visible"] is True
-    assert payload["load"]["name"] == "LoadGameButton"
-    assert payload["load"]["text"] == "Wczytaj partię"
-    assert payload["load"]["disabled"] is False
-    assert payload["load"]["visible"] is True
+    payload = _payload_from(result)
+    for expected in BUTTONS:
+        row = payload.get(expected["key"])
+        assert isinstance(row, dict), f"probe omitted {expected['key']}: {payload!r}"
+        assert row.get("name") == expected["name"], row
+        assert row.get("text") == expected["text"], row
+        assert row.get("disabled") is False, row
+        assert row.get("visible") is True, row
+
+
+def test_save_and_load_buttons_show_distinct_credited_icons_with_polish_labels():
+    """Save / Load must each show a distinct Texture2D direction icon.
+
+    Realistic defect existing gates miss: SaveGameButton and LoadGameButton
+    remain plain ``Button`` nodes with only Polish ``text``. Existing probes
+    (save/load presence G86.2a, binding G86.2b, layout, order-icon gates) pin
+    names, labels, connections, geometry, and *order-bar* icons — so a purely
+    textual save/load pair stays green while G95.1d requires two mutually
+    distinct, credited graphics under public
+    ``res://assets/icon_{save,load}.png`` that keep the Polish labels and are
+    not copies of each other or of any order-bar icon used as a renamed
+    placeholder.
+    """
+    digests: dict[str, str] = {}
+    for rel in CONTROL_ICON_RELS:
+        icon_on_disk = GAME / rel
+        assert icon_on_disk.is_file(), (
+            f"committed control-bar icon missing on disk: {icon_on_disk}"
+        )
+        digests[rel] = hashlib.sha256(icon_on_disk.read_bytes()).hexdigest()
+    assert len(set(digests.values())) == len(digests), (
+        "control-bar icon files must be unique bytes across the whole bar "
+        f"(save/load ≠ order-bar placeholders), digests={digests!r}"
+    )
+    for button in BUTTONS:
+        assert_asset_credited(CREDITS, Path(button["icon_rel"]).name)
+
+    imported = import_game_assets(GAME)
+    assert imported.returncode == 0, (
+        f"godot --import failed rc={imported.returncode} "
+        f"stderr={imported.stderr!r} stdout={imported.stdout!r}"
+    )
+
+    result = _run_probe()
+    assert result.returncode == 0, result.stderr
+    assert "SCRIPT ERROR" not in result.stderr, result.stderr
+    payload = _payload_from(result)
+
+    icon_paths: list[str] = []
+    for expected in BUTTONS:
+        row = payload.get(expected["key"])
+        assert isinstance(row, dict), f"probe omitted {expected['key']}: {payload!r}"
+        assert row.get("name") == expected["name"], row
+        assert row.get("text") == expected["text"], (
+            f"Polish label must remain on {expected['name']}; icon is presentation only"
+        )
+        icon_res = f"res://{expected['icon_rel']}"
+        assert row.get("icon_path") == icon_res, (
+            f"{expected['name']} icon must use public path {icon_res}, "
+            f"got {row.get('icon_path')!r}"
+        )
+        assert int(row.get("icon_w") or 0) >= MIN_ICON_EDGE, row
+        assert int(row.get("icon_h") or 0) >= MIN_ICON_EDGE, row
+        icon_paths.append(row["icon_path"])
+
+    assert len(set(icon_paths)) == len(icon_paths), (
+        "save/load icons must be pairwise distinct "
+        f"(save ≠ load), got {icon_paths!r}"
+    )

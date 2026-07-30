@@ -20,7 +20,7 @@ func _init() -> void:
 
 	var save_button := scene_root.get_node_or_null("%SaveGameButton") as Button
 	var load_button := scene_root.get_node_or_null("%LoadGameButton") as Button
-	# Presence/labels only; binding/status is save_load_binding_probe.
+	# Presence/labels + icon presentation (G95.1d); binding/status is save_load_binding_probe.
 	print(PREFIX, JSON.stringify({
 		"save": _button_payload(save_button),
 		"load": _button_payload(load_button),
@@ -31,9 +31,20 @@ func _init() -> void:
 func _button_payload(button: Button) -> Variant:
 	if button == null:
 		return null
+	var icon_path := ""
+	var icon_w := 0
+	var icon_h := 0
+	if button.icon != null:
+		var tex := button.icon as Texture2D
+		icon_path = tex.resource_path
+		icon_w = int(tex.get_width())
+		icon_h = int(tex.get_height())
 	return {
 		"name": button.name,
 		"text": button.text,
 		"disabled": button.disabled,
 		"visible": button.visible,
+		"icon_path": icon_path,
+		"icon_w": icon_w,
+		"icon_h": icon_h,
 	}

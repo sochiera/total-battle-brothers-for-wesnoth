@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/map_view.gd" id="2_map_view"]
@@ -10,6 +10,8 @@
 [ext_resource type="Texture2D" path="res://assets/icon_muster.png" id="8_muster_icon"]
 [ext_resource type="Texture2D" path="res://assets/icon_march.png" id="9_march_icon"]
 [ext_resource type="Texture2D" path="res://assets/icon_assault.png" id="10_assault_icon"]
+[ext_resource type="Texture2D" path="res://assets/icon_save.png" id="11_save_icon"]
+[ext_resource type="Texture2D" path="res://assets/icon_load.png" id="12_load_icon"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -173,10 +175,12 @@ layout_mode = 2
 unique_name_in_owner = true
 custom_minimum_size = Vector2(140, 40)
 layout_mode = 2
+icon = ExtResource("11_save_icon")
 text = "Zapisz partię"
 
 [node name="LoadGameButton" type="Button" parent="MainLayout/OrderControls/SaveLoadButtons"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(140, 40)
 layout_mode = 2
+icon = ExtResource("12_load_icon")
 text = "Wczytaj partię"

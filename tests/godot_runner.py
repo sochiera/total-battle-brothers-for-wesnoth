@@ -43,3 +43,24 @@ def run_godot_script(
         env=env,
         cwd=cwd,
     )
+
+
+def import_game_assets(
+    project: Path,
+    *,
+    timeout: float = 120.0,
+    env: Mapping[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
+    """Run headless ``godot --import`` so PNG assets resolve as Texture2D.
+
+    Public shared helper for gates that need the import cache (``game/.godot/``
+    stays untracked). Prefer this over private copies in individual test modules.
+    """
+    return subprocess.run(
+        ["godot", "--headless", "--path", str(project), "--import"],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=timeout,
+        env=env,
+    )
