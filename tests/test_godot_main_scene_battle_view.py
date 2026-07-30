@@ -20,6 +20,12 @@ TERRAIN_ASSETS: dict[str, str] = {
     "Hills": "res://assets/terrain_hills.png",
 }
 
+# Native base hex from terrain_plains.png (G98.1a public visual contract).
+PLAINS_ASSET = TERRAIN_ASSETS["Plains"]
+BASE_HEX_W = 120
+BASE_HEX_H = 140
+_LAYOUT_TOL_PX = 1.0
+
 # Public side silhouette paths (G87.1a / G87.1c-2).
 SIDE_ATTACKER = "res://assets/side_attacker.png"
 SIDE_DEFENDER = "res://assets/side_defender.png"
@@ -90,8 +96,82 @@ def _fully_inside(outer: dict, inner: dict) -> bool:
     )
 
 
+def _gap_between_axis_aligned(a: dict, b: dict, *, axis: str) -> float:
+    """Non-negative gap between two AABBs along one axis ('x' or 'y').
+
+    Zero means edges touch or rects overlap on that axis. Positive means a
+    visible separation (card-style spacing).
+    """
+    if axis == "x":
+        a0, a1 = float(a["x"]), float(a["x"]) + float(a["w"])
+        b0, b1 = float(b["x"]), float(b["x"]) + float(b["w"])
+    else:
+        a0, a1 = float(a["y"]), float(a["y"]) + float(a["h"])
+        b0, b1 = float(b["y"]), float(b["y"]) + float(b["h"])
+    if a1 <= b0:
+        return b0 - a1
+    if b1 <= a0:
+        return a0 - b1
+    return 0.0
+
+
+def _canvas_draw_order_key(tile: dict) -> tuple[int, int]:
+    """Godot sibling draw order: higher z_index wins; ties → later child_index on top."""
+    return (int(tile.get("z_index", 0)), int(tile.get("child_index", -1)))
+
+
+def _assert_pointy_top_cross_row_paint_order(by_qr: dict[tuple[int, int], dict]) -> None:
+    """Higher axial r must paint above lower r wherever HexTile AABBs overlap.
+
+    Pointy-top rows interpenetrate (~0.25·h) with transparent plains corners; the
+    stack must follow geometry (z_index / sibling index), not battle.hexes order.
+    Named pair (1,0)/(0,1) is the R3 RED case (unsorted probe places (1,0) late).
+    """
+    assert (1, 0) in by_qr and (0, 1) in by_qr, (
+        f"probe must include inter-row overlap pair (1,0)/(0,1), got {sorted(by_qr)}"
+    )
+    upper, lower = by_qr[(1, 0)], by_qr[(0, 1)]
+    assert _rects_overlap(upper, lower), (
+        "pointy-top inter-row pair (1,0)/(0,1) must overlap AABBs so stack "
+        f"order is observable; tiles={upper!r} {lower!r}"
+    )
+    for key in ("z_index", "child_index"):
+        assert key in upper and key in lower, (
+            f"probe must expose {key} for paint-order checks, "
+            f"got keys upper={sorted(upper)} lower={sorted(lower)}"
+        )
+    assert _canvas_draw_order_key(lower) > _canvas_draw_order_key(upper), (
+        "pointy-top: higher-r hex (0,1) must draw above lower-r neighbour (1,0) "
+        "in the AABB overlap band (stable geometry paint order via z_index "
+        "and/or sibling index, not raw battle.hexes order). "
+        f"upper(1,0) key={_canvas_draw_order_key(upper)} tile={upper!r}; "
+        f"lower(0,1) key={_canvas_draw_order_key(lower)} tile={lower!r}"
+    )
+    for i, left_qr in enumerate(by_qr):
+        for right_qr in list(by_qr)[i + 1 :]:
+            _, lr = left_qr
+            _, rr = right_qr
+            if lr == rr:
+                continue
+            a, b = by_qr[left_qr], by_qr[right_qr]
+            if not _rects_overlap(a, b):
+                continue
+            top_qr, bot_qr = (left_qr, right_qr) if lr > rr else (right_qr, left_qr)
+            top, bot = by_qr[top_qr], by_qr[bot_qr]
+            assert _canvas_draw_order_key(top) > _canvas_draw_order_key(bot), (
+                f"cross-row overlap: higher-r {top_qr} must paint above {bot_qr}; "
+                f"top_key={_canvas_draw_order_key(top)} bot_key={_canvas_draw_order_key(bot)}; "
+                f"tiles={top!r} {bot!r}"
+            )
+
+
 def test_battle_view_shows_one_axial_tile_per_hex_with_side_paint_and_polish_result():
-    """BattleView must place one non-overlapping tile per battle hex on axial axes.
+    """BattleView must place one tile per battle hex on axial axes with side paint.
+
+    Geometry detail (native 120×140 plains base, pointy-top packing, no card
+    gaps) is owned by G98.1a; this gate keeps count/idempotence, side paint,
+    Polish result, and tile/label layout non-clip. Cross-row AABB interpenetration
+    is expected under hex packing — do not reintroduce global non-overlap here.
 
     Realistic defects this catches:
     1) SnapshotModel already exposes battle hexes (G85.1a) but main has no
@@ -154,7 +234,9 @@ def test_battle_view_shows_one_axial_tile_per_hex_with_side_paint_and_polish_res
         )
         assert tile["name"] == f"HexTile_{hex_row['q']}_{hex_row['r']}", tile
 
-    # Axial placement: higher q → further right; higher r → further down.
+    # Axial placement (pointy-top compatible): same-r higher q → further right;
+    # higher r → further down. Cross-row AABBs may interpenetrate under hex packing,
+    # so global non-overlap is intentionally not required here (see G98.1a gate).
     qr_list = list(coords)
     for left in qr_list:
         for right in qr_list:
@@ -162,9 +244,9 @@ def test_battle_view_shows_one_axial_tile_per_hex_with_side_paint_and_polish_res
                 continue
             lq, lr = left
             rq, rr = right
-            if rq > lq:
+            if rr == lr and rq > lq:
                 assert by_qr[right]["x"] > by_qr[left]["x"], (
-                    f"q {rq} must sit right of q {lq}: "
+                    f"same-r q {rq} must sit right of q {lq}: "
                     f"{by_qr[left]} vs {by_qr[right]}"
                 )
             if rr > lr:
@@ -172,13 +254,6 @@ def test_battle_view_shows_one_axial_tile_per_hex_with_side_paint_and_polish_res
                     f"r {rr} must sit below r {lr}: "
                     f"{by_qr[left]} vs {by_qr[right]}"
                 )
-
-    for i, left in enumerate(qr_list):
-        for right in qr_list[i + 1 :]:
-            assert not _rects_overlap(by_qr[left], by_qr[right]), (
-                f"hex tiles must not overlap: {left}={by_qr[left]} "
-                f"vs {right}={by_qr[right]}"
-            )
 
     # Side is machine-readable paint, not only label text.
     sides = {h["side"]: (int(h["q"]), int(h["r"])) for h in hexes}
@@ -302,10 +377,10 @@ def test_battle_view_hex_tiles_carry_terrain_textures_from_assets():
             f"hex {qr} terrain={terrain!r} must include {expected}, "
             f"got paths={tile['texture_paths']!r}"
         )
-        # R87.1: ground terrain layer fills hex bounds and does not capture mouse.
-        # Size check is PRESET_FULL_RECT (control extents via global rect), not
-        # TextureRect.stretch_mode — FULL_RECT + STRETCH_KEEP would still pass.
-        # Also guards MOUSE_FILTER_IGNORE so terrain does not steal battle clicks.
+        # R87.1: named terrain texture is present and sized to hex bounds (Plains
+        # as base; Forest/Hills as full-rect decoration on the G98.1a plains body).
+        # Size = PRESET_FULL_RECT extents, not stretch_mode. MOUSE_FILTER_IGNORE
+        # so terrain layers do not steal battle clicks.
         assert tile.get("tile_mouse_filter") == MOUSE_FILTER_IGNORE, (
             f"hex {qr} root must ignore mouse, got {tile!r}"
         )
@@ -499,4 +574,168 @@ def test_battle_view_hex_tiles_overlay_side_silhouettes_on_terrain():
         f"attacker and defender must use different silhouette files: "
         f"{attacker_side_paths!r} vs {defender_side_paths!r}"
     )
+
+
+def test_battle_view_base_hexes_form_pointy_top_axial_grid_from_plains_asset():
+    """G98.1a: every occupied hex uses an undistorted plains base on a pointy-top lattice.
+
+    Realistic defects existing gates miss:
+    1) BattleView still lays HexTile_* as a rectangular card grid (TILE_SIZE
+       96×56 + TILE_GAP) and lets Forest/Hills ground textures act as the hex
+       body. The older axial gate only checks same-axis order and side paint,
+       so a gapped rectangle table stays green while rows never offset, bases
+       never share terrain_plains.png 120×140, and ``terrain`` still changes
+       the painted hex footprint.
+    2) Pointy-top AABBs interpenetrate (~0.25·h) and plains has transparent
+       corners; painting HexTile_* in raw ``battle.hexes`` array order (or any
+       non-geometry order) leaves a lower-r tile as a later sibling so it
+       covers the overlap band of a higher-r neighbour — wrong stack order.
+       Offset/size checks stay green while AC "bez wzajemnego przykrywania w
+       złej kolejności" fails. Probe hexes are intentionally not (q,r)-sorted.
+    """
+    plains_disk = GAME / "assets" / "terrain_plains.png"
+    assert plains_disk.is_file(), (
+        f"base hex asset missing on disk: {plains_disk} "
+        "(G98.1a requires terrain_plains.png as the shared hex body)"
+    )
+    credits = (GAME / "assets" / "CREDITS.md").read_text(encoding="utf-8")
+    assert "terrain_plains.png" in credits, (
+        "CREDITS.md must keep a per-file attribution for terrain_plains.png"
+    )
+    credits_row = next(
+        (
+            line
+            for line in credits.splitlines()
+            if line.strip().startswith("|") and "terrain_plains.png" in line
+        ),
+        "",
+    )
+    assert credits_row, "CREDITS.md must have a table row for terrain_plains.png"
+    cells = [c.strip() for c in credits_row.strip("|").split("|")]
+    assert len(cells) >= 4, (
+        f"CREDITS row for terrain_plains.png must list file|source|author|license, "
+        f"got {credits_row!r}"
+    )
+    assert cells[0] == "terrain_plains.png" and all(cells[:4]), (
+        f"CREDITS row for terrain_plains.png must be complete, got {credits_row!r}"
+    )
+
+    imported = _import_game_assets()
+    assert imported.returncode == 0, (
+        f"godot --import failed rc={imported.returncode} "
+        f"stderr={imported.stderr!r} stdout={imported.stdout!r}"
+    )
+
+    payload = _load_battle_view()
+    assert payload["battle_view_found"] is True, payload
+    assert payload["has_render_model"] is True, payload
+
+    hexes = payload["hexes"]
+    assert isinstance(hexes, list) and len(hexes) >= 3, hexes
+    coords = {(int(h["q"]), int(h["r"])) for h in hexes}
+    rows = {int(h["r"]) for h in hexes}
+    assert max(rows) - min(rows) >= 2, (
+        "probe must span at least three axial rows so pointy-top packing is "
+        f"observable, got rows {sorted(rows)}"
+    )
+    terrains = {str(h.get("terrain", "")) for h in hexes}
+    assert "Plains" in terrains, f"probe must include Plains, got {sorted(terrains)}"
+    non_plains = terrains - {"Plains", ""}
+    assert non_plains, (
+        "probe must include non-Plains terrain so base size is independent of "
+        f"terrain, got {sorted(terrains)}"
+    )
+
+    first = payload["tiles_after_first"]
+    assert len(first) == len(hexes), first
+    by_qr = _by_qr(first)
+    assert set(by_qr) == coords, first
+
+    # Shared base size = native terrain_plains.png, independent of terrain.
+    for hex_row in hexes:
+        qr = (int(hex_row["q"]), int(hex_row["r"]))
+        tile = by_qr[qr]
+        terrain = str(hex_row.get("terrain", ""))
+        assert abs(float(tile["w"]) - BASE_HEX_W) <= _LAYOUT_TOL_PX, (
+            f"hex {qr} terrain={terrain!r} base width must be {BASE_HEX_W}px "
+            f"(terrain_plains native), got w={tile['w']}"
+        )
+        assert abs(float(tile["h"]) - BASE_HEX_H) <= _LAYOUT_TOL_PX, (
+            f"hex {qr} terrain={terrain!r} base height must be {BASE_HEX_H}px "
+            f"(terrain_plains native), got h={tile['h']}"
+        )
+        paths = list(tile.get("texture_paths") or [])
+        assert PLAINS_ASSET in paths, (
+            f"hex {qr} terrain={terrain!r} must paint {PLAINS_ASSET} as the "
+            f"shared base body, got paths={paths!r}"
+        )
+        base_layers = _terrain_layers(tile, PLAINS_ASSET)
+        assert base_layers, (
+            f"hex {qr} must expose a sized plains base layer, got {tile!r}"
+        )
+        for layer in base_layers:
+            assert layer_fills_tile(layer, tile), (
+                f"hex {qr} plains base must fill the hex bounds undistorted "
+                f"(120×140), layer={layer!r} tile={tile!r}"
+            )
+            assert layer.get("mouse_filter") == MOUSE_FILTER_IGNORE, (
+                f"hex {qr} plains base must not capture mouse, layer={layer!r}"
+            )
+
+    sizes = {(round(float(t["w"]), 1), round(float(t["h"]), 1)) for t in first}
+    assert len(sizes) == 1, (
+        f"all base hexes must share one size regardless of terrain, got {sizes!r}"
+    )
+
+    # Pointy-top axial packing: same-q row step offsets by ~half width and
+    # vertical pitch is strictly less than tile height (hex AABBs interpenetrate).
+    assert (0, 0) in by_qr and (0, 1) in by_qr, (
+        f"probe must include (0,0) and (0,1) for row packing, got {sorted(by_qr)}"
+    )
+    origin, down = by_qr[(0, 0)], by_qr[(0, 1)]
+    tile_w = float(origin["w"])
+    tile_h = float(origin["h"])
+    row_dx = float(down["x"]) - float(origin["x"])
+    row_dy = float(down["y"]) - float(origin["y"])
+    assert abs(abs(row_dx) - tile_w * 0.5) <= _LAYOUT_TOL_PX, (
+        f"pointy-top: same-q next row must offset by ~half tile width "
+        f"((0,0)→(0,1) dx={row_dx}, expect ±{tile_w * 0.5}); "
+        f"rectangular pitch leaves dx=0. tiles={origin!r} {down!r}"
+    )
+    # Pointy-top axial row pitch is 0.75·h (shared vertical edge), not a loose
+    # band [0.5·h, h): dy≈0.55·h would leave a visible gap between hex edges.
+    expected_row_pitch = tile_h * 0.75
+    assert abs(row_dy - expected_row_pitch) <= _LAYOUT_TOL_PX, (
+        f"pointy-top: vertical pitch must be ~0.75·tile_h "
+        f"(dy={row_dy}, expect {expected_row_pitch}±{_LAYOUT_TOL_PX}, "
+        f"tile_h={tile_h}); rectangular packing uses dy≥tile_h; sparse "
+        f"non-touching rows use dy much below 0.75·h. "
+        f"tiles={origin!r} {down!r}"
+    )
+
+    # Same-row neighbours touch horizontally (no card gap), without AABB overlap.
+    assert (1, 0) in by_qr, f"probe must include (1,0) for horizontal pitch, got {sorted(by_qr)}"
+    right = by_qr[(1, 0)]
+    gap_x = _gap_between_axis_aligned(origin, right, axis="x")
+    assert gap_x <= _LAYOUT_TOL_PX, (
+        f"same-row axial neighbours (0,0) and (1,0) must touch (no rectangular "
+        f"gap): gap={gap_x}px tiles={origin!r} {right!r}"
+    )
+    assert not _rects_overlap(origin, right), (
+        f"same-row neighbours must not overlap AABBs: {origin!r} vs {right!r}"
+    )
+    pitch_x = float(right["x"]) - float(origin["x"])
+    assert abs(pitch_x - tile_w) <= _LAYOUT_TOL_PX, (
+        f"same-row pitch must equal base width (pointy-top flat-to-flat): "
+        f"pitch_x={pitch_x}, tile_w={tile_w}; tiles={origin!r} {right!r}"
+    )
+
+    # Only snapshot hexes are drawn — no phantom HexTile_* beyond battle.hexes.
+    assert int(payload["tile_count_after_first"]) == len(hexes), (
+        "BattleView must draw exactly the hexes present in battle.hexes, "
+        f"count={payload['tile_count_after_first']} hexes={len(hexes)}"
+    )
+
+    # Inter-row overlap stack independent of battle.hexes array order.
+    _assert_pointy_top_cross_row_paint_order(by_qr)
 

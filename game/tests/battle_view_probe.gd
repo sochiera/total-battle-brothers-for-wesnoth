@@ -57,6 +57,9 @@ func _run() -> void:
 	# Settlement-like field: domain r∈{0,1,2}. r=0/1 alone missed label-on-tile overlap.
 	# Include Plains/Forest/Hills so terrain texture mapping is observable (G87.1c-1).
 	# Include unknown / empty side so G87.1c-2 can assert terrain-only (no silhouette).
+	# Deliberately NOT sorted by (q, r): production snapshots are (q,r)-sorted, but
+	# G98.1a paint order must come from geometry, not input array order. (1,0) and
+	# (1,1) after higher-r rows so snapshot-order painting fails inter-row overlap.
 	var hexes_full: Array = [
 		{"q": 0, "r": 0, "terrain": "Plains", "side": "attacker", "hp": 10},
 		{"q": 2, "r": 0, "terrain": "Plains", "side": "defender", "hp": 8},
@@ -233,6 +236,10 @@ func _collect_tiles(battle_view: Node, hexes: Array) -> Array:
 			"texture_paths": texture_paths,
 			"texture_layers": texture_layers,
 			"tile_mouse_filter": tile.mouse_filter,
+			# Canvas draw order among HexTile_* siblings (G98.1a overlap stacking):
+			# higher z_index wins; equal z_index → later get_index() draws on top.
+			"z_index": int(tile.z_index),
+			"child_index": int(tile.get_index()),
 		})
 	return tiles
 

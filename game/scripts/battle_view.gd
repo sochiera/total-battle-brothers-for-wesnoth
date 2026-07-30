@@ -3,8 +3,9 @@ extends Control
 
 const SnapshotModel = preload("res://scripts/snapshot_model.gd")
 const TileTextureLayer = preload("res://scripts/tile_texture_layer.gd")
-const TILE_SIZE := Vector2(96, 56)
-const TILE_GAP := Vector2(12, 12)
+const BASE_HEX_SIZE := Vector2(120, 140)
+const AXIAL_ROW_PITCH := BASE_HEX_SIZE.y * 0.75
+const RESULT_LABEL_GAP := 8.0
 const ATTACKER_COLOR := Color(0.78, 0.22, 0.16)
 const DEFENDER_COLOR := Color(0.16, 0.38, 0.78)
 const OTHER_SIDE_COLOR := Color(0.38, 0.38, 0.38)
@@ -12,7 +13,6 @@ const OTHER_SIDE_COLOR := Color(0.38, 0.38, 0.38)
 const TERRAIN_PLAINS := preload("res://assets/terrain_plains.png")
 const TERRAIN_FOREST := preload("res://assets/terrain_forest.png")
 const TERRAIN_HILLS := preload("res://assets/terrain_hills.png")
-const DEFAULT_TERRAIN_TEXTURE := TERRAIN_PLAINS
 
 const SIDE_ATTACKER_TEXTURE := preload("res://assets/side_attacker.png")
 const SIDE_DEFENDER_TEXTURE := preload("res://assets/side_defender.png")
@@ -34,9 +34,23 @@ func render_model(model: SnapshotModel) -> void:
 
 
 func _render_hexes(hexes: Array) -> void:
+	var max_bottom := 0.0
 	for hex: Variant in hexes:
 		if hex is Dictionary:
 			_add_tile(hex)
+			var q: int = int(hex.get("q", 0))
+			var r: int = int(hex.get("r", 0))
+			max_bottom = maxf(max_bottom, _axial_position(q, r).y + BASE_HEX_SIZE.y)
+	_layout_result_label(max_bottom)
+
+
+func _layout_result_label(max_hex_bottom: float) -> void:
+	var result_label: Control = %BattleResultLabel
+	var result_top := max_hex_bottom + RESULT_LABEL_GAP
+	result_label.position.y = result_top
+	var required_height: float = result_top + result_label.size.y
+	custom_minimum_size.y = required_height
+	size.y = required_height
 
 
 func _reset_and_hide_view() -> void:
@@ -62,13 +76,19 @@ func _add_tile(hex: Dictionary) -> void:
 	var tile := Control.new()
 	tile.name = "HexTile_%d_%d" % [q, r]
 	tile.position = _axial_position(q, r)
-	tile.size = TILE_SIZE
+	tile.size = BASE_HEX_SIZE
+	_apply_hex_paint_order(tile, r)
 	tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(tile)
 
-	var ground := TileTextureLayer.full_rect(_terrain_texture(hex.get("terrain")), "Ground")
-	ground.modulate = _side_color(hex.get("side"))
-	tile.add_child(ground)
+	var base := TileTextureLayer.full_rect(TERRAIN_PLAINS, "Base")
+	base.modulate = _side_color(hex.get("side"))
+	tile.add_child(base)
+
+	var terrain_decoration: Texture2D = _terrain_decoration_texture(hex.get("terrain"))
+	if terrain_decoration != null:
+		var decoration := TileTextureLayer.full_rect(terrain_decoration, "TerrainDecoration")
+		tile.add_child(decoration)
 
 	var label := Label.new()
 	label.text = str(hex.get("terrain", ""))
@@ -94,23 +114,26 @@ func _add_tile(hex: Dictionary) -> void:
 		tile.add_child(silhouette)
 
 
+func _apply_hex_paint_order(tile: Control, row: int) -> void:
+	# Pointy-top rows overlap vertically; higher rows must paint above lower rows.
+	tile.z_index = row
+
+
 func _axial_position(q: int, r: int) -> Vector2:
 	return Vector2(
-		float(q) * (TILE_SIZE.x + TILE_GAP.x),
-		float(r) * (TILE_SIZE.y + TILE_GAP.y),
+		float(q) * BASE_HEX_SIZE.x + float(r) * BASE_HEX_SIZE.x * 0.5,
+		float(r) * AXIAL_ROW_PITCH,
 	)
 
 
-func _terrain_texture(terrain: Variant) -> Texture2D:
+func _terrain_decoration_texture(terrain: Variant) -> Texture2D:
 	match terrain:
-		"Plains":
-			return TERRAIN_PLAINS
 		"Forest":
 			return TERRAIN_FOREST
 		"Hills":
 			return TERRAIN_HILLS
 		_:
-			return DEFAULT_TERRAIN_TEXTURE
+			return null
 
 
 func _side_color(side: Variant) -> Color:
