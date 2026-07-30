@@ -151,9 +151,16 @@ func advance_turn() -> SnapshotModel:
 	return _send_persisted_sequence({"type": "next_turn"})
 
 
-func send_order(order_name: String) -> SnapshotModel:
+static func _order_command(order_name: String, target: String) -> Dictionary:
+	var command := {"type": "order", "order": order_name}
+	if not target.is_empty():
+		command["target"] = target
+	return command
+
+
+func send_order(order_name: String, target: String = "") -> SnapshotModel:
 	_last_order_result = null
-	return _send_persisted_sequence({"type": "order", "order": order_name}, true)
+	return _send_persisted_sequence(_order_command(order_name, target), true)
 
 
 func save_party(path: String) -> SnapshotModel:
