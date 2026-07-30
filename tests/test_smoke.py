@@ -15,11 +15,11 @@ def test_headless_main_runs_full_game_and_reports_result(capsys):
 
     assert main() == 0
     output = capsys.readouterr().out.strip().lower()
-    # G90.2a-2: a landless, partyless duchy is defeated instead of dragging
-    # the game to the safety limit (see create_headless_game / seed 73).
-    assert "zwycięzca: ai" in output
+    # G92.2a multi-keep start + G90.2a-2: seed 73 finishes when the loser is
+    # landless/partyless (player wins by month 4), not at the safety limit.
+    assert "zwycięzca: player" in output
     assert "rok: 1" in output
-    assert "miesiąc: 2" in output
+    assert "miesiąc: 4" in output
 
 
 def test_headless_main_reports_final_calendar_date(capsys):
@@ -27,9 +27,9 @@ def test_headless_main_reports_final_calendar_date(capsys):
 
     assert main() == 0
     output = capsys.readouterr().out.lower()
-    assert "zwycięzca: ai" in output
+    assert "zwycięzca: player" in output
     assert "rok: 1" in output
-    assert "miesiąc: 2" in output
+    assert "miesiąc: 4" in output
 
 
 def test_headless_main_delegates_to_driver_and_prints_winner(monkeypatch, capsys):

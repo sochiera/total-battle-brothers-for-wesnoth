@@ -267,13 +267,12 @@ def test_scene_development_status_survives_resume_and_reports_no_change(tmp_path
         }
     )
 
+    # G92.2a: two player keeps each accept four develops → eight changes, then no-op.
+    develop_args = ["--develop"] * 8
     first = run_godot_script(
         GAME,
         ENVIRONMENT_AUTOSTART_PROBE,
-        "--develop",
-        "--develop",
-        "--develop",
-        "--develop",
+        *develop_args,
         timeout=30,
         env=environment,
     )
@@ -282,7 +281,7 @@ def test_scene_development_status_survives_resume_and_reports_no_change(tmp_path
     )
 
     session = new_session(SEED)
-    for _ in range(4):
+    for _ in range(8):
         session = apply_command(session, {"type": "order", "order": "develop"})
     assert _environment_autostart_payload(first) == {
         "after_start": _environment_controls(new_session(SEED).snapshot()),

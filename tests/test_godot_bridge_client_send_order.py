@@ -65,7 +65,7 @@ def test_persistent_bridge_send_order_persists_and_returns_the_post_order_model(
     assert payload["order"]["player_result"] == "ongoing"
     assert payload["order"]["player_duchy_status"] == {
         "morale": 0,
-        "settlements": 1,
+        "settlements": 2,  # G92.2a: two starting keeps
         "parties": 0,
     }
     assert payload["unchanged_order"] == payload["resumed"]

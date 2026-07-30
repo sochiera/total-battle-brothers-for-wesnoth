@@ -4,7 +4,8 @@ extends SceneTree
 const MAIN_SCENE_PATH := "res://scenes/main.tscn"
 const BridgeClient = preload("res://scripts/bridge_client.gd")
 const PREFIX := "PERSISTENT_RECRUIT "
-const RECRUIT_COUNT := 5
+# G92.2a: two keeps fill after eight recruits; ninth is the first no-op.
+const RECRUIT_COUNT := 9
 
 
 func _init() -> void:

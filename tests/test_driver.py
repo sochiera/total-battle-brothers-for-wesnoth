@@ -575,14 +575,13 @@ def test_idle_living_hero_does_not_trigger_succession(monkeypatch):
     assert result_game.is_over is False
 
 
-def test_default_game_is_deterministic_early_ai_win_when_player_landless():
-    """Default setup + G90.2a-2: a landless, partyless survivor is defeated.
+def test_default_game_is_deterministic_and_ends_when_loser_is_landless():
+    """Default multi-keep setup ends deterministically; landless side is defeated.
 
-    With equal starting gold both duchies can seat heirs. After the opening
-    assault the losing side keeps a landless, partyless hero, which is now
-    defeated (settlements == () and parties == ()) instead of dragging the
-    game to the max_turns safety limit, so the fixed seed deterministically
-    ends with an early AI win (criterion 2: player defeat in finite turns).
+    G92.2a gives each duchy two keeps, so seed 73 no longer yields the old
+    early AI win after one lost keep. Passive play still finishes without
+    hitting the safety limit: the losing duchy ends landless and partyless
+    (G90.2a-2), and twin runs on the same seed match.
     """
     first_world, first_game = create_headless_game()
     second_world, second_game = create_headless_game()
@@ -596,13 +595,13 @@ def test_default_game_is_deterministic_early_ai_win_when_player_landless():
     assert isinstance(result_calendar, Calendar)
     assert result_game.is_over is True
     assert result_game.winner is not None
-    assert result_game.winner.duchy_id == "ai"
-    assert result_calendar == Calendar(year=1, month=2)
-    player = next(d for d in result_game.duchies if d.duchy_id == "player")
-    assert player.has_hero is True
-    assert player.settlements == ()
-    assert player.parties == ()
-    assert player.is_defeated is True
+    assert result_game.winner.duchy_id == "player"
+    assert result_calendar == Calendar(year=1, month=4)
+    ai = next(d for d in result_game.duchies if d.duchy_id == "ai")
+    assert ai.has_hero is True
+    assert ai.settlements == ()
+    assert ai.parties == ()
+    assert ai.is_defeated is True
 
 
 def _development_scenario():

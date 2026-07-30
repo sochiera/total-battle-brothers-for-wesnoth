@@ -3,7 +3,9 @@ extends SceneTree
 
 const BridgeClient = preload("res://scripts/bridge_client.gd")
 const PREFIX := "BRIDGE_ORDER "
-const REPEATED_DEVELOPS_BEFORE_NO_CHANGE := 3
+# G92.2a: two keeps × four develops each; first send_order is one of eight, so
+# seven more productive develops precede the first no-op probe below.
+const REPEATED_DEVELOPS_BEFORE_NO_CHANGE := 7
 
 
 func _model_data(model: Variant) -> Variant:

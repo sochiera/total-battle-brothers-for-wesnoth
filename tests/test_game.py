@@ -204,40 +204,98 @@ def test_sync_from_world_rejects_a_value_that_is_not_a_world_map():
         game.sync_from_world(object())
 
 
+def _owned_settlement_regions(world: WorldMap, owner_id: str) -> tuple[Region, ...]:
+    return tuple(
+        region
+        for region in world.regions
+        if (settlement := world.settlement_at(region)) is not None
+        and settlement.owner_id == owner_id
+    )
+
+
 def test_headless_setup_has_two_supplied_duchies():
+    """G92.2a: two duchies, four starting keeps with the previous small stocks.
+
+    Realistic defect: create_headless_game still ships one keep per duchy (or
+    a second keep with empty/weaker stocks). Old gates asserted exactly one
+    settlement each, so they could not catch the missing multi-keep world.
+    """
     world, game = create_headless_game()
 
     assert tuple(duchy.duchy_id for duchy in game.duchies) == ("player", "ai")
-    assert len(world.settlements) == 2
+    assert len(world.settlements) == 4
     for duchy in game.duchies:
-        assert len(duchy.settlements) == 1
-        settlement = duchy.settlements[0]
-        assert settlement.owner_id == duchy.duchy_id
-        assert settlement.population > 0
-        assert settlement.storage.wheat > 0
-        assert settlement.storage.gold > 0
+        assert len(duchy.settlements) == 2
+        for settlement in duchy.settlements:
+            assert settlement.owner_id == duchy.duchy_id
+            assert settlement.population == 5
+            assert settlement.occupied == 1
+            assert settlement.storage.wheat == 10
+            assert settlement.storage.gold == 10
+            assert settlement.garrison == (Unit(training=5, equipment=12),)
         assert duchy.hero is not None
         assert duchy.hero.damage > 0
 
 
 def test_headless_setup_connects_opposite_settlements_without_parties():
-    world, _ = create_headless_game()
-    first, middle, last = world.regions
+    """G92.2a: five connected regions, empty border, two keeps per side, no parties.
 
-    assert world.settlement_at(first) is not None
-    assert world.settlement_at(middle) is None
-    assert world.settlement_at(last) is not None
-    assert world.neighbors(first) == (middle,)
-    assert world.neighbors(middle) == (first, last)
-    assert world.neighbors(last) == (middle,)
+    Realistic defect: only three regions remain, or a fifth region is added
+    without joining the graph / without leaving exactly one empty border that
+    separates the two duchies' lands.
+    """
+    world, _ = create_headless_game()
+
+    assert len(world.regions) == 5
+    empty = [region for region in world.regions if world.settlement_at(region) is None]
+    player_regions = _owned_settlement_regions(world, "player")
+    ai_regions = _owned_settlement_regions(world, "ai")
+    assert len(empty) == 1
+    assert len(player_regions) == 2
+    assert len(ai_regions) == 2
     assert dict(world.parties) == {}
+
+    border = empty[0]
+    # Whole map is one connected component (BFS from the first region).
+    seen: set[Region] = set()
+    stack = [world.regions[0]]
+    while stack:
+        current = stack.pop()
+        if current in seen:
+            continue
+        seen.add(current)
+        stack.extend(world.neighbors(current))
+    assert seen == set(world.regions)
+
+    # Border sits between the sides: each side has a keep adjacent to border,
+    # and no direct player↔ai edge bypasses the empty frontier.
+    assert any(border in world.neighbors(region) for region in player_regions)
+    assert any(border in world.neighbors(region) for region in ai_regions)
+    for player_region in player_regions:
+        for ai_region in ai_regions:
+            assert ai_region not in world.neighbors(player_region)
 
 
 def test_headless_setup_shares_settlement_objects_between_world_and_duchies():
+    """World and duchy lists must hold the same settlement object identities.
+
+    Realistic defect: create_headless_game builds parallel Settlement copies for
+    world vs duchies (equal by value, not shared). Settlement is a frozen
+    dataclass, so value-set equality would stay green on copies — compare by id.
+    """
     world, game = create_headless_game()
 
-    assert world.settlement_at(world.regions[0]) is game.duchies[0].settlements[0]
-    assert world.settlement_at(world.regions[-1]) is game.duchies[1].settlements[0]
+    world_ids = {id(settlement) for settlement in world.settlements.values()}
+    duchy_ids = {
+        id(settlement)
+        for duchy in game.duchies
+        for settlement in duchy.settlements
+    }
+    assert duchy_ids == world_ids
+    assert len(duchy_ids) == 4
+    for duchy in game.duchies:
+        for settlement in duchy.settlements:
+            assert any(settlement is world_s for world_s in world.settlements.values())
 
 
 def test_headless_setup_is_deterministic_and_independent():
@@ -253,29 +311,67 @@ def test_headless_setup_is_deterministic_and_independent():
     assert first_game.duchies is not second_game.duchies
 
 
+def test_headless_losing_one_settlement_leaves_duchy_alive_and_game_running():
+    """G92.2a AC3: losing one of two keeps must not defeat the duchy or end play.
+
+    Realistic defect: start still has a single keep, so reassigning that
+    settlement's owner leaves the duchy with zero settlements → is_defeated
+    and (with the other side still standing) ends the game. Multi-region
+    layout alone does not prove survival after one loss.
+    """
+    from dataclasses import replace
+
+    world, game = create_headless_game()
+    player = next(duchy for duchy in game.duchies if duchy.duchy_id == "player")
+    assert len(player.settlements) == 2
+
+    lost = player.settlements[0]
+    lost_region = next(
+        region
+        for region in world.regions
+        if world.settlement_at(region) is lost
+    )
+    conquered = replace(lost, owner_id="ai")
+    after_world = world.with_settlement(lost_region, conquered)
+    after_game = game.sync_from_world(after_world)
+    after_player = next(
+        duchy for duchy in after_game.duchies if duchy.duchy_id == "player"
+    )
+
+    assert len(after_player.settlements) == 1
+    assert after_player.is_defeated is False
+    assert after_game.is_over is False
+    assert after_game.winner is None
+
+
 def test_headless_start_is_symmetric_and_player_keeps_lands_after_one_passive_turn():
-    """G90.1a: symmetric start so passive play does not hand the keep to AI.
+    """G90.1a / G92.2a: all four keeps match; passive play keeps player lands.
 
     Existing headless setup tests check population/storage/heroes, but not
-    garrison symmetry. Without a matching starting garrison the AI conquers
-    ``player lands`` on a fully passive first turn (seed 73), so the party
-    cannot begin. Covers AC1–AC4: symmetry, one passive turn, ten passive
-    turns, and deterministic twin runs on the same seed.
+    garrison symmetry across every starting keep. Without matching garrisons
+    the AI can still wipe a frontier keep too easily; with only one keep that
+    ends the duchy. Covers symmetry, one passive turn, ten passive turns, and
+    deterministic twin runs on the same seed.
     """
     world, game = create_headless_game()
-    player_region, _border, ai_region = world.regions
-    player_keep = world.settlement_at(player_region)
-    ai_keep = world.settlement_at(ai_region)
+    keeps = tuple(world.settlements.values())
+    assert len(keeps) == 4
+    reference = keeps[0]
+    for keep in keeps[1:]:
+        assert keep.occupied == reference.occupied
+        assert keep.garrison == reference.garrison
+        assert keep.population == reference.population
+        assert keep.storage == reference.storage
 
-    assert player_keep is not None and ai_keep is not None
-    assert player_keep.occupied == ai_keep.occupied
-    assert player_keep.garrison == ai_keep.garrison
+    player_regions = _owned_settlement_regions(world, "player")
+    assert len(player_regions) == 2
 
     result_world, result_game, _ = run_headless_game(
         world, game, Rng(73), max_turns=1, player_duchy_id="player"
     )
 
-    assert result_world.settlement_at(player_region).owner_id == "player"
+    for region in player_regions:
+        assert result_world.settlement_at(region).owner_id == "player"
     player = next(duchy for duchy in result_game.duchies if duchy.duchy_id == "player")
     assert len(player.settlements) >= 1
 
@@ -286,7 +382,8 @@ def test_headless_start_is_symmetric_and_player_keeps_lands_after_one_passive_tu
         *create_headless_game(), Rng(73), max_turns=10, player_duchy_id="player"
     )
     world10, game10, _ = after_ten_a
-    assert world10.settlement_at(player_region).owner_id == "player"
+    for region in player_regions:
+        assert world10.settlement_at(region).owner_id == "player"
     player10 = next(d for d in game10.duchies if d.duchy_id == "player")
     assert len(player10.settlements) >= 1
     # AC4: full run_headless_game triple (world, game, calendar), not just [:2].
@@ -306,7 +403,9 @@ def test_one_default_recruit_before_first_turn_does_not_reduce_keep_rate():
 
     def player_keeps_after_one_turn(seed: int, *, recruit: bool) -> bool:
         world, game = create_headless_game()
-        player_region = world.regions[0]
+        player_regions = _owned_settlement_regions(world, "player")
+        assert player_regions
+        player_region = player_regions[0]
         if recruit:
             keep = world.settlement_at(player_region)
             world = world.with_settlement(player_region, keep.recruit())

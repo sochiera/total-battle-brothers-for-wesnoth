@@ -1325,13 +1325,17 @@ def test_apply_command_order_engage_fallback_and_guards_and_no_op_no_rng():
 
 
 def test_natural_seed73_assault_resolves_with_world_matching_battle_result():
-    """G89.2a-2: natural seed-73 assault ends with a real result, not round-limit None.
+    """G89.2a-2 / G92.2a: natural seed-73 assault ends with a real result.
 
     Realistic defect: G89.2a-1 unit-level swap tests on synthetic three-hex
-    layouts stay green while the live recruit×2 → muster → march → assault path
-    still exhausts auto_resolve with ``result() is None``. Unresolved remains
-    legal (K89.1) and keeps the party on border — so without this gate the
-    repro looks like "nothing happened" again even though swap unit tests pass.
+    layouts stay green while the live recruit×2 → muster → march×2 → assault
+    path still exhausts auto_resolve with ``result() is None``. Unresolved
+    remains legal (K89.1) and keeps the party on border — so without this gate
+    the repro looks like "nothing happened" again even though swap unit tests
+    pass.
+
+    G92.2a: the chain needs two marches (lands → outpost → border) and the
+    assault hits the AI frontier keep (``ai outpost``), not the sole rear keep.
 
     Public contract: ``apply_command`` assault on seed 73 (which drives
     ``resolve_settlement_battle_recorded``) yields a decided ``BattleResult``
@@ -1344,12 +1348,12 @@ def test_natural_seed73_assault_resolves_with_world_matching_battle_result():
     resolved = frozenset(BattleResult)
     border = Region("border")
     player_lands = Region("player lands")
-    ai_lands = Region("ai lands")
+    ai_outpost = Region("ai outpost")
 
     outcomes = []
     for _ in range(2):
         before_assault = new_session(seed=73, player_duchy_id="player")
-        for order in ("recruit", "recruit", "muster", "march"):
+        for order in ("recruit", "recruit", "muster", "march", "march"):
             before_assault = apply_command(
                 before_assault, {"type": "order", "order": order}
             )
@@ -1370,32 +1374,32 @@ def test_natural_seed73_assault_resolves_with_world_matching_battle_result():
 
         # Kryt-2: world matches the battle result (not the unresolved shape).
         player = next(d for d in after.game.duchies if d.duchy_id == "player")
-        ai_keep = after.world.settlement_at(ai_lands)
+        frontier = after.world.settlement_at(ai_outpost)
         player_keep = after.world.settlement_at(player_lands)
         if result is BattleResult.DEFENDER_WIN:
             assert after.world.party_at(border) is None
-            assert after.world.party_at(ai_lands) is None
+            assert after.world.party_at(ai_outpost) is None
             assert len(player.parties) == 0
             assert player_keep.owner_id == "player"
-            assert ai_keep.owner_id == "ai"
-            assert len(ai_keep.garrison) >= 1
+            assert frontier.owner_id == "ai"
+            assert len(frontier.garrison) >= 1
         elif result is BattleResult.ATTACKER_WIN:
-            # Victor occupies the keep region; duchy parties stay non-empty.
-            winner = after.world.party_at(ai_lands)
+            # Victor occupies the frontier keep; duchy parties stay non-empty.
+            winner = after.world.party_at(ai_outpost)
             assert winner is not None
             assert winner.owner_id == "player"
             assert after.world.party_at(border) is None
             assert len(player.parties) >= 1
             assert player_keep.owner_id == "player"
-            assert ai_keep.owner_id == "player"
+            assert frontier.owner_id == "player"
         else:
             # DRAW wipes the attacking party; settlement stays AI-owned.
             assert result is BattleResult.DRAW
             assert after.world.party_at(border) is None
-            assert after.world.party_at(ai_lands) is None
+            assert after.world.party_at(ai_outpost) is None
             assert len(player.parties) == 0
             assert player_keep.owner_id == "player"
-            assert ai_keep.owner_id == "ai"
+            assert frontier.owner_id == "ai"
 
         # Bridge-facing summary must also report a decided outcome.
         summary = command_result(
@@ -1436,6 +1440,9 @@ def test_player_order_path_resolves_hero_survival_like_ai_when_party_is_lost():
     ``has_hero``/``has_heir`` are false and morale drops by
     ``SUCCESSION_MORALE_PENALTY``. Orders that do not destroy the party leave
     hero/heir/morale unchanged. Same seed → same outcome.
+
+    G92.2a: path is recruit → muster → march×2 → assault (frontier keep); seed 73
+    still yields DEFENDER_WIN and a wiped player party on that weaker force.
     """
     from tbb.duchy import SUCCESSION_MORALE_PENALTY
 
@@ -1447,7 +1454,7 @@ def test_player_order_path_resolves_hero_survival_like_ai_when_party_is_lost():
         assert start.has_hero is True
         assert start.heir is None
 
-        for order in ("recruit", "muster", "march"):
+        for order in ("recruit", "muster", "march", "march"):
             session = apply_command(session, {"type": "order", "order": order})
             player = next(d for d in session.game.duchies if d.duchy_id == "player")
             assert player.has_hero is True
@@ -1500,12 +1507,14 @@ def test_player_order_path_promotes_heir_when_party_is_lost_with_successor():
     by assault) so the bridge must surface ``succeed()`` with an heir: new hero is
     the former heir, ``has_heir`` is false, morale drops by
     ``SUCCESSION_MORALE_PENALTY`` — in game state and snapshot.
+
+    G92.2a: same frontier path needs two marches before assault.
     """
     from tbb.duchy import Duchy, SUCCESSION_MORALE_PENALTY
     from tbb.unit import Unit
 
     session = new_session(seed=73, player_duchy_id="player")
-    for order in ("recruit", "muster", "march"):
+    for order in ("recruit", "muster", "march", "march"):
         session = apply_command(session, {"type": "order", "order": order})
 
     player = next(d for d in session.game.duchies if d.duchy_id == "player")

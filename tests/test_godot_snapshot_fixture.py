@@ -19,5 +19,23 @@ def test_session_snapshot_fixture_is_valid_and_matches_fresh_public_snapshot():
     assert fixture == new_session().snapshot()
     assert fixture["calendar"]["year"] == 1
     assert fixture["calendar"]["month"] == 1
-    assert fixture["map"]["regions"]
+    # G92.2a AC4: fresh public snapshot carries five regions and two keeps/side
+    # without adding snapshot fields (shape stays calendar/player_duchy/duchies/map/result).
+    assert list(fixture.keys()) == [
+        "calendar",
+        "player_duchy",
+        "duchies",
+        "map",
+        "result",
+    ]
+    assert [region["name"] for region in fixture["map"]["regions"]] == [
+        "player lands",
+        "player outpost",
+        "border",
+        "ai outpost",
+        "ai lands",
+    ]
+    by_id = {duchy["id"]: duchy for duchy in fixture["duchies"]}
+    assert by_id["player"]["settlements"] == 2
+    assert by_id["ai"]["settlements"] == 2
     assert "player_result" in fixture["result"]

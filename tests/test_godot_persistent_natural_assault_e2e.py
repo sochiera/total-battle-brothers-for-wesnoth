@@ -1,22 +1,21 @@
-"""G89.1b-4 / G91.1b e2e: natural sequence ends with battle effect and party win.
+"""G89.1b-4 / G91.1b / G92.2a e2e: natural sequence shows battle effect and capture.
 
-On seed 73 the path recruit×2 → muster → march → assault drives a settlement
+On seed 73 the path recruit×2 → muster → march×2 → assault drives a settlement
 battle across a live bridge process bound to the Godot client — the unique risk
 named in task-504 / PROJECT.md conclusion 13. Slice tests (core, protocol,
 order_result, assault e2e without the two recruits) already pass; this path
 must still surface a readable battle outcome, not a failed-order message.
 
 After G89.2a-1 (swap past own stunned ally) the seed-73 natural fight is no
-longer a round-limit stalemate. After G90.1a the player keep starts with a
-veteran garrison (symmetric with AI), so the mustered party on this path is
-larger. After G91.1a default recruits enter with positive training/equipment,
-so the same recruit×2 path on seed 73 resolves as attacker zwycięstwo
-(defender_losses=1, no attacker losses; party holds the captured keep) and the
-campaign ends with player_result victory.
+longer a round-limit stalemate. After G90.1a keeps start with a veteran garrison.
+After G91.1a default recruits enter with positive training/equipment, so the
+path on seed 73 resolves as attacker zwycięstwo (defender_losses=1, no attacker
+losses; party holds the captured frontier keep).
 
-G91.1b: ResultLabel shows Polish victory, AI lands paint as player-owned, and a
-second process resumes that finished state. Unresolved battle remains legal
-elsewhere (K89.1).
+G92.2a multi-keep world: the assault hits ``ai outpost`` (not the sole AI keep),
+so the campaign stays ongoing after one capture. G91.1b still requires the
+captured keep to paint as player-owned and a second process to resume that
+state. Unresolved battle remains legal elsewhere (K89.1).
 """
 
 from __future__ import annotations
@@ -34,11 +33,12 @@ PROBE = "res://tests/persistent_natural_assault_e2e_probe.gd"
 PREFIX = "PERSISTENT_NATURAL_ASSAULT "
 SEED = 73
 PLAYER_LANDS = "player lands"
-AI_LANDS = "ai lands"
+AI_OUTPOST = "ai outpost"
 # Matches G85 assault e2e status shape; natural path with G91.1a recruits wins.
 EXPECTED_ORDER_STATUS = "Szturm: zwycięstwo (straty: 0, wróg: 1)."
-EXPECTED_PARTY_POSITION = "Położenie oddziału: ai lands"
-EXPECTED_PARTY_RESULT = PLAYER_RESULT_PL["victory"]
+EXPECTED_PARTY_POSITION = "Położenie oddziału: ai outpost"
+# One captured keep of two leaves both sides standing (G92.2a AC3).
+EXPECTED_PARTY_RESULT = PLAYER_RESULT_PL["ongoing"]
 EXPECTED_BATTLE_RESULT = {
     "kind": "battle",
     "order": "assault",
@@ -77,8 +77,8 @@ def _assert_successful_resolved_assault(play: dict) -> None:
     )
     assert play["controls"]["party_position"] == EXPECTED_PARTY_POSITION
     # Settlement ownership lives in duchy_status (regions list shows names only).
-    # Attacker win (G91.1a): enemy keep taken; party remains on captured region.
-    assert "osady: 2" in play["controls"]["duchy_status"]
+    # Attacker win: frontier keep taken; start had 2 keeps → 3 after capture.
+    assert "osady: 3" in play["controls"]["duchy_status"]
     assert "oddziały: 1" in play["controls"]["duchy_status"]
 
     # Machine result from the bridge response projected by the client.
@@ -86,25 +86,24 @@ def _assert_successful_resolved_assault(play: dict) -> None:
     assert last == EXPECTED_BATTLE_RESULT, last
 
 
-def _assert_player_party_victory_on_screen(play: dict, *, phase: str = "play") -> None:
-    """G91.1b: finished party shows Polish victory and captured AI keep on map.
+def _assert_capture_visible_on_screen(play: dict, *, phase: str = "play") -> None:
+    """G91.1b / G92.2a: captured frontier keep paints as player-owned; game ongoing.
 
-    Realistic defect existing gates miss: natural assault e2e and G90.2b binding
-    stay green while the live path still leaves ResultLabel on „gra trwa” (or
-    blank) and MapView keeps AI ownership paint on the taken keep — battle
-    status says „Szturm: zwycięstwo” but the player never sees a won campaign.
+    Realistic defect: natural assault e2e stays green on status text while MapView
+    keeps AI ownership paint on the taken keep, or the multi-keep world is
+    mis-read as an instant campaign win after one capture.
     """
     assert play["controls"]["result"] == EXPECTED_PARTY_RESULT, (
-        f"{phase}: expected game-level Polish victory on ResultLabel; "
+        f"{phase}: expected ongoing campaign after one of two AI keeps falls; "
         f"got {play['controls']['result']!r}"
     )
 
     map_view = play["map_view"]
     assert map_view["map_view_found"] is True, map_view
     visuals = map_view["tile_visuals"]
-    assert PLAYER_LANDS in visuals and AI_LANDS in visuals, visuals
-    assert visuals[PLAYER_LANDS] == visuals[AI_LANDS], (
-        f"{phase}: captured ai lands must share player ownership paint; "
+    assert PLAYER_LANDS in visuals and AI_OUTPOST in visuals, visuals
+    assert visuals[PLAYER_LANDS] == visuals[AI_OUTPOST], (
+        f"{phase}: captured ai outpost must share player ownership paint; "
         f"got {visuals}"
     )
 
@@ -113,28 +112,28 @@ def _assert_player_party_victory_on_screen(play: dict, *, phase: str = "play") -
         start = play["after_start"]
         start_visuals = start["map_view"]["tile_visuals"]
         assert start["controls"]["result"] == PLAYER_RESULT_PL["ongoing"], start
-        assert start_visuals.get(PLAYER_LANDS) != start_visuals.get(AI_LANDS), (
-            "precondition: start must paint player lands differently from AI lands; "
+        assert start_visuals.get(PLAYER_LANDS) != start_visuals.get(AI_OUTPOST), (
+            "precondition: start must paint player lands differently from ai outpost; "
             f"got {start_visuals}"
         )
-        assert visuals[AI_LANDS] == start_visuals[PLAYER_LANDS], (
-            "ai lands after assault must adopt the start player ownership paint; "
+        assert visuals[AI_OUTPOST] == start_visuals[PLAYER_LANDS], (
+            "ai outpost after assault must adopt the start player ownership paint; "
             f"start_player={start_visuals.get(PLAYER_LANDS)!r} "
-            f"after_ai={visuals.get(AI_LANDS)!r} full_after={visuals}"
+            f"after_outpost={visuals.get(AI_OUTPOST)!r} full_after={visuals}"
         )
-        assert visuals[AI_LANDS] != start_visuals[AI_LANDS], (
-            "ai lands must change ownership paint after capture; "
-            f"start_ai={start_visuals.get(AI_LANDS)!r} after={visuals.get(AI_LANDS)!r}"
+        assert visuals[AI_OUTPOST] != start_visuals[AI_OUTPOST], (
+            "ai outpost must change ownership paint after capture; "
+            f"start={start_visuals.get(AI_OUTPOST)!r} after={visuals.get(AI_OUTPOST)!r}"
         )
 
 
-def test_natural_sequence_ends_with_player_party_victory_on_live_bridge(tmp_path):
-    """Recruit×2 → muster → march → assault wins the party on a live bridge (G91.1b).
+def test_natural_sequence_captures_frontier_keep_campaign_ongoing_on_live_bridge(tmp_path):
+    """Recruit×2 → muster → march×2 → assault: frontier capture, campaign ongoing.
 
     Realistic defect: G89 battle-outcome e2e and G90.2b fixture binding stay
-    green while the natural live path still shows „gra trwa”, leaves AI paint on
-    the captured keep, or resumes a non-victory campaign — so pytest never
-    proves the player can win looking at the screen.
+    green while the natural live path still shows a failed-order message, leaves
+    AI paint on the captured keep, or mis-reports campaign end after one of two
+    AI keeps falls.
     """
     command_prefix = f"PYTHONPATH={shlex.quote(str(ROOT / 'src'))} python3 -m tbbbridge"
 
@@ -146,11 +145,11 @@ def test_natural_sequence_ends_with_player_party_victory_on_live_bridge(tmp_path
         request_path = tmp_path / f"bridge-request-{run_id}.jsonl"
         play = _run_process(command_prefix, state_path, request_path, "play")
         _assert_successful_resolved_assault(play)
-        _assert_player_party_victory_on_screen(play, phase="play")
+        _assert_capture_visible_on_screen(play, phase="play")
         outcomes.append(play["order_results"][-1])
         party_results.append(play["controls"]["result"])
 
-        # Kryt-3: resume the persisted finished campaign.
+        # Kryt-3: resume the persisted campaign after the frontier capture.
         resumed = _run_process(
             command_prefix,
             state_path,
@@ -163,11 +162,11 @@ def test_natural_sequence_ends_with_player_party_victory_on_live_bridge(tmp_path
         assert resumed["state_exists"] is True
         assert resumed["controls"]["party_position"] == EXPECTED_PARTY_POSITION
         assert resumed["controls"]["date"] == play["controls"]["date"]
-        # Attacker win: party holds captured keep; player has 2 settlements.
-        assert "osady: 2" in resumed["controls"]["duchy_status"]
+        # Attacker win: party holds captured outpost; player has 3 settlements.
+        assert "osady: 3" in resumed["controls"]["duchy_status"]
         assert "oddziały: 1" in resumed["controls"]["duchy_status"]
         assert resumed["controls"]["regions"] == play["controls"]["regions"]
-        _assert_player_party_victory_on_screen(resumed, phase="resume")
+        _assert_capture_visible_on_screen(resumed, phase="resume")
         assert resumed["controls"]["result"] == play["controls"]["result"]
         assert resumed["map_view"]["tile_visuals"] == play["map_view"]["tile_visuals"]
 

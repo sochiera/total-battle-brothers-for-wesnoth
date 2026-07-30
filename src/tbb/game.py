@@ -11,37 +11,59 @@ from tbb.unit import Unit
 from tbb.world import Region, WorldMap
 
 
+def _starting_settlement(name: str, owner_id: str) -> Settlement:
+    """Build one of the symmetric, supplied settlements in a new game."""
+    return Settlement(
+        name,
+        5,
+        occupied=1,
+        storage=Resources(10, 10),
+        garrison=(Unit(training=5, equipment=12),),
+        owner_id=owner_id,
+    )
+
+
 def create_headless_game() -> tuple[WorldMap, "GameState"]:
     """Create the fixed two-duchy starting state for the headless game."""
     player_region = Region("player lands")
+    player_outpost = Region("player outpost")
     border_region = Region("border")
+    ai_outpost = Region("ai outpost")
     ai_region = Region("ai lands")
 
-    player_settlement = Settlement(
-        "Player Keep",
-        5,
-        occupied=1,
-        storage=Resources(10, 10),
-        garrison=(Unit(training=5, equipment=12),),
-        owner_id="player",
+    player_settlement = _starting_settlement("Player Keep", "player")
+    player_outpost_settlement = _starting_settlement(
+        "Player Outpost", "player"
     )
-    ai_settlement = Settlement(
-        "AI Keep",
-        5,
-        occupied=1,
-        storage=Resources(10, 10),
-        garrison=(Unit(training=5, equipment=12),),
-        owner_id="ai",
-    )
+    ai_outpost_settlement = _starting_settlement("AI Outpost", "ai")
+    ai_settlement = _starting_settlement("AI Keep", "ai")
     world = WorldMap(
-        (player_region, border_region, ai_region),
-        ((player_region, border_region), (border_region, ai_region)),
-        {player_region: player_settlement, ai_region: ai_settlement},
+        (player_region, player_outpost, border_region, ai_outpost, ai_region),
+        (
+            (player_region, player_outpost),
+            (player_outpost, border_region),
+            (border_region, ai_outpost),
+            (ai_outpost, ai_region),
+        ),
+        {
+            player_region: player_settlement,
+            player_outpost: player_outpost_settlement,
+            ai_outpost: ai_outpost_settlement,
+            ai_region: ai_settlement,
+        },
     )
     game = GameState(
         (
-            Duchy("player", Unit(equipment=1), settlements=(player_settlement,)),
-            Duchy("ai", Unit(equipment=1), settlements=(ai_settlement,)),
+            Duchy(
+                "player",
+                Unit(equipment=1),
+                settlements=(player_settlement, player_outpost_settlement),
+            ),
+            Duchy(
+                "ai",
+                Unit(equipment=1),
+                settlements=(ai_outpost_settlement, ai_settlement),
+            ),
         )
     )
     return world, game

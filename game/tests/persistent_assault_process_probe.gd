@@ -45,6 +45,9 @@ func _run() -> void:
 			if not _press(scene_root, "MusterButton"):
 				return
 			controls_after_muster = _controls(scene_root)
+			# G92.2a chain: player lands → player outpost → border (two marches).
+			if not _press(scene_root, "MarchButton"):
+				return
 			if not _press(scene_root, "MarchButton"):
 				return
 		"battle", "second_assault":

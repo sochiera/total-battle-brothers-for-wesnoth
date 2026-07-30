@@ -82,5 +82,11 @@ def test_scene_bind_probe_clears_status_when_the_next_model_has_no_player_duchy(
     assert "SCRIPT ERROR" not in result.stderr, result.stderr
 
     payload = json.loads(lines[0][len(PREFIX) :])
-    assert payload["duchy_status_before_clear"] == "Morale: 0, osady: 1, oddziały: 0"
+    player = next(d for d in snapshot["duchies"] if d["id"] == snapshot["player_duchy"])
+    assert payload["duchy_status_before_clear"] == (
+        f"Morale: {player['morale']}, "
+        f"osady: {player['settlements']}, "
+        f"oddziały: {player['parties']}"
+    )
+    assert player["settlements"] == 2  # G92.2a: two starting keeps
     assert payload["duchy_status"] == ""

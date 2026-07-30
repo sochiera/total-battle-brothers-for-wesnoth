@@ -26,7 +26,8 @@ def _expected_controls(recruits: int) -> dict:
         "result": map_player_result(snapshot['result']['player_result']),
         "order_status": (
             "Rozkaz rekrutacji zmienił stan."
-            if recruits <= 4
+            # G92.2a: two keeps × four free garrison slots = eight productive recruits.
+            if recruits <= 8
             else "Rozkaz rekrutacji nie zmienił stanu."
         ),
     }
@@ -53,9 +54,10 @@ def test_recruit_button_persists_five_changes_then_resumes_with_no_change(tmp_pa
     assert len(lines) == 1, result.stdout
     payload = json.loads(lines[0][len(PREFIX) :])
 
+    # First process: eight changes + one no-op; resume: still no-op.
     assert payload == {
         "state_exists_after_first_process": True,
-        "first": [_expected_controls(recruits) for recruits in range(1, 6)],
+        "first": [_expected_controls(recruits) for recruits in range(1, 10)],
         "resumed_command": f"{command_prefix} serve --resume '{state_path}'",
-        "resumed": _expected_controls(6),
+        "resumed": _expected_controls(10),
     }

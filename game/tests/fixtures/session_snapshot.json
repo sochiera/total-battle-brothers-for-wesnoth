@@ -8,7 +8,7 @@
     {
       "id": "player",
       "morale": 0,
-      "settlements": 1,
+      "settlements": 2,
       "parties": 0,
       "has_hero": true,
       "has_heir": false,
@@ -17,7 +17,7 @@
     {
       "id": "ai",
       "morale": 0,
-      "settlements": 1,
+      "settlements": 2,
       "parties": 0,
       "has_hero": true,
       "has_heir": false,
@@ -47,16 +47,56 @@
         "party": null
       },
       {
-        "name": "border",
+        "name": "player outpost",
         "col": 1,
+        "row": 0,
+        "owner": "player",
+        "settlement": {
+          "name": "Player Outpost",
+          "owner": "player",
+          "wheat": 10,
+          "gold": 10,
+          "population": 5,
+          "free": 4,
+          "garrison": 1,
+          "buildings": [],
+          "wheat_production": 0,
+          "gold_production": 0,
+          "wheat_consumption": 5
+        },
+        "party": null
+      },
+      {
+        "name": "border",
+        "col": 2,
         "row": 0,
         "owner": null,
         "settlement": null,
         "party": null
       },
       {
+        "name": "ai outpost",
+        "col": 3,
+        "row": 0,
+        "owner": "ai",
+        "settlement": {
+          "name": "AI Outpost",
+          "owner": "ai",
+          "wheat": 10,
+          "gold": 10,
+          "population": 5,
+          "free": 4,
+          "garrison": 1,
+          "buildings": [],
+          "wheat_production": 0,
+          "gold_production": 0,
+          "wheat_consumption": 5
+        },
+        "party": null
+      },
+      {
         "name": "ai lands",
-        "col": 2,
+        "col": 4,
         "row": 0,
         "owner": "ai",
         "settlement": {
@@ -78,10 +118,18 @@
     "connections": [
       {
         "from": "player lands",
+        "to": "player outpost"
+      },
+      {
+        "from": "player outpost",
         "to": "border"
       },
       {
         "from": "border",
+        "to": "ai outpost"
+      },
+      {
+        "from": "ai outpost",
         "to": "ai lands"
       }
     ]

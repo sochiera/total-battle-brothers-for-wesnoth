@@ -1,17 +1,17 @@
 extends SceneTree
 
 
-## G89.1b-4 / G91.1b e2e: natural recruit×2 → muster → march → assault on a
-## live bridge process must end with a readable battle outcome, game-level
-## player victory on screen, map ownership of the captured keep, and resume
-## of that finished state.
+## G89.1b-4 / G91.1b / G92.2a e2e: natural recruit×2 → muster → march×2 →
+## assault on a live bridge process must end with a readable battle outcome,
+## map ownership of the captured frontier keep (ai outpost), and resume of
+## that state. Multi-keep world keeps the campaign ongoing after one capture.
 
 const MAIN_SCENE_PATH := "res://scenes/main.tscn"
 const BridgeClient = preload("res://scripts/bridge_client.gd")
 const PartyMapMark = preload("res://tests/party_map_mark_helpers.gd")
 const PREFIX := "PERSISTENT_NATURAL_ASSAULT "
 const PLAYER_LANDS := "player lands"
-const AI_LANDS := "ai lands"
+const AI_OUTPOST := "ai outpost"
 
 
 func _init() -> void:
@@ -40,7 +40,15 @@ func _run() -> void:
 	match phase:
 		"play":
 			after_start = _observation(scene_root)
-			for button_name in ["RecruitButton", "RecruitButton", "MusterButton", "MarchButton", "AssaultButton"]:
+			# G92.2a: two marches reach border before assault on the AI frontier keep.
+			for button_name in [
+				"RecruitButton",
+				"RecruitButton",
+				"MusterButton",
+				"MarchButton",
+				"MarchButton",
+				"AssaultButton",
+			]:
 				if not _press(scene_root, button_name):
 					return
 				order_results.append(client.last_order_result())
@@ -116,7 +124,7 @@ func _map_view_observation(scene_root: Control) -> Dictionary:
 	var map_view: Node = scene_root.find_child("MapView", true, false)
 	var tile_visuals: Dictionary = {}
 	if map_view != null:
-		for region_name: String in [PLAYER_LANDS, AI_LANDS]:
+		for region_name: String in [PLAYER_LANDS, AI_OUTPOST]:
 			var visual: String = _tile_visual(map_view, region_name)
 			if not visual.is_empty():
 				tile_visuals[region_name] = visual

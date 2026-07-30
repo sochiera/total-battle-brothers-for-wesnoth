@@ -32,6 +32,9 @@ func _init() -> void:
 			_fail("missing MusterButton")
 			return
 		muster_button.emit_signal("pressed")
+		# G92.2a: party lands → outpost → border needs two marches; last press below
+		# is the second hop (still a change) so resume can assert no-op at the border.
+		march_button.emit_signal("pressed")
 	else:
 		if args[4] != "resume":
 			_fail("unknown phase")
