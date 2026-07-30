@@ -589,6 +589,250 @@ def test_apply_command_order_march_falls_back_to_auto_when_target_missing_empty_
         assert s.world.party_at(step_far_region) is None
 
 
+def _build_move_order_session(
+    *,
+    region_names: tuple[str, ...],
+    edges: tuple[tuple[str, str], ...],
+    party_region: str,
+    settlements: dict[str, object] | None = None,
+    extra_parties: dict[str, object] | None = None,
+    south_settlement_names: tuple[str, ...] = ("Elsewhere",),
+) -> tuple[Session, dict[str, object], object]:
+    """Build a two-duchy session for G97.1a ``move`` order gates.
+
+    Returns ``(session, regions_by_name, player_party)``. A second undefeated
+    duchy (``south``) owns the named settlements so ``game.is_over`` stays
+    False and ``apply_command`` can apply player orders.
+    """
+    from tbb.duchy import Duchy
+    from tbb.party import Party
+    from tbb.settlement import Settlement
+    from tbb.unit import Unit
+    from tbb.world import Region, WorldMap
+
+    regions = {name: Region(name) for name in region_names}
+    party = Party(Unit(training=4), (Unit(equipment=1),), owner_id="north")
+    settlement_map = {}
+    south_settlements = []
+    provided = settlements or {}
+    for name in south_settlement_names:
+        if name in provided:
+            continue
+        keep = Settlement(f"{name} Keep", 2, owner_id="south")
+        settlement_map[regions[name]] = keep
+        south_settlements.append(keep)
+    for name, settlement in provided.items():
+        settlement_map[regions[name]] = settlement
+        if getattr(settlement, "owner_id", None) == "south":
+            south_settlements.append(settlement)
+    parties = {regions[party_region]: party}
+    if extra_parties:
+        for name, other in extra_parties.items():
+            parties[regions[name]] = other
+    world = WorldMap(
+        tuple(regions[name] for name in region_names),
+        tuple((regions[a], regions[b]) for a, b in edges),
+        settlements=settlement_map,
+        parties=parties,
+    )
+    north_settlements = tuple(
+        s for s in settlement_map.values() if s.owner_id == "north"
+    )
+    game = GameState(
+        (
+            Duchy(
+                "north",
+                party.hero,
+                parties=(party,),
+                settlements=north_settlements,
+            ),
+            Duchy("south", Unit(), settlements=tuple(south_settlements)),
+        )
+    )
+    assert not game.is_over
+    session = Session(
+        world=world,
+        game=game,
+        calendar=Calendar(year=2, month=3),
+        rng=Rng(11),
+        player_duchy_id="north",
+        seed=11,
+    )
+    return session, regions, party
+
+
+def test_apply_command_order_move_occupies_empty_adjacent_target():
+    """G97.1a: ``{"type":"order","order":"move","target":<name>}`` applies
+    ``ai.move_duchy_party_to_adjacent`` for a free direct neighbour.
+
+    Realistic defect: the bridge still rejects ``order: "move"`` as unknown
+    (``ValueError`` / protocol failure) or reuses ``march_duchy_party_to``,
+    which is a no-op when the named region is already adjacent
+    (``next_march_step`` returns ``None``). Core tests pin the primitive;
+    existing bridge gates only cover ``march`` / develop / recruit / muster —
+    nothing requires the public ``move`` order to occupy the neighbour.
+    """
+    from tbb.ai import march_duchy_party_to, move_duchy_party_to_adjacent
+    from tbbbridge.protocol import command_result
+
+    s, regions, party = _build_move_order_session(
+        region_names=("Start", "Neighbor", "Elsewhere"),
+        edges=(("Start", "Neighbor"),),
+        party_region="Start",
+    )
+    start, neighbor = regions["Start"], regions["Neighbor"]
+    duchy = s.game.duchies[0]
+    calendar = s.calendar
+
+    # Same inputs stay a no-op under the preserved march-toward contract.
+    assert march_duchy_party_to(s.world, duchy, neighbor) is s.world
+    expected_world = move_duchy_party_to_adjacent(s.world, duchy, neighbor)
+    assert expected_world is not s.world
+    assert expected_world.party_at(neighbor) is party
+
+    command = {"type": "order", "order": "move", "target": "Neighbor"}
+    before = copy.deepcopy(s.snapshot())
+    after = apply_command(s, command)
+
+    assert isinstance(after, Session)
+    assert after is not s
+    assert after.player_duchy_id == "north"
+    assert after.seed == 11
+    assert after.calendar == calendar
+    assert after.rng is s.rng
+    assert after.rng.randint(0, 1000) == Rng(11).randint(0, 1000)
+    assert after.world.party_at(neighbor) is party
+    assert after.world.party_at(start) is None
+    assert after.world == expected_world
+    assert after.game is not s.game
+    assert command_result(s, after, command) == {
+        "kind": "order",
+        "order": "move",
+        "changed": True,
+    }
+    assert after.snapshot()["map"] != before["map"]
+    assert s.snapshot() == before
+    assert s.world.party_at(start) is party
+    assert s.world.party_at(neighbor) is None
+
+
+def test_apply_command_order_move_enters_adjacent_own_settlement():
+    """G97.1a: legal ``move`` also enters an adjacent settlement owned by the
+    player duchy (safe adjacent step, not assault).
+    """
+    from tbb.settlement import Settlement
+    from tbbbridge.protocol import command_result
+
+    own_keep = Settlement("Home Keep", 2, owner_id="north")
+    s, regions, party = _build_move_order_session(
+        region_names=("Start", "Home", "Elsewhere"),
+        edges=(("Start", "Home"),),
+        party_region="Start",
+        settlements={"Home": own_keep},
+    )
+    start, home = regions["Start"], regions["Home"]
+    calendar = s.calendar
+    rng = s.rng
+    command = {"type": "order", "order": "move", "target": "Home"}
+    before = copy.deepcopy(s.snapshot())
+    after = apply_command(s, command)
+
+    assert after.world.party_at(home) is party
+    assert after.world.party_at(start) is None
+    assert after.calendar == calendar
+    assert after.calendar == Calendar(year=2, month=3)
+    assert after.rng is rng
+    assert command_result(s, after, command)["changed"] is True
+    assert s.snapshot() == before
+
+
+def test_apply_command_order_move_is_noop_for_missing_unknown_or_illegal_target():
+    """G97.1a: missing/empty/unknown target and illegal destinations leave the
+    party in place, return a normal order result (``changed: false``), never
+    fall back to automatic ``march``, and never raise protocol ``ValueError``.
+
+    Branching map: auto-``march`` would step to ``StepNear``; ``march`` with
+    target ``Far`` would step to ``StepFar``. Illegal ``move`` must stay at
+    ``Start`` in every variant.
+    """
+    from tbb.ai import march_duchy_party, march_duchy_party_to
+    from tbb.party import Party
+    from tbb.unit import Unit
+    from tbbbridge.protocol import command_result
+
+    move_map = dict(
+        region_names=(
+            "Start",
+            "StepNear",
+            "Near",
+            "StepFar",
+            "Far",
+            "Occupied",
+            "Elsewhere",
+        ),
+        edges=(
+            ("Start", "StepNear"),
+            ("StepNear", "Near"),
+            ("Start", "StepFar"),
+            ("StepFar", "Far"),
+            ("Start", "Occupied"),
+        ),
+        party_region="Start",
+        extra_parties={
+            "Occupied": Party(Unit(training=2), (), owner_id="south")
+        },
+        south_settlement_names=("Near", "Elsewhere"),
+    )
+    s0, regions, party = _build_move_order_session(**move_map)
+    step_near = regions["StepNear"]
+    step_far = regions["StepFar"]
+    far = regions["Far"]
+    duchy = s0.game.duchies[0]
+    calendar = s0.calendar
+    rng = s0.rng
+    by_name = {r.name: r for r in s0.world.regions}
+
+    # Contrasts: march would move; move must not reuse either march path.
+    auto = march_duchy_party(s0.world, duchy)
+    assert auto.party_at(step_near) is party
+    assert march_duchy_party_to(s0.world, duchy, far).party_at(step_far) is party
+
+    noop_commands = (
+        {"type": "order", "order": "move"},  # missing target
+        {"type": "order", "order": "move", "target": ""},
+        {"type": "order", "order": "move", "target": None},
+        {"type": "order", "order": "move", "target": "Nowhere"},
+        {"type": "order", "order": "move", "target": "Far"},  # distant
+        {"type": "order", "order": "move", "target": "Occupied"},  # occupied
+        {"type": "order", "order": "move", "target": "Near"},  # enemy settlement
+    )
+
+    for command in noop_commands:
+        # apply_command never mutates the input session; one s0 covers all no-ops.
+        before = copy.deepcopy(s0.snapshot())
+        after = apply_command(s0, command)
+
+        assert isinstance(after, Session), command
+        assert after.player_duchy_id == "north"
+        assert after.seed == 11
+        assert after.calendar == calendar
+        assert after.calendar == Calendar(year=2, month=3)
+        assert after.rng is rng
+        assert after.world.party_at(by_name["Start"]) is not None
+        assert after.world.party_at(by_name["StepNear"]) is None
+        assert after.world.party_at(by_name["StepFar"]) is None
+        assert after.world.party_at(by_name["Occupied"]) is not None  # blocker
+        assert after.world.party_at(by_name["Near"]) is None
+        assert command_result(s0, after, command) == {
+            "kind": "order",
+            "order": "move",
+            "changed": False,
+        }
+        assert after.snapshot()["map"] == before["map"]
+        assert s0.snapshot() == before
+        assert s0.world.party_at(by_name["Start"]) is not None
+
+
 def test_session_last_battle_field_and_snapshot_embeds_battle_state():
     """G65.3a kryt-1/kryt-2: ``Session.__init__`` zyskuje publiczne pole
     ``last_battle: HexBattle | None`` (domyślnie ``None``), a

@@ -16,6 +16,7 @@ _ORDER_TRANSITIONS = {
     "develop": ai.develop_duchy_settlement,
     "recruit": ai.recruit_duchy_unit,
     "muster": ai.muster_duchy_party,
+    "move": None,  # handled specially because of the required target
     "march": None,  # handled specially because of optional target
 }
 
@@ -44,6 +45,18 @@ def _apply_march_order(world: WorldMap, duchy: Duchy, target_name: str | None) -
     if target is not None:
         return ai.march_duchy_party_to(world, duchy, target)
     return ai.march_duchy_party(world, duchy)
+
+
+def _apply_move_order(world: WorldMap, duchy: Duchy, target_name: str | None) -> WorldMap:
+    """Apply one safe player step to an explicitly named region.
+
+    An absent or unknown target is a no-op; unlike ``march``, ``move`` never
+    falls back to an automatic destination.
+    """
+    target = _find_region_by_name(world, target_name)
+    if target is None:
+        return world
+    return ai.move_duchy_party_to_adjacent(world, duchy, target)
 
 
 def _morale_by_owner(game: GameState) -> dict[str, int]:
@@ -282,8 +295,8 @@ def apply_command(session: Session, command: dict) -> Session:
         ``"seed"`` w komendzie. Zachowany jest ``session.player_duchy_id``.
       * ``"order"`` — wydaje rozkaz dla księstwa gracza; rozpoznawane
         ``command["order"]`` to ``"develop"``, ``"recruit"``, ``"muster"``,
-        ``"march"``, ``"assault"`` oraz ``"engage"``. Nieznana nazwa rozkazu
-        podnosi ``ValueError``.
+        ``"move"``, ``"march"``, ``"assault"`` oraz ``"engage"``. Nieznana
+        nazwa rozkazu podnosi ``ValueError``.
 
     Brak klucza ``type`` lub nieznana wartość podnoszą ``ValueError``.
     Wejściowa sesja nigdy nie jest mutowana.
@@ -307,6 +320,13 @@ def apply_command(session: Session, command: dict) -> Session:
         )
     if command_type == "order":
         order = command.get("order")
+        if order == "move":
+            return _apply_order(
+                session,
+                lambda world, duchy: _apply_move_order(
+                    world, duchy, command.get("target")
+                ),
+            )
         if order == "march":
             return _apply_order(
                 session, lambda world, duchy: _apply_march_order(world, duchy, command.get("target"))
