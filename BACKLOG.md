@@ -15,6 +15,24 @@ flagi ryzyka; bootstrap klienta przechodzi dodatkowo obowiązkowe review pętli
 agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 `complex`.
 
+### Stała bramka planowania oprawy (brief 2026-07-30)
+**[W] Do odwołania przez jawne osiągnięcie progu wizualnego każde wywołanie
+planisty i każdy nowy batch Forge ma dać 4–6 zadań, w tym co najmniej 4
+graficzne i najwyżej 2 mechaniczne.**
+Zadanie mechaniczne wolno dołączyć tylko jako bezpośrednią, niezbędną zależność
+bieżącego efektu graficznego. Brak czterech gotowych zadań graficznych oznacza
+obowiązek dopisania małych zadań graficznych, nie `no_more_tasks`.
+
+Zadanie liczy się jako graficzne tylko wtedy, gdy wskazuje konkretny asset lub
+element oprawy i miejsce użycia, daje widoczną zmianę w uruchomionym Godocie,
+kończy się screenshotem albo ludzkim review oraz utrzymuje per-plikowe źródło
+i licencję w `game/assets/CREDITS.md`. Sam test, dokumentacja lub refaktor nie
+liczy się jako grafika. K87 jest wyłącznie minimum technicznym. Próg pozostaje
+nieosiągnięty, dopóki mapa, osady, armie, bitwa i UI nie są spójne i wolne od
+przypadkowych placeholderów, licencje nie są kompletne, człowiek nie zaakceptuje
+screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
+`docs/PROJECT.md`.
+
 ---
 
 > **Kamienie 0–53 — UKOŃCZONE.** Pełne streszczenia w `BACKLOG-ARCHIVE.md`
@@ -510,8 +528,10 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > Podmiana nośnika nie ruszyła geometrii: kryteria K84/K85 przeszły bez zmian.
 
 ## Kamień milowy 88 — natywny pakiet na Linuksa (domknięcie kryterium „gotowe") — PRIORYTET
-> Po G87.1c-2 zamyka się K87 i **znika ostatni brak treściowy**: rdzeń, most,
-> obie warstwy widoku, rozkazy, zapis/odczyt i assety są na miejscu. Zostaje
+> **Kontekst historyczny, zastąpiony zmianą briefu 2026-07-30:** po G87.1c-2
+> uznawaliśmy, że znika ostatni brak treściowy, bo rdzeń, most, obie warstwy
+> widoku, rozkazy, zapis/odczyt i pliki assetów były na miejscu. Nowa stała
+> bramka oprawy mówi wprost, że K87 było tylko minimum technicznym. W K88 został
 > jedyny nieodhaczony fragment kryterium sukcesu z briefu: *„użytkownik uruchamia
 > **natywną aplikację** na Linuksie… bez terminala"*. Dziś jedyny sposób
 > uruchomienia gry to `godot --path game` z konsoli — czyli dokładnie to, czego
@@ -849,7 +869,7 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > seedzie 73 zdobywa `ai outpost`, pozostawia partię w toku i wznawia ten sam
 > stan w drugim procesie.
 
-## Kamień milowy 93 — pierwszy rozkaz celowany z mapy — PRIORYTET
+## Kamień milowy 93 — pierwszy rozkaz celowany z mapy — WSTRZYMANY
 > **Pomiar po G92.2a i korekta po review (2026-07-30):** większy świat działa,
 > ale `MapView` jest wyłącznie rysunkiem: `RegionTile_*` ignorują mysz, a scena
 > wysyła `march` bez `target`. Istniejącego kontraktu celu **nie wolno jednak
@@ -860,7 +880,18 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > nadaje się do odwrotu na kliknięty kafel; odległy cel może zaś wyznaczyć krok
 > przez wrogą osadę bez szturmu. Klikana mapa potrzebuje odrębnej, węższej
 > ścieżki ruchu, bez regresji istniejącego marszu i jego zaleceń.
-- [ ] **G93.1a — bezpieczny, celowany ruch o jeden krok z mapy.** Jawny
+>
+> **ZMIANA PRIORYTETU PO BRIEFIE 2026-07-30 — WSTRZYMANE I DO PONOWNEGO
+> PLANOWANIA.** Ukończone G93.1a-1 zostaje w kodzie: jest bezpiecznym,
+> odizolowanym fundamentem. Niezaczęte task-531…535 nie tworzą prawidłowego
+> batcha wizualnego (co najmniej task-531, task-532 i task-535 są mechaniczne,
+> a task-533 nie ma wymaganej bramki screenshot/licencje). Wszystkie pięć wraca
+> do planisty; nie wykonywać ich w obecnym składzie ani nie duplikować. Po K94
+> można ułożyć `move` ponownie: maksymalnie dwie niezbędne zależności mechaniczne
+> obok co najmniej czterech efektów graficznych. R93.1 nie jest niezbędną
+> zależnością grafiki i pozostaje odłożony.
+- [~] **G93.1a — bezpieczny, celowany ruch o jeden krok z mapy (WSTĘPNIE
+      ROZPOCZĘTY, RESZTA WSTRZYMANA).** Jawny
       prymityw rdzenia `move_duchy_party_to_adjacent` pozwala przenieść oddział
       wyłącznie do **wskazanego regionu sąsiedniego**, niezajętego przez party
       i niebędącego osadą wroga; dozwolone są pusty region oraz własna osada.
@@ -886,6 +917,60 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
       *(complex; ryzyka: nowy prymityw rdzenia obok zachowanego kontraktu
       `march_duchy_party_to`, nowy rozkaz mostu, Godot input, integracja
       Godot↔Python; review wymagane)*
+- [x] **G93.1a-1 — bezpieczny ruch oddziału do wskazanego sąsiada.** Prymityw
+      rdzenia i testy przypadków dozwolonych/zablokowanych są gotowe; nie
+      rozszerzać teraz mostu ani mechaniki. *(commit c0470da)*
+- [ ] **G93.1a-2…5 — WSTRZYMANE / DO PONOWNEGO PLANOWANIA:** task-531
+      (`move` w moście), task-532 (R93.1), task-533 (klik i zaznaczenie),
+      task-534 (wybór steruje ruchem), task-535 (e2e). Zachowane jako informacja
+      o kolejce, nie są zgodą na wykonanie nieprawidłowego batcha.
+
+## Kamień milowy 94 — strategiczna mapa przestaje wyglądać jak prototyp — PRIORYTET
+> **Najcieńszy następny plasterek po zmianie briefu: dokładnie cztery zadania
+> graficzne, zero mechanicznych.** Screenshot klienta uruchomionego 2026-07-30
+> w 1152×648 pokazał pięć odseparowanych ikon na szarym tle, napisy położone na
+> zamkach, duży pusty obszar `BattleView` i przyciski poza dolną krawędzią.
+> K87 dowiódł importu plików, lecz nie jakości kompozycji. K94 poprawia najpierw
+> punkty 1–3 obowiązującego zakresu wizualnego: kafle, osady i tło mapy. Nie
+> zmienia snapshotu, mostu, rdzenia ani reguł gry.
+- [ ] **G94.1a [GRAFIKA] — spójna, połączona siatka mapy.** `MapView` układa
+      pięć istniejących `RegionTile_*` jako stykające się heksy o poprawnej
+      skali i kolejności warstw, zamiast rzędu rozdzielonych kart; używa
+      istniejącego `game/assets/map_ground.png` jako konkretnego nośnika i nie
+      zmienia znaczenia `col`/`row`. Nazwy regionów dostają czytelne miejsce
+      poza detalem budynku. Po uruchomieniu Godota cała pięcioregionowa mapa
+      mieści się w panelu. Akceptacja: test geometrii + screenshot 1152×648 i
+      ludzkie review czytelności; wpis źródłowy `map_ground.png` w
+      `CREDITS.md` zostaje sprawdzony i zachowany. *(standard)*
+- [ ] **G94.1b [GRAFIKA] — spójna różnorodność podłoża strategicznego.** Do
+      `game/assets/` wchodzą co najmniej trzy jawnie nazwane warianty
+      `map_ground_grass.png`, `map_ground_earth.png`,
+      `map_ground_stone.png` z jednej zgodnej stylistycznie paczki CC0/CC-BY.
+      `MapView` wybiera je deterministycznie z `col`/`row` wyłącznie jako
+      dekoracyjny wariant (bez wymyślania mechanicznego terenu), tak aby pięć
+      regionów pokazało co najmniej trzy warianty. Akceptacja: import/ładowanie,
+      screenshot działającej mapy i ludzkie review spójności; dokładna strona
+      źródłowa, autor, licencja i ścieżka każdego pliku w `CREDITS.md`.
+      *(standard; ryzyko: dobór/licencja assetów)*
+- [ ] **G94.1c [GRAFIKA] — keep i outpost wyglądają jak różne osady.** Zastąpić
+      pojedyncze `settlement.png` dwoma konkretnymi assetami docelowymi
+      `settlement_keep.png` i `settlement_outpost.png` w średniowiecznej,
+      możliwie realistycznej stylistyce CC0/CC-BY. `MapView` dobiera je z
+      istniejącej nazwy osady (`keep`/`outpost`), zachowuje czytelną nazwę i nie
+      tintuje całego budynku kolorem właściciela. Akceptacja: oba typy są
+      jednocześnie widoczne w natywnym Godocie, nie zasłaniają nazw, screenshot
+      1152×648 przechodzi ludzkie review; per-plikowe źródło i licencja trafiają
+      do `CREDITS.md`. *(standard; ryzyko: dobór/licencja assetów)*
+- [ ] **G94.1d [GRAFIKA] — tło i kompozycja strategiczna mieszczą sterowanie.**
+      Dodać konkretny asset `strategic_map_background.png` (subtelna ziemia,
+      płótno lub pergamin, CC0/CC-BY) jako tło panelu mapy i rozdzielić na
+      ekranie mapę, status oraz rozkazy. Pusty `BattleView` nie rezerwuje
+      miejsca; pojawia się dopiero, gdy istnieje bitwa. Przy 1152×648 data,
+      pięć regionów, status wyniku i wszystkie obecne przyciski są widoczne bez
+      przewijania i bez szarej pustki dominującej nad mapą. Akceptacja: test
+      układu + screenshot uruchomionej świeżej partii oraz ludzkie review
+      kompozycji/kontrastu; źródło, autor i licencja tła w `CREDITS.md`.
+      *(standard; ryzyko: layout przy różnych rozdzielczościach)*
 
 ## Dług/refaktor
 - [x] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
@@ -900,27 +985,30 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 - [x] **R15.1 (refaktor)** Kompaktacja DESIGN.md do stanu obecnego; historia → DECISIONS.md. *(task-094)*
 - [x] **R16.1 (refaktor)** Wspólny generator formularzy celu marsz/szturm w `serve.py`. *(task-098)*
 
-## Kolejne kierunki (po K87, do rozplanowania na kamienie)
-> Kolejność wynika z kryterium „gotowe" w `docs/PROJECT.md`. **Nie dokładamy
-> kolejnych przycisków rozkazu ani reguł rdzenia, dopóki te punkty stoją** —
-> most obsługuje więcej rozkazów, niż klient potrafi pokazać. Od 2026-07-27
-> dochodzi twarde: **bez assetów nie ma MVP**, więc rozbudowa treści (typy
-> jednostek, budynki, tereny) czeka na to, aż istniejąca treść będzie narysowana.
-- Rozkaz wybierany klikiem na cel na mapie, nie globalnym przyciskiem —
-  **pierwszy pionowy plasterek rozplanowany jako G93.1a (celowany ruch)**.
-  Szturm/starcie oraz zarządzanie konkretną osadą wracają do oceny po nim.
+## Kolejne kierunki (pod stałą bramką oprawy)
+> Kolejność wynika z kryterium „gotowe" w `docs/PROJECT.md`. Do jawnego
+> osiągnięcia progu wizualnego każdy kolejny batch spełnia regułę 4 graficzne /
+> najwyżej 2 mechaniczne / najwyżej 6 łącznie. Niezależne przyciski, reguły
+> rdzenia, AI, ekonomia, walka, ruch, protokół i porządki są wstrzymane.
+- **Najpierw K94:** spójność i różnorodność kafli, wygląd keep/outpost oraz tło
+  i kompozycja mapy strategicznej — cztery gotowe zadania graficzne.
+- Rozkaz wybierany klikiem na cel na mapie — G93.1a-1 jest gotowe, a
+  task-531…535 wracają do planowania. Reszta może wrócić tylko jako
+  bezpośrednia zależność efektów graficznych i w prawidłowym batchu.
 - ~~Zapis/odczyt z UI: jawne „Zapisz”/„Wczytaj”~~ — rozplanowane jako K86.
 - ~~Prawdziwe assety i tekstury zamiast `ColorRect`~~ — rozplanowane jako K87.
-- Assety pozostałych elementów sceny (osady/budynki na mapie, tło, ikony
-  rozkazów) — dopiero gdy K87 dowiedzie, że ścieżka import→tekstura stoi.
-- **Teren regionu na mapie strategicznej** — `tbb.world.Region` ma dziś tylko
+- Assety pozostałych elementów sceny — K87 dowiodło ścieżki import→tekstura;
+  osady i tło są teraz K94, potem kolejno ikony rozkazów, sylwetki/strony,
+  zaznaczenie celu i spójność widoku bitwy.
+- **Mechaniczny teren regionu na mapie strategicznej — ODŁOŻONY DO PROGU
+  WIZUALNEGO.** `tbb.world.Region` ma dziś tylko
   `name`, więc `snapshot.map_state` nie ma czego wystawić i kafel mapy w K87
   różnicuje wyłącznie właściciela i osadę. Jeśli zróżnicowana mapa okaże się
   potrzebna, idzie to jako **osobny cienki plasterek dotykający rdzenia i
   mostu**: pole terenu w `Region` (reuse `tbb.terrain`) → `map_state` →
-  `SnapshotModel` → wybór tekstury w `MapView`. Świadomie odłożone przy
-  przeglądzie 2026-07-27: nie jest warunkiem „prawdziwych assetów" z briefu, a
-  wpuszczone do K87 rozsadziłoby plasterek deklarowany jako „tylko `game/`".
+  `SnapshotModel` → wybór tekstury w `MapView`. K94.1b daje różnorodność
+  wyłącznie dekoracyjną, bez fałszywego znaczenia mechanicznego. Zmiana rdzenia
+  nie jest teraz niezbędna do tego efektu i pozostaje wykluczona.
 - ~~Pakiet na Linuksa x86-64: preset eksportu, uruchomienie jedną ikoną~~ —
   **wykonane w całości jako K88** (G88.1a–g).
 - ~~Gra jest przegrana po pierwszym kliknięciu „Następna tura", a przegrana
@@ -936,8 +1024,7 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
   po zbiórce osada gracza zostaje pusta, więc każde wyjście w pole odsłania dom.
   Dziś to podwaja skutki asymetrycznego startu; po K90 warto sprawdzić, czy
   potrzebny jest osobny plasterek (zbiórka części garnizonu albo garnizon
-  minimalny). **Nie planować przed K90** — najpierw musi istnieć partia, w
-  której ta decyzja w ogóle ma znaczenie.
+  minimalny). **Nie planować przed osiągnięciem progu wizualnego.**
 - Pełne pole bitwy (teren pustych heksów, wymiary pola) — wymaga rozszerzenia
   `tbbbridge.snapshot.battle_state`; dopiero gdy sam widok bitwy (K85) stoi.
 - Sterowanie pojedynczą jednostką w bitwie — po K85.

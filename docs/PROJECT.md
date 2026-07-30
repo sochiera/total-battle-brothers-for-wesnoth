@@ -29,13 +29,21 @@ jego osad **oraz** śmierć jego bohatera — to również warunek przegranej gr
 Kryterium pomocnicze, po którym poznajemy postęp: **da się grać patrząc, a nie
 czytając logi**. Widok mapy i widok bitwy mają nieść stan gry wizualnie. **[W]**
 
-**Assety są częścią kryterium, nie polishem po MVP.** Feedback autora briefu
+**Assety i osiągnięty wygląd są częścią kryterium, nie polishem po MVP.**
+Feedback autora briefu
 (2026-07-27): *„prawdziwe MVP będzie wtedy, kiedy będą assety i tekstury. Nie
 musi być dużo budynków/rodzajów jednostek/terenu itp, ale żeby były jakieś
 sensowne prawdziwe assety."* Czyli: widoki mają rysować **realne pliki
 graficzne**, nie jednolite prostokąty z etykietą tekstową. Zakres świadomie
 mały — po kilka kafli terenu, sylwetek jednostek i budynków — ale prawdziwych.
+Od 2026-07-30 K87 jest tylko minimum technicznym: rozwój oprawy trwa do
+osiągnięcia jawnego progu jakości i akceptacji człowieka na screenshotach.
 **[W]**
+
+Próg jest osiągnięty dopiero, gdy mapa, osady i armie używają spójnych assetów,
+bitwa ma czytelne kafle/jednostki/strony, UI nie opiera się na przypadkowych
+placeholderach, licencje są kompletne, człowiek akceptuje screenshoty, a
+`docs/PROJECT.md` i `BACKLOG.md` jawnie zapisują ten stan. **[W]**
 
 ## Stan faktyczny (aktualizowany przy przeglądach)
 - Rdzeń `tbb` (Python): kampania, ekonomia (pszenica/złoto, populacja, budynki),
@@ -52,9 +60,11 @@ mały — po kilka kafli terenu, sylwetek jednostek i budynków — ale prawdziw
 - **Klient bez terminala, oba widoki, zapis/odczyt** (K82–K86): domyślna
   konfiguracja bez `TBB_*`, układ w kontenerach, `MapView` (kafel na region po
   `col`/`row`), `BattleView` (heksy po `(q, r)`), „Zapisz/Wczytaj partię".
-- **Prawdziwe assety — DOMKNIĘTE** (K87): 10 plików PNG z dwóch paczek CC0
-  (Kenney Hexagon Pack — kafle; Kenney „RTS Pack: Medieval" — sylwetki stron),
-  atrybucja **per plik** w `CREDITS.md`, `.godot/` poza gitem.
+- **Techniczne minimum assetów — GOTOWE, jakość wizualna — NIEOSIĄGNIĘTA**
+  (K87): 8 plików PNG z dwóch paczek CC0 (Kenney Hexagon Pack — kafle;
+  Kenney „RTS Pack: Medieval" — sylwetki stron), atrybucja per plik w
+  `game/assets/CREDITS.md`, `.godot/` poza gitem. To dowodzi ścieżki importu,
+  nie domknięcia grafiki.
 - **Pakiet na Linuksa — DOMKNIĘTY** (K88, 7 z 7): preset „Linux/X11" x86-64,
   `src/` mostu rozwiązywane odpornie na eksport, `scripts/package.sh`, `.pck`
   bez sond, wpis `.desktop` i **e2e startu bez terminala na samym pakiecie** —
@@ -77,17 +87,17 @@ mały — po kilka kafli terenu, sylwetek jednostek i budynków — ale prawdziw
   kończy księstwa.
 - `tbbui` (HTML/SVG) — **wyłącznie narzędzie diagnostyczne**, nie docelowy klient.
 
-**Najbliższa luka do celu: większą mapę widać, ale nie da się nią sterować.**
-`MapView` rysuje pięć regionów jako kafle ignorujące mysz, scena wysyła wyłącznie
-globalne przyciski rozkazów, a `BridgeClient.send_order()` nie podaje celu.
-Istniejące `target` dla marszu oznacza koniec trasy, nie bezpośredni krok, i ten
-kontrakt musi zostać: obsługuje zalecany marsz ku odległej osadzie w
-diagnostycznym `tbbui` (K15.1a/K49.1d). Nie nadaje się przez to do odwrotu na
-sąsiedni kliknięty kafel ani do gwarantowania, że krok ominie wrogą osadę.
-Następny plasterek G93.1a dodaje **odrębny** prymityw i rozkaz mostu dla ruchu
-na jeden wskazany, sąsiedni i bezpieczny region, nie zmieniając istniejącego
-marszu. Ta nowa ścieżka trafia do klikanej mapy i jest sprawdzana e2e wraz z
-odwrotem, zapisem oraz blokadą wejścia do wrogiej osady.
+**Najbliższa luka do celu: klient ma pliki graficzne, lecz nadal wygląda jak
+prototyp.** Review uruchomionej świeżej partii 2026-07-30 przy 1152×648 pokazało
+pięć odseparowanych ikon regionów na szarej pustce, nazwy nałożone na zamki,
+domyślny tekstowy interfejs, pusty `BattleView` zajmujący większość wysokości
+oraz przyciski poza dolną krawędzią. K94 najpierw scala i różnicuje kafle,
+rozróżnia keep/outpost oraz naprawia tło i kompozycję.
+
+G93.1a-1 zdążyło dostarczyć bezpieczny prymityw ruchu do sąsiada (commit
+`c0470da`) i zostaje. Niezaczęte task-531…535 wracają do planisty: ich batch ma
+za dużo mechaniki i za mało grafiki według zmienionego briefu. Klikany ruch
+wróci wyłącznie jako zależność widocznej mapy w prawidłowym batchu.
 
 ## Ograniczenia i priorytety
 - **[W]** Rdzeń `tbb` jest **jedynym źródłem reguł gry**. Godot nie duplikuje
@@ -105,6 +115,16 @@ odwrotem, zapisem oraz blokadą wejścia do wrogiej osady.
   ma kończyć się czymś widocznym na ekranie, nie samą regułą.
 - **[W]** Widoki mają rysować **prawdziwe assety graficzne** (patrz kryterium
   sukcesu). Ilość jest mała i negocjowalna; *istnienie* assetów nie jest.
+- **[W] Stała bramka planowania oprawy:** do osiągnięcia progu wizualnego każde
+  wywołanie planisty i każdy batch Forge ma co najmniej 4 zadania graficzne,
+  najwyżej 2 mechaniczne i najwyżej 6 łącznie. Mechanika jest dopuszczalna
+  wyłącznie jako bezpośrednia,
+  niezbędna zależność aktualnego efektu graficznego. Brak czterech zadań
+  graficznych oznacza dopisanie małych zadań, nigdy `no_more_tasks`.
+- **[W]** Zadanie graficzne wskazuje asset/element i miejsce użycia, daje
+  widoczny efekt w natywnym Godocie, kończy się screenshotem lub ludzkim review
+  i utrzymuje źródła/licencje per plik w `game/assets/CREDITS.md`. Sam test,
+  dokumentacja lub refaktor nie liczy się jako grafika.
 - **[P]** Źródłem assetów są gotowe paczki open source (CC0: Kenney,
   OpenGameArt) zamiast rysowania własnych; licencja i atrybucja zapisane w repo.
   Grafika ma być czytelna, nie ładna.
@@ -187,19 +207,31 @@ skróconej; pełne uzasadnienia w `docs/DECISIONS.md` i w `BACKLOG.md`.)*
     Stary celowany i automatyczny `march` oraz celowane `assault`/`engage`
     zachowują swoje reguły; celowanie rozwoju, rekrutacji i zbiórki pozostaje
     poza tym plasterkiem.
+21. **Obecność tekstur nie dowodzi osiągniętego wyglądu.** Screenshot 1152×648
+    ujawnił, że K87 zostawił rozłączne kafle, napisy na budynkach, dominującą
+    szarą pustkę i sterowanie poza ekranem. Od teraz każdy przyrost oprawy ma
+    dowód wizualny; test `Texture2D` pozostaje tylko bramką techniczną.
 
 ## Klimat, ton, kierunek wizualny
 Średniowiecze **bez magii i fantastyki**, surowy i realistyczny ton. **[W]**
 Interfejs i teksty po polsku (tak jest w kliencie i tak zostaje). **[P]**
 
-Wizualnie: prosta grafika 2D w Godocie — mapa regionów/osad/party oraz siatka
+Wizualnie: spójna grafika 2D w Godocie — mapa regionów/osad/armii oraz siatka
 heksów z jednostkami i terenem. Nie celujemy w AAA ani dźwięk; celem jest
-czytelność stanu gry na ekranie. **[W]** dla istnienia obu widoków **oraz dla
-tego, że niosą prawdziwe tekstury**; **[P]** dla stylu i doboru paczki.
+czytelna, wyraźnie mniej prototypowa gra o średniowiecznym, realistycznym
+charakterze. Oba widoki, prawdziwe tekstury i spójność/czytelność są **[W]**;
+konkretna technika i paczka są **[P]**.
 
-Kierunek doboru assetów: płaskie, czytelne kafle terenu i sylwetki jednostek w
-średniowiecznej, nie-fantastycznej stylistyce (bez smoków, magów, elfów) —
-spójna paczka bije zlepek najładniejszych pojedynczych obrazków. **[P]**
+Kierunek doboru assetów: czytelne kafle terenu, osady, ikony i sylwetki w
+średniowiecznej, nie-fantastycznej stylistyce (bez smoków, magów, elfów).
+Realistyczny ton jest ważniejszy niż kreskówkowość; spójna rodzina bije zlepek
+ładnych pojedynczych obrazków. Obecne Kenney jest przejściowym minimum
+technicznym i może być wymieniane etapami. **[P]**
+
+Obowiązująca kolejność poprawy: (1) spójność/różnorodność kafli mapy,
+(2) osady i budynki, (3) tło/kompozycja mapy, (4) ikony rozkazów,
+(5) sylwetki i strony, (6) zaznaczenie celu/stan gry, (7) spójność obu widoków.
+**[W]**
 
 ## Sugestie autora briefu
 - `godot-notes.md` (przykładowe node'y, szkic API, podział scen, kolejność prac)
@@ -213,14 +245,16 @@ spójna paczka bije zlepek najładniejszych pojedynczych obrazków. **[P]**
   2026-07-27). Autor nie żąda bogactwa treści — „nie musi być dużo budynków /
   rodzajów jednostek / terenu" — tylko żeby to, co jest, było narysowane
   sensownymi, prawdziwymi assetami. Traktujemy to jako **[W]**, nie sugestię.
+- Zmiana briefu 2026-07-30 ustanawia bezwyjątkową bramkę 4 zadań graficznych
+  na batch aż do ludzkiej akceptacji screenshotów. K87 nie kończy rozwoju
+  oprawy. **[W]**
 
 ## Kolejne prawdopodobne etapy
 1. ~~Start bez terminala~~ (K82), ~~czytelny układ ekranu~~ (K83), ~~widok mapy~~
    (K84), ~~widok bitwy~~ (K85) i ~~zapis/odczyt z UI~~ (K86) — **zrobione**.
-2. ~~Prawdziwe assety~~ (K87) — **domknięte**: obie paczki CC0 z atrybucją per
-   plik, kafle mapy, teren heksów i sylwetki stron rysowane teksturami. Zakres
-   został po stronie `game/`: mapa różnicuje właściciela i osadę, teren
-   teksturujemy tam, gdzie most go niesie — na polu bitwy (wniosek 8).
+2. **Techniczne minimum assetów** (K87) — gotowe: obie paczki CC0 z atrybucją
+   per plik, kafle mapy, teren heksów i sylwetki stron. Nie jest to zakończenie
+   grafiki ani spełnienie progu jakości.
 3. ~~Pakiet na Linuksa~~ (K88) — **domknięty**, 7 z 7 plasterków, z dowodem
    startu bez terminala na samym pakiecie i wpisem `.desktop`. Bez własnego
    runtime'u Pythona (wniosek 10).
@@ -234,14 +268,16 @@ spójna paczka bije zlepek najładniejszych pojedynczych obrazków. **[P]**
 7. ~~Minimalny wieloosadowy świat~~ (G92.2a) — **domknięty**: pięć regionów,
    dwie osady na stronę, trwająca partia po utracie pierwszej osady oraz e2e
    naturalnego szturmu na żywym moście.
-8. **Pierwszy celowany rozkaz z mapy** (G93.1a) — odrębny od marszu ku
-   odległemu celowi prymityw i rozkaz `move`, potem wybór sąsiedniego regionu
-   klikiem i dokładnie jeden bezpieczny krok, także odwrót. Wroga osada wymaga
-   szturmu; istniejący kontrakt `march_duchy_party_to` pozostaje bez zmian.
-   Dalsze rozkazy celowane oceniamy dopiero po tej ścieżce.
-9. **Nowa partia z UI po zakończonej grze** — most ma `new_game`, scena nie ma
+8. **Strategiczna mapa przestaje wyglądać jak prototyp** (K94) — cztery
+   graficzne przyrosty: połączona siatka, warianty podłoża, osobne keep/outpost
+   oraz tło i kompozycja mieszcząca sterowanie. Każdy ma screenshot/review i
+   per-plikowe licencje.
+9. **Pierwszy celowany rozkaz z mapy** (G93.1a) — ukończony jest tylko
+   bezpieczny prymityw rdzenia. Most, wybór i e2e wracają do planowania dopiero
+   w batchu zgodnym z bramką grafiki.
+10. **Nowa partia z UI po zakończonej grze** — most ma `new_game`, scena nie ma
    przycisku. Po K92 gracz kończy partię regularnie, więc brak restartu zacznie
-   boleć. Cienki plasterek, nieplanowany jeszcze.
+   boleć. Odłożone do zakończenia priorytetu graficznego.
 
 ## Świadomie odłożone
 - Scenariuszowa kampania/fabuła, multiplayer, magia, oddziały masowe, grafika
@@ -256,3 +292,7 @@ spójna paczka bije zlepek najładniejszych pojedynczych obrazków. **[P]**
   — wraca wraz z trzecim księstwem albo reprodukcją w normalnej partii.
 - Podział przerośniętych dokumentów (`ARCHITECTURE.md` ~119 KB, `DECISIONS.md`
   ~74 KB, `DESIGN.md` ~28 KB) — dług dokumentacji, nie blokuje celu.
+- Do osiągnięcia progu wizualnego: niezależne nowe reguły, AI, ekonomia, walka,
+  ruch, rozkazy, protokół/snapshot/most, rdzeń Python, save/load, porządki repo
+  i dokumentacja niezwiązana z oprawą. Wyjątek tylko dla niezbędnej zależności
+  konkretnego zadania graficznego w granicach batcha.
