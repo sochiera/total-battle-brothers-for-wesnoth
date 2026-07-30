@@ -140,7 +140,9 @@ def test_headless_export_release_produces_executable_and_pck():
 # Ścieżki zasobów w .pck są zapisane jako surowe bajty ``res://…`` (Godot 4.2.2).
 _PCK_TEST_PROBE_MARKER = b"res://tests/"
 _PCK_TEXTURE_PATHS = (
-    b"res://assets/map_ground.png",
+    b"res://assets/map_ground_earth.png",
+    b"res://assets/map_ground_grass.png",
+    b"res://assets/map_ground_stone.png",
     b"res://assets/party_player.png",
     b"res://assets/settlement.png",
     b"res://assets/side_attacker.png",
@@ -160,7 +162,7 @@ _MISSING_RESOURCE_MARKERS = (
 
 
 def _pck_required_production_paths() -> tuple[bytes, ...]:
-    """Scena główna + wszystkie skrypty z game/scripts/ + osiem tekstur (AC2)."""
+    """Scena główna + wszystkie skrypty z game/scripts/ + dziesięć tekstur (AC2)."""
     script_paths = tuple(
         f"res://scripts/{p.name}".encode()
         for p in sorted((GAME / "scripts").glob("*.gd"))
@@ -175,7 +177,7 @@ def test_export_pck_excludes_test_probes_keeps_production_resources():
     ``exclude_filter``, więc Godot pakuje cały ``game/tests/`` (sondy
     ``*_probe.gd``) do artefaktu gracza. G88.1a sprawdza tylko istnienie
     niepustego .pck — nie jego zawartość. Kontrakt G88.1d: zero
-    ``res://tests/…`` w .pck, przy zachowaniu sceny, skryptów i ośmiu tekstur;
+    ``res://tests/…`` w .pck, przy zachowaniu sceny, skryptów i dziesięciu tekstur;
     headless start pakietu bez błędu brakującego zasobu (AC3).
     """
     assert PRESETS.is_file(), (
@@ -210,7 +212,7 @@ def test_export_pck_excludes_test_probes_keeps_production_resources():
         missing = [p.decode() for p in required if p not in data]
         assert not missing, (
             "exported .pck must still carry production resources "
-            f"(main scene, all game/scripts/*.gd, eight textures); missing: {missing}"
+            f"(main scene, all game/scripts/*.gd, ten textures); missing: {missing}"
         )
 
         # AC3: krótki headless start binarium+.pck — błąd brakującego zasobu

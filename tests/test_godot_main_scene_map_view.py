@@ -280,7 +280,11 @@ def test_map_view_tiles_carry_asset_textures_for_owner_settlement_and_party():
     import + non-empty res://assets/ texture paths), not yield a silent color tile.
     """
     assets_dir = GAME / "assets"
-    for asset_name in ("map_ground.png", "settlement.png", "party_player.png"):
+    for asset_name in (
+        "map_ground_grass.png",
+        "settlement.png",
+        "party_player.png",
+    ):
         asset_path = assets_dir / asset_name
         assert asset_path.is_file(), (
             f"required map asset missing on disk: {asset_path} "
@@ -532,3 +536,137 @@ def test_map_view_adjacent_tiles_form_connected_grid_fitting_panel():
             f"regions_full tile {tile['name']!r} (incl. odd row) must fit "
             f"inside MapView: tile={tile!r} panel={panel!r}"
         )
+
+
+# G94.1b: decorative strategic ground variants (not mechanical terrain).
+DECORATIVE_GROUND_ASSETS: tuple[str, ...] = (
+    "map_ground_grass.png",
+    "map_ground_earth.png",
+    "map_ground_stone.png",
+)
+_DECORATIVE_GROUND_RES: frozenset[str] = frozenset(
+    f"res://assets/{name}" for name in DECORATIVE_GROUND_ASSETS
+)
+
+
+def _ground_texture_path(tile: dict) -> str:
+    """Public ground layer path under a region tile (layer name Ground)."""
+    for layer in tile.get("texture_layers") or []:
+        if not isinstance(layer, dict):
+            continue
+        if str(layer.get("name", "")) == "Ground":
+            path = layer.get("path")
+            assert isinstance(path, str) and path, (
+                f"Ground layer must report a texture path, got {layer!r} "
+                f"on tile {tile!r}"
+            )
+            return path
+    raise AssertionError(
+        f"tile {tile.get('name')!r} must expose a Ground texture layer, "
+        f"got texture_layers={tile.get('texture_layers')!r}"
+    )
+
+
+def test_map_view_decorative_ground_variants_from_col_row():
+    """Five fresh-party regions must show ≥3 col/row-driven ground variants.
+
+    Realistic defect this catches: MapView still paints every RegionTile with the
+    single ``map_ground.png`` (or solid color). Existing texture / geometry /
+    connected-grid gates only require *some* ``res://assets/`` ground path and
+    stay green while the strategic map has no decorative variety, no three named
+    variants on disk, and no deterministic selection from public ``col``/``row``.
+    """
+    assets_dir = GAME / "assets"
+    for asset_name in DECORATIVE_GROUND_ASSETS:
+        asset_path = assets_dir / asset_name
+        assert asset_path.is_file(), (
+            f"required decorative ground asset missing on disk: {asset_path}"
+        )
+
+    credits = (assets_dir / "CREDITS.md").read_text(encoding="utf-8")
+    for asset_name in DECORATIVE_GROUND_ASSETS:
+        assert asset_name in credits, (
+            f"CREDITS.md must attribute decorative ground file {asset_name}"
+        )
+
+    imported = _import_game_assets()
+    assert imported.returncode == 0, (
+        f"godot --import failed rc={imported.returncode} "
+        f"stderr={imported.stderr!r} stdout={imported.stdout!r}"
+    )
+
+    payload = _load_map_view()
+    assert payload["map_view_found"] is True, payload
+    assert payload["has_render_model"] is True, payload
+
+    line_regions = payload.get("line_regions") or []
+    line_tiles = payload.get("line_tiles") or []
+    assert len(line_regions) == 5 and len(line_tiles) == 5, (
+        f"probe must emit five fresh-party line regions/tiles, got "
+        f"regions={line_regions!r} tiles={line_tiles!r}"
+    )
+
+    line_by_name = _by_name(line_tiles)
+    ground_by_region: dict[str, str] = {}
+    for region in line_regions:
+        name = region["name"]
+        tile = line_by_name[name]
+        path = _ground_texture_path(tile)
+        assert path in _DECORATIVE_GROUND_RES, (
+            f"region {name!r} ground must be one of {sorted(_DECORATIVE_GROUND_RES)}, "
+            f"got {path!r} (single map_ground.png or other paths are not G94.1b)"
+        )
+        ground_by_region[name] = path
+
+    distinct = set(ground_by_region.values())
+    assert len(distinct) >= 3, (
+        f"five fresh-party regions must show at least three ground variants "
+        f"at once, got {len(distinct)}: {ground_by_region!r}"
+    )
+
+    # Determinism: re-render of the same synthetic regions keeps the same ground.
+    first = _by_name(payload["tiles_after_first"])
+    second = _by_name(payload["tiles_after_second"])
+    for name in first:
+        assert _ground_texture_path(first[name]) == _ground_texture_path(
+            second[name]
+        ), (
+            f"ground for {name!r} must be stable across re-render: "
+            f"{_ground_texture_path(first[name])!r} vs "
+            f"{_ground_texture_path(second[name])!r}"
+        )
+
+    # Same public (col, row) → same variant (independent of region name / owner).
+    # Alpha (0,0) matches "player lands" (0,0); Beta (1,0) matches "player outpost".
+    full_regions = {r["name"]: r for r in payload["regions"]}
+    line_region_by_name = {r["name"]: r for r in line_regions}
+    assert (
+        int(full_regions["Alpha"]["col"]),
+        int(full_regions["Alpha"]["row"]),
+    ) == (0, 0)
+    assert (
+        int(line_region_by_name["player lands"]["col"]),
+        int(line_region_by_name["player lands"]["row"]),
+    ) == (0, 0)
+    assert (
+        int(full_regions["Beta"]["col"]),
+        int(full_regions["Beta"]["row"]),
+    ) == (1, 0)
+    assert (
+        int(line_region_by_name["player outpost"]["col"]),
+        int(line_region_by_name["player outpost"]["row"]),
+    ) == (1, 0)
+    assert _ground_texture_path(first["Alpha"]) == ground_by_region[
+        "player lands"
+    ], (
+        "ground must depend only on col/row: Alpha(0,0) vs player lands(0,0) "
+        f"got {_ground_texture_path(first['Alpha'])!r} vs "
+        f"{ground_by_region['player lands']!r}"
+    )
+    assert _ground_texture_path(first["Beta"]) == ground_by_region[
+        "player outpost"
+    ], (
+        "ground must depend only on col/row: Beta(1,0) vs player outpost(1,0) "
+        f"got {_ground_texture_path(first['Beta'])!r} vs "
+        f"{ground_by_region['player outpost']!r}"
+    )

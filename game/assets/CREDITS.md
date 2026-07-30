@@ -6,7 +6,9 @@ by Kenney Vleugels for Kenney (https://kenney.nl), licensed under
 
 | File | Source file in Kenney Hexagon Pack | Author | License |
 |------|------------------------------------|--------|---------|
-| map_ground.png | PNG/Tiles/Terrain/Grass/grass_01.png | Kenney Vleugels | CC0 |
+| map_ground_grass.png | PNG/Tiles/Terrain/Grass/grass_01.png | Kenney Vleugels | CC0 |
+| map_ground_earth.png | PNG/Tiles/Terrain/Dirt/dirt_01.png | Kenney Vleugels | CC0 |
+| map_ground_stone.png | PNG/Tiles/Terrain/Stone/stone_01.png | Kenney Vleugels | CC0 |
 | terrain_plains.png | PNG/Tiles/Terrain/Grass/grass_02.png | Kenney Vleugels | CC0 |
 | terrain_forest.png | PNG/Objects/treePine_large.png | Kenney Vleugels | CC0 |
 | terrain_hills.png | PNG/Objects/rockGrey_large.png | Kenney Vleugels | CC0 |

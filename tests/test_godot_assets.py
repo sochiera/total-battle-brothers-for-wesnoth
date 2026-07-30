@@ -21,7 +21,9 @@ PREFIX = "ASSET_LOAD "
 
 # Paths relative to game/; also the public res://assets/… contract.
 REQUIRED_ASSETS: tuple[str, ...] = (
-    "assets/map_ground.png",
+    "assets/map_ground_grass.png",
+    "assets/map_ground_earth.png",
+    "assets/map_ground_stone.png",
     "assets/settlement.png",
     "assets/party_player.png",
     "assets/terrain_plains.png",

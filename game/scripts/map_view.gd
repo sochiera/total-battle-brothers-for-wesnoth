@@ -14,7 +14,11 @@ const REGION_LABEL_FONT_SIZE := 11
 const PLAYER_COLOR := Color(0.16, 0.38, 0.78)
 const NEUTRAL_COLOR := Color(0.38, 0.38, 0.38)
 const AI_COLOR := Color(0.72, 0.18, 0.16)
-const GROUND_TEXTURE := preload("res://assets/map_ground.png")
+const GROUND_TEXTURES: Array[Texture2D] = [
+	preload("res://assets/map_ground_grass.png"),
+	preload("res://assets/map_ground_earth.png"),
+	preload("res://assets/map_ground_stone.png"),
+]
 const SETTLEMENT_TEXTURE := preload("res://assets/settlement.png")
 const PARTY_TEXTURE := preload("res://assets/party_player.png")
 const PARTY_MARKER_SIZE := Vector2(16, 16)
@@ -44,7 +48,7 @@ func _add_tile(region: Dictionary, player_party_region: Variant) -> void:
 	tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(tile)
 
-	var ground := TileTextureLayer.full_rect(GROUND_TEXTURE, "Ground")
+	var ground := TileTextureLayer.full_rect(_ground_texture(region), "Ground")
 	ground.modulate = _owner_color(region.get("owner"))
 	tile.add_child(ground)
 
@@ -94,6 +98,18 @@ func _grid_position(region: Dictionary) -> Vector2:
 		col * GRID_PITCH.x + row_offset,
 		float(row) * GRID_PITCH.y,
 	)
+
+
+func _ground_texture(region: Dictionary) -> Texture2D:
+	# Use only public coordinates for deterministic decoration: col + 2*row,
+	# wrapped by the number of variants. This keeps a horizontal fresh-party
+	# strip varied while the same col/row pair always selects the same texture.
+	return GROUND_TEXTURES[_ground_variant_index(region["col"], region["row"])]
+
+
+func _ground_variant_index(col: Variant, row: Variant) -> int:
+	var coordinate_key := int(col) + int(row) * 2
+	return posmod(coordinate_key, GROUND_TEXTURES.size())
 
 
 func _owner_color(owner: Variant) -> Color:
