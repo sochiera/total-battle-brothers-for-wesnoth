@@ -14,6 +14,8 @@ const TERRAIN_HILLS := preload("res://assets/terrain_hills.png")
 const SIDE_ATTACKER_TEXTURE := preload("res://assets/side_attacker.png")
 const SIDE_DEFENDER_TEXTURE := preload("res://assets/side_defender.png")
 const SIDE_SILHOUETTE_MARGIN := Vector2(20, 14)
+const HP_MARKER_MARGIN := Vector2(16, 5)
+const HP_MARKER_SIZE := Vector2(88, 24)
 
 
 func render_model(model: SnapshotModel) -> void:
@@ -78,8 +80,11 @@ func _add_tile(hex: Dictionary) -> void:
 	tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(tile)
 	_add_terrain_layers(tile, hex.get("terrain"))
+	_add_unit_overlay(tile, hex.get("side"), hex.get("hp"))
 
-	var silhouette_texture: Texture2D = _side_silhouette_texture(hex.get("side"))
+
+func _add_unit_overlay(tile: Control, side: Variant, hp: Variant) -> void:
+	var silhouette_texture: Texture2D = _side_silhouette_texture(side)
 	if silhouette_texture != null:
 		var silhouette := TextureRect.new()
 		silhouette.name = "SideSilhouette"
@@ -93,6 +98,53 @@ func _add_tile(hex: Dictionary) -> void:
 		silhouette.offset_top += SIDE_SILHOUETTE_MARGIN.y
 		silhouette.offset_bottom -= SIDE_SILHOUETTE_MARGIN.y
 		tile.add_child(silhouette)
+	_add_hp_marker(tile, side, hp)
+
+
+func _add_hp_marker(tile: Control, side: Variant, hp: Variant) -> void:
+	if side != "attacker" and side != "defender":
+		return
+	if not hp is int and not hp is float:
+		return
+
+	var marker := Label.new()
+	marker.name = "HpMarker"
+	marker.text = "PŻ %d" % int(hp)
+	marker.position = Vector2(
+		HP_MARKER_MARGIN.x,
+		BASE_HEX_SIZE.y - HP_MARKER_MARGIN.y - HP_MARKER_SIZE.y,
+	)
+	marker.size = HP_MARKER_SIZE
+	marker.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	marker.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	marker.add_theme_font_size_override("font_size", 13)
+	marker.add_theme_color_override("font_color", Color(0.98, 0.98, 0.94, 1))
+	marker.add_theme_stylebox_override("normal", _hp_marker_style(side))
+	tile.add_child(marker)
+
+
+func _hp_marker_style(side: Variant) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.04, 0.05, 0.08, 0.92)
+	style.border_width_left = 2
+	style.border_width_top = 2
+	style.border_width_right = 2
+	style.border_width_bottom = 2
+	style.border_color = _side_marker_color(side)
+	style.corner_radius_top_left = 5
+	style.corner_radius_top_right = 5
+	style.corner_radius_bottom_right = 5
+	style.corner_radius_bottom_left = 5
+	style.content_margin_left = 4
+	style.content_margin_right = 4
+	return style
+
+
+func _side_marker_color(side: Variant) -> Color:
+	if side == "attacker":
+		return Color(0.95, 0.34, 0.22, 1)
+	return Color(0.30, 0.66, 1.0, 1)
 
 
 func _add_terrain_layers(tile: Control, terrain: Variant) -> void:

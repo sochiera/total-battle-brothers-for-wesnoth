@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 from pathlib import Path
 
@@ -573,9 +574,7 @@ def test_battle_view_hex_tiles_carry_terrain_textures_from_assets():
             )
 
         # English terrain names must not sit on the hex face.
-        surface_labels = [
-            str(t).strip() for t in (tile.get("surface_labels") or []) if str(t).strip()
-        ]
+        surface_labels = _surface_label_texts(tile)
         for label in surface_labels:
             assert label not in _ENGLISH_TERRAIN_LABELS, (
                 f"hex {qr} must not show English terrain label {label!r} on the "
@@ -767,6 +766,168 @@ def test_battle_view_hex_tiles_overlay_side_silhouettes_on_terrain():
         f"attacker and defender must use different silhouette files: "
         f"{attacker_side_paths!r} vs {defender_side_paths!r}"
     )
+
+
+def _surface_label_records(tile: dict) -> list[dict]:
+    """Normalize probe surface_labels to dicts with at least ``text``."""
+    records: list[dict] = []
+    for raw in tile.get("surface_labels") or []:
+        if isinstance(raw, dict):
+            text = str(raw.get("text", "")).strip()
+            if not text:
+                continue
+            rec = dict(raw)
+            rec["text"] = text
+            records.append(rec)
+        else:
+            text = str(raw).strip()
+            if text:
+                records.append({"text": text})
+    return records
+
+
+def _surface_label_texts(tile: dict) -> list[str]:
+    return [rec["text"] for rec in _surface_label_records(tile)]
+
+
+def _label_shows_polish_hp(text: str, hp: int) -> bool:
+    """True if a compact Polish vitality marker carries both „PŻ” and public hp."""
+    if "PŻ" not in text and "pż" not in text.casefold():
+        return False
+    # Whole-number token so hp=1 does not false-positive match "10" / "21".
+    return re.search(rf"(?<!\d){re.escape(str(int(hp)))}(?!\d)", text) is not None
+
+
+def _border_color_key(rec: dict) -> tuple[float, float, float, float] | None:
+    """RGBA tuple from a StyleBoxFlat border, or None if the probe saw no outline."""
+    color = rec.get("border_color")
+    widths = rec.get("border_width")
+    if not isinstance(color, (list, tuple)) or len(color) < 3:
+        return None
+    if isinstance(widths, (list, tuple)) and len(widths) >= 4:
+        if max(float(w) for w in widths[:4]) <= 0:
+            return None
+    return (
+        round(float(color[0]), 4),
+        round(float(color[1]), 4),
+        round(float(color[2]), 4),
+        round(float(color[3]), 4) if len(color) > 3 else 1.0,
+    )
+
+
+def test_battle_view_occupied_hexes_show_polish_hp_marker():
+    """G98.1c: occupied hexes present public ``hp`` as a compact Polish PŻ marker.
+
+    Realistic defect existing gates miss: BattleView already overlays
+    ``side_attacker`` / ``side_defender`` on terrain (G87.1c-2 / G98.1b green)
+    and the probe fixture already carries distinct per-hex ``hp`` values, but
+    no surface label shows vitality. Silhouette and terrain tests only check
+    texture paths / sizes / neutral base modulate and *forbid* English terrain
+    labels — they never require „PŻ” or the public hit-point number on the
+    occupied hex face. SnapshotModel already projects ``hp``; the gap is
+    BattleView presentation.
+
+    Side reinforcement on the badge: a monochrome „PŻ N“ without a side-tinted
+    outline still satisfies text+silhouette checks. G98.1c also requires a small
+    outline/base cue by the unit; the probe exports StyleBoxFlat border_color so
+    attacker vs defender borders must differ (no exact palette pin).
+    """
+    payload = _load_battle_view()
+    assert payload["battle_view_found"] is True, payload
+    assert payload["has_render_model"] is True, payload
+
+    hexes = payload["hexes"]
+    first = payload["tiles_after_first"]
+    assert len(first) == len(hexes), first
+    by_qr = _by_qr(first)
+
+    occupied = [
+        h
+        for h in hexes
+        if str(h.get("side", "")) in ("attacker", "defender")
+    ]
+    assert occupied, f"probe must include occupied attacker/defender hexes, got {hexes!r}"
+    hps = {int(h["hp"]) for h in occupied if "hp" in h}
+    assert len(hps) >= 2, (
+        "probe must exercise at least two distinct public hp values on occupied "
+        f"hexes so different PŻ markers are observable, got hps={sorted(hps)} "
+        f"hexes={occupied!r}"
+    )
+    sides_occupied = {str(h.get("side", "")) for h in occupied}
+    assert sides_occupied >= {"attacker", "defender"}, (
+        f"fixture must show both sides with PŻ, got sides={sorted(sides_occupied)}"
+    )
+
+    border_by_side: dict[str, set[tuple[float, float, float, float]]] = {
+        "attacker": set(),
+        "defender": set(),
+    }
+
+    for hex_row in occupied:
+        qr = (int(hex_row["q"]), int(hex_row["r"]))
+        tile = by_qr[qr]
+        side = str(hex_row.get("side", ""))
+        hp = int(hex_row["hp"])
+        records = _surface_label_records(tile)
+        labels = [rec["text"] for rec in records]
+        matching = [
+            rec
+            for rec in records
+            if _label_shows_polish_hp(rec["text"], hp)
+        ]
+        assert matching, (
+            f"hex {qr} side={side!r} hp={hp} must show a compact Polish PŻ "
+            f"marker that includes the public hp on the hex face "
+            f"(G98.1c; silhouettes alone are not enough), labels={labels!r}"
+        )
+        # Side cue on the badge (outline): zero-width / missing StyleBox fails.
+        border_keys = [_border_color_key(rec) for rec in matching]
+        assert all(key is not None for key in border_keys), (
+            f"hex {qr} side={side!r} PŻ marker must carry a visible StyleBox "
+            f"border (side outline cue; monochrome label alone is not enough), "
+            f"matching={matching!r}"
+        )
+        for key in border_keys:
+            assert key is not None
+            border_by_side[side].add(key)
+        # English terrain names still must not sit on the face (G98.1b).
+        for label in labels:
+            assert label not in _ENGLISH_TERRAIN_LABELS, (
+                f"hex {qr} must not paint English terrain label {label!r} beside "
+                f"PŻ, labels={labels!r}"
+            )
+        # Side silhouette remains the unit figure; PŻ is an extra surface cue.
+        side_paths = {layer["path"] for layer in _side_layers(tile)}
+        wanted = SIDE_ATTACKER if side == "attacker" else SIDE_DEFENDER
+        assert wanted in side_paths, (
+            f"hex {qr} side={side!r} must keep its silhouette under the PŻ "
+            f"composition, side_paths={side_paths!r}"
+        )
+
+    attacker_borders = border_by_side["attacker"]
+    defender_borders = border_by_side["defender"]
+    assert attacker_borders, "occupied attacker hexes must expose PŻ border colors"
+    assert defender_borders, "occupied defender hexes must expose PŻ border colors"
+    assert attacker_borders.isdisjoint(defender_borders), (
+        "PŻ marker border must distinguish attacker vs defender "
+        f"(G98.1c side reinforcement on the badge); "
+        f"attacker={sorted(attacker_borders)} defender={sorted(defender_borders)}"
+    )
+
+    # Empty / unknown side keep terrain only — no vitality paint without a unit.
+    for hex_row in hexes:
+        side = str(hex_row.get("side", ""))
+        if side in ("attacker", "defender"):
+            continue
+        qr = (int(hex_row["q"]), int(hex_row["r"]))
+        labels = _surface_label_texts(by_qr[qr])
+        vitality = [
+            t for t in labels if "PŻ" in t or "pż" in t.casefold()
+        ]
+        assert not vitality, (
+            f"hex {qr} side={side!r} must not show a PŻ marker without an "
+            f"attacker/defender unit (G98.1c occupied-only), labels={labels!r}"
+        )
 
 
 def test_battle_view_base_hexes_form_pointy_top_axial_grid_from_plains_asset():

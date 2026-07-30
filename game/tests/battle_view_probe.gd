@@ -249,9 +249,37 @@ func _collect_tiles(battle_view: Node, hexes: Array) -> Array:
 
 
 func _collect_surface_labels(node: Node) -> Array:
+	# Each surface Label under the hex: text plus optional StyleBoxFlat cues.
+	# G98.1c needs border_color so a monochrome „PŻ N” without side outline fails.
 	var labels: Array = []
 	if node is Label:
-		labels.append((node as Label).text.strip_edges())
+		var label: Label = node as Label
+		var entry: Dictionary = {
+			"text": label.text.strip_edges(),
+			"name": str(label.name),
+		}
+		var style: StyleBox = label.get_theme_stylebox("normal")
+		if style is StyleBoxFlat:
+			var flat: StyleBoxFlat = style as StyleBoxFlat
+			entry["border_color"] = [
+				flat.border_color.r,
+				flat.border_color.g,
+				flat.border_color.b,
+				flat.border_color.a,
+			]
+			entry["bg_color"] = [
+				flat.bg_color.r,
+				flat.bg_color.g,
+				flat.bg_color.b,
+				flat.bg_color.a,
+			]
+			entry["border_width"] = [
+				float(flat.border_width_left),
+				float(flat.border_width_top),
+				float(flat.border_width_right),
+				float(flat.border_width_bottom),
+			]
+		labels.append(entry)
 	for child: Node in node.get_children():
 		labels.append_array(_collect_surface_labels(child))
 	return labels
