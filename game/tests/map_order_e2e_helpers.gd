@@ -39,6 +39,7 @@ static func observe(scene_root: Control, map_view: Node) -> Dictionary:
 	var position_label := scene_root.find_child("PlayerPartyPositionLabel", true, false) as Label
 	var status_label := scene_root.find_child("LastOrderStatusLabel", true, false) as Label
 	var panel_label := scene_root.find_child("SelectedRegionDetailsLabel", true, false) as Label
+	var date_label := scene_root.find_child("DateLabel", true, false) as Label
 	var march_button := scene_root.find_child("MarchButton", true, false) as Button
 	var region_names: Array[String] = PartyMapMark.region_names_from_map(map_view)
 	var selected := ""
@@ -48,6 +49,7 @@ static func observe(scene_root: Control, map_view: Node) -> Dictionary:
 		"position_label": "" if position_label == null else position_label.text,
 		"order_status": "" if status_label == null else status_label.text,
 		"panel_text": "" if panel_label == null else panel_label.text,
+		"date": "" if date_label == null else date_label.text,
 		"march_label": "" if march_button == null else march_button.text,
 		"selected_region_name": selected,
 		"marked_regions": PartyMapMark.marked_party_regions(map_view, region_names),

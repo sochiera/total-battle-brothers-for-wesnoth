@@ -7,6 +7,9 @@ extends SceneTree
 ## muster lands the party on "player lands"; "player outpost" is the legal
 ## adjacent own settlement used by the bridge-level move gate (G97.1b).
 ## Scaffolding: map_order_e2e_helpers.gd (shared with blocked_enemy_settlement).
+##
+## Optional 5th arg: "resume" = cold start on existing state (first paint only).
+## Omit the 5th arg to run the full select+move sequence.
 
 const BridgeClient = preload("res://scripts/bridge_client.gd")
 const MapOrderE2E = preload("res://tests/map_order_e2e_helpers.gd")
@@ -24,9 +27,15 @@ func _init() -> void:
 
 func _run() -> void:
 	var args := OS.get_cmdline_user_args()
-	if args.size() != 4:
-		_fail("expected command prefix, state path, request path and seed")
+	if args.size() < 4 or args.size() > 5:
+		_fail("expected command prefix, state path, request path, seed [, resume]")
 		return
+	var resume := false
+	if args.size() == 5:
+		if args[4] != "resume":
+			_fail("unknown optional arg: %s (expected resume)" % args[4])
+			return
+		resume = true
 
 	root.size = Vector2i(int(VIEWPORT_W), int(VIEWPORT_H))
 
@@ -44,6 +53,19 @@ func _run() -> void:
 	var map_view: Node = scene_root.find_child("MapView", true, false)
 	if map_view == null:
 		_fail("missing MapView")
+		return
+
+	if resume:
+		var after_resume: Dictionary = MapOrderE2E.observe(scene_root, map_view)
+		print(PREFIX, JSON.stringify({
+			"source_region": SOURCE_REGION,
+			"target_region": TARGET_REGION,
+			"viewport": _measured_viewport(scene_root),
+			"after_resume": after_resume,
+			"state_exists": FileAccess.file_exists(args[1]),
+			"session_command": client.session_command(),
+		}))
+		quit(0)
 		return
 
 	if not MapOrderE2E.press(self, scene_root, "MusterButton"):
@@ -67,6 +89,7 @@ func _run() -> void:
 	print(PREFIX, JSON.stringify({
 		"source_region": SOURCE_REGION,
 		"target_region": TARGET_REGION,
+		"viewport": _measured_viewport(scene_root),
 		"after_muster": after_muster,
 		"after_select": after_select,
 		"after_move": after_move,
@@ -74,6 +97,17 @@ func _run() -> void:
 		"session_command": client.session_command(),
 	}))
 	quit(0)
+
+
+func _measured_viewport(scene_root: Control) -> Dictionary:
+	## Report actual laid-out sizes (not the VIEWPORT_* constants) so the
+	## Python gate can detect a probe that forgot to fit the window/scene.
+	return {
+		"w": float(root.size.x),
+		"h": float(root.size.y),
+		"scene_w": float(scene_root.size.x),
+		"scene_h": float(scene_root.size.y),
+	}
 
 
 func _fail(message: String) -> void:

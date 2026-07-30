@@ -18,9 +18,11 @@ SUCCESS_STATUS = "Oddział przemieścił się."
 ARMY_PLAYER = "Armia: własny (gracz)"
 ARMY_NONE = "Armia: brak armii"
 
+EXPECTED_VIEWPORT = {"w": 1152.0, "h": 648.0, "scene_w": 1152.0, "scene_h": 648.0}
 
-def _run(tmp_path: Path) -> dict:
-    state_path = tmp_path / "legal-targeted-move.json"
+
+def _run(tmp_path: Path, *extra: str, state_name: str = "legal-targeted-move.json") -> dict:
+    state_path = tmp_path / state_name
     request_path = tmp_path / "bridge-request.jsonl"
     command_prefix = f"PYTHONPATH={shlex.quote(str(ROOT / 'src'))} python3 -m tbbbridge"
     result = run_godot_script(
@@ -30,6 +32,7 @@ def _run(tmp_path: Path) -> dict:
         str(state_path),
         str(request_path),
         str(SEED),
+        *extra,
         timeout=60,
     )
     assert result.returncode == 0, result.stderr
@@ -37,6 +40,23 @@ def _run(tmp_path: Path) -> dict:
     lines = [line for line in result.stdout.splitlines() if line.startswith(PREFIX)]
     assert len(lines) == 1, result.stdout
     return json.loads(lines[0][len(PREFIX) :])
+
+
+def _player_party_region_and_calendar(state_path: Path) -> tuple[str, dict]:
+    """Semantic resume gate: region of the player party + calendar from save JSON."""
+    data = json.loads(state_path.read_text(encoding="utf-8"))
+    calendar = data["calendar"]
+    regions = [entry["name"] for entry in data["world"]["regions"]]
+    player_regions = [
+        regions[index]
+        for index, party in data["world"]["parties"]
+        if party.get("owner_id") == "player"
+    ]
+    assert len(player_regions) == 1, (
+        f"expected exactly one player party in state, got {player_regions!r} "
+        f"from {state_path}"
+    )
+    return player_regions[0], calendar
 
 
 def test_legal_targeted_move_shows_unit_panel_frame_and_polish_status(tmp_path):
@@ -104,3 +124,78 @@ def test_legal_targeted_move_shows_unit_panel_frame_and_polish_status(tmp_path):
     )
     assert "marsz" not in after_move["order_status"].lower()
     assert "szturm" not in after_move["order_status"].lower()
+
+
+def test_legal_targeted_move_resumes_with_unit_on_destination(tmp_path):
+    """Cold resume after legal targeted step paints the unit on the saved region.
+
+    Realistic defect existing gates miss: in-session legal targeted-move e2e
+    (same process) and bridge-level ``send_order(move, target)`` resume pin the
+    model ``player_party_region``, while ``persistent_party_map_mark`` resumes
+    only after untargeted muster→march. None of them run the unique boundary
+    MapView select → MarchButton (order=move+target) → auto-save → **new**
+    Godot process + bridge ``serve --resume`` → first Main render. A client that
+    reloads the label from the snapshot but leaves MapView on the seed/source
+    tile, drops the silhouette until another order, or advances the calendar on
+    resume keeps those green gates while this AC fails.
+
+    Resume phase issues no march/move press — position must already be correct.
+    Measured viewport stays 1152×648 for human screenshot review of the resumed party.
+    """
+    state_name = "legal-targeted-move-resume.json"
+    state_path = tmp_path / state_name
+
+    first = _run(tmp_path, state_name=state_name)
+    assert first["state_exists"] is True
+    party_region_after_move, calendar_after_move = _player_party_region_and_calendar(
+        state_path
+    )
+
+    second = _run(tmp_path, "resume", state_name=state_name)
+
+    source = first["source_region"]
+    target = first["target_region"]
+    assert source == "player lands"
+    assert target == "player outpost"
+    assert second["state_exists"] is True
+    # Resume fact only — do not pin private shell-quoting of bridge_client.gd.
+    assert "--resume" in second["session_command"], second["session_command"]
+    assert str(state_path) in second["session_command"], second["session_command"]
+    assert first["viewport"] == EXPECTED_VIEWPORT, first["viewport"]
+    assert second["viewport"] == EXPECTED_VIEWPORT, second["viewport"]
+
+    after_move = first["after_move"]
+    resumed = second["after_resume"]
+
+    # In-session after the targeted step: one mark on destination, calendar fixed.
+    assert after_move["marker_count"] == 1, after_move
+    assert after_move["marked_regions"] == [target], after_move
+    assert target in after_move["position_label"], after_move
+    assert source not in after_move["marked_regions"], after_move
+    assert after_move["order_status"] == SUCCESS_STATUS, after_move
+    move_date = after_move["date"]
+    assert move_date, after_move
+
+    # Semantic save: party on destination, calendar frozen across resume process.
+    assert party_region_after_move == target, party_region_after_move
+    party_region_resumed, calendar_resumed = _player_party_region_and_calendar(
+        state_path
+    )
+    assert party_region_resumed == party_region_after_move, (
+        f"resume must not re-apply move: before={party_region_after_move!r} "
+        f"after={party_region_resumed!r}"
+    )
+    assert calendar_resumed == calendar_after_move, (
+        f"resume must not advance calendar in state file: "
+        f"before={calendar_after_move!r} after={calendar_resumed!r}"
+    )
+
+    # First paint after resume: same destination mark + matching label, no re-order.
+    assert resumed["marker_count"] == 1, resumed
+    assert resumed["marked_regions"] == [target], resumed
+    assert target in resumed["position_label"], resumed
+    assert source not in resumed["marked_regions"], resumed
+    assert resumed["date"] == move_date, (
+        f"resume must not advance DateLabel: after_move={move_date!r} "
+        f"resumed={resumed['date']!r}"
+    )
