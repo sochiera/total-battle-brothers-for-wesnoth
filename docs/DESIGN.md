@@ -53,12 +53,18 @@ jest odrzucane. Mapa wejściowa, osady i garnizony nie są mutowane.
 **Bitwa party↔osada (szturm).**
 - `start_settlement_battle` — party w `source` vs osada w sąsiednim `destination`,
   różni właściciele; tworzy `HexBattle` (party = atak, garnizon = obrona) bez
-  mutacji mapy/osady/garnizonu.
+  mutacji mapy/osady/garnizonu. Oddział w regionie osady dołącza do `DEFENDER`
+  tylko gdy ma tego samego `owner_id` co osada (sojusznik/właściciel); oddział
+  trzeciej strony lub sojusznik atakującego nie walczy.
 - `apply_settlement_battle_result(source, destination, result, battle=None)` —
   `ATTACKER_WIN` (**podbój**): `owner_id` osady → właściciel atakującego, party
-  na `destination` (odrzucane jeśli region zajęty innym party); `DEFENDER_WIN` /
-  `DRAW`: atakujący znika, owner bez zmian. Z `battle`: garnizon z ocalałych
-  obrońców (`absorb_defenders`); bez `battle`: garnizon nietknięty (zgodność wstecz).
+  na `destination`. Zajętość regionu: ten sam predykat co deploy
+  (`owner_id` oddziału == `owner_id` osady) — broniący oddział jest usuwany
+  (legalny podbój); każdy oddział niebroniący (sojusznik atakującego, trzecia
+  strona) → `ValueError("destination is already occupied by a party")`.
+  `DEFENDER_WIN` / `DRAW`: atakujący znika, owner bez zmian. Z `battle`:
+  garnizon z ocalałych obrońców (`absorb_defenders`); bez `battle`: garnizon
+  nietknięty (zgodność wstecz).
 - `resolve_settlement_battle_recorded(...) -> (WorldMap, HexBattle)` składa
   start → auto_resolve → apply i zwraca mapę + rozstrzygniętą bitwę (bez
   dodatkowego RNG). `resolve_settlement_battle` deleguje i zwraca tylko mapę.

@@ -1214,16 +1214,25 @@ def test_start_settlement_battle_includes_enemy_party_at_destination_with_garris
     assert resolved.result() is not None
 
 
-def test_start_settlement_battle_does_not_deploy_same_owner_party_as_defender():
-    """A same-owner party on the destination is not a settlement defender.
+@pytest.mark.parametrize(
+    "bystander_owner",
+    ["north", "west"],
+    ids=["attacker-ally", "third-party"],
+)
+def test_start_settlement_battle_deploys_only_settlement_allies_as_defenders(
+    bystander_owner,
+):
+    """A party not allied with the settlement is not its defender.
 
-    Defect: a naive "deploy any party at destination" would put the attacker's
-    own second party on DEFENDER. Only an enemy of the attacker joins.
+    Defect: selecting defenders merely as enemies of the attacker recruits a
+    third party hostile to both sides. Only the settlement owner's party joins.
     """
     camp = Region("Camp")
     vale = Region("Vale")
     attacker = Party(Unit(training=3), [Unit(equipment=1)], "north")
-    friendly = Party(Unit(training=9), [Unit(experience=4)], "north")
+    bystander = Party(
+        Unit(training=9), [Unit(experience=4)], bystander_owner
+    )
     garrison = (Unit(training=4),)
     settlement = Settlement(
         "Oakrest", population=3, garrison=garrison, owner_id="south"
@@ -1232,19 +1241,23 @@ def test_start_settlement_battle_does_not_deploy_same_owner_party_as_defender():
         [camp, vale],
         [(camp, vale)],
         settlements={vale: settlement},
-        parties={camp: attacker, vale: friendly},
+        parties={camp: attacker, vale: bystander},
     )
 
     battle = world.start_settlement_battle(camp, vale)
 
     by_side = _units_by_side(battle)
-    friendly_roster = (friendly.hero, *friendly.units)
+    bystander_roster = (bystander.hero, *bystander.units)
     assert Counter(by_side[BattleSide.DEFENDER]) == Counter(garrison)
     assert Counter(by_side[BattleSide.ATTACKER]) == Counter(
         [attacker.hero, *attacker.units]
     )
-    assert all(unit not in by_side[BattleSide.DEFENDER] for unit in friendly_roster)
-    assert all(unit not in by_side[BattleSide.ATTACKER] for unit in friendly_roster)
+    assert all(
+        unit not in by_side[BattleSide.DEFENDER] for unit in bystander_roster
+    )
+    assert all(
+        unit not in by_side[BattleSide.ATTACKER] for unit in bystander_roster
+    )
 
 
 def test_start_settlement_battle_does_not_change_world_party_or_settlement():
@@ -1384,20 +1397,20 @@ def test_apply_settlement_battle_result_updates_world(
     assert resolved is not world
 
 
-def test_apply_settlement_attacker_win_clears_enemy_party_at_destination():
-    """Attacker win on a region with a hostile party is a legal conquest.
+def test_apply_settlement_attacker_win_clears_defending_party_at_destination():
+    """Attacker win on a region with a settlement defender is a legal conquest.
 
     Defect: apply_settlement_battle_result raises
     ValueError("destination is already occupied by a party") whenever the
     destination hosts any party, so AI assaults that beat a defended
-    settlement hard-lock next_turn. Hostile occupants must leave the map;
+    settlement hard-lock next_turn. Settlement defenders must leave the map;
     the attacker enters with its (battle=None: full) roster; settlement
-    ownership flips. Same-owner occupancy stays illegal (next test).
+    ownership flips. Non-defending occupancy stays illegal (next test).
     """
     camp = Region("Camp")
     vale = Region("Vale")
     attacker = Party(Unit(), owner_id="north")
-    defender_party = Party(Unit(), owner_id="third")
+    defender_party = Party(Unit(), owner_id="south")
     settlement = Settlement("Oakrest", 2, owner_id="south")
     world = WorldMap(
         [camp, vale],
@@ -1501,7 +1514,21 @@ def test_apply_settlement_attacker_win_clears_enemy_party_with_battle_survivors(
     assert world.settlement_at(vale) is settlement
 
 
-def test_apply_settlement_attacker_win_rejects_friendly_occupied_destination():
+@pytest.mark.parametrize(
+    "bystander_owner",
+    ["north", "west"],
+    ids=["attacker-ally", "third-party"],
+)
+def test_apply_settlement_attacker_win_rejects_non_defending_occupied_destination(
+    bystander_owner,
+):
+    """A party that did not defend the settlement cannot be silently replaced.
+
+    Defect: the occupied-destination guard compares the destination party with
+    the attacker, so a third party is not deployed but is overwritten after an
+    ATTACKER_WIN. Occupancy must use the same settlement-defender distinction
+    as battle deployment.
+    """
     camp = Region("Camp")
     vale = Region("Vale")
     world = WorldMap(
@@ -1510,7 +1537,7 @@ def test_apply_settlement_attacker_win_rejects_friendly_occupied_destination():
         settlements={vale: Settlement("Oakrest", 2, owner_id="south")},
         parties={
             camp: Party(Unit(), owner_id="north"),
-            vale: Party(Unit(), owner_id="north"),
+            vale: Party(Unit(), owner_id=bystander_owner),
         },
     )
 
@@ -2121,20 +2148,27 @@ def test_apply_settlement_non_attacker_win_keeps_stunned_party_member_with_party
     [BattleResult.DEFENDER_WIN, BattleResult.DRAW, None],
     ids=["defender-win", "draw", "unresolved"],
 )
-def test_apply_settlement_non_attacker_win_leaves_allied_destination_party(
-    result,
+@pytest.mark.parametrize(
+    "bystander_owner",
+    ["north", "west"],
+    ids=["attacker-ally", "third-party"],
+)
+def test_apply_settlement_non_attacker_win_leaves_non_defending_destination_party(
+    result, bystander_owner
 ):
-    """Allied party on destination did not fight and must remain untouched.
+    """A non-defending party on destination did not fight and remains untouched.
 
     Defect: any party at destination is treated as the defending home party.
     start_settlement_battle deploys destination party only when
-    home_party.owner_id != attacker.owner_id; an allied party yields empty
-    party_survivors and is deleted, while all DEFENDER survivors go to garrison.
+    home_party.owner_id matches the settlement owner; any other party must not
+    be reconstructed from DEFENDER survivors or deleted.
     """
     camp = Region("Camp")
     vale = Region("Vale")
     attacker = Party(Unit(experience=6), [Unit(training=2)], owner_id="north")
-    ally = Party(Unit(experience=3), [Unit(equipment=1)], owner_id="north")
+    bystander = Party(
+        Unit(experience=3), [Unit(equipment=1)], owner_id=bystander_owner
+    )
     garrison = (Unit(training=4), Unit(equipment=2))
     settlement = Settlement(
         "Oakrest",
@@ -2147,12 +2181,12 @@ def test_apply_settlement_non_attacker_win_leaves_allied_destination_party(
         [camp, vale],
         [(camp, vale)],
         settlements={vale: settlement},
-        parties={camp: attacker, vale: ally},
+        parties={camp: attacker, vale: bystander},
     )
     battle = world.start_settlement_battle(camp, vale)
     assert all(
-        battle.unit_at(position) is not ally.hero
-        and battle.unit_at(position) not in ally.units
+        battle.unit_at(position) is not bystander.hero
+        and battle.unit_at(position) not in bystander.units
         for position in battle.units
         if battle.side_at(position) is BattleSide.DEFENDER
     )
@@ -2170,8 +2204,8 @@ def test_apply_settlement_non_attacker_win_leaves_allied_destination_party(
     defended = resolved.settlement_at(vale)
     assert defended.owner_id == "south"
     assert defended.garrison == (garrison[0],)
-    assert resolved.party_at(vale) == ally
-    assert world.party_at(vale) is ally
+    assert resolved.party_at(vale) == bystander
+    assert world.party_at(vale) is bystander
     assert world.settlement_at(vale) is settlement
 
 

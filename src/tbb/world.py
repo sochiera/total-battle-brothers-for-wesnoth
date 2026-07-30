@@ -330,7 +330,7 @@ class WorldMap:
     def start_settlement_battle(
         self, source: Region, destination: Region
     ) -> HexBattle:
-        """Create a battle between a party and an adjacent settlement garrison, plus any enemy party already standing in that region."""
+        """Create a battle between a party and an adjacent settlement garrison, plus any party already standing in that region that has the same owner as the settlement."""
         if source not in self._neighbors or destination not in self._neighbors:
             raise ValueError("region is outside the world map")
         if source == destination:
@@ -351,10 +351,24 @@ class WorldMap:
         for row, unit in enumerate(settlement.garrison):
             battle = battle.deploy(unit, Hex(2, row), BattleSide.DEFENDER)
         home_party = self.parties.get(destination)
-        if home_party is not None and home_party.owner_id != party.owner_id:
+        if self._party_defends_settlement(home_party, settlement):
             for row, unit in enumerate((home_party.hero, *home_party.units)):
                 battle = battle.deploy(unit, Hex(3, row), BattleSide.DEFENDER)
         return battle
+
+    @staticmethod
+    def _party_defends_settlement(
+        party: Party | None, settlement: Settlement
+    ) -> bool:
+        """True when a party in the settlement region fights as DEFENDER.
+
+        Same ``owner_id`` as the settlement (owner/ally under the current
+        same-id alliance model). Hostile-to-attacker alone is not enough.
+        Used by deploy, absorb, and the ATTACKER_WIN occupancy guard so a
+        defending party may be cleared on conquest while any non-defending
+        occupant is rejected.
+        """
+        return party is not None and party.owner_id == settlement.owner_id
 
     @staticmethod
     def _absorb_settlement_defenders(
@@ -379,8 +393,7 @@ class WorldMap:
         discarded after the garrison survivors are absorbed.
         """
         home_party = parties.get(destination)
-        fought = home_party is not None and home_party.owner_id != attacker.owner_id
-        if not fought:
+        if not WorldMap._party_defends_settlement(home_party, settlement):
             return settlement.absorb_defenders(
                 battle.side_survivors(BattleSide.DEFENDER)
             )
@@ -429,17 +442,17 @@ class WorldMap:
         if result is not None and not isinstance(result, BattleResult):
             raise ValueError("unknown battle result")
         attacker = self.parties[source]
+        settlement = self.settlements[destination]
         destination_party = self.parties.get(destination)
         if (
             result is BattleResult.ATTACKER_WIN
             and destination_party is not None
-            and destination_party.owner_id == attacker.owner_id
+            and not self._party_defends_settlement(destination_party, settlement)
         ):
             raise ValueError("destination is already occupied by a party")
 
         parties = dict(self.parties)
         parties.pop(source)
-        settlement = self.settlements[destination]
         if result is None:
             parties[source] = (
                 attacker
@@ -467,13 +480,14 @@ class WorldMap:
                     battle,
                     keep_home_party_survivors=False,
                 )
-            parties[destination] = (
-                attacker
-                if battle is None
-                else Party.reconstruct(
+                occupying = Party.reconstruct(
                     attacker, battle.side_survivors(BattleSide.ATTACKER)
                 )
-            )
+            else:
+                # Occupancy guard rejects non-defenders; assignment replaces
+                # a defending occupant (if any).
+                occupying = attacker
+            parties[destination] = occupying
             settlement = replace(settlement, owner_id=attacker.owner_id)
         elif battle is not None:
             settlement = self._absorb_settlement_defenders(

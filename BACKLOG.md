@@ -819,6 +819,16 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
       (kalendarz idzie dalej), czyli zakleszczenie zniknęło. *(standard, wymaga
       G92.1a; wniosek 13 — kamień domykamy sekwencją gracza, nie samym
       `pytest`)*
+- [ ] **G92.1c** Wejścia AI `assault_duchy_party_recorded`,
+      `assault_duchy_party_to_recorded` i `assault_nearest_enemy_settlement`
+      **pomijają szturm**, gdy region docelowej osady zajmuje party **niebędące
+      jej obrońcą** (inny `owner_id` niż osada). Dziś guard
+      `apply_settlement_battle_result` przy `ATTACKER_WIN` rzuca
+      `ValueError("destination is already occupied by a party")`, więc
+      zwycięstwo na takim polu kończy turę AI nieobsłużonym wyjątkiem. Bez
+      zmiany kontraktu `WorldMap` ani reguł bitwy — tylko selekcja celu AI.
+      *(standard, wymaga G92.1a; nie dodawać w tym samym zadaniu czerwonego
+      testu world — to plasterek AI)*
 > **Dalszy ciąg K92, do rozplanowania dopiero po G92.1b** (nie planować teraz):
 > druga osada na stronę i większy świat startowy (wniosek 17), a potem „gracz
 > widzi wieloturową partię na ekranie". Pomiary z przeglądu, żeby nie robić ich
