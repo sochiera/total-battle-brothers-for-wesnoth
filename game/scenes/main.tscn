@@ -1,9 +1,10 @@
-[gd_scene load_steps=15 format=3]
+[gd_scene load_steps=16 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/map_view.gd" id="2_map_view"]
 [ext_resource type="Script" path="res://scripts/battle_view.gd" id="3_battle_view"]
 [ext_resource type="Texture2D" path="res://assets/strategic_map_background.png" id="4_map_background"]
+[ext_resource type="Texture2D" path="res://assets/strategic_status_background.png" id="14_status_background"]
 [ext_resource type="Texture2D" path="res://assets/battle_panel_background.png" id="13_battle_panel_background"]
 [ext_resource type="Texture2D" path="res://assets/icon_next_turn.png" id="5_next_turn_icon"]
 [ext_resource type="Texture2D" path="res://assets/icon_develop.png" id="6_develop_icon"]
@@ -15,20 +16,20 @@
 [ext_resource type="Texture2D" path="res://assets/icon_load.png" id="12_load_icon"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_selected_region"]
-bg_color = Color(0.08, 0.11, 0.16, 0.9)
+bg_color = Color(0.28, 0.18, 0.1, 0.28)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.35, 0.52, 0.72, 0.9)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_right = 5
-corner_radius_bottom_left = 5
-content_margin_left = 12.0
-content_margin_top = 8.0
-content_margin_right = 12.0
-content_margin_bottom = 8.0
+border_color = Color(0.42, 0.28, 0.14, 0.75)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -53,68 +54,124 @@ layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 8
 
-[node name="StatusControls" type="VBoxContainer" parent="MainLayout/ContentRow"]
+[node name="StatusControls" type="Control" parent="MainLayout/ContentRow"]
 custom_minimum_size = Vector2(420, 0)
 layout_mode = 2
-theme_override_constants/separation = 4
+size_flags_vertical = 3
 
-[node name="DateLabel" type="Label" parent="MainLayout/ContentRow/StatusControls"]
+[node name="StrategicStatusBackground" type="TextureRect" parent="MainLayout/ContentRow/StatusControls"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("14_status_background")
+expand_mode = 1
+stretch_mode = 6
+mouse_filter = 2
+
+[node name="StatusCardContent" type="VBoxContainer" parent="MainLayout/ContentRow/StatusControls"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = 12.0
+offset_right = -14.0
+offset_bottom = -12.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 6
+
+[node name="DateLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(420, 24)
+custom_minimum_size = Vector2(0, 24)
 layout_mode = 2
+theme_override_colors/font_color = Color(0.18, 0.11, 0.06, 1)
+theme_override_colors/font_shadow_color = Color(0.95, 0.88, 0.72, 0.55)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 18
 
-[node name="StartStatusLabel" type="Label" parent="MainLayout/ContentRow/StatusControls"]
+[node name="ResultLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(420, 24)
+custom_minimum_size = Vector2(0, 24)
 layout_mode = 2
+theme_override_colors/font_color = Color(0.18, 0.11, 0.06, 1)
+theme_override_colors/font_shadow_color = Color(0.95, 0.88, 0.72, 0.55)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 16
 
-[node name="RegionList" type="ItemList" parent="MainLayout/ContentRow/StatusControls"]
+[node name="PlayerDuchyStatusLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(420, 140)
+custom_minimum_size = Vector2(0, 24)
 layout_mode = 2
+theme_override_colors/font_color = Color(0.18, 0.11, 0.06, 1)
+theme_override_colors/font_shadow_color = Color(0.95, 0.88, 0.72, 0.45)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
 
-[node name="ResultLabel" type="Label" parent="MainLayout/ContentRow/StatusControls"]
+[node name="PlayerPartyPositionLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(420, 24)
+custom_minimum_size = Vector2(0, 24)
 layout_mode = 2
+theme_override_colors/font_color = Color(0.18, 0.11, 0.06, 1)
+theme_override_colors/font_shadow_color = Color(0.95, 0.88, 0.72, 0.45)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
 
-[node name="PlayerDuchyStatusLabel" type="Label" parent="MainLayout/ContentRow/StatusControls"]
+[node name="LastOrderStatusLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(420, 24)
+custom_minimum_size = Vector2(0, 24)
 layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 0.12, 0.06, 1)
+theme_override_colors/font_shadow_color = Color(0.95, 0.88, 0.72, 0.45)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+autowrap_mode = 2
 
-[node name="LastOrderStatusLabel" type="Label" parent="MainLayout/ContentRow/StatusControls"]
+[node name="StartStatusLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(420, 24)
+custom_minimum_size = Vector2(0, 24)
 layout_mode = 2
+theme_override_colors/font_color = Color(0.42, 0.12, 0.08, 1)
+theme_override_colors/font_shadow_color = Color(0.95, 0.88, 0.72, 0.45)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+autowrap_mode = 2
 
-[node name="PlayerPartyPositionLabel" type="Label" parent="MainLayout/ContentRow/StatusControls"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(420, 24)
+[node name="SelectedRegionPanel" type="PanelContainer" parent="MainLayout/ContentRow/StatusControls/StatusCardContent"]
+custom_minimum_size = Vector2(0, 124)
 layout_mode = 2
-
-[node name="SelectedRegionPanel" type="PanelContainer" parent="MainLayout/ContentRow/StatusControls"]
-custom_minimum_size = Vector2(420, 124)
-layout_mode = 2
+size_flags_vertical = 3
 theme_override_styles/panel = SubResource("StyleBoxFlat_selected_region")
 
-[node name="SelectedRegionContent" type="VBoxContainer" parent="MainLayout/ContentRow/StatusControls/SelectedRegionPanel"]
+[node name="SelectedRegionContent" type="VBoxContainer" parent="MainLayout/ContentRow/StatusControls/StatusCardContent/SelectedRegionPanel"]
 layout_mode = 2
 theme_override_constants/separation = 3
 
-[node name="SelectedRegionTitleLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/SelectedRegionPanel/SelectedRegionContent"]
+[node name="SelectedRegionTitleLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent/SelectedRegionPanel/SelectedRegionContent"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.82, 0.9, 1, 1)
+theme_override_colors/font_color = Color(0.22, 0.12, 0.06, 1)
 theme_override_font_sizes/font_size = 16
 text = "Wybrany region"
 
-[node name="SelectedRegionDetailsLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/SelectedRegionPanel/SelectedRegionContent"]
+[node name="SelectedRegionDetailsLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent/SelectedRegionPanel/SelectedRegionContent"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_colors/font_color = Color(0.93, 0.95, 0.98, 1)
+theme_override_colors/font_color = Color(0.18, 0.11, 0.06, 1)
 autowrap_mode = 2
 text = "Nie wybrano regionu"
+
+[node name="RegionList" type="ItemList" parent="MainLayout/ContentRow/StatusControls"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(0, 0)
+layout_mode = 0
+mouse_filter = 2
 
 [node name="MapAndBattle" type="VBoxContainer" parent="MainLayout/ContentRow"]
 layout_mode = 2

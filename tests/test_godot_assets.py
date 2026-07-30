@@ -35,6 +35,8 @@ REQUIRED_ASSETS: tuple[str, ...] = (
     "assets/side_defender.png",
     # G94.1d: strategic screen panel background (task-539).
     "assets/strategic_map_background.png",
+    # G99.1c: dedicated medieval status-card background (task-564).
+    "assets/strategic_status_background.png",
 )
 
 # Back-compat alias for callers that still import the private name.

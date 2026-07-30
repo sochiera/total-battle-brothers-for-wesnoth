@@ -18,6 +18,7 @@ const PREFIX := "SCENE_LAYOUT "
 const VIEWPORT_W := 1152.0
 const VIEWPORT_H := 648.0
 const BACKGROUND_RES := "res://assets/strategic_map_background.png"
+const STATUS_BACKGROUND_RES := "res://assets/strategic_status_background.png"
 
 const CONTROL_NAMES: Array[String] = [
 	"DateLabel",
@@ -27,6 +28,7 @@ const CONTROL_NAMES: Array[String] = [
 	"PlayerDuchyStatusLabel",
 	"LastOrderStatusLabel",
 	"PlayerPartyPositionLabel",
+	"SelectedRegionPanel",
 	"NextTurnButton",
 	"DevelopButton",
 	"RecruitButton",
@@ -111,6 +113,7 @@ func _run() -> void:
 		"battle_view_with_battle": battle_with_battle,
 		"battle_result_text_with_battle": battle_result_text,
 		"map_view": map_state,
+		"status_card": _status_card_state(scene_root),
 		"background_res": BACKGROUND_RES,
 	}))
 	quit(0)
@@ -174,7 +177,24 @@ func _map_view_state(scene_root: Node) -> Dictionary:
 	}
 
 
+func _status_card_state(scene_root: Node) -> Dictionary:
+	var card: Control = scene_root.find_child("StatusControls", true, false) as Control
+	if card == null:
+		return {"found": false}
+	var rect: Rect2 = card.get_global_rect()
+	var bg: Dictionary = _background_over(scene_root, rect, STATUS_BACKGROUND_RES)
+	return {
+		"found": true,
+		"background_path": str(bg.get("path", "")),
+		"background_covers_panel": bool(bg.get("covers", false)),
+	}
+
+
 func _strategic_background_over(scene_root: Node, map_rect: Rect2) -> Dictionary:
+	return _background_over(scene_root, map_rect, BACKGROUND_RES)
+
+
+func _background_over(scene_root: Node, panel_rect: Rect2, resource_path: String) -> Dictionary:
 	# Walk the tree for TextureRect (Control) using BACKGROUND_RES whose global
 	# rect covers the map panel (edges may match; 1px snap tolerance). Contract
 	# is a UI panel background, not a Node2D Sprite2D.
@@ -191,13 +211,13 @@ func _strategic_background_over(scene_root: Node, map_rect: Rect2) -> Dictionary
 		if tr.texture == null:
 			continue
 		var path: String = str(tr.texture.resource_path)
-		if path != BACKGROUND_RES:
+		if path != resource_path:
 			continue
 		best_path = path
 		var bg_rect: Rect2 = tr.get_global_rect()
 		if bg_rect.size.x <= 0.0 or bg_rect.size.y <= 0.0:
 			continue
-		if _rect_covers(bg_rect, map_rect, 1.0):
+		if _rect_covers(bg_rect, panel_rect, 1.0):
 			covers = true
 			break
 	return {"path": best_path, "covers": covers}

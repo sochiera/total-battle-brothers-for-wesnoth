@@ -175,20 +175,15 @@ func _set_last_order_status(status: String) -> void:
 
 func apply_model(model: SnapshotModel) -> void:
 	_current_regions = model.regions
+	# Status card hierarchy (G99.1c): date+result, duchy, position, then panels.
 	%DateLabel.text = "Rok %d, miesiąc %d" % [model.year, model.month]
 	%ResultLabel.text = _get_result_text(model.player_result)
 	_apply_result_visual_style(model.player_result)
+	%PlayerDuchyStatusLabel.text = _player_duchy_status_text(model.player_duchy_status)
 	%PlayerPartyPositionLabel.text = _player_party_position_text(model.player_party_region)
 	_update_selected_region_panel(model.regions)
-	var player_duchy_status_label: Label = %PlayerDuchyStatusLabel
-	var player_duchy_status: Variant = model.player_duchy_status
-	player_duchy_status_label.text = ""
-	if player_duchy_status is Dictionary:
-		player_duchy_status_label.text = "Morale: %s, osady: %s, oddziały: %s" % [
-			player_duchy_status["morale"],
-			player_duchy_status["settlements"],
-			player_duchy_status["parties"],
-		]
+	# RegionList stays in the scene for probe/find_child compatibility but is
+	# hidden on the status card (map is the sole region picker on screen).
 	_render_region_list(model.regions)
 	_render_world_views(model)
 
@@ -196,6 +191,16 @@ func apply_model(model: SnapshotModel) -> void:
 func _render_world_views(model: SnapshotModel) -> void:
 	%MapView.render_model(model)
 	%BattleView.render_model(model)
+
+
+func _player_duchy_status_text(player_duchy_status: Variant) -> String:
+	if player_duchy_status is Dictionary:
+		return "Morale: %s, osady: %s, oddziały: %s" % [
+			player_duchy_status["morale"],
+			player_duchy_status["settlements"],
+			player_duchy_status["parties"],
+		]
+	return ""
 
 
 func _render_region_list(regions: Array) -> void:
@@ -278,16 +283,24 @@ func _player_party_position_text(player_party_region: Variant) -> String:
 
 
 func _apply_result_visual_style(player_result: String) -> void:
+	# ResultLabel ma ciemnobrązowy font_color na pergaminie. Mnożenie go przez
+	# Color.GREEN/RED/YELLOW w modulate gasi kanały → niemal czarny tekst.
+	# Styl wyniku idzie wyłącznie przez theme_override font_color; modulate = WHITE.
 	var result_label: Label = %ResultLabel
+	const BASE_FONT := Color(0.18, 0.11, 0.06, 1)
+	const VICTORY_FONT := Color(0.14, 0.38, 0.16, 1)
+	const DEFEAT_FONT := Color(0.55, 0.14, 0.1, 1)
+	const DRAW_FONT := Color(0.52, 0.36, 0.08, 1)
+	result_label.modulate = Color.WHITE
+	var font_color: Color = BASE_FONT
 	match player_result:
 		"victory":
-			result_label.modulate = Color.GREEN
+			font_color = VICTORY_FONT
 		"defeat":
-			result_label.modulate = Color.RED
+			font_color = DEFEAT_FONT
 		"draw":
-			result_label.modulate = Color.YELLOW
-		_:
-			result_label.modulate = Color.WHITE
+			font_color = DRAW_FONT
+	result_label.add_theme_color_override("font_color", font_color)
 
 
 func _get_result_text(player_result: String) -> String:

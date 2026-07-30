@@ -18,12 +18,13 @@ PREFIX = "SCENE_LAYOUT "
 STATUS_CONTROLS = (
     "DateLabel",
     "StartStatusLabel",
-    "RegionList",
     "ResultLabel",
     "PlayerDuchyStatusLabel",
     "LastOrderStatusLabel",
     "PlayerPartyPositionLabel",
+    "SelectedRegionPanel",
 )
+HIDDEN_CONTROLS = ("RegionList",)
 ORDER_CONTROLS = (
     "NextTurnButton",
     "DevelopButton",
@@ -34,13 +35,15 @@ ORDER_CONTROLS = (
     "SaveGameButton",
     "LoadGameButton",
 )
-ALL_CONTROLS = STATUS_CONTROLS + ORDER_CONTROLS
+ALL_CONTROLS = STATUS_CONTROLS + HIDDEN_CONTROLS + ORDER_CONTROLS
 
 # G94.1d review resolution and strategic map panel background path.
 VIEWPORT_W = 1152.0
 VIEWPORT_H = 648.0
 STRATEGIC_BACKGROUND = "strategic_map_background.png"
 STRATEGIC_BACKGROUND_RES = f"res://assets/{STRATEGIC_BACKGROUND}"
+STATUS_BACKGROUND = "strategic_status_background.png"
+STATUS_BACKGROUND_RES = f"res://assets/{STATUS_BACKGROUND}"
 
 
 def _load_layout_payload() -> dict:
@@ -102,8 +105,8 @@ def _battle_view_takes_layout_space(state: dict) -> bool:
     return float(state.get("h") or 0) > 1.0
 
 
-def test_main_scene_controls_have_disjoint_layout_and_visible_region_list():
-    """Controls must not share screen points; RegionList must be visible area.
+def test_main_scene_controls_have_disjoint_layout_and_hidden_region_list():
+    """Visible controls must not overlap; the map replaces the hidden RegionList.
 
     Realistic defect this catches: main.tscn still parents every control at the
     same origin with default zero sizes (empirically all global_position==(0,0),
@@ -112,21 +115,22 @@ def test_main_scene_controls_have_disjoint_layout_and_visible_region_list():
     """
     controls = _load_layout()
 
-    for name in ALL_CONTROLS:
+    for name in STATUS_CONTROLS + ORDER_CONTROLS:
         rect = controls[name]
         assert rect is not None, f"missing control {name}"
         assert rect["w"] > 0 and rect["h"] > 0, (
             f"{name} must have non-zero size after layout, got {rect}"
         )
 
-    # Beyond ALL_CONTROLS non-zero size: list must be tall enough to show several rows.
-    # Default ItemList row ~24px; main.tscn min height is 180 — require at least ~3 rows.
     region = controls["RegionList"]
-    assert region["w"] >= 100, f"RegionList width too small for names: {region}"
-    assert region["h"] >= 72, f"RegionList height must fit several items, got {region}"
+    assert region is not None, "RegionList must remain findable for bridge/probe compatibility"
+    assert region["visible"] is False, (
+        f"duplicated RegionList must not be presented beside the map, got {region}"
+    )
 
-    for i, left_name in enumerate(ALL_CONTROLS):
-        for right_name in ALL_CONTROLS[i + 1 :]:
+    visible_controls = STATUS_CONTROLS + ORDER_CONTROLS
+    for i, left_name in enumerate(visible_controls):
+        for right_name in visible_controls[i + 1 :]:
             left = controls[left_name]
             right = controls[right_name]
             assert not _rects_share_a_point(left, right), (
@@ -168,6 +172,15 @@ def test_strategic_composition_fits_review_viewport_collapses_empty_battle_and_u
         STRATEGIC_BACKGROUND,
         source_re=re.compile(r"https?://\S+"),
     )
+    status_background_path = assets_dir / STATUS_BACKGROUND
+    assert status_background_path.is_file(), (
+        f"required status-card background missing on disk: {status_background_path}"
+    )
+    assert_asset_credited(
+        assets_dir / "CREDITS.md",
+        STATUS_BACKGROUND,
+        source_re=re.compile(r"https?://\S+"),
+    )
 
     # Headless import so Texture2D path can resolve when MapView wires the asset.
     # Shared with tests/test_godot_assets.py (single place for godot --import).
@@ -190,7 +203,9 @@ def test_strategic_composition_fits_review_viewport_collapses_empty_battle_and_u
     # No-battle layout lives under the single key "controls" (same as disjoint).
     controls = payload["controls"]
     assert set(controls) == set(ALL_CONTROLS), controls
-    for name in ALL_CONTROLS:
+    assert controls["RegionList"] is not None
+    assert controls["RegionList"]["visible"] is False
+    for name in STATUS_CONTROLS + ORDER_CONTROLS:
         rect = controls[name]
         assert rect is not None, f"missing control {name}"
         assert rect["w"] > 0 and rect["h"] > 0, (
@@ -217,6 +232,10 @@ def test_strategic_composition_fits_review_viewport_collapses_empty_battle_and_u
         "strategic background texture must cover the MapView panel rect, "
         f"got {map_view!r}"
     )
+    status_card = payload.get("status_card") or {}
+    assert status_card.get("found") is True, status_card
+    assert status_card.get("background_path") == STATUS_BACKGROUND_RES, status_card
+    assert status_card.get("background_covers_panel") is True, status_card
 
     battle_empty = payload.get("battle_view_no_battle") or {}
     assert battle_empty.get("found") is True, battle_empty
@@ -243,7 +262,9 @@ def test_strategic_composition_fits_review_viewport_collapses_empty_battle_and_u
         f"got {controls_battle!r}"
     )
     assert set(controls_battle) == set(ALL_CONTROLS), controls_battle
-    for name in ALL_CONTROLS:
+    assert controls_battle["RegionList"] is not None
+    assert controls_battle["RegionList"]["visible"] is False
+    for name in STATUS_CONTROLS + ORDER_CONTROLS:
         rect = controls_battle[name]
         assert rect is not None and rect["w"] > 0 and rect["h"] > 0, rect
         # With battle, status + orders must remain on-screen (may be tighter).
@@ -251,4 +272,3 @@ def test_strategic_composition_fits_review_viewport_collapses_empty_battle_and_u
             f"{name} must remain inside {VIEWPORT_W:.0f}×{VIEWPORT_H:.0f} "
             f"even when BattleView is shown, got {rect}"
         )
-
