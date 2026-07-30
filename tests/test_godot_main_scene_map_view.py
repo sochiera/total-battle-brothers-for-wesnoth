@@ -9,7 +9,11 @@ from pathlib import Path
 
 from godot_png_assets import LICENSE_RE, assert_asset_credited, hex_floor_sample_alphas
 from godot_runner import run_godot_script
-from godot_tile_layer import MOUSE_FILTER_IGNORE, layer_fills_tile
+from godot_tile_layer import (
+    MOUSE_FILTER_IGNORE,
+    MOUSE_FILTER_STOP,
+    layer_fills_tile,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 GAME = ROOT / "game"
@@ -22,12 +26,20 @@ PARTY_AI_UNIT_REL = "assets/party_ai_unit.png"
 PARTY_AI_UNIT_RES = f"res://{PARTY_AI_UNIT_REL}"
 # Replaced prototype banner (may remain on disk); must not be the unit source.
 PARTY_BANNER_REL = "assets/party_player.png"
+# G97.1c: durable selection frame on the clicked region.
+TARGET_FRAME_REL = "assets/map_target_frame.png"
+TARGET_FRAME_RES = f"res://{TARGET_FRAME_REL}"
 _CREDITS_ROW_RE = re.compile(
     r"^\|\s*(?P<file>[^|]+?)\s*\|\s*(?P<source>[^|]+?)\s*\|\s*(?P<author>[^|]+?)\s*\|\s*(?P<license>[^|]+?)\s*\|",
     re.MULTILINE,
 )
-# Pack-relative path or URL — positive source signal (not a bare license token).
-_CREDITS_SOURCE_RE = re.compile(r"https?://\S+|PNG/")
+# Pack-relative path, URL, or explicit original/project artwork signal
+# (not a bare license token). Original assets use prose + game/assets/… path
+# rather than inventing a Kenney PNG/… entry.
+_CREDITS_SOURCE_RE = re.compile(
+    r"https?://\S+|PNG/|original\b|game/assets/",
+    re.IGNORECASE,
+)
 
 
 def _import_game_assets() -> subprocess.CompletedProcess[str]:
@@ -66,13 +78,29 @@ def _rects_overlap(a: dict, b: dict) -> bool:
     return True
 
 
+# Overlay / marker layer names that are not ground or settlement body fill.
+# G97.1c selection frame is full-rect but must not enter body path assertions.
+_BODY_LAYER_EXCLUDE_NAMES = frozenset(
+    {
+        "PlayerPartyMarker",
+        "AIPartyMarker",
+        "MapTargetFrame",
+    }
+)
+
+
 def _body_texture_layers(tile: dict) -> list[dict]:
-    """Tile-fill layers (ground/settlement), excluding the party corner mark."""
+    """Tile-fill layers (ground/settlement), excluding markers and selection frame.
+
+    Frame exclusion is by layer name only (``MapTargetFrame``). Path-suffix
+    filtering would hide a rename of the contracted node name.
+    """
     layers = tile.get("texture_layers") or []
     return [
         layer
         for layer in layers
-        if isinstance(layer, dict) and str(layer.get("name", "")) != "PlayerPartyMarker"
+        if isinstance(layer, dict)
+        and str(layer.get("name", "")) not in _BODY_LAYER_EXCLUDE_NAMES
     ]
 
 
@@ -354,15 +382,13 @@ def test_map_view_tiles_carry_asset_textures_for_owner_settlement_and_party():
     # Compares probe global size to the parent tile — that guards PRESET_FULL_RECT
     # (control extents), not TextureRect.stretch_mode. A FULL_RECT + STRETCH_KEEP
     # regression would still pass size checks; paths alone would also stay green.
-    # Also guards MOUSE_FILTER_IGNORE so layers do not steal map clicks.
+    # Body/marker layers stay MOUSE_FILTER_IGNORE so G97.1c tile roots can
+    # receive clicks; tile-root filter is asserted by the selection gate.
     for tile in first:
         body = _body_texture_layers(tile)
         assert body, (
             f"tile {tile['name']!r} must report body texture_layers with size, "
             f"got {tile!r}"
-        )
-        assert tile.get("tile_mouse_filter") == MOUSE_FILTER_IGNORE, (
-            f"tile {tile['name']!r} root must ignore mouse, got {tile!r}"
         )
         for layer in body:
             assert layer_fills_tile(layer, tile), (
@@ -463,6 +489,33 @@ def _credits_table_rows(credits_text: str) -> dict[str, dict[str, str]]:
         }
         for m in _CREDITS_ROW_RE.finditer(credits_text)
     }
+
+
+def _credits_table_files_in_section(credits_text: str, section_marker: str) -> set[str]:
+    """File names from the first pipe table after *section_marker*.
+
+    Stops at the first non-table line after the table starts. Does not depend
+    on section footer prose (pack URL sentence, etc.).
+    """
+    idx = credits_text.lower().find(section_marker.lower())
+    if idx < 0:
+        return set()
+    files: set[str] = set()
+    in_table = False
+    for line in credits_text[idx:].splitlines():
+        stripped = line.strip()
+        if not in_table:
+            if stripped.startswith("|") and "File" in stripped:
+                in_table = True
+            continue
+        if not stripped.startswith("|"):
+            break
+        if re.match(r"^\|[\s|:-]+\|$", stripped):
+            continue
+        match = _CREDITS_ROW_RE.match(stripped)
+        if match:
+            files.add(match.group("file").strip())
+    return files
 
 
 def test_map_view_marks_ai_party_with_distinct_unit_silhouette_from_party_owner():
@@ -1230,4 +1283,149 @@ def test_map_view_settlement_keep_and_outpost_use_distinct_assets_by_name():
             f"{_settlement_floor_alphas(tile, assets_dir)!r}"
         )
 
+
+def test_map_view_selects_region_with_single_target_frame():
+    """Click selects one region: emit name + single map_target_frame overlay.
+
+    Realistic defect existing gates miss: MapView paints regions but never
+    accepts tile clicks, has no ``region_selected`` signal, and does not draw
+    ``map_target_frame.png``. Geometry / owner / party / settlement gates stay
+    green while the player cannot choose a march/move target on the map.
+    Also catches re-select or re-render stacking multiple frames.
+    """
+    frame_path = GAME / TARGET_FRAME_REL
+    assert frame_path.is_file(), (
+        f"committed selection frame missing on disk: {frame_path} "
+        "(public contract: game/assets/map_target_frame.png)"
+    )
+
+    credits_path = GAME / "assets" / "CREDITS.md"
+    credits_text = credits_path.read_text(encoding="utf-8")
+    # Table row is the contract (source → game/assets/, author, license).
+    # Not in the Kenney Hexagon Pack table (R2 false-origin defect).
+    # No prose/footer wording requirements — those catch redaction, not behavior.
+    rows = _credits_table_rows(credits_text)
+    frame_row = rows.get(frame_path.name)
+    assert frame_row is not None, (
+        f"CREDITS.md must have a table row attributing {frame_path.name}"
+    )
+    source = frame_row["source"]
+    assert source.strip(), (
+        f"CREDITS.md row for {frame_path.name} must list a non-empty source"
+    )
+    assert "game/assets/" in source, (
+        f"CREDITS.md source for {frame_path.name} must point at the project "
+        f"asset path (game/assets/…), got {source!r}"
+    )
+    assert "PNG/map_target_frame" not in source, (
+        f"CREDITS.md source for {frame_path.name} must not invent a Kenney "
+        f"pack path, got {source!r}"
+    )
+    assert frame_row["author"].strip(), (
+        f"CREDITS.md row for {frame_path.name} must list a non-empty author"
+    )
+    assert LICENSE_RE.search(frame_row["license"]), (
+        f"CREDITS.md row for {frame_path.name} must state CC0 or CC-BY in the "
+        f"license cell, got {frame_row['license']!r}"
+    )
+    kenney_hex_files = _credits_table_files_in_section(
+        credits_text, "Kenney Hexagon Pack"
+    )
+    assert frame_path.name not in kenney_hex_files, (
+        f"{frame_path.name} is original project artwork, not Kenney Hexagon "
+        "Pack; it must not appear in that pack's table rows "
+        f"(found among {sorted(kenney_hex_files)!r})"
+    )
+
+
+    imported = _import_game_assets()
+    assert imported.returncode == 0, (
+        f"godot --import failed rc={imported.returncode} "
+        f"stderr={imported.stderr!r} stdout={imported.stdout!r}"
+    )
+
+    payload = _load_map_view()
+    assert payload["map_view_found"] is True, payload
+    assert payload["has_render_model"] is True, payload
+
+    sample = payload.get("region_selection") or {}
+    assert sample.get("skipped") is not True, (
+        "region_selection was skipped (no MapView.render_model); "
+        f"cannot assert click selection, sample={sample!r}"
+    )
+
+    # Tiles must accept mouse so clicks reach the selection handler; body
+    # layers stay IGNORE (asserted elsewhere) and do not steal input.
+    filters = sample.get("tile_mouse_filters") or {}
+    for name in ("Alpha", "Beta", "Gamma"):
+        assert name in filters, (
+            f"probe must report mouse_filter for tile {name!r}, got {filters!r}"
+        )
+        assert filters[name] == MOUSE_FILTER_STOP, (
+            f"RegionTile_{name} must STOP mouse input for selection "
+            f"(not IGNORE/PASS), got mouse_filter={filters[name]!r} "
+            f"filters={filters!r}"
+        )
+
+    assert sample.get("has_region_selected_signal") is True, (
+        "MapView must declare signal region_selected(name) for selection "
+        f"consumers, sample={sample!r}"
+    )
+
+    emitted_alpha = sample.get("emitted_after_alpha") or []
+    assert emitted_alpha == ["Alpha"], (
+        f"click on Alpha must emit region_selected once with canonical name "
+        f"'Alpha', got emitted_after_alpha={emitted_alpha!r}"
+    )
+    after_alpha = sample.get("after_alpha") or {}
+    assert after_alpha.get("frame_count") == 1, (
+        f"exactly one target frame after selecting Alpha, got {after_alpha!r}"
+    )
+    frames_alpha = after_alpha.get("frames_by_region") or {}
+    assert set(frames_alpha) == {"Alpha"}, (
+        f"frame must sit on Alpha only after first click, got {frames_alpha!r}"
+    )
+    assert frames_alpha.get("Alpha") == TARGET_FRAME_RES, (
+        f"selection frame must use public carrier {TARGET_FRAME_RES}, "
+        f"got {frames_alpha!r}"
+    )
+
+    emitted_beta = sample.get("emitted_after_beta") or []
+    assert emitted_beta == ["Alpha", "Beta"], (
+        f"click on Beta must emit a second region_selected('Beta') without "
+        f"replaying Alpha, got emitted_after_beta={emitted_beta!r}"
+    )
+    after_beta = sample.get("after_beta") or {}
+    assert after_beta.get("frame_count") == 1, (
+        f"switching selection must keep exactly one frame (no stacking), "
+        f"got {after_beta!r}"
+    )
+    frames_beta = after_beta.get("frames_by_region") or {}
+    assert set(frames_beta) == {"Beta"}, (
+        f"only Beta must remain framed after second click, got {frames_beta!r}"
+    )
+    assert frames_beta.get("Beta") == TARGET_FRAME_RES, (
+        f"Beta frame must use {TARGET_FRAME_RES}, got {frames_beta!r}"
+    )
+
+    after_rerender = sample.get("after_rerender") or {}
+    assert after_rerender.get("frame_count") == 1, (
+        f"re-render must restore durable selection as exactly one frame, "
+        f"got {after_rerender!r}"
+    )
+    frames_rerender = after_rerender.get("frames_by_region") or {}
+    assert set(frames_rerender) == {"Beta"}, (
+        f"re-render must keep the last selected region framed (Beta), "
+        f"got {frames_rerender!r}"
+    )
+
+    after_reclick = sample.get("after_reclick") or {}
+    assert after_reclick.get("frame_count") == 1, (
+        f"re-clicking the selected region must not multiply frames, "
+        f"got {after_reclick!r}"
+    )
+    frames_reclick = after_reclick.get("frames_by_region") or {}
+    assert set(frames_reclick) == {"Beta"}, (
+        f"re-click must leave only Beta framed, got {frames_reclick!r}"
+    )
 

@@ -19,6 +19,12 @@ by Kenney Vleugels for Kenney (https://kenney.nl), licensed under
 The original pack is available at:
 https://kenney.nl/media/pages/assets/hexagon-pack/433cdc69d6-1677662331/kenney_hexagon-pack.zip
 
+The selection frame is original project artwork.
+
+| File | Source file | Author | License |
+|------|-------------|--------|---------|
+| map_target_frame.png | original artwork, game/assets/map_target_frame.png | Total Battle Brothers contributors | CC0 1.0 Universal (CC0) |
+
 `side_attacker.png` and `side_defender.png` are instead derived from
 **Kenney RTS Pack: Medieval** by Kenney Vleugels for Kenney (https://kenney.nl),
 also licensed under CC0.

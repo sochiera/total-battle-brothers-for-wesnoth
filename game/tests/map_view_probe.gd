@@ -274,6 +274,14 @@ func _run() -> void:
 		tiles_line = _collect_tiles(map_view, names_line)
 	var map_rect: Rect2 = (map_view as Control).get_global_rect()
 
+	# G97.1c: click selects one region (canonical name + single target frame).
+	# Own sample after layout probes so selection does not pollute tile lists.
+	var region_selection: Dictionary = {"skipped": true}
+	if has_render:
+		region_selection = await _region_selection_sample(
+			map_view, regions_full, names_full
+		)
+
 	print(PREFIX, JSON.stringify({
 		"map_view_found": true,
 		"has_render_model": has_render,
@@ -302,6 +310,7 @@ func _run() -> void:
 			"w": map_rect.size.x,
 			"h": map_rect.size.y,
 		},
+		"region_selection": region_selection,
 	}))
 	quit(0)
 
@@ -314,6 +323,166 @@ func _model(regions: Array, party_region: Variant = null) -> SnapshotModel:
 	model.regions = regions
 	model.player_party_region = party_region
 	return model
+
+
+const TARGET_FRAME_SUFFIX := "map_target_frame.png"
+
+
+func _region_selection_sample(
+	map_view: Node,
+	regions: Array,
+	names: Array[String],
+) -> Dictionary:
+	# Public G97.1c contract observed via MapView only:
+	# - signal region_selected(String) with the tile's canonical name
+	# - one map_target_frame.png overlay on the selected region
+	# - re-select and re-render never multiply frames
+	if not map_view.has_method("render_model"):
+		return {"skipped": true}
+	map_view.call("render_model", _model(regions))
+	await process_frame
+	await process_frame
+
+	var has_signal: bool = map_view.has_signal("region_selected")
+	var emitted: Array = []
+	if has_signal:
+		map_view.connect(
+			"region_selected",
+			func(region_name: Variant) -> void:
+				emitted.append(str(region_name))
+		)
+
+	var tile_filters: Dictionary = {}
+	for region_name: String in names:
+		var tile: Control = _find_region_tile(map_view, region_name)
+		if tile != null:
+			tile_filters[region_name] = tile.mouse_filter
+
+	# Click Alpha, then Beta; observe frame placement + emissions.
+	await _simulate_region_click(map_view, "Alpha")
+	await process_frame
+	await process_frame
+	var after_alpha: Dictionary = _observe_target_frames(map_view, names)
+	var emitted_after_alpha: Array = emitted.duplicate()
+
+	await _simulate_region_click(map_view, "Beta")
+	await process_frame
+	await process_frame
+	var after_beta: Dictionary = _observe_target_frames(map_view, names)
+	var emitted_after_beta: Array = emitted.duplicate()
+
+	# Re-render same snapshot: durable selection must restore without stacking.
+	map_view.call("render_model", _model(regions))
+	await process_frame
+	await process_frame
+	var after_rerender: Dictionary = _observe_target_frames(map_view, names)
+
+	# Second click on the already-selected region must not add another frame.
+	await _simulate_region_click(map_view, "Beta")
+	await process_frame
+	await process_frame
+	var after_reclick: Dictionary = _observe_target_frames(map_view, names)
+
+	return {
+		"skipped": false,
+		"has_region_selected_signal": has_signal,
+		"tile_mouse_filters": tile_filters,
+		"emitted_after_alpha": emitted_after_alpha,
+		"emitted_after_beta": emitted_after_beta,
+		"after_alpha": after_alpha,
+		"after_beta": after_beta,
+		"after_rerender": after_rerender,
+		"after_reclick": after_reclick,
+	}
+
+
+func _find_region_tile(map_view: Node, region_name: String) -> Control:
+	var label: Label = PartyMapMark.find_label_with_text(map_view, region_name)
+	if label == null:
+		return null
+	return PartyMapMark.tile_control(label, map_view)
+
+
+func _simulate_region_click(map_view: Node, region_name: String) -> void:
+	var tile: Control = _find_region_tile(map_view, region_name)
+	if tile == null:
+		return
+	var center: Vector2 = tile.get_global_rect().get_center()
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.pressed = true
+	press.position = center
+	press.global_position = center
+	var release := InputEventMouseButton.new()
+	release.button_index = MOUSE_BUTTON_LEFT
+	release.pressed = false
+	release.position = center
+	release.global_position = center
+	# Viewport only: push_input respects mouse_filter and hit-testing.
+	# Do not also gui_input.emit — that dual path greened selection even when
+	# the tile was covered or would not receive real mouse input. If headless
+	# viewport delivery is ever proven broken, add an explicitly named fallback
+	# (e.g. _simulate_region_click_direct_gui_input), not a silent second path.
+	var vp: Viewport = tile.get_viewport()
+	if vp == null:
+		return
+	vp.push_input(press)
+	vp.push_input(release)
+
+
+
+func _observe_target_frames(map_view: Node, names: Array[String]) -> Dictionary:
+	# Hierarchy-agnostic: frame may live under the tile or as a MapView child
+	# positioned over the region. Attribute by ancestor-or-center-in-tile.
+	var frames: Array = _collect_target_frame_nodes(map_view)
+	var frames_by_region: Dictionary = {}
+	for region_name: String in names:
+		var tile: Control = _find_region_tile(map_view, region_name)
+		if tile == null:
+			continue
+		for frame: Node in frames:
+			if not (frame is CanvasItem):
+				continue
+			if not (frame as CanvasItem).is_visible_in_tree():
+				continue
+			if _frame_belongs_to_tile(frame, tile):
+				var path: String = _direct_texture_path(frame)
+				frames_by_region[region_name] = path
+				break
+	return {
+		"frame_count": frames.size(),
+		"frames_by_region": frames_by_region,
+	}
+
+
+func _collect_target_frame_nodes(map_view: Node) -> Array:
+	var found: Array = []
+	_collect_target_frame_nodes_into(map_view, found)
+	return found
+
+
+func _collect_target_frame_nodes_into(node: Node, found: Array) -> void:
+	var path: String = _direct_texture_path(node)
+	if path.ends_with(TARGET_FRAME_SUFFIX) and node is CanvasItem:
+		if (node as CanvasItem).is_visible_in_tree():
+			found.append(node)
+	for child: Node in node.get_children():
+		_collect_target_frame_nodes_into(child, found)
+
+
+func _frame_belongs_to_tile(frame: Node, tile: Control) -> bool:
+	var walk: Node = frame
+	while walk != null:
+		if walk == tile:
+			return true
+		walk = walk.get_parent()
+	if frame is Control:
+		var rect: Rect2 = (frame as Control).get_global_rect()
+		var center: Vector2 = rect.position + rect.size * 0.5
+		return tile.get_global_rect().has_point(center)
+	if frame is Node2D:
+		return tile.get_global_rect().has_point((frame as Node2D).global_position)
+	return false
 
 
 func _party_owner_silhouette_sample(

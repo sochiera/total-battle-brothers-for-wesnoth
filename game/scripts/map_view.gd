@@ -3,11 +3,13 @@ extends Control
 
 const SnapshotModel = preload("res://scripts/snapshot_model.gd")
 const TileTextureLayer = preload("res://scripts/tile_texture_layer.gd")
+const TARGET_FRAME_TEXTURE := preload("res://assets/map_target_frame.png")
 # AABB is intentionally flatter than native map_ground's pointy-top shape so
 # the rendered tiles fit the stretchable map panel (minimum about 420x240;
 # at 1152x648 its width comes from the scene layout).
 const TILE_SIZE := Vector2(84, 48)
 const GRID_PITCH := Vector2(TILE_SIZE.x, TILE_SIZE.y * 0.75)
+# Tile AABBs overlap vertically; in the overlap band, the later child wins hit-testing.
 # Keep the odd-row offset from the pointy-top grid while allowing the panel's
 # layout-provided width to determine how much of the grid is visible.
 const ODD_ROW_OFFSET := TILE_SIZE.x * 0.5
@@ -31,6 +33,12 @@ const PARTY_MARKER_SIZE := Vector2(16, 16)
 const PARTY_MARKER_MARGIN := Vector2(8, 4)
 const PLAYER_PARTY_MARKER_NAME := "PlayerPartyMarker"
 const AI_PARTY_MARKER_NAME := "AIPartyMarker"
+const TARGET_FRAME_NAME := "MapTargetFrame"
+
+signal region_selected(region_name: String)
+
+var _selected_region_name := ""
+var _selected_tile: Control
 
 
 func render_model(model: SnapshotModel) -> void:
@@ -43,6 +51,7 @@ func render_model(model: SnapshotModel) -> void:
 
 
 func _clear_tiles() -> void:
+	_selected_tile = null
 	for child: Node in get_children():
 		if str(child.name).begins_with("RegionTile_"):
 			child.free()
@@ -53,7 +62,11 @@ func _add_tile(region: Dictionary, player_party_region: Variant) -> void:
 	tile.name = "RegionTile_%s" % region["name"]
 	tile.position = _grid_position(region)
 	tile.size = TILE_SIZE
-	tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Control hit-testing uses the tile AABB; STOP lets the later overlapping child receive the click.
+	tile.mouse_filter = Control.MOUSE_FILTER_STOP
+	tile.gui_input.connect(
+		_on_tile_gui_input.bind(tile, str(region["name"]))
+	)
 	add_child(tile)
 
 	var ground := TileTextureLayer.full_rect(_ground_texture(region), "Ground")
@@ -66,6 +79,45 @@ func _add_tile(region: Dictionary, player_party_region: Variant) -> void:
 	var party_owner: Variant = _party_owner_for_region(region, player_party_region)
 	if party_owner != null:
 		_add_party_marker(tile, party_owner)
+	if str(region["name"]) == _selected_region_name:
+		_selected_tile = tile
+		_add_target_frame(tile)
+
+
+func _on_tile_gui_input(event: InputEvent, tile: Control, region_name: String) -> void:
+	if not event is InputEventMouseButton:
+		return
+	var mouse_event := event as InputEventMouseButton
+	if mouse_event.button_index != MOUSE_BUTTON_LEFT or not mouse_event.pressed:
+		return
+	# Selection is change-oriented and idempotent; a repeated click still repairs
+	# its frame in case the visual state disappeared without a region change.
+	if _selected_region_name == region_name:
+		_refresh_target_frame(tile)
+		return
+	_selected_region_name = region_name
+	_refresh_target_frame(tile)
+	region_selected.emit(region_name)
+
+
+func _refresh_target_frame(tile: Control) -> void:
+	if is_instance_valid(_selected_tile) and _selected_tile != tile:
+		_remove_target_frame(_selected_tile)
+	_selected_tile = tile
+	_add_target_frame(tile)
+
+
+func _add_target_frame(tile: Control) -> void:
+	_remove_target_frame(tile)
+	var frame := TileTextureLayer.full_rect(TARGET_FRAME_TEXTURE, TARGET_FRAME_NAME)
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tile.add_child(frame)
+
+
+func _remove_target_frame(tile: Node) -> void:
+	for child: Node in tile.get_children():
+		if child.name == TARGET_FRAME_NAME:
+			child.free()
 
 
 func _region_label(region_name: String) -> Label:

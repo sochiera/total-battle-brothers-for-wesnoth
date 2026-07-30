@@ -7,6 +7,8 @@ map and battle regression gates cannot drift apart.
 from __future__ import annotations
 
 # Godot Control.MouseFilter: STOP=0, PASS=1, IGNORE=2.
+# Only STOP/IGNORE are used by map/battle gates; PASS is not exported.
+MOUSE_FILTER_STOP = 0
 MOUSE_FILTER_IGNORE = 2
 
 
