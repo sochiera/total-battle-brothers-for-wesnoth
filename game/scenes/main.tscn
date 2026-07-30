@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/map_view.gd" id="2_map_view"]
@@ -12,6 +12,22 @@
 [ext_resource type="Texture2D" path="res://assets/icon_assault.png" id="10_assault_icon"]
 [ext_resource type="Texture2D" path="res://assets/icon_save.png" id="11_save_icon"]
 [ext_resource type="Texture2D" path="res://assets/icon_load.png" id="12_load_icon"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_selected_region"]
+bg_color = Color(0.08, 0.11, 0.16, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.35, 0.52, 0.72, 0.9)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+content_margin_left = 12.0
+content_margin_top = 8.0
+content_margin_right = 12.0
+content_margin_bottom = 8.0
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -75,6 +91,29 @@ layout_mode = 2
 unique_name_in_owner = true
 custom_minimum_size = Vector2(420, 24)
 layout_mode = 2
+
+[node name="SelectedRegionPanel" type="PanelContainer" parent="MainLayout/ContentRow/StatusControls"]
+custom_minimum_size = Vector2(420, 124)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_selected_region")
+
+[node name="SelectedRegionContent" type="VBoxContainer" parent="MainLayout/ContentRow/StatusControls/SelectedRegionPanel"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="SelectedRegionTitleLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/SelectedRegionPanel/SelectedRegionContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.82, 0.9, 1, 1)
+theme_override_font_sizes/font_size = 16
+text = "Wybrany region"
+
+[node name="SelectedRegionDetailsLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/SelectedRegionPanel/SelectedRegionContent"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.93, 0.95, 0.98, 1)
+autowrap_mode = 2
+text = "Nie wybrano regionu"
 
 [node name="MapAndBattle" type="VBoxContainer" parent="MainLayout/ContentRow"]
 layout_mode = 2

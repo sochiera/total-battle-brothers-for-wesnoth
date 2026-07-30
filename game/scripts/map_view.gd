@@ -43,6 +43,10 @@ var _selected_region_name := ""
 var _selected_tile: Control
 var _hovered_tile: Control
 
+var selected_region_name: String:
+	get:
+		return _selected_region_name
+
 
 func _input(event: InputEvent) -> void:
 	if not event is InputEventMouseMotion:

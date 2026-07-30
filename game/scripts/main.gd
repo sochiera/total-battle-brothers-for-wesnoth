@@ -14,8 +14,10 @@ const LOAD_FAILURE_STATUS := "Nie udało się wczytać partii."
 
 var _client: Variant = null
 var _save_path := ""
+var _current_regions: Array = []
 
 func _ready() -> void:
+	%MapView.region_selected.connect(_on_region_selected)
 	start_session(BridgeConfig.from_environment())
 
 
@@ -168,10 +170,12 @@ func _set_last_order_status(status: String) -> void:
 
 
 func apply_model(model: SnapshotModel) -> void:
+	_current_regions = model.regions
 	%DateLabel.text = "Rok %d, miesiąc %d" % [model.year, model.month]
 	%ResultLabel.text = _get_result_text(model.player_result)
 	_apply_result_visual_style(model.player_result)
 	%PlayerPartyPositionLabel.text = _player_party_position_text(model.player_party_region)
+	_update_selected_region_panel(model.regions)
 	var player_duchy_status_label: Label = %PlayerDuchyStatusLabel
 	var player_duchy_status: Variant = model.player_duchy_status
 	player_duchy_status_label.text = ""
@@ -195,6 +199,65 @@ func _render_region_list(regions: Array) -> void:
 	region_list.clear()
 	for region: Variant in regions:
 		region_list.add_item(region["name"])
+
+
+func _on_region_selected(region_name: String) -> void:
+	_update_selected_region_panel(_current_regions)
+
+
+func _update_selected_region_panel(regions: Array) -> void:
+	%SelectedRegionDetailsLabel.text = _selected_region_details_text(
+		_find_selected_region(regions)
+	)
+
+
+func _selected_region_details_text(selected_region: Dictionary) -> String:
+	if selected_region.is_empty():
+		return "Nie wybrano regionu"
+	return "Nazwa: %s\nWłaściciel: %s\nOsada: %s\nArmia: %s" % [
+		selected_region.get("name", ""),
+		_side_text(selected_region.get("owner")),
+		_settlement_text(selected_region.get("settlement")),
+		_party_text(selected_region.get("party")),
+	]
+
+
+func _find_selected_region(regions: Array) -> Dictionary:
+	var selected_region_name: String = %MapView.selected_region_name
+	if selected_region_name.is_empty():
+		return {}
+	for region: Variant in regions:
+		if region is Dictionary and region.get("name") == selected_region_name:
+			return region
+	return {}
+
+
+func _side_text(owner: Variant) -> String:
+	match owner:
+		"player":
+			return "własny (gracz)"
+		"ai":
+			return "AI (wróg)"
+		null, "":
+			return "neutralny (brak właściciela)"
+		_:
+			return str(owner)
+
+
+func _settlement_text(settlement: Variant) -> String:
+	if settlement is Dictionary:
+		var settlement_name: Variant = settlement.get("name")
+		if settlement_name is String and not settlement_name.is_empty():
+			return settlement_name
+	return "brak osady"
+
+
+func _party_text(party: Variant) -> String:
+	if party is Dictionary:
+		var party_owner: Variant = party.get("owner")
+		if party_owner != null and party_owner != "":
+			return _side_text(party_owner)
+	return "brak armii"
 
 
 func _player_party_position_text(player_party_region: Variant) -> String:
