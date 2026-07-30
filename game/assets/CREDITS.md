@@ -13,6 +13,8 @@ by Kenney Vleugels for Kenney (https://kenney.nl), licensed under
 | terrain_forest.png | PNG/Objects/treePine_large.png | Kenney Vleugels | CC0 |
 | terrain_hills.png | PNG/Objects/rockGrey_large.png | Kenney Vleugels | CC0 |
 | settlement.png | PNG/Tiles/Medieval/medieval_smallCastle.png | Kenney Vleugels | CC0 |
+| settlement_keep.png | PNG/Tiles/Medieval/medieval_largeCastle.png | Kenney Vleugels | CC0 |
+| settlement_outpost.png | PNG/Tiles/Medieval/medieval_tower.png | Kenney Vleugels | CC0 |
 | party_player.png | PNG/Objects/banner.png | Kenney Vleugels | CC0 |
 The original pack is available at:
 https://kenney.nl/media/pages/assets/hexagon-pack/433cdc69d6-1677662331/kenney_hexagon-pack.zip

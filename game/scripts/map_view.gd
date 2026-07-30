@@ -20,6 +20,8 @@ const GROUND_TEXTURES: Array[Texture2D] = [
 	preload("res://assets/map_ground_stone.png"),
 ]
 const SETTLEMENT_TEXTURE := preload("res://assets/settlement.png")
+const SETTLEMENT_KEEP_TEXTURE := preload("res://assets/settlement_keep.png")
+const SETTLEMENT_OUTPOST_TEXTURE := preload("res://assets/settlement_outpost.png")
 const PARTY_TEXTURE := preload("res://assets/party_player.png")
 const PARTY_MARKER_SIZE := Vector2(16, 16)
 const PARTY_MARKER_MARGIN := Vector2(8, 8)
@@ -52,8 +54,7 @@ func _add_tile(region: Dictionary, player_party_region: Variant) -> void:
 	ground.modulate = _owner_color(region.get("owner"))
 	tile.add_child(ground)
 
-	if region.get("settlement") != null:
-		tile.add_child(TileTextureLayer.full_rect(SETTLEMENT_TEXTURE, "Settlement"))
+	_add_settlement(tile, region.get("settlement"))
 
 	tile.add_child(_region_label(str(region["name"])))
 	if _is_player_party_region(region, player_party_region):
@@ -110,6 +111,29 @@ func _ground_texture(region: Dictionary) -> Texture2D:
 func _ground_variant_index(col: Variant, row: Variant) -> int:
 	var coordinate_key := int(col) + int(row) * 2
 	return posmod(coordinate_key, GROUND_TEXTURES.size())
+
+
+func _add_settlement(tile: Control, settlement: Variant) -> void:
+	if settlement == null:
+		return
+	tile.add_child(
+		TileTextureLayer.full_rect(_settlement_texture(settlement), "Settlement")
+	)
+
+
+func _settlement_texture(settlement: Variant) -> Texture2D:
+	var settlement_name := _settlement_name(settlement)
+	if settlement_name.contains("outpost"):
+		return SETTLEMENT_OUTPOST_TEXTURE
+	if settlement_name.contains("keep"):
+		return SETTLEMENT_KEEP_TEXTURE
+	return SETTLEMENT_TEXTURE
+
+
+func _settlement_name(settlement: Variant) -> String:
+	if settlement is Dictionary:
+		return str(settlement.get("name", "")).to_lower()
+	return ""
 
 
 func _owner_color(owner: Variant) -> Color:

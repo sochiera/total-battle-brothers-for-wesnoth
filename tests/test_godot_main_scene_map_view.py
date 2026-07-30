@@ -6,6 +6,7 @@ import json
 import subprocess
 from pathlib import Path
 
+from godot_png_assets import hex_floor_sample_alphas
 from godot_runner import run_godot_script
 from godot_tile_layer import MOUSE_FILTER_IGNORE, layer_fills_tile
 
@@ -670,3 +671,178 @@ def test_map_view_decorative_ground_variants_from_col_row():
         f"got {_ground_texture_path(first['Beta'])!r} vs "
         f"{ground_by_region['player outpost']!r}"
     )
+
+
+# G94.1c: distinct keep / outpost settlement art (presentation only).
+SETTLEMENT_KEEP_ASSET = "settlement_keep.png"
+SETTLEMENT_OUTPOST_ASSET = "settlement_outpost.png"
+SETTLEMENT_TYPE_ASSETS: tuple[str, ...] = (
+    SETTLEMENT_KEEP_ASSET,
+    SETTLEMENT_OUTPOST_ASSET,
+)
+_SETTLEMENT_KEEP_RES = f"res://assets/{SETTLEMENT_KEEP_ASSET}"
+_SETTLEMENT_OUTPOST_RES = f"res://assets/{SETTLEMENT_OUTPOST_ASSET}"
+
+
+def _settlement_layer(tile: dict) -> dict:
+    """Public Settlement texture layer under a region tile."""
+    for layer in tile.get("texture_layers") or []:
+        if not isinstance(layer, dict):
+            continue
+        if str(layer.get("name", "")) == "Settlement":
+            path = layer.get("path")
+            assert isinstance(path, str) and path, (
+                f"Settlement layer must report a texture path, got {layer!r} "
+                f"on tile {tile!r}"
+            )
+            return layer
+    raise AssertionError(
+        f"tile {tile.get('name')!r} must expose a Settlement texture layer, "
+        f"got texture_layers={tile.get('texture_layers')!r}"
+    )
+
+
+def _settlement_texture_path(tile: dict) -> str:
+    """Public Settlement layer path under a region tile (layer name Settlement)."""
+    return str(_settlement_layer(tile)["path"])
+
+
+def _asset_path_from_res(assets_dir: Path, res_path: str) -> Path:
+    """Map ``res://assets/...`` probe paths to files under ``game/assets``."""
+    assert res_path.startswith("res://assets/"), res_path
+    return assets_dir / res_path.removeprefix("res://assets/")
+
+
+def _settlement_floor_alphas(tile: dict, assets_dir: Path) -> list[int]:
+    """Hex-floor rim alphas for the Settlement texture on ``tile``."""
+    return hex_floor_sample_alphas(
+        _asset_path_from_res(assets_dir, str(_settlement_layer(tile)["path"]))
+    )
+
+
+def _settlement_leaves_owner_ground_visible(tile: dict, assets_dir: Path) -> bool:
+    """True when Settlement does not fully occlude owner-tinted Ground.
+
+    Accepts either a smaller-than-tile building sprite (ground rim stays visible)
+    or a full-tile overlay whose hex floor samples are transparent.
+    """
+    layer = _settlement_layer(tile)
+    if not layer_fills_tile(layer, tile):
+        return True
+    floor_alphas = _settlement_floor_alphas(tile, assets_dir)
+    # Any fully opaque floor sample means the underlay (owner modulate) is hidden
+    # at that rim point — the defect under review for keep/outpost assets.
+    return max(floor_alphas) < 32
+
+
+def test_map_view_settlement_keep_and_outpost_use_distinct_assets_by_name():
+    """Keep vs outpost settlements must use distinct textures from settlement name.
+
+    Realistic defects this catches:
+    - MapView still paints every settled tile with the single ``settlement.png``.
+      Path/CREDITS gates stay green while keep and outpost look identical.
+    - Settlement is a full-tile overlay with a baked opaque hex floor (green on
+      keep, brown on outpost), so Ground.modulate (owner colour) and G94.1b
+      ground variants are invisible on all four settled fresh-party regions.
+      Path-only gates stay green while region affiliation is unreadable.
+    """
+    assets_dir = GAME / "assets"
+    for asset_name in SETTLEMENT_TYPE_ASSETS:
+        asset_path = assets_dir / asset_name
+        assert asset_path.is_file(), (
+            f"required settlement-type asset missing on disk: {asset_path}"
+        )
+
+    keep_bytes = (assets_dir / SETTLEMENT_KEEP_ASSET).read_bytes()
+    outpost_bytes = (assets_dir / SETTLEMENT_OUTPOST_ASSET).read_bytes()
+    assert keep_bytes != outpost_bytes, (
+        "settlement_keep.png and settlement_outpost.png must differ byte-wise "
+        "(two settlement types, not one image under two names)"
+    )
+
+    credits = (assets_dir / "CREDITS.md").read_text(encoding="utf-8")
+    for asset_name in SETTLEMENT_TYPE_ASSETS:
+        assert asset_name in credits, (
+            f"CREDITS.md must attribute settlement-type file {asset_name}"
+        )
+
+    # Owner-ground occlusion is asserted only on probe tiles via
+    # ``_settlement_leaves_owner_ground_visible`` (full-rect ⇒ floor a<32;
+    # smaller-than-tile building sprites are accepted without rim samples).
+
+    imported = _import_game_assets()
+    assert imported.returncode == 0, (
+        f"godot --import failed rc={imported.returncode} "
+        f"stderr={imported.stderr!r} stdout={imported.stdout!r}"
+    )
+
+    payload = _load_map_view()
+    assert payload["map_view_found"] is True, payload
+    assert payload["has_render_model"] is True, payload
+
+    line_regions = payload.get("line_regions") or []
+    line_tiles = payload.get("line_tiles") or []
+    assert len(line_regions) == 5 and len(line_tiles) == 5, (
+        f"probe must emit five fresh-party line regions/tiles, got "
+        f"regions={line_regions!r} tiles={line_tiles!r}"
+    )
+
+    by_region = {r["name"]: r for r in line_regions}
+    by_tile = _by_name(line_tiles)
+
+    # Probe fixtures mirror fresh-party names: lands → Keep, outpost → Outpost.
+    keep_settlement = by_region["player lands"].get("settlement") or {}
+    outpost_settlement = by_region["player outpost"].get("settlement") or {}
+    assert "keep" in str(keep_settlement.get("name", "")).lower(), (
+        f"line fixture player lands must carry a keep settlement name, "
+        f"got {keep_settlement!r}"
+    )
+    assert "outpost" in str(outpost_settlement.get("name", "")).lower(), (
+        f"line fixture player outpost must carry an outpost settlement name, "
+        f"got {outpost_settlement!r}"
+    )
+
+    keep_path = _settlement_texture_path(by_tile["player lands"])
+    outpost_path = _settlement_texture_path(by_tile["player outpost"])
+    assert keep_path == _SETTLEMENT_KEEP_RES, (
+        f"settlement name with 'keep' must use {_SETTLEMENT_KEEP_RES}, "
+        f"got {keep_path!r} on player lands"
+    )
+    assert outpost_path == _SETTLEMENT_OUTPOST_RES, (
+        f"settlement name with 'outpost' must use {_SETTLEMENT_OUTPOST_RES}, "
+        f"got {outpost_path!r} on player outpost"
+    )
+    assert keep_path != outpost_path, (
+        f"keep and outpost must be distinguishable by texture path at once, "
+        f"got keep={keep_path!r} outpost={outpost_path!r}"
+    )
+
+    # Same rule on the AI side of the fresh-party strip (both types simultaneous).
+    assert _settlement_texture_path(by_tile["ai lands"]) == _SETTLEMENT_KEEP_RES
+    assert _settlement_texture_path(by_tile["ai outpost"]) == _SETTLEMENT_OUTPOST_RES
+
+    # Owner-tinted Ground must remain observable under Settlement on every settled
+    # owned region (not only border). Full-rect keep/outpost with baked opaque
+    # hex floors hide player/AI colour and ground variants; keep (green floor)
+    # vs outpost (brown floor) also break G94.1b consistency.
+    settled_owned = (
+        "player lands",
+        "player outpost",
+        "ai outpost",
+        "ai lands",
+    )
+    for name in settled_owned:
+        tile = by_tile[name]
+        assert _ground_texture_path(tile) in _DECORATIVE_GROUND_RES, (
+            f"settled region {name!r} must still use decorative Ground under "
+            f"the building, got {_ground_texture_path(tile)!r}"
+        )
+        assert _settlement_leaves_owner_ground_visible(tile, assets_dir), (
+            f"settled region {name!r}: Settlement must not fully hide "
+            f"owner-tinted Ground (use transparent-floor keep/outpost assets "
+            f"or a smaller-than-tile building sprite). layer="
+            f"{_settlement_layer(tile)!r} floor_alphas="
+            f"{_settlement_floor_alphas(tile, assets_dir)!r}"
+        )
+
+
