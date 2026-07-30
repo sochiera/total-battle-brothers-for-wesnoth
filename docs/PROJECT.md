@@ -72,20 +72,22 @@ placeholderach, licencje są kompletne, człowiek akceptuje screenshoty, a
 - **Strategiczna kompozycja — DOMKNIĘTA** (K94): pięć stykających się heksów,
   trzy dekoracyjne podłoża, osobne keep/outpost, pergaminowe tło i układ
   mieszczący wszystkie przyciski przy 1152×648.
-- **Ikony rozkazów — W TOKU** (K95): klepsydra „Następnej tury” ustaliła
-  spójny język; ikony osady, pola oraz zapisu/odczytu są już zaplanowane.
+- **Ikony rozkazów — DOMKNIĘTE** (K95): tura, rozkazy osady i pola oraz
+  zapis/odczyt mają odrębne ikony z jednej rodziny Game-icons.
+- **Armie na mapie — DOMKNIĘTE** (G96.1a): snapshotowe `region.party.owner`
+  wybiera odrębne sylwetki gracza i AI; aktualny komplet armii jest widoczny.
 - `tbbui` (HTML/SVG) — **wyłącznie narzędzie diagnostyczne**, nie docelowy klient.
 
-**Najbliższa luka do celu: armie na mapie nadal są prototypowym znacznikiem.**
-Po K94 i rozpoczęciu K95 mapa oraz sterowanie idą w dobrym kierunku, ale gracz
-ma tylko małą chorągiew własnego oddziału, a oddział AI nie ma znacznika.
-Snapshot już niesie `region.party.owner`, więc następny przyrost może pokazać
-dwie różne sylwetki bez nowej mechaniki ani kontraktu.
+**Najbliższa luka do celu: mapa pokazuje stan, lecz nie przyjmuje wyboru celu.**
+Screenshot 1152×648 po K95/G96 potwierdza spójniejsze assety, ale
+`RegionTile_*` nadal nie reagują na mysz, a „Wyrusz w pole” wysyła automatyczny
+`march` bez celu. Następny przyrost ma zaznaczyć kliknięty region, pokazać jego
+stan i wykonać bezpieczny pojedynczy krok istniejącym prymitywem `move`.
 
 G93.1a-1 zdążyło dostarczyć bezpieczny prymityw ruchu do sąsiada (commit
-`c0470da`) i zostaje. Niezaczęte task-531…535 wracają do planisty: ich batch ma
-za dużo mechaniki i za mało grafiki według zmienionego briefu. Klikany ruch
-wróci wyłącznie jako zależność widocznej mapy w prawidłowym batchu.
+`c0470da`) i zostaje. Dawne task-531…535 nie wracają w pierwotnym składzie:
+K97 zastępuje je batchiem dwóch niezbędnych zadań integracyjnych i czterech
+widocznych efektów wyboru celu.
 
 ## Ograniczenia i priorytety
 - **[W]** Rdzeń `tbb` jest **jedynym źródłem reguł gry**. Godot nie duplikuje
@@ -199,10 +201,10 @@ skróconej; pełne uzasadnienia w `docs/DECISIONS.md` i w `BACKLOG.md`.)*
     ujawnił, że K87 zostawił rozłączne kafle, napisy na budynkach, dominującą
     szarą pustkę i sterowanie poza ekranem. Od teraz każdy przyrost oprawy ma
     dowód wizualny; test `Texture2D` pozostaje tylko bramką techniczną.
-22. **K94 potwierdził, że oprawę można poprawiać bez ruszania reguł.** Połączona
-    siatka, warianty dekoracyjne, osady i kompozycja wykorzystały istniejący
-    snapshot. Tak samo właściciel obu armii jest już w `region.party.owner`;
-    najpierw rysujemy go czytelnie, zamiast rozszerzać most.
+22. **K94–G96 potwierdziły, że oprawę można poprawiać bez ruszania reguł.**
+    Siatka, osady, ikony i sylwetki obu armii wykorzystały istniejący snapshot.
+    Kolejna wartość wymaga już wejścia użytkownika, ale reguła bezpiecznego
+    kroku istnieje; rozszerzamy tylko najwęższą ścieżkę most→wybór→feedback.
 
 ## Klimat, ton, kierunek wizualny
 Średniowiecze **bez magii i fantastyki**, surowy i realistyczny ton. **[W]**
@@ -262,13 +264,11 @@ Obowiązująca kolejność poprawy: (1) spójność/różnorodność kafli mapy,
    naturalnego szturmu na żywym moście.
 8. ~~Strategiczna mapa przestaje wyglądać jak prototyp~~ (K94) — **zrobione**:
    siatka, podłoża, keep/outpost oraz tło i kompozycja.
-9. **Ikony rozkazów** (K95) — pierwsza gotowa; trzy kolejne zadania są już
-   zaplanowane i pozostają właściwą kolejką.
-10. **Sylwetki obu armii na mapie** (G96.1a) — następny cienki przyrost,
-    oparty na istniejącym `region.party.owner`.
-11. **Pierwszy celowany rozkaz z mapy** (G93.1a) — ukończony jest tylko
-   bezpieczny prymityw rdzenia. Most, wybór i e2e wracają do planowania dopiero
-   w batchu zgodnym z bramką grafiki.
+9. ~~Ikony rozkazów~~ (K95) — **zrobione** dla tury, osady, pola i zapisu.
+10. ~~Sylwetki obu armii na mapie~~ (G96.1a) — **zrobione** z istniejącego
+    `region.party.owner`.
+11. **Pierwszy celowany rozkaz z mapy** (K97) — następny batch: dwie wąskie
+    zależności integracyjne oraz cztery widoczne stany wyboru i skutku ruchu.
 12. **Nowa partia z UI po zakończonej grze** — most ma `new_game`, scena nie ma
    przycisku. Po K92 gracz kończy partię regularnie, więc brak restartu zacznie
    boleć. Odłożone do zakończenia priorytetu graficznego.

@@ -869,7 +869,7 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
 > seedzie 73 zdobywa `ai outpost`, pozostawia partię w toku i wznawia ten sam
 > stan w drugim procesie.
 
-## Kamień milowy 93 — pierwszy rozkaz celowany z mapy — WSTRZYMANY
+## Kamień milowy 93 — pierwszy rozkaz celowany z mapy — PRZEPLANOWANY JAKO K97
 > **Pomiar po G92.2a i korekta po review (2026-07-30):** większy świat działa,
 > ale `MapView` jest wyłącznie rysunkiem: `RegionTile_*` ignorują mysz, a scena
 > wysyła `march` bez `target`. Istniejącego kontraktu celu **nie wolno jednak
@@ -885,11 +885,11 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
 > PLANOWANIA.** Ukończone G93.1a-1 zostaje w kodzie: jest bezpiecznym,
 > odizolowanym fundamentem. Niezaczęte task-531…535 nie tworzą prawidłowego
 > batcha wizualnego (co najmniej task-531, task-532 i task-535 są mechaniczne,
-> a task-533 nie ma wymaganej bramki screenshot/licencje). Wszystkie pięć wraca
-> do planisty; nie wykonywać ich w obecnym składzie ani nie duplikować. Po K94
-> można ułożyć `move` ponownie: maksymalnie dwie niezbędne zależności mechaniczne
-> obok co najmniej czterech efektów graficznych. R93.1 nie jest niezbędną
-> zależnością grafiki i pozostaje odłożony.
+> a task-533 nie ma wymaganej bramki screenshot/licencje). Wszystkie pięć
+> wróciło wtedy do planisty i nie wolno ich wykonywać w pierwotnym składzie.
+> K97 jest ich obowiązującym przeplanowaniem: maksymalnie dwie niezbędne
+> zależności mechaniczne obok czterech efektów graficznych. Szeroki R93.1 nie
+> jest niezbędną zależnością grafiki i pozostaje odłożony.
 - [~] **G93.1a — bezpieczny, celowany ruch o jeden krok z mapy (WSTĘPNIE
       ROZPOCZĘTY, RESZTA WSTRZYMANA).** Jawny
       prymityw rdzenia `move_duchy_party_to_adjacent` pozwala przenieść oddział
@@ -920,10 +920,11 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
 - [x] **G93.1a-1 — bezpieczny ruch oddziału do wskazanego sąsiada.** Prymityw
       rdzenia i testy przypadków dozwolonych/zablokowanych są gotowe; nie
       rozszerzać teraz mostu ani mechaniki. *(commit c0470da)*
-- [ ] **G93.1a-2…5 — WSTRZYMANE / DO PONOWNEGO PLANOWANIA:** task-531
-      (`move` w moście), task-532 (R93.1), task-533 (klik i zaznaczenie),
-      task-534 (wybór steruje ruchem), task-535 (e2e). Zachowane jako informacja
-      o kolejce, nie są zgodą na wykonanie nieprawidłowego batcha.
+> **G93.1a-2…5 — NIEAKTUALNE, ZASTĄPIONE PRZEZ K97:** task-531 (`move` w
+> moście), task-532 (R93.1), task-533 (klik i zaznaczenie), task-534 (wybór
+> steruje ruchem), task-535 (e2e). Zachowane jawnie, lecz nie wykonywać: K97
+> rozcina tę samą wartość na dwie niezbędne zależności integracyjne i cztery
+> zadania graficzne zgodne ze stałą bramką.
 
 ## Kamień milowy 94 — strategiczna mapa przestaje wyglądać jak prototyp — UKOŃCZONY
 > **Najcieńszy następny plasterek po zmianie briefu: dokładnie cztery zadania
@@ -977,19 +978,23 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
 > odrębne keep/outpost i pergaminową kompozycję, w której sterowanie mieści
 > się przy 1152×648.
 
-## Kamień milowy 95 — ikony rozkazów — W TOKU
-> G95 realizuje punkt 4 kolejności wizualnej. `G95.1a` ustaliło język ikon
-> godziną klepsydry z Game-icons. `task-541` (G95.1b — ikony rozkazów osady),
-> `task-542` (G95.1c — ikony rozkazów polowych) i `task-543` (G95.1d — ikony
-> zapisu/odczytu) są już zaplanowane i niezaczęte; ten przegląd ich nie
-> duplikuje ani nie przeplanowuje.
+## Kamień milowy 95 — ikony rozkazów — UKOŃCZONY
+> G95 zrealizował punkt 4 kolejności wizualnej. Wszystkie bieżące przyciski
+> mają odrębne ikony z rodziny Game-icons, polskie etykiety i atrybucję CC-BY.
 - [x] **G95.1a [GRAFIKA] — ikona „Następna tura” wyznacza język ikon
       rozkazów.** Przycisk używa czytelnej klepsydry `icon_next_turn.png`,
       zachowuje polską etykietę, źródło i licencję CC-BY 3.0. Test i review
       obejmują działający przycisk w natywnym Godocie. *(commit 1b4471c)*
+- [x] **G95.1b [GRAFIKA] — odrębne ikony rozkazów osady.** Rozwój, rekrutacja
+      i zbiórka używają `icon_develop.png`, `icon_recruit.png` oraz
+      `icon_muster.png`. *(commit 4d14f6e)*
+- [x] **G95.1c [GRAFIKA] — odrębne ikony rozkazów polowych.** Marsz i szturm
+      używają `icon_march.png` oraz `icon_assault.png`. *(commit 6b05b41)*
+- [x] **G95.1d [GRAFIKA] — odrębne ikony zapisu i odczytu.** Przyciski używają
+      `icon_save.png` oraz `icon_load.png`. *(commit a80aba3)*
 
-## Kamień milowy 96 — armie są czytelne na mapie strategicznej — NASTĘPNY
-- [ ] **G96.1a [GRAFIKA] — sylwetki oddziałów gracza i AI na mapie
+## Kamień milowy 96 — armie są czytelne na mapie strategicznej — UKOŃCZONY
+- [x] **G96.1a [GRAFIKA] — sylwetki oddziałów gracza i AI na mapie
       strategicznej.** Zastąpić małą chorągiew `party_player.png` dwiema
       czytelnymi, różnymi sylwetkami `party_player_unit.png` i
       `party_ai_unit.png` z jednej spójnej, średniowiecznej paczki CC0/CC-BY.
@@ -1001,6 +1006,66 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
       osad ani nazw i przechodzą ludzkie review, a źródło, autor, licencja
       i ścieżka każdego pliku trafiają do `game/assets/CREDITS.md`.
       *(standard; ryzyko: dobór/licencja i czytelność przy małej skali)*
+> **G96.1a — UKOŃCZONE** *(commity bca5c3b, 93ab69b, 22d67a9, b77eace)*:
+> osobne sylwetki obu stron są przypisane z `region.party.owner`, pełny
+> aktualny komplet armii jest rysowany, a kompozycja nie zasłania osad i nazw.
+
+## Kamień milowy 97 — wybór regionu prowadzi do bezpiecznego kroku — NASTĘPNY
+> Najcieńszy interaktywny plasterek po K95/G96. Screenshot 1152×648
+> potwierdził, że mapa i armie są już assetami, ale kafle nadal nie reagują na
+> mysz, a „Wyrusz w pole” wysyła automatyczny `march` bez celu. K97 nie zmienia
+> reguł: reużywa gotowe `move_duchy_party_to_adjacent` z G93.1a-1. Batch ma
+> dokładnie dwie niezbędne zależności integracyjne i cztery zadania graficzne.
+- [ ] **G97.1a [MECHANIKA] — rozkaz `move` wystawia istniejący bezpieczny krok
+      przez most.** `tbbbridge.session.apply_command` przyjmuje
+      `{"type":"order","order":"move","target":"<kanoniczna nazwa>"}`,
+      rozwiązuje cel w świecie i wywołuje wyłącznie
+      `move_duchy_party_to_adjacent`. Brak/nieznany/nielegalny cel daje
+      bezpieczny brak zmiany, nigdy awaryjny `march`; dotychczasowe `march`
+      celowane i automatyczne pozostają bez zmian. Testy pinują dozwolony
+      odwrót do sąsiedniego własnego regionu oraz blokadę celu odległego,
+      zajętego i wrogiej osady. Zastępuje mechaniczny zakres task-531.
+      *(standard; ryzyko: kontrakt mostu)*
+- [ ] **G97.1b [MECHANIKA] — klient przekazuje cel bez duplikowania ścieżki
+      persystencji.** `BridgeClient` dostaje minimalne API rozkazu z opcjonalnym
+      `target`, buduje słownik żądania i reużywa istniejące
+      `_send_persisted_sequence` oraz projekcję `OrderResult`. Rozkazy bez celu
+      zachowują identyczny JSON i zachowanie. Test obejmuje dokładny request
+      `move` + `save` oraz wznowienie. Zastępuje potrzebną część task-532;
+      dawny szeroki R93.1 pozostaje odłożony. *(standard; ryzyko: Godot↔Python)*
+- [ ] **G97.1c [GRAFIKA] — kliknięty region ma czytelną ramkę wyboru.**
+      `MapView` emituje kanoniczną nazwę klikniętego `RegionTile_*` i rysuje
+      nad nim konkretny element `map_target_frame.png`; tylko jeden region jest
+      zaznaczony, ponowny klik nie mnoży warstw, a ramka nie zasłania nazwy,
+      osady ani sylwetki. Akceptacja: test sygnału/nazwy + screenshot natywnego
+      Godota 1152×648 i ludzkie review; źródło, autor, licencja i ścieżka
+      assetu w `CREDITS.md`. Zastępuje część task-533. *(standard; ryzyko:
+      Godot input i czytelność małego kafla)*
+- [ ] **G97.1d [GRAFIKA] — kafel sygnalizuje, że jest klikalny.** Wskazany
+      kursorem region dostaje odrębny, subtelny stan hover (tint/obrys oparty na
+      ramce K97), a kursor i kontrast odróżniają hover od trwałego zaznaczenia.
+      Warstwy podłoża, osady i armii nadal nie przechwytują myszy. Akceptacja:
+      test wejścia/wyjścia kursora + screenshot stanu hover i ludzkie review;
+      wpis `map_target_frame.png` w `CREDITS.md` pozostaje kompletny.
+      *(standard; ryzyko: z-order i input)*
+- [ ] **G97.1e [GRAFIKA] — panel pokazuje stan wybranego celu po polsku.**
+      W panelu strategicznym pojawia się nazwany element „Wybrany region” z
+      nazwą, właścicielem, typem osady/brakiem osady i obecnością/stroną armii,
+      wyłącznie z danych już obecnych w `SnapshotModel.regions`. Brak wyboru ma
+      jednoznaczny pusty stan; nie dopisywać snapshotu ani reguł. Akceptacja:
+      test renderu celów własnego, neutralnego i AI + screenshot 1152×648,
+      ludzkie review czytelności i weryfikacja, że panel nie wypycha przycisków
+      poza ekran. *(standard; ryzyko: kompozycja)*
+- [ ] **G97.1f [GRAFIKA] — zaznaczenie steruje widocznym bezpiecznym ruchem.**
+      Przy wyborze przycisk pokazuje kontekst „Wyrusz: <region>” i wysyła
+      `move` z tą nazwą; bez wyboru zachowuje dotychczasowy automatyczny
+      `march`. Po legalnym kroku sylwetka gracza przenosi się na wskazany kafel,
+      panel i ramka odświeżają się bez zdublowania, a cel zablokowany daje
+      czytelny polski status bez fałszywego ruchu. Akceptacja: e2e na żywym
+      moście obejmuje legalny krok, blokadę wrogiej osady, zapis/wznowienie,
+      screenshot obu skutków i ludzkie review; użyte assety zachowują kompletne
+      wpisy w `CREDITS.md`. Zastępuje task-534/535. *(complex; ryzyka:
+      integracja Godot↔Python, persystencja i feedback)*
 
 ## Dług/refaktor
 - [x] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
@@ -1021,11 +1086,10 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
 > najwyżej 2 mechaniczne / najwyżej 6 łącznie. Niezależne przyciski, reguły
 > rdzenia, AI, ekonomia, walka, ruch, protokół i porządki są wstrzymane.
 - ~~K94: spójność kafli, keep/outpost, tło i kompozycja~~ — **wykonane**.
-- **Teraz K95:** trzy niezaczęte zadania ikon są już w kolejce; po nich
-  **G96.1a** pokazuje sylwetki armii obu stron na mapie bez nowej mechaniki.
-- Rozkaz wybierany klikiem na cel na mapie — G93.1a-1 jest gotowe, a
-  task-531…535 wracają do planowania. Reszta może wrócić tylko jako
-  bezpośrednia zależność efektów graficznych i w prawidłowym batchu.
+- ~~K95: ikony wszystkich bieżących rozkazów~~ — **wykonane**.
+- ~~G96.1a: sylwetki armii obu stron na mapie~~ — **wykonane**.
+- **Teraz K97:** kliknięty region dostaje widoczne stany wyboru i prowadzi do
+  bezpiecznego kroku; dawne task-531…535 zastępuje prawidłowy batch 4+2.
 - ~~Zapis/odczyt z UI: jawne „Zapisz”/„Wczytaj”~~ — rozplanowane jako K86.
 - ~~Prawdziwe assety i tekstury zamiast `ColorRect`~~ — rozplanowane jako K87.
 - Assety pozostałych elementów sceny — K87 dowiodło ścieżki import→tekstura;
