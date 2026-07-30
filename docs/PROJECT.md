@@ -71,17 +71,23 @@ mały — po kilka kafli terenu, sylwetek jednostek i budynków — ale prawdziw
 - **Obrona osady — DOMKNIĘTA** (G92.1): oddział stojący w regionie osady walczy
   z garnizonem, ocalali wracają do właściwych składów, zwycięski szturm nie
   zakleszcza świata, a e2e na żywym moście przechodzi dwie kolejne tury.
+- **Minimalny wieloosadowy świat — DOMKNIĘTY** (G92.2a): pięć połączonych
+  regionów, pusty region graniczny i po dwie osady na stronę są wystawione
+  istniejącym snapshotem i rysowane przez `MapView`. Utrata jednej osady nie
+  kończy księstwa.
 - `tbbui` (HTML/SVG) — **wyłącznie narzędzie diagnostyczne**, nie docelowy klient.
 
-**Najbliższa luka do celu: świat startowy jest za mały na sandbox.**
-`create_headless_game` daje **jedną osadę na stronę** i po jednym oddziale
-garnizonu, a `Duchy.is_defeated` to „brak osad **i** brak oddziałów"
-(`duchy.py:72-74`). Pierwsza przegrana bitwa kończy księstwo; nie ma drugiej
-osady, odwrotu ani odbudowy, więc zarządzanie i ekonomia nie zdążą nabrać
-znaczenia. Naprawa obrony usunęła wcześniejszą blokadę skalowania. Następny
-plasterek K92.2a daje po dwie osady w minimalnym świecie pięciu regionów i
-wystawia go istniejącym widokiem mapy; dopiero potem mierzymy pełną sekwencję
-gracza i wybieramy kolejną realną blokadę.
+**Najbliższa luka do celu: większą mapę widać, ale nie da się nią sterować.**
+`MapView` rysuje pięć regionów jako kafle ignorujące mysz, scena wysyła wyłącznie
+globalne przyciski rozkazów, a `BridgeClient.send_order()` nie podaje celu.
+Istniejące `target` dla marszu oznacza koniec trasy, nie bezpośredni krok, i ten
+kontrakt musi zostać: obsługuje zalecany marsz ku odległej osadzie w
+diagnostycznym `tbbui` (K15.1a/K49.1d). Nie nadaje się przez to do odwrotu na
+sąsiedni kliknięty kafel ani do gwarantowania, że krok ominie wrogą osadę.
+Następny plasterek G93.1a dodaje **odrębny** prymityw i rozkaz mostu dla ruchu
+na jeden wskazany, sąsiedni i bezpieczny region, nie zmieniając istniejącego
+marszu. Ta nowa ścieżka trafia do klikanej mapy i jest sprawdzana e2e wraz z
+odwrotem, zapisem oraz blokadą wejścia do wrogiej osady.
 
 ## Ograniczenia i priorytety
 - **[W]** Rdzeń `tbb` jest **jedynym źródłem reguł gry**. Godot nie duplikuje
@@ -167,6 +173,20 @@ skróconej; pełne uzasadnienia w `docs/DECISIONS.md` i w `BACKLOG.md`.)*
     pochodzenie, a sekwencja `muster` → dwie tury przechodzi na żywym moście.
     Skrajny stan z oddziałem niebędącym obrońcą pozostaje odłożony, dopóki nie
     pojawi się trzecie księstwo lub reprodukcja w normalnej partii.
+19. **Pięć regionów wystarczyło, by odsłonić brak sterowania, nie defekt
+    skalowania.** G92.2a przechodzi testy rdzenia i e2e Godota; na seedzie 73
+    naturalna sekwencja zdobywa pierwszą z dwóch osad AI, pokazuje trwającą
+    partię i wznawia ją z pliku. Następna wartość leży w wyborze celu na
+    istniejącej mapie, nie w dalszym powiększaniu świata.
+20. **Istniejące `target` marszu nie jest kontraktem wyboru kafla — i nie wolno
+    go na taki kontrakt przepisać.** `march_duchy_party_to` zatrzymuje się obok
+    celu, więc odwrót na sąsiedni własny region jest no-opem; to jednak
+    utrwalona semantyka marszu ku odległej osadzie, używana przez `tbbui` oraz
+    K15.1a/K49.1d. G93.1a dodaje obok niej odrębny prymityw i rozkaz `move`:
+    dokładnie jeden krok do wskazanego sąsiada, bez wejścia do wrogiej osady.
+    Stary celowany i automatyczny `march` oraz celowane `assault`/`engage`
+    zachowują swoje reguły; celowanie rozwoju, rekrutacji i zbiórki pozostaje
+    poza tym plasterkiem.
 
 ## Klimat, ton, kierunek wizualny
 Średniowiecze **bez magii i fantastyki**, surowy i realistyczny ton. **[W]**
@@ -211,13 +231,14 @@ spójna paczka bije zlepek najładniejszych pojedynczych obrazków. **[P]**
    zwycięstwo jest widoczne i trwałe, a koniec gry ma jednoznaczny komunikat.
 6. ~~Obrona własnej osady~~ (G92.1) — **domknięta** w rdzeniu i e2e na żywym
    moście; wcześniejsze zakleszczenie nie blokuje już skalowania świata.
-7. **Minimalny wieloosadowy świat** (G92.2a) — pięć regionów i dwie osady na
-   stronę, widoczne przez istniejący snapshot i `MapView`. Po tym plasterku
-   mierzymy pełną sekwencję gracza i planujemy tylko ujawnioną blokadę.
-8. **Klik na cel na mapie** zamiast globalnych przycisków „Rozwiń/Szturmuj" —
-   odblokowuje się dopiero po K92: przy pięciu regionach i dwóch osadach na
-   stronę rozkaz celowany **przestaje** dawać ten sam skutek co automatyczny
-   (dziś daje — patrz nota przy K86 w `BACKLOG.md`).
+7. ~~Minimalny wieloosadowy świat~~ (G92.2a) — **domknięty**: pięć regionów,
+   dwie osady na stronę, trwająca partia po utracie pierwszej osady oraz e2e
+   naturalnego szturmu na żywym moście.
+8. **Pierwszy celowany rozkaz z mapy** (G93.1a) — odrębny od marszu ku
+   odległemu celowi prymityw i rozkaz `move`, potem wybór sąsiedniego regionu
+   klikiem i dokładnie jeden bezpieczny krok, także odwrót. Wroga osada wymaga
+   szturmu; istniejący kontrakt `march_duchy_party_to` pozostaje bez zmian.
+   Dalsze rozkazy celowane oceniamy dopiero po tej ścieżce.
 9. **Nowa partia z UI po zakończonej grze** — most ma `new_game`, scena nie ma
    przycisku. Po K92 gracz kończy partię regularnie, więc brak restartu zacznie
    boleć. Cienki plasterek, nieplanowany jeszcze.

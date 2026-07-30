@@ -750,10 +750,10 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > do oceny po powiększeniu świata, gdy regularne zakończenie gry ujawni jego
 > faktyczną wartość.
 
-## Kamień milowy 92 — obrona własnej osady w ogóle działa — PRIORYTET
+## Kamień milowy 92 — obrona własnej osady i minimalny wieloosadowy świat — UKOŃCZONY
 > **Stan 2026-07-30:** G92.1 jest domknięte w rdzeniu i na żywym moście.
 > Poniższa diagnoza zakleszczenia zostaje jako uzasadnienie wykonanej reguły;
-> bieżącym priorytetem jest G92.2a.
+> G92.2a domknęło też minimalną skalę świata.
 > **Defekt sięgający gracza, znaleziony przez uruchomienie gry obronnej przy
 > przeglądzie kierunku 2026-07-28.** Gracz klika „Zbierz oddział", potem
 > „Następna tura" — i partia **zakleszcza się na amen**. Most odpowiada
@@ -833,7 +833,7 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > ocalali wracają do właściwego miejsca, zwycięski szturm nie zakleszcza świata,
 > a żywy most przechodzi dwie kolejne tury po `muster`.
 
-- [ ] **G92.2a — minimalny świat, w którym utrata jednej osady nie kończy
+- [x] **G92.2a — minimalny świat, w którym utrata jednej osady nie kończy
       księstwa.** `create_headless_game` tworzy połączony świat pięciu regionów
       z pustym regionem granicznym i **dwiema osadami na stronę**; oba księstwa
       zaczynają z dwiema osadami, a każda osada zachowuje dzisiejszy mały,
@@ -843,9 +843,49 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
       dowodzi też, że utrata jednej osady pozostawia księstwo żywe. Nie zmieniać
       przy tym AI, ekonomii, warunku zwycięstwa ani sterowania rozkazami.
       *(standard; ryzyko: startowy fixture jest konsumowany przez rdzeń, most,
-      persystencję i e2e Godota; wniosek 17)*
-> Następny przegląd po tym plasterku ma zmierzyć pełną sekwencję gracza na
-> żywym moście i dopiero z wyniku wybrać kolejną blokadę wieloturowej partii.
+      persystencję i e2e Godota; wniosek 17; commit a62af42)*
+> **G92.2a — UKOŃCZONE**: snapshot świeżej sesji ma pięć regionów i po dwie
+> osady, a naturalne e2e `recruit×2` → `muster` → `march×2` → `assault` na
+> seedzie 73 zdobywa `ai outpost`, pozostawia partię w toku i wznawia ten sam
+> stan w drugim procesie.
+
+## Kamień milowy 93 — pierwszy rozkaz celowany z mapy — PRIORYTET
+> **Pomiar po G92.2a i korekta po review (2026-07-30):** większy świat działa,
+> ale `MapView` jest wyłącznie rysunkiem: `RegionTile_*` ignorują mysz, a scena
+> wysyła `march` bez `target`. Istniejącego kontraktu celu **nie wolno jednak
+> użyć jako kontraktu klikniętego kafla ani zmieniać**:
+> `march_duchy_party_to` oznacza marsz o jeden krok **ku odległemu celowi**,
+> obsługuje działające `src/tbbui/serve.py` oraz zrealizowane K15.1a/K49.1d.
+> Sąsiedni cel jest w nim zgodnie z dotychczasową semantyką no-opem, więc nie
+> nadaje się do odwrotu na kliknięty kafel; odległy cel może zaś wyznaczyć krok
+> przez wrogą osadę bez szturmu. Klikana mapa potrzebuje odrębnej, węższej
+> ścieżki ruchu, bez regresji istniejącego marszu i jego zaleceń.
+- [ ] **G93.1a — bezpieczny, celowany ruch o jeden krok z mapy.** Jawny
+      prymityw rdzenia `move_duchy_party_to_adjacent` pozwala przenieść oddział
+      wyłącznie do **wskazanego regionu sąsiedniego**, niezajętego przez party
+      i niebędącego osadą wroga; dozwolone są pusty region oraz własna osada.
+      Cel bieżący, odległy, zajęty albo z wrogą osadą daje bezpieczny no-op bez
+      mutacji. Most wystawia go jako odrębny rozkaz `move` z wymaganym,
+      rozwiązywalnym `target`; brak albo nieznany cel nie uruchamia awaryjnie
+      automatycznego marszu. Kontrakty `march_duchy_party_to`, `march` z
+      `target` i bez niego oraz trasa `POST /order/march?target=...` w `tbbui`
+      pozostają bez zmian. Test regresji zachowuje działanie K15.1a/K49.1d:
+      wskazanie odległej osady nadal przesuwa oddział o jeden krok w jej
+      kierunku i zalecany marsz HTML nie staje się no-opem.
+      Testy nowego prymitywu i mostu dowodzą, że odwrót z `player outpost` do
+      sąsiedniego `player lands` wykonuje dokładnie jeden krok, cel odległy jest
+      no-opem, a bezpośredni cel `ai outpost` pozostaje zablokowany i szturm
+      nadal jest jedyną drogą wejścia do wrogiej osady.
+      Następnie klik kafla emituje jego kanoniczną nazwę i daje widoczne
+      zaznaczenie, a „Wyrusz w pole" przekazuje ją przez `BridgeClient` jako
+      `{"type":"order","order":"move","target":...}`, odświeża scenę i zapisuje
+      partię. E2e na żywym moście pokazuje marker po kroku do własnego
+      `player outpost`, po odwrocie do `player lands` i po wznowieniu.
+      Bez zaznaczenia zostaje obecny automatyczny `march`. Nie obejmuje szturmu,
+      starcia ani celowania rozwoju/rekrutacji/zbiórki.
+      *(complex; ryzyka: nowy prymityw rdzenia obok zachowanego kontraktu
+      `march_duchy_party_to`, nowy rozkaz mostu, Godot input, integracja
+      Godot↔Python; review wymagane)*
 
 ## Dług/refaktor
 - [x] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
@@ -866,9 +906,9 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 > most obsługuje więcej rozkazów, niż klient potrafi pokazać. Od 2026-07-27
 > dochodzi twarde: **bez assetów nie ma MVP**, więc rozbudowa treści (typy
 > jednostek, budynki, tereny) czeka na to, aż istniejąca treść będzie narysowana.
-- Rozkaz wybierany klikiem na cel na mapie, nie globalnym przyciskiem — czeka na
-  większą mapę (w obecnym trzyregionowym świecie klik nie różni się skutkiem od
-  automatu; uzasadnienie przy K86).
+- Rozkaz wybierany klikiem na cel na mapie, nie globalnym przyciskiem —
+  **pierwszy pionowy plasterek rozplanowany jako G93.1a (celowany ruch)**.
+  Szturm/starcie oraz zarządzanie konkretną osadą wracają do oceny po nim.
 - ~~Zapis/odczyt z UI: jawne „Zapisz”/„Wczytaj”~~ — rozplanowane jako K86.
 - ~~Prawdziwe assety i tekstury zamiast `ColorRect`~~ — rozplanowane jako K87.
 - Assety pozostałych elementów sceny (osady/budynki na mapie, tło, ikony
@@ -889,9 +929,9 @@ agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 - ~~Gra obronna („Zbierz oddział" + „Następna tura") zakleszcza partię na amen~~
   — **naprawione jako G92.1** w rdzeniu i na żywym moście. Pełna diagnoza
   zostaje w sekcji K92.
-- **Druga osada na stronę i większy świat startowy** — warunek istnienia pętli
-  sandboxa (`docs/PROJECT.md`, wniosek 17), **rozplanowany jako G92.2a** po
-  domknięciu G92.1.
+- ~~Druga osada na stronę i większy świat startowy~~ — **wykonane jako
+  G92.2a**: pięć regionów, dwie osady na stronę i trwająca partia po zdobyciu
+  pierwszej osady.
 - **`muster` zabiera cały garnizon osady** — obserwacja z przeglądu 2026-07-28:
   po zbiórce osada gracza zostaje pusta, więc każde wyjście w pole odsłania dom.
   Dziś to podwaja skutki asymetrycznego startu; po K90 warto sprawdzić, czy
