@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/map_view.gd" id="2_map_view"]
@@ -8,6 +8,8 @@
 [ext_resource type="Texture2D" path="res://assets/icon_develop.png" id="6_develop_icon"]
 [ext_resource type="Texture2D" path="res://assets/icon_recruit.png" id="7_recruit_icon"]
 [ext_resource type="Texture2D" path="res://assets/icon_muster.png" id="8_muster_icon"]
+[ext_resource type="Texture2D" path="res://assets/icon_march.png" id="9_march_icon"]
+[ext_resource type="Texture2D" path="res://assets/icon_assault.png" id="10_assault_icon"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -154,12 +156,14 @@ text = "Zbierz oddział"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(140, 40)
 layout_mode = 2
+icon = ExtResource("9_march_icon")
 text = "Wyrusz w pole"
 
 [node name="AssaultButton" type="Button" parent="MainLayout/OrderControls/OrderButtons"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(140, 40)
 layout_mode = 2
+icon = ExtResource("10_assault_icon")
 text = "Szturmuj osadę"
 
 [node name="SaveLoadButtons" type="HBoxContainer" parent="MainLayout/OrderControls"]

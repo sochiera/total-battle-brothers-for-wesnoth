@@ -54,3 +54,10 @@ The settlement-order icons are adapted from Game-icons.net under CC-BY 3.0.
 | icon_develop.png | https://game-icons.net/1x1/delapouite/growth.html (growth.svg) | Delapouite | CC-BY 3.0 |
 | icon_recruit.png | https://game-icons.net/1x1/delapouite/medieval-barracks.html (medieval-barracks.svg) | Delapouite | CC-BY 3.0 |
 | icon_muster.png | https://game-icons.net/1x1/lorc/rally-the-troops.html (rally-the-troops.svg) | Lorc | CC-BY 3.0 |
+
+The field-order icons are adapted from Game-icons.net under CC-BY 3.0.
+
+| File | Source page/file | Author | License |
+|------|------------------|--------|---------|
+| icon_march.png | https://game-icons.net/1x1/lorc/boot-stomp.html (boot-stomp.svg) | Lorc | CC-BY 3.0 |
+| icon_assault.png | https://game-icons.net/1x1/skoll/siege-ram.html (siege-ram.svg) | Skoll | CC-BY 3.0 |
