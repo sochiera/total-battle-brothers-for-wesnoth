@@ -87,12 +87,17 @@ placeholderach, licencje są kompletne, człowiek akceptuje screenshoty, a
 - **Polska prezentacja i teatr mapy — DOMKNIĘTE** (K100): jedno mapowanie PL
   (`WorldPresentation`), rama teatru pod pasem heksów, hierarchiczna karta
   wyboru i pełnoekranowe tło bez szarego chrome; kanoniczne id bez zmian.
+- **Herby, status i baner bitwy — DOMKNIĘTE** (K101): pieczęcie zamiast
+  `ColorRect` własności, legenda spójna z herbami, hierarchiczna karta statusu
+  (etykieta/wartość, wyróżniony wynik) i `battle_result_banner.png` pod polskim
+  wynikiem bitwy; bez reguł/mostu.
 - `tbbui` (HTML/SVG) — **wyłącznie narzędzie diagnostyczne**, nie docelowy klient.
 
-**Najbliższa luka po K100 (`task-569-*` 1152×648):** znaczniki własności i
-legenda to `ColorRect`, status to ściana tekstu, wynik bitwy — goły napis.
-Próg wizualny nieosiągnięty (brak ludzkiej akceptacji). K101 — herby,
-hierarchia statusu, baner bitwy; bez reguł/mostu.
+**Najbliższa luka po K101 (`task-572-*` 1152×648 + kod):** tabliczki nazw
+regionów i znaczniki PŻ to ciemne `StyleBoxFlat` (HUD-owy chrome), panel
+wybranego regionu i goły status rozkazu — residualny flat; Kenney nadal
+przejściowe. Próg wizualny nieosiągnięty (brak ludzkiej akceptacji). K102 —
+pergaminowe tabliczki/PŻ/panel/feedback; bez reguł/mostu.
 
 ## Ograniczenia i priorytety
 - **[W]** Rdzeń `tbb` jest **jedynym źródłem reguł gry**. Godot nie duplikuje
@@ -220,6 +225,9 @@ skróconej; pełne uzasadnienia w `docs/DECISIONS.md` i w `BACKLOG.md`.)*
 27. **K100 domknął residualny prototyp K99 bez ruszania kontraktu.** Screenshot
     ujawnił kolejną warstwę: `ColorRect` własności i tekstowy status. Kolejny
     batch to herby/status/baner, nie reguły.
+28. **K101 domknął residualne `ColorRect`/goły wynik bez reguł.** Screenshot
+    ujawnia następną warstwę: ciemne `StyleBoxFlat` tabliczek i PŻ oraz flat
+    panel/feedback. Kolejny batch to nośnik tekstur tych elementów, nie reguły.
 
 ## Klimat, ton, kierunek wizualny
 Średniowiecze **bez magii i fantastyki**, surowy i realistyczny ton. **[W]**
@@ -241,8 +249,9 @@ Obowiązująca kolejność poprawy: (1) spójność/różnorodność kafli mapy,
 (2) osady i budynki, (3) tło/kompozycja mapy, (4) ikony rozkazów,
 (5) sylwetki i strony, (6) zaznaczenie celu/stan gry, (7) spójność obu widoków,
 (8) hierarchia pełnego ekranu strategicznego, (9) polska warstwa prezentacji
-i teatr mapy, (10) herby własności, hierarchia karty statusu i baner wyniku
-bitwy (residualne `ColorRect`/goły tekst po K100).
+i teatr mapy, (10) herby, hierarchia statusu i baner bitwy, (11) pergaminowe
+tabliczki nazw, znaczki PŻ, panel wyboru i feedback rozkazu (residualne
+ciemne `StyleBoxFlat` / goły status po K101).
 **[W]**
 
 ## Sugestie autora briefu
@@ -265,10 +274,10 @@ bitwy (residualne `ColorRect`/goły tekst po K100).
 1. ~~K82–K86: start, układ, widoki, save/load~~ — **zrobione**.
 2. **K87: minimum assetów** — gotowe technicznie; próg wizualny nie.
 3. ~~K88–K92: pakiet, bitwa, pętla, obrona, 5 regionów~~ — **domknięte**.
-4. ~~K94–K100: oprawa mapy/bitwy, ikony, armie, cel, hierarchia, PL/teatr~~ —
-   **zrobione**.
-5. **Herby, status i baner bitwy** (K101) — residualne `ColorRect` własności,
-   ściana tekstu statusu i goły wynik bitwy; bez reguł/mostu.
+4. ~~K94–K101: oprawa mapy/bitwy, ikony, armie, cel, hierarchia, PL/teatr,
+   herby/status/baner~~ — **zrobione**.
+5. **Tabliczki, PŻ, panel wyboru i feedback rozkazu** (K102) — residualne
+   ciemne `StyleBoxFlat` i goły status rozkazu; bez reguł/mostu.
 6. **Nowa partia z UI po zakończonej grze** — most ma `new_game`, scena nie.
    Odłożone do końca priorytetu graficznego / progu wizualnego.
 
