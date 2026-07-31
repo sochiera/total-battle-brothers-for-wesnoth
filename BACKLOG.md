@@ -1240,64 +1240,83 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
 > nieosiągnięty (residualny Kenney na osadach/dekoracjach/sylwetkach +
 > brak ludzkiej akceptacji).
 
-## Kamień milowy 104 — residualny Kenney w tonie pergaminu — PRIORYTET
+## Kamień milowy 104 — residualny Kenney w tonie pergaminu — UKOŃCZONY
+> **UKOŃCZONE.** K104 domknął residualny Kenney na pergaminie bez reguł/mostu:
+> keep/outpost w tonie pergaminu (G104.1a), drzewo/skała spójne z
+> `terrain_plains` (G104.1b), recolor sylwetek mapy/bitwy (G104.1c) oraz cue
+> strony PŻ jako para plakietek zamiast `StyleBoxFlat` (G104.1d). Screenshoty
+> `task-585-map-armies` i `task-585-battle-sides` (1152×648) potwierdzają
+> przyrost; pełny ekran ujawnia następną lukę: **kształt** top-down RTS nadal
+> kłóci się z isometrią osad (recolor ≠ rodzina), a panel wyboru i klaster
+> bitwy zostawiają dużo pustego pergaminu — zakres K105.
+- [x] **G104.1a [GRAFIKA] — keep i outpost w tonie pergaminu, nie plastiku
+      Kenney.** *(commit 6b6691a)*
+- [x] **G104.1b [GRAFIKA] — drzewo i skała bitwy w tej samej rodzinie co
+      podłoże.** *(commit 274c616)*
+- [x] **G104.1c [GRAFIKA] — sylwetki armii i stron w jednej, czytelnej
+      rodzinie (recolor).** *(commit 56aa4a7; screenshoty `task-585-*`)*
+- [x] **G104.1d [GRAFIKA] — cue strony w bitwie bez residualnego
+      `StyleBoxFlat`.** `battle_hp_badge_{attacker,defender}.png`.
+      *(commit da1bd29)*
+> **K104 — UKOŃCZONY** *(commity 6b6691a…da1bd29)*: ton pergaminu na
+> osadach/dekoracjach/cue PŻ; próg wizualny nadal nieosiągnięty (kształt
+> figur + kompozycja chrome + brak ludzkiej akceptacji).
+
+## Kamień milowy 105 — figury w rodzinie mapy i kompozycja chrome — PRIORYTET
 > **Najcieńszy następny plasterek: cztery zadania graficzne, zero
-> mechanicznych.** Po K103 UI i podłoże spięły się z teatrem, ale
-> screenshoty 1152×648 (`task-581-map-grounds` + `task-579-visible-battle`
-> sprzed/obok G103.1d) i pliki w `game/assets/` wciąż zdradzają **inną
-> rodzinę wizualną** na pergaminie: (1) `settlement_keep.png` /
-> `settlement_outpost.png` — plastyczny, jasny isometric Kenney z
-> wtopioną jaskrawą zielenią, (2–3) `terrain_forest.png` (drzewo 26×40) i
-> `terrain_hills.png` (skała 74×92) — kreskówkowe dekoracje Hexagon Pack
-> na nowym stonowanym `terrain_plains`, (4) `party_*_unit.png` /
-> `side_*.png` — top-downowe figurki RTS Pack, czytelne, lecz stylistycznie
-> oderwane od pergaminu i od isometricznych osad. K104 domyka wyłącznie
-> prezentację — bez reguł, mostu, `new_game`, bez dorysowywania pustych
-> heksów bitwy i bez mechanicznego terenu regionu. Bramka 4 graficzne /
-> 0 mechanicznych. Review na żywym pięcioregionowym świecie z etykietami
-> PL (`WorldPresentation`) oraz na fixture bitwy z trzema terenami.
-- [ ] **G104.1a [GRAFIKA] — keep i outpost w tonie pergaminu, nie plastiku
-      Kenney.** Podmienić (lub retuszować w miejscu) `settlement_keep.png`
-      i `settlement_outpost.png` na spójną, średniowieczną, możliwie
-      realistyczną parę CC0/CC-BY bez jaskrawej zieleni i bez „białego
-      klocka" Kenney; `MapView` nadal dobiera je z istniejącej nazwy osady
-      (`keep`/`outpost`), nie tintuje całego budynku kolorem właściciela,
-      nie zasłania tabliczek/herbów/armii. Akceptacja: obie osady widoczne
-      jednocześnie w natywnym Godocie, screenshot 1152×648 świeżej partii
-      (pięć regionów), ludzkie review spójności z `map_ground_*` i teatrem;
-      per-plikowe źródło/licencja w `CREDITS.md`. *(standard; ryzyko:
-      dobór/licencja assetów, czytelność w małej skali kafla)*
-- [ ] **G104.1b [GRAFIKA] — drzewo i skała bitwy w tej samej rodzinie co
-      podłoże.** Podmienić `terrain_forest.png` i `terrain_hills.png` na
-      dekoracje (nie pełne heksy) spójne z G103.1d / `terrain_plains` —
-      zachować natywny, nierozciągany rozmiar i kotwiczenie w heksie
-      (kontrakt K98: baza 120×140 pointy-top, dekoracja `native_rect`).
-      `Plains` nadal bez dekoracji. Akceptacja: fixture z trzema terenami
-      + obie strony, test pinujący role/rozmiary, screenshot 1152×648,
-      ludzkie review spójności mapa↔bitwa; atrybucja obu plików w
-      `CREDITS.md`. *(standard; ryzyko: z-order i czytelność pod
-      sylwetką)*
-- [ ] **G104.1c [GRAFIKA] — sylwetki armii i stron w jednej, czytelnej
-      rodzinie.** Podmienić (lub retuszować) parę mapy
-      `party_player_unit.png` / `party_ai_unit.png` oraz parę bitwy
-      `side_attacker.png` / `side_defender.png` na spójne, średniowieczne,
-      nie-fantastyczne figurki CC0/CC-BY rozróżnialne wzrokowo po pliku
-      (nie samym tincie — wniosek 12). `MapView` nadal mapuje z
-      `region.party.owner`, `BattleView` z `side`; bez zmian snapshotu.
-      Akceptacja: screenshot mapy z obu armiami i bitwy z obu stron +
-      PŻ, ludzkie review czytelności w małej skali; per-plikowe źródło
-      i licencja w `CREDITS.md` (konkretna ścieżka w paczce). *(standard;
-      ryzyko: dobór/licencja, spójność stylu z G104.1a/b)*
-- [ ] **G104.1d [GRAFIKA] — cue strony w bitwie bez residualnego
-      `StyleBoxFlat`.** Zastąpić obramowanie `StyleBoxFlat` na plakietce
-      PŻ (`_hp_marker_style` w `battle_view.gd`) teksturowanym nośnikiem
-      strony (np. `battle_side_base_attacker.png` /
-      `battle_side_base_defender.png` albo para obramowań pod
-      `LabelTextureCarrier` / sylwetką) — fill pozostaje przezroczysty
-      albo z assetu, strony rozróżnialne bez solid flat. Akceptacja:
-      fixture obu stron z różnym `hp`, screenshot 1152×648, test braku
-      solidnego tła `StyleBoxFlat` na `HpMarker`, ludzkie review; atrybucja
-      w `CREDITS.md`. *(standard; ryzyko: z-order plakietka/sylwetka)*
+> mechanicznych.** Po K104 barwa spięła się z teatrem, ale screenshoty
+> 1152×648 (`task-585-map-armies`, `task-585-battle-sides`, porównanie z
+> `task-581-map-grounds`) i wpisy CREDITS pokazują, że G104.1c **zostawiło
+> kształty** Kenney RTS Pack: Medieval (top-down 64×64) — isometryczne
+> keep/outpost i top-downowe figurki to nadal dwie gry na jednym ekranie
+> (wniosek 30: barwa ≠ rodzina kształtów). Równolegle: (a) panel „Wybrany
+> region" przy braku wyboru to duża pusta płyta pergaminu dominująca lewą
+> kolumnę, (b) klaster zajętych heksów bitwy unosi się w pustce panelu bez
+> czytelnej skali/kotwiczenia. K105 domyka wyłącznie prezentację — bez
+> reguł, mostu, `new_game`, bez dorysowywania pustych heksów bitwy i bez
+> mechanicznego terenu regionu. Bramka 4 graficzne / 0 mechanicznych.
+> Review na żywym pięcioregionowym świecie z etykietami PL oraz na fixture
+> bitwy z trzema terenami i obu stronami.
+- [ ] **G105.1a [GRAFIKA] — armie na mapie w rodzinie isometrii, nie top-down
+      RTS.** Zastąpić `party_player_unit.png` i `party_ai_unit.png` parą
+      średniowiecznych, nie-fantastycznych figurek CC0/CC-BY o **tym samym
+      języku kształtu co keep/outpost** (isometria lub side-view ¾, nie
+      top-down RTS); strony rozróżnialne wzrokowo po pliku (nie samym tincie —
+      wniosek 12). `MapView` nadal mapuje z `region.party.owner`; bez zmian
+      snapshotu/mostu. Akceptacja: screenshot 1152×648 z obu armiami na
+      pięcioregionowej mapie, sylwetki nie zasłaniają nazw/herbów/osad,
+      ludzkie review spójności z `settlement_*` i `map_ground_*`; per-plikowe
+      źródło/licencja/ścieżka w `CREDITS.md`. *(standard; ryzyko:
+      dobór/licencja, czytelność w skali kafla)*
+- [ ] **G105.1b [GRAFIKA] — strony bitwy z tej samej rodziny co armie mapy.**
+      Zastąpić `side_attacker.png` / `side_defender.png` figurkami spójnymi
+      z G105.1a (ta sama paczka/rodzina, rozróżnialne po pliku); `BattleView`
+      nadal mapuje z `side`; PŻ i plakietki K104 bez regresji. Akceptacja:
+      fixture obu stron + trzy tereny, screenshot 1152×648, test ładowania
+      i rozróżnialności plików, ludzkie review; atrybucja w `CREDITS.md`.
+      *(standard; wymaga spójności z G105.1a; ryzyko: z-order pod
+      dekoracją/PŻ)*
+- [ ] **G105.1c [GRAFIKA] — klaster bitwy ma skalę i kotwiczenie, nie unosi
+      się w pustce.** Bez dorysowywania nieistniejących heksów (kontrakt
+      K85/K98): poprawić skalę, centrowanie i/lub wewnętrzną ramę panelu
+      `BattleView` (ew. retusz `battle_panel_background.png` albo cienka
+      warstwa teatru bitwy), tak aby zajęte heksy z G105.1b zajmowały
+      czytelnie środkową część panelu przy 1152×648 i nie tonęły w pustym
+      pergaminie. Akceptacja: screenshot widocznej bitwy vs świeża partia
+      (pusty widok bez błędu), test układu, ludzkie review hierarchii;
+      źródło/licencja użytego assetu w `CREDITS.md`. *(standard; ryzyko:
+      clipping i kolizja z mapą/statusem)*
+- [ ] **G105.1d [GRAFIKA] — panel wyboru i karta statusu bez dominującej
+      pustki.** Stan pusty „Wybrany region" oraz wiersze statusu księstwa
+      dostają gęstszą, pergaminową treść wizualną (np. ilustracja/ornament
+      pustego stanu, dzielniki lub ikony wierszy spójne z herbami/teatrem —
+      CC0/CC-BY), bez ściany tekstu i bez residualnego `StyleBoxFlat` jako
+      nośnika. Kanoniczne nazwy i dane z `SnapshotModel`/`WorldPresentation`
+      bez zmian. Akceptacja: screenshot świeżej partii (pusty wybór) i ze
+      wskazanym regionem, status świeży + zakończony jeśli fixture pozwala,
+      ludzkie review czytelności lewej kolumny przy 1152×648; atrybucja w
+      `CREDITS.md`. *(standard; ryzyko: kompozycja i nie wypchnięcie
+      przycisków poza ekran)*
 
 ## Dług/refaktor
 - [x] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
@@ -1331,16 +1350,17 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
 - ~~K102: tabliczki, PŻ, panel wyboru, feedback rozkazu~~ — **wykonane**.
 - ~~K103: przyciski/legenda teksturowane, podłoże mapy/bitwy bez obrysu
   Kenney~~ — **wykonane**.
-- **Teraz K104:** residualny Kenney na pergaminie — keep/outpost, dekoracje
-  bitwy (drzewo/skała) i sylwetki armii/stron oraz cue strony bez
-  residualnego `StyleBoxFlat` na PŻ; widoczne po K103 na `task-581` /
-  `task-579` i w plikach `game/assets/`.
+- ~~K104: residualny Kenney na pergaminie (keep/outpost, dekoracje, recolor
+  sylwetek, cue PŻ)~~ — **wykonane** (`task-585-*`).
+- **Teraz K105:** kształt figur armii/stron w rodzinie isometrii mapy (nie
+  top-down RTS po recolorze K104) + kompozycja pustego chrome (panel wyboru,
+  klaster bitwy); potem jawna ludzka akceptacja progu wizualnego.
 - ~~Zapis/odczyt z UI: jawne „Zapisz”/„Wczytaj”~~ — rozplanowane jako K86.
 - ~~Prawdziwe assety i tekstury zamiast `ColorRect`~~ — rozplanowane jako K87.
-- Assety pozostałych elementów sceny — K87–K103 dały nośnik, mapę, bitwę,
-  hierarchię, PL/teatr, herby, plakietki, sterowanie i stonowane podłoże;
-  K104 spina residualną treść Kenney (osady/dekoracje/sylwetki) z
-  pergaminem, zanim próg wizualny będzie mógł dostać ludzką akceptację.
+- Assety pozostałych elementów sceny — K87–K104 dały nośnik, mapę, bitwę,
+  hierarchię, PL/teatr, herby, plakietki, sterowanie, stonowane podłoże i ton
+  pergaminu; K105 domyka **rodzinę kształtów** figur i residualną pustkę
+  chrome, zanim próg wizualny będzie mógł dostać ludzką akceptację.
 - **Mechaniczny teren regionu na mapie strategicznej — ODŁOŻONY DO PROGU
   WIZUALNEGO.** `tbb.world.Region` ma dziś tylko
   `name`, więc `snapshot.map_state` nie ma czego wystawić i kafel mapy w K87
