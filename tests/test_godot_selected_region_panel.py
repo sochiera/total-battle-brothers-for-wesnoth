@@ -18,6 +18,8 @@ TITLE = "Wybrany region"
 EMPTY_STATE = "Nie wybrano regionu"
 PANEL_BACKGROUND = "selected_region_panel.png"
 PANEL_BACKGROUND_RES = f"res://assets/{PANEL_BACKGROUND}"
+EMPTY_ORNAMENT = "selected_region_empty_ornament.png"
+EMPTY_ORNAMENT_RES = f"res://assets/{EMPTY_ORNAMENT}"
 
 # Owner / side tokens the panel must use (readable Polish, not bridge ids alone).
 OWNER_PLAYER_RE = re.compile(r"gracz|własn", re.IGNORECASE)
@@ -273,4 +275,41 @@ def test_selected_region_panel_uses_credited_textured_frame():
     assert empty_step.get("background_path") == PANEL_BACKGROUND_RES, (
         "SelectedRegionPanel must resolve a StyleBoxTexture backed by "
         f"{PANEL_BACKGROUND_RES}, got {empty_step!r}"
+    )
+
+
+def test_empty_selected_region_panel_has_credited_visual_content():
+    """G105.1d: empty selection is more than text on a parchment plate.
+
+    Realistic defect existing gates miss: the panel can keep its textured
+    frame and correct Polish message while its body remains visually empty.
+    """
+    payload = _load_panel()
+    empty_step = payload.get("empty_before") or {}
+    visual_paths = [
+        str(path)
+        for path in empty_step.get("visible_visual_paths") or []
+        if str(path).startswith("res://assets/")
+    ]
+    assert EMPTY_ORNAMENT_RES in visual_paths, (
+        "empty SelectedRegionPanel must render its visible credited ornament "
+        f"inside the parchment carrier, got {empty_step!r}"
+    )
+    assets_dir = GAME / "assets"
+    for resource_path in visual_paths:
+        asset_name = Path(resource_path).name
+        assert (assets_dir / asset_name).is_file(), resource_path
+        assert_asset_credited(
+            assets_dir / "CREDITS.md",
+            asset_name,
+            source_re=re.compile(r"https?://\S+|PNG/"),
+        )
+
+    selected_step = payload.get("after_player") or {}
+    selected_visual_paths = [
+        str(path) for path in selected_step.get("visible_visual_paths") or []
+    ]
+    assert EMPTY_ORNAMENT_RES not in selected_visual_paths, (
+        "empty-state ornament must be hidden after selecting a region, "
+        f"got {selected_step!r}"
     )

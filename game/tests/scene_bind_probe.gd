@@ -102,6 +102,7 @@ func _init() -> void:
 		"region_names": region_names,
 		"status_card_labels": _visible_label_records(status_card),
 		"status_card_separators": _visible_separator_count(status_card),
+		"status_card_divided_row_pairs": _divided_status_row_pairs(status_card),
 	}))
 	call_deferred("quit", 0)
 
@@ -138,6 +139,36 @@ func _visible_separator_count(node: Node) -> int:
 	for child: Node in node.get_children():
 		count += _visible_separator_count(child)
 	return count
+
+
+func _divided_status_row_pairs(status_card: Node) -> Array[String]:
+	# Report only separators whose immediate visible siblings are recognized
+	# status rows. This prevents unrelated group dividers from satisfying the
+	# row-density contract.
+	var divided_pairs: Array[String] = []
+	if status_card == null:
+		return divided_pairs
+	var children := status_card.get_children()
+	for index: int in range(1, children.size() - 1):
+		var separator: Node = children[index]
+		if not (separator is HSeparator) or not (separator as CanvasItem).visible:
+			continue
+		var before := _status_row_key(children[index - 1])
+		var after := _status_row_key(children[index + 1])
+		if not before.is_empty() and not after.is_empty():
+			divided_pairs.append("%s|%s" % [before, after])
+	return divided_pairs
+
+
+func _status_row_key(row: Node) -> String:
+	if not (row is CanvasItem) or not (row as CanvasItem).visible:
+		return ""
+	for child: Node in row.get_children():
+		if child is Label and (child as Label).visible:
+			var text := (child as Label).text.strip_edges().trim_suffix(":")
+			if text in ["Morale", "Osady", "Oddziały"]:
+				return text
+	return ""
 
 
 func _fail(message: String) -> void:

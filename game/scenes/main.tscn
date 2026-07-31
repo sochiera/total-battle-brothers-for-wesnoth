@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3]
+[gd_scene load_steps=19 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/map_view.gd" id="2_map_view"]
@@ -9,6 +9,7 @@
 [ext_resource type="Texture2D" path="res://assets/battle_result_banner.png" id="16_battle_result_banner"]
 [ext_resource type="Texture2D" path="res://assets/order_status_banner.png" id="17_order_status_banner"]
 [ext_resource type="Texture2D" path="res://assets/order_bar_background.png" id="15_order_bar_background"]
+[ext_resource type="Texture2D" path="res://assets/selected_region_empty_ornament.png" id="18_selected_region_empty_ornament"]
 [ext_resource type="Texture2D" path="res://assets/icon_next_turn.png" id="5_next_turn_icon"]
 [ext_resource type="Texture2D" path="res://assets/icon_develop.png" id="6_develop_icon"]
 [ext_resource type="Texture2D" path="res://assets/icon_recruit.png" id="7_recruit_icon"]
@@ -174,6 +175,11 @@ theme_override_colors/font_shadow_color = Color(0.95, 0.88, 0.72, 0.45)
 theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
 
+[node name="StatusMoraleSettlementsSeparator" type="HSeparator" parent="MainLayout/ContentRow/StatusControls/StatusCardContent"]
+layout_mode = 2
+theme_override_constants/separation = 2
+modulate = Color(0.42, 0.28, 0.14, 0.4)
+
 [node name="SettlementsRow" type="HBoxContainer" parent="MainLayout/ContentRow/StatusControls/StatusCardContent"]
 layout_mode = 2
 theme_override_constants/separation = 8
@@ -197,6 +203,11 @@ theme_override_colors/font_color = Color(0.18, 0.11, 0.06, 1)
 theme_override_colors/font_shadow_color = Color(0.95, 0.88, 0.72, 0.45)
 theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
+
+[node name="StatusSettlementsPartiesSeparator" type="HSeparator" parent="MainLayout/ContentRow/StatusControls/StatusCardContent"]
+layout_mode = 2
+theme_override_constants/separation = 2
+modulate = Color(0.42, 0.28, 0.14, 0.4)
 
 [node name="PartiesRow" type="HBoxContainer" parent="MainLayout/ContentRow/StatusControls/StatusCardContent"]
 layout_mode = 2
@@ -332,6 +343,16 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.22, 0.12, 0.06, 1)
 theme_override_font_sizes/font_size = 16
 text = "Wybrany region"
+
+[node name="SelectedRegionEmptyOrnament" type="TextureRect" parent="MainLayout/ContentRow/StatusControls/StatusCardContent/SelectedRegionPanel/SelectedRegionContent"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+size_flags_horizontal = 3
+texture = ExtResource("18_selected_region_empty_ornament")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
 
 [node name="SelectedRegionEmptyLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent/SelectedRegionPanel/SelectedRegionContent"]
 unique_name_in_owner = true

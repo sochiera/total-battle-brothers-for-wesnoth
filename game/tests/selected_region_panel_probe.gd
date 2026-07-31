@@ -247,6 +247,7 @@ func _panel_snapshot(scene_root: Node) -> Dictionary:
 			"label_texts": _label_texts(panel),
 			"visible": panel is CanvasItem and (panel as CanvasItem).is_visible_in_tree(),
 			"background_path": background_path,
+			"visible_visual_paths": _visible_visual_paths(panel),
 		}
 
 	var titled: Label = _find_label_containing(scene_root, "Wybrany region")
@@ -259,6 +260,26 @@ func _panel_snapshot(scene_root: Node) -> Dictionary:
 		}
 
 	return {"found": false, "carrier": "", "text": "", "visible": false}
+
+
+func _visible_visual_paths(root_node: Node) -> Array[String]:
+	# Any visible textured descendant counts, regardless of its node name or
+	# exact scene structure.
+	var paths: Array[String] = []
+	var stack: Array[Node] = [root_node]
+	while not stack.is_empty():
+		var node: Node = stack.pop_back()
+		for child: Node in node.get_children():
+			stack.append(child)
+		if not node is TextureRect:
+			continue
+		var visual := node as TextureRect
+		if not visual.is_visible_in_tree() or visual.texture == null:
+			continue
+		var path := str(visual.texture.resource_path)
+		if not path.is_empty():
+			paths.append(path)
+	return paths
 
 
 func _join_label_texts(root: Node) -> String:

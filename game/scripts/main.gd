@@ -22,6 +22,8 @@ const WINDOW_BACKGROUND_RES := "res://assets/strategic_map_background.png"
 # G102.1c: textured frame for the selection readout (not StyleBoxFlat).
 const SELECTED_REGION_PANEL_NODE := "SelectedRegionPanel"
 const SELECTED_REGION_PANEL_RES := "res://assets/selected_region_panel.png"
+# G105.1d: empty-state ornament inside the parchment carrier (not text alone).
+const SELECTED_REGION_EMPTY_ORNAMENT_RES := "res://assets/selected_region_empty_ornament.png"
 # G103.1a: parchment plate for order-bar buttons (not residual StyleBoxFlat).
 const ORDER_BUTTON_PANEL_RES := "res://assets/order_button_panel.png"
 const ORDER_BUTTON_MODULATE_NORMAL := Color(0.96, 0.88, 0.72, 1.0)
@@ -88,6 +90,20 @@ func _ensure_selected_region_panel_frame() -> void:
 	panel.add_theme_stylebox_override(
 		"panel", _make_selected_region_panel_style(texture)
 	)
+	_ensure_selected_region_empty_ornament()
+
+
+func _ensure_selected_region_empty_ornament() -> void:
+	## Keep empty-state TextureRect wired to the credited ornament asset so a
+	## missing scene texture cannot leave a pure text plate (G105.1d).
+	var ornament := get_node_or_null("%SelectedRegionEmptyOrnament") as TextureRect
+	if ornament == null:
+		return
+	if ornament.texture == null:
+		ornament.texture = load(SELECTED_REGION_EMPTY_ORNAMENT_RES) as Texture2D
+	ornament.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ornament.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	ornament.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
 func _make_selected_region_panel_style(texture: Texture2D) -> StyleBoxTexture:
@@ -344,9 +360,10 @@ func _sync_order_status_ribbon_visible(show_ribbon: bool) -> void:
 
 func apply_model(model: SnapshotModel) -> void:
 	_current_regions = model.regions
-	# Status card hierarchy (G101.1c): label+value rows with separators, not a
-	# text wall. Visible ResultLabel / PlayerPartyPositionLabel hold value cells
-	# only; ResultContractLabel / PartyPositionContractLabel / PlayerDuchyStatusLabel
+	# Status card hierarchy (G101.1c + G105.1d): label+value rows with major-group
+	# and dense duchy-row HSeparators, not a text wall or bare metric triple.
+	# Visible ResultLabel / PlayerPartyPositionLabel hold value cells only;
+	# ResultContractLabel / PartyPositionContractLabel / PlayerDuchyStatusLabel
 	# keep historical full probe strings as hidden mirrors.
 	_apply_status_card(model)
 	_update_selected_region_panel(model.regions)
@@ -457,20 +474,26 @@ func _update_selected_region_panel(regions: Array) -> void:
 		%SelectedRegionArmyLabel,
 	]
 	var details_mirror: Label = %SelectedRegionDetailsLabel
-	var empty_label: Label = %SelectedRegionEmptyLabel
 
 	if selected_region.is_empty():
-		empty_label.text = SELECTED_REGION_EMPTY_PL
-		empty_label.visible = true
+		_set_selected_region_empty_visuals(true)
 		_set_selected_region_detail_rows(detail_rows, [])
 		details_mirror.text = SELECTED_REGION_EMPTY_PL
 		return
 
 	var row_texts: Array[String] = _selected_region_detail_row_texts(selected_region)
-	empty_label.text = ""
-	empty_label.visible = false
+	_set_selected_region_empty_visuals(false)
 	_set_selected_region_detail_rows(detail_rows, row_texts)
 	details_mirror.text = "\n".join(row_texts)
+
+
+func _set_selected_region_empty_visuals(is_empty: bool) -> void:
+	## Empty state: Polish message + credited ornament; selected state hides both.
+	var empty_label: Label = %SelectedRegionEmptyLabel
+	var empty_ornament: TextureRect = %SelectedRegionEmptyOrnament
+	empty_label.text = SELECTED_REGION_EMPTY_PL if is_empty else ""
+	empty_label.visible = is_empty
+	empty_ornament.visible = is_empty
 
 
 func _selected_region_detail_row_texts(selected_region: Dictionary) -> Array[String]:

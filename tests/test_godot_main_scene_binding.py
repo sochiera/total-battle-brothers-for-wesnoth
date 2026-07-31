@@ -174,6 +174,23 @@ def test_status_card_uses_distinct_label_value_rows_and_separators(tmp_path):
     )
 
 
+def test_duchy_status_rows_have_dense_visual_presentation(tmp_path):
+    """G105.1d: duchy statistics have dividers between adjacent rows.
+
+    Realistic defect missed by the existing hierarchy gate: Morale, Osady and
+    Oddziały can remain the old bare label/value pairs with only two major-group
+    separators elsewhere in StatusCardContent.
+    """
+    payload = _bind_payload(tmp_path, "ongoing")
+    divided_pairs = set(payload["status_card_divided_row_pairs"])
+    expected_pairs = {"Morale|Osady", "Osady|Oddziały"}
+    assert divided_pairs == expected_pairs, (
+        "visible sibling dividers must stand directly between Morale, Osady "
+        "and Oddziały; "
+        f"got divided_row_pairs={sorted(divided_pairs)!r}"
+    )
+
+
 @pytest.mark.parametrize("token", ["victory", "defeat", "draw"])
 def test_scene_bind_probe_finished_party_is_visually_distinct_from_ongoing(
     tmp_path, token

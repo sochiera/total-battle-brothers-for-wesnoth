@@ -855,6 +855,27 @@ Asset ma wpis źródło/autor/CC0 w `game/assets/CREDITS.md` (pochodna
 Pergament.1.jpg jak karta statusu / pasek rozkazów). Hierarchia etykiet i
 polskie treści bez zmian.
 
+**SelectedRegionPanel — ornament pustego stanu (G105.1d / task-590):** przy
+braku wyboru panel nie jest samą płytą z tekstem — widoczny
+`SelectedRegionEmptyOrnament` (`TextureRect`) ładuje
+`res://assets/selected_region_empty_ornament.png` (kredyt w
+`game/assets/CREDITS.md`) nad komunikatem „Nie wybrano regionu”. Przy
+wybranym regionie ornament jest ukryty; cztery wiersze szczegółów bez
+zmiany kontraktu. `main.gd` wymusza texture ornamentu w
+`_ensure_selected_region_empty_ornament` i przełącza widoczność przez
+`_set_selected_region_empty_visuals` — bez `StyleBoxFlat` jako nośnika
+pustego stanu.
+
+**Karta statusu księstwa — gęstość wierszy (G105.1d / task-590):** wiersze
+Morale / Osady / Oddziały nie są gołymi parami etykieta–wartość w jednej
+rzadkiej grupie. Między grupami major (data/wynik ↔ duchy ↔ pozycja
+oddziału) oraz **między** trzema wierszami duchy stoją widoczne
+`HSeparator` (`StatusPrimarySeparator`, `StatusMoraleSettlementsSeparator`,
+`StatusSettlementsPartiesSeparator`, `StatusDuchySeparator`) — łącznie
+co najmniej cztery widoczne dzielniki w `StatusCardContent`, w tonie
+pergaminu (`modulate` brąz, bez residualnego `StyleBoxFlat` na wierszach).
+Publiczne dane i etykiety PL bez zmian; gęstość to warstwa chrome.
+
 **SelectedRegionPanel — przegląd wizualny (G100.1c / task-568):** żywe zrzuty
 1152×648 (nie placeholdery) regeneruje
 `game/tests/capture_selected_region_review.gd` przy realnym display (nie
