@@ -23,8 +23,8 @@ const PLAYER_COLOR := Color(0.16, 0.38, 0.78)
 const NEUTRAL_COLOR := Color(0.38, 0.38, 0.38)
 const AI_COLOR := Color(0.72, 0.18, 0.16)
 # G99.1b / G101.1a: light owner tint on ground only (parchment stays dominant).
-# Full owner identity/chroma is the textured OwnershipMark crest plus legend swatches —
-# not solid colour fills on the mark itself.
+# Full owner identity is the textured OwnershipMark crest plus matching legend
+# crests (same OWNER_MARK_* textures) — not solid colour fills on the mark.
 const OWNER_GROUND_TINT_STRENGTH := 0.38
 const OWNERSHIP_MARK_NAME := "OwnershipMark"
 const OWNERSHIP_MARK_BASE_SIZE := Vector2(9, 9)
@@ -217,7 +217,7 @@ func _add_tile(region: Dictionary, player_party_region: Variant) -> void:
 	add_child(tile)
 
 	var ground := TileTextureLayer.full_rect(_ground_texture(region), "Ground")
-	# Soft ground tint only. Owner ID/chroma: textured crest (OwnershipMark) + legend swatches.
+	# Soft ground tint only. Owner ID: textured crest + matching legend crest.
 	ground.modulate = _owner_ground_modulate(region.get("owner"))
 	tile.add_child(ground)
 
@@ -541,10 +541,11 @@ func _remove_owner_legend() -> void:
 
 
 func _owner_legend_rows() -> Array:
+	# Labels only; crest textures come from the same table as OwnershipMark.
 	return [
-		{"kind": "player", "label": "Gracz", "color": PLAYER_COLOR},
-		{"kind": "neutral", "label": "Neutralny", "color": NEUTRAL_COLOR},
-		{"kind": "ai", "label": "Wróg", "color": AI_COLOR},
+		{"kind": "player", "label": "Gracz"},
+		{"kind": "neutral", "label": "Neutralny"},
+		{"kind": "ai", "label": "Wróg"},
 	]
 
 
@@ -556,15 +557,18 @@ func _refresh_owner_legend() -> void:
 	legend.name = OWNER_LEGEND_NAME
 	legend.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# Outside tile AABBs: bottom-left of MapView with a small padding.
-	var row_h := maxf(14.0, 12.0 * _layout_scale)
-	var swatch := maxf(8.0, 8.0 * _layout_scale)
+	var row_h := maxf(16.0, 14.0 * _layout_scale)
+	var crest := maxf(12.0, 12.0 * _layout_scale)
 	var rows: Array = _owner_legend_rows()
-	var legend_w := maxf(96.0, 88.0 * _layout_scale)
-	var legend_h := row_h * float(rows.size()) + 4.0
+	var legend_w := maxf(108.0, 100.0 * _layout_scale)
+	var legend_h := row_h * float(rows.size()) + 6.0
 	legend.size = Vector2(legend_w, legend_h)
 	legend.position = Vector2(4.0, maxf(4.0, size.y - legend_h - 4.0))
+	# Light parchment panel (map theater), not a dark HUD slab.
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.08, 0.08, 0.10, 0.78)
+	style.bg_color = Color(0.86, 0.78, 0.62, 0.88)
+	style.border_color = Color(0.42, 0.30, 0.18, 0.85)
+	style.set_border_width_all(1)
 	style.set_corner_radius_all(3)
 	style.set_content_margin_all(3.0)
 	var panel := Panel.new()
@@ -575,28 +579,43 @@ func _refresh_owner_legend() -> void:
 	legend.add_child(panel)
 	for index in range(rows.size()):
 		var row: Dictionary = rows[index]
-		var y := 3.0 + float(index) * row_h
-		var chip := ColorRect.new()
-		chip.name = "OwnerLegendSwatch_%s" % str(row["kind"])
-		chip.color = row["color"]
-		chip.position = Vector2(6.0, y + (row_h - swatch) * 0.5)
-		chip.size = Vector2(swatch, swatch)
-		chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		chip.set_meta("owner_kind", str(row["kind"]))
-		legend.add_child(chip)
-		var label := Label.new()
-		label.name = "OwnerLegendLabel_%s" % str(row["kind"])
-		label.text = str(row["label"])
-		label.position = Vector2(6.0 + swatch + 4.0, y)
-		label.size = Vector2(legend_w - swatch - 16.0, row_h)
-		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		label.add_theme_color_override("font_color", Color(0.95, 0.93, 0.88))
-		label.add_theme_font_size_override(
-			"font_size", maxi(10, roundi(10.0 * _layout_scale))
-		)
-		legend.add_child(label)
+		var y := 4.0 + float(index) * row_h
+		_add_owner_legend_row(legend, row, y, crest, row_h, legend_w)
 	add_child(legend)
+
+
+func _add_owner_legend_row(
+	legend: Control,
+	row: Dictionary,
+	y: float,
+	crest: float,
+	row_h: float,
+	legend_w: float
+) -> void:
+	# Same crest asset as OwnershipMark on tiles (G101.1b).
+	var kind := str(row["kind"])
+	var chip := TextureRect.new()
+	chip.name = "OwnerLegendSwatch_%s" % kind
+	chip.texture = _owner_mark_texture(kind)
+	chip.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	chip.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	chip.position = Vector2(6.0, y + (row_h - crest) * 0.5)
+	chip.size = Vector2(crest, crest)
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip.set_meta("owner_kind", kind)
+	legend.add_child(chip)
+	var label := Label.new()
+	label.name = "OwnerLegendLabel_%s" % kind
+	label.text = str(row["label"])
+	label.position = Vector2(6.0 + crest + 6.0, y)
+	label.size = Vector2(legend_w - crest - 18.0, row_h)
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.add_theme_color_override("font_color", Color(0.18, 0.14, 0.10))
+	label.add_theme_font_size_override(
+		"font_size", maxi(10, roundi(10.0 * _layout_scale))
+	)
+	legend.add_child(label)
 
 
 func _is_player_party_region(region: Dictionary, player_party_region: Variant) -> bool:
@@ -769,7 +788,7 @@ func _settlement_name(settlement: Variant) -> String:
 
 
 func _owner_color(owner: Variant) -> Color:
-	# Legend swatches + soft ground tint share the same kind mapping as crests.
+	# Soft ground tint only; crest identity uses OWNER_MARK_* textures.
 	match _owner_kind(owner):
 		"player":
 			return PLAYER_COLOR

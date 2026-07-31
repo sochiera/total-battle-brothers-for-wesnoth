@@ -854,22 +854,51 @@ func _observe_ownership_presentation(
 			var labels: Array = PartyMapMark.find_all_named(
 				legend, "OwnerLegendLabel_%s" % kind
 			)
-			var swatch_color := ""
-			if swatches.size() == 1 and swatches[0] is ColorRect:
-				swatch_color = _color_key((swatches[0] as ColorRect).color)
+			var texture_path := ""
+			if (
+				swatches.size() == 1
+				and swatches[0] is TextureRect
+				and (swatches[0] as TextureRect).texture != null
+			):
+				texture_path = (swatches[0] as TextureRect).texture.resource_path
 			rows.append({
 				"kind": kind,
 				"swatch_count": swatches.size(),
-				"swatch_color": swatch_color,
+				"carrier": (
+					swatches[0].get_class()
+					if swatches.size() == 1
+					else ""
+				),
+				"texture_path": texture_path,
+				"swatch_mouse_filter": (
+					(swatches[0] as Control).mouse_filter
+					if swatches.size() == 1 and swatches[0] is Control
+					else -1
+				),
 				"label": (
 					(labels[0] as Label).text
 					if labels.size() == 1 and labels[0] is Label
 					else ""
 				),
+				"label_mouse_filter": (
+					(labels[0] as Control).mouse_filter
+					if labels.size() == 1 and labels[0] is Control
+					else -1
+				),
 			})
 		legend_payload["rows"] = rows
 		legend_payload["rect"] = _rect_payload(legend.get_global_rect())
 		legend_payload["parent_is_map_view"] = legend.get_parent() == map_view
+		legend_payload["mouse_filter"] = legend.mouse_filter
+		var panels: Array = PartyMapMark.find_all_named(legend, "OwnerLegendPanel")
+		if panels.size() == 1 and panels[0] is Panel:
+			var panel: Panel = panels[0] as Panel
+			var style: StyleBox = panel.get_theme_stylebox("panel")
+			legend_payload["panel_mouse_filter"] = panel.mouse_filter
+			if style is StyleBoxFlat:
+				var flat_style: StyleBoxFlat = style as StyleBoxFlat
+				legend_payload["panel_background"] = _color_key(flat_style.bg_color)
+				legend_payload["panel_border"] = _color_key(flat_style.border_color)
 	return {"skipped": false, "tiles": tiles, "legend": legend_payload}
 
 

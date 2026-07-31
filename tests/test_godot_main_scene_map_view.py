@@ -1358,6 +1358,16 @@ def test_map_view_uses_small_owner_marks_soft_tint_and_external_legend():
     legend = sample.get("legend") or {}
     assert legend.get("count") == 1, legend
     assert legend.get("parent_is_map_view") is True, legend
+    assert legend.get("mouse_filter") == MOUSE_FILTER_IGNORE, legend
+    assert legend.get("panel_mouse_filter") == MOUSE_FILTER_IGNORE, legend
+    panel_background = _rgba_key_components(legend.get("panel_background"))
+    panel_border = _rgba_key_components(legend.get("panel_border"))
+    assert sum(panel_background[:3]) > 1.5, (
+        f"OwnerLegend must use a light map-theater panel, got {legend!r}"
+    )
+    assert panel_border[:3] != panel_background[:3], (
+        f"OwnerLegend panel must have a visible contrasting frame, got {legend!r}"
+    )
     rows = legend.get("rows") or []
     assert [(row.get("kind"), row.get("label")) for row in rows] == [
         ("player", "Gracz"),
@@ -1365,8 +1375,20 @@ def test_map_view_uses_small_owner_marks_soft_tint_and_external_legend():
         ("ai", "Wróg"),
     ], rows
     assert all(row.get("swatch_count") == 1 for row in rows), rows
-    legend_colors = [str(row["swatch_color"]) for row in rows]
-    assert all(legend_colors) and len(set(legend_colors)) == 3, rows
+    assert all(row.get("swatch_mouse_filter") == MOUSE_FILTER_IGNORE for row in rows), rows
+    assert all(row.get("label_mouse_filter") == MOUSE_FILTER_IGNORE for row in rows), rows
+    for row in rows:
+        owner_kind = str(row["kind"])
+        assert row.get("carrier") == "TextureRect", (
+            f"legend {owner_kind!r} must show the ownership crest, not a color "
+            f"square: {row!r}"
+        )
+        assert row.get("texture_path") == (
+            f"res://{OWNER_MARK_PATHS[owner_kind]}"
+        ), (
+            f"legend {owner_kind!r} must reuse the same contracted asset as its "
+            f"tile OwnershipMark: {row!r}"
+        )
     legend_rect = legend.get("rect") or {}
     for tile in payload.get("line_tiles") or []:
         assert not _rects_overlap(legend_rect, tile), (

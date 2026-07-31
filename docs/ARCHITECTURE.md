@@ -759,9 +759,11 @@ mały `OwnershipMark` — `TextureRect` z herbem
 `owner_mark_{player,neutral,ai}.png` (mapowanie z `region.owner`: `player` /
 brak / `ai`), lewy dolny róg kafla, meta `owner_kind` ∈ {player, neutral, ai}.
 Legenda `OwnerLegend` jest dzieckiem `MapView` (nie kafla) w lewym dolnym rogu
-panelu: trzy swatche + etykiety Gracz / Neutralny / Wróg. Sondy e2e
-wyprowadzają tożsamość regionu z `RegionTile_<canonical>` /
-`RegionCanonicalId` — nie z tekstu `RegionNamePlate`.
+panelu: lekkie tło pergaminowe oraz trzy `TextureRect` z **tymi samymi**
+herbami `owner_mark_{player,neutral,ai}.png` co `OwnershipMark` na kaflach,
+plus etykiety Gracz / Neutralny / Wróg. Sondy e2e wyprowadzają tożsamość
+regionu z `RegionTile_<canonical>` / `RegionCanonicalId` — nie z tekstu
+`RegionNamePlate`.
 
 
 ## RNG / rdzeń (G67.3a)
