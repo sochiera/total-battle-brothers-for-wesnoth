@@ -10,6 +10,8 @@ by Kenney Vleugels for Kenney (https://kenney.nl), licensed under
 | battle_result_banner.png | original artwork generated for the project (parchment ribbon under battle header and Polish outcome text), game/assets/battle_result_banner.png | Total Battle Brothers contributors | CC0 1.0 Universal (CC0) |
 | order_status_banner.png | original artwork generated for the project (parchment ribbon under Polish last-order status text on the status card), game/assets/order_status_banner.png | Total Battle Brothers contributors | CC0 1.0 Universal (CC0) |
 | battle_hp_badge.png | original artwork generated for the project (parchment plate under Polish PŻ markers on battle hexes), game/assets/battle_hp_badge.png | Total Battle Brothers contributors | CC0 1.0 Universal (CC0) |
+| battle_hp_badge_attacker.png | derivative of project battle_hp_badge.png with warm copper rim baked for attacker side cue (G104.1d), game/assets/battle_hp_badge_attacker.png | Total Battle Brothers contributors | CC0 1.0 Universal (CC0) |
+| battle_hp_badge_defender.png | derivative of project battle_hp_badge.png with cool slate-blue rim baked for defender side cue (G104.1d), game/assets/battle_hp_badge_defender.png | Total Battle Brothers contributors | CC0 1.0 Universal (CC0) |
 | settlement.png | PNG/Tiles/Medieval/medieval_smallCastle.png | Kenney Vleugels | CC0 |
 | party_player.png | PNG/Objects/banner.png | Kenney Vleugels | CC0 |
 The original pack is available at:

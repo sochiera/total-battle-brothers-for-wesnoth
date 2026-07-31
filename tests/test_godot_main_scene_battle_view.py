@@ -814,20 +814,13 @@ def _label_shows_polish_hp(text: str, hp: int) -> bool:
     return re.search(rf"(?<!\d){re.escape(str(int(hp)))}(?!\d)", text) is not None
 
 
-def _border_color_key(rec: dict) -> tuple[float, float, float, float] | None:
-    """RGBA tuple from a StyleBoxFlat border, or None if the probe saw no outline."""
-    color = rec.get("border_color")
+def _has_flat_border(rec: dict) -> bool:
+    """Whether the probe observed a visible StyleBoxFlat border."""
     widths = rec.get("border_width")
-    if not isinstance(color, (list, tuple)) or len(color) < 3:
-        return None
-    if isinstance(widths, (list, tuple)) and len(widths) >= 4:
-        if max(float(w) for w in widths[:4]) <= 0:
-            return None
     return (
-        round(float(color[0]), 4),
-        round(float(color[1]), 4),
-        round(float(color[2]), 4),
-        round(float(color[3]), 4) if len(color) > 3 else 1.0,
+        isinstance(widths, (list, tuple))
+        and len(widths) >= 4
+        and max(float(width) for width in widths[:4]) > 0
     )
 
 
@@ -855,13 +848,14 @@ def _is_transparent_or_light_fill(color: object) -> bool:
 
 
 def test_battle_view_occupied_hexes_show_polish_hp_marker():
-    """G98.1c/G102.1b: occupied hexes show PŻ on a graphical badge.
+    """G98.1c/G102.1b/G104.1d: occupied hexes show PŻ on a textured side badge.
 
     Realistic defect existing gates miss: the current ``PŻ N`` Label uses an
-    almost-black StyleBoxFlat chip. Text, hp mapping, silhouette, and side-border
-    assertions all stay green although no ``battle_hp_badge`` texture sits under
-    the text. The badge may be shared with side outlines or be a side-specific
-    pair; every observed badge must retain auditable CC0/CC-BY credits.
+    attacker/defender-coloured ``StyleBoxFlat`` border. Text, hp mapping,
+    silhouette, shared parchment badge, and side-border assertions all stay
+    green although the forbidden residual flat cue remains. Each side must use
+    a distinct textured carrier; every observed badge must retain auditable
+    CC0/CC-BY credits.
     """
     payload = _load_battle_view()
     assert payload["battle_view_found"] is True, payload
@@ -889,10 +883,6 @@ def test_battle_view_occupied_hexes_show_polish_hp_marker():
         f"fixture must show both sides with PŻ, got sides={sorted(sides_occupied)}"
     )
 
-    border_by_side: dict[str, set[tuple[float, float, float, float]]] = {
-        "attacker": set(),
-        "defender": set(),
-    }
     badges_by_side: dict[str, set[str]] = {"attacker": set(), "defender": set()}
 
     for hex_row in occupied:
@@ -930,14 +920,13 @@ def test_battle_view_occupied_hexes_show_polish_hp_marker():
             "so it does not cover the badge artwork with a dark HUD chip; "
             f"matching={matching!r}"
         )
+        assert not any(_has_flat_border(rec) for rec in matching), (
+            f"hex {qr} side={side!r} PŻ marker must not retain a solid "
+            "StyleBoxFlat border as its side cue; use the textured carrier, "
+            f"matching={matching!r}"
+        )
         badges_by_side[side].update(str(layer["path"]) for layer in badge_layers)
 
-        # A shared badge may retain the existing side-colored outline; a
-        # side-specific badge pair may carry the distinction in the artwork.
-        border_keys = [_border_color_key(rec) for rec in matching]
-        for key in border_keys:
-            if key is not None:
-                border_by_side[side].add(key)
         # English terrain names still must not sit on the face (G98.1b).
         for label in labels:
             assert label not in _ENGLISH_TERRAIN_LABELS, (
@@ -952,21 +941,13 @@ def test_battle_view_occupied_hexes_show_polish_hp_marker():
             f"composition, side_paths={side_paths!r}"
         )
 
-    attacker_borders = border_by_side["attacker"]
-    defender_borders = border_by_side["defender"]
     badge_pair_distinguishes = badges_by_side["attacker"].isdisjoint(
         badges_by_side["defender"]
     )
-    border_distinguishes = (
-        bool(attacker_borders)
-        and bool(defender_borders)
-        and attacker_borders.isdisjoint(defender_borders)
-    )
-    assert badge_pair_distinguishes or border_distinguishes, (
-        "PŻ carrier must distinguish attacker vs defender through a side-specific "
-        "badge pair or visible outline; "
-        f"badges={badges_by_side!r} attacker_borders={sorted(attacker_borders)} "
-        f"defender_borders={sorted(defender_borders)}"
+    assert badge_pair_distinguishes, (
+        "PŻ carrier must distinguish attacker vs defender through side-specific "
+        "textures, not a solid StyleBoxFlat outline; "
+        f"badges={badges_by_side!r}"
     )
     for badge_path in badges_by_side["attacker"] | badges_by_side["defender"]:
         assert_asset_credited(

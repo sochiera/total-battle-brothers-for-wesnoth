@@ -34,7 +34,13 @@ const SIDE_SILHOUETTES := {
 	"attacker": SIDE_ATTACKER_TEXTURE,
 	"defender": SIDE_DEFENDER_TEXTURE,
 }
-const HP_BADGE_TEXTURE := preload("res://assets/battle_hp_badge.png")
+# G104.1d: side-specific parchment plates (not shared badge + StyleBoxFlat rim).
+const HP_BADGE_ATTACKER := preload("res://assets/battle_hp_badge_attacker.png")
+const HP_BADGE_DEFENDER := preload("res://assets/battle_hp_badge_defender.png")
+const HP_BADGE_BY_SIDE := {
+	"attacker": HP_BADGE_ATTACKER,
+	"defender": HP_BADGE_DEFENDER,
+}
 const SIDE_SILHOUETTE_MARGIN := Vector2(20, 14)
 const HP_MARKER_MARGIN := Vector2(16, 5)
 const HP_MARKER_SIZE := Vector2(88, 24)
@@ -139,25 +145,26 @@ func _add_unit_overlay(tile: Control, side: Variant, hp: Variant) -> void:
 
 
 func _add_hp_marker(tile: Control, side: Variant, hp: Variant) -> void:
-	if side != "attacker" and side != "defender":
-		return
 	if not hp is int and not hp is float:
 		return
+	var badge_tex: Texture2D = _hp_badge_texture(side)
+	if badge_tex == null:
+		return
 
-	# Shared parchment plate under PŻ text (G102.1b); side outline on the Label.
-	# Carrier rule: LabelTextureCarrier (G102.1 R102.1 / task-578) — same as
-	# MapView region name plates.
-	var badge := LabelTextureCarrier.make(HP_BADGE_TEXTURE, "HpBadge")
+	# Side-specific parchment plate under PŻ (G102.1b / G104.1d). Side cue is
+	# the texture path, not a StyleBoxFlat rim. Carrier: LabelTextureCarrier
+	# (R102.1 / task-578), same as MapView region name plates.
+	var badge := LabelTextureCarrier.make(badge_tex, "HpBadge")
 	badge.position = Vector2(
 		HP_MARKER_MARGIN.x,
 		BASE_HEX_SIZE.y - HP_MARKER_MARGIN.y - HP_MARKER_SIZE.y,
 	)
 	badge.size = HP_MARKER_SIZE
-	LabelTextureCarrier.attach_label(badge, _make_hp_marker_label(side, int(hp)))
+	LabelTextureCarrier.attach_label(badge, _make_hp_marker_label(int(hp)))
 	tile.add_child(badge)
 
 
-func _make_hp_marker_label(side: Variant, hp: int) -> Label:
+func _make_hp_marker_label(hp: int) -> Label:
 	var marker := Label.new()
 	marker.name = "HpMarker"
 	marker.text = "PŻ %d" % hp
@@ -165,29 +172,21 @@ func _make_hp_marker_label(side: Variant, hp: int) -> Label:
 	marker.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	marker.add_theme_font_size_override("font_size", 13)
 	marker.add_theme_color_override("font_color", Color(0.18, 0.12, 0.08, 1))
-	marker.add_theme_stylebox_override("normal", _hp_marker_style(side))
+	# Transparent fill only — no residual flat border as side cue (G104.1d).
+	marker.add_theme_stylebox_override("normal", _hp_marker_fill_style())
 	return marker
 
 
-func _hp_marker_style(side: Variant) -> StyleBoxFlat:
-	# Transparent fill so battle_hp_badge.png shows through; border keeps side cue.
+func _hp_marker_fill_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0, 0, 0, 0)
-	style.border_width_left = 2
-	style.border_width_top = 2
-	style.border_width_right = 2
-	style.border_width_bottom = 2
-	style.border_color = _side_marker_color(side)
-	style.set_corner_radius_all(5)
 	style.content_margin_left = 4
 	style.content_margin_right = 4
 	return style
 
 
-func _side_marker_color(side: Variant) -> Color:
-	if side == "attacker":
-		return Color(0.95, 0.34, 0.22, 1)
-	return Color(0.30, 0.66, 1.0, 1)
+func _hp_badge_texture(side: Variant) -> Texture2D:
+	return HP_BADGE_BY_SIDE.get(side)
 
 
 func _add_terrain_layers(tile: Control, terrain: Variant) -> void:

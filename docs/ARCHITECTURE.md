@@ -796,17 +796,20 @@ Data/Wynik/Morale/Osady/Oddziały/Położenie + separatory);
 `task-572-status-finished-1152x648.png` — zakończona (`victory`, wyróżniony
 wynik). Ocena hierarchii i czytelności należy do człowieka.
 
-**BattleView — plakietki PŻ (G102.1b / task-575):** na zajętych heksach
-atakującego i broniącego `battle_view.gd` układa wspólny
-`res://assets/battle_hp_badge.png` (`TextureRect` `HpBadge`) pod etykietą
-`PŻ N` przez `LabelTextureCarrier` (jak tabliczki nazw na mapie — R102.1);
-ramka etykiety rozróżnia strony (czerwona / niebieska), fill jest
-przezroczysty. Puste / unknown heksy bez plakietki. Żywy zrzut 1152×648
-regeneruje `game/tests/capture_battle_hp_badge_review.gd` przy realnym display
-(nie `--headless`):
+**BattleView — plakietki PŻ (G102.1b / task-575, G104.1d / task-586):** na
+zajętych heksach atakującego i broniącego `battle_view.gd` układa
+stronowo rozłączne nośniki `res://assets/battle_hp_badge_attacker.png` /
+`battle_hp_badge_defender.png` (`TextureRect` `HpBadge`) pod etykietą
+`PŻ N` przez `LabelTextureCarrier` (jak tabliczki nazw na mapie — R102.1).
+Cue strony to **tekstura** (ciepła miedź vs chłodny slate-blue na
+pergaminie), nie residualny border `StyleBoxFlat` na `HpMarker`; fill
+etykiety jest przezroczysty. Wspólny `battle_hp_badge.png` pozostaje w
+repozytorium jako baza/źródło pary. Puste / unknown heksy bez plakietki.
+Żywy zrzut 1152×648 regeneruje `game/tests/capture_battle_hp_badge_review.gd`
+przy realnym display (nie `--headless`):
 `task-575-battle-hp-badges-1152x648.png` — fixture obu stron z różnym `hp`
-(jak sonda BattleView). Ocena czytelności plakietek w skali heksu należy do
-człowieka; wpis `battle_hp_badge.png` w `game/assets/CREDITS.md`.
+(jak sonda BattleView). Ocena czytelności plakietek i cue strony należy do
+człowieka; atrybucja per plik w `game/assets/CREDITS.md`.
 
 **BattleView — dekoracje terenu (G104.1b / task-584):** baza heksu bitwy to
 `terrain_plains.png` (120×140). `Forest` nakłada `terrain_forest.png` (26×40),
