@@ -42,6 +42,11 @@ const REGION_NAME_PLATE_MAX_TILE_FRACTION := 0.32
 const REGION_NAME_PLATE_BAND_META := "region_name_plate_band"
 const REGION_NAME_PLATE_BAND_BOUND_META := "region_name_plate_band_bound"
 const REGION_NAME_PLATE_FONT_FLOOR := 7
+# Padding inside the parchment texture for font metrics (matches content margins).
+const REGION_NAME_PLATE_PAD := Vector2(4.0, 2.0)
+# Dark ink on parchment — readable without the old near-black HUD fill.
+const REGION_NAME_PLATE_INK := Color(0.18, 0.12, 0.08, 1.0)
+const REGION_NAME_PLATE_TEXTURE := preload("res://assets/region_name_plate.png")
 const GROUND_TEXTURES: Array[Texture2D] = [
 	preload("res://assets/map_ground_grass.png"),
 	preload("res://assets/map_ground_earth.png"),
@@ -334,24 +339,39 @@ func _add_region_identity_and_plate(tile: Control, canonical: String) -> void:
 	tile.add_child(_region_identity_label(canonical))
 
 
-func _region_name_plate(canonical: String) -> Label:
-	# Plate is the Label itself (public node name RegionNamePlate) so tile
-	# identity via parent RegionTile_* stays intact for probes that walk
-	# label→parent, while presentation text can be Polish.
+func _region_name_plate(canonical: String) -> Control:
+	# Public node RegionNamePlate is a textured parchment carrier (not a dark
+	# StyleBoxFlat Label). Presentation text is a child Label so probes can
+	# still walk plate → first Label while texture_paths reports the asset.
 	# Narrow top strip — not full-tile — so settlement, army mark, and frames
 	# stay readable in the tile body.
-	var plate := Label.new()
+	var plate := TextureRect.new()
 	plate.name = REGION_NAME_PLATE_NAME
-	plate.text = WorldPresentation.region_label(canonical)
-	plate.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	plate.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	plate.texture = REGION_NAME_PLATE_TEXTURE
+	plate.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	plate.stretch_mode = TextureRect.STRETCH_SCALE
 	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	plate.add_theme_color_override("font_color", Color.WHITE)
-	plate.add_theme_stylebox_override("normal", _region_name_plate_style())
-	var font_size := _region_label_font_size_for_text(plate.text)
-	plate.add_theme_font_size_override("font_size", font_size)
+
+	var label := Label.new()
+	label.name = "RegionNamePlateText"
+	label.text = WorldPresentation.region_label(canonical)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.add_theme_color_override("font_color", REGION_NAME_PLATE_INK)
+	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	plate.add_child(label)
 	_layout_region_name_plate(plate)
 	return plate
+
+
+func _region_name_plate_label(plate: Control) -> Label:
+	if plate == null:
+		return null
+	for child: Node in plate.get_children():
+		if child is Label:
+			return child as Label
+	return null
 
 
 func _region_name_plate_max_size() -> Vector2:
@@ -374,31 +394,26 @@ func _region_name_plate_max_size() -> Vector2:
 func _measure_region_name_plate(text: String, font_size: int) -> Vector2:
 	# Font metrics — not a detached Label.get_minimum_size() — so headless
 	# layout matches in-tree theme resolution and does not over-report height.
-	var style := _region_name_plate_style()
 	var font: Font = ThemeDB.fallback_font
 	if font == null:
 		return Vector2(8.0, 8.0)
 	var text_size := font.get_string_size(
 		text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size
 	)
-	var pad_x := (
-		style.content_margin_left
-		+ style.content_margin_right
-		+ float(style.get_border_width(SIDE_LEFT) + style.get_border_width(SIDE_RIGHT))
+	return Vector2(
+		text_size.x + REGION_NAME_PLATE_PAD.x * 2.0,
+		text_size.y + REGION_NAME_PLATE_PAD.y * 2.0,
 	)
-	var pad_y := (
-		style.content_margin_top
-		+ style.content_margin_bottom
-		+ float(style.get_border_width(SIDE_TOP) + style.get_border_width(SIDE_BOTTOM))
-	)
-	return Vector2(text_size.x + pad_x, text_size.y + pad_y)
 
 
-func _layout_region_name_plate(plate: Label) -> void:
+func _layout_region_name_plate(plate: Control) -> void:
+	var label := _region_name_plate_label(plate)
+	var text := label.text if label != null else ""
 	var max_size := _region_name_plate_max_size()
-	var font_size := _region_label_font_size_for_text(plate.text)
-	plate.add_theme_font_size_override("font_size", font_size)
-	var content := _measure_region_name_plate(plate.text, font_size)
+	var font_size := _region_label_font_size_for_text(text)
+	if label != null:
+		label.add_theme_font_size_override("font_size", font_size)
+	var content := _measure_region_name_plate(text, font_size)
 	# Always clamp both axes — including when max is 0 — so a collapsed party
 	# clearance band cannot leave the plate oversized over the mark.
 	var plate_w := minf(max_size.x, maxf(content.x, 8.0))
@@ -412,9 +427,9 @@ func _layout_region_name_plate(plate: Label) -> void:
 	var band_size := Vector2(plate_w, plate_h)
 	plate.position = band_pos
 	plate.size = band_size
-	# Label reapplies content min after font/style notifications and can grow
-	# past the party-clearance band; re-clamp on the next idle frame with the
-	# latest band (schedule again after each completed clamp).
+	# Text label uses full-rect anchors; only the plate carrier is positioned.
+	# Label can reapply content min after font notifications; re-clamp on the
+	# next idle frame with the latest band (schedule again after each clamp).
 	plate.set_meta(REGION_NAME_PLATE_BAND_META, {"pos": band_pos, "size": band_size})
 	_schedule_region_name_plate_band_clamp(plate)
 
@@ -450,19 +465,6 @@ func _region_identity_label(canonical: String) -> Label:
 	identity.visible = false
 	identity.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return identity
-
-
-func _region_name_plate_style() -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.06, 0.07, 0.10, 0.82)
-	style.border_color = Color(0.92, 0.90, 0.82, 0.55)
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(2)
-	style.content_margin_left = 2.0
-	style.content_margin_right = 2.0
-	style.content_margin_top = 1.0
-	style.content_margin_bottom = 1.0
-	return style
 
 
 func _region_label_font_size() -> int:
@@ -736,12 +738,9 @@ func _relayout_tiles() -> void:
 				var mark := layer as Control
 				mark.position = _ownership_mark_position()
 				mark.size = _ownership_mark_size()
-			elif layer.name == REGION_NAME_PLATE_NAME and layer is Label:
-				var plate := layer as Label
-				plate.add_theme_font_size_override(
-					"font_size", _region_label_font_size_for_text(plate.text)
-				)
-				_layout_region_name_plate(plate)
+			elif layer.name == REGION_NAME_PLATE_NAME and layer is Control:
+				# Font size + geometry live in _layout_region_name_plate only.
+				_layout_region_name_plate(layer as Control)
 			elif layer is Label and (layer as Label).visible:
 				(layer as Label).add_theme_font_size_override(
 					"font_size", _region_label_font_size()

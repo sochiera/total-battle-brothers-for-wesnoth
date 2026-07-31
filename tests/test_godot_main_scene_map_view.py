@@ -37,6 +37,8 @@ TARGET_FRAME_REL = "assets/map_target_frame.png"
 TARGET_FRAME_RES = f"res://{TARGET_FRAME_REL}"
 MAP_THEATER_FRAME_REL = "assets/map_theater_frame.png"
 MAP_THEATER_FRAME_RES = f"res://{MAP_THEATER_FRAME_REL}"
+REGION_NAME_PLATE_REL = "assets/region_name_plate.png"
+REGION_NAME_PLATE_RES = f"res://{REGION_NAME_PLATE_REL}"
 OWNER_MARK_PATHS = {
     "player": "assets/owner_mark_player.png",
     "neutral": "assets/owner_mark_neutral.png",
@@ -118,6 +120,7 @@ _BODY_LAYER_EXCLUDE_NAMES = frozenset(
         "AIPartyMarker",
         "MapTargetFrame",
         "OwnershipMark",
+        "RegionNamePlate",
     }
 )
 
@@ -1172,17 +1175,26 @@ REGION_PRESENTATION_PL: dict[str, str] = {
 
 
 def test_map_view_region_name_plates_use_polish_presentation_not_canonical_id():
-    """Five tiles show Polish plates; click still emits canonical region ids.
+    """Five tiles use the credited parchment; click still emits canonical ids.
 
-    Realistic defect existing gates miss: MapView paints bare Labels with the
-    English/canonical snapshot names (``player lands`` …) and has no visible
-    ``RegionNamePlate``. Geometry, selection, and party gates only require some
-    label text equal to the identity they look up — they never require the
-    public Polish presentation table, and never check that presentation can
-    diverge from the string carried by ``region_selected`` / march target.
-    A map that stays fully English with identity-as-label stays green while the
-    G99.1b player-facing contract fails.
+    Guard both G99.1b presentation/identity separation and G102.1a's visible,
+    attributed texture carrier; geometry and party-clearance have a separate
+    focused gate below.
     """
+    plate_asset = GAME / REGION_NAME_PLATE_REL
+    assert plate_asset.is_file(), f"region name-plate asset missing: {plate_asset}"
+    assert_asset_credited(
+        GAME / "assets" / "CREDITS.md",
+        plate_asset.name,
+        source_re=_CREDITS_SOURCE_RE,
+    )
+
+    imported = _import_game_assets()
+    assert imported.returncode == 0, (
+        f"godot --import failed rc={imported.returncode} "
+        f"stderr={imported.stderr!r} stdout={imported.stdout!r}"
+    )
+
     payload = _load_map_view()
     assert payload["map_view_found"] is True, payload
     assert payload["has_render_model"] is True, payload
@@ -1219,6 +1231,11 @@ def test_map_view_region_name_plates_use_polish_presentation_not_canonical_id():
         assert presentation != canonical, (
             f"presentation for {canonical!r} must not be the raw canonical id "
             f"(selection/orders keep that identity), got {presentation!r}"
+        )
+        assert entry.get("plate_texture_path") == REGION_NAME_PLATE_RES, (
+            f"region {canonical!r} public RegionNamePlate must itself use "
+            f"{REGION_NAME_PLATE_RES}, not a flat HUD style or a descendant "
+            f"texture carrier; got {entry!r}"
         )
 
     selection = payload.get("presentation_selection") or {}

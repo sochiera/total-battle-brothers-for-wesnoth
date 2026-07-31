@@ -715,17 +715,18 @@ Pełnopanelowy pergamin (`StrategicMapBackground`) zostaje tłem panelu; teatr
 to drewniana tablica kampanii pod samym pasem. Pusty model usuwa teatr.
 Źródło i CC0: `game/assets/CREDITS.md`.
 
-**MapView — nazwy regionów i własność (G99.1b):** `game/scripts/map_view.gd`
+**MapView — nazwy regionów i własność (G99.1b / G102.1a):** `game/scripts/map_view.gd`
 rysuje na każdym `RegionTile_<canonical>` widoczny węzeł `RegionNamePlate`
-(Label ze stylem tabliczki) jako **wąski pasek u góry** kafla (nie full-rect),
-żeby nie zasłaniać osady, armii ani ramki. Tekst prezentacyjny bierze z
-`WorldPresentation.region_label` (patrz niżej). Sygnał `region_selected` i
-rozkazy nadal emitują wyłącznie nazwę kanoniczną. Czcionka i wysokość
-tabliczki są ograniczane do **płytkiego paska** (ułamek wysokości kafla)
-oraz do prześwitu nad AABB markera armii (prawy dół), żeby
+(`TextureRect` z `res://assets/region_name_plate.png` oraz child `Label`
+z polską etykietą) jako **wąski pasek u góry** kafla (nie full-rect i nie
+ciemny `StyleBoxFlat`), żeby nie zasłaniać osady, armii ani ramki. Tekst
+prezentacyjny bierze z `WorldPresentation.region_label` (patrz niżej).
+Sygnał `region_selected` i rozkazy nadal emitują wyłącznie nazwę kanoniczną.
+Czcionka i wysokość tabliczki są ograniczane do **płytkiego paska** (ułamek
+wysokości kafla) oraz do prześwitu nad AABB markera armii (prawy dół), żeby
 `RegionNamePlate` nie przecinał `PlayerPartyMarker` / `AIPartyMarker` przy
 dłuższych etykietach PL. Ukryty `RegionCanonicalId` utrzymuje starsze sondy
-szukające kafla po `Label.text`.
+szukające kafla po `Label.text`. Atrybucja assetu: `game/assets/CREDITS.md`.
 
 **Prezentacyjne nazwy świata (G100.1a):** jedno źródło
 `game/scripts/world_presentation.gd` (`WorldPresentation`) mapuje kanoniczne

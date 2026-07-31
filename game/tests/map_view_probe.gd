@@ -764,6 +764,7 @@ func _observe_region_name_plates(
 			"tile_found": true,
 			"name_plate_visible": false,
 			"presentation": "",
+			"plate_texture_path": "",
 		}
 		for plate: Node in plate_nodes:
 			if not (plate is CanvasItem):
@@ -776,6 +777,11 @@ func _observe_region_name_plates(
 				presentation = plate_label.text
 			var plate_rect: Rect2 = (plate as Control).get_global_rect()
 			var tile_rect: Rect2 = tile.get_global_rect()
+			var plate_texture_path := ""
+			if plate is TextureRect:
+				var plate_texture: Texture2D = (plate as TextureRect).texture
+				if plate_texture != null:
+					plate_texture_path = plate_texture.resource_path
 			var collisions: Array[String] = []
 			# Settlement is a transparent full-tile TextureRect, so its AABB
 			# cannot represent the visible building pixels. Party markers are
@@ -794,6 +800,7 @@ func _observe_region_name_plates(
 				"rect": _rect_payload(plate_rect),
 				"tile_rect": _rect_payload(tile_rect),
 				"collisions": collisions,
+				"plate_texture_path": plate_texture_path,
 			}
 			break
 		if presentation.is_empty():
@@ -1010,10 +1017,11 @@ func _party_owner_silhouette_sample(
 	await process_frame
 	var unit_paths_by_region: Dictionary = {}
 	for region_name: String in names:
-		var label: Label = PartyMapMark.find_label_with_text(map_view, region_name)
-		if label == null:
+		# Tile identity is public RegionTile_{canonical}; presentation labels
+		# intentionally carry localized text and need not equal region_name.
+		var tile: Control = _find_region_tile(map_view, region_name)
+		if tile == null:
 			continue
-		var tile: Control = PartyMapMark.tile_control(label, map_view)
 		var unit_path: String = _party_unit_path_on_tile(tile)
 		if not unit_path.is_empty():
 			unit_paths_by_region[region_name] = unit_path
@@ -1141,10 +1149,9 @@ func _party_mark_sample(
 	# marker_has_texture while covering the whole region.
 	var marker_layers: Array = []
 	for region_name: String in names:
-		var label: Label = PartyMapMark.find_label_with_text(map_view, region_name)
-		if label == null:
+		var tile: Control = _find_region_tile(map_view, region_name)
+		if tile == null:
 			continue
-		var tile: Control = PartyMapMark.tile_control(label, map_view)
 		for layer: Variant in _collect_texture_layers(tile):
 			if (
 				layer is Dictionary
@@ -1196,7 +1203,12 @@ func _collect_tiles(map_view: Node, expected_names: Array[String]) -> Array:
 		for layer: Variant in texture_layers:
 			if not (layer is Dictionary and layer.has("path")):
 				continue
-			if str(layer.get("name", "")) in ["OwnershipMark", "PlayerPartyMarker"]:
+			if str(layer.get("name", "")) in [
+				"OwnershipMark",
+				"PlayerPartyMarker",
+				"AIPartyMarker",
+				"RegionNamePlate",
+			]:
 				continue
 			var body_path: String = str(layer["path"])
 			if (

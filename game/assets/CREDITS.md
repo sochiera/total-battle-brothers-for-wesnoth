@@ -27,6 +27,7 @@ The selection frame is original project artwork.
 |------|-------------|--------|---------|
 | map_target_frame.png | original artwork, game/assets/map_target_frame.png | Total Battle Brothers contributors | CC0 1.0 Universal (CC0) |
 | map_theater_frame.png | original artwork generated for the project (wooden campaign board under the region strip), game/assets/map_theater_frame.png | Total Battle Brothers contributors | CC0 1.0 Universal (CC0) |
+| region_name_plate.png | original artwork generated for the project (parchment name-plate under Polish region labels on map tiles), game/assets/region_name_plate.png | Total Battle Brothers contributors | CC0 1.0 Universal (CC0) |
 
 `side_attacker.png` and `side_defender.png` are instead derived from
 **Kenney RTS Pack: Medieval** by Kenney Vleugels for Kenney (https://kenney.nl),
