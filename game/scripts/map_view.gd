@@ -34,6 +34,11 @@ const OWNER_MARK_PLAYER_TEXTURE := preload("res://assets/owner_mark_player.png")
 const OWNER_MARK_NEUTRAL_TEXTURE := preload("res://assets/owner_mark_neutral.png")
 const OWNER_MARK_AI_TEXTURE := preload("res://assets/owner_mark_ai.png")
 const OWNER_LEGEND_NAME := "OwnerLegend"
+# G103.1b: parchment/wood plate for the external owner legend (not StyleBoxFlat).
+# Half-res of selected_region_panel: frame ~9–10 px sides, ~7–8 px top/bottom.
+const OWNER_LEGEND_PANEL_TEXTURE := preload("res://assets/owner_legend_panel.png")
+const OWNER_LEGEND_TEXTURE_MARGIN_LR := 10.0
+const OWNER_LEGEND_TEXTURE_MARGIN_TB := 8.0
 const REGION_NAME_PLATE_TOP_MARGIN := 2.0
 const REGION_NAME_PLATE_SIDE_MARGIN := 3.0
 # Vertical gap between the plate bottom and the party-mark top (scaled).
@@ -546,6 +551,25 @@ func _owner_legend_rows() -> Array:
 	]
 
 
+func _owner_legend_metrics(row_count: int) -> Dictionary:
+	# Frame thickness is content inset; outer size = content + bilateral insets.
+	var row_h := maxf(16.0, 14.0 * _layout_scale)
+	var crest := maxf(12.0, 12.0 * _layout_scale)
+	var inset_x := OWNER_LEGEND_TEXTURE_MARGIN_LR
+	var inset_y := OWNER_LEGEND_TEXTURE_MARGIN_TB
+	var content_w := maxf(108.0, 100.0 * _layout_scale)
+	var content_h := row_h * float(row_count)
+	return {
+		"row_h": row_h,
+		"crest": crest,
+		"inset_x": inset_x,
+		"inset_y": inset_y,
+		"content_w": content_w,
+		"legend_w": content_w + 2.0 * inset_x,
+		"legend_h": content_h + 2.0 * inset_y,
+	}
+
+
 func _refresh_owner_legend() -> void:
 	_remove_owner_legend()
 	if _rendered_regions.is_empty():
@@ -554,31 +578,46 @@ func _refresh_owner_legend() -> void:
 	legend.name = OWNER_LEGEND_NAME
 	legend.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# Outside tile AABBs: bottom-left of MapView with a small padding.
-	var row_h := maxf(16.0, 14.0 * _layout_scale)
-	var crest := maxf(12.0, 12.0 * _layout_scale)
 	var rows: Array = _owner_legend_rows()
-	var legend_w := maxf(108.0, 100.0 * _layout_scale)
-	var legend_h := row_h * float(rows.size()) + 6.0
+	var m: Dictionary = _owner_legend_metrics(rows.size())
+	var legend_w: float = m["legend_w"]
+	var legend_h: float = m["legend_h"]
+	var row_h: float = m["row_h"]
+	var crest: float = m["crest"]
+	var inset_x: float = m["inset_x"]
+	var inset_y: float = m["inset_y"]
+	var content_w: float = m["content_w"]
 	legend.size = Vector2(legend_w, legend_h)
 	legend.position = Vector2(4.0, maxf(4.0, size.y - legend_h - 4.0))
-	# Light parchment panel (map theater), not a dark HUD slab.
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.86, 0.78, 0.62, 0.88)
-	style.border_color = Color(0.42, 0.30, 0.18, 0.85)
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(3)
-	style.set_content_margin_all(3.0)
+	# Textured parchment frame (map theater), not a residual StyleBoxFlat slab.
 	var panel := Panel.new()
 	panel.name = "OwnerLegendPanel"
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	panel.add_theme_stylebox_override("panel", style)
+	panel.add_theme_stylebox_override("panel", _make_owner_legend_panel_style())
 	legend.add_child(panel)
 	for index in range(rows.size()):
 		var row: Dictionary = rows[index]
-		var y := 4.0 + float(index) * row_h
-		_add_owner_legend_row(legend, row, y, crest, row_h, legend_w)
+		var y := inset_y + float(index) * row_h
+		_add_owner_legend_row(legend, row, y, crest, row_h, content_w, inset_x)
 	add_child(legend)
+
+
+func _make_owner_legend_panel_style() -> StyleBoxTexture:
+	## Canonical StyleBoxTexture for OwnerLegendPanel (G103.1b).
+	## Continuous parchment plate with wood frame; 9-slice margins track the
+	## real frame thickness so the stretchable center stays parchment (no dark band).
+	## content_margin_* are unused: panel and crest/label siblings are not
+	## container children of the StyleBox, so layout is driven by inset_x/y above.
+	var style := StyleBoxTexture.new()
+	style.texture = OWNER_LEGEND_PANEL_TEXTURE
+	style.texture_margin_left = OWNER_LEGEND_TEXTURE_MARGIN_LR
+	style.texture_margin_top = OWNER_LEGEND_TEXTURE_MARGIN_TB
+	style.texture_margin_right = OWNER_LEGEND_TEXTURE_MARGIN_LR
+	style.texture_margin_bottom = OWNER_LEGEND_TEXTURE_MARGIN_TB
+	style.axis_stretch_horizontal = StyleBoxTexture.AXIS_STRETCH_MODE_STRETCH
+	style.axis_stretch_vertical = StyleBoxTexture.AXIS_STRETCH_MODE_STRETCH
+	return style
 
 
 func _add_owner_legend_row(
@@ -587,7 +626,8 @@ func _add_owner_legend_row(
 	y: float,
 	crest: float,
 	row_h: float,
-	legend_w: float
+	content_w: float,
+	inset_x: float
 ) -> void:
 	# Same crest asset as OwnershipMark on tiles (G101.1b).
 	var kind := str(row["kind"])
@@ -596,7 +636,7 @@ func _add_owner_legend_row(
 	chip.texture = _owner_mark_texture(kind)
 	chip.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	chip.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	chip.position = Vector2(6.0, y + (row_h - crest) * 0.5)
+	chip.position = Vector2(inset_x + 6.0, y + (row_h - crest) * 0.5)
 	chip.size = Vector2(crest, crest)
 	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	chip.set_meta("owner_kind", kind)
@@ -604,8 +644,8 @@ func _add_owner_legend_row(
 	var label := Label.new()
 	label.name = "OwnerLegendLabel_%s" % kind
 	label.text = str(row["label"])
-	label.position = Vector2(6.0 + crest + 6.0, y)
-	label.size = Vector2(legend_w - crest - 18.0, row_h)
+	label.position = Vector2(inset_x + 6.0 + crest + 6.0, y)
+	label.size = Vector2(content_w - crest - 18.0, row_h)
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.add_theme_color_override("font_color", Color(0.18, 0.14, 0.10))

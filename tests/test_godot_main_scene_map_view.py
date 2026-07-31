@@ -44,6 +44,8 @@ OWNER_MARK_PATHS = {
     "neutral": "assets/owner_mark_neutral.png",
     "ai": "assets/owner_mark_ai.png",
 }
+OWNER_LEGEND_PANEL_REL = "assets/owner_legend_panel.png"
+OWNER_LEGEND_PANEL_RES = f"res://{OWNER_LEGEND_PANEL_REL}"
 # Godot Control.CursorShape.CURSOR_POINTING_HAND — clickability cue on tiles.
 CURSOR_POINTING_HAND = 2
 _CREDITS_ROW_RE = re.compile(
@@ -1302,6 +1304,37 @@ def test_map_view_uses_small_owner_marks_soft_tint_and_external_legend():
         "player, neutral, and ai owner marks must have distinct alpha silhouettes, "
         "not recolors of one decorative shape"
     )
+    legend_panel_path = GAME / OWNER_LEGEND_PANEL_REL
+    assert legend_panel_path.is_file(), (
+        f"OwnerLegend textured frame is missing: {legend_panel_path}"
+    )
+    panel_width, panel_height, panel_rgba = png_rgba8(legend_panel_path)
+    # These are the public 9-slice margins used by OwnerLegendPanel.  The
+    # stretchable center must remain parchment; otherwise a dark source band
+    # expands across the compact 108x54 legend even though the PNG is valid.
+    dark_center_rows = 0
+    center_row_count = panel_height - 20
+    for y in range(10, panel_height - 10):
+        opaque_lumas = []
+        for x in range(12, panel_width - 12):
+            offset = (y * panel_width + x) * 4
+            red, green, blue, alpha = panel_rgba[offset : offset + 4]
+            if alpha >= 192:
+                opaque_lumas.append(
+                    (299 * red + 587 * green + 114 * blue) / 1000
+                )
+        if opaque_lumas and sum(opaque_lumas) / len(opaque_lumas) < 30:
+            dark_center_rows += 1
+    assert dark_center_rows / center_row_count <= 0.05, (
+        "OwnerLegend 9-slice center must be continuous parchment, not contain "
+        f"a near-black stretch band ({dark_center_rows}/{center_row_count} "
+        "dark rows)"
+    )
+    assert_asset_credited(
+        GAME / "assets" / "CREDITS.md",
+        legend_panel_path.name,
+        source_re=_CREDITS_SOURCE_RE,
+    )
 
     imported = _import_game_assets()
     assert imported.returncode == 0, (
@@ -1377,13 +1410,13 @@ def test_map_view_uses_small_owner_marks_soft_tint_and_external_legend():
     assert legend.get("parent_is_map_view") is True, legend
     assert legend.get("mouse_filter") == MOUSE_FILTER_IGNORE, legend
     assert legend.get("panel_mouse_filter") == MOUSE_FILTER_IGNORE, legend
-    panel_background = _rgba_key_components(legend.get("panel_background"))
-    panel_border = _rgba_key_components(legend.get("panel_border"))
-    assert sum(panel_background[:3]) > 1.5, (
-        f"OwnerLegend must use a light map-theater panel, got {legend!r}"
+    assert legend.get("panel_style_class") == "StyleBoxTexture", (
+        "OwnerLegend must use a textured frame, not StyleBoxFlat: "
+        f"{legend!r}"
     )
-    assert panel_border[:3] != panel_background[:3], (
-        f"OwnerLegend panel must have a visible contrasting frame, got {legend!r}"
+    assert legend.get("panel_texture_path") == OWNER_LEGEND_PANEL_RES, (
+        "OwnerLegend textured frame must use the contracted asset "
+        f"owner_legend_panel.png: {legend!r}"
     )
     rows = legend.get("rows") or []
     assert [(row.get("kind"), row.get("label")) for row in rows] == [

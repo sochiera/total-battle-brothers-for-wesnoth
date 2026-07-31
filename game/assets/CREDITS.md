@@ -56,6 +56,7 @@ Creative Commons Zero 1.0 Universal (CC0).
 | order_bar_background.png | derived crop/retouch of https://commons.wikimedia.org/wiki/File:Pergament.1.jpg for order-bar panel; path game/assets/order_bar_background.png | Membeth (source); Total Battle Brothers contributors (panel derivation) | CC0 |
 | selected_region_panel.png | derived crop/retouch of https://commons.wikimedia.org/wiki/File:Pergament.1.jpg for selected-region panel frame; path game/assets/selected_region_panel.png | Membeth (source); Total Battle Brothers contributors (panel derivation) | CC0 |
 | order_button_panel.png | derived crop/retouch of https://commons.wikimedia.org/wiki/File:Pergament.1.jpg for order-bar button faces (via order_bar_background.png); path game/assets/order_button_panel.png | Membeth (source); Total Battle Brothers contributors (button plate derivation) | CC0 |
+| owner_legend_panel.png | derived crop/retouch of https://commons.wikimedia.org/wiki/File:Pergament.1.jpg for owner-legend panel frame (via selected_region_panel.png); path game/assets/owner_legend_panel.png | Membeth (source); Total Battle Brothers contributors (legend plate derivation) | CC0 |
 
 The next-turn icon is adapted from the Game-icons **hourglass** by Lorc.
 The SVG source is available at:

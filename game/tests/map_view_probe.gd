@@ -902,6 +902,14 @@ func _observe_ownership_presentation(
 			var panel: Panel = panels[0] as Panel
 			var style: StyleBox = panel.get_theme_stylebox("panel")
 			legend_payload["panel_mouse_filter"] = panel.mouse_filter
+			legend_payload["panel_style_class"] = style.get_class()
+			if style is StyleBoxTexture:
+				var texture_style: StyleBoxTexture = style as StyleBoxTexture
+				legend_payload["panel_texture_path"] = (
+					texture_style.texture.resource_path
+					if texture_style.texture != null
+					else ""
+				)
 			if style is StyleBoxFlat:
 				var flat_style: StyleBoxFlat = style as StyleBoxFlat
 				legend_payload["panel_background"] = _color_key(flat_style.bg_color)
