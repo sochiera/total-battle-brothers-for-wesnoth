@@ -364,33 +364,29 @@ def test_settlement_type_assets_use_muted_non_plastic_palette_and_per_file_credi
         )
 
 
-# Battle-side silhouettes (G87.1c-1b / task-489): public res:// paths stay, content changes.
+# Battle-side silhouettes: public res:// paths stay, shape family changes.
 SIDE_SILHOUETTE_ASSETS: tuple[str, ...] = (
     "assets/side_attacker.png",
     "assets/side_defender.png",
 )
-TERRAIN_PLAINS_ASSET = "assets/terrain_plains.png"
-# Source path inside Kenney RTS Pack: Medieval (Unit/ piechur, not Hexagon buildings).
-_SIDE_SOURCE_UNIT_RE = re.compile(
-    r"PNG/Default size/Unit/medievalUnit_\d+\.png",
-    re.IGNORECASE,
+MAP_ARMY_ASSETS: tuple[str, ...] = (
+    "assets/party_player_unit.png",
+    "assets/party_ai_unit.png",
 )
+TERRAIN_PLAINS_ASSET = "assets/terrain_plains.png"
 _CREDITS_ROW_RE = re.compile(
     r"^\|\s*(?P<file>[^|]+?)\s*\|\s*(?P<source>[^|]+?)\s*\|",
     re.MULTILINE,
 )
 
 
-def test_side_silhouettes_are_distinct_unit_sized_alpha_textures_with_rts_credits():
-    """Battle sides must be distinct human-unit silhouettes under the public paths.
+def test_side_silhouettes_match_map_army_shape_family_with_per_file_credits():
+    """Battle sides must be distinct 3/4 human units from the map-army family.
 
-    Realistic defect existing gates miss: ``side_attacker`` / ``side_defender`` still
-    load as Texture2D and appear in CREDITS with a blanket CC0 line, but remain
-    Hexagon *buildings* (castle/tower) — same footprint as a terrain tile, or even
-    the same file twice — so a later BattleView looks "textured" while both sides
-    are structures. Machine gate: Godot load + alpha + strictly smaller than
-    ``terrain_plains`` in both axes + byte-distinct files; CREDITS rows must cite
-    RTS Pack: Medieval unit paths (not Hexagon object tiles).
+    Realistic defect existing gates miss: ``side_attacker`` / ``side_defender``
+    load as distinct alpha Texture2Ds and have complete CREDITS rows, but retain
+    the residual top-down Kenney RTS 64x64 carriers while the map armies use the
+    canonical standing 48x56 isometric/three-quarter carrier.
     """
     attacker_path = GAME / SIDE_SILHOUETTE_ASSETS[0]
     defender_path = GAME / SIDE_SILHOUETTE_ASSETS[1]
@@ -401,6 +397,16 @@ def test_side_silhouettes_are_distinct_unit_sized_alpha_textures_with_rts_credit
         "side_attacker.png and side_defender.png must differ byte-wise "
         "(two sides, not one image under two names)"
     )
+    for side_rel, map_rel in zip(SIDE_SILHOUETTE_ASSETS, MAP_ARMY_ASSETS):
+        side_path = GAME / side_rel
+        map_path = GAME / map_rel
+        side_width, side_height, _side_rgba = png_rgba8(side_path)
+        map_width, map_height, _map_rgba = png_rgba8(map_path)
+        assert (side_width, side_height) == (map_width, map_height), (
+            f"{side_path.name} must use the same standing isometric/three-quarter "
+            f"carrier size as {map_path.name} ({map_width}x{map_height}), "
+            f"got {side_width}x{side_height}"
+        )
 
     imported = _import_game_assets()
     assert imported.returncode == 0, (
@@ -442,24 +448,26 @@ def test_side_silhouettes_are_distinct_unit_sized_alpha_textures_with_rts_credit
         )
 
     credits_text = (GAME / "assets" / "CREDITS.md").read_text(encoding="utf-8")
-    assert re.search(r"RTS\s*Pack\s*:\s*Medieval|Medieval\s*RTS", credits_text, re.I), (
-        "CREDITS.md must name Kenney RTS Pack: Medieval for the side unit sources"
-    )
     rows = {
         m.group("file").strip(): m.group("source").strip()
         for m in _CREDITS_ROW_RE.finditer(credits_text)
     }
+    side_sources: list[str] = []
     for rel in SIDE_SILHOUETTE_ASSETS:
         name = Path(rel).name
         source = rows.get(name)
         assert source is not None, (
             f"CREDITS.md must have a table row attributing {name}"
         )
-        assert _SIDE_SOURCE_UNIT_RE.search(source), (
-            f"CREDITS.md row for {name} must cite an RTS Medieval unit file "
-            f"(PNG/Default size/Unit/medievalUnit_NN.png), got {source!r}"
-        )
-        assert "castle_small" not in source and "medieval_tower" not in source, (
-            f"CREDITS.md row for {name} must not still point at Hexagon buildings, "
+        assert not re.search(
+            r"RTS\s*Pack|Default size/Unit/medievalUnit_", source, re.I
+        ), (
+            f"CREDITS.md row for {name} must replace the residual top-down "
+            f"Kenney RTS source with an isometric/three-quarter source, "
             f"got {source!r}"
         )
+        side_sources.append(source)
+    assert side_sources[0] != side_sources[1], (
+        "CREDITS.md must attribute distinct sources for the two byte-distinct "
+        f"battle silhouettes, both cite {side_sources[0]!r}"
+    )

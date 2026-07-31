@@ -827,10 +827,13 @@ Strony rozróżnialne **po pliku** (różne sylwetki: włócznik+kite vs
 miecznik+okrągła tarcza+peleryna), nie samym `modulate`. Mapowanie właściciela,
 snapshot i most bez zmian. Atrybucja per plik w `game/assets/CREDITS.md`.
 
-**Sylwetki stron bitwy (G104.1c / task-585; kształt G105.1b poza zakresem
-G105.1a):** para bitwy `side_attacker.png` / `side_defender.png` (BattleView,
-z `side`) pozostaje na nośnikach Kenney RTS Pack: Medieval 64×64, retuszowanych
-w stonowanej rodzinie pergaminu. Żywe zrzuty 1152×648 regeneruje
+**Sylwetki stron bitwy (G105.1b / task-588; nośniki G104.1c):** para bitwy
+`side_attacker.png` / `side_defender.png` (BattleView, z `side`) to oryginalne
+figury ludzkie w tej samej rodzinie isometrii / widoku ¾ co armie mapy
+(płótno 48×56, nie top-down RTS 64×64), stonowana paleta pergaminu (atakujący:
+slate; obrońca: oliwka). Strony rozróżnialne **po pliku** (włócznik+kite vs
+miecznik+okrągła tarcza+peleryna), nie samym `modulate`. Mapowanie `side`,
+snapshot i most bez zmian. Żywe zrzuty 1152×648 regeneruje
 `game/tests/capture_side_silhouettes_review.gd` przy realnym display:
 `task-585-map-armies-1152x648.png`, `task-585-battle-sides-1152x648.png`.
 Atrybucja per plik w `game/assets/CREDITS.md`.

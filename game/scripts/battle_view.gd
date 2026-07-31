@@ -27,7 +27,8 @@ const TERRAIN_DECORATIONS := {
 	"Hills": TERRAIN_HILLS,
 }
 
-# G104.1c: public side silhouettes (distinct files; muted parchment family).
+# G105.1b: public side silhouettes — same isometric/¾ family as map armies
+# (48×56, distinct files; muted parchment; not residual top-down RTS 64×64).
 const SIDE_ATTACKER_TEXTURE := preload("res://assets/side_attacker.png")
 const SIDE_DEFENDER_TEXTURE := preload("res://assets/side_defender.png")
 const SIDE_SILHOUETTES := {

@@ -72,18 +72,17 @@ swordsman+round+cape), not a whole-sprite tint alone.
 | party_player_unit.png | original artwork generated for the project (isometric ¾ medieval spearman with kite shield, muted slate cloth for strategic map army), game/assets/party_player_unit.png | Total Battle Brothers contributors | CC0 1.0 Universal (CC0) |
 | party_ai_unit.png | original artwork generated for the project (isometric ¾ medieval swordsman with round shield and cape, muted olive cloth for strategic map army), game/assets/party_ai_unit.png | Total Battle Brothers contributors | CC0 1.0 Universal (CC0) |
 
-Battle-side unit silhouettes (G104.1c / task-585) still keep Kenney RTS
-Pack: Medieval unit shapes at native 64×64 with alpha, recolored in-tree
-to the same muted parchment family (attacker slate, defender olive).
-Map army replacement is G105.1a; battle-side shape family is G105.1b.
+Battle-side unit silhouettes (G105.1b / task-588; prior G104.1c carriers)
+are original project artwork in the same standing isometric / ¾ family as
+the strategic map armies (48×56 canvas, muted parchment palette: attacker
+slate cloth, defender olive cloth). They replace the former top-down Kenney
+Medieval RTS 64×64 carriers; shapes are byte-distinct per side (spearman+kite
+vs swordsman+round+cape), not a whole-sprite tint alone.
 
 | File | Source file | Author | License |
 |------|-------------|---------|---------|
-| side_attacker.png | Kenney RTS Pack: Medieval PNG/Default size/Unit/medievalUnit_01.png, recolored in-tree to muted parchment slate for battle side tone; pack: kenney.nl medieval-rts, game/assets/side_attacker.png | Kenney Vleugels; recolor Total Battle Brothers contributors | CC0 1.0 Universal (CC0) |
-| side_defender.png | Kenney RTS Pack: Medieval PNG/Default size/Unit/medievalUnit_13.png, recolored in-tree to muted parchment olive for battle side tone; pack: kenney.nl medieval-rts, game/assets/side_defender.png | Kenney Vleugels; recolor Total Battle Brothers contributors | CC0 1.0 Universal (CC0) |
-
-The RTS pack (battle sides only until G105.1b) is available at:
-https://kenney.nl/media/pages/assets/medieval-rts/0863f2c62a-1677693589/kenney_medieval-rts.zip
+| side_attacker.png | original artwork generated for the project (isometric ¾ medieval spearman with kite shield, muted slate cloth for battle attacker side), game/assets/side_attacker.png | Total Battle Brothers contributors | CC0 1.0 Universal (CC0) |
+| side_defender.png | original artwork generated for the project (isometric ¾ medieval swordsman with round shield and cape, muted olive cloth for battle defender side), game/assets/side_defender.png | Total Battle Brothers contributors | CC0 1.0 Universal (CC0) |
 
 The strategic map background is derived from **Pergament.1.jpg** by Membeth
 (https://commons.wikimedia.org/wiki/File:Pergament.1.jpg), licensed under
