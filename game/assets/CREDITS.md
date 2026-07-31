@@ -13,11 +13,19 @@ by Kenney Vleugels for Kenney (https://kenney.nl), licensed under
 | order_status_banner.png | original artwork generated for the project (parchment ribbon under Polish last-order status text on the status card), game/assets/order_status_banner.png | Total Battle Brothers contributors | CC0 1.0 Universal (CC0) |
 | battle_hp_badge.png | original artwork generated for the project (parchment plate under Polish PŻ markers on battle hexes), game/assets/battle_hp_badge.png | Total Battle Brothers contributors | CC0 1.0 Universal (CC0) |
 | settlement.png | PNG/Tiles/Medieval/medieval_smallCastle.png | Kenney Vleugels | CC0 |
-| settlement_keep.png | PNG/Tiles/Medieval/medieval_largeCastle.png | Kenney Vleugels | CC0 |
-| settlement_outpost.png | PNG/Tiles/Medieval/medieval_tower.png | Kenney Vleugels | CC0 |
 | party_player.png | PNG/Objects/banner.png | Kenney Vleugels | CC0 |
 The original pack is available at:
 https://kenney.nl/media/pages/assets/hexagon-pack/433cdc69d6-1677662331/kenney_hexagon-pack.zip
+
+Strategic settlement-type icons (G104.1a / task-583) keep the Kenney Hexagon
+Pack silhouettes (120×140 canvas) but are recolored in-tree to a muted
+parchment palette so they match map_ground_* and the campaign theater —
+Kenney plastic white walls and vivid green trees are not retained.
+
+| File | Source file | Author | License |
+|------|-------------|--------|---------|
+| settlement_keep.png | Kenney Hexagon Pack PNG/Tiles/Medieval/medieval_largeCastle.png, recolored in-tree to muted parchment stone/roof/foliage for strategic map tone; pack: kenney.nl hexagon-pack, game/assets/settlement_keep.png | Kenney Vleugels; recolor Total Battle Brothers contributors | CC0 1.0 Universal (CC0) |
+| settlement_outpost.png | Kenney Hexagon Pack PNG/Tiles/Medieval/medieval_tower.png, recolored in-tree to muted parchment stone/roof/foliage for strategic map tone; pack: kenney.nl hexagon-pack, game/assets/settlement_outpost.png | Kenney Vleugels; recolor Total Battle Brothers contributors | CC0 1.0 Universal (CC0) |
 
 Decorative strategic map ground hexes (G103.1c) and the battle base hex
 (G103.1d) are original project artwork: filled 120×140 pointy-top hexes

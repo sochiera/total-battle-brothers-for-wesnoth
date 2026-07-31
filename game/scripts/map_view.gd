@@ -807,6 +807,9 @@ func _add_settlement(tile: Control, settlement: Variant) -> void:
 
 
 func _settlement_texture(settlement: Variant) -> Texture2D:
+	# Name-token map only; keep/outpost PNGs are muted parchment recolors of the
+	# public Kenney silhouettes (same res:// paths, no owner tint on the building).
+	# First match wins — outpost before keep (a name may contain both tokens).
 	var settlement_name := _settlement_name(settlement)
 	if settlement_name.contains("outpost"):
 		return SETTLEMENT_OUTPOST_TEXTURE

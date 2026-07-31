@@ -231,6 +231,68 @@ def test_map_and_battle_grounds_are_filled_muted_hex_assets():
     )
 
 
+def test_settlement_type_assets_use_muted_non_plastic_palette_and_per_file_credits():
+    """Keep/outpost must not retain Kenney green or a bright white block.
+
+    Realistic defect existing gates miss: both old Kenney buildings are distinct,
+    loadable, mapped by settlement name, transparent around the footprint, and
+    mentioned in CREDITS.md, so all path/alpha gates pass while their saturated
+    green bases and near-white walls still clash with the parchment map.
+    """
+    credits = (GAME / "assets" / "CREDITS.md").read_text(encoding="utf-8")
+    for name in ("settlement_keep.png", "settlement_outpost.png"):
+        width, height, rgba = png_rgba8(GAME / "assets" / name)
+        assert (width, height) == (120, 140), (
+            f"{name} must retain the public 120×140 settlement canvas, "
+            f"got {width}×{height}"
+        )
+        visible_pixels = [
+            tuple(rgba[offset : offset + 4])
+            for offset in range(0, len(rgba), 4)
+            if rgba[offset + 3] >= 128
+        ]
+        assert visible_pixels, f"{name} must contain a visible building"
+
+        saturated_green = [
+            pixel
+            for pixel in visible_pixels
+            if pixel[1] > pixel[0] * 1.15
+            and pixel[1] > pixel[2] * 1.15
+            and max(pixel[:3]) - min(pixel[:3]) > 35
+        ]
+        green_share = len(saturated_green) / len(visible_pixels)
+        assert green_share < 0.05, (
+            f"{name} must not retain vivid Kenney green, got "
+            f"{green_share:.1%} saturated-green visible pixels"
+        )
+
+        near_white = [
+            pixel
+            for pixel in visible_pixels
+            if min(pixel[:3]) >= 205 and max(pixel[:3]) - min(pixel[:3]) <= 35
+        ]
+        white_share = len(near_white) / len(visible_pixels)
+        assert white_share < 0.02, (
+            f"{name} must not read as a plastic white block, got "
+            f"{white_share:.1%} near-white visible pixels"
+        )
+
+        row = re.search(
+            rf"^\|\s*{re.escape(name)}\s*\|\s*([^|]+)\|\s*([^|]+)"
+            rf"\|\s*([^|]+)\|",
+            credits,
+            re.MULTILINE,
+        )
+        assert row is not None, (
+            f"CREDITS.md must have a per-file source/author/license row for {name}"
+        )
+        source, author, license_text = (value.strip() for value in row.groups())
+        assert source and author, f"{name} credit must name source and author"
+        assert LICENSE_RE.search(license_text), (
+            f"{name} credit must state CC0 or CC-BY, got {license_text!r}"
+        )
+
+
 # Battle-side silhouettes (G87.1c-1b / task-489): public res:// paths stay, content changes.
 SIDE_SILHOUETTE_ASSETS: tuple[str, ...] = (
     "assets/side_attacker.png",
