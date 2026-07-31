@@ -16,8 +16,13 @@ from pathlib import Path
 # License tokens accepted next to an attributed asset row in CREDITS.md.
 LICENSE_RE = re.compile(r"\bCC0\b|\bCC-BY\b|\bCC BY\b", re.IGNORECASE)
 
-# Default: page URL or pack-relative path (e.g. PNG/… from Kenney packs).
-_DEFAULT_SOURCE_RE = re.compile(r"https?://\S+|PNG/")
+# Default: page URL, pack-relative path, or an explicit project-original
+# source/path. Original assets use prose plus game/assets/… rather than a
+# third-party pack path.
+_DEFAULT_SOURCE_RE = re.compile(
+    r"https?://\S+|PNG/|original artwork\b|game/assets/",
+    re.IGNORECASE,
+)
 
 
 def assert_asset_credited(

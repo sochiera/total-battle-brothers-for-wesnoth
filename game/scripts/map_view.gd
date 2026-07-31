@@ -4,6 +4,7 @@ extends Control
 const SnapshotModel = preload("res://scripts/snapshot_model.gd")
 const TileTextureLayer = preload("res://scripts/tile_texture_layer.gd")
 const TARGET_FRAME_TEXTURE := preload("res://assets/map_target_frame.png")
+const MAP_THEATER_FRAME_TEXTURE := preload("res://assets/map_theater_frame.png")
 # AABB is intentionally flatter than native map_ground's pointy-top shape so
 # the rendered tiles fit the stretchable map panel. These are the base hex
 # proportions; the actual size is fitted to the current MapView rect.
@@ -56,6 +57,10 @@ const AI_PARTY_MARKER_NAME := "AIPartyMarker"
 const TARGET_FRAME_NAME := "MapTargetFrame"
 const HOVER_FRAME_NAME := "MapHoverFrame"
 const HOVER_FRAME_MODULATE := Color(0.95, 0.85, 0.35, 0.72)
+# Campaign theater under the region strip (G100.1b); not full-panel parchment.
+const MAP_THEATER_FRAME_NAME := "MapTheaterFrame"
+# Soft padding so the wood rim frames hex AABBs without covering neighbours.
+const MAP_THEATER_FRAME_PAD := Vector2(18, 16)
 # G99.1b: visible name plate on each tile; presentation text may differ from
 # the canonical region id used by region_selected / orders.
 const REGION_NAME_PLATE_NAME := "RegionNamePlate"
@@ -108,6 +113,7 @@ func render_model(model: SnapshotModel) -> void:
 				_rendered_regions.append(region)
 	_update_layout()
 	_clear_tiles()
+	_refresh_map_theater_frame()
 	for region: Dictionary in _rendered_regions:
 		_add_tile(region, _player_party_region)
 	_refresh_owner_legend()
@@ -120,6 +126,74 @@ func _clear_tiles() -> void:
 		if str(child.name).begins_with("RegionTile_"):
 			child.free()
 	_remove_owner_legend()
+
+
+func _refresh_map_theater_frame() -> void:
+	# Dedicated board under RegionTile_* only — StrategicMapBackground stays
+	# full-panel parchment; this theater tracks the fitted hex strip bounds.
+	var existing := get_node_or_null(MAP_THEATER_FRAME_NAME) as TextureRect
+	if _rendered_regions.is_empty():
+		if existing != null:
+			existing.free()
+		return
+	var frame := existing
+	if frame == null:
+		frame = TextureRect.new()
+		frame.name = MAP_THEATER_FRAME_NAME
+		frame.texture = MAP_THEATER_FRAME_TEXTURE
+		frame.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		frame.stretch_mode = TextureRect.STRETCH_SCALE
+		frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(frame)
+	else:
+		frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_place_map_theater_frame_behind_tiles(frame)
+	var theater_rect := _map_theater_frame_local_rect(_region_strip_local_rect())
+	frame.position = theater_rect.position
+	frame.size = theater_rect.size
+
+
+func _place_map_theater_frame_behind_tiles(frame: Node) -> void:
+	# After full-panel parchment, before any RegionTile_* (draw under tiles).
+	var insert_at := 0
+	if get_child_count() > 0 and str(get_child(0).name) == "StrategicMapBackground":
+		insert_at = 1
+	if frame.get_index() != insert_at:
+		move_child(frame, insert_at)
+
+
+func _region_strip_local_rect() -> Rect2:
+	# Union of fitted RegionTile_* AABBs in MapView local space.
+	var min_position := Vector2(INF, INF)
+	var max_position := Vector2(-INF, -INF)
+	for region: Dictionary in _rendered_regions:
+		var position := _grid_position(region)
+		min_position.x = minf(min_position.x, position.x)
+		min_position.y = minf(min_position.y, position.y)
+		max_position.x = maxf(max_position.x, position.x + _tile_size.x)
+		max_position.y = maxf(max_position.y, position.y + _tile_size.y)
+	return Rect2(min_position, max_position - min_position)
+
+
+func _map_theater_frame_local_rect(strip_bounds: Rect2) -> Rect2:
+	# Expand strip by MAP_THEATER_FRAME_PAD, but only into free margin inside
+	# local Rect2(Vector2.ZERO, size) so clip_contents never cuts the rim while
+	# the frame still fully covers every tile AABB.
+	var desired_pad := MAP_THEATER_FRAME_PAD * _layout_scale
+	var pad_left := maxf(0.0, minf(desired_pad.x, strip_bounds.position.x))
+	var pad_top := maxf(0.0, minf(desired_pad.y, strip_bounds.position.y))
+	var pad_right := maxf(
+		0.0,
+		minf(desired_pad.x, size.x - (strip_bounds.position.x + strip_bounds.size.x))
+	)
+	var pad_bottom := maxf(
+		0.0,
+		minf(desired_pad.y, size.y - (strip_bounds.position.y + strip_bounds.size.y))
+	)
+	return Rect2(
+		strip_bounds.position - Vector2(pad_left, pad_top),
+		strip_bounds.size + Vector2(pad_left + pad_right, pad_top + pad_bottom)
+	)
 
 
 func _add_tile(region: Dictionary, player_party_region: Variant) -> void:
@@ -636,7 +710,8 @@ func _relayout_tiles() -> void:
 				(layer as Label).add_theme_font_size_override(
 					"font_size", _region_label_font_size()
 				)
-	# Legend sits on MapView (not under RegionTile_*); rebuild after tile layout.
+	# Theater + legend follow the fitted strip after panel resize.
+	_refresh_map_theater_frame()
 	if not _rendered_regions.is_empty():
 		_refresh_owner_legend()
 

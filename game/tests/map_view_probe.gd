@@ -10,6 +10,7 @@ const SnapshotModel = preload("res://scripts/snapshot_model.gd")
 const PartyMapMark = preload("res://tests/party_map_mark_helpers.gd")
 const MapTargetFrame = preload("res://tests/map_target_frame_helpers.gd")
 const PREFIX := "MAP_VIEW "
+const MAP_THEATER_FRAME_RES := "res://assets/map_theater_frame.png"
 
 
 func _init() -> void:
@@ -84,6 +85,9 @@ func _run() -> void:
 	await process_frame
 	var tiles_empty: Array = _collect_tiles(map_view, names_full)
 	var count_empty: int = _count_tiles(map_view)
+	var map_theater_frame_after_empty: Dictionary = _map_theater_frame_state(
+		map_view as Control, tiles_empty
+	)
 
 	var tiles_direct: Array = []
 	var count_direct: int = 0
@@ -285,6 +289,9 @@ func _run() -> void:
 			map_view, names_line
 		)
 	var map_rect: Rect2 = (map_view as Control).get_global_rect()
+	var map_theater_frame: Dictionary = _map_theater_frame_state(
+		map_view as Control, tiles_line
+	)
 
 	# G97.1d before G97.1c: hover sample needs a MapView with empty durable
 	# selection (_selected_region_name survives render_model). Selection sample
@@ -328,6 +335,8 @@ func _run() -> void:
 		"region_name_plates": region_name_plates,
 		"presentation_selection": presentation_selection,
 		"ownership_presentation": ownership_presentation,
+		"map_theater_frame": map_theater_frame,
+		"map_theater_frame_after_empty": map_theater_frame_after_empty,
 		"map_view_rect": {
 			"x": map_rect.position.x,
 			"y": map_rect.position.y,
@@ -338,6 +347,56 @@ func _run() -> void:
 		"region_hover": region_hover,
 	}))
 	quit(0)
+
+
+func _map_theater_frame_state(map_view: Control, tiles: Array) -> Dictionary:
+	var state := {
+		"path": "",
+		"rect": {},
+		"mouse_filter": -1,
+		"behind_all_tiles": false,
+		"above_strategic_background": false,
+	}
+	var stack: Array[Node] = [map_view]
+	while not stack.is_empty():
+		var node: Node = stack.pop_back()
+		for child: Node in node.get_children():
+			stack.append(child)
+		if not node is TextureRect:
+			continue
+		var texture_rect := node as TextureRect
+		if (
+			texture_rect.texture == null
+			or texture_rect.texture.resource_path != MAP_THEATER_FRAME_RES
+		):
+			continue
+		var rect := texture_rect.get_global_rect()
+		state["path"] = texture_rect.texture.resource_path
+		state["rect"] = {
+			"x": rect.position.x,
+			"y": rect.position.y,
+			"w": rect.size.x,
+			"h": rect.size.y,
+		}
+		state["mouse_filter"] = texture_rect.mouse_filter
+		var strategic_background := map_view.get_node_or_null(
+			"StrategicMapBackground"
+		)
+		state["above_strategic_background"] = (
+			strategic_background != null
+			and texture_rect.is_greater_than(strategic_background)
+		)
+		var behind_all := true
+		for tile_data: Variant in tiles:
+			if not tile_data is Dictionary:
+				continue
+			var tile := _find_region_tile(map_view, str(tile_data.get("name", "")))
+			if tile != null and texture_rect.is_greater_than(tile):
+				behind_all = false
+				break
+		state["behind_all_tiles"] = behind_all
+		break
+	return state
 
 
 func _model(regions: Array, party_region: Variant = null) -> SnapshotModel:

@@ -30,6 +30,8 @@ PARTY_BANNER_REL = "assets/party_player.png"
 # G97.1d: hover chrome reuses the same public carrier with a distinct look.
 TARGET_FRAME_REL = "assets/map_target_frame.png"
 TARGET_FRAME_RES = f"res://{TARGET_FRAME_REL}"
+MAP_THEATER_FRAME_REL = "assets/map_theater_frame.png"
+MAP_THEATER_FRAME_RES = f"res://{MAP_THEATER_FRAME_REL}"
 # Godot Control.CursorShape.CURSOR_POINTING_HAND — clickability cue on tiles.
 CURSOR_POINTING_HAND = 2
 _CREDITS_ROW_RE = re.compile(
@@ -40,7 +42,7 @@ _CREDITS_ROW_RE = re.compile(
 # (not a bare license token). Original assets use prose + game/assets/… path
 # rather than inventing a Kenney PNG/… entry.
 _CREDITS_SOURCE_RE = re.compile(
-    r"https?://\S+|PNG/|original\b|game/assets/",
+    r"https?://\S+|PNG/|original artwork\b|game/assets/",
     re.IGNORECASE,
 )
 
@@ -79,6 +81,17 @@ def _rects_overlap(a: dict, b: dict) -> bool:
     if a_bottom <= b["y"] or b_bottom <= a["y"]:
         return False
     return True
+
+
+def _rect_covers(outer: dict, inner: dict, tolerance: float = 1.0) -> bool:
+    return (
+        float(outer["x"]) <= float(inner["x"]) + tolerance
+        and float(outer["y"]) <= float(inner["y"]) + tolerance
+        and float(outer["x"]) + float(outer["w"])
+        >= float(inner["x"]) + float(inner["w"]) - tolerance
+        and float(outer["y"]) + float(outer["h"])
+        >= float(inner["y"]) + float(inner["h"]) - tolerance
+    )
 
 
 def _rgba_key_components(value: object) -> tuple[float, float, float, float]:
@@ -1003,6 +1016,72 @@ _LEGACY_TILE_WIDTH_PX = 84.0
 _MAP_WIDTH_FILL_MIN = 0.88
 # Centering slack: layout snap + small intentional padding around the union.
 _MAP_CENTER_TOL_PX = 12.0
+
+
+def test_map_view_places_credited_theater_frame_behind_five_region_strip():
+    """G100.1b: the five-region strip sits on the dedicated campaign theater.
+
+    Realistic defect existing gates miss: ``map_theater_frame.png`` can be
+    committed and loadable but never placed in MapView, leaving the tiles,
+    owner legend, and selection chrome floating on the generic full-panel
+    parchment. A frame added after RegionTile_* can instead cover their art or
+    mouse surface. Observe the public composition by texture path, coverage,
+    input behavior, and draw-tree order without requiring a fixed node name.
+    """
+    theater_path = GAME / MAP_THEATER_FRAME_REL
+    assert theater_path.is_file(), (
+        f"dedicated map theater asset missing: {theater_path}"
+    )
+    assert_asset_credited(
+        GAME / "assets" / "CREDITS.md",
+        theater_path.name,
+        source_re=_CREDITS_SOURCE_RE,
+    )
+
+    imported = _import_game_assets()
+    assert imported.returncode == 0, (
+        f"godot --import failed rc={imported.returncode} "
+        f"stderr={imported.stderr!r} stdout={imported.stdout!r}"
+    )
+    payload = _load_map_view()
+    theater = payload.get("map_theater_frame") or {}
+    assert theater.get("path") == MAP_THEATER_FRAME_RES, (
+        f"MapView must visibly use {MAP_THEATER_FRAME_RES}, got {theater!r}"
+    )
+    assert theater.get("mouse_filter") == MOUSE_FILTER_IGNORE, (
+        "map theater must ignore mouse input so hover/click reach RegionTile_*, "
+        f"got {theater!r}"
+    )
+    assert theater.get("behind_all_tiles") is True, (
+        "map theater must be earlier than every RegionTile_* in draw order, "
+        f"got {theater!r}"
+    )
+    assert theater.get("above_strategic_background") is True, (
+        "map theater must be later than StrategicMapBackground in draw order "
+        "so the full-panel parchment cannot hide it, "
+        f"got {theater!r}"
+    )
+    theater_after_empty = payload.get("map_theater_frame_after_empty") or {}
+    assert not theater_after_empty.get("path"), (
+        "rendering an empty model must remove the map theater with the tiles, "
+        f"got {theater_after_empty!r}"
+    )
+
+    frame_rect = theater.get("rect") or {}
+    map_view_rect = payload.get("map_view_rect") or {}
+    assert _rect_covers(map_view_rect, frame_rect), (
+        "map theater rim must remain inside clipped MapView bounds, "
+        f"map_view={map_view_rect!r} frame={frame_rect!r}"
+    )
+    line_tiles = payload.get("line_tiles") or []
+    assert len(line_tiles) == 5, (
+        f"probe must render the fresh-party five-region strip, got {line_tiles!r}"
+    )
+    for tile in line_tiles:
+        assert _rect_covers(frame_rect, tile), (
+            "dedicated theater must sit under the complete five-region strip "
+            f"without clipping: frame={frame_rect!r} tile={tile!r}"
+        )
 
 
 def test_map_view_five_region_map_is_enlarged_and_centered_in_panel():

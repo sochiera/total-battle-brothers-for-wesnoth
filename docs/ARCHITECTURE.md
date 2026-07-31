@@ -680,6 +680,17 @@ normal/hover/pressed na różnych przyciskach paska;
 `BattleView`. Ocena artystyczna (kontrast, grupowanie, spójność) należy do
 człowieka.
 
+**MapView — teatr pod pasem heksów (G100.1b):** `game/scripts/map_view.gd`
+po `render_model` / resize wkłada `MapTheaterFrame` (`TextureRect`,
+`res://assets/map_theater_frame.png`, `MOUSE_FILTER_IGNORE`) **pod** wszystkie
+`RegionTile_*` (indeks zaraz po `StrategicMapBackground`). Geometria to unia
+AABB pasu regionów z paddingiem `MAP_THEATER_FRAME_PAD` **przyciętym do
+wolnego marginesu** w lokalnym `Rect2(Vector2.ZERO, size)` — teatr nie
+wykracza poza `clip_contents` MapView, a nadal pokrywa cały pas kafli.
+Pełnopanelowy pergamin (`StrategicMapBackground`) zostaje tłem panelu; teatr
+to drewniana tablica kampanii pod samym pasem. Pusty model usuwa teatr.
+Źródło i CC0: `game/assets/CREDITS.md`.
+
 **MapView — nazwy regionów i własność (G99.1b):** `game/scripts/map_view.gd`
 rysuje na każdym `RegionTile_<canonical>` widoczny węzeł `RegionNamePlate`
 (Label ze stylem tabliczki) jako **wąski pasek u góry** kafla (nie full-rect),
