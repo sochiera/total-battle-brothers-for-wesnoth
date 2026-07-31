@@ -16,7 +16,9 @@ const BATTLE_RESULT_TEXTS := {
 	"draw": "Remis",
 }
 
+# Battle base fill (G103.1d): muted parchment plains hex, same family as map grounds.
 const TERRAIN_PLAINS := preload("res://assets/terrain_plains.png")
+# Overlays on the plains base (undistorted native size; not full-hex fills).
 const TERRAIN_FOREST := preload("res://assets/terrain_forest.png")
 const TERRAIN_HILLS := preload("res://assets/terrain_hills.png")
 
@@ -49,8 +51,12 @@ func _render_hexes(hexes: Array) -> void:
 			_add_tile(hex)
 			var q: int = int(hex.get("q", 0))
 			var r: int = int(hex.get("r", 0))
-			max_bottom = maxf(max_bottom, _axial_position(q, r).y + BASE_HEX_SIZE.y)
+			max_bottom = maxf(max_bottom, _hex_tile_bottom(q, r))
 	_layout_result_label(max_bottom)
+
+
+func _hex_tile_bottom(q: int, r: int) -> float:
+	return _axial_position(q, r).y + BASE_HEX_SIZE.y
 
 
 func _layout_result_label(max_hex_bottom: float) -> void:

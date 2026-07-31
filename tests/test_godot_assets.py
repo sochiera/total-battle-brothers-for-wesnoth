@@ -152,21 +152,22 @@ def test_assets_credits_documents_each_file_with_cc0_or_cc_by():
         assert name in text, f"CREDITS.md must mention asset file {name}"
 
 
-def test_decorative_map_grounds_are_distinct_filled_muted_hex_assets():
-    """Ground variants must be distinct muted fills, not old Kenney outlines.
+def test_map_and_battle_grounds_are_filled_muted_hex_assets():
+    """Map grounds and the battle base must be muted fills, not Kenney outlines.
 
     Realistic defect existing gates miss: a 120×140 PNG loads as Texture2D and
-    is credited, but remains a bright-green rim or an outline with a transparent
-    centre. Such an asset technically satisfies the path/load gate while the
-    strategic map still looks like cartoon hex clip-art (or loses its ground).
+    is credited, but terrain_plains.png remains the bright-green Kenney hex.
+    Such an asset technically satisfies the path/load and BattleView geometry
+    gates while map and battle still use visibly inconsistent ground families.
     """
     ground_names = (
         "map_ground_grass.png",
         "map_ground_earth.png",
         "map_ground_stone.png",
     )
+    visual_ground_names = ground_names + ("terrain_plains.png",)
     mean_rgb_by_name: dict[str, tuple[float, float, float]] = {}
-    for name in ground_names:
+    for name in visual_ground_names:
         width, height, rgba = png_rgba8(GAME / "assets" / name)
         assert (width, height) == (120, 140), (
             f"{name} must retain the 120×140 map-ground canvas, "
@@ -212,6 +213,22 @@ def test_decorative_map_grounds_are_distinct_filled_muted_hex_assets():
                 f"{first_name} and {second_name} must remain visibly distinct "
                 f"ground variants, got mean-RGB distance {tone_distance:.1f}"
             )
+
+    plains_mean = mean_rgb_by_name["terrain_plains.png"]
+    nearest_map_distance = min(
+        sum(
+            (plain - ground) ** 2
+            for plain, ground in zip(
+                plains_mean, mean_rgb_by_name[name], strict=True
+            )
+        )
+        ** 0.5
+        for name in ground_names
+    )
+    assert nearest_map_distance <= 20.0, (
+        "terrain_plains.png must remain in the map-ground colour family, "
+        f"got nearest mean-RGB distance {nearest_map_distance:.1f}"
+    )
 
 
 # Battle-side silhouettes (G87.1c-1b / task-489): public res:// paths stay, content changes.

@@ -6,7 +6,6 @@ by Kenney Vleugels for Kenney (https://kenney.nl), licensed under
 
 | File | Source file in Kenney Hexagon Pack | Author | License |
 |------|------------------------------------|--------|---------|
-| terrain_plains.png | PNG/Tiles/Terrain/Grass/grass_02.png | Kenney Vleugels | CC0 |
 | terrain_forest.png | PNG/Objects/treePine_large.png | Kenney Vleugels | CC0 |
 | terrain_hills.png | PNG/Objects/rockGrey_large.png | Kenney Vleugels | CC0 |
 | battle_panel_background.png | original artwork generated for the project with OpenAI image generation, game/assets/battle_panel_background.png | Total Battle Brothers contributors | CC0 1.0 Universal (CC0) |
@@ -20,17 +19,18 @@ by Kenney Vleugels for Kenney (https://kenney.nl), licensed under
 The original pack is available at:
 https://kenney.nl/media/pages/assets/hexagon-pack/433cdc69d6-1677662331/kenney_hexagon-pack.zip
 
-Decorative strategic map ground hexes (G103.1c) are original project
-artwork: filled 120×140 pointy-top hexes in a muted parchment palette
-(three visual variants). Geometry footprint matches the prior Kenney
-hex canvas so region tiles still abut; Kenney bright rims and hollow
-outline fills are not used.
+Decorative strategic map ground hexes (G103.1c) and the battle base hex
+(G103.1d) are original project artwork: filled 120×140 pointy-top hexes
+in a muted parchment palette. Geometry footprint matches the prior Kenney
+hex canvas so region tiles and battle bases still abut; Kenney bright
+rims and hollow outline fills are not used.
 
 | File | Source file | Author | License |
 |------|-------------|--------|---------|
 | map_ground_grass.png | original artwork generated for the project (muted parchment grass fill, pointy-top hex), game/assets/map_ground_grass.png | Total Battle Brothers contributors | CC0 1.0 Universal (CC0) |
 | map_ground_earth.png | original artwork generated for the project (muted parchment earth fill, pointy-top hex), game/assets/map_ground_earth.png | Total Battle Brothers contributors | CC0 1.0 Universal (CC0) |
 | map_ground_stone.png | original artwork generated for the project (muted parchment stone fill, pointy-top hex), game/assets/map_ground_stone.png | Total Battle Brothers contributors | CC0 1.0 Universal (CC0) |
+| terrain_plains.png | original artwork generated for the project (muted parchment plains fill for battle base, pointy-top hex, same family as map grounds), game/assets/terrain_plains.png | Total Battle Brothers contributors | CC0 1.0 Universal (CC0) |
 
 The selection frame is original project artwork.
 
