@@ -816,6 +816,18 @@ Kenney Hexagon Pack, ale są retuszowane w stonowanej rodzinie
 `terrain_plains` / `map_ground_*` (bez jaskrawej zieleni i chłodnego plastiku).
 Mapowanie i snapshot bez zmian; atrybucja per plik w `game/assets/CREDITS.md`.
 
+**Sylwetki armii i stron (G104.1c / task-585):** para mapy
+`party_player_unit.png` / `party_ai_unit.png` (MapView, z `region.party.owner`)
+oraz para bitwy `side_attacker.png` / `side_defender.png` (BattleView, z `side`)
+to 64×64 figura ludzka z Kenney RTS Pack: Medieval, retuszowana w stonowanej
+rodzinie pergaminu (gracz/atakujący: stonowany slate; AI/obrońca: stonowana
+oliwka; ciepłe drewno i kremowy metal — bez jaskrawego cyjanu/zieleni Kenney).
+Strony rozróżnialne **po pliku**, nie samym `modulate`. Mapowanie i snapshot
+bez zmian. Żywe zrzuty 1152×648 regeneruje
+`game/tests/capture_side_silhouettes_review.gd` przy realnym display:
+`task-585-map-armies-1152x648.png`, `task-585-battle-sides-1152x648.png`.
+Atrybucja per plik w `game/assets/CREDITS.md`.
+
 **SelectedRegionPanel — teksturowana rama (G102.1c / task-576):** panel
 używa `StyleBoxTexture` z `res://assets/selected_region_panel.png` (nie
 `StyleBoxFlat`). Kanoniczny styl buduje wyłącznie `main.gd`

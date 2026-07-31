@@ -27,8 +27,13 @@ const TERRAIN_DECORATIONS := {
 	"Hills": TERRAIN_HILLS,
 }
 
+# G104.1c: public side silhouettes (distinct files; muted parchment family).
 const SIDE_ATTACKER_TEXTURE := preload("res://assets/side_attacker.png")
 const SIDE_DEFENDER_TEXTURE := preload("res://assets/side_defender.png")
+const SIDE_SILHOUETTES := {
+	"attacker": SIDE_ATTACKER_TEXTURE,
+	"defender": SIDE_DEFENDER_TEXTURE,
+}
 const HP_BADGE_TEXTURE := preload("res://assets/battle_hp_badge.png")
 const SIDE_SILHOUETTE_MARGIN := Vector2(20, 14)
 const HP_MARKER_MARGIN := Vector2(16, 5)
@@ -228,13 +233,7 @@ func _terrain_decoration_texture(terrain: Variant) -> Texture2D:
 
 
 func _side_silhouette_texture(side: Variant) -> Texture2D:
-	match side:
-		"attacker":
-			return SIDE_ATTACKER_TEXTURE
-		"defender":
-			return SIDE_DEFENDER_TEXTURE
-		_:
-			return null
+	return SIDE_SILHOUETTES.get(side)
 
 
 func _result_text(result: Variant) -> String:

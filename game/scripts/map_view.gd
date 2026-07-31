@@ -63,8 +63,13 @@ const GROUND_TEXTURES: Array[Texture2D] = [
 const SETTLEMENT_TEXTURE := preload("res://assets/settlement.png")
 const SETTLEMENT_KEEP_TEXTURE := preload("res://assets/settlement_keep.png")
 const SETTLEMENT_OUTPOST_TEXTURE := preload("res://assets/settlement_outpost.png")
+# G104.1c: public army silhouettes by party.owner (distinct files; muted family).
 const PARTY_PLAYER_UNIT_TEXTURE := preload("res://assets/party_player_unit.png")
 const PARTY_AI_UNIT_TEXTURE := preload("res://assets/party_ai_unit.png")
+const PARTY_UNIT_TEXTURES := {
+	"player": PARTY_PLAYER_UNIT_TEXTURE,
+	"ai": PARTY_AI_UNIT_TEXTURE,
+}
 const PARTY_MARKER_SIZE := Vector2(16, 16)
 # The vertical grid pitch is shorter than a tile, so the lower-edge margin is
 # measured against the visible part of this row rather than the full AABB.
@@ -677,10 +682,18 @@ func _party_owner_for_region(region: Dictionary, player_party_region: Variant) -
 
 func _add_party_marker(tile: Control, owner: Variant) -> void:
 	var marker := TileTextureLayer.stretched(_party_texture(owner))
-	marker.name = PLAYER_PARTY_MARKER_NAME if owner == "player" else AI_PARTY_MARKER_NAME
+	marker.name = _party_marker_name(owner)
 	marker.position = _party_marker_position()
 	marker.size = _party_marker_size()
 	tile.add_child(marker)
+
+
+func _party_marker_name(owner: Variant) -> String:
+	return PLAYER_PARTY_MARKER_NAME if owner == "player" else AI_PARTY_MARKER_NAME
+
+
+func _is_party_marker_layer(layer: Node) -> bool:
+	return layer.name == PLAYER_PARTY_MARKER_NAME or layer.name == AI_PARTY_MARKER_NAME
 
 
 func _party_marker_size() -> Vector2:
@@ -698,9 +711,8 @@ func _party_marker_position() -> Vector2:
 
 
 func _party_texture(owner: Variant) -> Texture2D:
-	if owner == "ai":
-		return PARTY_AI_UNIT_TEXTURE
-	return PARTY_PLAYER_UNIT_TEXTURE
+	# Unknown owner falls back to the player silhouette (historical default).
+	return PARTY_UNIT_TEXTURES.get(owner, PARTY_PLAYER_UNIT_TEXTURE)
 
 
 func _grid_position(region: Dictionary) -> Vector2:
@@ -767,7 +779,7 @@ func _relayout_tiles() -> void:
 		tile.position = _grid_position(region)
 		tile.size = _tile_size
 		for layer: Node in tile.get_children():
-			if layer.name == PLAYER_PARTY_MARKER_NAME or layer.name == AI_PARTY_MARKER_NAME:
+			if _is_party_marker_layer(layer):
 				var marker := layer as Control
 				marker.position = _party_marker_position()
 				marker.size = _party_marker_size()
