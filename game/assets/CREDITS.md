@@ -6,9 +6,6 @@ by Kenney Vleugels for Kenney (https://kenney.nl), licensed under
 
 | File | Source file in Kenney Hexagon Pack | Author | License |
 |------|------------------------------------|--------|---------|
-| map_ground_grass.png | PNG/Tiles/Terrain/Grass/grass_01.png | Kenney Vleugels | CC0 |
-| map_ground_earth.png | PNG/Tiles/Terrain/Dirt/dirt_01.png | Kenney Vleugels | CC0 |
-| map_ground_stone.png | PNG/Tiles/Terrain/Stone/stone_01.png | Kenney Vleugels | CC0 |
 | terrain_plains.png | PNG/Tiles/Terrain/Grass/grass_02.png | Kenney Vleugels | CC0 |
 | terrain_forest.png | PNG/Objects/treePine_large.png | Kenney Vleugels | CC0 |
 | terrain_hills.png | PNG/Objects/rockGrey_large.png | Kenney Vleugels | CC0 |
@@ -22,6 +19,18 @@ by Kenney Vleugels for Kenney (https://kenney.nl), licensed under
 | party_player.png | PNG/Objects/banner.png | Kenney Vleugels | CC0 |
 The original pack is available at:
 https://kenney.nl/media/pages/assets/hexagon-pack/433cdc69d6-1677662331/kenney_hexagon-pack.zip
+
+Decorative strategic map ground hexes (G103.1c) are original project
+artwork: filled 120×140 pointy-top hexes in a muted parchment palette
+(three visual variants). Geometry footprint matches the prior Kenney
+hex canvas so region tiles still abut; Kenney bright rims and hollow
+outline fills are not used.
+
+| File | Source file | Author | License |
+|------|-------------|--------|---------|
+| map_ground_grass.png | original artwork generated for the project (muted parchment grass fill, pointy-top hex), game/assets/map_ground_grass.png | Total Battle Brothers contributors | CC0 1.0 Universal (CC0) |
+| map_ground_earth.png | original artwork generated for the project (muted parchment earth fill, pointy-top hex), game/assets/map_ground_earth.png | Total Battle Brothers contributors | CC0 1.0 Universal (CC0) |
+| map_ground_stone.png | original artwork generated for the project (muted parchment stone fill, pointy-top hex), game/assets/map_ground_stone.png | Total Battle Brothers contributors | CC0 1.0 Universal (CC0) |
 
 The selection frame is original project artwork.
 

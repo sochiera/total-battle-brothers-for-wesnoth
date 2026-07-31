@@ -53,6 +53,8 @@ const REGION_NAME_PLATE_PAD := Vector2(4.0, 2.0)
 # Dark ink on parchment — readable without the old near-black HUD fill.
 const REGION_NAME_PLATE_INK := Color(0.18, 0.12, 0.08, 1.0)
 const REGION_NAME_PLATE_TEXTURE := preload("res://assets/region_name_plate.png")
+# Decorative region fills only (G94.1b / G103.1c): 120×140 muted parchment hexes.
+# Variant index is pure presentation from col/row — not mechanical terrain.
 const GROUND_TEXTURES: Array[Texture2D] = [
 	preload("res://assets/map_ground_grass.png"),
 	preload("res://assets/map_ground_earth.png"),
@@ -787,15 +789,13 @@ func _relayout_tiles() -> void:
 
 
 func _ground_texture(region: Dictionary) -> Texture2D:
-	# Use only public coordinates for deterministic decoration: col + 2*row,
-	# wrapped by the number of variants. This keeps a horizontal fresh-party
-	# strip varied while the same col/row pair always selects the same texture.
 	return GROUND_TEXTURES[_ground_variant_index(region["col"], region["row"])]
 
 
 func _ground_variant_index(col: Variant, row: Variant) -> int:
-	var coordinate_key := int(col) + int(row) * 2
-	return posmod(coordinate_key, GROUND_TEXTURES.size())
+	# Public coordinates only: col + 2*row, wrapped by variant count. Same
+	# col/row always maps to the same texture; a horizontal strip stays varied.
+	return posmod(int(col) + int(row) * 2, GROUND_TEXTURES.size())
 
 
 func _add_settlement(tile: Control, settlement: Variant) -> void:

@@ -12,7 +12,7 @@ import re
 import subprocess
 from pathlib import Path
 
-from godot_png_assets import LICENSE_RE
+from godot_png_assets import LICENSE_RE, png_rgba8
 from godot_runner import import_game_assets, run_godot_script
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -150,6 +150,68 @@ def test_assets_credits_documents_each_file_with_cc0_or_cc_by():
     for rel in REQUIRED_ASSETS:
         name = Path(rel).name
         assert name in text, f"CREDITS.md must mention asset file {name}"
+
+
+def test_decorative_map_grounds_are_distinct_filled_muted_hex_assets():
+    """Ground variants must be distinct muted fills, not old Kenney outlines.
+
+    Realistic defect existing gates miss: a 120×140 PNG loads as Texture2D and
+    is credited, but remains a bright-green rim or an outline with a transparent
+    centre. Such an asset technically satisfies the path/load gate while the
+    strategic map still looks like cartoon hex clip-art (or loses its ground).
+    """
+    ground_names = (
+        "map_ground_grass.png",
+        "map_ground_earth.png",
+        "map_ground_stone.png",
+    )
+    mean_rgb_by_name: dict[str, tuple[float, float, float]] = {}
+    for name in ground_names:
+        width, height, rgba = png_rgba8(GAME / "assets" / name)
+        assert (width, height) == (120, 140), (
+            f"{name} must retain the 120×140 map-ground canvas, "
+            f"got {width}×{height}"
+        )
+
+        center_alpha = rgba[((height // 2) * width + width // 2) * 4 + 3]
+        assert center_alpha >= 240, (
+            f"{name} must fill the central hex ground, got alpha={center_alpha}"
+        )
+
+        visible_pixels = [
+            tuple(rgba[offset : offset + 4])
+            for offset in range(0, len(rgba), 4)
+            if rgba[offset + 3] >= 128
+        ]
+        saturated_green = [
+            pixel
+            for pixel in visible_pixels
+            if pixel[1] > pixel[0] * 1.15
+            and pixel[1] > pixel[2] * 1.15
+            and max(pixel[:3]) - min(pixel[:3]) > 35
+        ]
+        green_share = len(saturated_green) / len(visible_pixels)
+        assert green_share < 0.05, (
+            f"{name} must not retain a bright/saturated green Kenney rim, "
+            f"got {green_share:.1%} saturated-green visible pixels"
+        )
+        mean_rgb_by_name[name] = tuple(
+            sum(pixel[channel] for pixel in visible_pixels) / len(visible_pixels)
+            for channel in range(3)
+        )
+
+    for index, first_name in enumerate(ground_names):
+        for second_name in ground_names[index + 1 :]:
+            first_mean = mean_rgb_by_name[first_name]
+            second_mean = mean_rgb_by_name[second_name]
+            tone_distance = sum(
+                (first - second) ** 2
+                for first, second in zip(first_mean, second_mean, strict=True)
+            ) ** 0.5
+            assert tone_distance >= 10.0, (
+                f"{first_name} and {second_name} must remain visibly distinct "
+                f"ground variants, got mean-RGB distance {tone_distance:.1f}"
+            )
 
 
 # Battle-side silhouettes (G87.1c-1b / task-489): public res:// paths stay, content changes.
