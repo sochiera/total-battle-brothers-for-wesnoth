@@ -87,17 +87,15 @@ placeholderach, licencje są kompletne, człowiek akceptuje screenshoty, a
 - **Polska prezentacja i teatr mapy — DOMKNIĘTE** (K100): jedno mapowanie PL
   (`WorldPresentation`), rama teatru pod pasem heksów, hierarchiczna karta
   wyboru i pełnoekranowe tło bez szarego chrome; kanoniczne id bez zmian.
-- **Herby, status i baner bitwy — DOMKNIĘTE** (K101): pieczęcie zamiast
-  `ColorRect` własności, legenda spójna z herbami, hierarchiczna karta statusu
-  (etykieta/wartość, wyróżniony wynik) i `battle_result_banner.png` pod polskim
-  wynikiem bitwy; bez reguł/mostu.
+- **Herby, status, baner bitwy — DOMKNIĘTE** (K101); **tabliczki/PŻ/panel/
+  feedback — DOMKNIĘTE** (K102: plakietki + `LabelTextureCarrier`/R102.1;
+  `task-575-battle-hp-badges-1152x648`). Bez reguł/mostu.
 - `tbbui` (HTML/SVG) — **wyłącznie narzędzie diagnostyczne**, nie docelowy klient.
 
-**Najbliższa luka po K101 (`task-572-*` 1152×648 + kod):** tabliczki nazw
-regionów i znaczniki PŻ to ciemne `StyleBoxFlat` (HUD-owy chrome), panel
-wybranego regionu i goły status rozkazu — residualny flat; Kenney nadal
-przejściowe. Próg wizualny nieosiągnięty (brak ludzkiej akceptacji). K102 —
-pergaminowe tabliczki/PŻ/panel/feedback; bez reguł/mostu.
+**Najbliższa luka po K102:** przyciski rozkazów i legenda właścicieli to
+jasne `StyleBoxFlat`; Kenney daje jaskrawy obrys kafli mapy i bitwy. Próg
+wizualny nieosiągnięty (brak ludzkiej akceptacji). K103 — teksturowane
+sterowanie/legenda i spójniejsze podłoże; bez reguł/mostu.
 
 ## Ograniczenia i priorytety
 - **[W]** Rdzeń `tbb` jest **jedynym źródłem reguł gry**. Godot nie duplikuje
@@ -225,9 +223,9 @@ skróconej; pełne uzasadnienia w `docs/DECISIONS.md` i w `BACKLOG.md`.)*
 27. **K100 domknął residualny prototyp K99 bez ruszania kontraktu.** Screenshot
     ujawnił kolejną warstwę: `ColorRect` własności i tekstowy status. Kolejny
     batch to herby/status/baner, nie reguły.
-28. **K101 domknął residualne `ColorRect`/goły wynik bez reguł.** Screenshot
-    ujawnia następną warstwę: ciemne `StyleBoxFlat` tabliczek i PŻ oraz flat
-    panel/feedback. Kolejny batch to nośnik tekstur tych elementów, nie reguły.
+28. **K101→K102:** residual `ColorRect`/ciemny HUD tabliczek/PŻ/panel/
+    feedback domknięte bez reguł. Po `task-575` zostaje: jasne `StyleBoxFlat`
+    przycisków i legendy oraz kreskówkowy obrys Kenney na kaflach → K103.
 
 ## Klimat, ton, kierunek wizualny
 Średniowiecze **bez magii i fantastyki**, surowy i realistyczny ton. **[W]**
@@ -245,13 +243,11 @@ Realistyczny ton jest ważniejszy niż kreskówkowość; spójna rodzina bije zl
 ładnych pojedynczych obrazków. Obecne Kenney jest przejściowym minimum
 technicznym i może być wymieniane etapami. **[P]**
 
-Obowiązująca kolejność poprawy: (1) spójność/różnorodność kafli mapy,
-(2) osady i budynki, (3) tło/kompozycja mapy, (4) ikony rozkazów,
-(5) sylwetki i strony, (6) zaznaczenie celu/stan gry, (7) spójność obu widoków,
-(8) hierarchia pełnego ekranu strategicznego, (9) polska warstwa prezentacji
-i teatr mapy, (10) herby, hierarchia statusu i baner bitwy, (11) pergaminowe
-tabliczki nazw, znaczki PŻ, panel wyboru i feedback rozkazu (residualne
-ciemne `StyleBoxFlat` / goły status po K101).
+Obowiązująca kolejność poprawy: (1–10) ~~mapa, osady, tło, ikony, armie,
+cel, bitwa, hierarchia, PL/teatr, herby/status/baner~~ — zrobione; (11)
+~~pergaminowe tabliczki/PŻ/panel/feedback~~ — zrobione (K102); (12)
+teksturowane przyciski rozkazów i legenda (residualne jasne `StyleBoxFlat`)
+oraz spójniejsze podłoże mapy/bitwy bez jaskrawego obrysu Kenney.
 **[W]**
 
 ## Sugestie autora briefu
@@ -274,10 +270,10 @@ ciemne `StyleBoxFlat` / goły status po K101).
 1. ~~K82–K86: start, układ, widoki, save/load~~ — **zrobione**.
 2. **K87: minimum assetów** — gotowe technicznie; próg wizualny nie.
 3. ~~K88–K92: pakiet, bitwa, pętla, obrona, 5 regionów~~ — **domknięte**.
-4. ~~K94–K101: oprawa mapy/bitwy, ikony, armie, cel, hierarchia, PL/teatr,
-   herby/status/baner~~ — **zrobione**.
-5. **Tabliczki, PŻ, panel wyboru i feedback rozkazu** (K102) — residualne
-   ciemne `StyleBoxFlat` i goły status rozkazu; bez reguł/mostu.
+4. ~~K94–K102: oprawa mapy/bitwy, ikony, armie, cel, hierarchia, PL/teatr,
+   herby/status/baner, tabliczki/PŻ/panel/feedback~~ — **zrobione**.
+5. **Przyciski, legenda i podłoże** (K103) — residualne jasne `StyleBoxFlat`
+   sterowania/legendy oraz jaskrawy obrys Kenney na kaflach; bez reguł/mostu.
 6. **Nowa partia z UI po zakończonej grze** — most ma `new_game`, scena nie.
    Odłożone do końca priorytetu graficznego / progu wizualnego.
 

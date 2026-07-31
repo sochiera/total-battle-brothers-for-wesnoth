@@ -1189,55 +1189,87 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
 > **K101 — UKOŃCZONY** *(commity 2ab5a81…4efd0ca)*: herby, legenda, hierarchia
 > statusu, baner bitwy; próg wizualny nadal nieosiągnięty.
 
-## Kamień milowy 102 — tabliczki, PŻ i feedback bez ciemnego HUD — PRIORYTET
+## Kamień milowy 102 — tabliczki, PŻ i feedback bez ciemnego HUD — UKOŃCZONY
+> **UKOŃCZONE.** K102 domknął residualne ciemne `StyleBoxFlat` tabliczek nazw
+> i PŻ, flat panel wyboru oraz goły status rozkazu — bez reguł/mostu.
+> Wspólny nośnik plakietki: `LabelTextureCarrier` (R102.1). Screenshot
+> `task-575-battle-hp-badges-1152x648` potwierdza plakietki PŻ; pełny ekran
+> ujawnia następną warstwę: jasne `StyleBoxFlat` przycisków rozkazów i
+> legendy właścicieli oraz jaskrawy zielony obrys Kenney na kaflach —
+> zakres K103.
+- [x] **G102.1a [GRAFIKA] — tabliczki nazw regionów to pergaminowe plakietki,
+      nie ciemny HUD.** `region_name_plate.png` pod polskimi etykietami.
+      *(commit d1fef4f)*
+- [x] **G102.1b [GRAFIKA] — znaczniki PŻ w bitwie to plakietki, nie ciemne
+      chipy.** `battle_hp_badge.png`; screenshot
+      `task-575-battle-hp-badges-1152x648.png`. *(commit 09ef2fa)*
+- [x] **G102.1c [GRAFIKA] — panel wybranego regionu ma teksturowaną ramę,
+      nie `StyleBoxFlat`.** `selected_region_panel.png`. *(commit f504a54)*
+- [x] **G102.1d [GRAFIKA] — feedback rozkazu to wstęga, nie goły napis.**
+      `order_status_banner.png` pod `LastOrderStatusLabel`. *(commit 2f57877)*
+- [x] **R102.1 (dług techniczny)** Jedno źródło nośnika plakietki teksturowej
+      (`label_texture_carrier.gd`) + regresja tabliczek/PŻ. *(commit 1141bb4)*
+> **K102 — UKOŃCZONY** *(commity d1fef4f…1141bb4)*: pergaminowe tabliczki,
+> plakietki PŻ, rama panelu wyboru, wstęga feedbacku; próg wizualny nadal
+> nieosiągnięty.
+
+## Kamień milowy 103 — sterowanie, legenda i podłoże bez residualnego flat — PRIORYTET
 > **Najcieńszy następny plasterek: cztery zadania graficzne, zero
-> mechanicznych.** Po K101 herby i baner bitwy są assetami, ale pełny ekran
-> (`task-572-*` 1152×648 oraz `StyleBoxFlat` w `map_view.gd` /
-> `battle_view.gd` / `main.tscn`) wciąż zdradza prototyp w czterech miejscach:
-> (1) tabliczki nazw regionów to prawie czarne `StyleBoxFlat` z białym
-> tekstem, (2) znaczniki PŻ w bitwie to ciemne chipy `StyleBoxFlat`,
-> (3) panel „Wybrany region" ma `StyleBoxFlat` zamiast teksturowanej ramy
-> spójnej z kartą statusu, (4) `LastOrderStatusLabel` to goły napis bez
-> nośnika (jak wynik bitwy przed G101.1d). K102 domyka wyłącznie prezentację
-> — bez reguł, mostu, `new_game` i bez dorysowywania pustych heksów bitwy.
+> mechanicznych.** Po K102 ciemny HUD tabliczek/PŻ/panelu/feedbacku zniknął,
+> ale pełny ekran (`task-575-*` 1152×648 + kod) wciąż zdradza prototyp w
+> czterech miejscach: (1) wszystkie przyciski paska rozkazów budują
+> `StyleBoxFlat` w `_make_order_button_style` (G99.1d — jasny pergaminowy
+> flat, nie tekstura), (2) legenda właścicieli to `Panel` z `StyleBoxFlat`
+> (`map_view.gd` `_refresh_owner_legend`), (3) trzy `map_ground_*.png`
+> z Kenney Hexagon Pack mają jaskrawy zielony/obcy obrys heksu, który
+> kłóci się z pergaminowym teatrem, (4) bazowy heks bitwy
+> `terrain_plains.png` niesie ten sam kreskówkowy obrys, więc mapa i bitwa
+> nie spięły się wizualnie z oprawą UI. K103 domyka wyłącznie prezentację —
+> bez reguł, mostu, `new_game` i bez dorysowywania pustych heksów bitwy.
 > Bramka 4 graficzne / 0 mechanicznych. Review na żywym pięcioregionowym
-> świecie z kanonicznymi etykietami PL (`WorldPresentation`), nie na
-> uproszczonym trójregionowym fixture review.
-- [ ] **G102.1a [GRAFIKA] — tabliczki nazw regionów to pergaminowe plakietki,
-      nie ciemny HUD.** Zastąpić `_region_name_plate_style()` (`StyleBoxFlat`
-      `bg_color ≈ (0.06,0.07,0.10)`) konkretnym assetem
-      `region_name_plate.png` (pergamin/drewno, CC0/CC-BY) jako tło/ramę
-      `RegionNamePlate`; polskie etykiety z `WorldPresentation` i biały/jasny
-      kontrast bez powrotu do czarnego bloku. Rozmiar i pas górny kafla z
-      K99/K100 bez zmian (nie zasłaniać osady, herbu ani sylwetki). Akceptacja:
-      test layoutu tabliczek + screenshot 1152×648 świeżej partii z pięcioma
-      regionami, ludzkie review; źródło, autor, licencja i ścieżka w
-      `CREDITS.md`. *(standard; ryzyko: skalowanie PL etykiet na małym paśmie)*
-- [ ] **G102.1b [GRAFIKA] — znaczniki PŻ w bitwie to plakietki, nie ciemne
-      chipy.** Zastąpić `_hp_marker_style` (`StyleBoxFlat`) konkretnym
-      assetem `battle_hp_badge.png` (albo para attacker/defender) jako tło
-      istniejącego `HpMarker`; tekst „PŻ N" czytelny, strony rozróżnialne
-      bez kolorowania całego heksu. Brak bitwy → brak znaczników. Akceptacja:
-      fixture obu stron z różnym `hp`, screenshot 1152×648, ludzkie review
-      w małej skali; atrybucja w `CREDITS.md`. *(standard; ryzyko: z-order
-      i czytelność przy skali heksu)*
-- [ ] **G102.1c [GRAFIKA] — panel wybranego regionu ma teksturowaną ramę,
-      nie `StyleBoxFlat`.** Zastąpić `StyleBoxFlat_selected_region` w
-      `main.tscn` assetem `selected_region_panel.png` (pergamin/drewno spójne
-      z `strategic_status_background` / teatrem mapy); hierarchia wierszy
-      z K100.1c i puste „Nie wybrano regionu" bez zmian treści. Panel nie
-      wypycha mapy ani rozkazów poza 1152×648. Akceptacja: screenshot stanu
-      pustego i z wyborem + test layoutu, ludzkie review; źródło/licencja w
-      `CREDITS.md`. *(standard; ryzyko: kompozycja wąskiej kolumny)*
-- [ ] **G102.1d [GRAFIKA] — feedback rozkazu to wstęga, nie goły napis.**
-      Dodać `order_status_banner.png` (wstęga/pergaminowa tabliczka, CC0/CC-BY)
-      jako tło/ramę `LastOrderStatusLabel` (i czytelny stan `StartStatusLabel`
-      przy błędzie startu, jeśli mieści się w tym samym nośniku); polski tekst
-      skutku rozkazu z `order_result.gd` na banerze z kontrastem. Pusty status
-      → baner niewidoczny (jak baner bitwy bez bitwy). Akceptacja: screenshot
-      co najmniej dwóch skutków (np. zmieniono / bitwa / zakończona partia)
-      w natywnym Godocie, test widoczności, ludzkie review; źródło/licencja w
-      `CREDITS.md`. *(standard; ryzyko: wysokość karty statusu przy 1152×648)*
+> świecie z etykietami PL (`WorldPresentation`), nie na uproszczonym fixture.
+- [ ] **G103.1a [GRAFIKA] — przyciski rozkazów mają teksturowany nośnik, nie
+      `StyleBoxFlat`.** Zastąpić `_make_order_button_style` / stany
+      normal/hover/pressed konkretnymi assetami z jednej rodziny
+      (np. `order_button_normal.png`, `order_button_hover.png`,
+      `order_button_pressed.png` albo jeden panel + `modulate` stanów) jako
+      `StyleBoxTexture` (lub równoważny nośnik tekstury) na **wszystkich**
+      bieżących przyciskach paska (tura, osada, pole, zapis/odczyt). Ikony
+      Game-icons i polskie etykiety bez zmian; stany pozostają rozróżnialne
+      wzrokowo. Akceptacja: test `has_theme_stylebox_override` + brak
+      solidnego `StyleBoxFlat` tła, screenshot 1152×648 paska (normal + co
+      najmniej jeden stan hover lub pressed jeśli da się w headless/
+      review), ludzkie review; źródło, autor, licencja i ścieżka każdego
+      pliku w `CREDITS.md`. *(standard; ryzyko: czytelność ikon na
+      teksturze i padding przy 1152×648)*
+- [ ] **G103.1b [GRAFIKA] — legenda właścicieli ma teksturowaną ramę, nie
+      `StyleBoxFlat`.** Zastąpić panel legendy (`OwnerLegendPanel` +
+      `StyleBoxFlat` w `_refresh_owner_legend`) assetem
+      `owner_legend_panel.png` (pergamin/drewno spójne z teatrem mapy i
+      kartą statusu); herby `owner_mark_*` i polskie etykiety Gracz/
+      Neutralny/Wróg bez zmian treści. Legenda nie zasłania heksów ani
+      nazw regionów. Akceptacja: test layoutu legendy + screenshot 1152×648
+      świeżej partii, ludzkie review; atrybucja w `CREDITS.md`.
+      *(standard; ryzyko: skalowanie przy `_layout_scale`)*
+- [ ] **G103.1c [GRAFIKA] — podłoża mapy strategicznej bez kreskówkowego
+      obrysu Kenney.** Podmienić (lub retuszować w miejscu) trzy warianty
+      `map_ground_grass.png`, `map_ground_earth.png`,
+      `map_ground_stone.png` tak, by zachować heks i deterministyczny wybór
+      z `col`/`row`, ale usunąć jaskrawy zielony/obcy rim i zbliżyć ton do
+      teatru/pergaminu (średniowieczny, czytelny, nie-fantastyczny). Nadal
+      wyłącznie dekoracja — bez mechanicznego terenu regionu. Akceptacja:
+      import/ładowanie, screenshot 1152×648 pięciu regionów z ≥3 wariantami,
+      ludzkie review spójności z ramą teatru; per-plikowe źródło/licencja
+      w `CREDITS.md` (nowe lub zaktualizowane ścieżki). *(standard; ryzyko:
+      dobór/licencja assetów, regresja geometrii styku heksów)*
+- [ ] **G103.1d [GRAFIKA] — bazowy heks bitwy spójny z podłożem mapy.**
+      Podmienić `terrain_plains.png` (baza 120×140 pointy-top) na asset z
+      tej samej rodziny wizualnej co G103.1c — bez jaskrawego obrysu, z
+      zachowaniem rozmiaru bazowego heksu (testy geometrii K98: wspólny
+      120×140, dekoracje drzewa/skały bez rozciągania). Sylwetki stron i
+      plakietki PŻ bez zmian kontraktu. Akceptacja: fixture bitwy +
+      screenshot 1152×648, ludzkie review spójności mapa↔bitwa; atrybucja
+      w `CREDITS.md`. *(standard; ryzyko: geometria i z-order dekoracji)*
 
 ## Dług/refaktor
 - [x] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
@@ -1268,14 +1300,16 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
 - ~~K100: polskie etykiety, teatr mapy, karta wyboru, tło okna~~ —
   **wykonane**.
 - ~~K101: herby, hierarchia statusu, baner bitwy~~ — **wykonane**.
-- **Teraz K102:** pergaminowe tabliczki nazw, znaczki PŻ, teksturowany panel
-  wyboru i wstęga feedbacku rozkazu — residualne ciemne `StyleBoxFlat` /
-  goły status widoczne po K101 na `task-572-*` i w kodzie.
+- ~~K102: tabliczki, PŻ, panel wyboru, feedback rozkazu~~ — **wykonane**.
+- **Teraz K103:** teksturowane przyciski rozkazów i legenda właścicieli
+  (residualne jasne `StyleBoxFlat`) oraz spójniejsze podłoże mapy/bitwy bez
+  jaskrawego obrysu Kenney — widoczne po K102 na `task-575-*` i w kodzie.
 - ~~Zapis/odczyt z UI: jawne „Zapisz”/„Wczytaj”~~ — rozplanowane jako K86.
 - ~~Prawdziwe assety i tekstury zamiast `ColorRect`~~ — rozplanowane jako K87.
-- Assety pozostałych elementów sceny — K87–K101 dały nośnik, mapę, bitwę,
-  hierarchię, PL/teatr i herby; K102 usuwa residualny flat/HUD chrome,
-  zanim próg wizualny będzie mógł dostać ludzką akceptację.
+- Assety pozostałych elementów sceny — K87–K102 dały nośnik, mapę, bitwę,
+  hierarchię, PL/teatr, herby i pergaminowe plakietki; K103 usuwa residualny
+  flat sterowania/legendy i kreskówkowy obrys kafli, zanim próg wizualny
+  będzie mógł dostać ludzką akceptację.
 - **Mechaniczny teren regionu na mapie strategicznej — ODŁOŻONY DO PROGU
   WIZUALNEGO.** `tbb.world.Region` ma dziś tylko
   `name`, więc `snapshot.map_state` nie ma czego wystawić i kafel mapy w K87
