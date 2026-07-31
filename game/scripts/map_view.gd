@@ -63,13 +63,14 @@ const GROUND_TEXTURES: Array[Texture2D] = [
 const SETTLEMENT_TEXTURE := preload("res://assets/settlement.png")
 const SETTLEMENT_KEEP_TEXTURE := preload("res://assets/settlement_keep.png")
 const SETTLEMENT_OUTPOST_TEXTURE := preload("res://assets/settlement_outpost.png")
-# G104.1c: public army silhouettes by party.owner (distinct files; muted family).
+# G105.1a: isometric/¾ army silhouettes by party.owner (distinct files; muted family).
 const PARTY_PLAYER_UNIT_TEXTURE := preload("res://assets/party_player_unit.png")
 const PARTY_AI_UNIT_TEXTURE := preload("res://assets/party_ai_unit.png")
 const PARTY_UNIT_TEXTURES := {
 	"player": PARTY_PLAYER_UNIT_TEXTURE,
 	"ai": PARTY_AI_UNIT_TEXTURE,
 }
+# Display badge size is independent of native PNG canvas (48×56 carriers).
 const PARTY_MARKER_SIZE := Vector2(16, 16)
 # The vertical grid pitch is shorter than a tile, so the lower-edge margin is
 # measured against the visible part of this row rather than the full AABB.
@@ -681,8 +682,14 @@ func _party_owner_for_region(region: Dictionary, player_party_region: Variant) -
 
 
 func _add_party_marker(tile: Control, owner: Variant) -> void:
-	var marker := TileTextureLayer.stretched(_party_texture(owner))
+	# Badge box stays PARTY_MARKER_SIZE (16×16); portrait 48×56 must not be
+	# squashed into a square — same aspect mode as OwnershipMark crests.
+	var marker := TextureRect.new()
 	marker.name = _party_marker_name(owner)
+	marker.texture = _party_texture(owner)
+	marker.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	marker.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	marker.position = _party_marker_position()
 	marker.size = _party_marker_size()
 	tile.add_child(marker)

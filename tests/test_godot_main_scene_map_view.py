@@ -574,6 +574,10 @@ def test_map_view_marks_ai_party_with_distinct_unit_silhouette_from_party_owner(
     silhouette), so the AI army is invisible or indistinguishable. Player-mark
     count/path and player-only CREDITS gates never set ``region.party`` nor look
     for ``party_ai_unit.png``, so that gap stays green.
+
+    G105.1a additionally replaces the old top-down Kenney RTS 64×64 carriers:
+    a byte-distinct pair with correct owner mapping is still wrong when both
+    files retain that canvas and CREDITS still identify RTS Pack unit sources.
     """
     ai_path = GAME / PARTY_AI_UNIT_REL
     assert ai_path.is_file(), (
@@ -589,10 +593,16 @@ def test_map_view_marks_ai_party_with_distinct_unit_silhouette_from_party_owner(
         "party_ai_unit.png must differ byte-wise from party_player_unit.png "
         "(sides must be distinguishable without tint alone)"
     )
+    for unit_path in (player_path, ai_path):
+        width, height, _rgba = png_rgba8(unit_path)
+        assert (width, height) == (48, 56), (
+            f"{unit_path.name} must use the canonical portrait 48×56 carrier "
+            f"for a standing isometric/three-quarter army silhouette, "
+            f"got {width}×{height}"
+        )
 
-    # Public contract + AC: CREDITS must attribute party_ai_unit with a pack
-    # path/page, author, and license, and share the RTS unit family with player
-    # without reusing the same source file (shape, not tint-only).
+    # Public contract + AC: CREDITS must attribute both files with a concrete
+    # path/page, author, and license without retaining the replaced RTS family.
     credits_path = GAME / "assets" / "CREDITS.md"
     assert_asset_credited(credits_path, ai_path.name)
     rows = _credits_table_rows(credits_path.read_text(encoding="utf-8"))
@@ -620,16 +630,16 @@ def test_map_view_marks_ai_party_with_distinct_unit_silhouette_from_party_owner(
         f"CREDITS.md row for {player_path.name} must list a non-empty source path/page"
     )
     assert ai_row["source"] != player_row["source"], (
-        "CREDITS.md must attribute distinct RTS unit sources for player vs AI "
+        "CREDITS.md must attribute distinct unit sources for player vs AI "
         f"silhouettes; both cite {ai_row['source']!r}"
     )
-    # Shared family: both unit rows point at Kenney RTS unit PNGs (not banner).
     for label, source in (
         ("player", player_row["source"]),
         ("ai", ai_row["source"]),
     ):
-        assert "Unit/" in source or "unit" in source.lower(), (
-            f"CREDITS.md {label} unit source must stay in the RTS unit family, "
+        assert not re.search(r"RTS Pack|Default size/Unit/medievalUnit_", source, re.I), (
+            f"CREDITS.md {label} unit source must replace the top-down Kenney "
+            f"Medieval RTS carrier with an isometric/three-quarter source, "
             f"got {source!r}"
         )
 
