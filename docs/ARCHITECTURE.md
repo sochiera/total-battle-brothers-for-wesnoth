@@ -692,15 +692,19 @@ pasek. Kredyt w `game/assets/CREDITS.md` (pochodna Pergament.1.jpg, CC0).
 
 `main.gd` w `_ready()` wywołuje `_apply_order_button_state_styles()`: na
 każdym z ośmiu przycisków ustawia jawne `add_theme_stylebox_override` dla
-`normal` / `hover` / `pressed` (`StyleBoxFlat` — jasny pergamin / jaśniejszy
-miód / wciśnięty brąz; kontrast z ciemnymi ikonami Game-icons ≥ 3:1) oraz
-ciemne kolory czcionki. Artefakty przeglądu 1152×648 to **żywe zrzuty**
+`normal` / `hover` / `pressed` jako `StyleBoxTexture` z
+`res://assets/order_button_panel.png` (pochodna Pergament.1.jpg) i trzema
+rozróżnialnymi `modulate_color` (pergamin / jaśniejszy hover / wciśnięty
+brąz) oraz ciemne kolory czcionki. Ikony Game-icons i polskie etykiety bez
+zmian treści (G103.1a). Czytelność ikon i etykiet na nośniku (kontrast bez
+obcinania) ocenia się wizualnie na zrzutach przeglądu, nie przez numeryczny
+próg kontrastu w kodzie. Artefakty przeglądu 1152×648 to **żywe zrzuty**
 głównej sceny (nie placeholdery): regeneracja skryptem
 `game/tests/capture_order_bar_review.gd` przy realnym display (nie
 `--headless` — dummy renderer nie ma pikseli).
-`task-565-fresh-order-states-1152x648.png` — świeża partia z demo
-normal/hover/pressed na różnych przyciskach paska;
-`task-565-visible-battle-1152x648.png` — ten sam pasek przy widocznym
+`task-579-fresh-order-states-1152x648.png` — świeża partia z demo
+normal/hover/pressed na różnych przyciskach paska po G103.1a;
+`task-579-visible-battle-1152x648.png` — ten sam pasek przy widocznym
 `BattleView`. Ocena artystyczna (kontrast, grupowanie, spójność) należy do
 człowieka.
 

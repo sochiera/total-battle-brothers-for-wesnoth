@@ -22,6 +22,14 @@ const WINDOW_BACKGROUND_RES := "res://assets/strategic_map_background.png"
 # G102.1c: textured frame for the selection readout (not StyleBoxFlat).
 const SELECTED_REGION_PANEL_NODE := "SelectedRegionPanel"
 const SELECTED_REGION_PANEL_RES := "res://assets/selected_region_panel.png"
+# G103.1a: parchment plate for order-bar buttons (not residual StyleBoxFlat).
+const ORDER_BUTTON_PANEL_RES := "res://assets/order_button_panel.png"
+const ORDER_BUTTON_MODULATE_NORMAL := Color(0.96, 0.88, 0.72, 1.0)
+const ORDER_BUTTON_MODULATE_HOVER := Color(1.0, 0.97, 0.86, 1.0)
+const ORDER_BUTTON_MODULATE_PRESSED := Color(0.74, 0.58, 0.4, 1.0)
+const ORDER_BUTTON_FONT_NORMAL := Color(0.18, 0.11, 0.06, 1.0)
+const ORDER_BUTTON_FONT_HOVER := Color(0.14, 0.08, 0.04, 1.0)
+const ORDER_BUTTON_FONT_PRESSED := Color(0.1, 0.05, 0.02, 1.0)
 const SELECTED_REGION_EMPTY_PL := "Nie wybrano regionu"
 # G101.1c: visible ResultLabel value cells (row key is ResultKeyLabel).
 const RESULT_VALUE_BY_CODE := {
@@ -132,50 +140,47 @@ func _sync_order_controls_minimum_size() -> void:
 
 
 func _apply_order_button_state_styles() -> void:
-	## G99.1d: explicit StyleBoxFlat per interaction state on every order button.
-	## Built once here so main.tscn stays free of eight-fold style duplication while
-	## probes still see has_theme_stylebox_override for normal/hover/pressed.
-	var style_by_state := {
-		"normal": _make_order_button_style(
-			Color(0.88, 0.78, 0.58, 1.0), Color(0.42, 0.28, 0.12, 0.9)
-		),
-		"hover": _make_order_button_style(
-			Color(0.95, 0.88, 0.68, 1.0), Color(0.55, 0.38, 0.14, 1.0)
-		),
-		"pressed": _make_order_button_style(
-			Color(0.72, 0.58, 0.38, 1.0), Color(0.32, 0.2, 0.08, 1.0)
-		),
-	}
-	var font_theme_key := {
-		"normal": "font_color",
-		"hover": "font_hover_color",
-		"pressed": "font_pressed_color",
-	}
-	var font_by_state := {
-		"normal": Color(0.18, 0.11, 0.06, 1.0),
-		"hover": Color(0.14, 0.08, 0.04, 1.0),
-		"pressed": Color(0.1, 0.05, 0.02, 1.0),
-	}
+	## G103.1a: explicit StyleBoxTexture per interaction state on every order button.
+	## One credited parchment plate + three modulate signatures (normal / hover /
+	## pressed) keeps main.tscn free of eight-fold style duplication while probes
+	## still see has_theme_stylebox_override and three distinct rendered looks.
+	var texture: Texture2D = load(ORDER_BUTTON_PANEL_RES) as Texture2D
+	if texture == null:
+		return
+	# state_name, modulate, font theme key, font color — single table avoids
+	# three parallel maps drifting out of sync.
+	var state_rows: Array = [
+		["normal", ORDER_BUTTON_MODULATE_NORMAL, "font_color", ORDER_BUTTON_FONT_NORMAL],
+		["hover", ORDER_BUTTON_MODULATE_HOVER, "font_hover_color", ORDER_BUTTON_FONT_HOVER],
+		["pressed", ORDER_BUTTON_MODULATE_PRESSED, "font_pressed_color", ORDER_BUTTON_FONT_PRESSED],
+	]
+	var style_by_state := {}
+	for row: Array in state_rows:
+		style_by_state[row[0]] = _make_order_button_style(texture, row[1])
 	for button: Button in _order_action_buttons():
-		for state_name: String in ["normal", "hover", "pressed"]:
+		for row: Array in state_rows:
+			var state_name: String = row[0]
 			button.add_theme_stylebox_override(
 				state_name, style_by_state[state_name].duplicate()
 			)
-			button.add_theme_color_override(
-				font_theme_key[state_name], font_by_state[state_name]
-			)
+			button.add_theme_color_override(row[2], row[3])
 
 
-func _make_order_button_style(bg: Color, border: Color) -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = bg
-	style.border_color = border
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(4)
+func _make_order_button_style(texture: Texture2D, modulate: Color) -> StyleBoxTexture:
+	var style := StyleBoxTexture.new()
+	style.texture = texture
+	style.modulate_color = modulate
 	style.content_margin_left = 8.0
 	style.content_margin_right = 8.0
 	style.content_margin_top = 4.0
 	style.content_margin_bottom = 4.0
+	style.texture_margin_left = 12.0
+	style.texture_margin_top = 10.0
+	style.texture_margin_right = 12.0
+	style.texture_margin_bottom = 10.0
+	# Plate is a non-tileable crop; stretch border regions like selected-region panel.
+	style.axis_stretch_horizontal = StyleBoxTexture.AXIS_STRETCH_MODE_STRETCH
+	style.axis_stretch_vertical = StyleBoxTexture.AXIS_STRETCH_MODE_STRETCH
 	return style
 
 

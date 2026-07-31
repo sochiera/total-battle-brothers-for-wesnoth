@@ -1,7 +1,7 @@
 extends SceneTree
 
 
-## One-shot review capture for G99.1d (task-565). Run with a real display
+## One-shot review capture for G103.1a (task-579). Run with a real display
 ## (not --headless): headless uses the dummy renderer and cannot sample pixels.
 ## Writes 1152×648 PNGs under res://screenshots/.
 
@@ -9,8 +9,8 @@ const MAIN_SCENE_PATH := "res://scenes/main.tscn"
 const SnapshotModel = preload("res://scripts/snapshot_model.gd")
 const VIEWPORT_W := 1152.0
 const VIEWPORT_H := 648.0
-const FRESH_PATH := "res://screenshots/task-565-fresh-order-states-1152x648.png"
-const BATTLE_PATH := "res://screenshots/task-565-visible-battle-1152x648.png"
+const FRESH_PATH := "res://screenshots/task-579-fresh-order-states-1152x648.png"
+const BATTLE_PATH := "res://screenshots/task-579-visible-battle-1152x648.png"
 
 const HOVER_DEMO := ["RecruitButton", "MusterButton", "LoadGameButton"]
 const PRESSED_DEMO := ["MarchButton", "AssaultButton", "SaveGameButton"]

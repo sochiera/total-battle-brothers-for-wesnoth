@@ -295,18 +295,27 @@ func _order_button_states(scene_root: Node) -> Dictionary:
 		var button_state: Dictionary = {"found": true}
 		for state_name: String in ["normal", "hover", "pressed"]:
 			var style: StyleBox = button.get_theme_stylebox(state_name)
-			var color: Variant = null
+			var carrier := ""
+			var texture_path := ""
+			var modulate_rgba: Variant = null
 			if style is StyleBoxFlat:
-				var flat: StyleBoxFlat = style as StyleBoxFlat
-				color = [
-					flat.bg_color.r,
-					flat.bg_color.g,
-					flat.bg_color.b,
-					flat.bg_color.a,
+				carrier = "StyleBoxFlat"
+			elif style is StyleBoxTexture:
+				var textured: StyleBoxTexture = style as StyleBoxTexture
+				carrier = "StyleBoxTexture"
+				if textured.texture != null:
+					texture_path = textured.texture.resource_path
+				modulate_rgba = [
+					textured.modulate_color.r,
+					textured.modulate_color.g,
+					textured.modulate_color.b,
+					textured.modulate_color.a,
 				]
 			button_state[state_name] = {
 				"explicit": button.has_theme_stylebox_override(state_name),
-				"background_rgba": color,
+				"carrier": carrier,
+				"texture_path": texture_path,
+				"modulate_rgba": modulate_rgba,
 			}
 		button_state["icon_modulate_rgba"] = [
 			button.get_theme_color("icon_normal_color").r,

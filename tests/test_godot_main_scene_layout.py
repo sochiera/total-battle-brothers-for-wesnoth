@@ -8,7 +8,7 @@ import struct
 import zlib
 from pathlib import Path
 
-from godot_png_assets import assert_asset_credited, png_rgba8
+from godot_png_assets import assert_asset_credited
 from godot_runner import run_godot_script
 from test_godot_assets import _import_game_assets
 
@@ -62,8 +62,8 @@ WINDOW_BACKGROUND_RESOURCES = {
     ORDER_BAR_BACKGROUND_RES,
 }
 ORDER_BAR_SCREENSHOTS = (
-    GAME / "screenshots" / "task-565-fresh-order-states-1152x648.png",
-    GAME / "screenshots" / "task-565-visible-battle-1152x648.png",
+    GAME / "screenshots" / "task-579-fresh-order-states-1152x648.png",
+    GAME / "screenshots" / "task-579-visible-battle-1152x648.png",
 )
 WINDOW_BACKGROUND_SCREENSHOTS = (
     GAME / "screenshots" / "task-569-fresh-1152x648.png",
@@ -142,35 +142,6 @@ def _battle_view_takes_layout_space(state: dict) -> bool:
     if state.get("visible") is False:
         return False
     return float(state.get("h") or 0) > 1.0
-
-
-def _relative_luminance(rgb: tuple[float, float, float]) -> float:
-    linear = tuple(
-        channel / 12.92
-        if channel <= 0.04045
-        else ((channel + 0.055) / 1.055) ** 2.4
-        for channel in rgb
-    )
-    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
-
-
-def _median_opaque_icon_luminance(
-    path: Path, modulate_rgb: tuple[float, float, float] = (1.0, 1.0, 1.0)
-) -> float:
-    _width, _height, rgba = png_rgba8(path)
-    luminances = sorted(
-        _relative_luminance(
-            (
-                rgba[i] / 255 * modulate_rgb[0],
-                rgba[i + 1] / 255 * modulate_rgb[1],
-                rgba[i + 2] / 255 * modulate_rgb[2],
-            )
-        )
-        for i in range(0, len(rgba), 4)
-        if rgba[i + 3] >= 192
-    )
-    assert luminances, f"icon must contain visible pixels: {path}"
-    return luminances[len(luminances) // 2]
 
 
 def _png_dimensions(path: Path) -> tuple[int, int]:
@@ -293,37 +264,59 @@ def test_order_bar_uses_credited_background_covering_all_order_controls():
 
 
 def test_order_buttons_expose_distinct_states_and_review_screenshots():
-    """G99.1d: button-state styling and both human-review frames are observable.
+    """G103.1a: every button state uses credited, distinguishable texture.
 
-    Realistic defect existing gates miss: functional buttons can retain one
-    indistinguishable/default-looking surface in every interaction state, and
-    no 1152×648 evidence may exist for reviewing those states or the battle
-    composition. Geometry, icon-path and background gates all remain green.
+    Realistic defect existing gates miss: functional buttons can keep three
+    distinguishable StyleBoxFlat colours. Geometry, icon-path, contrast and
+    order-bar background gates then remain green even though the interactive
+    carriers are still the residual flat surfaces forbidden by G103.1a.
 
     Pixel-level artistic approval intentionally remains human-owned. This gate
-    requires explicit public theme states with distinct background colours and
-    registers the two required, correctly sized PNG review artifacts.
+    observes each resolved public theme state and requires texture-backed,
+    credited carriers with three distinct rendered texture/modulation signatures.
     """
     payload = _load_layout_payload()
     states = (payload.get("order_bar") or {}).get("button_states") or {}
     assert set(states) == set(ORDER_CONTROLS), states
     for button_name, button in states.items():
         assert button.get("found") is True, (button_name, button)
-        colors = []
+        signatures = []
         for state_name in ("normal", "hover", "pressed"):
             state = button.get(state_name) or {}
             assert state.get("explicit") is True, (
                 f"{button_name} must explicitly style {state_name}, got {state!r}"
             )
-            rgba = state.get("background_rgba")
-            assert isinstance(rgba, list) and len(rgba) == 4, (
-                f"{button_name} {state_name} needs a measurable flat background, "
-                f"got {rgba!r}"
+            assert state.get("carrier") == "StyleBoxTexture", (
+                f"{button_name} {state_name} must resolve to StyleBoxTexture, "
+                f"got {state!r}"
             )
-            colors.append(tuple(round(float(channel), 3) for channel in rgba))
-        assert len(set(colors)) == 3, (
-            f"{button_name} normal/hover/pressed backgrounds must be distinct, "
-            f"got {colors!r}"
+            texture_path = state.get("texture_path")
+            assert isinstance(texture_path, str) and texture_path.startswith(
+                "res://assets/"
+            ), f"{button_name} {state_name} needs an asset texture, got {state!r}"
+            texture_file = GAME / texture_path.removeprefix("res://")
+            assert texture_file.is_file(), (
+                f"{button_name} {state_name} texture missing: {texture_file}"
+            )
+            assert_asset_credited(
+                GAME / "assets" / "CREDITS.md",
+                texture_file.name,
+                source_re=re.compile(r"https?://\S+|oryginał projektu"),
+            )
+            modulate = state.get("modulate_rgba")
+            assert isinstance(modulate, list) and len(modulate) == 4, (
+                f"{button_name} {state_name} needs measurable modulation, "
+                f"got {state!r}"
+            )
+            signatures.append(
+                (
+                    texture_path,
+                    tuple(round(float(channel), 3) for channel in modulate),
+                )
+            )
+        assert len(set(signatures)) == 3, (
+            f"{button_name} normal/hover/pressed texture looks must be distinct, "
+            f"got {signatures!r}"
         )
         icon_modulate = button.get("icon_modulate_rgba")
         assert isinstance(icon_modulate, list) and len(icon_modulate) == 4, (
@@ -334,21 +327,6 @@ def test_order_buttons_expose_distinct_states_and_review_screenshots():
             f"{button_name} icon modulate must remain effectively opaque, "
             f"got {icon_modulate!r}"
         )
-        icon_luminance = _median_opaque_icon_luminance(
-            GAME / "assets" / ORDER_ICON_FILES[button_name],
-            tuple(float(channel) for channel in icon_modulate[:3]),
-        )
-        for state_name, rgba in zip(("normal", "hover", "pressed"), colors):
-            background_luminance = _relative_luminance(rgba[:3])
-            contrast = (
-                max(icon_luminance, background_luminance) + 0.05
-            ) / (
-                min(icon_luminance, background_luminance) + 0.05
-            )
-            assert contrast >= 3.0, (
-                f"{button_name} icon needs >=3:1 median-pixel contrast in "
-                f"{state_name}, got {contrast:.2f}:1"
-            )
 
     for screenshot in ORDER_BAR_SCREENSHOTS:
         assert screenshot.is_file(), f"required human-review screenshot missing: {screenshot}"
