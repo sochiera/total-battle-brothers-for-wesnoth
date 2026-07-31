@@ -7,7 +7,12 @@ import re
 import subprocess
 from pathlib import Path
 
-from godot_png_assets import LICENSE_RE, assert_asset_credited, hex_floor_sample_alphas
+from godot_png_assets import (
+    LICENSE_RE,
+    assert_asset_credited,
+    hex_floor_sample_alphas,
+    png_rgba8,
+)
 from godot_runner import run_godot_script
 from godot_tile_layer import (
     MOUSE_FILTER_IGNORE,
@@ -32,6 +37,11 @@ TARGET_FRAME_REL = "assets/map_target_frame.png"
 TARGET_FRAME_RES = f"res://{TARGET_FRAME_REL}"
 MAP_THEATER_FRAME_REL = "assets/map_theater_frame.png"
 MAP_THEATER_FRAME_RES = f"res://{MAP_THEATER_FRAME_REL}"
+OWNER_MARK_PATHS = {
+    "player": "assets/owner_mark_player.png",
+    "neutral": "assets/owner_mark_neutral.png",
+    "ai": "assets/owner_mark_ai.png",
+}
 # Godot Control.CursorShape.CURSOR_POINTING_HAND — clickability cue on tiles.
 CURSOR_POINTING_HAND = 2
 _CREDITS_ROW_RE = re.compile(
@@ -107,6 +117,7 @@ _BODY_LAYER_EXCLUDE_NAMES = frozenset(
         "PlayerPartyMarker",
         "AIPartyMarker",
         "MapTargetFrame",
+        "OwnershipMark",
     }
 )
 
@@ -1251,6 +1262,36 @@ def test_map_view_name_plates_are_narrow_and_avoid_tile_content():
 
 
 def test_map_view_uses_small_owner_marks_soft_tint_and_external_legend():
+    """Owner marks are the three contracted crests, not solid color squares.
+
+    Realistic defect this catches: the existing presentation gate accepts three
+    differently coloured ColorRects (or one reused decorative texture), so the
+    map can remain a prototype colour-key UI despite passing owner mapping.
+    """
+    owner_mark_silhouettes: dict[str, bytes] = {}
+    for owner_kind, relative_path in OWNER_MARK_PATHS.items():
+        asset_path = GAME / relative_path
+        assert asset_path.is_file(), (
+            f"{owner_kind} owner crest is missing: {asset_path}"
+        )
+        _width, _height, rgba = png_rgba8(asset_path)
+        owner_mark_silhouettes[owner_kind] = rgba[3::4]
+        assert_asset_credited(
+            GAME / "assets" / "CREDITS.md",
+            asset_path.name,
+            source_re=_CREDITS_SOURCE_RE,
+        )
+    assert len(set(owner_mark_silhouettes.values())) == len(OWNER_MARK_PATHS), (
+        "player, neutral, and ai owner marks must have distinct alpha silhouettes, "
+        "not recolors of one decorative shape"
+    )
+
+    imported = _import_game_assets()
+    assert imported.returncode == 0, (
+        f"godot --import failed rc={imported.returncode} "
+        f"stderr={imported.stderr!r} stdout={imported.stdout!r}"
+    )
+
     payload = _load_map_view()
     sample = payload.get("ownership_presentation") or {}
     assert sample.get("skipped") is not True, sample
@@ -1264,7 +1305,7 @@ def test_map_view_uses_small_owner_marks_soft_tint_and_external_legend():
         "ai outpost": "ai",
         "ai lands": "ai",
     }
-    mark_colors: dict[str, str] = {}
+    mark_textures: dict[str, str] = {}
     for tile in tiles:
         canonical = str(tile.get("canonical"))
         marks = tile.get("marks") or []
@@ -1274,29 +1315,45 @@ def test_map_view_uses_small_owner_marks_soft_tint_and_external_legend():
         mark = marks[0]
         assert mark.get("owner_kind") == expected_kinds[canonical], tile
         owner_kind = str(mark["owner_kind"])
-        mark_color = str(mark["color"])
-        previous_color = mark_colors.setdefault(owner_kind, mark_color)
-        assert mark_color == previous_color, (
-            f"OwnershipMark color must be consistent for {owner_kind!r}: {tile!r}"
+        assert mark.get("carrier") == "TextureRect", (
+            f"OwnershipMark must be a crest TextureRect, not a color square: {tile!r}"
         )
+        expected_texture = f"res://{OWNER_MARK_PATHS[owner_kind]}"
+        assert mark.get("texture_path") == expected_texture, (
+            f"{owner_kind!r} must use its contracted crest {expected_texture!r}: "
+            f"{tile!r}"
+        )
+        mark_texture = str(mark["texture_path"])
+        previous_texture = mark_textures.setdefault(owner_kind, mark_texture)
+        assert mark_texture == previous_texture, tile
         rect = mark.get("rect") or {}
         tile_rect = tile.get("tile_rect") or {}
         mark_w = float(rect.get("w", 0))
         mark_h = float(rect.get("h", 0))
-        tile_short_side = min(
-            float(tile_rect.get("w", 0)), float(tile_rect.get("h", 0))
-        )
+        tile_x = float(tile_rect.get("x", 0))
+        tile_y = float(tile_rect.get("y", 0))
+        tile_w = float(tile_rect.get("w", 0))
+        tile_h = float(tile_rect.get("h", 0))
+        tile_short_side = min(tile_w, tile_h)
         assert 0 < mark_w <= tile_short_side * 0.20, tile
         assert 0 < mark_h <= tile_short_side * 0.20, tile
-        ground_rgba = _rgba_key_components(tile.get("ground_modulate"))
-        mark_rgba = _rgba_key_components(mark_color)
-        ground_distance_from_white = sum((1.0 - value) ** 2 for value in ground_rgba[:3])
-        mark_distance_from_white = sum((1.0 - value) ** 2 for value in mark_rgba[:3])
-        assert ground_distance_from_white < mark_distance_from_white, (
-            f"ground tint must be softer (closer to white) than owner mark: {tile!r}"
+        mark_x = float(rect.get("x", 0))
+        mark_y = float(rect.get("y", 0))
+        assert tile_x <= mark_x < tile_x + tile_w * 0.5, (
+            f"OwnershipMark must stay in the tile's left half: {tile!r}"
         )
-    assert set(mark_colors) == {"player", "neutral", "ai"}
-    assert len(set(mark_colors.values())) == 3, mark_colors
+        assert tile_y + tile_h * 0.5 < mark_y + mark_h * 0.5, (
+            f"OwnershipMark must stay in the tile's lower half: {tile!r}"
+        )
+        assert mark_x + mark_w <= tile_x + tile_w, tile
+        assert mark_y + mark_h <= tile_y + tile_h, tile
+        ground_rgba = _rgba_key_components(tile.get("ground_modulate"))
+        ground_distance_from_white = sum((1.0 - value) ** 2 for value in ground_rgba[:3])
+        assert ground_distance_from_white < 0.30, (
+            f"ground ownership tint must remain light, not full chroma: {tile!r}"
+        )
+    assert set(mark_textures) == {"player", "neutral", "ai"}
+    assert len(set(mark_textures.values())) == 3, mark_textures
 
     legend = sample.get("legend") or {}
     assert legend.get("count") == 1, legend
@@ -1308,12 +1365,8 @@ def test_map_view_uses_small_owner_marks_soft_tint_and_external_legend():
         ("ai", "Wróg"),
     ], rows
     assert all(row.get("swatch_count") == 1 for row in rows), rows
-    assert {
-        str(row["kind"]): str(row["swatch_color"]) for row in rows
-    } == mark_colors, (
-        f"legend swatches must explain the same colors used by OwnershipMark: "
-        f"rows={rows!r}, marks={mark_colors!r}"
-    )
+    legend_colors = [str(row["swatch_color"]) for row in rows]
+    assert all(legend_colors) and len(set(legend_colors)) == 3, rows
     legend_rect = legend.get("rect") or {}
     for tile in payload.get("line_tiles") or []:
         assert not _rects_overlap(legend_rect, tile), (

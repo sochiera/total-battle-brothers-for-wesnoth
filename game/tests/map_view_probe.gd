@@ -817,12 +817,22 @@ func _observe_ownership_presentation(
 		var grounds: Array = PartyMapMark.find_all_named(tile, "Ground")
 		var mark_payloads: Array = []
 		for mark: Node in marks:
-			if mark is ColorRect:
-				mark_payloads.append({
-					"owner_kind": str(mark.get_meta("owner_kind", "")),
-					"color": _color_key((mark as ColorRect).color),
-					"rect": _rect_payload((mark as Control).get_global_rect()),
-				})
+			if not mark is Control:
+				continue
+			var texture_path := ""
+			if mark is TextureRect and (mark as TextureRect).texture != null:
+				texture_path = (mark as TextureRect).texture.resource_path
+			mark_payloads.append({
+				"owner_kind": str(mark.get_meta("owner_kind", "")),
+				"carrier": mark.get_class(),
+				"texture_path": texture_path,
+				"color": (
+					_color_key((mark as ColorRect).color)
+					if mark is ColorRect
+					else ""
+				),
+				"rect": _rect_payload((mark as Control).get_global_rect()),
+			})
 		var ground_modulate := ""
 		if not grounds.is_empty() and grounds[0] is CanvasItem:
 			ground_modulate = _color_key((grounds[0] as CanvasItem).modulate)
@@ -1150,14 +1160,14 @@ func _collect_tiles(map_view: Node, expected_names: Array[String]) -> Array:
 		# size, and mouse_filter (R87.1: full-tile stretch layers must fill the
 		# tile and not steal mouse; party marker stays a small corner mark).
 		var texture_layers: Array = _collect_texture_layers(tile)
-		# Region body textures only — exclude party marker so settlement/owner
-		# comparison stays independent of whether the army is parked here.
+		# Region body textures only — exclude ownership/party markers so body
+		# comparisons stay independent of the owner and parked armies.
 		# Drop both player/AI unit carriers even if the layer is misnamed.
 		var texture_paths: Array = []
 		for layer: Variant in texture_layers:
 			if not (layer is Dictionary and layer.has("path")):
 				continue
-			if str(layer.get("name", "")) == "PlayerPartyMarker":
+			if str(layer.get("name", "")) in ["OwnershipMark", "PlayerPartyMarker"]:
 				continue
 			var body_path: String = str(layer["path"])
 			if (

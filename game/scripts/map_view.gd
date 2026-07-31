@@ -22,12 +22,16 @@ const REGION_LABEL_FONT_SIZE := 11
 const PLAYER_COLOR := Color(0.16, 0.38, 0.78)
 const NEUTRAL_COLOR := Color(0.38, 0.38, 0.38)
 const AI_COLOR := Color(0.72, 0.18, 0.16)
-# G99.1b: ground keeps a light owner tint so parchment/ground art stays dominant;
-# strong owner colour lives only on the small OwnershipMark + legend swatches.
+# G99.1b / G101.1a: light owner tint on ground only (parchment stays dominant).
+# Full owner identity/chroma is the textured OwnershipMark crest plus legend swatches —
+# not solid colour fills on the mark itself.
 const OWNER_GROUND_TINT_STRENGTH := 0.38
 const OWNERSHIP_MARK_NAME := "OwnershipMark"
 const OWNERSHIP_MARK_BASE_SIZE := Vector2(9, 9)
 const OWNERSHIP_MARK_MARGIN := Vector2(4, 4)
+const OWNER_MARK_PLAYER_TEXTURE := preload("res://assets/owner_mark_player.png")
+const OWNER_MARK_NEUTRAL_TEXTURE := preload("res://assets/owner_mark_neutral.png")
+const OWNER_MARK_AI_TEXTURE := preload("res://assets/owner_mark_ai.png")
 const OWNER_LEGEND_NAME := "OwnerLegend"
 const REGION_NAME_PLATE_TOP_MARGIN := 2.0
 const REGION_NAME_PLATE_SIDE_MARGIN := 3.0
@@ -213,7 +217,7 @@ func _add_tile(region: Dictionary, player_party_region: Variant) -> void:
 	add_child(tile)
 
 	var ground := TileTextureLayer.full_rect(_ground_texture(region), "Ground")
-	# Light tint only — full owner chroma is reserved for OwnershipMark + legend.
+	# Soft ground tint only. Owner ID/chroma: textured crest (OwnershipMark) + legend swatches.
 	ground.modulate = _owner_ground_modulate(region.get("owner"))
 	tile.add_child(ground)
 
@@ -483,15 +487,28 @@ func _region_label_font_size_for_text(text: String) -> int:
 
 
 func _add_ownership_mark(tile: Control, owner: Variant) -> void:
-	var mark := ColorRect.new()
+	# G101.1a: crest TextureRect per owner_kind (not a solid ColorRect square).
+	var mark := TextureRect.new()
 	mark.name = OWNERSHIP_MARK_NAME
-	mark.color = _owner_color(owner)
+	mark.texture = _owner_mark_texture(owner)
+	mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	mark.size = _ownership_mark_size()
 	mark.position = _ownership_mark_position()
-	# Public meta so probes can read owner without scraping ColorRect order.
+	# Public meta so probes can read owner without scraping paint carriers.
 	mark.set_meta("owner_kind", _owner_kind(owner))
 	tile.add_child(mark)
+
+
+func _owner_mark_texture(owner: Variant) -> Texture2D:
+	# Single table keyed by public owner_kind (player / neutral / ai).
+	var by_kind := {
+		"player": OWNER_MARK_PLAYER_TEXTURE,
+		"ai": OWNER_MARK_AI_TEXTURE,
+		"neutral": OWNER_MARK_NEUTRAL_TEXTURE,
+	}
+	return by_kind.get(_owner_kind(owner), OWNER_MARK_NEUTRAL_TEXTURE)
 
 
 func _ownership_mark_size() -> Vector2:
@@ -752,7 +769,8 @@ func _settlement_name(settlement: Variant) -> String:
 
 
 func _owner_color(owner: Variant) -> Color:
-	match owner:
+	# Legend swatches + soft ground tint share the same kind mapping as crests.
+	match _owner_kind(owner):
 		"player":
 			return PLAYER_COLOR
 		"ai":

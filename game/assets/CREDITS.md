@@ -81,3 +81,13 @@ by Delapouite.
 |------|------------------|--------|---------|
 | icon_save.png | https://game-icons.net/1x1/delapouite/save.html (save.svg) | Delapouite | CC-BY 3.0 |
 | icon_load.png | https://game-icons.net/1x1/delapouite/load.html (load.svg) | Delapouite | CC-BY 3.0 |
+
+The region ownership crests (G101.1a) are adapted from three Game-icons **shield**
+glyphs by Lorc, recolored for player / neutral / enemy readability at map scale.
+Source SVGs live in the Game-icons pack under `lorc/`.
+
+| File | Source page/file | Author | License |
+|------|------------------|--------|---------|
+| owner_mark_player.png | https://game-icons.net/1x1/lorc/bordered-shield.html (lorc/bordered-shield.svg) | Lorc | CC-BY 3.0 |
+| owner_mark_neutral.png | https://game-icons.net/1x1/lorc/checked-shield.html (lorc/checked-shield.svg) | Lorc | CC-BY 3.0 |
+| owner_mark_ai.png | https://game-icons.net/1x1/lorc/crenulated-shield.html (lorc/crenulated-shield.svg) | Lorc | CC-BY 3.0 |

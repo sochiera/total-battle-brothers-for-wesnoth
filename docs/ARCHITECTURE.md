@@ -754,12 +754,14 @@ własnego (cztery wiersze + rama na mapie). Ocena hierarchii, zwartości i
 spójności z kartą statusu należy do człowieka.
 
 Własność: `Ground.modulate` to **lekki tint**
-(`WHITE.lerp(owner_color, OWNER_GROUND_TINT_STRENGTH)`), a pełny kolor
-właściciela nosi mały `OwnershipMark` (ColorRect, lewy dolny róg kafla, meta
-`owner_kind` ∈ {player, neutral, ai}). Legenda `OwnerLegend` jest dzieckiem
-`MapView` (nie kafla) w lewym dolnym rogu panelu: trzy swatche + etykiety
-Gracz / Neutralny / Wróg. Sondy e2e wyprowadzają tożsamość regionu z
-`RegionTile_<canonical>` / `RegionCanonicalId` — nie z tekstu `RegionNamePlate`.
+(`WHITE.lerp(owner_color, OWNER_GROUND_TINT_STRENGTH)`), a właściciela nosi
+mały `OwnershipMark` — `TextureRect` z herbem
+`owner_mark_{player,neutral,ai}.png` (mapowanie z `region.owner`: `player` /
+brak / `ai`), lewy dolny róg kafla, meta `owner_kind` ∈ {player, neutral, ai}.
+Legenda `OwnerLegend` jest dzieckiem `MapView` (nie kafla) w lewym dolnym rogu
+panelu: trzy swatche + etykiety Gracz / Neutralny / Wróg. Sondy e2e
+wyprowadzają tożsamość regionu z `RegionTile_<canonical>` /
+`RegionCanonicalId` — nie z tekstu `RegionNamePlate`.
 
 
 ## RNG / rdzeń (G67.3a)
