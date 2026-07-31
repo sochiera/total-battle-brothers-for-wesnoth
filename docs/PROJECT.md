@@ -26,19 +26,16 @@ zapisać i wczytać stan**. **[W]**
 Rozgrywkowo: pętla sandboxa domyka się, gdy da się pokonać księstwo AI (utrata
 jego osad **oraz** śmierć jego bohatera — to również warunek przegranej gracza).
 
-Kryterium pomocnicze, po którym poznajemy postęp: **da się grać patrząc, a nie
-czytając logi**. Widok mapy i widok bitwy mają nieść stan gry wizualnie. **[W]**
+Kryterium pomocnicze: **da się grać patrząc, a nie czytając logi**. Widok mapy
+i bitwy ma nieść stan wizualnie. **[W]**
 
 **Assety i osiągnięty wygląd są częścią kryterium, nie polishem po MVP.**
-Feedback autora briefu
-(2026-07-27): *„prawdziwe MVP będzie wtedy, kiedy będą assety i tekstury. Nie
-musi być dużo budynków/rodzajów jednostek/terenu itp, ale żeby były jakieś
-sensowne prawdziwe assety."* Czyli: widoki mają rysować **realne pliki
-graficzne**, nie jednolite prostokąty z etykietą tekstową. Zakres świadomie
-mały — po kilka kafli terenu, sylwetek jednostek i budynków — ale prawdziwych.
-Od 2026-07-30 K87 jest tylko minimum technicznym: rozwój oprawy trwa do
-osiągnięcia jawnego progu jakości i akceptacji człowieka na screenshotach.
-**[W]**
+Feedback autora (2026-07-27): *„prawdziwe MVP będzie wtedy, kiedy będą assety
+i tekstury. Nie musi być dużo budynków/rodzajów jednostek/terenu, ale żeby były
+jakieś sensowne prawdziwe assety."* Widoki rysują **realne pliki graficzne**,
+nie prostokąty z etykietą. Zakres mały — po kilka kafli, sylwetek i budynków —
+ale prawdziwych. Od 2026-07-30 K87 to tylko minimum techniczne: oprawa trwa do
+jawnego progu jakości i akceptacji człowieka na screenshotach. **[W]**
 
 Próg jest osiągnięty dopiero, gdy mapa, osady i armie używają spójnych assetów,
 bitwa ma czytelne kafle/jednostki/strony, UI nie opiera się na przypadkowych
@@ -46,251 +43,131 @@ placeholderach, licencje są kompletne, człowiek akceptuje screenshoty, a
 `docs/PROJECT.md` i `BACKLOG.md` jawnie zapisują ten stan. **[W]**
 
 ## Stan faktyczny (aktualizowany przy przeglądach)
-- Rdzeń `tbb` (Python): kampania, ekonomia (pszenica/złoto, populacja, budynki),
-  kalendarz 13×4 tygodnie, jednostki i trzy filary progresji, morale, bitwa na
-  heksach, AI księstw, sukcesja — **działa headless, pokryty TDD**.
-- Most `tbbbridge`: snapshot JSON (OUT), komendy i rozkazy gracza (IN), protokół
-  JSON Lines na stdio, `serve` / `serve --resume`, round-trip persystencji
-  (save/load całej sesji łącznie z RNG i `last_battle`) — **gotowe**.
-- Klient Godot 4 w `game/`: `SnapshotModel`, trwały przez plik `BridgeClient`,
-  oba widoki, statusy oraz komplet bieżących rozkazów gracza.
-- **Klient bez terminala, oba widoki, zapis/odczyt** (K82–K86): domyślna
-  konfiguracja bez `TBB_*`, układ w kontenerach, `MapView` (kafel na region po
-  `col`/`row`), `BattleView` (heksy po `(q, r)`), „Zapisz/Wczytaj partię".
-- **Minimum assetów — GOTOWE, próg wizualny — NIEOSIĄGNIĘTY** (K87): jeden
-  bazowy heks plus dekoracje drzewa/skały; import Kenney CC0 to tylko minimum.
-- **Pakiet Linuksa — DOMKNIĘTY** (K88): x86-64, `.desktop`, `package.sh` i e2e
-  startu bez terminala na artefakcie odbiorcy.
-- **Pętla partii — DOMKNIĘTA** (K89–K91): bitwa zawsze ma legalny, widoczny
-  wynik; symetryczny start prowadzi do zwycięstwa/przegranej; koniec jest trwały.
-- **Obrona osady — DOMKNIĘTA** (G92.1): armia w osadzie walczy z garnizonem,
-  a zwycięski szturm nie zakleszcza świata.
-- **Minimalny wieloosadowy świat — DOMKNIĘTY** (G92.2a): pięć połączonych
-  regionów, pusty region graniczny i po dwie osady na stronę są wystawione
-  istniejącym snapshotem i rysowane przez `MapView`. Utrata jednej osady nie
-  kończy księstwa.
-- **Strategiczna kompozycja — DOMKNIĘTA** (K94): pięć stykających się heksów,
-  trzy dekoracyjne podłoża, osobne keep/outpost, pergaminowe tło i układ
-  mieszczący wszystkie przyciski przy 1152×648.
-- **Ikony rozkazów — DOMKNIĘTE** (K95): tura, rozkazy osady i pola oraz
-  zapis/odczyt mają odrębne ikony z jednej rodziny Game-icons.
-- **Armie na mapie — DOMKNIĘTE** (G96.1a): snapshotowe `region.party.owner`
-  wybiera odrębne sylwetki gracza i AI; aktualny komplet armii jest widoczny.
-- **Wybór celu i bezpieczny ruch — DOMKNIĘTE** (K97): most i klient niosą
-  `move(target)`, kafle mają hover/ramkę, panel opisuje cel po polsku, a e2e
-  pokazuje legalny krok, blokadę wrogiej osady i pozycję po wznowieniu.
-- **Spójny widok bitwy — DOMKNIĘTY** (K98): wspólny heks pointy-top, drzewo
-  i skała jako dekoracje, sylwetki stron z PŻ oraz własna rama z polskim
-  wynikiem są widoczne w natywnym kliencie.
-- **Hierarchia ekranu strategicznego — DOMKNIĘTA** (K99): większa mapa, polskie
-  tabliczki, karta statusu, kontrastowy pasek rozkazów; bez `RegionList`.
-- **Polska prezentacja i teatr mapy — DOMKNIĘTE** (K100): jedno mapowanie PL
-  (`WorldPresentation`), rama teatru pod pasem heksów, hierarchiczna karta
-  wyboru i pełnoekranowe tło bez szarego chrome; kanoniczne id bez zmian.
-- **Herby, status, baner bitwy — DOMKNIĘTE** (K101); **tabliczki/PŻ/panel/
-  feedback — DOMKNIĘTE** (K102: plakietki + `LabelTextureCarrier`/R102.1;
-  `task-575-battle-hp-badges-1152x648`). Bez reguł/mostu.
-- `tbbui` (HTML/SVG) — **wyłącznie narzędzie diagnostyczne**, nie docelowy klient.
+- Rdzeń `tbb` (Python): kampania, ekonomia, kalendarz, jednostki/progresja,
+  morale, bitwa heksowa, AI, sukcesja — **headless, TDD**.
+- Most `tbbbridge`: snapshot JSON, komendy/rozkazy, JSON Lines na stdio,
+  `serve`/`--resume`, round-trip save/load (RNG + `last_battle`) — **gotowe**.
+- Klient Godot 4 w `game/`: `SnapshotModel`, `BridgeClient` przez plik, oba
+  widoki, statusy, bieżące rozkazy; **start bez terminala + save/load** (K82–K86).
+- **Minimum assetów — GOTOWE, próg wizualny — NIE** (K87). Kenney CC0 = minimum.
+- **Pakiet Linuksa, pętla partii, obrona osady, 5 regionów / 2 osady na stronę**
+  — DOMKNIĘTE (K88–K92).
+- **Oprawa K94–K103 — DOMKNIĘTA:** kompozycja mapy, ikony, armie, `move`+cel,
+  bitwa (heks/dekoracje/PŻ), hierarchia ekranu, PL/teatr (`WorldPresentation`),
+  herby/status/baner, tabliczki/panel/feedback, teksturowane przyciski/legenda,
+  stonowane `map_ground_*` + `terrain_plains` bez jaskrawego obrysu Kenney
+  (`task-579-*`, `task-581-map-grounds`). Bez reguł/mostu w tej serii.
+- `tbbui` — **tylko diagnostyka**, nie docelowy klient.
 
-**Najbliższa luka po K102:** przyciski rozkazów i legenda właścicieli to
-jasne `StyleBoxFlat`; Kenney daje jaskrawy obrys kafli mapy i bitwy. Próg
-wizualny nieosiągnięty (brak ludzkiej akceptacji). K103 — teksturowane
-sterowanie/legenda i spójniejsze podłoże; bez reguł/mostu.
+**Najbliższa luka po K103:** residualny Kenney na pergaminie — keep/outpost,
+dekoracje bitwy (`terrain_forest`/`hills`) i top-downowe sylwetki RTS; plus
+cue strony PŻ na residualnym `StyleBoxFlat`. Próg nieosiągnięty (brak ludzkiej
+akceptacji). **K104** — spójniejsza rodzina osad/dekoracji/sylwetek/cue; bez
+reguł/mostu.
 
 ## Ograniczenia i priorytety
-- **[W]** Rdzeń `tbb` jest **jedynym źródłem reguł gry**. Godot nie duplikuje
-  logiki; Python nie zależy od Godota ani żadnego UI.
-- **[W]** Komunikacja Godot↔Python przez jawny, testowalny interfejs (stan gry
-  jako JSON). Transport i kształt API wybiera i uzasadnia agent — obecnie:
-  proces `python -m tbbbridge serve`, JSON Lines po stdio, stan w pliku.
-- **[W]** Budowa klienta Godota jest **bieżącym priorytetem**. Nie wolno w
-  nieskończoność dokładać mechaniki kosztem widocznej, grywalnej gry.
+- **[W]** Rdzeń `tbb` jest **jedynym źródłem reguł**. Godot nie duplikuje logiki;
+  Python nie zależy od Godota ani UI.
+- **[W]** Komunikacja Godot↔Python przez jawny, testowalny interfejs (stan jako
+  JSON). Obecnie: `python -m tbbbridge serve`, JSON Lines po stdio, stan w pliku.
+- **[W]** Budowa klienta Godota jest **bieżącym priorytetem**. Nie dokładać
+  mechaniki w nieskończoność kosztem widocznej gry.
 - **[W]** Determinizm: seedowalny RNG, testy bez losowości.
-- **[W]** TDD, małe przyrosty; każde zadanie ma kryteria akceptacji. Trudność
-  `simple|standard|complex` + flagi ryzyka; bootstrap/toolchain/integracja
-  Godot↔Python idą jako `complex` i przechodzą review pętli agentowej.
-- **[P]** Rdzeń przed prezentacją **wewnątrz jednego plasterka** — ale plasterek
-  ma kończyć się czymś widocznym na ekranie, nie samą regułą.
-- **[W]** Widoki mają rysować **prawdziwe assety graficzne** (patrz kryterium
-  sukcesu). Ilość jest mała i negocjowalna; *istnienie* assetów nie jest.
-- **[W] Stała bramka planowania oprawy:** do osiągnięcia progu wizualnego każde
-  wywołanie planisty i każdy batch Forge ma co najmniej 4 zadania graficzne,
-  najwyżej 2 mechaniczne i najwyżej 6 łącznie. Mechanika jest dopuszczalna
-  wyłącznie jako bezpośrednia,
-  niezbędna zależność aktualnego efektu graficznego. Brak czterech zadań
-  graficznych oznacza dopisanie małych zadań, nigdy `no_more_tasks`.
-- **[W]** Zadanie graficzne wskazuje asset/element i miejsce użycia, daje
-  widoczny efekt w natywnym Godocie, kończy się screenshotem lub ludzkim review
-  i utrzymuje źródła/licencje per plik w `game/assets/CREDITS.md`. Sam test,
-  dokumentacja lub refaktor nie liczy się jako grafika.
-- **[P]** Źródłem assetów są gotowe paczki open source (CC0: Kenney,
-  OpenGameArt) zamiast rysowania własnych; licencja i atrybucja zapisane w repo.
-  Grafika ma być czytelna, nie ładna.
-- **[P]** Pakiet na Linuksa zakłada **systemowy `python3`**; nie wnosimy własnego
-  runtime'u Pythona (patrz wniosek 10). Bundling CPythona: **[O]**.
-- **[O]** Wykorzystanie kodu/zasobów z Battle for Wesnoth.
+- **[W]** TDD, małe przyrosty, kryteria akceptacji; `simple|standard|complex` +
+  ryzyko; bootstrap/toolchain/integracja Godot↔Python = `complex` + review pętli.
+- **[P]** Rdzeń przed prezentacją **wewnątrz plasterka** — plasterek kończy się
+  czymś widocznym, nie samą regułą.
+- **[W]** Widoki rysują **prawdziwe assety** (patrz kryterium). Ilość mała;
+  *istnienie* assetów — nie.
+- **[W] Bramka oprawy:** do progu wizualnego każde planowanie i batch Forge:
+  ≥4 graficzne, ≤2 mechaniczne, ≤6 łącznie. Mechanika tylko jako niezbędna
+  zależność efektu graficznego. Brak 4 graficznych → dopisać małe, nigdy
+  `no_more_tasks`.
+- **[W]** Zadanie graficzne: asset + miejsce użycia, widoczny efekt w Godocie,
+  screenshot/ludzkie review, źródło/licencja per plik w `game/assets/CREDITS.md`.
+  Sam test/dokumentacja/refaktor ≠ grafika.
+- **[P]** Assety z paczek OS (CC0: Kenney, OpenGameArt); atrybucja w repo.
+  Czytelność > ładność.
+- **[P]** Pakiet Linuksa: **systemowy `python3`** (wniosek 10). Bundling CPythona:
+  **[O]**.
+- **[O]** Kod/zasoby z Battle for Wesnoth.
 
-**Wnioski z dotychczasowej pracy, które zmieniają kierunek:**
-*(Wnioski 1–12 pochodzą z domkniętych kamieni K82–K88 i są tu w formie
-skróconej; pełne uzasadnienia w `docs/DECISIONS.md` i w `BACKLOG.md`.)*
-1. K75–K81 to była seria „kolejny przycisk rozkazu" — ścieżka rozkazu jest
-   sparametryzowana, więc kolejny przycisk nie zbliża do celu.
-2. Godot 4.2.2 nie ma `OS.execute_with_pipe`: most wołamy jedno-strzałowo, a
-   ciągłość partii daje plik stanu (`serve --resume`). Zadziałało, zostaje.
-3. Odchudzanie kontraktu (jedno pole na zadanie) ratuje mikro-TDD tam, gdzie
-   „cały słownik naraz" wykładał kodera.
-4. **Dowód „działa" jest ważny tylko dla tego artefaktu, na którym go
-   zrobiono.** Po eksporcie `res://` wskazuje wnętrze PCK, więc start bez
-   terminala (K82) trzeba było udowodnić drugi raz — już na pakiecie (G88.1b,
-   G88.1f).
-5. Snapshot bitwy (`battle.hexes`) niesie **tylko heksy zajęte przez
-   jednostki**, bez wymiarów pola i terenu pustych heksów; pełna siatka to
-   osobna, późniejsza zmiana mostu.
-6. **Kolorowy prostokąt wystarczył na „widać stan gry", ale nie na MVP.**
-   K84/K85 dały geometrię, K87 nośnik; podmiana nośnika nie ruszyła ani
-   geometrii, ani testów rozmieszczenia.
-7. **Prerekwizyt toolchainu idzie w osobną bramkę, przed treścią** (import
-   tekstur G87.1a, eksport binarium G88.1a) — potem reszta plasterków szła bez
-   niespodzianek. Wzorzec zostaje.
-8. **Teren istnieje tylko w warstwie bitwy — mapa strategiczna go nie zna.**
-   `tbb.world.Region` ma samo `name`, więc `map_state` daje `name`, `col`,
-   `row`, `owner`, `settlement`, `party`, a kafle mapy teksturujemy po
-   właścicielu i obecności osady. Teren regionu to **osobna zmiana rdzenia i
-   mostu**; klientowi nie wolno wymyślić go u siebie.
-9. Warianty kafla robimy **teksturą + `modulate`** zamiast osobnego pliku na
-   wariant — mała paczka wystarcza, a testy geometrii zostają w mocy.
-10. **Pakiet nie wnosi własnego Pythona** — odbiorca ma systemowy `python3`
-    (zweryfikowane: 3.14.4), a jego brak daje czytelny komunikat w scenie.
-    Decyzja zakresowa, nie techniczna; jeśli okaże się za wąska, wraca jako
-    osobny plasterek.
-11. **Bramka „plik się ładuje" nie sprawdza, *co* jest na obrazku** — G87.1a
-    wpuściło dwa budynki jako „sylwetki stron". Każdy plasterek assetowy wiąże
-    plik z jego *źródłem* w `CREDITS.md` (konkretna ścieżka w paczce) i z
-    maszynowo sprawdzalnym kształtem, a człowiek ogląda obrazek przy review.
-    Szczególny przypadek wniosku 13.
-12. **Jedna paczka nie wystarczy — świadome odstępstwo od [P]:** Hexagon Pack
-    nie ma postaci, więc sylwetki przyszły z RTS Packa: Medieval, a strony
-    rozróżnia **para różnych plików**, nie tint (zaszarza pokolorowaną figurkę).
-13. **Zielony zestaw testów nie dowodzi grywalności.** Każdy przegląd i
-    plasterek domykający kamień kończymy pełną sekwencją gracza na żywym moście,
-    a po K88 także na pakiecie, który dostaje odbiorca.
-14. **Legalny wynik bitwy nie może docierać jako błąd rozkazu.** K89 domknął
-    kontrakt wyniku przed zmianą ruchu; ten wzorzec rozdzielania kontraktu od
-    reguły zostaje.
-15. **Pozycja startowa jest regułą gry, nie odłożonym balansem.** Symetryczny
-    start K90 był warunkiem rozpoczęcia pętli sandboxa.
-16. **Gracz i AI muszą przechodzić przez te same reguły świata.** K90/K91
-    ujednoliciły los bohatera i synchronizację po akcji; sprawdzamy ten warunek
-    przy każdej kolejnej regule wykonywanej przez driver.
-17. **Jedna osada na stronę jest za mała na opisany sandbox.** Pierwsza
-    przegrana bitwa kończy księstwo, zanim ekonomia i decyzje nabiorą znaczenia.
-    Następny krok to minimalne dwie osady na stronę w pięciu regionach, nie
-    duża mapa ani strojenie liczb.
-18. **Obrona osady była blokadą skalowania; G92.1 ją usunęło.** Oddział w
-    regionie osady walczy po stronie jej garnizonu, ocalali zachowują
-    pochodzenie, a sekwencja `muster` → dwie tury przechodzi na żywym moście.
-    Skrajny stan z oddziałem niebędącym obrońcą pozostaje odłożony, dopóki nie
-    pojawi się trzecie księstwo lub reprodukcja w normalnej partii.
-19. **Pięć regionów wystarczyło, by odsłonić brak sterowania, nie defekt
-    skalowania.** G92.2a przechodzi testy rdzenia i e2e Godota; na seedzie 73
-    naturalna sekwencja zdobywa pierwszą z dwóch osad AI, pokazuje trwającą
-    partię i wznawia ją z pliku. Następna wartość leży w wyborze celu na
-    istniejącej mapie, nie w dalszym powiększaniu świata.
-20. **`march` i wybór kafla mają różne kontrakty.** Zachowany `march` idzie ku
-    odległej osadzie; osobny `move` robi dokładnie jeden krok do wskazanego
-    sąsiada bez wejścia do wrogiej osady. Pozostałe rozkazy zachowują reguły.
-21. **Obecność tekstur nie dowodzi osiągniętego wyglądu.** Screenshot 1152×648
-    ujawnił, że K87 zostawił rozłączne kafle, napisy na budynkach, dominującą
-    szarą pustkę i sterowanie poza ekranem. Od teraz każdy przyrost oprawy ma
-    dowód wizualny; test `Texture2D` pozostaje tylko bramką techniczną.
-22. **K94–G96 potwierdziły, że oprawę można poprawiać bez ruszania reguł.**
-    Siatka, osady, ikony i sylwetki obu armii wykorzystały istniejący snapshot.
-    Kolejna wartość wymaga już wejścia użytkownika, ale reguła bezpiecznego
-    kroku istnieje; rozszerzamy tylko najwęższą ścieżkę most→wybór→feedback.
-23. **K97 potwierdziło najwęższą ścieżkę celu.** `move(target)`, zaznaczenie,
-    hover, panel, przycisk i trzy skutki e2e powstały bez zmiany reguł.
-24. **Rolę assetu potwierdza obraz/źródło, nie nazwa.**
-    `terrain_plains.png` to heks 120×140, `terrain_forest.png` — drzewo 26×40,
-    a `terrain_hills.png` — skała 74×92. Bazowy heks buduje siatkę; pozostałe
-    pliki są dekoracjami bez rozciągania.
-25. **Lokalnie poprawny widok nie gwarantuje spójnego całego ekranu.** K98
-    wyraźnie poprawił bitwę, lecz screenshot pełnej sceny odsłonił skalę mapy,
-    duplikację listy regionów, domyślne szare chrome i słaby kontrast ikon.
-    Następne przyrosty oceniamy na pełnym ekranie świeżej partii i bitwy, nie
-    tylko na wyciętym komponencie.
-26. **Tabliczki na kaflach ≠ pełna warstwa PL.** Jedno mapowanie PL dla
-    *wszystkich* etykiet; kanon tylko w kontrakcie (domknięte w K100).
-27. **K100 domknął residualny prototyp K99 bez ruszania kontraktu.** Screenshot
-    ujawnił kolejną warstwę: `ColorRect` własności i tekstowy status. Kolejny
-    batch to herby/status/baner, nie reguły.
-28. **K101→K102:** residual `ColorRect`/ciemny HUD tabliczek/PŻ/panel/
-    feedback domknięte bez reguł. Po `task-575` zostaje: jasne `StyleBoxFlat`
-    przycisków i legendy oraz kreskówkowy obrys Kenney na kaflach → K103.
+**Wnioski kierunkowe** *(1–12 skrócone z K82–K88; detale → DECISIONS/BACKLOG)*:
+1. Ścieżka rozkazu jest sparametryzowana — „kolejny przycisk" nie zbliża do celu.
+2. Godot 4.2.2 bez `OS.execute_with_pipe`: one-shot + plik stanu (`--resume`).
+3. Kontrakt po jednym polu/grupie ratuje mikro-TDD.
+4. **Dowód „działa" dotyczy tylko artefaktu, na którym go zrobiono** (dev ≠ PCK).
+5. `battle.hexes` = tylko heksy z jednostkami; pełna siatka = późniejsza zmiana mostu.
+6. Prostokąt ≠ MVP; K84/85 geometria, K87 nośnik — podmiana nośnika nie rusza geometrii.
+7. Toolchain (import/eksport) jako osobna bramka przed treścią.
+8. **Teren tylko w bitwie** — `Region` bez terenu; teren mapy = zmiana rdzenia+mostu.
+9. Warianty: tekstura + `modulate`, nie osobny plik na wariant.
+10. **Pakiet bez własnego Pythona** — systemowy `python3` + czytelny brak.
+11. **„Plik się ładuje" ≠ poprawna treść obrazka** — CREDITS + kształt + review człowieka.
+12. **Odstępstwo od [P]:** Hexagon Pack bez postaci → RTS Medieval; strony = para plików, nie tint.
+13. **Zielone testy ≠ grywalność** — sekwencja gracza na żywym moście (+ pakiet po K88).
+14. Legalny wynik bitwy ≠ błąd rozkazu (K89: kontrakt przed regułą ruchu).
+15. Pozycja startowa to reguła gry (K90), nie odłożony balans.
+16. Gracz i AI przez te same reguły świata (K90/K91).
+17. Jedna osada/stronę za mała — min. dwie w pięciu regionach (K92.2), nie duża mapa.
+18. Obrona osady odblokowała skalowanie (G92.1); skraj z oddziałem nie-obrońcą odłożony.
+19. 5 regionów odsłoniło brak sterowania, nie defekt skali — wartość w wyborze celu.
+20. `march` (ku osadzie) ≠ `move` (jeden krok do sąsiada, bez wrogiej osady).
+21. **Tekstury ≠ osiągnięty wygląd** — każdy przyrost oprawy z dowodem wizualnym 1152×648.
+22. Oprawę da się poprawiać bez reguł (K94–G96); reguła kroku jest — najwęższa ścieżka.
+23. K97: `move(target)` + UI/e2e bez zmiany reguł.
+24. **Rola assetu = obraz/źródło, nie nazwa** (`plains`=heks 120×140; forest/hills=dekoracje).
+25. Lokalny widok ≠ spójny ekran — ocena na pełnej scenie świeżej partii/bitwy.
+26. Tabliczki ≠ pełna warstwa PL — jedno mapowanie (`WorldPresentation`); kanon w kontrakcie (K100).
+27. K100→K101: po teatrze kolejna warstwa to herby/status/baner, nie reguły.
+28. K101→K102: residual `ColorRect`/ciemny HUD tabliczek/PŻ/panel/feedback → bez reguł.
+29. **K103:** flat sterowania/legendy + obrys podłoża domknięte; residual Kenney na
+    osadach/dekoracjach/sylwetkach (+ cue PŻ) → **K104**.
 
 ## Klimat, ton, kierunek wizualny
 Średniowiecze **bez magii i fantastyki**, surowy i realistyczny ton. **[W]**
-Interfejs i teksty po polsku (tak jest w kliencie i tak zostaje). **[P]**
+Interfejs i teksty po polsku. **[P]**
 
-Wizualnie: spójna grafika 2D w Godocie — mapa regionów/osad/armii oraz siatka
-heksów z jednostkami i terenem. Nie celujemy w AAA ani dźwięk; celem jest
-czytelna, wyraźnie mniej prototypowa gra o średniowiecznym, realistycznym
-charakterze. Oba widoki, prawdziwe tekstury i spójność/czytelność są **[W]**;
-konkretna technika i paczka są **[P]**.
+Wizualnie: spójna 2D w Godocie — mapa regionów/osad/armii i siatka heksów.
+Nie AAA ani dźwięk; czytelna, mniej prototypowa gra. Oba widoki, prawdziwe
+tekstury i spójność/czytelność = **[W]**; technika i paczka = **[P]**.
 
-Kierunek doboru assetów: czytelne kafle terenu, osady, ikony i sylwetki w
-średniowiecznej, nie-fantastycznej stylistyce (bez smoków, magów, elfów).
-Realistyczny ton jest ważniejszy niż kreskówkowość; spójna rodzina bije zlepek
-ładnych pojedynczych obrazków. Obecne Kenney jest przejściowym minimum
-technicznym i może być wymieniane etapami. **[P]**
+Dobór assetów: średniowieczne, nie-fantastyczne; realistyczny ton > kreskówka;
+spójna rodzina > zlepek ładnych obrazków. Kenney = przejściowe minimum,
+wymieniane etapami. **[P]**
 
-Obowiązująca kolejność poprawy: (1–10) ~~mapa, osady, tło, ikony, armie,
-cel, bitwa, hierarchia, PL/teatr, herby/status/baner~~ — zrobione; (11)
-~~pergaminowe tabliczki/PŻ/panel/feedback~~ — zrobione (K102); (12)
-teksturowane przyciski rozkazów i legenda (residualne jasne `StyleBoxFlat`)
-oraz spójniejsze podłoże mapy/bitwy bez jaskrawego obrysu Kenney.
-**[W]**
+Kolejność poprawy: (1–12) ~~mapa…herby, tabliczki/PŻ/panel, przyciski/legenda,
+podłoże bez obrysu~~ — zrobione (K94–K103); (13) residualny Kenney na pergaminie:
+keep/outpost, dekoracje bitwy, sylwetki + cue strony bez `StyleBoxFlat` — bez
+reguł/mostu. **[W]**
 
 ## Sugestie autora briefu
-- `godot-notes.md` (przykładowe node'y, szkic API, podział scen, kolejność prac)
-  jest **niewiążące** — inspiracja, nie specyfikacja.
-- Klient HTML/SVG `tbbui` zostaje jako narzędzie diagnostyczne; nie rozwijamy go
-  jako produktu (patrz wstrzymany K62).
-- Autor prosi też o **posprzątanie repo gry** — sondy testowe wymieszane z kodem
-  produkcyjnym w `game/scripts/`, wersjonowane artefakty w `out/`. **[P]**
-  *(zrobione: R82.1)*
-- **Assety i tekstury przesądzają o tym, czy MVP jest prawdziwe** (feedback
-  2026-07-27). Autor nie żąda bogactwa treści — „nie musi być dużo budynków /
-  rodzajów jednostek / terenu" — tylko żeby to, co jest, było narysowane
-  sensownymi, prawdziwymi assetami. Traktujemy to jako **[W]**, nie sugestię.
-- Zmiana briefu 2026-07-30 ustanawia bezwyjątkową bramkę 4 zadań graficznych
-  na batch aż do ludzkiej akceptacji screenshotów. K87 nie kończy rozwoju
-  oprawy. **[W]**
+- `godot-notes.md` jest **niewiążące** — inspiracja, nie specyfikacja.
+- `tbbui` zostaje diagnostyką; nie rozwijamy go jako produktu (wstrzymany K62).
+- Porządek repo gry (sondy vs produkcja, `out/`) — **[P]** *(zrobione: R82.1)*.
+- **Assety przesądzają o prawdziwym MVP** (2026-07-27) — **[W]**, nie sugestia.
+- Brief 2026-07-30: bramka 4 zadań graficznych/batch do ludzkiej akceptacji;
+  K87 nie kończy oprawy. **[W]**
 
 ## Kolejne prawdopodobne etapy
-1. ~~K82–K86: start, układ, widoki, save/load~~ — **zrobione**.
-2. **K87: minimum assetów** — gotowe technicznie; próg wizualny nie.
-3. ~~K88–K92: pakiet, bitwa, pętla, obrona, 5 regionów~~ — **domknięte**.
-4. ~~K94–K102: oprawa mapy/bitwy, ikony, armie, cel, hierarchia, PL/teatr,
-   herby/status/baner, tabliczki/PŻ/panel/feedback~~ — **zrobione**.
-5. **Przyciski, legenda i podłoże** (K103) — residualne jasne `StyleBoxFlat`
-   sterowania/legendy oraz jaskrawy obrys Kenney na kaflach; bez reguł/mostu.
-6. **Nowa partia z UI po zakończonej grze** — most ma `new_game`, scena nie.
-   Odłożone do końca priorytetu graficznego / progu wizualnego.
+1. ~~K82–K86~~ — **zrobione**.
+2. **K87** — minimum assetów gotowe technicznie; próg wizualny nie.
+3. ~~K88–K92~~ — **domknięte**.
+4. ~~K94–K103~~ — **zrobione** (oprawa aż po stonowane podłoże).
+5. **K104 — residualny Kenney** — keep/outpost, dekoracje bitwy, sylwetki i cue
+   strony w tonie pergaminu; bez reguł/mostu. Potem ludzka akceptacja progu
+   (jawny zapis tu i w `BACKLOG.md`).
+6. **Nowa partia z UI po końcu gry** — most ma `new_game`, scena nie. Odłożone
+   do końca priorytetu graficznego / progu wizualnego.
 
 ## Świadomie odłożone
-- Scenariuszowa kampania/fabuła, multiplayer, magia, oddziały masowe, grafika
-  AAA i dźwięk, edytor map — **poza zakresem** (brief).
-- Rozbudowa alertu gospodarczego w HTML (K62) — **wstrzymana**, klient HTML jest
-  tylko diagnostyką.
-- Bogatszy model ran/terenu/budynków, więcej typów jednostek, balans i strojenie
-  AI, pełna maszyna faz `StrategicTurn` — po domknięciu widocznej, grywalnej gry.
-  **Uwaga na granicę:** minimalna skala świata K92.2 nie jest balansem; bez niej
-  nie ma czego stroić.
-- Obsługa szturmu na osadę zajętą przez oddział niebędący jej obrońcą (G92.1c)
-  — wraca wraz z trzecim księstwem albo reprodukcją w normalnej partii.
-- Podział przerośniętych dokumentów (`ARCHITECTURE.md` ~119 KB, `DECISIONS.md`
-  ~74 KB, `DESIGN.md` ~28 KB) — dług dokumentacji, nie blokuje celu.
-- Do osiągnięcia progu wizualnego: niezależne nowe reguły, AI, ekonomia, walka,
-  ruch, rozkazy, protokół/snapshot/most, rdzeń Python, save/load, porządki repo
-  i dokumentacja niezwiązana z oprawą. Wyjątek tylko dla niezbędnej zależności
-  konkretnego zadania graficznego w granicach batcha.
+- Kampania/fabuła, multiplayer, magia, oddziały masowe, AAA, dźwięk, edytor map
+  — **poza zakresem**.
+- Alert gospodarczy HTML (K62) — **wstrzymany** (diagnostyka).
+- Bogatszy model ran/terenu/budynków, więcej jednostek, balans/AI,
+  `StrategicTurn` — po widocznej, grywalnej grze. Skala K92.2 ≠ balans.
+- Szturm na osadę z oddziałem nie-obrońcą (G92.1c) — z 3. księstwem lub reprodukcją.
+- Podział dużych docs (ARCHITECTURE/DECISIONS/DESIGN) — dług, nie blokuje celu.
+- Do progu wizualnego: niezależne reguły, AI, ekonomia, walka, ruch, rozkazy,
+  protokół/most, rdzeń, save/load, porządki i docs poza oprawą — wyjątek tylko
+  dla niezbędnej zależności konkretnego zadania graficznego w batchu.

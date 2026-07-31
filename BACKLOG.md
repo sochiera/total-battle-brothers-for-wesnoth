@@ -1213,63 +1213,91 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
 > plakietki PŻ, rama panelu wyboru, wstęga feedbacku; próg wizualny nadal
 > nieosiągnięty.
 
-## Kamień milowy 103 — sterowanie, legenda i podłoże bez residualnego flat — PRIORYTET
+## Kamień milowy 103 — sterowanie, legenda i podłoże bez residualnego flat — UKOŃCZONY
+> **UKOŃCZONE.** K103 domknął residualne jasne `StyleBoxFlat` sterowania
+> i legendy oraz jaskrawy obrys Kenney na podłożu mapy/bitwy — bez reguł
+> /mostu. Screenshoty `task-579-fresh-order-states`,
+> `task-579-visible-battle`, `task-581-map-grounds` (1152×648) potwierdzają
+> przyrost; pełny ekran ujawnia następną warstwę: plastyczne keep/outpost,
+> kreskówkowe dekoracje bitwy i top-downowe sylwetki Kenney na pergaminie
+> — zakres K104.
+- [x] **G103.1a [GRAFIKA] — przyciski rozkazów mają teksturowany nośnik, nie
+      `StyleBoxFlat`.** `order_button_panel.png` jako `StyleBoxTexture` +
+      `modulate` stanów normal/hover/pressed na całym pasku.
+      *(commit 0f781f3; screenshoty `task-579-*`)*
+- [x] **G103.1b [GRAFIKA] — legenda właścicieli ma teksturowaną ramę, nie
+      `StyleBoxFlat`.** `owner_legend_panel.png`; herby i etykiety PL bez
+      zmian treści. *(commit dd01e96)*
+- [x] **G103.1c [GRAFIKA] — podłoża mapy strategicznej bez kreskówkowego
+      obrysu Kenney.** Trzy stonowane `map_ground_{grass,earth,stone}.png`
+      w tonie pergaminu; deterministyczny wybór z `col`/`row` bez zmian.
+      *(commit 5d33cc4; screenshot `task-581-map-grounds-1152x648`)*
+- [x] **G103.1d [GRAFIKA] — bazowy heks bitwy spójny z podłożem mapy.**
+      `terrain_plains.png` 120×140 pointy-top z tej samej rodziny; dekoracje
+      drzewa/skały bez rozciągania. *(commit 9871482)*
+> **K103 — UKOŃCZONY** *(commity 0f781f3…9871482)*: teksturowane przyciski
+> i legenda, stonowane podłoże mapy i bitwy; próg wizualny nadal
+> nieosiągnięty (residualny Kenney na osadach/dekoracjach/sylwetkach +
+> brak ludzkiej akceptacji).
+
+## Kamień milowy 104 — residualny Kenney w tonie pergaminu — PRIORYTET
 > **Najcieńszy następny plasterek: cztery zadania graficzne, zero
-> mechanicznych.** Po K102 ciemny HUD tabliczek/PŻ/panelu/feedbacku zniknął,
-> ale pełny ekran (`task-575-*` 1152×648 + kod) wciąż zdradza prototyp w
-> czterech miejscach: (1) wszystkie przyciski paska rozkazów budują
-> `StyleBoxFlat` w `_make_order_button_style` (G99.1d — jasny pergaminowy
-> flat, nie tekstura), (2) legenda właścicieli to `Panel` z `StyleBoxFlat`
-> (`map_view.gd` `_refresh_owner_legend`), (3) trzy `map_ground_*.png`
-> z Kenney Hexagon Pack mają jaskrawy zielony/obcy obrys heksu, który
-> kłóci się z pergaminowym teatrem, (4) bazowy heks bitwy
-> `terrain_plains.png` niesie ten sam kreskówkowy obrys, więc mapa i bitwa
-> nie spięły się wizualnie z oprawą UI. K103 domyka wyłącznie prezentację —
-> bez reguł, mostu, `new_game` i bez dorysowywania pustych heksów bitwy.
-> Bramka 4 graficzne / 0 mechanicznych. Review na żywym pięcioregionowym
-> świecie z etykietami PL (`WorldPresentation`), nie na uproszczonym fixture.
-- [ ] **G103.1a [GRAFIKA] — przyciski rozkazów mają teksturowany nośnik, nie
-      `StyleBoxFlat`.** Zastąpić `_make_order_button_style` / stany
-      normal/hover/pressed konkretnymi assetami z jednej rodziny
-      (np. `order_button_normal.png`, `order_button_hover.png`,
-      `order_button_pressed.png` albo jeden panel + `modulate` stanów) jako
-      `StyleBoxTexture` (lub równoważny nośnik tekstury) na **wszystkich**
-      bieżących przyciskach paska (tura, osada, pole, zapis/odczyt). Ikony
-      Game-icons i polskie etykiety bez zmian; stany pozostają rozróżnialne
-      wzrokowo. Akceptacja: test `has_theme_stylebox_override` + brak
-      solidnego `StyleBoxFlat` tła, screenshot 1152×648 paska (normal + co
-      najmniej jeden stan hover lub pressed jeśli da się w headless/
-      review), ludzkie review; źródło, autor, licencja i ścieżka każdego
-      pliku w `CREDITS.md`. *(standard; ryzyko: czytelność ikon na
-      teksturze i padding przy 1152×648)*
-- [ ] **G103.1b [GRAFIKA] — legenda właścicieli ma teksturowaną ramę, nie
-      `StyleBoxFlat`.** Zastąpić panel legendy (`OwnerLegendPanel` +
-      `StyleBoxFlat` w `_refresh_owner_legend`) assetem
-      `owner_legend_panel.png` (pergamin/drewno spójne z teatrem mapy i
-      kartą statusu); herby `owner_mark_*` i polskie etykiety Gracz/
-      Neutralny/Wróg bez zmian treści. Legenda nie zasłania heksów ani
-      nazw regionów. Akceptacja: test layoutu legendy + screenshot 1152×648
-      świeżej partii, ludzkie review; atrybucja w `CREDITS.md`.
-      *(standard; ryzyko: skalowanie przy `_layout_scale`)*
-- [ ] **G103.1c [GRAFIKA] — podłoża mapy strategicznej bez kreskówkowego
-      obrysu Kenney.** Podmienić (lub retuszować w miejscu) trzy warianty
-      `map_ground_grass.png`, `map_ground_earth.png`,
-      `map_ground_stone.png` tak, by zachować heks i deterministyczny wybór
-      z `col`/`row`, ale usunąć jaskrawy zielony/obcy rim i zbliżyć ton do
-      teatru/pergaminu (średniowieczny, czytelny, nie-fantastyczny). Nadal
-      wyłącznie dekoracja — bez mechanicznego terenu regionu. Akceptacja:
-      import/ładowanie, screenshot 1152×648 pięciu regionów z ≥3 wariantami,
-      ludzkie review spójności z ramą teatru; per-plikowe źródło/licencja
-      w `CREDITS.md` (nowe lub zaktualizowane ścieżki). *(standard; ryzyko:
-      dobór/licencja assetów, regresja geometrii styku heksów)*
-- [ ] **G103.1d [GRAFIKA] — bazowy heks bitwy spójny z podłożem mapy.**
-      Podmienić `terrain_plains.png` (baza 120×140 pointy-top) na asset z
-      tej samej rodziny wizualnej co G103.1c — bez jaskrawego obrysu, z
-      zachowaniem rozmiaru bazowego heksu (testy geometrii K98: wspólny
-      120×140, dekoracje drzewa/skały bez rozciągania). Sylwetki stron i
-      plakietki PŻ bez zmian kontraktu. Akceptacja: fixture bitwy +
-      screenshot 1152×648, ludzkie review spójności mapa↔bitwa; atrybucja
-      w `CREDITS.md`. *(standard; ryzyko: geometria i z-order dekoracji)*
+> mechanicznych.** Po K103 UI i podłoże spięły się z teatrem, ale
+> screenshoty 1152×648 (`task-581-map-grounds` + `task-579-visible-battle`
+> sprzed/obok G103.1d) i pliki w `game/assets/` wciąż zdradzają **inną
+> rodzinę wizualną** na pergaminie: (1) `settlement_keep.png` /
+> `settlement_outpost.png` — plastyczny, jasny isometric Kenney z
+> wtopioną jaskrawą zielenią, (2–3) `terrain_forest.png` (drzewo 26×40) i
+> `terrain_hills.png` (skała 74×92) — kreskówkowe dekoracje Hexagon Pack
+> na nowym stonowanym `terrain_plains`, (4) `party_*_unit.png` /
+> `side_*.png` — top-downowe figurki RTS Pack, czytelne, lecz stylistycznie
+> oderwane od pergaminu i od isometricznych osad. K104 domyka wyłącznie
+> prezentację — bez reguł, mostu, `new_game`, bez dorysowywania pustych
+> heksów bitwy i bez mechanicznego terenu regionu. Bramka 4 graficzne /
+> 0 mechanicznych. Review na żywym pięcioregionowym świecie z etykietami
+> PL (`WorldPresentation`) oraz na fixture bitwy z trzema terenami.
+- [ ] **G104.1a [GRAFIKA] — keep i outpost w tonie pergaminu, nie plastiku
+      Kenney.** Podmienić (lub retuszować w miejscu) `settlement_keep.png`
+      i `settlement_outpost.png` na spójną, średniowieczną, możliwie
+      realistyczną parę CC0/CC-BY bez jaskrawej zieleni i bez „białego
+      klocka" Kenney; `MapView` nadal dobiera je z istniejącej nazwy osady
+      (`keep`/`outpost`), nie tintuje całego budynku kolorem właściciela,
+      nie zasłania tabliczek/herbów/armii. Akceptacja: obie osady widoczne
+      jednocześnie w natywnym Godocie, screenshot 1152×648 świeżej partii
+      (pięć regionów), ludzkie review spójności z `map_ground_*` i teatrem;
+      per-plikowe źródło/licencja w `CREDITS.md`. *(standard; ryzyko:
+      dobór/licencja assetów, czytelność w małej skali kafla)*
+- [ ] **G104.1b [GRAFIKA] — drzewo i skała bitwy w tej samej rodzinie co
+      podłoże.** Podmienić `terrain_forest.png` i `terrain_hills.png` na
+      dekoracje (nie pełne heksy) spójne z G103.1d / `terrain_plains` —
+      zachować natywny, nierozciągany rozmiar i kotwiczenie w heksie
+      (kontrakt K98: baza 120×140 pointy-top, dekoracja `native_rect`).
+      `Plains` nadal bez dekoracji. Akceptacja: fixture z trzema terenami
+      + obie strony, test pinujący role/rozmiary, screenshot 1152×648,
+      ludzkie review spójności mapa↔bitwa; atrybucja obu plików w
+      `CREDITS.md`. *(standard; ryzyko: z-order i czytelność pod
+      sylwetką)*
+- [ ] **G104.1c [GRAFIKA] — sylwetki armii i stron w jednej, czytelnej
+      rodzinie.** Podmienić (lub retuszować) parę mapy
+      `party_player_unit.png` / `party_ai_unit.png` oraz parę bitwy
+      `side_attacker.png` / `side_defender.png` na spójne, średniowieczne,
+      nie-fantastyczne figurki CC0/CC-BY rozróżnialne wzrokowo po pliku
+      (nie samym tincie — wniosek 12). `MapView` nadal mapuje z
+      `region.party.owner`, `BattleView` z `side`; bez zmian snapshotu.
+      Akceptacja: screenshot mapy z obu armiami i bitwy z obu stron +
+      PŻ, ludzkie review czytelności w małej skali; per-plikowe źródło
+      i licencja w `CREDITS.md` (konkretna ścieżka w paczce). *(standard;
+      ryzyko: dobór/licencja, spójność stylu z G104.1a/b)*
+- [ ] **G104.1d [GRAFIKA] — cue strony w bitwie bez residualnego
+      `StyleBoxFlat`.** Zastąpić obramowanie `StyleBoxFlat` na plakietce
+      PŻ (`_hp_marker_style` w `battle_view.gd`) teksturowanym nośnikiem
+      strony (np. `battle_side_base_attacker.png` /
+      `battle_side_base_defender.png` albo para obramowań pod
+      `LabelTextureCarrier` / sylwetką) — fill pozostaje przezroczysty
+      albo z assetu, strony rozróżnialne bez solid flat. Akceptacja:
+      fixture obu stron z różnym `hp`, screenshot 1152×648, test braku
+      solidnego tła `StyleBoxFlat` na `HpMarker`, ludzkie review; atrybucja
+      w `CREDITS.md`. *(standard; ryzyko: z-order plakietka/sylwetka)*
 
 ## Dług/refaktor
 - [x] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
@@ -1301,15 +1329,18 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
   **wykonane**.
 - ~~K101: herby, hierarchia statusu, baner bitwy~~ — **wykonane**.
 - ~~K102: tabliczki, PŻ, panel wyboru, feedback rozkazu~~ — **wykonane**.
-- **Teraz K103:** teksturowane przyciski rozkazów i legenda właścicieli
-  (residualne jasne `StyleBoxFlat`) oraz spójniejsze podłoże mapy/bitwy bez
-  jaskrawego obrysu Kenney — widoczne po K102 na `task-575-*` i w kodzie.
+- ~~K103: przyciski/legenda teksturowane, podłoże mapy/bitwy bez obrysu
+  Kenney~~ — **wykonane**.
+- **Teraz K104:** residualny Kenney na pergaminie — keep/outpost, dekoracje
+  bitwy (drzewo/skała) i sylwetki armii/stron oraz cue strony bez
+  residualnego `StyleBoxFlat` na PŻ; widoczne po K103 na `task-581` /
+  `task-579` i w plikach `game/assets/`.
 - ~~Zapis/odczyt z UI: jawne „Zapisz”/„Wczytaj”~~ — rozplanowane jako K86.
 - ~~Prawdziwe assety i tekstury zamiast `ColorRect`~~ — rozplanowane jako K87.
-- Assety pozostałych elementów sceny — K87–K102 dały nośnik, mapę, bitwę,
-  hierarchię, PL/teatr, herby i pergaminowe plakietki; K103 usuwa residualny
-  flat sterowania/legendy i kreskówkowy obrys kafli, zanim próg wizualny
-  będzie mógł dostać ludzką akceptację.
+- Assety pozostałych elementów sceny — K87–K103 dały nośnik, mapę, bitwę,
+  hierarchię, PL/teatr, herby, plakietki, sterowanie i stonowane podłoże;
+  K104 spina residualną treść Kenney (osady/dekoracje/sylwetki) z
+  pergaminem, zanim próg wizualny będzie mógł dostać ludzką akceptację.
 - **Mechaniczny teren regionu na mapie strategicznej — ODŁOŻONY DO PROGU
   WIZUALNEGO.** `tbb.world.Region` ma dziś tylko
   `name`, więc `snapshot.map_state` nie ma czego wystawić i kafel mapy w K87
