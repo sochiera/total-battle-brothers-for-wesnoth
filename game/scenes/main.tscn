@@ -159,10 +159,50 @@ theme_override_colors/font_color = Color(0.22, 0.12, 0.06, 1)
 theme_override_font_sizes/font_size = 16
 text = "Wybrany region"
 
-[node name="SelectedRegionDetailsLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent/SelectedRegionPanel/SelectedRegionContent"]
+[node name="SelectedRegionEmptyLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent/SelectedRegionPanel/SelectedRegionContent"]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.18, 0.11, 0.06, 1)
+autowrap_mode = 2
+text = "Nie wybrano regionu"
+
+[node name="SelectedRegionNameLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent/SelectedRegionPanel/SelectedRegionContent"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.18, 0.11, 0.06, 1)
+autowrap_mode = 2
+text = ""
+
+[node name="SelectedRegionOwnerLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent/SelectedRegionPanel/SelectedRegionContent"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.18, 0.11, 0.06, 1)
+autowrap_mode = 2
+text = ""
+
+[node name="SelectedRegionSettlementLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent/SelectedRegionPanel/SelectedRegionContent"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.18, 0.11, 0.06, 1)
+autowrap_mode = 2
+text = ""
+
+[node name="SelectedRegionArmyLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent/SelectedRegionPanel/SelectedRegionContent"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.18, 0.11, 0.06, 1)
+autowrap_mode = 2
+text = ""
+
+[node name="SelectedRegionDetailsLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+mouse_filter = 2
 theme_override_colors/font_color = Color(0.18, 0.11, 0.06, 1)
 autowrap_mode = 2
 text = "Nie wybrano regionu"

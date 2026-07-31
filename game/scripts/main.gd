@@ -310,20 +310,57 @@ func _update_march_button_label(region_name: String) -> void:
 
 
 func _update_selected_region_panel(regions: Array) -> void:
-	%SelectedRegionDetailsLabel.text = _selected_region_details_text(
-		_find_selected_region(regions)
-	)
-
-
-func _selected_region_details_text(selected_region: Dictionary) -> String:
-	if selected_region.is_empty():
-		return "Nie wybrano regionu"
-	return "Nazwa: %s\nWłaściciel: %s\nOsada: %s\nArmia: %s" % [
-		WorldPresentation.region_label(str(selected_region.get("name", ""))),
-		_side_text(selected_region.get("owner")),
-		_settlement_text(selected_region.get("settlement")),
-		_party_text(selected_region.get("party")),
+	# Hierarchical panel rows inside SelectedRegionPanel; hidden
+	# SelectedRegionDetailsLabel outside the panel mirrors joined text for
+	# older e2e/march probes that still read a single multiline string.
+	const EMPTY_PL := "Nie wybrano regionu"
+	var selected_region: Dictionary = _find_selected_region(regions)
+	var detail_rows: Array[Label] = [
+		%SelectedRegionNameLabel,
+		%SelectedRegionOwnerLabel,
+		%SelectedRegionSettlementLabel,
+		%SelectedRegionArmyLabel,
 	]
+	var details_mirror: Label = %SelectedRegionDetailsLabel
+	var empty_label: Label = %SelectedRegionEmptyLabel
+
+	if selected_region.is_empty():
+		empty_label.text = EMPTY_PL
+		empty_label.visible = true
+		_set_selected_region_detail_rows(detail_rows, [])
+		details_mirror.text = EMPTY_PL
+		return
+
+	var row_texts: Array[String] = _selected_region_detail_row_texts(selected_region)
+	empty_label.text = ""
+	empty_label.visible = false
+	_set_selected_region_detail_rows(detail_rows, row_texts)
+	details_mirror.text = "\n".join(row_texts)
+
+
+func _selected_region_detail_row_texts(selected_region: Dictionary) -> Array[String]:
+	return [
+		"Nazwa: %s" % WorldPresentation.region_label(
+			str(selected_region.get("name", ""))
+		),
+		"Właściciel: %s" % _side_text(selected_region.get("owner")),
+		"Osada: %s" % _settlement_text(selected_region.get("settlement")),
+		"Armia: %s" % _party_text(selected_region.get("party")),
+	]
+
+
+func _set_selected_region_detail_rows(
+	rows: Array[Label], texts: Array[String]
+) -> void:
+	var show_rows: bool = not texts.is_empty()
+	for index: int in range(rows.size()):
+		var label: Label = rows[index]
+		if show_rows and index < texts.size():
+			label.text = texts[index]
+			label.visible = true
+		else:
+			label.text = ""
+			label.visible = false
 
 
 func _find_selected_region(regions: Array) -> Dictionary:

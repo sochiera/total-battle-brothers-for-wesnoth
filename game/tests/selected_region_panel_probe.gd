@@ -237,6 +237,7 @@ func _panel_snapshot(scene_root: Node) -> Dictionary:
 			"found": true,
 			"carrier": "SelectedRegionPanel",
 			"text": joined,
+			"label_texts": _label_texts(panel),
 			"visible": panel is CanvasItem and (panel as CanvasItem).is_visible_in_tree(),
 		}
 
@@ -253,15 +254,20 @@ func _panel_snapshot(scene_root: Node) -> Dictionary:
 
 
 func _join_label_texts(root: Node) -> String:
-	var parts: PackedStringArray = PackedStringArray()
+	return "\n".join(_label_texts(root))
+
+
+func _label_texts(root: Node) -> Array[String]:
+	var parts: Array[String] = []
 	_collect_label_texts(root, parts)
-	return "\n".join(parts)
+	return parts
 
 
-func _collect_label_texts(node: Node, parts: PackedStringArray) -> void:
+func _collect_label_texts(node: Node, parts: Array[String]) -> void:
 	if node is Label:
-		var text: String = (node as Label).text
-		if not text.is_empty():
+		var label: Label = node as Label
+		var text: String = label.text
+		if label.is_visible_in_tree() and not text.is_empty():
 			parts.append(text)
 	for child: Node in node.get_children():
 		_collect_label_texts(child, parts)

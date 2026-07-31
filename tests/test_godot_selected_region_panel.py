@@ -22,6 +22,7 @@ OWNER_AI_RE = re.compile(r"\bai\b|wr[oó]g", re.IGNORECASE)
 OWNER_NEUTRAL_RE = re.compile(r"neutraln|brak właścic", re.IGNORECASE)
 SETTLEMENT_ABSENT_RE = re.compile(r"brak osady|bez osady|osada:\s*brak", re.IGNORECASE)
 PARTY_ABSENT_RE = re.compile(r"brak armii|bez armii|armia:\s*brak|brak oddziału", re.IGNORECASE)
+DETAIL_ROW_PREFIXES = ("Nazwa:", "Właściciel:", "Osada:", "Armia:")
 
 
 def _load_panel() -> dict:
@@ -48,6 +49,50 @@ def _assert_panel_visible(step: dict, *, phase: str) -> None:
 
 def _assert_titled(text: str, *, phase: str) -> None:
     assert TITLE in text, f"{phase}: panel must keep title {TITLE!r}, got {text!r}"
+
+
+def _assert_distinct_detail_rows(step: dict, *, phase: str) -> None:
+    labels = [str(text) for text in (step or {}).get("label_texts") or []]
+    matched = [
+        text
+        for text in labels
+        if any(prefix in text for prefix in DETAIL_ROW_PREFIXES)
+    ]
+    assert len(matched) == len(DETAIL_ROW_PREFIXES), (
+        f"{phase}: name, owner, settlement and army must be four distinct "
+        f"visible rows, got label_texts={labels!r}"
+    )
+    assert all(
+        sum(prefix in text for prefix in DETAIL_ROW_PREFIXES) == 1
+        for text in matched
+    ), (
+        f"{phase}: a single multiline label is still an undifferentiated text "
+        f"wall, got detail rows={matched!r}"
+    )
+    assert [
+        next(prefix for prefix in DETAIL_ROW_PREFIXES if prefix in text)
+        for text in matched
+    ] == list(DETAIL_ROW_PREFIXES), (
+        f"{phase}: detail rows must keep name → owner → settlement → army order, "
+        f"got detail rows={matched!r}"
+    )
+    assert EMPTY_STATE not in labels and EMPTY_STATE not in _text(step), (
+        f"{phase}: selected state must hide {EMPTY_STATE!r}, "
+        f"got label_texts={labels!r}"
+    )
+
+
+def _assert_empty_detail_rows_hidden(step: dict, *, phase: str) -> None:
+    labels = [str(text) for text in (step or {}).get("label_texts") or []]
+    visible_details = [
+        text
+        for text in labels
+        if any(text.startswith(prefix) for prefix in DETAIL_ROW_PREFIXES)
+    ]
+    assert not visible_details, (
+        f"{phase}: empty state must hide all detail rows, "
+        f"got detail rows={visible_details!r}"
+    )
 
 
 def test_selected_region_panel_shows_polish_state_from_snapshot():
@@ -86,6 +131,7 @@ def test_selected_region_panel_shows_polish_state_from_snapshot():
     assert player not in empty and ai not in empty, (
         f"empty state must not show a region name, got {empty!r}"
     )
+    _assert_empty_detail_rows_hidden(empty_step, phase="empty_before")
 
     player_step = payload.get("after_player") or {}
     _assert_panel_visible(player_step, phase="after_player")
@@ -94,6 +140,7 @@ def test_selected_region_panel_shows_polish_state_from_snapshot():
     assert player in after_player, (
         f"player selection must show region name {player!r}, got {after_player!r}"
     )
+    _assert_distinct_detail_rows(player_step, phase="after_player")
     assert OWNER_PLAYER_RE.search(after_player), (
         f"player-owned region must use Polish owner wording (gracz/własny), "
         f"got {after_player!r}"
@@ -123,6 +170,7 @@ def test_selected_region_panel_shows_polish_state_from_snapshot():
     assert neutral in after_neutral, (
         f"neutral selection must show {neutral!r}, got {after_neutral!r}"
     )
+    _assert_distinct_detail_rows(neutral_step, phase="after_neutral")
     assert OWNER_NEUTRAL_RE.search(after_neutral), (
         f"null owner must read as neutral/brak właściciela in Polish, "
         f"got {after_neutral!r}"
@@ -145,6 +193,7 @@ def test_selected_region_panel_shows_polish_state_from_snapshot():
     after_ai = _text(ai_step)
     _assert_titled(after_ai, phase="after_ai")
     assert ai in after_ai, f"AI selection must show {ai!r}, got {after_ai!r}"
+    _assert_distinct_detail_rows(ai_step, phase="after_ai")
     assert OWNER_AI_RE.search(after_ai), (
         f"AI-owned region must use Polish/AI owner wording, got {after_ai!r}"
     )
@@ -163,6 +212,7 @@ def test_selected_region_panel_shows_polish_state_from_snapshot():
     assert ai in after_refresh, (
         f"refresh must keep presenting selected {ai!r}, got {after_refresh!r}"
     )
+    _assert_distinct_detail_rows(refresh_step, phase="after_refresh")
     assert settlement_ai_refreshed in after_refresh or (
         settlement_ai not in after_refresh
         and re.search(r"keep|twierdz|zamek", after_refresh, re.IGNORECASE)
@@ -192,3 +242,4 @@ def test_selected_region_panel_shows_polish_state_from_snapshot():
     assert settlement_ai_refreshed not in after_gone, (
         f"vanished selection must not keep settlement, got {after_gone!r}"
     )
+    _assert_empty_detail_rows_hidden(gone_step, phase="after_gone")

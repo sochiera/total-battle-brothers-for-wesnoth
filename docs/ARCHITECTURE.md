@@ -712,10 +712,22 @@ wroga`); osady `Player Keep`→`Twierdza gracza`, `Player Outpost`→`Posterunek
 gracza`, `AI Keep`→`Twierdza wroga`, `AI Outpost`→`Posterunek wroga`. Nieznane
 nazwy zostają kanoniczne (fallback bez błędu). `MapView` używa mapowania na
 tabliczkach kafli; `main.gd` — w `PlayerPartyPositionLabel` (`Położenie
-oddziału: …`), panelu `SelectedRegionDetailsLabel` (nazwa regionu i osady)
-oraz tekście kontekstowym `MarchButton` (`Wyrusz: …`). `region_selected`,
-cel `move`/`march` oraz snapshot/most/rdzeń nadal niosą wyłącznie id
-kanoniczne.
+oddziału: …`), panelu `SelectedRegionPanel` (hierarchia wierszy: tytuł
+„Wybrany region”, stan pusty `SelectedRegionEmptyLabel` albo cztery osobne
+`Label`e Nazwa / Właściciel / Osada / Armia z mapowaniem PL) oraz tekście
+kontekstowym `MarchButton` (`Wyrusz: …`). Ukryty `SelectedRegionDetailsLabel`
+poza panelem lustrzuje treść jako jeden ciąg (kompatybilność starszych
+sond). `region_selected`, cel `move`/`march` oraz snapshot/most/rdzeń nadal
+niosą wyłącznie id kanoniczne.
+
+**SelectedRegionPanel — przegląd wizualny (G100.1c / task-568):** żywe zrzuty
+1152×648 (nie placeholdery) regeneruje
+`game/tests/capture_selected_region_review.gd` przy realnym display (nie
+`--headless`). `task-568-selected-region-empty-1152x648.png` — świeża partia
+bez wyboru („Nie wybrano regionu”);
+`task-568-selected-region-selected-1152x648.png` — po kliknięciu regionu
+własnego (cztery wiersze + rama na mapie). Ocena hierarchii, zwartości i
+spójności z kartą statusu należy do człowieka.
 
 Własność: `Ground.modulate` to **lekki tint**
 (`WHITE.lerp(owner_color, OWNER_GROUND_TINT_STRENGTH)`), a pełny kolor
