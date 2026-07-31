@@ -52,21 +52,21 @@ placeholderach, licencje są kompletne, człowiek akceptuje screenshoty, a
 - **Minimum assetów — GOTOWE, próg wizualny — NIE** (K87). Kenney CC0 = minimum.
 - **Pakiet Linuksa, pętla partii, obrona osady, 5 regionów / 2 osady na stronę**
   — DOMKNIĘTE (K88–K92).
-- **Oprawa K94–K104 — DOMKNIĘTA:** kompozycja mapy, ikony, armie, `move`+cel,
+- **Oprawa K94–K105 — DOMKNIĘTA:** kompozycja mapy, ikony, armie, `move`+cel,
   bitwa (heks/dekoracje/PŻ), hierarchia ekranu, PL/teatr (`WorldPresentation`),
   herby/status/baner, tabliczki/panel/feedback, teksturowane przyciski/legenda,
   stonowane `map_ground_*` + `terrain_plains`, keep/outpost i dekoracje w tonie
-  pergaminu, recolor sylwetek + cue PŻ bez residualnego `StyleBoxFlat`
-  (`task-579-*`, `task-581-map-grounds`, `task-585-*`). Bez reguł/mostu w tej
-  serii.
+  pergaminu, cue PŻ, **figury armii/stron w isometrii/¾** (nie top-down RTS),
+  centrowanie klastra bitwy, ornament pustego wyboru (`1ebbbd4`…`d054581`,
+  wcześniej `task-579-*`…`task-585-*`). Bez reguł/mostu w tej serii.
 - `tbbui` — **tylko diagnostyka**, nie docelowy klient.
 
-**Najbliższa luka po K104:** recolor Kenney nie zamknął **rodziny kształtów** —
-  top-downowe figurki RTS na mapie/bitwie wciąż wyglądają jak inna gra obok
-  isometrycznych keep/outpost; plus pusta kompozycja (duży panel wyboru bez
-  treści, rzadki klaster heksów bitwy na pergaminie). Próg nieosiągnięty (brak
-  ludzkiej akceptacji). **K105** — figury w rodzinie mapy + kompozycja chrome;
-  bez reguł/mostu; potem jawna akceptacja człowieka.
+**Najbliższa luka po K105:** zaplanowany zakres oprawy przed progiem jest w
+  kodzie; **brakuje pakietu screenshotów 1152×648 po K105** oraz **jawnej
+  ludzkiej akceptacji** progu (K105 nie zostawiło `task-*` w
+  `game/screenshots/`). Próg nieosiągnięty. **K106** — cztery stany dowodowe +
+  akceptacja; bez nowej serii polish i bez reguł/mostu, chyba że review
+  odrzuci konkretny stan.
 
 ## Ograniczenia i priorytety
 - **[W]** Rdzeń `tbb` jest **jedynym źródłem reguł**. Godot nie duplikuje logiki;
@@ -128,7 +128,11 @@ placeholderach, licencje są kompletne, człowiek akceptuje screenshoty, a
     osadach/dekoracjach/sylwetkach (+ cue PŻ) → **K104**.
 30. **K104:** keep/outpost, dekoracje i cue PŻ w tonie pergaminu — **zrobione**;
     recolor top-down RTS **nie** domyka spójności z isometrią (wniosek: barwa ≠
-    rodzina kształtów) → **K105** (nowe figury + kompozycja chrome).
+    rodzina kształtów) → **K105**.
+31. **K105:** figury mapy/bitwy w isometrii/¾ + centrowanie klastra + ornament
+    pustego wyboru — **zrobione** w kodzie; brak screenshotów w
+    `game/screenshots/` i brak ludzkiej akceptacji → **K106** (pakiet progu,
+    nie kolejna warstwa inventowanej oprawy).
 
 ## Klimat, ton, kierunek wizualny
 Średniowiecze **bez magii i fantastyki**, surowy i realistyczny ton. **[W]**
@@ -142,11 +146,11 @@ Dobór assetów: średniowieczne, nie-fantastyczne; realistyczny ton > kreskówk
 spójna rodzina > zlepek ładnych obrazków. Kenney = przejściowe minimum,
 wymieniane etapami. **[P]**
 
-Kolejność poprawy: (1–13) ~~mapa…herby, tabliczki/PŻ/panel, przyciski/legenda,
-podłoże, keep/outpost, dekoracje, recolor sylwetek, cue PŻ~~ — zrobione
-(K94–K104); (14) **kształt** figur armii/stron w rodzinie isometrii mapy (nie
-top-down RTS) + kompozycja pustego chrome (panel wyboru, klaster bitwy) — bez
-reguł/mostu; potem ludzka akceptacja progu. **[W]**
+Kolejność poprawy: (1–14) ~~mapa…herby, tabliczki/PŻ/panel, przyciski/legenda,
+podłoże, keep/outpost, dekoracje, recolor, cue PŻ, kształt figur isometrii/¾,
+kompozycja chrome (panel/bitwa)~~ — zrobione (K94–K105); (15) **pakiet progu**
+screenshotów 1152×648 + jawna ludzka akceptacja (K106) — bez reguł/mostu i bez
+otwierania nowej serii polish, chyba że review odrzuci stan. **[W]**
 
 ## Sugestie autora briefu
 - `godot-notes.md` jest **niewiążące** — inspiracja, nie specyfikacja.
@@ -160,11 +164,11 @@ reguł/mostu; potem ludzka akceptacja progu. **[W]**
 1. ~~K82–K86~~ — **zrobione**.
 2. **K87** — minimum assetów gotowe technicznie; próg wizualny nie.
 3. ~~K88–K92~~ — **domknięte**.
-4. ~~K94–K104~~ — **zrobione** (oprawa aż po ton pergaminu i cue PŻ).
-5. **K105 — figury + kompozycja przed progiem** — armie/strony w rodzinie
-   isometrii mapy (nie top-down RTS po recolorze), mniej pustego chrome w panelu
-   wyboru i bitwie; bez reguł/mostu. Potem **ludzka akceptacja progu** (jawny
-   zapis tu i w `BACKLOG.md`).
+4. ~~K94–K105~~ — **zrobione** (oprawa aż po figury isometrii/¾ i chrome).
+5. **K106 — próg wizualny** — pakiet screenshotów 1152×648 po K105 (świeża
+   partia, wybór regionu, bitwa, status/zakończenie) + **jawna ludzka
+   akceptacja** zapisana tu i w `BACKLOG.md`. Bez reguł/mostu; residualna
+   poprawa tylko gdy review odrzuci konkretny stan.
 6. **Nowa partia z UI po końcu gry** — most ma `new_game`, scena nie. Odłożone
    do końca priorytetu graficznego / progu wizualnego.
 

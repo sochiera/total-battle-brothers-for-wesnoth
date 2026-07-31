@@ -1262,61 +1262,89 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
 > osadach/dekoracjach/cue PŻ; próg wizualny nadal nieosiągnięty (kształt
 > figur + kompozycja chrome + brak ludzkiej akceptacji).
 
-## Kamień milowy 105 — figury w rodzinie mapy i kompozycja chrome — PRIORYTET
-> **Najcieńszy następny plasterek: cztery zadania graficzne, zero
-> mechanicznych.** Po K104 barwa spięła się z teatrem, ale screenshoty
-> 1152×648 (`task-585-map-armies`, `task-585-battle-sides`, porównanie z
-> `task-581-map-grounds`) i wpisy CREDITS pokazują, że G104.1c **zostawiło
-> kształty** Kenney RTS Pack: Medieval (top-down 64×64) — isometryczne
-> keep/outpost i top-downowe figurki to nadal dwie gry na jednym ekranie
-> (wniosek 30: barwa ≠ rodzina kształtów). Równolegle: (a) panel „Wybrany
-> region" przy braku wyboru to duża pusta płyta pergaminu dominująca lewą
-> kolumnę, (b) klaster zajętych heksów bitwy unosi się w pustce panelu bez
-> czytelnej skali/kotwiczenia. K105 domyka wyłącznie prezentację — bez
-> reguł, mostu, `new_game`, bez dorysowywania pustych heksów bitwy i bez
-> mechanicznego terenu regionu. Bramka 4 graficzne / 0 mechanicznych.
-> Review na żywym pięcioregionowym świecie z etykietami PL oraz na fixture
-> bitwy z trzema terenami i obu stronami.
-- [ ] **G105.1a [GRAFIKA] — armie na mapie w rodzinie isometrii, nie top-down
-      RTS.** Zastąpić `party_player_unit.png` i `party_ai_unit.png` parą
-      średniowiecznych, nie-fantastycznych figurek CC0/CC-BY o **tym samym
-      języku kształtu co keep/outpost** (isometria lub side-view ¾, nie
-      top-down RTS); strony rozróżnialne wzrokowo po pliku (nie samym tincie —
-      wniosek 12). `MapView` nadal mapuje z `region.party.owner`; bez zmian
-      snapshotu/mostu. Akceptacja: screenshot 1152×648 z obu armiami na
-      pięcioregionowej mapie, sylwetki nie zasłaniają nazw/herbów/osad,
-      ludzkie review spójności z `settlement_*` i `map_ground_*`; per-plikowe
-      źródło/licencja/ścieżka w `CREDITS.md`. *(standard; ryzyko:
-      dobór/licencja, czytelność w skali kafla)*
-- [ ] **G105.1b [GRAFIKA] — strony bitwy z tej samej rodziny co armie mapy.**
-      Zastąpić `side_attacker.png` / `side_defender.png` figurkami spójnymi
-      z G105.1a (ta sama paczka/rodzina, rozróżnialne po pliku); `BattleView`
-      nadal mapuje z `side`; PŻ i plakietki K104 bez regresji. Akceptacja:
-      fixture obu stron + trzy tereny, screenshot 1152×648, test ładowania
-      i rozróżnialności plików, ludzkie review; atrybucja w `CREDITS.md`.
-      *(standard; wymaga spójności z G105.1a; ryzyko: z-order pod
-      dekoracją/PŻ)*
-- [ ] **G105.1c [GRAFIKA] — klaster bitwy ma skalę i kotwiczenie, nie unosi
-      się w pustce.** Bez dorysowywania nieistniejących heksów (kontrakt
-      K85/K98): poprawić skalę, centrowanie i/lub wewnętrzną ramę panelu
-      `BattleView` (ew. retusz `battle_panel_background.png` albo cienka
-      warstwa teatru bitwy), tak aby zajęte heksy z G105.1b zajmowały
-      czytelnie środkową część panelu przy 1152×648 i nie tonęły w pustym
-      pergaminie. Akceptacja: screenshot widocznej bitwy vs świeża partia
-      (pusty widok bez błędu), test układu, ludzkie review hierarchii;
-      źródło/licencja użytego assetu w `CREDITS.md`. *(standard; ryzyko:
-      clipping i kolizja z mapą/statusem)*
-- [ ] **G105.1d [GRAFIKA] — panel wyboru i karta statusu bez dominującej
-      pustki.** Stan pusty „Wybrany region" oraz wiersze statusu księstwa
-      dostają gęstszą, pergaminową treść wizualną (np. ilustracja/ornament
-      pustego stanu, dzielniki lub ikony wierszy spójne z herbami/teatrem —
-      CC0/CC-BY), bez ściany tekstu i bez residualnego `StyleBoxFlat` jako
-      nośnika. Kanoniczne nazwy i dane z `SnapshotModel`/`WorldPresentation`
-      bez zmian. Akceptacja: screenshot świeżej partii (pusty wybór) i ze
-      wskazanym regionem, status świeży + zakończony jeśli fixture pozwala,
-      ludzkie review czytelności lewej kolumny przy 1152×648; atrybucja w
-      `CREDITS.md`. *(standard; ryzyko: kompozycja i nie wypchnięcie
-      przycisków poza ekran)*
+## Kamień milowy 105 — figury w rodzinie mapy i kompozycja chrome — UKOŃCZONY
+> **UKOŃCZONE w kodzie.** K105 domknął zaplanowany zakres oprawy przed progiem:
+> armie mapy i strony bitwy w isometrii/¾ (nie top-down RTS), centrowanie
+> klastra heksów bitwy bez dorysowywania pustych pól, ornament pustego
+> wyboru + gęstsze dzielniki statusu. Bez reguł/mostu. **Brak** screenshotów
+> `task-*` w `game/screenshots/` po tej serii — pakiet dowodowy i jawna
+> ludzka akceptacja progu to **K106**, nie kolejna warstwa inventowanej oprawy.
+- [x] **G105.1a [GRAFIKA] — armie na mapie w rodzinie isometrii, nie top-down
+      RTS.** `party_player_unit.png` / `party_ai_unit.png` — standing ¾,
+      48×56, CC0 project art. *(commit d054581)*
+- [x] **G105.1b [GRAFIKA] — strony bitwy z tej samej rodziny co armie mapy.**
+      `side_attacker.png` / `side_defender.png` — ta sama rodzina. *(commit
+      67eb63e)*
+- [x] **G105.1c [GRAFIKA] — klaster bitwy ma skalę i kotwiczenie, nie unosi
+      się w pustce.** Centrowanie AABB zajętych heksów w panelu. *(commit
+      b9c80c9)*
+- [x] **G105.1d [GRAFIKA] — panel wyboru i karta statusu bez dominującej
+      pustki.** `selected_region_empty_ornament.png` + HSeparators statusu.
+      *(commit 1ebbbd4)*
+> **K105 — UKOŃCZONY** *(commity d054581…1ebbbd4)*: figury + chrome; próg
+> wizualny nadal nieosiągnięty (brak pakietu screenshotów po K105 i brak
+> ludzkiej akceptacji).
+
+## Kamień milowy 106 — próg wizualny: pakiet dowodowy i jawna akceptacja — PRIORYTET
+> **Najcieńszy następny plasterek po K105: cztery zadania graficzne, zero
+> mechanicznych — bez nowej serii polish.** Po G105.1a–d zaplanowany zakres
+> oprawy przed progiem jest w kodzie (figury isometrii/¾, centrowanie bitwy,
+> ornament pustego wyboru). Kryterium progu z briefu wymaga jednak, by
+> **człowiek zaakceptował screenshoty** i by ten stan był **jawnie zapisany**
+> w `docs/PROJECT.md` i tu. K105 **nie zostawiło** plików w
+> `game/screenshots/` (ostatnie to `task-585-*` z K104 — top-down RTS).
+> K106 dostarcza wyłącznie **cztery stany dowodowe 1152×648** na żywym
+> kliencie po K105, z ludzkim review każdego; residualną poprawę assetu
+> wolno zrobić **tylko** gdy review odrzuci dany stan (wskazany plik +
+> miejsce użycia + CREDITS). Nie otwierać reguł, mostu, `new_game`, terenu
+> regionu, pustych heksów bitwy ani niezależnej mechaniki. Po akceptacji
+> wszystkich czterech — **jeden jawny zapis** progu (punkt w PROJECT + tu).
+> Bramka 4 graficzne / 0 mechanicznych.
+- [ ] **G106.1a [GRAFIKA] — dowód progu: świeża partia strategiczna po K105.**
+      Uruchomić natywny Godot na pięcioregionowym świecie (seed ustalony
+      w teście/sondzie) i zapisać screenshot **1152×648** pełnego ekranu
+      świeżej partii: mapa z keep/outpost, armie w isometrii/¾ (nie
+      top-down RTS z `task-585`), teatr, herby, legenda, pasek rozkazów,
+      karta statusu z dzielnikami, **pusty** panel wyboru z ornamentem
+      `selected_region_empty_ornament.png`. Bez reguł/mostu. Akceptacja:
+      plik w `game/screenshots/` (np. `task-NNN-fresh-post-k105-1152x648.png`),
+      test/sonda nie regresuje layoutu K99–K105, ludzkie review spójności
+      i braku residualnego chrome prototypu; użyte assety mają kompletne
+      wpisy w `CREDITS.md`. Residualna poprawa tylko po odrzuceniu review —
+      jeden wskazany element oprawy, nie przebudowa serii. *(standard;
+      ryzyko: kompozycja przy 1152×648, czytelność małych figurek)*
+- [ ] **G106.1b [GRAFIKA] — dowód progu: wybrany region (pusty → wybrany).**
+      Dwa screenshoty 1152×648: (1) brak wyboru z ornamentem i polskim
+      pustym stanem, (2) wskazany region z ramką `map_target_frame`,
+      polskimi wierszami panelu (nazwa/właściciel/osada/armia z
+      `WorldPresentation`) bez wypchnięcia przycisków poza ekran. Bez
+      zmian snapshotu/mostu. Akceptacja: oba pliki w `game/screenshots/`,
+      test panelu wyboru bez regresji K97/K100/K105.1d, ludzkie review
+      gęstości lewej kolumny; CREDITS bez luk dla użytych nośników.
+      *(standard; ryzyko: kompozycja lewej kolumny)*
+- [ ] **G106.1c [GRAFIKA] — dowód progu: bitwa z figurami isometrii i
+      wycentrowanym klastrem.** Screenshot 1152×648 widocznej bitwy
+      (fixture lub e2e szturm): strony `side_*` z rodziny G105, plakietki
+      PŻ K104, dekoracje terenu, baner wyniku PL, klaster heksów
+      wycentrowany w panelu (G105.1c), nie tonący w pustym pergaminie;
+      sterowanie i mapa nadal czytelne. Akceptacja: plik w
+      `game/screenshots/`, test `BattleView` bez regresji K98/K105,
+      ludzkie review hierarchii bitwy; CREDITS kompletne. *(standard;
+      ryzyko: clipping, z-order PŻ/dekoracji)*
+- [ ] **G106.1d [GRAFIKA] — audyt residualnego chrome + jawna akceptacja
+      progu.** Przejrzeć pełny ekran stanów z G106.1a–c pod kątem
+      przypadkowych placeholderów (goły `ColorRect`/`StyleBoxFlat` jako
+      nośnik treści, angielskie tokeny UI, top-down RTS na mapie/bitwie,
+      pusta płyta bez ornamentu). Uzupełnić braki atrybucji w
+      `game/assets/CREDITS.md` jeśli review je wskaże. **Gdy człowiek
+      akceptuje wszystkie trzy stany dowodowe:** zapisać jawnie w
+      `docs/PROJECT.md` (stan faktyczny + cel) i w tym pliku, że **próg
+      wizualny jest osiągnięty** (data akceptacji); w przeciwnym razie
+      wskazać **jeden** residualny element do cienkiego follow-upu — nie
+      otwierać nowej wielowarstwowej serii. Bez reguł/mostu. Akceptacja:
+      diff docs + ewentualny jeden asset; ludzki podpis progu albo jawny
+      odrzut z listą braków. *(standard; ryzyko: fałszywe „gotowe" bez
+      screenshotów — wymaga G106.1a–c)*
 
 ## Dług/refaktor
 - [x] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
@@ -1352,15 +1380,18 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
   Kenney~~ — **wykonane**.
 - ~~K104: residualny Kenney na pergaminie (keep/outpost, dekoracje, recolor
   sylwetek, cue PŻ)~~ — **wykonane** (`task-585-*`).
-- **Teraz K105:** kształt figur armii/stron w rodzinie isometrii mapy (nie
-  top-down RTS po recolorze K104) + kompozycja pustego chrome (panel wyboru,
-  klaster bitwy); potem jawna ludzka akceptacja progu wizualnego.
+- ~~K105: figury isometrii/¾ + centrowanie bitwy + ornament pustego wyboru~~
+  — **wykonane** (commity `d054581`…`1ebbbd4`; bez `task-*` w
+  `game/screenshots/`).
+- **Teraz K106:** pakiet dowodowy 1152×648 po K105 (świeża partia, wybór
+  regionu, bitwa) + jawna ludzka akceptacja progu wizualnego; residualna
+  poprawa tylko po odrzuceniu review — nie nowa seria polish.
 - ~~Zapis/odczyt z UI: jawne „Zapisz”/„Wczytaj”~~ — rozplanowane jako K86.
 - ~~Prawdziwe assety i tekstury zamiast `ColorRect`~~ — rozplanowane jako K87.
-- Assety pozostałych elementów sceny — K87–K104 dały nośnik, mapę, bitwę,
-  hierarchię, PL/teatr, herby, plakietki, sterowanie, stonowane podłoże i ton
-  pergaminu; K105 domyka **rodzinę kształtów** figur i residualną pustkę
-  chrome, zanim próg wizualny będzie mógł dostać ludzką akceptację.
+- Assety / próg — K87–K105 dały nośnik, mapę, bitwę, hierarchię, PL/teatr,
+  herby, plakietki, sterowanie, stonowane podłoże, ton pergaminu, rodzinę
+  kształtów figur i residualny chrome; **K106** domyka **dowód i akceptację**
+  progu, nie inventuje kolejnej warstwy oprawy.
 - **Mechaniczny teren regionu na mapie strategicznej — ODŁOŻONY DO PROGU
   WIZUALNEGO.** `tbb.world.Region` ma dziś tylko
   `name`, więc `snapshot.map_state` nie ma czego wystawić i kafel mapy w K87
