@@ -18,6 +18,8 @@ PREFIX = "BATTLE_VIEW "
 # G98.1d: battle panel frame + exact Polish result banners (public contract).
 PANEL_BACKGROUND = "battle_panel_background.png"
 PANEL_BACKGROUND_RES = f"res://assets/{PANEL_BACKGROUND}"
+RESULT_BACKGROUND = "battle_result_banner.png"
+RESULT_BACKGROUND_RES = f"res://assets/{RESULT_BACKGROUND}"
 # Exact BattleResultLabel banners (not the legacy combined „Bitwa: …” form).
 RESULT_BANNER = {
     "attacker_win": "Zwycięstwo",
@@ -1094,7 +1096,7 @@ def _chrome_has_exact(labels: object, text: str) -> bool:
 
 
 def test_battle_view_panel_frame_and_exact_polish_result_banners():
-    """G98.1d: panel frame asset + header „Bitwa” + exact outcome banners.
+    """G98.1d/G101.1d: panel frame + graphical Polish outcome banner.
 
     Realistic defect existing gates miss: BattleView already maps outcomes with
     a single BattleResultLabel as the combined string ``Bitwa: zwycięstwo`` /
@@ -1111,6 +1113,11 @@ def test_battle_view_panel_frame_and_exact_polish_result_banners():
     the top strip (header y∈[0,34], axial r=0 at y=0) and paint over „Bitwa“ as
     later siblings. Contract needs a readable header and grid together — header
     rect must not intersect any hex tile rect (reserve chrome band or offset grid).
+
+    G101.1d defect: all assertions below also stay green when BattleResultLabel is
+    still a bare Label painted directly over the full panel.  The dedicated
+    battle_result_banner.png carrier must therefore exist and have its own
+    auditable source/author/license row before the scene can use it.
     """
     assets_dir = GAME / "assets"
     background_path = assets_dir / PANEL_BACKGROUND
@@ -1124,6 +1131,17 @@ def test_battle_view_panel_frame_and_exact_polish_result_banners():
     assert_asset_credited(
         assets_dir / "CREDITS.md",
         PANEL_BACKGROUND,
+        source_re=re.compile(r"https?://\S+|PNG/|original artwork", re.I),
+    )
+    result_background_path = assets_dir / RESULT_BACKGROUND
+    assert result_background_path.is_file(), (
+        f"required graphical battle-result carrier missing: {result_background_path} "
+        "(G101.1d; a bare result Label is not a banner)"
+    )
+    _assert_credits_table_row(RESULT_BACKGROUND)
+    assert_asset_credited(
+        assets_dir / "CREDITS.md",
+        RESULT_BACKGROUND,
         source_re=re.compile(r"https?://\S+|PNG/|original artwork", re.I),
     )
 
@@ -1215,3 +1233,35 @@ def test_battle_view_panel_frame_and_exact_polish_result_banners():
         f"view={payload.get('view_rect')!r}"
     )
 
+    # The audited carrier must be the actual texture behind both pieces of
+    # chrome; merely shipping an unused PNG must not satisfy G101.1d.
+    for role, label_rect in (
+        ("header", header_rect),
+        ("result", payload.get("result_label_rect")),
+    ):
+        path = payload.get(f"{role}_banner_path_with_battle")
+        banner_rect = payload.get(f"{role}_banner_rect_with_battle")
+        assert path == RESULT_BACKGROUND_RES, (
+            f"{role} must use {RESULT_BACKGROUND_RES}, got {path!r}"
+        )
+        assert isinstance(banner_rect, dict) and isinstance(label_rect, dict), (
+            f"{role} banner and label must expose layout rects, "
+            f"banner={banner_rect!r} label={label_rect!r}"
+        )
+        label_center_x = label_rect["x"] + label_rect["w"] / 2
+        assert (
+            banner_rect["x"]
+            <= label_center_x
+            <= banner_rect["x"] + banner_rect["w"]
+            and banner_rect["y"] <= label_rect["y"]
+            and label_rect["y"] + label_rect["h"]
+            <= banner_rect["y"] + banner_rect["h"]
+        ), (
+            f"centered {role} text band must sit on its graphical carrier, "
+            f"banner={banner_rect!r} label={label_rect!r}"
+        )
+
+    assert payload.get("battle_view_visible_with_battle") is True, payload
+    assert payload.get("battle_view_visible_no_battle") is False, (
+        "without battle, BattleView must hide the result and both carriers"
+    )

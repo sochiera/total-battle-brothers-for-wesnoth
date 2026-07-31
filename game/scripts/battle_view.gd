@@ -8,6 +8,7 @@ const AXIAL_ROW_PITCH := BASE_HEX_SIZE.y * 0.75
 const FALLBACK_BATTLE_HEADER_HEIGHT := 34.0
 const HEADER_GAP := 8.0
 const RESULT_LABEL_GAP := 8.0
+const RESULT_BANNER_PAD := 4.0
 const BATTLE_RESULT_TEXTS := {
 	"attacker_win": "Zwycięstwo",
 	"defender_win": "Porażka",
@@ -52,9 +53,16 @@ func _render_hexes(hexes: Array) -> void:
 
 func _layout_result_label(max_hex_bottom: float) -> void:
 	var result_label: Control = %BattleResultLabel
+	var result_banner: Control = %BattleResultBanner
 	var result_top := max_hex_bottom + RESULT_LABEL_GAP
 	result_label.position.y = result_top
-	var required_height: float = result_top + result_label.size.y
+	# Parchment carrier tracks the outcome text band (not a fixed scene offset).
+	result_banner.position.y = result_top - RESULT_BANNER_PAD
+	result_banner.size.y = result_label.size.y + RESULT_BANNER_PAD * 2.0
+	var required_height: float = maxf(
+		result_top + result_label.size.y,
+		result_banner.position.y + result_banner.size.y,
+	)
 	custom_minimum_size.y = required_height
 	size.y = required_height
 

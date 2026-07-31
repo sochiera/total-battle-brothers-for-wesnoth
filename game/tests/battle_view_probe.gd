@@ -100,6 +100,13 @@ func _run() -> void:
 	var panel_bg_with: Dictionary = _panel_background_state(
 		battle_view as Control, view_rect as Dictionary
 	)
+	var header_banner_with: Dictionary = _named_texture_state(
+		battle_view, "BattleHeaderBanner"
+	)
+	var result_banner_with: Dictionary = _named_texture_state(
+		battle_view, "BattleResultBanner"
+	)
+	var battle_view_visible_with: bool = (battle_view as CanvasItem).is_visible_in_tree()
 
 	scene_root.apply_model(_model_with_battle(hexes_full, "attacker_win"))
 	await process_frame
@@ -119,6 +126,7 @@ func _run() -> void:
 		battle_view as Control,
 		view_rect_empty if view_rect_empty is Dictionary else {},
 	)
+	var battle_view_visible_empty: bool = (battle_view as CanvasItem).is_visible_in_tree()
 
 	var tiles_direct: Array = []
 	var count_direct: int = 0
@@ -183,6 +191,12 @@ func _run() -> void:
 		"panel_background_path_with_battle": str(panel_bg_with.get("path", "")),
 		"panel_background_covers_view": bool(panel_bg_with.get("covers", false)),
 		"panel_background_path_no_battle": str(panel_bg_empty.get("path", "")),
+		"header_banner_path_with_battle": str(header_banner_with.get("path", "")),
+		"header_banner_rect_with_battle": header_banner_with.get("rect"),
+		"result_banner_path_with_battle": str(result_banner_with.get("path", "")),
+		"result_banner_rect_with_battle": result_banner_with.get("rect"),
+		"battle_view_visible_with_battle": battle_view_visible_with,
+		"battle_view_visible_no_battle": battle_view_visible_empty,
 		"view_rect": view_rect,
 		"result_label_rect": result_label_rect,
 		"header_label_rect": header_label_rect,
@@ -487,6 +501,20 @@ func _panel_background_state(battle_view: Control, view_rect: Dictionary) -> Dic
 			covers = true
 			break
 	return {"path": best_path, "covers": covers}
+
+
+func _named_texture_state(battle_view: Node, node_name: String) -> Dictionary:
+	var node: Node = battle_view.find_child(node_name, true, false)
+	if not node is TextureRect:
+		return {"path": "", "rect": null}
+	var texture_rect: TextureRect = node as TextureRect
+	var path := ""
+	if texture_rect.texture != null:
+		path = str(texture_rect.texture.resource_path)
+	return {
+		"path": path,
+		"rect": _control_rect(texture_rect),
+	}
 
 
 func _rect_covers(outer: Rect2, inner: Rect2, tol: float) -> bool:
