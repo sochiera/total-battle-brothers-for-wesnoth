@@ -838,6 +838,14 @@ snapshot i most bez zmian. Żywe zrzuty 1152×648 regeneruje
 `task-585-map-armies-1152x648.png`, `task-585-battle-sides-1152x648.png`.
 Atrybucja per plik w `game/assets/CREDITS.md`.
 
+**BattleView — kotwiczenie klastra (G105.1c / task-589):** przy widocznej
+bitwie `battle_view.gd` dynamicznie wyśrodkowuje **poziomo** obwiednię
+wyłącznie zajętych heksów w panelu (AABB lokalnych pozycji axialnych pointy-top).
+Bez dorysowywania pustych heksów i bez zmiany wspólnej bazy 120×140; szerokość
+celu bierze max z `size.x` / rodzica `MapAndBattle` (headless bywa na samym
+`custom_minimum_size`). Nagłówek „Bitwa”, baner wyniku PL i brak bitwy — bez
+regresji kontraktu.
+
 **SelectedRegionPanel — teksturowana rama (G102.1c / task-576):** panel
 używa `StyleBoxTexture` z `res://assets/selected_region_panel.png` (nie
 `StyleBoxFlat`). Kanoniczny styl buduje wyłącznie `main.gd`

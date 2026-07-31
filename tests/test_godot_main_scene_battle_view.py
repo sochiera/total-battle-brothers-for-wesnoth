@@ -233,6 +233,9 @@ def test_battle_view_shows_one_axial_tile_per_hex_with_side_paint_and_polish_res
        rows r∈{0,1,2}: r=2 tiles sit on y=136 and are clipped / covered by
        the result label. A probe limited to r=0,1 stays green while a real
        three-row battle is unreadable.
+    3) The complete native-size cluster starts at the panel's left edge. Tile
+       count and axial geometry stay green, but the fight floats beside a
+       dominant empty parchment area instead of occupying the panel's middle.
     """
     payload = _load_battle_view()
 
@@ -369,6 +372,19 @@ def test_battle_view_shows_one_axial_tile_per_hex_with_side_paint_and_polish_res
             f"battle result label must not cover hex tile {qr}: "
             f"tile={tile_rect} label={result_rect}"
         )
+
+    # Public composition: the occupied cluster, not any invented empty grid,
+    # is horizontally anchored in the middle of the battle panel.
+    cluster_left = min(float(tile["x"]) for tile in first)
+    cluster_right = max(float(tile["x"]) + float(tile["w"]) for tile in first)
+    left_margin = cluster_left - float(view["x"])
+    right_margin = float(view["x"]) + float(view["w"]) - cluster_right
+    assert abs(left_margin - right_margin) <= _LAYOUT_TOL_PX, (
+        "occupied battle cluster must be horizontally centered in BattleView "
+        f"(side margins may differ by at most {_LAYOUT_TOL_PX}px); "
+        f"left_margin={left_margin}, right_margin={right_margin}, "
+        f"cluster=({cluster_left}, {cluster_right}), view={view}"
+    )
 
 
 def _layer_rect(layer: dict) -> dict:

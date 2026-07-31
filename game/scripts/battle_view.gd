@@ -62,18 +62,73 @@ func render_model(model: SnapshotModel) -> void:
 
 
 func _render_hexes(hexes: Array) -> void:
+	# G105.1c: centre the occupied cluster horizontally in the panel without
+	# inventing empty hexes or changing native 120×140 base geometry.
+	var origin_x := _occupied_cluster_origin_x(hexes)
 	var max_bottom := 0.0
 	for hex: Variant in hexes:
-		if hex is Dictionary:
-			_add_tile(hex)
-			var q: int = int(hex.get("q", 0))
-			var r: int = int(hex.get("r", 0))
-			max_bottom = maxf(max_bottom, _hex_tile_bottom(q, r))
+		if not hex is Dictionary:
+			continue
+		var qr: Variant = _hex_qr(hex)
+		if qr == null:
+			continue
+		_add_tile(int(qr.x), int(qr.y), hex, origin_x)
+		max_bottom = maxf(max_bottom, _hex_tile_bottom(int(qr.y)))
 	_layout_result_label(max_bottom)
 
 
-func _hex_tile_bottom(q: int, r: int) -> float:
-	return _axial_position(q, r).y + BASE_HEX_SIZE.y
+func _hex_qr(hex: Dictionary) -> Variant:
+	if not hex.has("q") or not hex.has("r"):
+		return null
+	return Vector2i(int(hex["q"]), int(hex["r"]))
+
+
+func _occupied_cluster_origin_x(hexes: Array) -> float:
+	## Horizontal origin so the AABB of occupied hexes is centred in this view.
+	var bounds: Variant = _occupied_cluster_x_bounds(hexes)
+	if bounds == null:
+		return 0.0
+	var min_left: float = bounds.x
+	var max_right: float = bounds.y
+	var cluster_w := max_right - min_left
+	return (_panel_width_for_cluster() - cluster_w) * 0.5 - min_left
+
+
+func _occupied_cluster_x_bounds(hexes: Array) -> Variant:
+	## Local (pre-origin) left/right of the occupied hex AABB, or null if empty.
+	var min_left := INF
+	var max_right := -INF
+	var any := false
+	for hex: Variant in hexes:
+		if not hex is Dictionary:
+			continue
+		var qr: Variant = _hex_qr(hex)
+		if qr == null:
+			continue
+		any = true
+		var local_x := _axial_local_x(int(qr.x), int(qr.y))
+		min_left = minf(min_left, local_x)
+		max_right = maxf(max_right, local_x + BASE_HEX_SIZE.x)
+	if not any:
+		return null
+	return Vector2(min_left, max_right)
+
+
+func _panel_width_for_cluster() -> float:
+	## Prefer the laid-out panel width. Headless / early render can still report
+	## only custom_minimum_size.x on this Control while MapAndBattle is wider —
+	## parent width (and min size) keep centering against the real parchment.
+	var view_w := size.x
+	var parent_ctrl := get_parent() as Control
+	if parent_ctrl != null:
+		view_w = maxf(view_w, parent_ctrl.size.x)
+	if view_w <= 0.0:
+		view_w = custom_minimum_size.x
+	return view_w
+
+
+func _hex_tile_bottom(row: int) -> float:
+	return _battle_header_band_height() + float(row) * AXIAL_ROW_PITCH + BASE_HEX_SIZE.y
 
 
 func _layout_result_label(max_hex_bottom: float) -> void:
@@ -110,15 +165,10 @@ func _battle_data(model: SnapshotModel) -> Variant:
 	return model.battle
 
 
-func _add_tile(hex: Dictionary) -> void:
-	if not hex.has("q") or not hex.has("r"):
-		return
-
-	var q: int = int(hex["q"])
-	var r: int = int(hex["r"])
+func _add_tile(q: int, r: int, hex: Dictionary, origin_x: float) -> void:
 	var tile := Control.new()
 	tile.name = "HexTile_%d_%d" % [q, r]
-	tile.position = _axial_position(q, r)
+	tile.position = _axial_position(q, r, origin_x)
 	tile.size = BASE_HEX_SIZE
 	_apply_hex_paint_order(tile, r)
 	tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -206,9 +256,14 @@ func _apply_hex_paint_order(tile: Control, row: int) -> void:
 	tile.z_index = row
 
 
-func _axial_position(q: int, r: int) -> Vector2:
+func _axial_local_x(q: int, r: int) -> float:
+	## Pointy-top axial X without panel origin (cluster centering is separate).
+	return float(q) * BASE_HEX_SIZE.x + float(r) * BASE_HEX_SIZE.x * 0.5
+
+
+func _axial_position(q: int, r: int, origin_x: float = 0.0) -> Vector2:
 	return Vector2(
-		float(q) * BASE_HEX_SIZE.x + float(r) * BASE_HEX_SIZE.x * 0.5,
+		origin_x + _axial_local_x(q, r),
 		_battle_header_band_height() + float(r) * AXIAL_ROW_PITCH,
 	)
 
