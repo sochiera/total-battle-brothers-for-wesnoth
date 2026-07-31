@@ -3,6 +3,7 @@ extends Control
 
 const SnapshotModel = preload("res://scripts/snapshot_model.gd")
 const TileTextureLayer = preload("res://scripts/tile_texture_layer.gd")
+const LabelTextureCarrier = preload("res://scripts/label_texture_carrier.gd")
 const TARGET_FRAME_TEXTURE := preload("res://assets/map_target_frame.png")
 const MAP_THEATER_FRAME_TEXTURE := preload("res://assets/map_theater_frame.png")
 # AABB is intentionally flatter than native map_ground's pointy-top shape so
@@ -344,23 +345,17 @@ func _region_name_plate(canonical: String) -> Control:
 	# StyleBoxFlat Label). Presentation text is a child Label so probes can
 	# still walk plate → first Label while texture_paths reports the asset.
 	# Narrow top strip — not full-tile — so settlement, army mark, and frames
-	# stay readable in the tile body.
-	var plate := TextureRect.new()
-	plate.name = REGION_NAME_PLATE_NAME
-	plate.texture = REGION_NAME_PLATE_TEXTURE
-	plate.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	plate.stretch_mode = TextureRect.STRETCH_SCALE
-	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# stay readable in the tile body. Carrier rule: LabelTextureCarrier (G102.1
+	# R102.1 / task-578) — same as BattleView HP badges.
+	var plate := LabelTextureCarrier.make(REGION_NAME_PLATE_TEXTURE, REGION_NAME_PLATE_NAME)
 
 	var label := Label.new()
 	label.name = "RegionNamePlateText"
 	label.text = WorldPresentation.region_label(canonical)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.add_theme_color_override("font_color", REGION_NAME_PLATE_INK)
-	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	plate.add_child(label)
+	LabelTextureCarrier.attach_label(plate, label)
 	_layout_region_name_plate(plate)
 	return plate
 

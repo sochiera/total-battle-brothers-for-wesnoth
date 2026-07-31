@@ -3,6 +3,7 @@ extends Control
 
 const SnapshotModel = preload("res://scripts/snapshot_model.gd")
 const TileTextureLayer = preload("res://scripts/tile_texture_layer.gd")
+const LabelTextureCarrier = preload("res://scripts/label_texture_carrier.gd")
 const BASE_HEX_SIZE := Vector2(120, 140)
 const AXIAL_ROW_PITCH := BASE_HEX_SIZE.y * 0.75
 const FALLBACK_BATTLE_HEADER_HEIGHT := 34.0
@@ -128,18 +129,15 @@ func _add_hp_marker(tile: Control, side: Variant, hp: Variant) -> void:
 		return
 
 	# Shared parchment plate under PŻ text (G102.1b); side outline on the Label.
-	var badge := TextureRect.new()
-	badge.name = "HpBadge"
-	badge.texture = HP_BADGE_TEXTURE
-	badge.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	badge.stretch_mode = TextureRect.STRETCH_SCALE
-	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Carrier rule: LabelTextureCarrier (G102.1 R102.1 / task-578) — same as
+	# MapView region name plates.
+	var badge := LabelTextureCarrier.make(HP_BADGE_TEXTURE, "HpBadge")
 	badge.position = Vector2(
 		HP_MARKER_MARGIN.x,
 		BASE_HEX_SIZE.y - HP_MARKER_MARGIN.y - HP_MARKER_SIZE.y,
 	)
 	badge.size = HP_MARKER_SIZE
-	badge.add_child(_make_hp_marker_label(side, int(hp)))
+	LabelTextureCarrier.attach_label(badge, _make_hp_marker_label(side, int(hp)))
 	tile.add_child(badge)
 
 
@@ -149,11 +147,9 @@ func _make_hp_marker_label(side: Variant, hp: int) -> Label:
 	marker.text = "PŻ %d" % hp
 	marker.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	marker.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	marker.add_theme_font_size_override("font_size", 13)
 	marker.add_theme_color_override("font_color", Color(0.18, 0.12, 0.08, 1))
 	marker.add_theme_stylebox_override("normal", _hp_marker_style(side))
-	marker.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	return marker
 
 

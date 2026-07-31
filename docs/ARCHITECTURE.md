@@ -728,6 +728,14 @@ wysokości kafla) oraz do prześwitu nad AABB markera armii (prawy dół), żeby
 dłuższych etykietach PL. Ukryty `RegionCanonicalId` utrzymuje starsze sondy
 szukające kafla po `Label.text`. Atrybucja assetu: `game/assets/CREDITS.md`.
 
+**Nośnik plakietki teksturowej (G102.1 R102.1 / task-578):** jedna reguła
+publiczna w `game/scripts/label_texture_carrier.gd` (`LabelTextureCarrier`)
+buduje tło pod etykietą: `TextureRect` ze `STRETCH_SCALE` /
+`EXPAND_IGNORE_SIZE` i `MOUSE_FILTER_IGNORE`, child `Label` na full-rect też
+z `MOUSE_FILTER_IGNORE`. `MapView` (tabliczki nazw) i `BattleView` (plakietki
+PŻ) korzystają z tego samego źródła — layout (pasek u góry kafla vs kotwica
+PŻ) i treści etykiet zostają w widokach; zmienia się tylko spójność nośnika.
+
 **Prezentacyjne nazwy świata (G100.1a):** jedno źródło
 `game/scripts/world_presentation.gd` (`WorldPresentation`) mapuje kanoniczne
 id regionów i osad na polskie etykiety UI: regiony jak w G99.1b
@@ -787,7 +795,8 @@ wynik). Ocena hierarchii i czytelności należy do człowieka.
 **BattleView — plakietki PŻ (G102.1b / task-575):** na zajętych heksach
 atakującego i broniącego `battle_view.gd` układa wspólny
 `res://assets/battle_hp_badge.png` (`TextureRect` `HpBadge`) pod etykietą
-`PŻ N`; ramka etykiety rozróżnia strony (czerwona / niebieska), fill jest
+`PŻ N` przez `LabelTextureCarrier` (jak tabliczki nazw na mapie — R102.1);
+ramka etykiety rozróżnia strony (czerwona / niebieska), fill jest
 przezroczysty. Puste / unknown heksy bez plakietki. Żywy zrzut 1152×648
 regeneruje `game/tests/capture_battle_hp_badge_review.gd` przy realnym display
 (nie `--headless`):
