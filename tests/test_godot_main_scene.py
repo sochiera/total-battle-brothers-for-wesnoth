@@ -1,6 +1,8 @@
 import json
+import re
 from pathlib import Path
 
+from godot_png_assets import assert_asset_credited
 from godot_runner import PLAYER_RESULT_PL, run_godot_script
 
 
@@ -188,7 +190,20 @@ def test_assault_button_sends_the_assault_order_and_projects_a_battle_result():
     }
 
 
-def test_last_order_status_label_starts_empty_without_bridge_configuration():
+def test_order_status_banner_covers_text_and_hides_its_slot_when_empty():
+    """G102.1d: feedback uses a credited banner hidden for empty status.
+
+    Existing tests only observe LastOrderStatusLabel.text, so a bare label stays
+    green even though the public visual carrier contract is absent.
+    """
+    banner = GAME / "assets" / "order_status_banner.png"
+    assert banner.is_file(), f"required order-status carrier missing: {banner}"
+    assert_asset_credited(
+        GAME / "assets" / "CREDITS.md",
+        banner.name,
+        source_re=re.compile(r"https?://\S+|PNG/|original artwork", re.I),
+    )
+
     result = run_godot_script(
         GAME, "res://tests/order_status_probe.gd", timeout=30
     )
@@ -201,4 +216,29 @@ def test_last_order_status_label_starts_empty_without_bridge_configuration():
     assert "SCRIPT ERROR" not in result.stderr, result.stderr
 
     payload = json.loads(lines[0][len(ORDER_STATUS_PREFIX) :])
-    assert payload == {"text": ""}
+    assert payload["text"] == ""
+    assert payload["banner_found"] is True, payload
+    assert payload["banner_path"] == "res://assets/order_status_banner.png", payload
+    assert payload["initial_banner_visible"] is False, payload
+    assert payload["initial_slot_visible"] is False, payload
+    assert payload["populated_text"] == (
+        "Szturm: nierozstrzygnięta (straty: 0, wróg: 0)."
+    ), payload
+    assert payload["populated_banner_visible"] is True, payload
+    assert payload["populated_slot_visible"] is True, payload
+    horizontal_padding = 8 * 2
+    assert (
+        min(payload["text_width"], payload["label_content_width"])
+        + horizontal_padding
+        <= payload["opaque_banner_body_width"]
+    ), (
+        "the opaque ribbon body must cover status text with 8 px padding per side",
+        payload,
+    )
+    assert payload["text_content_height"] <= payload["slot_height"], (
+        "the order-status slot must not clip wrapped status text",
+        payload,
+    )
+    assert payload["empty_text"] == "", payload
+    assert payload["empty_banner_visible"] is False, payload
+    assert payload["empty_slot_visible"] is False, payload

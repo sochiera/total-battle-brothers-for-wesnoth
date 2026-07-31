@@ -761,6 +761,19 @@ historyczne pełne stringi dla starszych sond. Snapshot i most bez zmian —
 wyłącznie prezentacja. `Main.apply_model` deleguje ten blok do
 `_apply_status_card`.
 
+**Karta statusu — wstęga ostatniego rozkazu (G102.1d / task-577):**
+tekst `LastOrderStatusLabel` leży na nośniku `OrderStatusBanner`
+(`TextureRect` z `res://assets/order_status_banner.png`, stretch
+`KEEP_ASPECT_CENTERED`) w slocie `OrderStatusSlot` (`custom_minimum_size.y`
+= 54, żeby narysowana wstęga 640×96 pokryła najdłuższy istniejący komunikat
+statusu — m.in. „Szturm: nierozstrzygnięta (straty: 0, wróg: 0).”).
+Etykieta ma `offset_left`/`offset_right` ±32 px, żeby wyśrodkowany tekst
+z zawijaniem siedział w nieprzezroczystym korpusie wstęgi z marginesem
+(nie na pełnej szerokości slotu / transparentnych bokach KEEP_ASPECT).
+`_set_last_order_status` synchronizuje widoczność banera i slotu z
+niepustym/pustym statusem; treść komunikatów bez zmian. Asset ma pełną
+atrybucję w `game/assets/CREDITS.md`.
+
 **Karta statusu — przegląd wizualny (G101.1c / task-572):** żywe zrzuty
 1152×648 regeneruje `game/tests/capture_status_card_review.gd` przy realnym
 display (nie `--headless`). Skrypt zapisuje PNG i weryfikuje, że

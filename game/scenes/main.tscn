@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=3]
+[gd_scene load_steps=18 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/map_view.gd" id="2_map_view"]
@@ -7,6 +7,7 @@
 [ext_resource type="Texture2D" path="res://assets/strategic_status_background.png" id="14_status_background"]
 [ext_resource type="Texture2D" path="res://assets/battle_panel_background.png" id="13_battle_panel_background"]
 [ext_resource type="Texture2D" path="res://assets/battle_result_banner.png" id="16_battle_result_banner"]
+[ext_resource type="Texture2D" path="res://assets/order_status_banner.png" id="17_order_status_banner"]
 [ext_resource type="Texture2D" path="res://assets/order_bar_background.png" id="15_order_bar_background"]
 [ext_resource type="Texture2D" path="res://assets/icon_next_turn.png" id="5_next_turn_icon"]
 [ext_resource type="Texture2D" path="res://assets/icon_develop.png" id="6_develop_icon"]
@@ -268,14 +269,43 @@ mouse_filter = 2
 theme_override_colors/font_color = Color(0.18, 0.11, 0.06, 1)
 text = ""
 
-[node name="LastOrderStatusLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent"]
+[node name="OrderStatusSlot" type="Control" parent="MainLayout/ContentRow/StatusControls/StatusCardContent"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 24)
+visible = false
+custom_minimum_size = Vector2(0, 54)
 layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="OrderStatusBanner" type="TextureRect" parent="MainLayout/ContentRow/StatusControls/StatusCardContent/OrderStatusSlot"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("17_order_status_banner")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="LastOrderStatusLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent/OrderStatusSlot"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 32.0
+offset_right = -32.0
+grow_horizontal = 2
+grow_vertical = 2
 theme_override_colors/font_color = Color(0.2, 0.12, 0.06, 1)
 theme_override_colors/font_shadow_color = Color(0.95, 0.88, 0.72, 0.45)
 theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
+horizontal_alignment = 1
+vertical_alignment = 1
 autowrap_mode = 2
 
 [node name="StartStatusLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent"]

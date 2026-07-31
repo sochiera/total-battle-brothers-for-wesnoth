@@ -327,6 +327,14 @@ func _apply_save_load_result(
 
 func _set_last_order_status(status: String) -> void:
 	%LastOrderStatusLabel.text = status
+	# G102.1d: parchment ribbon + slot only for non-empty feedback; label
+	# horizontal insets (±32 in main.tscn) keep text inside the opaque body.
+	_sync_order_status_ribbon_visible(not status.is_empty())
+
+
+func _sync_order_status_ribbon_visible(show_ribbon: bool) -> void:
+	%OrderStatusBanner.visible = show_ribbon
+	%OrderStatusSlot.visible = show_ribbon
 
 
 func apply_model(model: SnapshotModel) -> void:
