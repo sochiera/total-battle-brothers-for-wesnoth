@@ -6,6 +6,7 @@ import json
 import re
 from pathlib import Path
 
+from godot_png_assets import assert_asset_credited
 from godot_runner import run_godot_script
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -15,6 +16,8 @@ PREFIX = "SELECTED_REGION_PANEL "
 # Public Polish presentation contract (panel title + empty state).
 TITLE = "Wybrany region"
 EMPTY_STATE = "Nie wybrano regionu"
+PANEL_BACKGROUND = "selected_region_panel.png"
+PANEL_BACKGROUND_RES = f"res://assets/{PANEL_BACKGROUND}"
 
 # Owner / side tokens the panel must use (readable Polish, not bridge ids alone).
 OWNER_PLAYER_RE = re.compile(r"gracz|własn", re.IGNORECASE)
@@ -243,3 +246,31 @@ def test_selected_region_panel_shows_polish_state_from_snapshot():
         f"vanished selection must not keep settlement, got {after_gone!r}"
     )
     _assert_empty_detail_rows_hidden(gone_step, phase="after_gone")
+
+
+def test_selected_region_panel_uses_credited_textured_frame():
+    """G102.1c: the selection readout is framed by its named artwork.
+
+    Realistic defect existing gates miss: all selection text and click/refresh
+    behavior can remain correct while SelectedRegionPanel still renders its
+    flat, single-color StyleBoxFlat. Observe the resolved runtime theme style
+    so an unused PNG on disk cannot satisfy the visual carrier contract.
+    """
+    assets_dir = GAME / "assets"
+    frame_path = assets_dir / PANEL_BACKGROUND
+    assert frame_path.is_file(), (
+        f"required selected-region panel artwork missing: {frame_path}"
+    )
+    assert_asset_credited(
+        assets_dir / "CREDITS.md",
+        PANEL_BACKGROUND,
+        source_re=re.compile(r"https?://\S+|PNG/"),
+    )
+
+    payload = _load_panel()
+    empty_step = payload.get("empty_before") or {}
+    assert empty_step.get("carrier") == "SelectedRegionPanel", empty_step
+    assert empty_step.get("background_path") == PANEL_BACKGROUND_RES, (
+        "SelectedRegionPanel must resolve a StyleBoxTexture backed by "
+        f"{PANEL_BACKGROUND_RES}, got {empty_step!r}"
+    )

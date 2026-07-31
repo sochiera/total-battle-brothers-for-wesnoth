@@ -19,6 +19,10 @@ const ORDER_BAR_CONTENT_PAD := Vector2(20.0, 16.0)
 # Reuses strategic_map_background.png until a dedicated window sheet exists.
 const WINDOW_BACKGROUND_NODE := "StrategicWindowBackground"
 const WINDOW_BACKGROUND_RES := "res://assets/strategic_map_background.png"
+# G102.1c: textured frame for the selection readout (not StyleBoxFlat).
+const SELECTED_REGION_PANEL_NODE := "SelectedRegionPanel"
+const SELECTED_REGION_PANEL_RES := "res://assets/selected_region_panel.png"
+const SELECTED_REGION_EMPTY_PL := "Nie wybrano regionu"
 # G101.1c: visible ResultLabel value cells (row key is ResultKeyLabel).
 const RESULT_VALUE_BY_CODE := {
 	"ongoing": "gra trwa",
@@ -39,6 +43,7 @@ var _default_march_label := ""
 
 func _ready() -> void:
 	_ensure_strategic_window_background()
+	_ensure_selected_region_panel_frame()
 	_default_march_label = %MarchButton.text
 	_apply_order_button_state_styles()
 	_sync_order_controls_minimum_size()
@@ -60,6 +65,38 @@ func _ensure_strategic_window_background() -> void:
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+
+
+func _ensure_selected_region_panel_frame() -> void:
+	## Install the canonical parchment StyleBoxTexture on SelectedRegionPanel.
+	## Single construction site (not main.tscn): non-tileable crop uses STRETCH
+	## on both axes; margins stay here so scene and runtime cannot drift (G102.1c).
+	var panel := find_child(SELECTED_REGION_PANEL_NODE, true, false) as PanelContainer
+	if panel == null:
+		return
+	var texture: Texture2D = load(SELECTED_REGION_PANEL_RES) as Texture2D
+	if texture == null:
+		return
+	panel.add_theme_stylebox_override(
+		"panel", _make_selected_region_panel_style(texture)
+	)
+
+
+func _make_selected_region_panel_style(texture: Texture2D) -> StyleBoxTexture:
+	var style := StyleBoxTexture.new()
+	style.texture = texture
+	style.content_margin_left = 10.0
+	style.content_margin_top = 6.0
+	style.content_margin_right = 10.0
+	style.content_margin_bottom = 6.0
+	style.texture_margin_left = 18.0
+	style.texture_margin_top = 14.0
+	style.texture_margin_right = 18.0
+	style.texture_margin_bottom = 14.0
+	# Crop is not a seamless 9-slice tile; stretch the border regions instead.
+	style.axis_stretch_horizontal = StyleBoxTexture.AXIS_STRETCH_MODE_STRETCH
+	style.axis_stretch_vertical = StyleBoxTexture.AXIS_STRETCH_MODE_STRETCH
+	return style
 
 
 func _order_action_buttons() -> Array[Button]:
@@ -399,7 +436,6 @@ func _update_selected_region_panel(regions: Array) -> void:
 	# Hierarchical panel rows inside SelectedRegionPanel; hidden
 	# SelectedRegionDetailsLabel outside the panel mirrors joined text for
 	# older e2e/march probes that still read a single multiline string.
-	const EMPTY_PL := "Nie wybrano regionu"
 	var selected_region: Dictionary = _find_selected_region(regions)
 	var detail_rows: Array[Label] = [
 		%SelectedRegionNameLabel,
@@ -411,10 +447,10 @@ func _update_selected_region_panel(regions: Array) -> void:
 	var empty_label: Label = %SelectedRegionEmptyLabel
 
 	if selected_region.is_empty():
-		empty_label.text = EMPTY_PL
+		empty_label.text = SELECTED_REGION_EMPTY_PL
 		empty_label.visible = true
 		_set_selected_region_detail_rows(detail_rows, [])
-		details_mirror.text = EMPTY_PL
+		details_mirror.text = SELECTED_REGION_EMPTY_PL
 		return
 
 	var row_texts: Array[String] = _selected_region_detail_row_texts(selected_region)

@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/map_view.gd" id="2_map_view"]
@@ -16,22 +16,6 @@
 [ext_resource type="Texture2D" path="res://assets/icon_assault.png" id="10_assault_icon"]
 [ext_resource type="Texture2D" path="res://assets/icon_save.png" id="11_save_icon"]
 [ext_resource type="Texture2D" path="res://assets/icon_load.png" id="12_load_icon"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_selected_region"]
-bg_color = Color(0.28, 0.18, 0.1, 0.28)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.42, 0.28, 0.14, 0.75)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-content_margin_left = 10.0
-content_margin_top = 6.0
-content_margin_right = 10.0
-content_margin_bottom = 6.0
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -308,7 +292,6 @@ autowrap_mode = 2
 custom_minimum_size = Vector2(0, 124)
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_selected_region")
 
 [node name="SelectedRegionContent" type="VBoxContainer" parent="MainLayout/ContentRow/StatusControls/StatusCardContent/SelectedRegionPanel"]
 layout_mode = 2

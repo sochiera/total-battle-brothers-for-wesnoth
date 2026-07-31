@@ -233,12 +233,20 @@ func _panel_snapshot(scene_root: Node) -> Dictionary:
 	var panel: Node = scene_root.find_child("SelectedRegionPanel", true, false)
 	if panel != null:
 		var joined: String = _join_label_texts(panel)
+		var background_path := ""
+		if panel is PanelContainer:
+			var panel_style: StyleBox = (panel as PanelContainer).get_theme_stylebox("panel")
+			if panel_style is StyleBoxTexture:
+				var panel_texture: Texture2D = (panel_style as StyleBoxTexture).texture
+				if panel_texture != null:
+					background_path = panel_texture.resource_path
 		return {
 			"found": true,
 			"carrier": "SelectedRegionPanel",
 			"text": joined,
 			"label_texts": _label_texts(panel),
 			"visible": panel is CanvasItem and (panel as CanvasItem).is_visible_in_tree(),
+			"background_path": background_path,
 		}
 
 	var titled: Label = _find_label_containing(scene_root, "Wybrany region")
