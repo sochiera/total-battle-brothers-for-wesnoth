@@ -102,8 +102,8 @@ func _controls(scene_root: Control) -> Dictionary:
 		regions.append(region_list.get_item_text(index))
 	return {
 		"date": (scene_root.find_child("DateLabel", true, false) as Label).text,
-		"result": (scene_root.find_child("ResultLabel", true, false) as Label).text,
-		"party_position": (scene_root.find_child("PlayerPartyPositionLabel", true, false) as Label).text,
+		"result": (scene_root.find_child("ResultContractLabel", true, false) as Label).text,
+		"party_position": (scene_root.find_child("PartyPositionContractLabel", true, false) as Label).text,
 		"regions": regions,
 		"duchy_status": (scene_root.find_child("PlayerDuchyStatusLabel", true, false) as Label).text,
 		"order_status": (scene_root.find_child("LastOrderStatusLabel", true, false) as Label).text,

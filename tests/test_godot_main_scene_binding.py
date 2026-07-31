@@ -59,6 +59,7 @@ def test_scene_bind_probe_applies_model_date_regions_and_result(tmp_path):
     )
     token = fixture["result"]["player_result"]
     assert payload["result"] == PLAYER_RESULT_PL[token]
+    assert payload["result_visible"] == PLAYER_RESULT_PL[token].removeprefix("Wynik: ")
     assert payload["regions"] == len(fixture["map"]["regions"])
     assert payload["region_names"] == [
         region["name"] for region in fixture["map"]["regions"]
@@ -82,6 +83,8 @@ def test_scene_bind_probe_shows_polish_player_result_not_bridge_token(
     payload = _bind_payload(tmp_path, token)
     assert payload["result"] == expected
     assert token not in payload["result"]
+    assert payload["result_visible"] == expected.removeprefix("Wynik: ")
+    assert not payload["result_visible"].startswith("Wynik:")
 
 
 @pytest.mark.parametrize(
@@ -101,6 +104,8 @@ def test_scene_bind_probe_missing_player_result_is_readable_polish(
     """
     payload = _bind_payload(tmp_path, missing_value)
     assert payload["result"] == MISSING_PLAYER_RESULT_PL
+    assert payload["result_visible"] == MISSING_PLAYER_RESULT_PL.removeprefix("Wynik: ")
+    assert not payload["result_visible"].startswith("Wynik:")
     assert payload["result"].strip() != ""
     assert payload["result"].strip() != "Wynik:"
 
@@ -110,6 +115,62 @@ def _result_visual(payload: dict) -> tuple:
     return (
         tuple(payload["result_modulate"]),
         tuple(payload["result_font_color"]),
+    )
+
+
+def test_status_card_uses_distinct_label_value_rows_and_separators(tmp_path):
+    """G101.1c: strategic status is a hierarchy, not several text-wall labels.
+
+    Realistic defect missed by existing binding/layout gates: all expected copy
+    can remain present and fit the window while duchy statistics are still one
+    comma-separated Label and date/result/position have no distinct label and
+    value cells. That preserves text but does not provide the required hierarchy.
+    """
+    payload = _bind_payload(tmp_path, "ongoing")
+    records = payload["status_card_labels"]
+    by_parent = {}
+    for record in records:
+        by_parent.setdefault(record["parent"], []).append(record["text"].strip())
+
+    expected_rows = {
+        "Data": ("Rok", "miesiąc"),
+        "Wynik": ("gra trwa",),
+        "Morale": ("0",),
+        "Osady": ("2",),
+        "Oddziały": ("0",),
+        "Położenie oddziału": ("brak",),
+    }
+    for label, value_fragments in expected_rows.items():
+        matching_rows = [
+            texts
+            for texts in by_parent.values()
+            if any(text.rstrip(":") == label for text in texts)
+            and any(
+                all(fragment in text for fragment in value_fragments)
+                and text.rstrip(":") != label
+                for text in texts
+            )
+        ]
+        assert matching_rows, (
+            f"{label!r} must have a separate value Label in the same visible "
+            f"row container; got status_card_labels={records!r}"
+        )
+        value_texts = [
+            text
+            for text in matching_rows[0]
+            if text.rstrip(":") != label
+        ]
+        assert all(
+            not text.casefold().startswith(f"{label}:".casefold())
+            for text in value_texts
+        ), (
+            f"{label!r} value cell must not repeat its row key; "
+            f"got value_texts={value_texts!r}"
+        )
+
+    assert payload["status_card_separators"] >= 2, (
+        "status hierarchy must use visible separators between its major groups; "
+        f"got {payload['status_card_separators']}"
     )
 
 

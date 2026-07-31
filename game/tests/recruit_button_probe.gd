@@ -44,7 +44,7 @@ func _controls(scene_root: Control) -> Dictionary:
 	# Public control texts only — not scene tree shape (MainLayout nests children).
 	return {
 		"date": (scene_root.find_child("DateLabel", true, false) as Label).text,
-		"result": (scene_root.find_child("ResultLabel", true, false) as Label).text,
+		"result": (scene_root.find_child("ResultContractLabel", true, false) as Label).text,
 		"duchy_status": (scene_root.find_child("PlayerDuchyStatusLabel", true, false) as Label).text,
 		"order_status": (scene_root.find_child("LastOrderStatusLabel", true, false) as Label).text,
 	}

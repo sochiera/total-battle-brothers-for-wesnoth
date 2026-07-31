@@ -1134,7 +1134,7 @@ func _party_mark_sample(
 	await process_frame
 	await process_frame
 	var position_label: Label = scene_root.find_child(
-		"PlayerPartyPositionLabel", true, false
+		"PartyPositionContractLabel", true, false
 	) as Label
 	# Marker geometry (R87.1): corner mark must stay smaller than its tile, and
 	# must not capture mouse — a FULL_RECT party texture would green-gate

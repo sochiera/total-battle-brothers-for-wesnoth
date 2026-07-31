@@ -70,7 +70,7 @@ func _run() -> void:
 		_fail("missing MarchButton")
 		return
 	var party_position := scene_root.find_child(
-		"PlayerPartyPositionLabel", true, false
+		"PartyPositionContractLabel", true, false
 	) as Label
 	var selected_region := scene_root.find_child(
 		"SelectedRegionDetailsLabel", true, false

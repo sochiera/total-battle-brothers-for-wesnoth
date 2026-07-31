@@ -101,7 +101,7 @@ func _controls(scene_root: Control) -> Dictionary:
 		names.append(region_list.get_item_text(index))
 	return {
 		"date": (scene_root.find_child("DateLabel", true, false) as Label).text,
-		"result": (scene_root.find_child("ResultLabel", true, false) as Label).text,
+		"result": (scene_root.find_child("ResultContractLabel", true, false) as Label).text,
 		"regions": names,
 	}
 

@@ -19,6 +19,17 @@ const ORDER_BAR_CONTENT_PAD := Vector2(20.0, 16.0)
 # Reuses strategic_map_background.png until a dedicated window sheet exists.
 const WINDOW_BACKGROUND_NODE := "StrategicWindowBackground"
 const WINDOW_BACKGROUND_RES := "res://assets/strategic_map_background.png"
+# G101.1c: visible ResultLabel value cells (row key is ResultKeyLabel).
+const RESULT_VALUE_BY_CODE := {
+	"ongoing": "gra trwa",
+	"victory": "zwycięstwo",
+	"defeat": "porażka",
+	"draw": "remis",
+}
+const RESULT_FONT_BASE := Color(0.18, 0.11, 0.06, 1)
+const RESULT_FONT_VICTORY := Color(0.14, 0.38, 0.16, 1)
+const RESULT_FONT_DEFEAT := Color(0.55, 0.14, 0.1, 1)
+const RESULT_FONT_DRAW := Color(0.52, 0.36, 0.08, 1)
 
 
 var _client: Variant = null
@@ -283,12 +294,11 @@ func _set_last_order_status(status: String) -> void:
 
 func apply_model(model: SnapshotModel) -> void:
 	_current_regions = model.regions
-	# Status card hierarchy (G99.1c): date+result, duchy, position, then panels.
-	%DateLabel.text = "Rok %d, miesiąc %d" % [model.year, model.month]
-	%ResultLabel.text = _get_result_text(model.player_result)
-	_apply_result_visual_style(model.player_result)
-	%PlayerDuchyStatusLabel.text = _player_duchy_status_text(model.player_duchy_status)
-	%PlayerPartyPositionLabel.text = _player_party_position_text(model.player_party_region)
+	# Status card hierarchy (G101.1c): label+value rows with separators, not a
+	# text wall. Visible ResultLabel / PlayerPartyPositionLabel hold value cells
+	# only; ResultContractLabel / PartyPositionContractLabel / PlayerDuchyStatusLabel
+	# keep historical full probe strings as hidden mirrors.
+	_apply_status_card(model)
 	_update_selected_region_panel(model.regions)
 	# RegionList stays in the scene for probe/find_child compatibility but is
 	# hidden on the status card (map is the sole region picker on screen).
@@ -296,19 +306,74 @@ func apply_model(model: SnapshotModel) -> void:
 	_render_world_views(model)
 
 
+func _apply_status_card(model: SnapshotModel) -> void:
+	%DateLabel.text = "Rok %d, miesiąc %d" % [model.year, model.month]
+	var result_value: String = _get_result_value_text(model.player_result)
+	_set_status_value_with_contract_mirror(
+		%ResultLabel,
+		%ResultContractLabel,
+		result_value,
+		_result_contract_text(result_value),
+	)
+	_apply_result_visual_style(model.player_result)
+	_apply_player_duchy_status(model.player_duchy_status)
+	var party_value: String = _player_party_position_value(model.player_party_region)
+	_set_status_value_with_contract_mirror(
+		%PlayerPartyPositionLabel,
+		%PartyPositionContractLabel,
+		party_value,
+		_party_position_contract_text(party_value),
+	)
+
+
+func _set_status_value_with_contract_mirror(
+	value_label: Label, mirror: Label, value: String, contract_text: String
+) -> void:
+	# Visible cell = bare value; hidden mirror keeps historical probe strings
+	# (e.g. "Wynik: …") without duplicating prefixes on the status card.
+	value_label.text = value
+	_set_hidden_contract_mirror(mirror, contract_text)
+
+
+func _set_hidden_contract_mirror(mirror: Label, contract_text: String) -> void:
+	mirror.text = contract_text
+	mirror.visible = false
+
+
 func _render_world_views(model: SnapshotModel) -> void:
 	%MapView.render_model(model)
 	%BattleView.render_model(model)
 
 
-func _player_duchy_status_text(player_duchy_status: Variant) -> String:
-	if player_duchy_status is Dictionary:
-		return "Morale: %s, osady: %s, oddziały: %s" % [
-			player_duchy_status["morale"],
-			player_duchy_status["settlements"],
-			player_duchy_status["parties"],
-		]
-	return ""
+func _apply_player_duchy_status(player_duchy_status: Variant) -> void:
+	var metrics: Dictionary = _player_duchy_metrics(player_duchy_status)
+	%MoraleValueLabel.text = metrics["morale"]
+	%SettlementsValueLabel.text = metrics["settlements"]
+	%PartiesValueLabel.text = metrics["parties"]
+	_set_hidden_contract_mirror(
+		%PlayerDuchyStatusLabel, _player_duchy_status_text(metrics)
+	)
+
+
+func _player_duchy_metrics(player_duchy_status: Variant) -> Dictionary:
+	if not player_duchy_status is Dictionary:
+		return {"morale": "", "settlements": "", "parties": ""}
+	var status: Dictionary = player_duchy_status
+	return {
+		"morale": str(status.get("morale", "")),
+		"settlements": str(status.get("settlements", "")),
+		"parties": str(status.get("parties", "")),
+	}
+
+
+func _player_duchy_status_text(metrics: Dictionary) -> String:
+	if metrics["morale"] == "" and metrics["settlements"] == "" and metrics["parties"] == "":
+		return ""
+	return "Morale: %s, osady: %s, oddziały: %s" % [
+		metrics["morale"],
+		metrics["settlements"],
+		metrics["parties"],
+	]
 
 
 func _render_region_list(regions: Array) -> void:
@@ -422,13 +487,15 @@ func _party_text(party: Variant) -> String:
 	return "brak armii"
 
 
-func _player_party_position_text(player_party_region: Variant) -> String:
+func _player_party_position_value(player_party_region: Variant) -> String:
 	if player_party_region is String and not player_party_region.is_empty():
-		return (
-			"Położenie oddziału: %s"
-			% WorldPresentation.region_label(player_party_region)
-		)
-	return "Położenie oddziału: brak"
+		return WorldPresentation.region_label(player_party_region)
+	return "brak"
+
+
+func _party_position_contract_text(value: String) -> String:
+	# Historical single-line probe contract (G89+); key lives on PartyPositionKeyLabel.
+	return "Położenie oddziału: %s" % value
 
 
 func _apply_result_visual_style(player_result: String) -> void:
@@ -436,29 +503,24 @@ func _apply_result_visual_style(player_result: String) -> void:
 	# Color.GREEN/RED/YELLOW w modulate gasi kanały → niemal czarny tekst.
 	# Styl wyniku idzie wyłącznie przez theme_override font_color; modulate = WHITE.
 	var result_label: Label = %ResultLabel
-	const BASE_FONT := Color(0.18, 0.11, 0.06, 1)
-	const VICTORY_FONT := Color(0.14, 0.38, 0.16, 1)
-	const DEFEAT_FONT := Color(0.55, 0.14, 0.1, 1)
-	const DRAW_FONT := Color(0.52, 0.36, 0.08, 1)
 	result_label.modulate = Color.WHITE
-	var font_color: Color = BASE_FONT
+	var font_color: Color = RESULT_FONT_BASE
 	match player_result:
 		"victory":
-			font_color = VICTORY_FONT
+			font_color = RESULT_FONT_VICTORY
 		"defeat":
-			font_color = DEFEAT_FONT
+			font_color = RESULT_FONT_DEFEAT
 		"draw":
-			font_color = DRAW_FONT
+			font_color = RESULT_FONT_DRAW
 	result_label.add_theme_color_override("font_color", font_color)
 
 
-func _get_result_text(player_result: String) -> String:
-	var result_map := {
-		"ongoing": "Wynik: gra trwa",
-		"victory": "Wynik: zwycięstwo",
-		"defeat": "Wynik: porażka",
-		"draw": "Wynik: remis",
-	}
-	if player_result in result_map:
-		return result_map[player_result]
-	return "Wynik: brak"
+func _get_result_value_text(player_result: String) -> String:
+	if player_result in RESULT_VALUE_BY_CODE:
+		return RESULT_VALUE_BY_CODE[player_result]
+	return "brak"
+
+
+func _result_contract_text(value: String) -> String:
+	# Historical single-line probe contract (G90.2b); key lives on ResultKeyLabel.
+	return "Wynik: %s" % value

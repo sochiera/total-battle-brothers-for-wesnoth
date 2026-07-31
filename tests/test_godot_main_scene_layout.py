@@ -21,12 +21,19 @@ STATUS_CONTROLS = (
     "DateLabel",
     "StartStatusLabel",
     "ResultLabel",
-    "PlayerDuchyStatusLabel",
+    "MoraleValueLabel",
+    "SettlementsValueLabel",
+    "PartiesValueLabel",
     "LastOrderStatusLabel",
     "PlayerPartyPositionLabel",
     "SelectedRegionPanel",
 )
-HIDDEN_CONTROLS = ("RegionList",)
+HIDDEN_CONTROLS = (
+    "RegionList",
+    "ResultContractLabel",
+    "PlayerDuchyStatusLabel",
+    "PartyPositionContractLabel",
+)
 ORDER_CONTROLS = (
     "NextTurnButton",
     "DevelopButton",
@@ -197,8 +204,8 @@ def _png_dimensions(path: Path) -> tuple[int, int]:
     return dimensions
 
 
-def test_main_scene_controls_have_disjoint_layout_and_hidden_region_list():
-    """Visible controls must not overlap; the map replaces the hidden RegionList.
+def test_main_scene_controls_have_disjoint_layout_and_hidden_contract_controls():
+    """Visible controls do not overlap; compatibility controls remain hidden.
 
     Realistic defect this catches: main.tscn still parents every control at the
     same origin with default zero sizes (empirically all global_position==(0,0),
@@ -214,11 +221,12 @@ def test_main_scene_controls_have_disjoint_layout_and_hidden_region_list():
             f"{name} must have non-zero size after layout, got {rect}"
         )
 
-    region = controls["RegionList"]
-    assert region is not None, "RegionList must remain findable for bridge/probe compatibility"
-    assert region["visible"] is False, (
-        f"duplicated RegionList must not be presented beside the map, got {region}"
-    )
+    for name in HIDDEN_CONTROLS:
+        rect = controls[name]
+        assert rect is not None, f"{name} must remain findable for probe compatibility"
+        assert rect["visible"] is False, (
+            f"compatibility control {name} must not be presented, got {rect}"
+        )
 
     visible_controls = STATUS_CONTROLS + ORDER_CONTROLS
     for i, left_name in enumerate(visible_controls):
@@ -449,8 +457,9 @@ def test_strategic_composition_fits_review_viewport_collapses_empty_battle_and_u
     # No-battle layout lives under the single key "controls" (same as disjoint).
     controls = payload["controls"]
     assert set(controls) == set(ALL_CONTROLS), controls
-    assert controls["RegionList"] is not None
-    assert controls["RegionList"]["visible"] is False
+    for name in HIDDEN_CONTROLS:
+        assert controls[name] is not None
+        assert controls[name]["visible"] is False
     for name in STATUS_CONTROLS + ORDER_CONTROLS:
         rect = controls[name]
         assert rect is not None, f"missing control {name}"
@@ -508,8 +517,9 @@ def test_strategic_composition_fits_review_viewport_collapses_empty_battle_and_u
         f"got {controls_battle!r}"
     )
     assert set(controls_battle) == set(ALL_CONTROLS), controls_battle
-    assert controls_battle["RegionList"] is not None
-    assert controls_battle["RegionList"]["visible"] is False
+    for name in HIDDEN_CONTROLS:
+        assert controls_battle[name] is not None
+        assert controls_battle[name]["visible"] is False
     for name in STATUS_CONTROLS + ORDER_CONTROLS:
         rect = controls_battle[name]
         assert rect is not None and rect["w"] > 0 and rect["h"] > 0, rect

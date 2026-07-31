@@ -744,6 +744,32 @@ poza panelem lustrzuje treść jako jeden ciąg (kompatybilność starszych
 sond). `region_selected`, cel `move`/`march` oraz snapshot/most/rdzeń nadal
 niosą wyłącznie id kanoniczne.
 
+**Karta statusu — hierarchia wierszy (G101.1c / task-572):**
+`StatusCardContent` układa strategiczny status w osobne wiersze
+etykieta–wartość (`HBoxContainer`), nie w monolityczne linie: Data /
+`DateLabel`, Wynik / `ResultLabel` (sama wartość po polsku, bez prefiksu
+klucza; styl wyniku bez zmian — wyróżnienie font_color), potem
+`HSeparator`, Morale / Osady / Oddziały jako osobne pary, ukryty
+`PlayerDuchyStatusLabel` z historycznym ciągiem
+`Morale: …, osady: …, oddziały: …` (sondy), drugi `HSeparator`,
+Położenie oddziału / `PlayerPartyPositionLabel` (sama wartość / `brak`,
+bez prefiksu klucza), komunikaty rozkazu/statusu oraz panel wybranego
+regionu. Ukryte lustra `ResultContractLabel` (`Wynik: …`) i
+`PartyPositionContractLabel` (`Położenie oddziału: …`) zachowują
+historyczne pełne stringi dla starszych sond. Snapshot i most bez zmian —
+wyłącznie prezentacja. `Main.apply_model` deleguje ten blok do
+`_apply_status_card`.
+
+**Karta statusu — przegląd wizualny (G101.1c / task-572):** żywe zrzuty
+1152×648 regeneruje `game/tests/capture_status_card_review.gd` przy realnym
+display (nie `--headless`). Skrypt zapisuje PNG i weryfikuje, że
+`StatusControls`, `MapView`, `BattleView` oraz pasek rozkazów mieszczą się
+w viewporcie (brak wypychania poza ekran).
+`task-572-status-fresh-1152x648.png` — świeża partia (`ongoing`, wiersze
+Data/Wynik/Morale/Osady/Oddziały/Położenie + separatory);
+`task-572-status-finished-1152x648.png` — zakończona (`victory`, wyróżniony
+wynik). Ocena hierarchii i czytelności należy do człowieka.
+
 **SelectedRegionPanel — przegląd wizualny (G100.1c / task-568):** żywe zrzuty
 1152×648 (nie placeholdery) regeneruje
 `game/tests/capture_selected_region_review.gd` przy realnym display (nie

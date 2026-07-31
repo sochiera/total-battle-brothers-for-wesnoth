@@ -56,7 +56,7 @@ func _init() -> void:
 	print(PREFIX, JSON.stringify({
 		"orders": client.orders,
 		"date": (scene_root.find_child("DateLabel", true, false) as Label).text,
-		"result": (scene_root.find_child("ResultLabel", true, false) as Label).text,
+		"result": (scene_root.find_child("ResultContractLabel", true, false) as Label).text,
 		"regions": _regions(scene_root),
 		"duchy_status": (scene_root.find_child("PlayerDuchyStatusLabel", true, false) as Label).text,
 		"order_status": (scene_root.find_child("LastOrderStatusLabel", true, false) as Label).text,

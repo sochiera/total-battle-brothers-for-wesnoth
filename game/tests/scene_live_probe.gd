@@ -27,14 +27,18 @@ func _init() -> void:
 	var refreshed: bool = scene_root.refresh_from_bridge(client)
 	var date_label: Label = scene_root.find_child("DateLabel", true, false) as Label
 	var result_label: Label = scene_root.find_child("ResultLabel", true, false) as Label
+	var result_contract: Label = scene_root.find_child("ResultContractLabel", true, false) as Label
 	var region_list: ItemList = scene_root.find_child("RegionList", true, false) as ItemList
 	var region_names: Array[String] = []
 	for index: int in region_list.item_count:
 		region_names.append(region_list.get_item_text(index))
+	var result_export: String = (
+		result_contract.text if result_contract != null else result_label.text
+	)
 	print("SCENE_LIVE ", JSON.stringify({
 		"refreshed": refreshed,
 		"date": date_label.text,
-		"result": result_label.text,
+		"result": result_export,
 		"regions": region_list.item_count,
 		"region_names": region_names,
 	}))

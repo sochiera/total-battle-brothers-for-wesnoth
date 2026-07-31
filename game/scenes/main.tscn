@@ -97,43 +97,191 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 6
 
-[node name="DateLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent"]
+[node name="DateRow" type="HBoxContainer" parent="MainLayout/ContentRow/StatusControls/StatusCardContent"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="DateKeyLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent/DateRow"]
+custom_minimum_size = Vector2(148, 0)
+layout_mode = 2
+size_flags_vertical = 1
+theme_override_colors/font_color = Color(0.22, 0.12, 0.06, 1)
+theme_override_colors/font_shadow_color = Color(0.95, 0.88, 0.72, 0.45)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 16
+text = "Data"
+
+[node name="DateLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent/DateRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 24)
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.18, 0.11, 0.06, 1)
 theme_override_colors/font_shadow_color = Color(0.95, 0.88, 0.72, 0.55)
 theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
 theme_override_font_sizes/font_size = 18
+autowrap_mode = 2
 
-[node name="ResultLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent"]
+[node name="ResultRow" type="HBoxContainer" parent="MainLayout/ContentRow/StatusControls/StatusCardContent"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ResultKeyLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent/ResultRow"]
+custom_minimum_size = Vector2(148, 0)
+layout_mode = 2
+size_flags_vertical = 1
+theme_override_colors/font_color = Color(0.22, 0.12, 0.06, 1)
+theme_override_colors/font_shadow_color = Color(0.95, 0.88, 0.72, 0.45)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 16
+text = "Wynik"
+
+[node name="ResultLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent/ResultRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 24)
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.18, 0.11, 0.06, 1)
 theme_override_colors/font_shadow_color = Color(0.95, 0.88, 0.72, 0.55)
 theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
 theme_override_font_sizes/font_size = 16
+autowrap_mode = 2
+
+[node name="ResultContractLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.18, 0.11, 0.06, 1)
+text = ""
+
+[node name="StatusPrimarySeparator" type="HSeparator" parent="MainLayout/ContentRow/StatusControls/StatusCardContent"]
+layout_mode = 2
+theme_override_constants/separation = 4
+modulate = Color(0.42, 0.28, 0.14, 0.55)
+
+[node name="MoraleRow" type="HBoxContainer" parent="MainLayout/ContentRow/StatusControls/StatusCardContent"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="MoraleKeyLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent/MoraleRow"]
+custom_minimum_size = Vector2(148, 0)
+layout_mode = 2
+size_flags_vertical = 1
+theme_override_colors/font_color = Color(0.22, 0.12, 0.06, 1)
+theme_override_colors/font_shadow_color = Color(0.95, 0.88, 0.72, 0.45)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+text = "Morale"
+
+[node name="MoraleValueLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent/MoraleRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.18, 0.11, 0.06, 1)
+theme_override_colors/font_shadow_color = Color(0.95, 0.88, 0.72, 0.45)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+
+[node name="SettlementsRow" type="HBoxContainer" parent="MainLayout/ContentRow/StatusControls/StatusCardContent"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SettlementsKeyLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent/SettlementsRow"]
+custom_minimum_size = Vector2(148, 0)
+layout_mode = 2
+size_flags_vertical = 1
+theme_override_colors/font_color = Color(0.22, 0.12, 0.06, 1)
+theme_override_colors/font_shadow_color = Color(0.95, 0.88, 0.72, 0.45)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+text = "Osady"
+
+[node name="SettlementsValueLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent/SettlementsRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.18, 0.11, 0.06, 1)
+theme_override_colors/font_shadow_color = Color(0.95, 0.88, 0.72, 0.45)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+
+[node name="PartiesRow" type="HBoxContainer" parent="MainLayout/ContentRow/StatusControls/StatusCardContent"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="PartiesKeyLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent/PartiesRow"]
+custom_minimum_size = Vector2(148, 0)
+layout_mode = 2
+size_flags_vertical = 1
+theme_override_colors/font_color = Color(0.22, 0.12, 0.06, 1)
+theme_override_colors/font_shadow_color = Color(0.95, 0.88, 0.72, 0.45)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+text = "Oddziały"
+
+[node name="PartiesValueLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent/PartiesRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.18, 0.11, 0.06, 1)
+theme_override_colors/font_shadow_color = Color(0.95, 0.88, 0.72, 0.45)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
 
 [node name="PlayerDuchyStatusLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 24)
+visible = false
 layout_mode = 2
+mouse_filter = 2
 theme_override_colors/font_color = Color(0.18, 0.11, 0.06, 1)
+text = ""
+
+[node name="StatusDuchySeparator" type="HSeparator" parent="MainLayout/ContentRow/StatusControls/StatusCardContent"]
+layout_mode = 2
+theme_override_constants/separation = 4
+modulate = Color(0.42, 0.28, 0.14, 0.55)
+
+[node name="PartyPositionRow" type="HBoxContainer" parent="MainLayout/ContentRow/StatusControls/StatusCardContent"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="PartyPositionKeyLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent/PartyPositionRow"]
+custom_minimum_size = Vector2(148, 0)
+layout_mode = 2
+size_flags_vertical = 1
+theme_override_colors/font_color = Color(0.22, 0.12, 0.06, 1)
 theme_override_colors/font_shadow_color = Color(0.95, 0.88, 0.72, 0.45)
 theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
+text = "Położenie oddziału"
+autowrap_mode = 2
 
-[node name="PlayerPartyPositionLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent"]
+[node name="PlayerPartyPositionLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent/PartyPositionRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 24)
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.18, 0.11, 0.06, 1)
 theme_override_colors/font_shadow_color = Color(0.95, 0.88, 0.72, 0.45)
 theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
+autowrap_mode = 2
+
+[node name="PartyPositionContractLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.18, 0.11, 0.06, 1)
+text = ""
 
 [node name="LastOrderStatusLabel" type="Label" parent="MainLayout/ContentRow/StatusControls/StatusCardContent"]
 unique_name_in_owner = true

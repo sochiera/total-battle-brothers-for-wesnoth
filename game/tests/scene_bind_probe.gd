@@ -63,6 +63,8 @@ func _init() -> void:
 		scene_root.call("apply_model", model)
 	var date_label: Label = scene_root.find_child("DateLabel", true, false) as Label
 	var result_label: Label = scene_root.find_child("ResultLabel", true, false) as Label
+	# Historical G90.2b single-line contract lives on the hidden mirror.
+	var result_contract: Label = scene_root.find_child("ResultContractLabel", true, false) as Label
 	var duchy_status_label: Label = scene_root.find_child("PlayerDuchyStatusLabel", true, false) as Label
 	var duchy_status_before_clear: Variant = duchy_status_label.text if duchy_status_label != null else null
 	if clear_status:
@@ -74,9 +76,14 @@ func _init() -> void:
 		region_names.append(region_list.get_item_text(index))
 	var result_modulate: Color = result_label.modulate
 	var result_font_color: Color = result_label.get_theme_color("font_color")
+	var status_card: Node = scene_root.find_child("StatusCardContent", true, false)
+	var result_export: String = (
+		result_contract.text if result_contract != null else result_label.text
+	)
 	print("SCENE_TEXT ", JSON.stringify({
 		"date": date_label.text,
-		"result": result_label.text,
+		"result": result_export,
+		"result_visible": result_label.text,
 		"result_modulate": [
 			result_modulate.r,
 			result_modulate.g,
@@ -93,8 +100,44 @@ func _init() -> void:
 		"duchy_status": duchy_status_label.text if duchy_status_label != null else null,
 		"regions": region_list.item_count,
 		"region_names": region_names,
+		"status_card_labels": _visible_label_records(status_card),
+		"status_card_separators": _visible_separator_count(status_card),
 	}))
 	call_deferred("quit", 0)
+
+
+func _visible_label_records(node: Node) -> Array[Dictionary]:
+	var records: Array[Dictionary] = []
+	if node == null:
+		return records
+	_collect_visible_label_records(node, records)
+	return records
+
+
+func _collect_visible_label_records(
+	node: Node, records: Array[Dictionary]
+) -> void:
+	if node is Label and (node as Label).visible:
+		var parent: Node = node.get_parent()
+		records.append({
+			"name": str(node.name),
+			"text": (node as Label).text,
+			"parent": str(parent.name) if parent != null else "",
+			"parent_type": parent.get_class() if parent != null else "",
+		})
+	for child: Node in node.get_children():
+		_collect_visible_label_records(child, records)
+
+
+func _visible_separator_count(node: Node) -> int:
+	if node == null:
+		return 0
+	var count := 0
+	if (node is HSeparator or node is VSeparator) and (node as CanvasItem).visible:
+		count += 1
+	for child: Node in node.get_children():
+		count += _visible_separator_count(child)
+	return count
 
 
 func _fail(message: String) -> void:
