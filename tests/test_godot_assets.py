@@ -231,6 +231,77 @@ def test_map_and_battle_grounds_are_filled_muted_hex_assets():
     )
 
 
+def test_battle_terrain_decorations_keep_native_footprints_and_muted_palette():
+    """Forest/Hills overlays must not retain the vivid Kenney object palette.
+
+    Realistic defect existing gates miss: the original 26×40 pine and 74×92
+    rock load, are credited, and BattleView places them at native size, so all
+    geometry/mapping tests pass while the saturated green tree still clashes
+    with the muted parchment plains base.
+    """
+    expected_sizes = {
+        "terrain_forest.png": (26, 40),
+        "terrain_hills.png": (74, 92),
+    }
+    for name, expected_size in expected_sizes.items():
+        width, height, rgba = png_rgba8(GAME / "assets" / name)
+        assert (width, height) == expected_size, (
+            f"{name} must remain a native-size decoration, not a full hex; "
+            f"expected {expected_size[0]}×{expected_size[1]}, got {width}×{height}"
+        )
+        visible_pixels = [
+            tuple(rgba[offset : offset + 4])
+            for offset in range(0, len(rgba), 4)
+            if rgba[offset + 3] >= 128
+        ]
+        assert visible_pixels, f"{name} must contain a visible decoration"
+        assert len(visible_pixels) < width * height * 0.9, (
+            f"{name} must keep transparent space around the decoration"
+        )
+
+        saturated_green = [
+            pixel
+            for pixel in visible_pixels
+            if pixel[1] > pixel[0] * 1.15
+            and pixel[1] > pixel[2] * 1.15
+            and max(pixel[:3]) - min(pixel[:3]) > 35
+        ]
+        green_share = len(saturated_green) / len(visible_pixels)
+        assert green_share < 0.10, (
+            f"{name} must use the muted battle/map-ground family, not vivid "
+            f"Kenney green; got {green_share:.1%} saturated-green visible pixels"
+        )
+
+        mean_rgb = tuple(
+            sum(pixel[channel] for pixel in visible_pixels) / len(visible_pixels)
+            for channel in range(3)
+        )
+        assert mean_rgb[0] - mean_rgb[2] >= 25.0, (
+            f"{name} must use a warm olive/parchment balance, not the cool "
+            f"Kenney object palette; got mean RGB "
+            f"{tuple(round(channel, 1) for channel in mean_rgb)}"
+        )
+
+    credits = (GAME / "assets" / "CREDITS.md").read_text(encoding="utf-8")
+    for name, source_path in {
+        "terrain_forest.png": "PNG/Objects/treePine_large.png",
+        "terrain_hills.png": "PNG/Objects/rockGrey_large.png",
+    }.items():
+        matching_lines = [
+            line
+            for line in credits.splitlines()
+            if name in line and source_path in line
+        ]
+        assert len(matching_lines) == 1, (
+            f"CREDITS.md must have one per-file {name} row with source path "
+            f"{source_path}"
+        )
+        credit = matching_lines[0]
+        assert "Kenney Vleugels" in credit and LICENSE_RE.search(credit), (
+            f"{name} row must document the author and CC0/CC-BY license"
+        )
+
+
 def test_settlement_type_assets_use_muted_non_plastic_palette_and_per_file_credits():
     """Keep/outpost must not retain Kenney green or a bright white block.
 

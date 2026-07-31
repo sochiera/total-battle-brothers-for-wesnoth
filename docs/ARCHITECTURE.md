@@ -808,6 +808,14 @@ regeneruje `game/tests/capture_battle_hp_badge_review.gd` przy realnym display
 (jak sonda BattleView). Ocena czytelności plakietek w skali heksu należy do
 człowieka; wpis `battle_hp_badge.png` w `game/assets/CREDITS.md`.
 
+**BattleView — dekoracje terenu (G104.1b / task-584):** baza heksu bitwy to
+`terrain_plains.png` (120×140). `Forest` nakłada `terrain_forest.png` (26×40),
+`Hills` — `terrain_hills.png` (74×92) w natywnym prostokącie (`TileTextureLayer.native_rect`);
+`Plains` i nieznany teren → sama baza. Oba pliki dekoracji zachowują sylwetki
+Kenney Hexagon Pack, ale są retuszowane w stonowanej rodzinie
+`terrain_plains` / `map_ground_*` (bez jaskrawej zieleni i chłodnego plastiku).
+Mapowanie i snapshot bez zmian; atrybucja per plik w `game/assets/CREDITS.md`.
+
 **SelectedRegionPanel — teksturowana rama (G102.1c / task-576):** panel
 używa `StyleBoxTexture` z `res://assets/selected_region_panel.png` (nie
 `StyleBoxFlat`). Kanoniczny styl buduje wyłącznie `main.gd`

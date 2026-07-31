@@ -18,9 +18,14 @@ const BATTLE_RESULT_TEXTS := {
 
 # Battle base fill (G103.1d): muted parchment plains hex, same family as map grounds.
 const TERRAIN_PLAINS := preload("res://assets/terrain_plains.png")
-# Overlays on the plains base (undistorted native size; not full-hex fills).
+# G104.1b: native-size decorations on plains (not full-hex fills); muted family.
 const TERRAIN_FOREST := preload("res://assets/terrain_forest.png")
 const TERRAIN_HILLS := preload("res://assets/terrain_hills.png")
+# terrain field → optional overlay; Plains / unknown → no decoration.
+const TERRAIN_DECORATIONS := {
+	"Forest": TERRAIN_FOREST,
+	"Hills": TERRAIN_HILLS,
+}
 
 const SIDE_ATTACKER_TEXTURE := preload("res://assets/side_attacker.png")
 const SIDE_DEFENDER_TEXTURE := preload("res://assets/side_defender.png")
@@ -219,13 +224,7 @@ func _battle_header_height() -> float:
 
 
 func _terrain_decoration_texture(terrain: Variant) -> Texture2D:
-	match terrain:
-		"Forest":
-			return TERRAIN_FOREST
-		"Hills":
-			return TERRAIN_HILLS
-		_:
-			return null
+	return TERRAIN_DECORATIONS.get(terrain)
 
 
 func _side_silhouette_texture(side: Variant) -> Texture2D:
