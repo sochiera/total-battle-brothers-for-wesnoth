@@ -659,6 +659,30 @@ musi zakończyć się przez `call_deferred("quit", …)`. Błąd przed tym wywo�
 pozostawia drzewo scen aktywne, dlatego pythonowa bramka
 `run_godot_script` ma limit czasu i propaguje `subprocess.TimeoutExpired`.
 
+**Okno strategiczne — tło całego viewportu (G100.1d):** w
+`game/scenes/main.tscn` pierwszy potomek roota `Main` to
+`StrategicWindowBackground` (`TextureRect`, full-rect,
+`res://assets/strategic_map_background.png`, `expand_mode` keep aspect
+covered, `mouse_filter = ignore`). To jawne rozszerzenie istniejącego
+pergaminu mapy na całe 1152×648: szczeliny `VBox`/`HBox` (`separation`)
+oraz puste strefy roota nie odsłaniają domyślnego szarego chrome Godota.
+`main.gd` w `_ready()` wywołuje `_ensure_strategic_window_background()`
+(kolejność child=0, full-rect, ignore mouse, texture fallback).
+Panele (`StrategicMapBackground`, `StrategicStatusBackground`,
+`OrderBarBackground`, `BattlePanelBackground`) zostają lokalnymi oprawami
+nad tą warstwą. Dedykowany `strategic_window_background.png` nie jest
+wymagany, dopóki kontrakt pokrywa pełne okno dozwolonym pergaminem.
+Źródło/CC0: ten sam wiersz `strategic_map_background.png` w
+`game/assets/CREDITS.md`.
+
+Artefakty przeglądu 1152×648 po pełnoekranowym pergaminie (żywe zrzuty,
+nie placeholdery): regeneracja
+`game/tests/capture_window_background_review.gd` przy realnym display (nie
+`--headless`). `task-569-fresh-1152x648.png` — świeża partia bez wyboru;
+`task-569-selected-region-1152x648.png` — po zaznaczeniu regionu własnego;
+`task-569-visible-battle-1152x648.png` — przy widocznym `BattleView`.
+Ocena braku szarego chrome formularza należy do człowieka.
+
 **OrderControls — tło paska rozkazów (G99.1d):** w `game/scenes/main.tscn`
 węzeł `OrderControls` to `Control` z `OrderBarBackground` (`TextureRect`,
 `res://assets/order_bar_background.png`, full-rect, `mouse_filter = ignore`)

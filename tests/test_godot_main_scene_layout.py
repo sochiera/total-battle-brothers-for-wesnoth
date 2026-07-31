@@ -48,9 +48,20 @@ STATUS_BACKGROUND = "strategic_status_background.png"
 STATUS_BACKGROUND_RES = f"res://assets/{STATUS_BACKGROUND}"
 ORDER_BAR_BACKGROUND = "order_bar_background.png"
 ORDER_BAR_BACKGROUND_RES = f"res://assets/{ORDER_BAR_BACKGROUND}"
+WINDOW_BACKGROUND_RESOURCES = {
+    "res://assets/strategic_window_background.png",
+    STRATEGIC_BACKGROUND_RES,
+    STATUS_BACKGROUND_RES,
+    ORDER_BAR_BACKGROUND_RES,
+}
 ORDER_BAR_SCREENSHOTS = (
     GAME / "screenshots" / "task-565-fresh-order-states-1152x648.png",
     GAME / "screenshots" / "task-565-visible-battle-1152x648.png",
+)
+WINDOW_BACKGROUND_SCREENSHOTS = (
+    GAME / "screenshots" / "task-569-fresh-1152x648.png",
+    GAME / "screenshots" / "task-569-selected-region-1152x648.png",
+    GAME / "screenshots" / "task-569-visible-battle-1152x648.png",
 )
 ORDER_ICON_FILES = {
     "NextTurnButton": "icon_next_turn.png",
@@ -342,9 +353,26 @@ def test_order_buttons_expose_distinct_states_and_review_screenshots():
             "not a tiny flat-colour placeholder"
         )
 
+def test_window_background_review_screenshots_exist_at_target_resolution():
+    """G100.1d: review artifacts cover fresh, selected, and battle states."""
+    # Older task-565/task-568 captures predate the full-window parchment and
+    # cannot demonstrate that root gaps no longer expose default grey chrome.
+    for screenshot in WINDOW_BACKGROUND_SCREENSHOTS:
+        assert screenshot.is_file(), (
+            f"required post-G100.1d human-review screenshot missing: {screenshot}"
+        )
+        width, height = _png_dimensions(screenshot)
+        assert (width, height) == (int(VIEWPORT_W), int(VIEWPORT_H)), (
+            f"{screenshot} must be 1152×648, got {width}×{height}"
+        )
+        assert screenshot.stat().st_size >= 100_000, (
+            f"{screenshot} must contain a detailed live-game review frame, "
+            "not a tiny flat-colour placeholder"
+        )
+
 
 def test_strategic_composition_fits_review_viewport_collapses_empty_battle_and_uses_background():
-    """G94.1d: 1152×648 composition, empty BattleView free, map panel background.
+    """G94.1d/G100.1d: fitted composition with panel and window backgrounds.
 
     Realistic defect existing gates miss: main.tscn always reserves BattleView
     ``custom_minimum_size`` 420×240 even when the snapshot has no battle, so a
@@ -353,7 +381,9 @@ def test_strategic_composition_fits_review_viewport_collapses_empty_battle_and_u
     disjointness of status/order controls and never looks at BattleView height,
     viewport fit, or a map-panel background. Asset gates do not require
     ``strategic_map_background.png`` or its CREDITS row, so the strategic screen
-    stays green while still looking like a prototype.
+    stays green while still looking like a prototype. G100.1d additionally
+    requires an allowed parchment texture to cover the complete viewport so
+    root gaps and container separators cannot expose default grey chrome.
     """
     assets_dir = GAME / "assets"
     background_path = assets_dir / STRATEGIC_BACKGROUND
@@ -394,6 +424,27 @@ def test_strategic_composition_fits_review_viewport_collapses_empty_battle_and_u
         f"composition; missing method would self-satisfy on bridge residue, "
         f"got apply_model={payload.get('apply_model')!r}"
     )
+    window_background = payload.get("window_background") or {}
+    assert window_background.get("found") is True, window_background
+    assert window_background.get("background_path") in WINDOW_BACKGROUND_RESOURCES, (
+        "the complete strategic window must use the dedicated artwork or an "
+        "explicit extension of an existing parchment texture, "
+        f"got {window_background!r}"
+    )
+    assert window_background.get("background_covers_window") is True, (
+        "a medieval background must cover the complete 1152×648 window so "
+        "container separators and empty root areas cannot expose default grey "
+        f"chrome, got {window_background!r}"
+    )
+    assert window_background.get("visible") is True, window_background
+    assert window_background.get("covered_stretch") is True, (
+        "the full-window texture must crop-to-cover rather than letterbox, "
+        f"got {window_background!r}"
+    )
+    assert window_background.get("below_main_layout") is True, (
+        "the window background must be a sibling drawn below MainLayout, "
+        f"got {window_background!r}"
+    )
 
     # No-battle layout lives under the single key "controls" (same as disjoint).
     controls = payload["controls"]
@@ -417,8 +468,8 @@ def test_strategic_composition_fits_review_viewport_collapses_empty_battle_and_u
     assert _rect_fully_inside_viewport(map_view), (
         f"MapView must fit inside review viewport, got {map_view!r}"
     )
-    # Observable: panel has the strategic texture covering its rect — not a
-    # fixed child name/parent (node may move under MapAndBattle / panel root).
+    # Observable: the MapView subtree itself has the strategic texture covering
+    # its rect. A full-window sibling using the same asset cannot satisfy this.
     assert map_view.get("background_path") == STRATEGIC_BACKGROUND_RES, (
         f"map panel must show textured strategic background "
         f"{STRATEGIC_BACKGROUND_RES}, got {map_view.get('background_path')!r}"

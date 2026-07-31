@@ -20,6 +20,12 @@ const VIEWPORT_H := 648.0
 const BACKGROUND_RES := "res://assets/strategic_map_background.png"
 const STATUS_BACKGROUND_RES := "res://assets/strategic_status_background.png"
 const ORDER_BAR_BACKGROUND_RES := "res://assets/order_bar_background.png"
+const WINDOW_BACKGROUND_RESOURCES: Array[String] = [
+	"res://assets/strategic_window_background.png",
+	BACKGROUND_RES,
+	STATUS_BACKGROUND_RES,
+	ORDER_BAR_BACKGROUND_RES,
+]
 
 const CONTROL_NAMES: Array[String] = [
 	"DateLabel",
@@ -116,6 +122,7 @@ func _run() -> void:
 		"map_view": map_state,
 		"status_card": _status_card_state(scene_root),
 		"order_bar": _order_bar_state(scene_root),
+		"window_background": _window_background_state(scene_root),
 		"background_res": BACKGROUND_RES,
 	}))
 	quit(0)
@@ -166,7 +173,7 @@ func _map_view_state(scene_root: Node) -> Dictionary:
 	# Observable: some textured control covers the map panel with the strategic
 	# background asset. Do not require a fixed node name or parent (refactor-
 	# friendly); only path + coverage of the MapView rect.
-	var bg: Dictionary = _strategic_background_over(scene_root, rect)
+	var bg: Dictionary = _strategic_background_over(map_view, rect)
 	return {
 		"found": true,
 		"x": rect.position.x,
@@ -204,6 +211,64 @@ func _order_bar_state(scene_root: Node) -> Dictionary:
 		"background_covers_panel": bool(bg.get("covers", false)),
 		"button_states": _order_button_states(scene_root),
 	}
+
+
+func _window_background_state(scene_root: Node) -> Dictionary:
+	var window_rect := Rect2(Vector2.ZERO, Vector2(VIEWPORT_W, VIEWPORT_H))
+	var main_layout: Node = scene_root.find_child("MainLayout", false, false)
+	var stack: Array[Node] = [scene_root]
+	var best_state := {
+		"found": false,
+		"background_path": "",
+		"background_covers_window": false,
+		"visible": false,
+		"covered_stretch": false,
+		"below_main_layout": false,
+	}
+	var best_score := -1
+	while not stack.is_empty():
+		var node: Node = stack.pop_back()
+		for child: Node in node.get_children():
+			stack.append(child)
+		if not node is TextureRect:
+			continue
+		var texture_rect := node as TextureRect
+		if texture_rect.texture == null:
+			continue
+		var path := str(texture_rect.texture.resource_path)
+		if path not in WINDOW_BACKGROUND_RESOURCES:
+			continue
+		var below_content := (
+			main_layout != null
+			and texture_rect.get_parent() == main_layout.get_parent()
+			and texture_rect.get_index() < main_layout.get_index()
+		)
+		var covered_stretch := (
+			texture_rect.stretch_mode == TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		)
+		var covers_window := _rect_covers(
+			texture_rect.get_global_rect(), window_rect, 1.0
+		)
+		var candidate := {
+			"found": true,
+			"background_path": path,
+			"background_covers_window": covers_window,
+			"visible": texture_rect.visible,
+			"covered_stretch": covered_stretch,
+			"below_main_layout": below_content,
+		}
+		var score := (
+			int(covers_window)
+			+ int(texture_rect.visible)
+			+ int(covered_stretch)
+			+ int(below_content)
+		)
+		if score > best_score:
+			best_state = candidate
+			best_score = score
+		if score == 4:
+			return candidate
+	return best_state
 
 
 func _order_button_states(scene_root: Node) -> Dictionary:
@@ -248,8 +313,10 @@ func _order_button_states(scene_root: Node) -> Dictionary:
 	return states
 
 
-func _strategic_background_over(scene_root: Node, map_rect: Rect2) -> Dictionary:
-	return _background_over(scene_root, map_rect, BACKGROUND_RES)
+func _strategic_background_over(map_view: Node, map_rect: Rect2) -> Dictionary:
+	# Search only the map panel subtree. A full-window sibling using the same
+	# texture must not satisfy the independent MapView background contract.
+	return _background_over(map_view, map_rect, BACKGROUND_RES)
 
 
 func _background_over(scene_root: Node, panel_rect: Rect2, resource_path: String) -> Dictionary:

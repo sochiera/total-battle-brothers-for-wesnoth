@@ -15,6 +15,10 @@ const LOAD_FAILURE_STATUS := "Nie udało się wczytać partii."
 # Both axes feed OrderControls.custom_minimum_size so the parchment bar does
 # not under-report size when MainLayout sizes from content minima.
 const ORDER_BAR_CONTENT_PAD := Vector2(20.0, 16.0)
+# G100.1d: full-window parchment under MainLayout (see main.tscn).
+# Reuses strategic_map_background.png until a dedicated window sheet exists.
+const WINDOW_BACKGROUND_NODE := "StrategicWindowBackground"
+const WINDOW_BACKGROUND_RES := "res://assets/strategic_map_background.png"
 
 
 var _client: Variant = null
@@ -23,11 +27,28 @@ var _current_regions: Array = []
 var _default_march_label := ""
 
 func _ready() -> void:
+	_ensure_strategic_window_background()
 	_default_march_label = %MarchButton.text
 	_apply_order_button_state_styles()
 	_sync_order_controls_minimum_size()
 	%MapView.region_selected.connect(_on_region_selected)
 	start_session(BridgeConfig.from_environment())
+
+
+func _ensure_strategic_window_background() -> void:
+	## Keep the window parchment as the first full-rect sibling under Main so
+	## container gaps never fall back to default grey chrome (G100.1d).
+	var bg := get_node_or_null(WINDOW_BACKGROUND_NODE) as TextureRect
+	if bg == null:
+		return
+	if bg.get_index() != 0:
+		move_child(bg, 0)
+	if bg.texture == null:
+		bg.texture = load(WINDOW_BACKGROUND_RES) as Texture2D
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 
 
 func _order_action_buttons() -> Array[Button]:
