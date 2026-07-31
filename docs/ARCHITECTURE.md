@@ -771,6 +771,17 @@ Data/Wynik/Morale/Osady/Oddziały/Położenie + separatory);
 `task-572-status-finished-1152x648.png` — zakończona (`victory`, wyróżniony
 wynik). Ocena hierarchii i czytelności należy do człowieka.
 
+**BattleView — plakietki PŻ (G102.1b / task-575):** na zajętych heksach
+atakującego i broniącego `battle_view.gd` układa wspólny
+`res://assets/battle_hp_badge.png` (`TextureRect` `HpBadge`) pod etykietą
+`PŻ N`; ramka etykiety rozróżnia strony (czerwona / niebieska), fill jest
+przezroczysty. Puste / unknown heksy bez plakietki. Żywy zrzut 1152×648
+regeneruje `game/tests/capture_battle_hp_badge_review.gd` przy realnym display
+(nie `--headless`):
+`task-575-battle-hp-badges-1152x648.png` — fixture obu stron z różnym `hp`
+(jak sonda BattleView). Ocena czytelności plakietek w skali heksu należy do
+człowieka; wpis `battle_hp_badge.png` w `game/assets/CREDITS.md`.
+
 **SelectedRegionPanel — przegląd wizualny (G100.1c / task-568):** żywe zrzuty
 1152×648 (nie placeholdery) regeneruje
 `game/tests/capture_selected_region_review.gd` przy realnym display (nie

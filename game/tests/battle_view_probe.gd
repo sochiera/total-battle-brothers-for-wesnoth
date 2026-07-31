@@ -302,9 +302,14 @@ func _collect_surface_labels(node: Node) -> Array:
 	var labels: Array = []
 	if node is Label:
 		var label: Label = node as Label
+		var rect: Rect2 = label.get_global_rect()
 		var entry: Dictionary = {
 			"text": label.text.strip_edges(),
 			"name": str(label.name),
+			"x": rect.position.x,
+			"y": rect.position.y,
+			"w": rect.size.x,
+			"h": rect.size.y,
 		}
 		var style: StyleBox = label.get_theme_stylebox("normal")
 		if style is StyleBoxFlat:

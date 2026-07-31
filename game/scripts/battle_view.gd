@@ -21,6 +21,7 @@ const TERRAIN_HILLS := preload("res://assets/terrain_hills.png")
 
 const SIDE_ATTACKER_TEXTURE := preload("res://assets/side_attacker.png")
 const SIDE_DEFENDER_TEXTURE := preload("res://assets/side_defender.png")
+const HP_BADGE_TEXTURE := preload("res://assets/battle_hp_badge.png")
 const SIDE_SILHOUETTE_MARGIN := Vector2(20, 14)
 const HP_MARKER_MARGIN := Vector2(16, 5)
 const HP_MARKER_SIZE := Vector2(88, 24)
@@ -126,35 +127,46 @@ func _add_hp_marker(tile: Control, side: Variant, hp: Variant) -> void:
 	if not hp is int and not hp is float:
 		return
 
-	var marker := Label.new()
-	marker.name = "HpMarker"
-	marker.text = "PŻ %d" % int(hp)
-	marker.position = Vector2(
+	# Shared parchment plate under PŻ text (G102.1b); side outline on the Label.
+	var badge := TextureRect.new()
+	badge.name = "HpBadge"
+	badge.texture = HP_BADGE_TEXTURE
+	badge.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	badge.stretch_mode = TextureRect.STRETCH_SCALE
+	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	badge.position = Vector2(
 		HP_MARKER_MARGIN.x,
 		BASE_HEX_SIZE.y - HP_MARKER_MARGIN.y - HP_MARKER_SIZE.y,
 	)
-	marker.size = HP_MARKER_SIZE
+	badge.size = HP_MARKER_SIZE
+	badge.add_child(_make_hp_marker_label(side, int(hp)))
+	tile.add_child(badge)
+
+
+func _make_hp_marker_label(side: Variant, hp: int) -> Label:
+	var marker := Label.new()
+	marker.name = "HpMarker"
+	marker.text = "PŻ %d" % hp
 	marker.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	marker.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	marker.add_theme_font_size_override("font_size", 13)
-	marker.add_theme_color_override("font_color", Color(0.98, 0.98, 0.94, 1))
+	marker.add_theme_color_override("font_color", Color(0.18, 0.12, 0.08, 1))
 	marker.add_theme_stylebox_override("normal", _hp_marker_style(side))
-	tile.add_child(marker)
+	marker.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	return marker
 
 
 func _hp_marker_style(side: Variant) -> StyleBoxFlat:
+	# Transparent fill so battle_hp_badge.png shows through; border keeps side cue.
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.04, 0.05, 0.08, 0.92)
+	style.bg_color = Color(0, 0, 0, 0)
 	style.border_width_left = 2
 	style.border_width_top = 2
 	style.border_width_right = 2
 	style.border_width_bottom = 2
 	style.border_color = _side_marker_color(side)
-	style.corner_radius_top_left = 5
-	style.corner_radius_top_right = 5
-	style.corner_radius_bottom_right = 5
-	style.corner_radius_bottom_left = 5
+	style.set_corner_radius_all(5)
 	style.content_margin_left = 4
 	style.content_margin_right = 4
 	return style

@@ -57,6 +57,8 @@ _STRETCH_SCALE = 0
 SIDE_ATTACKER = "res://assets/side_attacker.png"
 SIDE_DEFENDER = "res://assets/side_defender.png"
 SIDE_ASSETS = (SIDE_ATTACKER, SIDE_DEFENDER)
+# G102.1b: one shared HP plate or a side-specific battle_hp_badge_* pair.
+_HP_BADGE_PATH_RE = re.compile(r"^res://assets/battle_hp_badge(?:_[^/]+)?\.png$")
 
 
 def _import_game_assets() -> subprocess.CompletedProcess[str]:
@@ -829,22 +831,37 @@ def _border_color_key(rec: dict) -> tuple[float, float, float, float] | None:
     )
 
 
+def _texture_covers_label_center(layer: dict, label: dict) -> bool:
+    """Whether a public texture carrier sits beneath the visible label centre."""
+    center_x = float(label["x"]) + float(label["w"]) / 2
+    center_y = float(label["y"]) + float(label["h"]) / 2
+    return (
+        float(layer["x"]) <= center_x <= float(layer["x"]) + float(layer["w"])
+        and float(layer["y"]) <= center_y <= float(layer["y"]) + float(layer["h"])
+    )
+
+
+def _is_hp_badge_path(path: object) -> bool:
+    return _HP_BADGE_PATH_RE.fullmatch(str(path)) is not None
+
+
+def _is_transparent_or_light_fill(color: object) -> bool:
+    """Allow the badge artwork through; reject an opaque dark HUD chip."""
+    if not isinstance(color, list) or len(color) != 4:
+        return False
+    red, green, blue, alpha = (float(component) for component in color)
+    relative_luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue
+    return alpha <= 0.25 or relative_luminance >= 0.5
+
+
 def test_battle_view_occupied_hexes_show_polish_hp_marker():
-    """G98.1c: occupied hexes present public ``hp`` as a compact Polish PŻ marker.
+    """G98.1c/G102.1b: occupied hexes show PŻ on a graphical badge.
 
-    Realistic defect existing gates miss: BattleView already overlays
-    ``side_attacker`` / ``side_defender`` on terrain (G87.1c-2 / G98.1b green)
-    and the probe fixture already carries distinct per-hex ``hp`` values, but
-    no surface label shows vitality. Silhouette and terrain tests only check
-    texture paths / sizes / neutral base modulate and *forbid* English terrain
-    labels — they never require „PŻ” or the public hit-point number on the
-    occupied hex face. SnapshotModel already projects ``hp``; the gap is
-    BattleView presentation.
-
-    Side reinforcement on the badge: a monochrome „PŻ N“ without a side-tinted
-    outline still satisfies text+silhouette checks. G98.1c also requires a small
-    outline/base cue by the unit; the probe exports StyleBoxFlat border_color so
-    attacker vs defender borders must differ (no exact palette pin).
+    Realistic defect existing gates miss: the current ``PŻ N`` Label uses an
+    almost-black StyleBoxFlat chip. Text, hp mapping, silhouette, and side-border
+    assertions all stay green although no ``battle_hp_badge`` texture sits under
+    the text. The badge may be shared with side outlines or be a side-specific
+    pair; every observed badge must retain auditable CC0/CC-BY credits.
     """
     payload = _load_battle_view()
     assert payload["battle_view_found"] is True, payload
@@ -876,6 +893,7 @@ def test_battle_view_occupied_hexes_show_polish_hp_marker():
         "attacker": set(),
         "defender": set(),
     }
+    badges_by_side: dict[str, set[str]] = {"attacker": set(), "defender": set()}
 
     for hex_row in occupied:
         qr = (int(hex_row["q"]), int(hex_row["r"]))
@@ -894,16 +912,32 @@ def test_battle_view_occupied_hexes_show_polish_hp_marker():
             f"marker that includes the public hp on the hex face "
             f"(G98.1c; silhouettes alone are not enough), labels={labels!r}"
         )
-        # Side cue on the badge (outline): zero-width / missing StyleBox fails.
-        border_keys = [_border_color_key(rec) for rec in matching]
-        assert all(key is not None for key in border_keys), (
-            f"hex {qr} side={side!r} PŻ marker must carry a visible StyleBox "
-            f"border (side outline cue; monochrome label alone is not enough), "
+        badge_layers = [
+            layer
+            for layer in tile.get("texture_layers", [])
+            if _is_hp_badge_path(layer.get("path"))
+            and any(_texture_covers_label_center(layer, rec) for rec in matching)
+        ]
+        assert badge_layers, (
+            f"hex {qr} side={side!r} hp={hp} must place the PŻ text on the "
+            "contractual battle_hp_badge texture, not a flat dark StyleBox; "
+            f"texture_layers={tile.get('texture_layers')!r}"
+        )
+        assert all(
+            _is_transparent_or_light_fill(rec.get("bg_color")) for rec in matching
+        ), (
+            f"hex {qr} side={side!r} PŻ marker fill must be transparent or light "
+            "so it does not cover the badge artwork with a dark HUD chip; "
             f"matching={matching!r}"
         )
+        badges_by_side[side].update(str(layer["path"]) for layer in badge_layers)
+
+        # A shared badge may retain the existing side-colored outline; a
+        # side-specific badge pair may carry the distinction in the artwork.
+        border_keys = [_border_color_key(rec) for rec in matching]
         for key in border_keys:
-            assert key is not None
-            border_by_side[side].add(key)
+            if key is not None:
+                border_by_side[side].add(key)
         # English terrain names still must not sit on the face (G98.1b).
         for label in labels:
             assert label not in _ENGLISH_TERRAIN_LABELS, (
@@ -920,13 +954,24 @@ def test_battle_view_occupied_hexes_show_polish_hp_marker():
 
     attacker_borders = border_by_side["attacker"]
     defender_borders = border_by_side["defender"]
-    assert attacker_borders, "occupied attacker hexes must expose PŻ border colors"
-    assert defender_borders, "occupied defender hexes must expose PŻ border colors"
-    assert attacker_borders.isdisjoint(defender_borders), (
-        "PŻ marker border must distinguish attacker vs defender "
-        f"(G98.1c side reinforcement on the badge); "
-        f"attacker={sorted(attacker_borders)} defender={sorted(defender_borders)}"
+    badge_pair_distinguishes = badges_by_side["attacker"].isdisjoint(
+        badges_by_side["defender"]
     )
+    border_distinguishes = (
+        bool(attacker_borders)
+        and bool(defender_borders)
+        and attacker_borders.isdisjoint(defender_borders)
+    )
+    assert badge_pair_distinguishes or border_distinguishes, (
+        "PŻ carrier must distinguish attacker vs defender through a side-specific "
+        "badge pair or visible outline; "
+        f"badges={badges_by_side!r} attacker_borders={sorted(attacker_borders)} "
+        f"defender_borders={sorted(defender_borders)}"
+    )
+    for badge_path in badges_by_side["attacker"] | badges_by_side["defender"]:
+        assert_asset_credited(
+            GAME / "assets" / "CREDITS.md", Path(badge_path).name
+        )
 
     # Empty / unknown side keep terrain only — no vitality paint without a unit.
     for hex_row in hexes:
