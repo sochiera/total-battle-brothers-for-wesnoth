@@ -49,6 +49,11 @@ ALL_CONTROLS = STATUS_CONTROLS + HIDDEN_CONTROLS + ORDER_CONTROLS
 # G94.1d review resolution and strategic map panel background path.
 VIEWPORT_W = 1152.0
 VIEWPORT_H = 648.0
+# Public MapView base hex height (game/scripts/map_view.gd BASE_TILE_SIZE.y).
+# With-battle fit may shrink the map column, but region tiles must keep a
+# readable fraction of that base — not a ~24px sliver under multi-hex battle.
+MAP_VIEW_BASE_TILE_H = 48.0
+MIN_READABLE_REGION_TILE_H_WITH_BATTLE = MAP_VIEW_BASE_TILE_H * 0.75
 STRATEGIC_BACKGROUND = "strategic_map_background.png"
 STRATEGIC_BACKGROUND_RES = f"res://assets/{STRATEGIC_BACKGROUND}"
 STATUS_BACKGROUND = "strategic_status_background.png"
@@ -77,6 +82,10 @@ WINDOW_BACKGROUND_SCREENSHOTS = (
     # predates K105 chrome). Empty frame is intentionally identical to G106.1a.
     GAME / "screenshots" / "task-592-selected-region-empty-1152x648.png",
     GAME / "screenshots" / "task-592-selected-region-selected-1152x648.png",
+    # G106.1c: visible battle after K105 — iso/¾ sides, PŻ, terrain decor,
+    # PL result banner, centered occupied cluster; map + order bar still
+    # readable. Pre-K105 task-569/579/585 battle frames are not this proof.
+    GAME / "screenshots" / "task-593-visible-battle-post-k105-1152x648.png",
 )
 ORDER_ICON_FILES = {
     "NextTurnButton": "icon_next_turn.png",
@@ -348,16 +357,21 @@ def test_order_buttons_expose_distinct_states_and_review_screenshots():
         )
 
 def test_window_background_review_screenshots_exist_at_target_resolution():
-    """G100.1d (+ G106.1a/b): review PNGs exist at 1152×648 with non-trivial size.
+    """G100.1d (+ G106.1a/b/c): review PNGs exist at 1152×648 with non-trivial size.
 
     Covers post-G100.1d window-background states, the G106.1a fresh-party
-    frame, and the G106.1b empty→selected region pair after K105.
-    Existence/dimensions only — not a live-session smoke test.
+    frame, the G106.1b empty→selected region pair, and the G106.1c visible
+    battle after K105. **Scope: file presence, IHDR 1152×648, and size
+    floor only** — not chrome fit, hierarchy, or visual content of the
+    frame. Full chrome with multi-hex battle is enforced by the composition
+    layout gate and by ``capture_battle_post_k105_review.gd``; human review
+    still owns hierarchy/oprawa of the PNG.
 
-    Realistic defect existing gates miss: K97/K100/K105 panel and frame
-    behavior can stay green while the G106 threshold package still lacks a
-    dedicated post-K105 empty→selected screenshot pair (task-568 captures
-    predate K105 chrome; task-591 covers only empty fresh party).
+    Realistic defect existing gates miss: BattleView geometry/sides/PŻ/PL
+    result and K105.1c cluster centering can stay green, and older battle
+    screenshots (task-569/579/585) can exist, while the G106 threshold
+    package still lacks a dedicated post-K105 battle proof file at the
+    review resolution. G106.1a/b cover only fresh party and region selection.
     """
     # Older task-565/task-568 captures predate the full-window parchment and
     # cannot demonstrate that root gaps no longer expose default grey chrome.
@@ -376,7 +390,7 @@ def test_window_background_review_screenshots_exist_at_target_resolution():
 
 
 def test_strategic_composition_fits_review_viewport_collapses_empty_battle_and_uses_background():
-    """G94.1d/G100.1d: fitted composition with panel and window backgrounds.
+    """G94.1d/G100.1d (+ G106.1c chrome): fitted composition with panel/window backgrounds.
 
     Realistic defect existing gates miss: main.tscn always reserves BattleView
     ``custom_minimum_size`` 420×240 even when the snapshot has no battle, so a
@@ -388,6 +402,20 @@ def test_strategic_composition_fits_review_viewport_collapses_empty_battle_and_u
     stays green while still looking like a prototype. G100.1d additionally
     requires an allowed parchment texture to cover the complete viewport so
     root gaps and container separators cannot expose default grey chrome.
+
+    G106.1c residual: a 2-hex with-battle payload keeps BattleView short enough
+    that status + order bar still fit, while the multi-hex G104/G105/G106 field
+    (r∈{0,1,2}) grows the panel and clips the status card top and both order
+    rows — the proof PNG can still be 1152×648. The probe's with-battle model
+    is that multi-hex field so chrome-fit assertions catch the overflow.
+
+    G106.1c residual (map readability): chrome-fit that only clamps MapView to
+    h>1px (or floors near ~96px) can leave region tiles as a ~24px top sliver
+    with crushed/overlapping PL labels while viewport fit and legend/tile
+    disjointness stay green. The with-battle probe must report legend + region
+    tile rects; legend and tiles must not share screen area, and each region
+    tile must keep a readable minimum height (¾ of MapView base tile height)
+    under the multi-hex fit that the proof PNG uses.
     """
     assets_dir = GAME / "assets"
     background_path = assets_dir / STRATEGIC_BACKGROUND
@@ -501,11 +529,70 @@ def test_strategic_composition_fits_review_viewport_collapses_empty_battle_and_u
         "when snapshot carries a battle, BattleView must be visible and take "
         f"layout space so the fight remains available, got {battle_present!r}"
     )
+    assert _rect_fully_inside_viewport(battle_present), (
+        f"BattleView must fit fully inside {VIEWPORT_W:.0f}×{VIEWPORT_H:.0f} "
+        f"with multi-hex battle (no clip of fight panel), got {battle_present!r}"
+    )
     result_text = str(payload.get("battle_result_text_with_battle") or "")
     assert result_text.strip(), (
         "with battle present, BattleResultLabel must still show a non-empty "
         f"outcome (hide-empty must not drop last battle result), got {result_text!r}"
     )
+
+    # map_view alone is the no-battle sample; after fit, MapView may shrink —
+    # still must remain on-screen so strategic map stays readable with the fight.
+    map_with_battle = payload.get("map_view_with_battle") or {}
+    assert map_with_battle.get("found") is True, (
+        "probe must report MapView after with-battle apply_model, "
+        f"got {map_with_battle!r}"
+    )
+    assert float(map_with_battle.get("w") or 0) > 1.0 and float(
+        map_with_battle.get("h") or 0
+    ) > 1.0, (
+        "with multi-hex battle, MapView must keep non-zero layout size "
+        f"(chrome fit must not collapse the strategic map), got {map_with_battle!r}"
+    )
+    assert _rect_fully_inside_viewport(map_with_battle), (
+        f"MapView must remain inside {VIEWPORT_W:.0f}×{VIEWPORT_H:.0f} "
+        f"when BattleView is shown, got {map_with_battle!r}"
+    )
+
+    # Readable strategic map with battle: OwnerLegend must not cover region tiles,
+    # and tiles must keep enough height for PL labels / party marks (not a sliver).
+    # Legend/tile disjoint + map_h>1 alone is green at map_h≈96 with tile_h≈24.
+    map_readability = payload.get("map_readability_with_battle") or {}
+    assert map_readability.get("found") is True, (
+        "probe must report MapView readability after with-battle apply_model, "
+        f"got {map_readability!r}"
+    )
+    legend = map_readability.get("legend")
+    assert isinstance(legend, dict), (
+        "OwnerLegend must be present on MapView with multi-hex battle, "
+        f"got {map_readability!r}"
+    )
+    assert float(legend.get("w") or 0) > 0 and float(legend.get("h") or 0) > 0, (
+        f"OwnerLegend must have non-zero size, got {legend!r}"
+    )
+    region_tiles = map_readability.get("region_tiles") or []
+    assert len(region_tiles) >= 1, (
+        "MapView with battle must expose region tiles for readability check, "
+        f"got {map_readability!r}"
+    )
+    for tile in region_tiles:
+        assert not _rects_share_a_point(legend, tile), (
+            "with multi-hex battle, OwnerLegend must not cover region tiles "
+            f"(strategic map must stay readable beside BattleView); "
+            f"legend={legend!r} tile={tile!r} map_h={map_readability.get('map_h')!r}"
+        )
+        tile_h = float(tile.get("h") or 0)
+        assert tile_h >= MIN_READABLE_REGION_TILE_H_WITH_BATTLE, (
+            "with multi-hex battle, each region tile must keep a readable height "
+            f"(≥{MIN_READABLE_REGION_TILE_H_WITH_BATTLE:.0f}px = ¾ of MapView "
+            f"base tile {MAP_VIEW_BASE_TILE_H:.0f}px); chrome fit must not crush "
+            f"the strategic strip to an unreadable sliver. "
+            f"tile={tile!r} map_h={map_readability.get('map_h')!r} "
+            f"legend={legend!r}"
+        )
 
     controls_battle = payload["controls_with_battle"]
     assert isinstance(controls_battle, dict), (

@@ -41,6 +41,7 @@ stretch_mode = 6
 mouse_filter = 2
 
 [node name="MainLayout" type="VBoxContainer" parent="."]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -410,6 +411,7 @@ layout_mode = 0
 mouse_filter = 2
 
 [node name="MapAndBattle" type="VBoxContainer" parent="MainLayout/ContentRow"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -438,9 +440,9 @@ mouse_filter = 2
 
 [node name="BattleView" type="Control" parent="MainLayout/ContentRow/MapAndBattle"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(420, 240)
+custom_minimum_size = Vector2(420, 0)
 layout_mode = 2
-size_flags_vertical = 3
+size_flags_vertical = 0
 visible = false
 clip_contents = true
 script = ExtResource("3_battle_view")
@@ -521,6 +523,7 @@ vertical_alignment = 1
 mouse_filter = 2
 
 [node name="OrderControls" type="Control" parent="MainLayout"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 104)
 layout_mode = 2
 

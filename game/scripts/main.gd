@@ -44,20 +44,31 @@ const RESULT_FONT_BASE := Color(0.18, 0.11, 0.06, 1)
 const RESULT_FONT_VICTORY := Color(0.14, 0.38, 0.16, 1)
 const RESULT_FONT_DEFEAT := Color(0.55, 0.14, 0.1, 1)
 const RESULT_FONT_DRAW := Color(0.52, 0.36, 0.08, 1)
+# G94.1d / G106.1c: when BattleView is collapsed, restore MapView to the scene
+# minimum captured in _ready (main.tscn). Multi-row battle (native 120×140,
+# r∈{0,1,2}) is ~400px; keeping the no-battle map min would push orders past
+# 1152×648, so with-battle fit lowers MapView.custom_minimum_size.y instead.
+# Fallback only when Control.size is not yet known (headless / first frame).
+const VIEWPORT_HEIGHT_FALLBACK := 648.0
 
 
 var _client: Variant = null
 var _save_path := ""
 var _current_regions: Array = []
 var _default_march_label := ""
+var _map_view_min_height_no_battle := 0.0
 
 func _ready() -> void:
 	_ensure_strategic_window_background()
 	_ensure_selected_region_panel_frame()
+	_map_view_min_height_no_battle = %MapView.custom_minimum_size.y
 	_default_march_label = %MarchButton.text
 	_apply_order_button_state_styles()
 	_sync_order_controls_minimum_size()
 	%MapView.region_selected.connect(_on_region_selected)
+	# With-battle map min is set only from render/fit; re-run on window resize
+	# so a first-frame fallback (or shrink) cannot leave chrome past the viewport.
+	resized.connect(_fit_map_column_to_viewport_with_battle)
 	start_session(BridgeConfig.from_environment())
 
 
@@ -410,6 +421,47 @@ func _set_hidden_contract_mirror(mirror: Label, contract_text: String) -> void:
 func _render_world_views(model: SnapshotModel) -> void:
 	%MapView.render_model(model)
 	%BattleView.render_model(model)
+	_fit_map_column_to_viewport_with_battle()
+
+
+func _fit_map_column_to_viewport_with_battle() -> void:
+	## Keep status + map + battle + both order rows inside the review viewport.
+	## MapView keeps a readable floor (¾ base tile + legend layout); when native
+	## multi-hex battle would crush that floor, BattleView scales the cluster
+	## down so chrome still fits 1152×648 without eating the strategic strip.
+	var map_view: Control = %MapView
+	var battle_view: Control = %BattleView
+	if map_view == null or battle_view == null:
+		return
+	if not battle_view.visible:
+		map_view.custom_minimum_size.y = _map_view_min_height_no_battle
+		battle_view.clear_vertical_budget()
+		return
+
+	var order_bar: Control = %OrderControls as Control
+	var main_layout: VBoxContainer = %MainLayout as VBoxContainer
+	var map_and_battle: VBoxContainer = %MapAndBattle as VBoxContainer
+	if order_bar == null or main_layout == null or map_and_battle == null:
+		return
+
+	var viewport_h := size.y if size.y > 1.0 else VIEWPORT_HEIGHT_FALLBACK
+	var sep_main := float(main_layout.get_theme_constant("separation"))
+	var sep_mb := float(map_and_battle.get_theme_constant("separation"))
+	var order_h := order_bar.get_combined_minimum_size().y
+	# Readability floor: only MapView.min_readable_panel_height (no local 36 fallback).
+	var map_floor: float = maxf(1.0, map_view.min_readable_panel_height())
+	var battle_budget: float = viewport_h - order_h - sep_main - sep_mb - map_floor
+	battle_view.fit_vertical_budget(battle_budget)
+	var map_budget: float = (
+		viewport_h
+		- order_h
+		- sep_main
+		- battle_view.get_combined_minimum_size().y
+		- sep_mb
+	)
+	map_view.custom_minimum_size.y = clampf(
+		map_budget, map_floor, _map_view_min_height_no_battle
+	)
 
 
 func _apply_player_duchy_status(player_duchy_status: Variant) -> void:

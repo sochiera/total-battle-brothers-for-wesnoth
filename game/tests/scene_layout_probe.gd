@@ -87,6 +87,9 @@ func _run() -> void:
 	var controls_no_battle: Dictionary = {}
 	var battle_no_battle: Dictionary = {"found": false}
 	var map_state: Dictionary = _map_view_state(scene_root)
+	var map_with_battle: Dictionary = {"found": false}
+	# OwnerLegend vs region tiles under with-battle fit (G106.1c readability).
+	var map_readability_with_battle: Dictionary = {"found": false}
 	var controls_with_battle: Variant = null
 	var battle_with_battle: Dictionary = {"found": false}
 	var battle_result_text: String = ""
@@ -105,6 +108,10 @@ func _run() -> void:
 		await process_frame
 		controls_with_battle = _collect_controls(scene_root)
 		battle_with_battle = _battle_view_state(scene_root)
+		# Map may shrink under multi-hex battle fit; capture separately so the
+		# composition gate does not mistake the no-battle map height for chrome+bitwa.
+		map_with_battle = _map_view_state(scene_root)
+		map_readability_with_battle = _map_view_readability(scene_root)
 		battle_result_text = _battle_result_text(scene_root)
 	else:
 		# Still report live control rects for the disjoint-layout gate, but mark
@@ -113,6 +120,8 @@ func _run() -> void:
 		battle_no_battle = {"found": false}
 		controls_with_battle = null
 		battle_with_battle = {"found": false}
+		map_with_battle = {"found": false}
+		map_readability_with_battle = {"found": false}
 
 	# Single no-battle key "controls" (disjoint gate + composition); with-battle
 	# is separate so assertions cannot silently drift across two aliases.
@@ -125,6 +134,8 @@ func _run() -> void:
 		"battle_view_with_battle": battle_with_battle,
 		"battle_result_text_with_battle": battle_result_text,
 		"map_view": map_state,
+		"map_view_with_battle": map_with_battle,
+		"map_readability_with_battle": map_readability_with_battle,
 		"status_card": _status_card_state(scene_root),
 		"order_bar": _order_bar_state(scene_root),
 		"window_background": _window_background_state(scene_root),
@@ -188,6 +199,46 @@ func _map_view_state(scene_root: Node) -> Dictionary:
 		"visible": map_view.visible,
 		"background_path": str(bg.get("path", "")),
 		"background_covers_panel": bool(bg.get("covers", false)),
+	}
+
+
+func _map_view_readability(scene_root: Node) -> Dictionary:
+	## Public MapView readability after with-battle fit: OwnerLegend AABB must
+	## not cover region tiles, and RegionTile heights (tile.h) are exposed so
+	## pytest can assert ≥ ¾·BASE_TILE — map_h>1 alone is not enough.
+
+	var map_view: Control = scene_root.find_child("MapView", true, false) as Control
+	if map_view == null:
+		return {"found": false}
+	var legend_node: Control = map_view.find_child("OwnerLegend", true, false) as Control
+	var legend_rect: Variant = null
+	if legend_node != null:
+		var lr: Rect2 = legend_node.get_global_rect()
+		legend_rect = {
+			"x": lr.position.x,
+			"y": lr.position.y,
+			"w": lr.size.x,
+			"h": lr.size.y,
+		}
+	var tiles: Array = []
+	for child: Node in map_view.get_children():
+		if not str(child.name).begins_with("RegionTile_"):
+			continue
+		if not child is Control:
+			continue
+		var tr: Rect2 = (child as Control).get_global_rect()
+		tiles.append({
+			"name": str(child.name),
+			"x": tr.position.x,
+			"y": tr.position.y,
+			"w": tr.size.x,
+			"h": tr.size.y,
+		})
+	return {
+		"found": true,
+		"map_h": map_view.get_global_rect().size.y,
+		"legend": legend_rect,
+		"region_tiles": tiles,
 	}
 
 
@@ -421,12 +472,21 @@ func _model_without_battle() -> SnapshotModel:
 
 
 func _model_with_battle() -> SnapshotModel:
+	## Same multi-hex field as battle_view_probe / G104–G106 battle captures
+	## (r∈{0,1,2}, both sides, terrain decor). A 2-hex strip under-represents
+	## BattleView height after K105.1c cluster scale and lets chrome overflow
+	## stay green on a toy payload.
 	var model := _model_without_battle()
 	model.battle = {
 		"result": "attacker_win",
 		"hexes": [
 			{"q": 0, "r": 0, "terrain": "Plains", "side": "attacker", "hp": 10},
-			{"q": 1, "r": 0, "terrain": "Plains", "side": "defender", "hp": 8},
+			{"q": 2, "r": 0, "terrain": "Plains", "side": "defender", "hp": 8},
+			{"q": 0, "r": 1, "terrain": "Forest", "side": "attacker", "hp": 5},
+			{"q": 0, "r": 2, "terrain": "Hills", "side": "attacker", "hp": 7},
+			{"q": 2, "r": 2, "terrain": "Forest", "side": "defender", "hp": 6},
+			{"q": 1, "r": 0, "terrain": "Plains", "side": "unknown", "hp": 1},
+			{"q": 1, "r": 1, "terrain": "Hills", "side": "", "hp": 1},
 		],
 	}
 	return model

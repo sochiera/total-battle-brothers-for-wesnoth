@@ -1118,6 +1118,13 @@ def test_map_view_five_region_map_is_enlarged_and_centered_in_panel():
     require neighbours to touch and tiles to lie inside the panel, so a thin
     top strip (≈11% of panel height, left-aligned with ≈25% unused width) stays
     green while the strategic parchment is mostly empty — the G99.1a gap.
+
+    Vertical center is measured in the free panel area disjoint from the
+    observed OwnerLegend AABB (panel top → legend top when the plate sits on
+    the bottom edge), not the full MapView height and not a hard-coded pad
+    formula from map_view.gd. G106.1c keeps the legend outside tile AABBs on
+    a short with-battle MapView; full-panel top/bottom margins are
+    intentionally asymmetric when the legend occupies the bottom band.
     """
     payload = _load_map_view()
     assert payload["map_view_found"] is True, payload
@@ -1160,18 +1167,45 @@ def test_map_view_five_region_map_is_enlarged_and_centered_in_panel():
 
     left_m = union["x"] - float(panel["x"])
     right_m = float(panel["x"]) + panel_w - (union["x"] + union["w"])
-    top_m = union["y"] - float(panel["y"])
-    bottom_m = float(panel["y"]) + panel_h - (union["y"] + union["h"])
     assert abs(left_m - right_m) <= _MAP_CENTER_TOL_PX, (
         f"five-region map must be horizontally centered in MapView: "
         f"left_margin={left_m:.1f} right_margin={right_m:.1f} "
         f"(tol={_MAP_CENTER_TOL_PX}); union={union!r} panel={panel!r}"
     )
+
+    # Vertical center in the free panel area disjoint from the measured
+    # OwnerLegend AABB — not a reimplementation of map_view pad constants
+    # (legend_h + 8). Band layout: legend sits on the panel bottom edge;
+    # free strip is [panel.top, legend.top). Side layout (legend not on the
+    # bottom edge) keeps the full panel height.
+    free_top = float(panel["y"])
+    free_bottom = float(panel["y"]) + panel_h
+    own = payload.get("ownership_presentation") or {}
+    legend = own.get("legend") if isinstance(own, dict) else None
+    if isinstance(legend, dict) and int(legend.get("count") or 0) == 1:
+        legend_rect = legend.get("rect") or {}
+        leg_h = float(legend_rect.get("h") or 0.0)
+        leg_w = float(legend_rect.get("w") or 0.0)
+        if leg_h > 0.0 and leg_w > 0.0:
+            leg_y = float(legend_rect["y"])
+            leg_bottom = leg_y + leg_h
+            panel_bottom = float(panel["y"]) + panel_h
+            if abs(leg_bottom - panel_bottom) <= _MAP_CENTER_TOL_PX:
+                free_bottom = leg_y
+    free_h = free_bottom - free_top
+    assert free_h > 0.0, (
+        f"free vertical area for tile centering must be positive, "
+        f"free_top={free_top:.1f} free_bottom={free_bottom:.1f} panel={panel!r}"
+    )
+    top_m = union["y"] - free_top
+    bottom_m = free_bottom - (union["y"] + union["h"])
     assert abs(top_m - bottom_m) <= _MAP_CENTER_TOL_PX, (
-        f"five-region map must be vertically centered in MapView (not a strip "
-        f"pinned to the top edge): top_margin={top_m:.1f} "
-        f"bottom_margin={bottom_m:.1f} (tol={_MAP_CENTER_TOL_PX}); "
-        f"union={union!r} panel={panel!r}"
+        f"five-region map must be vertically centered in the MapView free "
+        f"area disjoint from OwnerLegend AABB (not a strip pinned to the top "
+        f"edge): top_margin={top_m:.1f} bottom_margin={bottom_m:.1f} "
+        f"free=[{free_top:.1f},{free_bottom:.1f}] "
+        f"(tol={_MAP_CENTER_TOL_PX}); union={union!r} panel={panel!r} "
+        f"legend={legend!r}"
     )
 
 

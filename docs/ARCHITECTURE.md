@@ -891,6 +891,32 @@ task-591 to tylko świeża pusta partia. Regeneracja przy realnym display
 pięciu regionów co G106.1a; klik regionu gracza „player lands”). Semantyka
 wyboru, snapshot i most bez zmian.
 
+**Dowód progu — bitwa po K105 (G106.1c / task-593):** pełnoekranowy zrzut
+1152×648 widocznej bitwy na chrome po K105 leży w
+`game/screenshots/task-593-visible-battle-post-k105-1152x648.png` (mapa
+pięciu regionów + pasek rozkazów czytelne na tym samym ekranie; BattleView
+z sylwetkami stron isometrii/¾, plakietkami PŻ, dekoracjami terenu, banerem
+wyniku PL i klastrem zajętych heksów wycentrowanym jak K105.1c). Starsze
+ramki task-569/579/585 nie są tym dowodem progu. Regeneracja przy realnym
+display (nie `--headless`):
+`game/tests/capture_battle_post_k105_review.gd` (model pięciu regionów jak
+G106.1a + payload bitwy multi-hex r∈{0,1,2} jak G104/G105; skrypt odmawia
+zapisu PNG gdy `OrderControls` / `DateLabel` / Save/Load nie mieszczą się w
+viewportcie). **Chrome fit:** `Main._fit_map_column_to_viewport_with_battle`
+obniża `MapView.custom_minimum_size.y` gdy BattleView jest widoczny, ale z
+**dolną granicą czytelności** (`MapView.min_readable_panel_height` —
+≥ ¾ wysokości bazowego kafla mapy, 36px przy `BASE_TILE` 48px; próg wyłącznie
+w `map_view.gd`). Gdy natywna wysokość multi-hex BattleView zjadłaby tę podłogę,
+`BattleView.fit_vertical_budget` skaluje klaster heksów (nadal wycentrowany),
+zamiast spłaszczać mapę do sliveru. Bez bitwy mapa wraca do min. ze sceny (`main.tscn`, zwykle 240px) i
+budget bitwy jest czyszczony. **Czytelność mapy z bitwą:** `OwnerLegend` nie
+jest już „mieści się płyta ⇒ rezerwuj cały pas”. Preferowany układ to pas
+dolny *tylko gdy* po odjęciu pasa zostaje content_h na kafle ≥ ¾ bazy; na
+krótkim panelu (with-battle) legenda schodzi w **kolumnę lewą**, a pasek
+regionów skaluje się obok — bramka composition wymaga `tile_h ≥ 36` oraz
+rozłączności AABB legendy i `RegionTile_*` (`map_readability_with_battle`).
+Snapshot, most i reguły bez zmian — layout + artefakt wizualny.
+
 **Karta statusu księstwa — gęstość wierszy (G105.1d / task-590):** wiersze
 Morale / Osady / Oddziały nie są gołymi parami etykieta–wartość w jednej
 rzadkiej grupie. Między grupami major (data/wynik ↔ duchy ↔ pozycja

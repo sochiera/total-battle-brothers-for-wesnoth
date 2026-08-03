@@ -39,6 +39,15 @@ const OWNER_LEGEND_NAME := "OwnerLegend"
 const OWNER_LEGEND_PANEL_TEXTURE := preload("res://assets/owner_legend_panel.png")
 const OWNER_LEGEND_TEXTURE_MARGIN_LR := 10.0
 const OWNER_LEGEND_TEXTURE_MARGIN_TB := 8.0
+# With-battle chrome may shrink MapView; region tiles must keep ≥ ¾ base height
+# (same contract as composition gate MIN_READABLE_REGION_TILE_H_WITH_BATTLE).
+const MIN_READABLE_TILE_HEIGHT_FRACTION := 0.75
+const MIN_READABLE_TILE_HEIGHT := BASE_TILE_SIZE.y * MIN_READABLE_TILE_HEIGHT_FRACTION
+# Legend layout: "band" = full-width bottom reserve; "side" = left column so a
+# short panel keeps readable tiles; "none" = plate does not fit.
+const LEGEND_LAYOUT_BAND := "band"
+const LEGEND_LAYOUT_SIDE := "side"
+const LEGEND_LAYOUT_NONE := "none"
 const REGION_NAME_PLATE_TOP_MARGIN := 2.0
 const REGION_NAME_PLATE_SIDE_MARGIN := 3.0
 # Vertical gap between the plate bottom and the party-mark top (scaled).
@@ -103,6 +112,7 @@ var _tile_size := BASE_TILE_SIZE
 var _grid_pitch := BASE_GRID_PITCH
 var _odd_row_offset := BASE_ODD_ROW_OFFSET
 var _layout_origin := Vector2.ZERO
+var _legend_layout_mode := LEGEND_LAYOUT_NONE
 
 var selected_region_name: String:
 	get:
@@ -559,13 +569,24 @@ func _owner_legend_rows() -> Array:
 	]
 
 
+func _owner_legend_layout_scale() -> float:
+	## Legend chrome stays compact. Hex scale follows panel width and can exceed
+	## 1.0 even when MapView is short (with-battle fit); inflating the legend
+	## with that scale stacked it on the region strip (~map_h 96).
+	return clampf(_layout_scale, 0.75, 1.0)
+
+
 func _owner_legend_metrics(row_count: int) -> Dictionary:
+	return _owner_legend_metrics_at_scale(_owner_legend_layout_scale(), row_count)
+
+
+func _owner_legend_metrics_at_scale(legend_scale: float, row_count: int) -> Dictionary:
 	# Frame thickness is content inset; outer size = content + bilateral insets.
-	var row_h := maxf(16.0, 14.0 * _layout_scale)
-	var crest := maxf(12.0, 12.0 * _layout_scale)
+	var row_h := maxf(16.0, 14.0 * legend_scale)
+	var crest := maxf(12.0, 12.0 * legend_scale)
 	var inset_x := OWNER_LEGEND_TEXTURE_MARGIN_LR
 	var inset_y := OWNER_LEGEND_TEXTURE_MARGIN_TB
-	var content_w := maxf(108.0, 100.0 * _layout_scale)
+	var content_w := maxf(108.0, 100.0 * legend_scale)
 	var content_h := row_h * float(row_count)
 	return {
 		"row_h": row_h,
@@ -578,14 +599,70 @@ func _owner_legend_metrics(row_count: int) -> Dictionary:
 	}
 
 
+func _owner_legend_reserved_band_height() -> float:
+	## Bottom band reserved so the region strip never shares area with OwnerLegend.
+	## Uses max compact legend (scale 1) + 4px pad above and below the plate.
+	var rows: int = _owner_legend_rows().size()
+	var m: Dictionary = _owner_legend_metrics_at_scale(1.0, rows)
+	return float(m["legend_h"]) + 8.0
+
+
+func _owner_legend_side_reserve_width() -> float:
+	## Left column width when short MapView keeps tiles beside the legend plate.
+	var rows: int = _owner_legend_rows().size()
+	var m: Dictionary = _owner_legend_metrics_at_scale(1.0, rows)
+	return float(m["legend_w"]) + 8.0
+
+
+func min_readable_panel_height() -> float:
+	## Public floor for Main with-battle fit: enough for readable tiles (+ side legend).
+	## Name is map-panel only — not coupled to BattleView layout.
+	return maxf(MIN_READABLE_TILE_HEIGHT, _min_content_height_for_readable_tiles())
+
+
+func _min_content_height_for_readable_tiles() -> float:
+	## Content height so height-limited scale still yields tile_h ≥ ¾·BASE_TILE.
+	## tile_h = BASE_TILE_SIZE.y * (content_h / bounds.h) when height-limited
+	## → content_h ≥ MIN_READABLE_TILE_HEIGHT_FRACTION * bounds.h.
+	if _rendered_regions.is_empty():
+		return MIN_READABLE_TILE_HEIGHT
+	var bounds_h := maxf(1.0, _layout_bounds().size.y)
+	return maxf(MIN_READABLE_TILE_HEIGHT, bounds_h * MIN_READABLE_TILE_HEIGHT_FRACTION)
+
+
+func _resolve_legend_layout_mode() -> String:
+	## Prefer full-width bottom band when content after the band stays readable.
+	## Short with-battle panels: side column so legend does not crush tiles to a sliver.
+	if _rendered_regions.is_empty():
+		return LEGEND_LAYOUT_NONE
+	var band := _owner_legend_reserved_band_height()
+	var min_content := _min_content_height_for_readable_tiles()
+	if size.y >= band + min_content:
+		return LEGEND_LAYOUT_BAND
+	var side_w := _owner_legend_side_reserve_width()
+	if size.y >= min_content and size.x > side_w + BASE_TILE_SIZE.x * MIN_READABLE_TILE_HEIGHT_FRACTION:
+		return LEGEND_LAYOUT_SIDE
+	return LEGEND_LAYOUT_NONE
+
+
+func _owner_legend_fits_panel() -> bool:
+	## True when OwnerLegend can be shown without crushing region tiles below
+	## readable height (band or side layout). Not merely “plate height ≤ panel”.
+	return _resolve_legend_layout_mode() != LEGEND_LAYOUT_NONE
+
+
 func _refresh_owner_legend() -> void:
 	_remove_owner_legend()
 	if _rendered_regions.is_empty():
+		return
+	# Prefer readable tiles; hide legend only when neither band nor side fits.
+	if not _owner_legend_fits_panel():
 		return
 	var legend := Control.new()
 	legend.name = OWNER_LEGEND_NAME
 	legend.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# Outside tile AABBs: bottom-left of MapView with a small padding.
+	# Tile layout reserved band or left column (see _update_layout).
 	var rows: Array = _owner_legend_rows()
 	var m: Dictionary = _owner_legend_metrics(rows.size())
 	var legend_w: float = m["legend_w"]
@@ -658,7 +735,7 @@ func _add_owner_legend_row(
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.add_theme_color_override("font_color", Color(0.18, 0.14, 0.10))
 	label.add_theme_font_size_override(
-		"font_size", maxi(10, roundi(10.0 * _layout_scale))
+		"font_size", maxi(10, roundi(10.0 * _owner_legend_layout_scale()))
 	)
 	legend.add_child(label)
 
@@ -746,10 +823,26 @@ func _update_layout() -> void:
 	if _rendered_regions.is_empty():
 		return
 	var bounds := _layout_bounds()
-	if size.x <= 0.0 or size.y <= 0.0:
+	# Prefer bottom band when content after the band stays readable (tile_h ≥ ¾ base).
+	# Short with-battle MapView: left column for OwnerLegend so chrome fit cannot
+	# crush the strip to a ~24px sliver under a full-width legend band.
+	_legend_layout_mode = _resolve_legend_layout_mode()
+	var content_rect := Rect2(Vector2.ZERO, size)
+	if _legend_layout_mode == LEGEND_LAYOUT_BAND:
+		var band := _owner_legend_reserved_band_height()
+		content_rect = Rect2(0.0, 0.0, size.x, maxf(1.0, size.y - band))
+	elif _legend_layout_mode == LEGEND_LAYOUT_SIDE:
+		var side_w := _owner_legend_side_reserve_width()
+		content_rect = Rect2(
+			side_w, 0.0, maxf(1.0, size.x - side_w), maxf(1.0, size.y)
+		)
+	var content_size := content_rect.size
+	if content_size.x <= 0.0 or content_size.y <= 0.0:
 		_layout_scale = 1.0
 	else:
-		_layout_scale = minf(size.x / bounds.size.x, size.y / bounds.size.y)
+		_layout_scale = minf(
+			content_size.x / bounds.size.x, content_size.y / bounds.size.y
+		)
 	_layout_scale = maxf(_layout_scale, 0.01)
 	_tile_size = Vector2(
 		maxf(1.0, BASE_TILE_SIZE.x * _layout_scale - GRID_SEAM_EPSILON),
@@ -759,7 +852,11 @@ func _update_layout() -> void:
 		BASE_GRID_PITCH.x * _layout_scale, _tile_size.y * 0.75
 	)
 	_odd_row_offset = _tile_size.x * 0.5
-	_layout_origin = (size - bounds.size * _layout_scale) * 0.5
+	# Centre strip in the content rect (band: above legend; side: right of plate).
+	_layout_origin = (
+		content_rect.position
+		+ (content_size - bounds.size * _layout_scale) * 0.5
+	)
 	_layout_origin -= bounds.position * _layout_scale
 
 

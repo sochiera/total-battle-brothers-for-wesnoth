@@ -10,6 +10,8 @@ const FALLBACK_BATTLE_HEADER_HEIGHT := 34.0
 const HEADER_GAP := 8.0
 const RESULT_LABEL_GAP := 8.0
 const RESULT_BANNER_PAD := 4.0
+# Floor when Main with-battle fit must shrink the cluster so MapView stays readable.
+const MIN_CLUSTER_LAYOUT_SCALE := 0.45
 const BATTLE_RESULT_TEXTS := {
 	"attacker_win": "Zwycięstwo",
 	"defender_win": "Porażka",
@@ -46,6 +48,12 @@ const SIDE_SILHOUETTE_MARGIN := Vector2(20, 14)
 const HP_MARKER_MARGIN := Vector2(16, 5)
 const HP_MARKER_SIZE := Vector2(88, 24)
 
+# 1.0 = native G98/G105 geometry; Main may lower this under with-battle chrome fit.
+var _layout_scale := 1.0
+var _last_hexes: Array = []
+# INF = no vertical budget from Main; finite = fit_vertical_budget last request.
+var _vertical_budget := INF
+
 
 func render_model(model: SnapshotModel) -> void:
 	_reset_and_hide_view()
@@ -58,12 +66,96 @@ func render_model(model: SnapshotModel) -> void:
 	var hexes: Variant = battle.get("hexes")
 	if not hexes is Array:
 		return
-	_render_hexes(hexes)
+	_last_hexes = hexes.duplicate()
+	_layout_scale = 1.0
+	_render_hexes(_last_hexes)
+	# Re-apply a prior budget after re-render (e.g. second apply_model in one frame).
+	if _vertical_budget < INF:
+		fit_vertical_budget(_vertical_budget)
+
+
+func fit_vertical_budget(max_height: float) -> void:
+	## Scale occupied hex cluster so required panel height ≤ max_height.
+	## Native 120×140 when budget allows; used only when MapView readability floor
+	## would otherwise be crushed by multi-row battle chrome.
+	_vertical_budget = max_height
+	if not visible or _last_hexes.is_empty():
+		return
+	if max_height <= 0.0:
+		return
+	var native_h := _required_height_at_scale(1.0)
+	var target_scale := 1.0
+	if native_h > max_height:
+		# Header + result label/pad stay fixed; hex geometry and result gap scale.
+		var fixed_h := _battle_header_band_height() + _result_label_and_banner_pad()
+		var variable_h := maxf(1.0, native_h - fixed_h)
+		var room := maxf(0.0, max_height - fixed_h)
+		target_scale = clampf(room / variable_h, MIN_CLUSTER_LAYOUT_SCALE, 1.0)
+	if absf(target_scale - _layout_scale) < 0.001:
+		return
+	_layout_scale = target_scale
+	_clear_hex_tiles()
+	_render_hexes(_last_hexes)
+
+
+func clear_vertical_budget() -> void:
+	_vertical_budget = INF
+	if _layout_scale == 1.0:
+		return
+	_layout_scale = 1.0
+	if visible and not _last_hexes.is_empty():
+		_clear_hex_tiles()
+		_render_hexes(_last_hexes)
+
+
+func _hex_size() -> Vector2:
+	return BASE_HEX_SIZE * _layout_scale
+
+
+func _row_pitch() -> float:
+	return _hex_size().y * 0.75
+
+
+func _result_label_and_banner_pad() -> float:
+	## Fixed (non-scaling) part of the result band: label height + bottom banner pad.
+	var result_label: Control = %BattleResultLabel
+	return result_label.size.y + RESULT_BANNER_PAD
+
+
+func _result_band_height_at_scale(scale: float) -> float:
+	## result_top = max_hex_bottom + GAP*scale; panel bottom = result_top + label_h + PAD.
+	return RESULT_LABEL_GAP * scale + _result_label_and_banner_pad()
+
+
+func _panel_height_for_hex_bottom(max_hex_bottom: float, scale: float) -> float:
+	## Shared by fit (`_required_height_at_scale`) and `_layout_result_label`.
+	return max_hex_bottom + _result_band_height_at_scale(scale)
+
+
+func _required_height_at_scale(scale: float) -> float:
+	## Panel height required at layout scale — same closed form as layout.
+	var saved := _layout_scale
+	_layout_scale = scale
+	var max_r := -1
+	for hex: Variant in _last_hexes:
+		if not hex is Dictionary:
+			continue
+		var qr: Variant = _hex_qr(hex)
+		if qr == null:
+			continue
+		max_r = maxi(max_r, int(qr.y))
+	var height: float
+	if max_r >= 0:
+		height = _panel_height_for_hex_bottom(_hex_tile_bottom(max_r), scale)
+	else:
+		height = _panel_height_for_hex_bottom(_battle_header_band_height(), scale)
+	_layout_scale = saved
+	return height
 
 
 func _render_hexes(hexes: Array) -> void:
 	# G105.1c: centre the occupied cluster horizontally in the panel without
-	# inventing empty hexes or changing native 120×140 base geometry.
+	# inventing empty hexes. Scale may be < 1 under with-battle chrome fit.
 	var origin_x := _occupied_cluster_origin_x(hexes)
 	var max_bottom := 0.0
 	for hex: Variant in hexes:
@@ -108,7 +200,7 @@ func _occupied_cluster_x_bounds(hexes: Array) -> Variant:
 		any = true
 		var local_x := _axial_local_x(int(qr.x), int(qr.y))
 		min_left = minf(min_left, local_x)
-		max_right = maxf(max_right, local_x + BASE_HEX_SIZE.x)
+		max_right = maxf(max_right, local_x + _hex_size().x)
 	if not any:
 		return null
 	return Vector2(min_left, max_right)
@@ -128,27 +220,30 @@ func _panel_width_for_cluster() -> float:
 
 
 func _hex_tile_bottom(row: int) -> float:
-	return _battle_header_band_height() + float(row) * AXIAL_ROW_PITCH + BASE_HEX_SIZE.y
+	return _battle_header_band_height() + float(row) * _row_pitch() + _hex_size().y
 
 
 func _layout_result_label(max_hex_bottom: float) -> void:
 	var result_label: Control = %BattleResultLabel
 	var result_banner: Control = %BattleResultBanner
-	var result_top := max_hex_bottom + RESULT_LABEL_GAP
+	var result_top := max_hex_bottom + RESULT_LABEL_GAP * _layout_scale
 	result_label.position.y = result_top
 	# Parchment carrier tracks the outcome text band (not a fixed scene offset).
 	result_banner.position.y = result_top - RESULT_BANNER_PAD
 	result_banner.size.y = result_label.size.y + RESULT_BANNER_PAD * 2.0
-	var required_height: float = maxf(
-		result_top + result_label.size.y,
-		result_banner.position.y + result_banner.size.y,
-	)
+	var required_height: float = _panel_height_for_hex_bottom(max_hex_bottom, _layout_scale)
 	custom_minimum_size.y = required_height
 	size.y = required_height
 
 
 func _reset_and_hide_view() -> void:
 	visible = false
+	# Drop vertical minimum so MapAndBattle can collapse (G94.1d). Height is set
+	# by _layout_result_label when a battle is shown; zero here clears that
+	# content-driven minimum (not a scene default of 240).
+	custom_minimum_size.y = 0.0
+	_layout_scale = 1.0
+	_last_hexes = []
 	_clear_hex_tiles()
 	%BattleResultLabel.text = ""
 
@@ -169,7 +264,7 @@ func _add_tile(q: int, r: int, hex: Dictionary, origin_x: float) -> void:
 	var tile := Control.new()
 	tile.name = "HexTile_%d_%d" % [q, r]
 	tile.position = _axial_position(q, r, origin_x)
-	tile.size = BASE_HEX_SIZE
+	tile.size = _hex_size()
 	_apply_hex_paint_order(tile, r)
 	tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(tile)
@@ -187,10 +282,11 @@ func _add_unit_overlay(tile: Control, side: Variant, hp: Variant) -> void:
 		silhouette.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		silhouette.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		silhouette.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		silhouette.offset_left += SIDE_SILHOUETTE_MARGIN.x
-		silhouette.offset_right -= SIDE_SILHOUETTE_MARGIN.x
-		silhouette.offset_top += SIDE_SILHOUETTE_MARGIN.y
-		silhouette.offset_bottom -= SIDE_SILHOUETTE_MARGIN.y
+		var margin := SIDE_SILHOUETTE_MARGIN * _layout_scale
+		silhouette.offset_left += margin.x
+		silhouette.offset_right -= margin.x
+		silhouette.offset_top += margin.y
+		silhouette.offset_bottom -= margin.y
 		tile.add_child(silhouette)
 	_add_hp_marker(tile, side, hp)
 
@@ -206,11 +302,13 @@ func _add_hp_marker(tile: Control, side: Variant, hp: Variant) -> void:
 	# the texture path, not a StyleBoxFlat rim. Carrier: LabelTextureCarrier
 	# (R102.1 / task-578), same as MapView region name plates.
 	var badge := LabelTextureCarrier.make(badge_tex, "HpBadge")
+	var margin := HP_MARKER_MARGIN * _layout_scale
+	var badge_size := HP_MARKER_SIZE * _layout_scale
 	badge.position = Vector2(
-		HP_MARKER_MARGIN.x,
-		BASE_HEX_SIZE.y - HP_MARKER_MARGIN.y - HP_MARKER_SIZE.y,
+		margin.x,
+		_hex_size().y - margin.y - badge_size.y,
 	)
-	badge.size = HP_MARKER_SIZE
+	badge.size = badge_size
 	LabelTextureCarrier.attach_label(badge, _make_hp_marker_label(int(hp)))
 	tile.add_child(badge)
 
@@ -246,8 +344,9 @@ func _add_terrain_layers(tile: Control, terrain: Variant) -> void:
 
 	var decoration_texture: Texture2D = _terrain_decoration_texture(terrain)
 	if decoration_texture != null:
+		var decor_host := _hex_size()
 		tile.add_child(
-			TileTextureLayer.native_rect(decoration_texture, "TerrainDecoration", BASE_HEX_SIZE)
+			TileTextureLayer.native_rect(decoration_texture, "TerrainDecoration", decor_host)
 		)
 
 
@@ -258,13 +357,14 @@ func _apply_hex_paint_order(tile: Control, row: int) -> void:
 
 func _axial_local_x(q: int, r: int) -> float:
 	## Pointy-top axial X without panel origin (cluster centering is separate).
-	return float(q) * BASE_HEX_SIZE.x + float(r) * BASE_HEX_SIZE.x * 0.5
+	var hex_w := _hex_size().x
+	return float(q) * hex_w + float(r) * hex_w * 0.5
 
 
 func _axial_position(q: int, r: int, origin_x: float = 0.0) -> Vector2:
 	return Vector2(
 		origin_x + _axial_local_x(q, r),
-		_battle_header_band_height() + float(r) * AXIAL_ROW_PITCH,
+		_battle_header_band_height() + float(r) * _row_pitch(),
 	)
 
 
