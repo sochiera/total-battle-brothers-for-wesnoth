@@ -69,6 +69,9 @@ WINDOW_BACKGROUND_SCREENSHOTS = (
     GAME / "screenshots" / "task-569-fresh-1152x648.png",
     GAME / "screenshots" / "task-569-selected-region-1152x648.png",
     GAME / "screenshots" / "task-569-visible-battle-1152x648.png",
+    # G106.1a: hand-composed presentation frame documenting the post-K105
+    # threshold (not a raw new_session live capture).
+    GAME / "screenshots" / "task-591-fresh-post-k105-1152x648.png",
 )
 ORDER_ICON_FILES = {
     "NextTurnButton": "icon_next_turn.png",
@@ -340,19 +343,24 @@ def test_order_buttons_expose_distinct_states_and_review_screenshots():
         )
 
 def test_window_background_review_screenshots_exist_at_target_resolution():
-    """G100.1d: review artifacts cover fresh, selected, and battle states."""
+    """G100.1d (+ G106.1a): review PNGs exist at 1152×648 with non-trivial size.
+
+    Covers post-G100.1d window-background states and the G106.1a hand-composed
+    presentation frame for the post-K105 threshold. Existence/dimensions only —
+    not a live-session smoke test.
+    """
     # Older task-565/task-568 captures predate the full-window parchment and
     # cannot demonstrate that root gaps no longer expose default grey chrome.
     for screenshot in WINDOW_BACKGROUND_SCREENSHOTS:
         assert screenshot.is_file(), (
-            f"required post-G100.1d human-review screenshot missing: {screenshot}"
+            f"required human-review screenshot missing: {screenshot}"
         )
         width, height = _png_dimensions(screenshot)
         assert (width, height) == (int(VIEWPORT_W), int(VIEWPORT_H)), (
             f"{screenshot} must be 1152×648, got {width}×{height}"
         )
         assert screenshot.stat().st_size >= 100_000, (
-            f"{screenshot} must contain a detailed live-game review frame, "
+            f"{screenshot} must contain a detailed review frame, "
             "not a tiny flat-colour placeholder"
         )
 

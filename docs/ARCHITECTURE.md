@@ -866,6 +866,18 @@ zmiany kontraktu. `main.gd` wymusza texture ornamentu w
 `_set_selected_region_empty_visuals` — bez `StyleBoxFlat` jako nośnika
 pustego stanu.
 
+**Dowód progu — świeża partia po K105 (G106.1a / task-591):** pełnoekranowy
+zrzut 1152×648 świeżego stanu strategicznego (pięć regionów topologii
+`create_headless_game`, pusty wybór regionu, keep/outpost, armie mapy w
+rodzinie isometrii/¾, teatr, herby, legenda, pasek rozkazów, karta statusu
+z dzielnikami, ornament pustego stanu) leży w
+`game/screenshots/task-591-fresh-post-k105-1152x648.png`. Regeneracja przy
+realnym display (nie `--headless`):
+`game/tests/capture_fresh_post_k105_review.gd` (topologia zgodna z
+`create_headless_game`; model prezentacji jest ręcznie złożony z armiami
+na keepach, bo surowy `new_session` nie wystawia oddziałów polowych przed
+muster). Snapshot, most i reguły bez zmian — wyłącznie artefakt wizualny.
+
 **Karta statusu księstwa — gęstość wierszy (G105.1d / task-590):** wiersze
 Morale / Osady / Oddziały nie są gołymi parami etykieta–wartość w jednej
 rzadkiej grupie. Między grupami major (data/wynik ↔ duchy ↔ pozycja
