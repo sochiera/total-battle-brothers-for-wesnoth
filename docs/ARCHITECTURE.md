@@ -878,6 +878,19 @@ realnym display (nie `--headless`):
 na keepach, bo surowy `new_session` nie wystawia oddziałów polowych przed
 muster). Snapshot, most i reguły bez zmian — wyłącznie artefakt wizualny.
 
+**Dowód progu — wybrany region po K105 (G106.1b / task-592):** para zrzutów
+1152×648 pusty→wybrany w `game/screenshots/`:
+`task-592-selected-region-empty-1152x648.png` (ornament pustego wyboru +
+PL „Nie wybrano regionu”) oraz
+`task-592-selected-region-selected-1152x648.png` (ramka `map_target_frame`
+na mapie + polskie wiersze panelu nazwa/właściciel/osada/armia; pasek
+rozkazów w viewportcie). Starsza para task-568 pochodzi sprzed chrome K105;
+task-591 to tylko świeża pusta partia. Regeneracja przy realnym display
+(nie `--headless`):
+`game/tests/capture_selected_region_post_k105_review.gd` (ten sam model
+pięciu regionów co G106.1a; klik regionu gracza „player lands”). Semantyka
+wyboru, snapshot i most bez zmian.
+
 **Karta statusu księstwa — gęstość wierszy (G105.1d / task-590):** wiersze
 Morale / Osady / Oddziały nie są gołymi parami etykieta–wartość w jednej
 rzadkiej grupie. Między grupami major (data/wynik ↔ duchy ↔ pozycja

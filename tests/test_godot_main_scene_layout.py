@@ -69,9 +69,14 @@ WINDOW_BACKGROUND_SCREENSHOTS = (
     GAME / "screenshots" / "task-569-fresh-1152x648.png",
     GAME / "screenshots" / "task-569-selected-region-1152x648.png",
     GAME / "screenshots" / "task-569-visible-battle-1152x648.png",
-    # G106.1a: hand-composed presentation frame documenting the post-K105
-    # threshold (not a raw new_session live capture).
+    # G106.1a: scripted capture on a synthetic five-region model
+    # (game/tests/capture_fresh_post_k105_review.gd; not a raw new_session).
     GAME / "screenshots" / "task-591-fresh-post-k105-1152x648.png",
+    # G106.1b: empty → selected pair after K105; same synthetic model via
+    # game/tests/capture_selected_region_post_k105_review.gd (task-568 pair
+    # predates K105 chrome). Empty frame is intentionally identical to G106.1a.
+    GAME / "screenshots" / "task-592-selected-region-empty-1152x648.png",
+    GAME / "screenshots" / "task-592-selected-region-selected-1152x648.png",
 )
 ORDER_ICON_FILES = {
     "NextTurnButton": "icon_next_turn.png",
@@ -343,11 +348,16 @@ def test_order_buttons_expose_distinct_states_and_review_screenshots():
         )
 
 def test_window_background_review_screenshots_exist_at_target_resolution():
-    """G100.1d (+ G106.1a): review PNGs exist at 1152×648 with non-trivial size.
+    """G100.1d (+ G106.1a/b): review PNGs exist at 1152×648 with non-trivial size.
 
-    Covers post-G100.1d window-background states and the G106.1a hand-composed
-    presentation frame for the post-K105 threshold. Existence/dimensions only —
-    not a live-session smoke test.
+    Covers post-G100.1d window-background states, the G106.1a fresh-party
+    frame, and the G106.1b empty→selected region pair after K105.
+    Existence/dimensions only — not a live-session smoke test.
+
+    Realistic defect existing gates miss: K97/K100/K105 panel and frame
+    behavior can stay green while the G106 threshold package still lacks a
+    dedicated post-K105 empty→selected screenshot pair (task-568 captures
+    predate K105 chrome; task-591 covers only empty fresh party).
     """
     # Older task-565/task-568 captures predate the full-window parchment and
     # cannot demonstrate that root gaps no longer expose default grey chrome.
