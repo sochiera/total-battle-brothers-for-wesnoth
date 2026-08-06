@@ -1,13 +1,12 @@
 extends SceneTree
 
 
-## G85.1c e2e: assault button feeds BattleView from live bridge snapshots across
-## two processes on a shared state file. Pre-assault battle view is empty; after
-## assault tiles of both sides and Polish result appear; resume reloads them.
+## Persistent order e2e probe: battle-producing order buttons feed BattleView
+## from live bridge snapshots across two processes on a shared state file.
 
 const MAIN_SCENE_PATH := "res://scenes/main.tscn"
 const BridgeClient = preload("res://scripts/bridge_client.gd")
-const PREFIX := "PERSISTENT_ASSAULT_PROCESS "
+const PREFIX := "PERSISTENT_ORDER_PROCESS "
 
 
 func _init() -> void:
@@ -52,6 +51,9 @@ func _run() -> void:
 				return
 		"battle", "second_assault":
 			if not _press(scene_root, "AssaultButton"):
+				return
+		"engage", "second_engage":
+			if not _press(scene_root, "EngageButton"):
 				return
 		_:
 			_fail("unknown phase")
@@ -214,5 +216,5 @@ func _color_key(color: Color) -> String:
 
 
 func _fail(message: String) -> void:
-	printerr("persistent_assault_process_probe: ", message)
+	printerr("persistent_order_process_probe: ", message)
 	quit(2)

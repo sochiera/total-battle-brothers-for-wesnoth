@@ -248,16 +248,21 @@ func _apply_start_failure_status(started: bool) -> void:
 
 func bind_client(client) -> void:
 	_client = client
+	_bind_order_buttons()
+	_connect_pressed_once(%SaveGameButton, _on_save_game_button_pressed)
+	_connect_pressed_once(%LoadGameButton, _on_load_game_button_pressed)
+	_connect_pressed_once(%NewGameButton, _on_new_game_button_pressed)
+	_refresh_bound_client()
+
+
+func _bind_order_buttons() -> void:
 	_connect_pressed_once(%NextTurnButton, _on_next_turn_button_pressed)
 	_connect_pressed_once(%DevelopButton, _on_develop_button_pressed)
 	_connect_pressed_once(%RecruitButton, _on_recruit_button_pressed)
 	_connect_pressed_once(%MusterButton, _on_muster_button_pressed)
 	_connect_pressed_once(%MarchButton, _on_march_button_pressed)
 	_connect_pressed_once(%AssaultButton, _on_assault_button_pressed)
-	_connect_pressed_once(%SaveGameButton, _on_save_game_button_pressed)
-	_connect_pressed_once(%LoadGameButton, _on_load_game_button_pressed)
-	_connect_pressed_once(%NewGameButton, _on_new_game_button_pressed)
-	_refresh_bound_client()
+	_connect_pressed_once(%EngageButton, _on_engage_button_pressed)
 
 
 func _refresh_bound_client() -> void:
@@ -299,6 +304,10 @@ func _on_march_button_pressed() -> void:
 
 func _on_assault_button_pressed() -> void:
 	_send_bound_order("assault")
+
+
+func _on_engage_button_pressed() -> void:
+	_send_bound_order("engage")
 
 
 func _on_save_game_button_pressed() -> void:
