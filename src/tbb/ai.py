@@ -1,6 +1,7 @@
 """Pure, deterministic strategic AI queries."""
 
 from collections import deque
+from collections.abc import Iterable
 
 import tbb.settlement as settlement_module
 
@@ -8,10 +9,17 @@ from tbb.battle import HexBattle
 from tbb.building import BARRACKS, FARM, MARKET, SMITH
 from tbb.duchy import Duchy
 from tbb.rng import Rng
+from tbb.unit import Unit
 from tbb.world import Region, WorldMap
 
 
 _DEVELOPMENT_PRIORITIES = (FARM, SMITH, BARRACKS, MARKET)
+_MINIMUM_ASSAULT_STRENGTH_RATIO = 2
+
+
+def _combat_strength(units: Iterable[Unit]) -> int:
+    """Return the deterministic strategic strength of a unit collection."""
+    return sum(unit.hp + unit.damage + unit.defense for unit in units)
 
 
 def develop_duchy_settlement(world: WorldMap, duchy: Duchy) -> WorldMap:
@@ -533,13 +541,22 @@ def assault_nearest_enemy_settlement(
     )
 
 
+def _has_assault_advantage(
+    attackers: Iterable[Unit], defenders: Iterable[Unit]
+) -> bool:
+    """Return whether attackers meet the deterministic 2:1 strength ratio."""
+    return _combat_strength(attackers) >= (
+        _MINIMUM_ASSAULT_STRENGTH_RATIO * _combat_strength(defenders)
+    )
+
+
 def take_duchy_military_action(
     world: WorldMap,
     duchy: Duchy,
     rng: Rng,
     morale_by_owner: dict[str, int] | None = None,
 ) -> WorldMap:
-    """Muster, march once, and assault for one duchy's military action."""
+    """Muster, march once, and assault only with a strength advantage."""
     if duchy.hero is None:
         return world
 
@@ -554,8 +571,14 @@ def take_duchy_military_action(
     position = _duchy_party_position(current, duchy.duchy_id)
     if position is None:
         return current
-    return assault_nearest_enemy_settlement(
-        current, position, rng, morale_by_owner=morale_by_owner
+    target = nearest_enemy_settlement(current, position, duchy.duchy_id)
+    party = current.party_at(position)
+    if target is None or party is None or not _has_assault_advantage(
+        (party.hero, *party.units), current.settlement_defenders(target)
+    ):
+        return current
+    return assault_duchy_party_to(
+        current, duchy, target, rng, morale_by_owner=morale_by_owner
     )
 
 

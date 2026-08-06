@@ -575,33 +575,105 @@ def test_idle_living_hero_does_not_trigger_succession(monkeypatch):
     assert result_game.is_over is False
 
 
-def test_default_game_is_deterministic_and_ends_when_loser_is_landless():
-    """Default multi-keep setup ends deterministically; landless side is defeated.
+def test_default_game_is_deterministic_and_preserves_ai_field_party():
+    """Passive default play is deterministic without forcing an AI suicide.
 
-    G92.2a gives each duchy two keeps, so seed 73 no longer yields the old
-    early AI win after one lost keep. Passive play still finishes without
-    hitting the safety limit: the losing duchy ends landless and partyless
-    (G90.2a-2), and twin runs on the same seed match.
+    The assault gate leaves the seed-73 AI party in play instead of relying on
+    a passive, self-destructive assault to end the game.
     """
     first_world, first_game = create_headless_game()
     second_world, second_game = create_headless_game()
+    max_turns = 5
 
-    first_result = run_headless_game(first_world, first_game, Rng(73))
-    second_result = run_headless_game(second_world, second_game, Rng(73))
+    first_result = run_headless_game(
+        first_world, first_game, Rng(73), max_turns=max_turns
+    )
+    second_result = run_headless_game(
+        second_world, second_game, Rng(73), max_turns=max_turns
+    )
 
     assert first_result == second_result
     result_world, result_game, result_calendar = first_result
     assert isinstance(result_world, WorldMap)
     assert isinstance(result_calendar, Calendar)
-    assert result_game.is_over is True
-    assert result_game.winner is not None
-    assert result_game.winner.duchy_id == "player"
-    assert result_calendar == Calendar(year=1, month=4)
+    assert result_game.is_over is False
+    elapsed_turns = (result_calendar.year - 1) * 13 + result_calendar.month - 1
+    assert elapsed_turns == max_turns
     ai = next(d for d in result_game.duchies if d.duchy_id == "ai")
     assert ai.has_hero is True
-    assert ai.settlements == ()
-    assert ai.parties == ()
-    assert ai.is_defeated is True
+    assert ai.settlements
+    assert ai.parties
+
+
+def test_seed_73_ai_keeps_a_field_party_without_suicidal_morale_loss():
+    """Five passive turns leave the seed-73 AI party alive with neutral morale."""
+    world, game = create_headless_game()
+
+    result_world, result_game, _ = run_headless_game(
+        world, game, Rng(73), max_turns=5, player_duchy_id="player"
+    )
+
+    ai_duchy = next(
+        duchy for duchy in result_game.duchies if duchy.duchy_id == "ai"
+    )
+    assert any(party.owner_id == "ai" for party in result_world.parties.values())
+    assert ai_duchy.morale == 0
+
+
+def test_player_orders_can_defeat_seed_73_ai_field_party():
+    """Player combat orders can eliminate the gated AI party and duchy."""
+    world, game = create_headless_game()
+    world, game, _ = run_headless_game(
+        world, game, Rng(73), max_turns=5, player_duchy_id="player"
+    )
+
+    regions_by_name = {region.name: region for region in world.regions}
+    player_outpost = regions_by_name["player outpost"]
+    border = regions_by_name["border"]
+    ai_outpost = regions_by_name["ai outpost"]
+    ai_lands = regions_by_name["ai lands"]
+
+    def sync_player(current_world):
+        current_game = game.sync_from_world(current_world)
+        current_player = next(
+            duchy
+            for duchy in current_game.duchies
+            if duchy.duchy_id == "player"
+        )
+        return current_world, current_game, current_player
+
+    world, game, player = sync_player(world)
+    ai_party = world.party_at(border)
+    assert ai_party is not None
+    assert ai_party.owner_id == "ai"
+    while True:
+        recruited = ai.recruit_duchy_unit(world, player)
+        if recruited is world:
+            break
+        world, game, player = sync_player(recruited)
+
+    world = ai.muster_duchy_party(world, player)
+    world, game, player = sync_player(world)
+    world = ai.move_duchy_party_to_adjacent(world, player, player_outpost)
+    world, game, player = sync_player(world)
+
+    order_rng = Rng(2)
+
+    def apply(order, target):
+        current_world, battle = order(world, player, target, order_rng)
+        assert battle is not None
+        return sync_player(current_world)
+
+    for order, target in (
+        (ai.engage_duchy_party_to_recorded, border),
+        (ai.assault_duchy_party_to_recorded, ai_outpost),
+        (ai.assault_duchy_party_to_recorded, ai_lands),
+    ):
+        world, game, player = apply(order, target)
+
+    ai_duchy = next(duchy for duchy in game.duchies if duchy.duchy_id == "ai")
+    assert ai_duchy.is_defeated is True
+    assert game.is_over is True
 
 
 def _development_scenario():
@@ -677,22 +749,38 @@ def test_headless_development_spans_multiple_turns_before_resolution(monkeypatch
     assert result_game.is_over is True
 
 
-def test_lost_party_during_real_ai_turn_promotes_heir_before_world_sync():
+def _assault_gate_loss_scenario(*, home: bool, heir: Unit | None = None):
+    """Build a north party eligible to assault the south garrison at 2:1."""
     camp, keep = map(Region, ("North Camp", "South Keep"))
-    hero = Unit(equipment=1)
-    heir = Unit(training=1)
+    hero = Unit(equipment=11)
     attacking_party = Party(hero, owner_id="north")
     south_keep = Settlement(
         "South Keep",
         4,
         occupied=1,
-        garrison=(Unit(training=5, equipment=12),),
+        garrison=(Unit(equipment=3),),
         owner_id="south",
     )
+    home_region = None
+    home_keep = None
+    settlements = {keep: south_keep}
+    north_settlements = ()
+    regions = (camp, keep)
+    if home:
+        home_region = Region("North Home")
+        home_keep = Settlement(
+            "North Home",
+            population=5,
+            storage=Resources(wheat=20, gold=10),
+            owner_id="north",
+        )
+        settlements[home_region] = home_keep
+        north_settlements = (home_keep,)
+        regions = (camp, keep, home_region)
     world = WorldMap(
-        (camp, keep),
+        regions,
         ((camp, keep),),
-        settlements={keep: south_keep},
+        settlements=settlements,
         parties={camp: attacking_party},
     )
     game = GameState(
@@ -703,14 +791,21 @@ def test_lost_party_during_real_ai_turn_promotes_heir_before_world_sync():
                 morale=3,
                 heir=heir,
                 parties=(attacking_party,),
+                settlements=north_settlements,
             ),
             Duchy("south", Unit(), settlements=(south_keep,)),
         )
     )
+    return world, game, camp, home_region
+
+
+def test_lost_party_during_real_ai_turn_promotes_heir_before_world_sync():
+    heir = Unit(training=1)
+    world, game, camp, _ = _assault_gate_loss_scenario(home=False, heir=heir)
     snapshot = (dict(world.settlements), dict(world.parties), game.duchies)
 
     result_world, result_game, _ = run_headless_game(
-        world, game, Rng(4), max_turns=1
+        world, game, Rng(24), max_turns=1
     )
 
     north = next(
@@ -736,46 +831,15 @@ def test_lost_hero_without_heir_regains_hero_from_settlement_next_turn(monkeypat
     heir designation. The complementary D12.3 path (real designate → succession
     in the death turn) is covered by
     test_real_designate_heir_then_hero_death_promotes_heir_with_penalty.
+
     """
     monkeypatch.setattr(ai, "designate_duchy_heir", lambda w, d: (w, d))
-    camp, keep, home = map(Region, ("North Camp", "South Keep", "North Home"))
-    hero = Unit(equipment=1)
-    attacking_party = Party(hero, owner_id="north")
-    home_keep = Settlement(
-        "North Home",
-        population=5,
-        storage=Resources(wheat=20, gold=10),
-        owner_id="north",
-    )
-    south_keep = Settlement(
-        "South Keep",
-        4,
-        occupied=1,
-        garrison=(Unit(training=5, equipment=12),),
-        owner_id="south",
-    )
-    world = WorldMap(
-        (camp, keep, home),
-        ((camp, keep),),
-        settlements={home: home_keep, keep: south_keep},
-        parties={camp: attacking_party},
-    )
-    game = GameState(
-        (
-            Duchy(
-                "north",
-                hero,
-                morale=3,
-                parties=(attacking_party,),
-                settlements=(home_keep,),
-            ),
-            Duchy("south", Unit(), settlements=(south_keep,)),
-        )
-    )
+    world, game, camp, home = _assault_gate_loss_scenario(home=True)
+    assert home is not None
     snapshot = (dict(world.settlements), dict(world.parties), game.duchies)
 
     after_loss_world, after_loss_game, _ = run_headless_game(
-        world, game, Rng(4), max_turns=1
+        world, game, Rng(24), max_turns=1
     )
     north_after_loss = next(
         duchy for duchy in after_loss_game.duchies if duchy.duchy_id == "north"
@@ -791,8 +855,8 @@ def test_lost_hero_without_heir_regains_hero_from_settlement_next_turn(monkeypat
         for settlement in north_after_loss.settlements
     )
 
-    first = run_headless_game(world, game, Rng(4), max_turns=2)
-    second = run_headless_game(world, game, Rng(4), max_turns=2)
+    first = run_headless_game(world, game, Rng(24), max_turns=2)
+    second = run_headless_game(world, game, Rng(24), max_turns=2)
     result_world, result_game, _ = first
     north = next(
         duchy for duchy in result_game.duchies if duchy.duchy_id == "north"
@@ -818,46 +882,15 @@ def test_real_designate_heir_then_hero_death_promotes_heir_with_penalty():
     designate_duchy_heir. Driver seats an heir from the owned settlement, the
     assault kills the party, and resolve_hero_survival promotes heir → hero
     with SUCCESSION_MORALE_PENALTY. Two runs with the same Rng match.
+
     """
-    camp, keep, home = map(Region, ("North Camp", "South Keep", "North Home"))
-    hero = Unit(equipment=1)
-    attacking_party = Party(hero, owner_id="north")
-    home_keep = Settlement(
-        "North Home",
-        population=5,
-        storage=Resources(wheat=20, gold=10),
-        owner_id="north",
-    )
-    south_keep = Settlement(
-        "South Keep",
-        4,
-        occupied=1,
-        garrison=(Unit(training=5, equipment=12),),
-        owner_id="south",
-    )
-    world = WorldMap(
-        (camp, keep, home),
-        ((camp, keep),),
-        settlements={home: home_keep, keep: south_keep},
-        parties={camp: attacking_party},
-    )
+    world, game, camp, home = _assault_gate_loss_scenario(home=True)
+    assert home is not None
     start_morale = 3
-    game = GameState(
-        (
-            Duchy(
-                "north",
-                hero,
-                morale=start_morale,
-                parties=(attacking_party,),
-                settlements=(home_keep,),
-            ),
-            Duchy("south", Unit(), settlements=(south_keep,)),
-        )
-    )
     snapshot = (dict(world.settlements), dict(world.parties), game.duchies)
 
-    first = run_headless_game(world, game, Rng(4), max_turns=1)
-    second = run_headless_game(world, game, Rng(4), max_turns=1)
+    first = run_headless_game(world, game, Rng(24), max_turns=1)
+    second = run_headless_game(world, game, Rng(24), max_turns=1)
     result_world, result_game, _ = first
     north = next(
         duchy for duchy in result_game.duchies if duchy.duchy_id == "north"

@@ -10,26 +10,14 @@ def test_package_imports_and_has_version():
     assert tbb.__version__  # niepusta wersja
 
 
-def test_headless_main_runs_full_game_and_reports_result(capsys):
+def test_headless_main_reports_draw_when_passive_ai_keeps_field_party(capsys):
     from tbb.__main__ import main
 
     assert main() == 0
     output = capsys.readouterr().out.strip().lower()
-    # G92.2a multi-keep start + G90.2a-2: seed 73 finishes when the loser is
-    # landless/partyless (player wins by month 4), not at the safety limit.
-    assert "zwycięzca: player" in output
-    assert "rok: 1" in output
-    assert "miesiąc: 4" in output
-
-
-def test_headless_main_reports_final_calendar_date(capsys):
-    from tbb.__main__ import main
-
-    assert main() == 0
-    output = capsys.readouterr().out.lower()
-    assert "zwycięzca: player" in output
-    assert "rok: 1" in output
-    assert "miesiąc: 4" in output
+    # G108.1c leaves the AI field party alive instead of resolving passive
+    # seed-73 play through a self-destructive assault.
+    assert "wynik: remis — brak zwycięzcy." in output
 
 
 def test_headless_main_delegates_to_driver_and_prints_winner(monkeypatch, capsys):

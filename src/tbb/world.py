@@ -110,6 +110,17 @@ class WorldMap:
             raise ValueError("region is outside the world map")
         return self.parties.get(region)
 
+    def settlement_defenders(self, region: Region) -> tuple[Unit, ...]:
+        """Return the units that defend the settlement at ``region``."""
+        settlement = self.settlement_at(region)
+        if settlement is None:
+            return ()
+
+        home_party = self.parties.get(region)
+        if not self._party_defends_settlement(home_party, settlement):
+            return settlement.garrison
+        return settlement.garrison + (home_party.hero, *home_party.units)
+
     def tick_settlements(self) -> "WorldMap":
         """Return a new world after all settlements complete a monthly tick."""
         settlements = {

@@ -1142,6 +1142,31 @@ def test_duchy_military_action_reuses_party_and_assaults_from_marched_position()
     assert world.party_at(start) is party
 
 
+def test_duchy_military_action_keeps_party_when_enemy_garrison_is_stronger():
+    """A hopeless adjacent assault leaves the AI party in the field."""
+    start, target = Region("Start"), Region("Target")
+    party = Party(Unit(), owner_id="ai")
+    settlement = Settlement(
+        "Target",
+        1,
+        garrison=(Unit(training=5, equipment=12),),
+        owner_id="enemy",
+    )
+    world = WorldMap(
+        [start, target],
+        [(start, target)],
+        {target: settlement},
+        {start: party},
+    )
+    duchy = Duchy("ai", party.hero, parties=(party,))
+
+    result = take_duchy_military_action(world, duchy, tbb.Rng(8))
+
+    assert result is world
+    assert result.party_at(start) is party
+    assert result.settlement_at(target) is settlement
+
+
 @pytest.mark.parametrize("case", ["no_hero", "no_source", "no_enemy"])
 def test_duchy_military_action_noop_does_not_use_rng_without_battle(case):
     home = Region("Home")
