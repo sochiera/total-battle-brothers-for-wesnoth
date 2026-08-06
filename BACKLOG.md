@@ -1311,6 +1311,77 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
       i brak luk w CREDITS. Wpis progu znajduje się w `docs/PROJECT.md` oraz
       tutaj. *(2026-08-06)*
 
+## Kamień milowy 107 — nowa partia z UI (po zakończonej grze) — W TOKU
+> Pierwszy kamień po odwołaniu bramki oprawy. Most ma komendę `new_game` od K65,
+> a klient nie ma jak jej wydać: po zakończonej partii („zwycięstwo"/„porażka")
+> ekran zostaje na martwym stanie, a jedyny sposób zaczęcia od nowa to skasowanie
+> pliku stanu z terminala — dokładnie to, czego brief zabrania. Rdzeń bez zmian.
+- [x] **G107.1a** Nowa partia z klienta: `BridgeClient` wydaje `new_game`
+      i utrwala świeży stan w pliku stanu (kolejny proces widzi nową partię).
+      *(commit 2c4ace0)*
+> **G107.1b–d zaplanowane poza tym plikiem** *(task-596: przycisk „Nowa partia"
+> w pasku rozkazów bez wiązania; task-597: klik zaczyna grę od nowa, także po
+> zakończonej partii; task-598: dowód wizualny paska sterowania)* — dopisane tu
+> dla ciągłości, **nie planować ich ponownie**.
+
+## Kamień milowy 108 — przeciwnik, który nie roztrwania armii, i gracz, który ma czym go uderzyć
+> **Zwrot kierunku (przegląd bootstrap-diff 2026-08-06).** Próg wizualny jest
+> osiągnięty, formalne kryterium „gotowe" odhaczone — więc pierwszy raz od K87
+> patrzymy na **samą rozgrywkę**. Uruchomienie rdzenia przy tym przeglądzie
+> (nie lektura) pokazuje, że pętla sandboxa domyka się, ale jest pusta:
+>
+> **Zmierzone na `new_session(73)`:**
+> 1. Partia jest do wygrania w **trzy miesiące gry**: `recruit`×5 → `muster` →
+>    (`march`+`assault`)×2 daje `result.player_result = "victory"`,
+>    księstwo AI schodzi do `settlements=0, parties=0` w roku 1, miesiącu 3.
+> 2. Gdy gracz **nic nie robi** przez 20 tur, na mapie **nigdy nie pojawia się
+>    wojsko wroga** — `duchies[ai].parties` zostaje `0`, a morale AI spada do
+>    `-8`. Powód jest w rdzeniu: `ai.take_duchy_military_action`
+>    (`src/tbb/ai.py:536`) co turę bezwarunkowo robi `muster` → `march` →
+>    `assault`, więc AI wystawia oddział (bohater + 1 rekrut z garnizonu
+>    posterunku) i **traci go w tej samej turze** szturmując „Posterunek gracza"
+>    broniony przez jednostkę `training=5, equipment=12`. Wróg nigdy nie stoi na
+>    mapie dłużej niż wnętrze własnej tury; gracz nie widzi przeciwnika.
+> 3. Klient **nie ma rozkazu `engage`** — pasek to `next_turn`, `develop`,
+>    `recruit`, `muster`, `march`/`move`, `assault`, `save`, `load`. Most
+>    obsługuje `engage` od K65 (`src/tbbbridge/session.py:347`), gracz nie ma jak
+>    go wydać.
+>
+> **Kolejność jest celowa i wynika z reguły przegranej:**
+> `Duchy.is_defeated` (`src/tbb/duchy.py:72`) wymaga **braku osad *i* braku
+> oddziałów**. Gdyby najpierw wszedł powściągliwy AI (1c), oddział wroga
+> przeżywałby tury, a gracz — bez `engage` — **nie mógłby wygrać partii wcale**.
+> Dlatego najpierw gracz dostaje odpowiedź na wojsko w polu, dopiero potem
+> wojsko zaczyna w polu zostawać. Żaden commit nie zostawia gry niewygrywalnej.
+- [ ] **G108.1a** `order_result.gd` — tekst statusu rozróżnia rozkaz `engage`
+      (starcie z wojskiem wroga: wynik bitwy + straty, po polsku), pozostałe
+      statusy bez zmian. Scena ma nazwany przycisk „Uderz na wojsko wroga"
+      w pasku rozkazów, spójny z teksturowanym nośnikiem K103 (bez wiązania).
+      *(simple)*
+- [ ] **G108.1b** Klik „Uderz na wojsko wroga" wydaje rozkaz `engage` przez
+      most, pokazuje skutek bitwy na ekranie (baner wyniku + widok bitwy) i
+      utrwala partię — e2e przez dwa procesy mostu na układzie, w którym oddział
+      wroga **stoi w sąsiednim regionie**. Rozkaz bez sąsiedniego wroga daje
+      czytelny „bez zmian", nie pusty status ani błąd. *(standard)*
+- [ ] **G108.1c** **Rdzeń: AI nie rzuca oddziału na osadę bez szans.**
+      `ai.take_duchy_military_action` szturmuje dopiero, gdy wystawiony oddział
+      ma realną szansę wobec garnizonu celu (jawne, deterministyczne kryterium
+      siły — nie losowanie); w przeciwnym razie oddział **zostaje w polu albo w
+      osadzie** i księstwo go nie traci. Test odtwarza układ z repro (`seed=73`,
+      oddział AI = bohater + rekrut, „Posterunek gracza" z jednostką
+      `training=5, equipment=12`) i sprawdza, że po 5 turach bez ruchu gracza AI
+      **wciąż ma oddział** (`duchies[ai].parties == 1`), a jego morale nie
+      spada przez samobójcze szturmy. Dotychczasowe testy AI przechodzą albo
+      zmieniają kryterium **jawnie**, z powodem w commicie. *(standard, ryzyko:
+      dotyka rdzenia — jedynego źródła reguł; nie zmieniać przy okazji reguł
+      ruchu, obrażeń ani ekonomii)*
+- [ ] **G108.1d** Widoczny skutek: po kilku turach bez akcji gracza **wojsko
+      wroga stoi na mapie strategicznej** i jest rozpoznawalne jako wrogie
+      (figura `party_ai_unit.png` w regionie AI), a klik „Uderz na wojsko wroga"
+      na sąsiednim wrogim oddziale kończy się bitwą z wynikiem na ekranie.
+      Dowód: screenshot 1152×648 mapy z wojskiem wroga oraz screenshot bitwy
+      po `engage`. *(standard)*
+
 ## Dług/refaktor
 - [x] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
       poza kodem produkcyjnym klienta (R82.1a) i wygenerowane artefakty `out/`
@@ -1377,11 +1448,22 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
 - ~~Druga osada na stronę i większy świat startowy~~ — **wykonane jako
   G92.2a**: pięć regionów, dwie osady na stronę i trwająca partia po zdobyciu
   pierwszej osady.
-- **`muster` zabiera cały garnizon osady** — obserwacja z przeglądu 2026-07-28:
-  po zbiórce osada gracza zostaje pusta, więc każde wyjście w pole odsłania dom.
-  Dziś to podwaja skutki asymetrycznego startu; po K90 warto sprawdzić, czy
-  potrzebny jest osobny plasterek (zbiórka części garnizonu albo garnizon
-  minimalny). **Nie planować przed osiągnięciem progu wizualnego.**
+- ~~Nowa partia z UI po zakończonej grze~~ — rozplanowane jako **K107**
+  (G107.1a zrobione, G107.1b–d w kolejce jako task-596…598).
+- **Pusty sandbox: da się wygrać w trzy miesiące, a wroga nie widać** —
+  rozplanowane jako **K108**. Pełna, zmierzona diagnoza w sekcji K108;
+  nie powtarzać jej tutaj.
+- **`muster` zabiera cały garnizon osady** — obserwacja z przeglądu 2026-07-28,
+  **odblokowana do planowania** po osiągnięciu progu wizualnego (2026-08-06):
+  po zbiórce osada zostaje pusta, więc każde wyjście w pole odsłania dom. Ta
+  sama reguła po stronie AI współtworzy defekt z K108 (posterunek oddaje
+  jedynego obrońcę oddziałowi, który zaraz ginie). **Podejmować dopiero po
+  K108** — najpierw niech przeciwnik przestanie tracić armię, potem strojenie,
+  ile garnizonu wolno zabrać.
+- **Po K108 prawdopodobnie: presja ze strony AI.** Gdy wróg przestanie się
+  roztrwaniać, następne pytanie brzmi „czy AI kiedykolwiek naciera", a nie
+  „czy ma armię". To osobny plasterek rdzenia — nie planować razem z K108,
+  żeby nie mieszać „przestań przegrywać" z „zacznij wygrywać".
 - Pełne pole bitwy (teren pustych heksów, wymiary pola) — wymaga rozszerzenia
   `tbbbridge.snapshot.battle_state`; dopiero gdy sam widok bitwy (K85) stoi.
 - Sterowanie pojedynczą jednostką w bitwie — po K85.

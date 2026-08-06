@@ -75,6 +75,19 @@ Warunek został spełniony 2026-08-06 w K106.
   braków CREDITS do follow-upu; dalsze poprawki oprawy nie są wymagane przez
   próg.
 
+- **Nowa partia z UI (K107) — w toku:** most wydaje `new_game` z klienta i
+  utrwala świeży stan (`2c4ace0`); przycisk, wiązanie i dowód wizualny czekają
+  w kolejce.
+- **Rozgrywka — pierwszy pomiar po odwołaniu bramki oprawy (2026-08-06,
+  uruchomienie rdzenia na `seed=73`, nie lektura):** pętla sandboxa **domyka
+  się, ale jest pusta**. Partię wygrywa się w **trzy miesiące gry**
+  (`recruit`×5 → `muster` → (`march`+`assault`)×2 → `player_result="victory"`),
+  a gdy gracz nic nie robi przez 20 tur, **wojsko wroga nigdy nie pojawia się
+  na mapie**: `ai.take_duchy_military_action` co turę bezwarunkowo zbiera
+  oddział i szturmuje nim broniony posterunek gracza, tracąc go w tej samej
+  turze (morale AI schodzi do `-8`). Do tego klient **nie ma rozkazu
+  `engage`**, choć most obsługuje go od K65. To jest zakres **K108**.
+
 ## Ograniczenia i priorytety
 - **[W]** Rdzeń `tbb` jest **jedynym źródłem reguł**. Godot nie duplikuje logiki;
   Python nie zależy od Godota ani UI.
@@ -82,6 +95,11 @@ Warunek został spełniony 2026-08-06 w K106.
   JSON). Obecnie: `python -m tbbbridge serve`, JSON Lines po stdio, stan w pliku.
 - **[W]** Budowa klienta Godota jest **bieżącym priorytetem**. Nie dokładać
   mechaniki w nieskończoność kosztem widocznej gry.
+- **[W] Po progu wizualnym (2026-08-06) priorytetem w obrębie klienta jest
+  grywalność pętli, nie kolejny przycisk ani kolejna warstwa oprawy.** Wolno
+  ruszyć rdzeń, gdy defekt rozgrywki jest zmierzony na uruchomionym kodzie i
+  plasterek kończy się czymś widocznym na ekranie (wniosek 32). To nie
+  otwiera balansu ani strojenia AI — patrz „Świadomie odłożone".
 - **[W]** Determinizm: seedowalny RNG, testy bez losowości.
 - **[W]** TDD, małe przyrosty, kryteria akceptacji; `simple|standard|complex` +
   ryzyko; bootstrap/toolchain/integracja Godot↔Python = `complex` + review pętli.
@@ -139,6 +157,15 @@ Warunek został spełniony 2026-08-06 w K106.
 31. **K105:** figury mapy/bitwy w isometrii/¾ + centrowanie klastra + ornament
     pustego wyboru — **zrobione** w kodzie; brak screenshotów i ludzkiej
     akceptacji doprowadził do K106 (pakietu progu, nie kolejnej warstwy oprawy).
+32. **Odhaczone kryterium ≠ gra (2026-08-06).** Po K106 wszystkie punkty
+    kryterium „gotowe" są spełnione, a pierwszy pomiar samej rozgrywki pokazał
+    trzymiesięczną, bezoporową partię i przeciwnika, który co turę traci własną
+    armię. Widoczność stanu została zbudowana **zanim** było co pokazywać:
+    następny priorytet to przeciwnik, który zostaje na planszy.
+33. **Reguła przegranej dyktuje kolejność plasterków.** `Duchy.is_defeated`
+    wymaga braku osad **i** braku oddziałów, więc powściągliwszy AI **bez**
+    rozkazu `engage` w kliencie uczyniłby partię niewygrywalną. Najpierw
+    odpowiedź gracza na wojsko w polu, potem wojsko, które w polu zostaje.
 
 ## Klimat, ton, kierunek wizualny
 Średniowiecze **bez magii i fantastyki**, surowy i realistyczny ton. **[W]**
@@ -174,8 +201,15 @@ bez reguł/mostu i bez otwierania nowej serii polish. **[W]**
 4. ~~K94–K105~~ — **zrobione** (oprawa aż po figury isometrii/¾ i chrome).
 5. ~~**K106 — próg wizualny** — pakiet screenshotów 1152×648 po K105 i
    **jawna ludzka akceptacja 2026-08-06** zapisana tu i w `BACKLOG.md`.~~
-6. **Nowa partia z UI po końcu gry** — most ma `new_game`, scena nie. Odłożone
-   poza zamknięty priorytet graficzny.
+6. **K107 — nowa partia z UI po końcu gry** — most zrobiony (`2c4ace0`);
+   przycisk, wiązanie i dowód wizualny w kolejce.
+7. **K108 — przeciwnik, który nie roztrwania armii, i `engage` w kliencie.**
+   Najpierw rozkaz „Uderz na wojsko wroga" (klient, most bez zmian), potem
+   warunek siły w `ai.take_duchy_military_action` (rdzeń) i dowód wizualny
+   wojska wroga stojącego na mapie. Powód i kolejność: wnioski 32–33.
+8. **Prawdopodobnie potem:** czy AI *naciera* (presja, nie tylko przetrwanie)
+   oraz ile garnizonu wolno zabrać `muster`-em. Osobne plasterki, nie razem
+   z K108.
 
 ## Świadomie odłożone
 - Kampania/fabuła, multiplayer, magia, oddziały masowe, AAA, dźwięk, edytor map
@@ -183,6 +217,9 @@ bez reguł/mostu i bez otwierania nowej serii polish. **[W]**
 - Alert gospodarczy HTML (K62) — **wstrzymany** (diagnostyka).
 - Bogatszy model ran/terenu/budynków, więcej jednostek, balans/AI,
   `StrategicTurn` — po widocznej, grywalnej grze. Skala K92.2 ≠ balans.
+  **Doprecyzowanie 2026-08-06:** jeden jawny warunek „nie szturmuj bez szans"
+  w `ai.take_duchy_military_action` (K108) to naprawa defektu rozgrywki, nie
+  strojenie AI; krzywe, wagi i taktyka AI zostają odłożone.
 - Szturm na osadę z oddziałem nie-obrońcą (G92.1c) — z 3. księstwem lub reprodukcją.
 - Podział dużych docs (ARCHITECTURE/DECISIONS/DESIGN) — dług, nie blokuje celu.
 - Niezależne reguły, AI, ekonomia, walka, ruch, rozkazy, protokół/most, rdzeń,
