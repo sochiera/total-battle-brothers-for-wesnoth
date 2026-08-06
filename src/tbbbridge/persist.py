@@ -288,12 +288,13 @@ def dump_party(party: Party) -> dict:
     """Zwraca json-serializowalny słownik ``Party``.
 
     Klucze: ``hero`` (``dump_unit``), ``units`` (lista ``dump_unit``),
-    ``owner_id`` (``str | None``).
+    ``owner_id`` (``str | None``), ``acted_this_month`` (``bool``).
     """
     return {
         "hero": dump_unit(party.hero),
         "units": [dump_unit(unit) for unit in party.units],
         "owner_id": party.owner_id,
+        "acted_this_month": party.acted_this_month,
     }
 
 
@@ -303,6 +304,7 @@ def load_party(data: dict) -> Party:
         hero=load_unit(data["hero"]),
         units=tuple(load_unit(u) for u in data["units"]),
         owner_id=data["owner_id"],
+        acted_this_month=data.get("acted_this_month", False),
     )
 
 

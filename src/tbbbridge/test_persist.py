@@ -376,11 +376,11 @@ def test_load_calendar_does_not_mutate_input_dict():
     assert data == data_before
 
 
-def test_dump_party_returns_json_serializable_dict_with_hero_units_owner_id():
+def test_dump_party_returns_json_serializable_dict_with_all_fields():
     """G67.2a kryt-1: ``dump_party(party)`` zwraca json-serializowalny ``dict``
     z kluczami ``hero`` (= ``dump_unit(party.hero)``), ``units`` (lista
-    ``dump_unit(u)`` w kolejności ``party.units``) i ``owner_id``
-    (= ``party.owner_id``).
+    ``dump_unit(u)`` w kolejności ``party.units``), ``owner_id``
+    (= ``party.owner_id``) oraz ``acted_this_month`` (= znacznik akcji).
 
     Próbka obejmuje party z podwładnymi, rannym bohaterem oraz jawny
     ``owner_id`` — wszystkie три filary kryt-1 jednocześnie.
@@ -408,21 +408,23 @@ def test_dump_party_returns_json_serializable_dict_with_hero_units_owner_id():
         "hero": persist.dump_unit(wounded_hero),
         "units": [persist.dump_unit(subordinate)],
         "owner_id": "player",
+        "acted_this_month": False,
     }
     assert dumped["units"] == [persist.dump_unit(subordinate)]
     assert dumped["owner_id"] == party.owner_id
+    assert dumped["acted_this_month"] is party.acted_this_month
     json.dumps(dumped)
 
 
 def test_round_trip_load_dump_restores_party_equality_wounded_subordinate_owner_none():
     """G67.2a kryt-2: dla dowolnej ``Party p`` (w tym z podwładnymi, rannym
-    bohaterem oraz ``owner_id=None``) zachodzi
-    ``load_party(dump_party(p)) == p``.
+    bohaterem, ``owner_id=None`` oraz znacznikiem akcji) zachodzi
+    ``load_party(json.loads(json.dumps(dump_party(p)))) == p``.
 
     Próbka naraz: ranny bohater (``BRUISE`` + ogłuszenie), niepusty podwładny,
-    jawny ``owner_id`` oraz przypadek z ``owner_id=None`` — weryfikują, że
-    ``load_party`` reużywa ``load_unit`` (hero + ``units`` jako krotka) i
-    przenosi ``owner_id`` przez round-trip.
+    jawny ``owner_id``, przypadek z ``owner_id=None`` oraz oznaczony oddział —
+    weryfikują, że ``load_party`` reużywa ``load_unit`` (hero + ``units`` jako
+    krotka), przenosi ``owner_id`` i znacznik akcji przez round-trip JSON.
     """
     wounded_hero = Unit(
         training=3,
@@ -440,14 +442,36 @@ def test_round_trip_load_dump_restores_party_equality_wounded_subordinate_owner_
         Party(hero=wounded_hero, units=(subordinate,), owner_id=None),
         Party(hero=wounded_hero, units=(), owner_id="player"),
         Party(hero=wounded_hero, units=(), owner_id=None),
+        Party(
+            hero=wounded_hero,
+            units=(subordinate,),
+            owner_id="player",
+            acted_this_month=True,
+        ),
     ]
 
     for party in samples:
-        round_tripped = persist.load_party(persist.dump_party(party))
+        round_tripped = persist.load_party(
+            json.loads(json.dumps(persist.dump_party(party)))
+        )
 
         assert round_tripped == party
         assert round_tripped.owner_id == party.owner_id
+        assert round_tripped.acted_this_month is party.acted_this_month
         assert isinstance(round_tripped.units, tuple)
+
+
+def test_load_party_without_action_marker_defaults_to_false():
+    """Stary zrzut oddziału bez znacznika akcji odtwarza domyślną wartość
+    ``acted_this_month=False``.
+    """
+    party = Party(hero=Unit(training=2), owner_id="player")
+    dumped = persist.dump_party(party)
+    dumped.pop("acted_this_month")
+
+    restored = persist.load_party(dumped)
+
+    assert restored.acted_this_month is False
 
 
 def test_dump_settlement_returns_json_serializable_dict_with_all_keys():
@@ -1494,6 +1518,41 @@ def test_read_session_roundtrip_restores_world_game_calendar_player_duchy_id_see
     expected_rng_sequence = [s.rng.randint(1, 100) for _ in range(10)]
     actual_rng_sequence = [r.rng.randint(1, 100) for _ in range(10)]
     assert actual_rng_sequence == expected_rng_sequence
+
+
+def test_read_session_roundtrip_preserves_party_action_markers_for_both_sides(tmp_path):
+    """G109.1a-3: zapis i odczyt sesji przez plik zachowuje znaczniki akcji
+    oznaczonego oddziału gracza i nieoznaczonego oddziału AI.
+    """
+    from tbb.game import GameState
+
+    world, regions = _sample_world_with_settlement_and_party()
+    player_party = Party(
+        hero=Unit(training=3, equipment=2),
+        owner_id="player",
+        acted_this_month=True,
+    )
+    world = world.place_party(player_party, regions[1])
+    session = Session(
+        world=world,
+        game=GameState(tuple(_sample_duchies())),
+        calendar=Calendar(year=5, month=8),
+        rng=Rng(42),
+        player_duchy_id="player",
+        seed=42,
+        last_battle=None,
+    )
+    path = tmp_path / "session.json"
+
+    persist.save_session(session, path)
+    restored = persist.read_session(path)
+
+    restored_player = restored.world.parties[restored.world.regions[1]]
+    restored_ai = restored.world.parties[restored.world.regions[2]]
+    assert restored_player.owner_id == "player"
+    assert restored_player.acted_this_month is True
+    assert restored_ai.owner_id == "ai"
+    assert restored_ai.acted_this_month is False
 
 
 def test_dump_terrain_returns_json_serializable_dict_with_name_move_cost_defense_mod_accuracy_mod():
