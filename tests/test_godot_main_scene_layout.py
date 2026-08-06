@@ -70,6 +70,8 @@ WINDOW_BACKGROUND_RESOURCES = {
 ORDER_BAR_SCREENSHOTS = (
     GAME / "screenshots" / "task-579-fresh-order-states-1152x648.png",
     GAME / "screenshots" / "task-579-visible-battle-1152x648.png",
+    # G107.1d: full-screen proof of the expanded bar with "Nowa partia".
+    GAME / "screenshots" / "task-598-new-game-order-bar-1152x648.png",
 )
 WINDOW_BACKGROUND_SCREENSHOTS = (
     GAME / "screenshots" / "task-569-fresh-1152x648.png",
@@ -194,6 +196,18 @@ def _png_dimensions(path: Path) -> tuple[int, int]:
     return dimensions
 
 
+def _assert_review_screenshot(path: Path, *, frame_description: str = "review") -> None:
+    assert path.is_file(), f"required human-review screenshot missing: {path}"
+    width, height = _png_dimensions(path)
+    assert (width, height) == (int(VIEWPORT_W), int(VIEWPORT_H)), (
+        f"{path} must be 1152×648, got {width}×{height}"
+    )
+    assert path.stat().st_size >= 100_000, (
+        f"{path} must contain a detailed {frame_description} frame, "
+        "not a tiny flat-colour placeholder"
+    )
+
+
 def test_main_scene_controls_have_disjoint_layout_and_hidden_contract_controls():
     """Visible controls do not overlap; compatibility controls remain hidden.
 
@@ -293,12 +307,16 @@ def test_order_bar_uses_credited_background_covering_all_order_controls():
 
 
 def test_order_buttons_expose_distinct_states_and_review_screenshots():
-    """G103.1a: every button state uses credited, distinguishable texture.
+    """G103.1a/G107.1d: textured button states and the current bar proof.
 
     Realistic defect existing gates miss: functional buttons can keep three
     distinguishable StyleBoxFlat colours. Geometry, icon-path, contrast and
     order-bar background gates then remain green even though the interactive
     carriers are still the residual flat surfaces forbidden by G103.1a.
+
+    G107.1d adds a separate failure mode: all nine controls can be present and
+    laid out correctly while the required post-G107 full-screen proof with
+    ``NewGameButton`` is missing or is not a detailed 1152×648 frame.
 
     Pixel-level artistic approval intentionally remains human-owned. This gate
     observes each resolved public theme state and requires texture-backed,
@@ -365,15 +383,8 @@ def test_order_buttons_expose_distinct_states_and_review_screenshots():
     )
 
     for screenshot in ORDER_BAR_SCREENSHOTS:
-        assert screenshot.is_file(), f"required human-review screenshot missing: {screenshot}"
-        width, height = _png_dimensions(screenshot)
-        assert (width, height) == (int(VIEWPORT_W), int(VIEWPORT_H)), (
-            f"{screenshot} must be 1152×648, got {width}×{height}"
-        )
-        assert screenshot.stat().st_size >= 100_000, (
-            f"{screenshot} must contain a detailed live-game review frame, "
-            "not a tiny flat-colour placeholder"
-        )
+        _assert_review_screenshot(screenshot, frame_description="live-game review")
+
 
 def test_window_background_review_screenshots_exist_at_target_resolution():
     """G100.1d (+ G106.1a/b/c): review PNGs exist at 1152×648 with non-trivial size.
@@ -395,17 +406,7 @@ def test_window_background_review_screenshots_exist_at_target_resolution():
     # Older task-565/task-568 captures predate the full-window parchment and
     # cannot demonstrate that root gaps no longer expose default grey chrome.
     for screenshot in WINDOW_BACKGROUND_SCREENSHOTS:
-        assert screenshot.is_file(), (
-            f"required human-review screenshot missing: {screenshot}"
-        )
-        width, height = _png_dimensions(screenshot)
-        assert (width, height) == (int(VIEWPORT_W), int(VIEWPORT_H)), (
-            f"{screenshot} must be 1152×648, got {width}×{height}"
-        )
-        assert screenshot.stat().st_size >= 100_000, (
-            f"{screenshot} must contain a detailed review frame, "
-            "not a tiny flat-colour placeholder"
-        )
+        _assert_review_screenshot(screenshot)
 
 
 def test_strategic_composition_fits_review_viewport_collapses_empty_battle_and_uses_background():

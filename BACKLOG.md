@@ -1323,6 +1323,12 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
 > w pasku rozkazów bez wiązania; task-597: klik zaczyna grę od nowa, także po
 > zakończonej partii; task-598: dowód wizualny paska sterowania)* — dopisane tu
 > dla ciągłości, **nie planować ich ponownie**.
+- [x] **G107.1d [GRAFIKA] — dowód rozszerzonego paska po task-597.** Wygenerowany
+      z uruchomionej gry pełny screenshot
+      `game/screenshots/task-598-new-game-order-bar-1152x648.png` (1152×648) pokazuje
+      „Nowa partia” oraz komplet
+      dziewięciu przycisków. Ludzka akceptacja obrazu 2026-08-06: brak
+      przycięcia, nachodzenia etykiet i residualnego chrome.
 
 ## Kamień milowy 108 — przeciwnik, który nie roztrwania armii, i gracz, który ma czym go uderzyć
 > **Zwrot kierunku (przegląd bootstrap-diff 2026-08-06).** Próg wizualny jest

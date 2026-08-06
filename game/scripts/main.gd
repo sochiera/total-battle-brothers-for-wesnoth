@@ -137,21 +137,17 @@ func _make_selected_region_panel_style(texture: Texture2D) -> StyleBoxTexture:
 
 
 func _order_action_buttons() -> Array[Button]:
-	var buttons: Array[Button] = [
+	return [
 		%NextTurnButton,
 		%DevelopButton,
 		%RecruitButton,
 		%MusterButton,
 		%MarchButton,
 		%AssaultButton,
+		%SaveGameButton,
+		%LoadGameButton,
+		%NewGameButton,
 	]
-	buttons.append_array(_party_action_buttons())
-	return buttons
-
-
-func _party_action_buttons() -> Array[Button]:
-	## Keep party controls in the same presentation/style pipeline as orders.
-	return [%SaveGameButton, %LoadGameButton, %NewGameButton]
 
 
 func _sync_order_controls_minimum_size() -> void:

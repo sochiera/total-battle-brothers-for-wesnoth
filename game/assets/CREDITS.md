@@ -130,7 +130,8 @@ by Delapouite.
 | icon_load.png | https://game-icons.net/1x1/delapouite/load.html (load.svg) | Delapouite | CC-BY 3.0 |
 
 The new-game icon is adapted from the Game-icons **cycle** symbol by Lorc;
-the looping arrows communicate starting a fresh session without binding the button yet.
+the looping arrows communicate starting a fresh session from the bound
+„Nowa partia” control (G107.1b/c).
 
 | File | Source page/file | Author | License |
 |------|------------------|--------|---------|
