@@ -92,6 +92,13 @@ func _run_request_file() -> Variant:
 	return str(output[0])
 
 
+static func _responses_are_ok(responses: Array) -> bool:
+	for response in responses:
+		if not response is Dictionary or not response.get("ok", false):
+			return false
+	return true
+
+
 func send(request: Dictionary) -> Variant:
 	var file := FileAccess.open(_request_path, FileAccess.WRITE)
 	if file == null:
@@ -135,11 +142,8 @@ func _send_persisted_sequence(command: Dictionary, project_order_result: bool = 
 		{"type": "save", "path": state_path},
 	]
 	var responses := send_many(command_and_save)
-	if responses.size() != command_and_save.size():
+	if responses.size() != command_and_save.size() or not _responses_are_ok(responses):
 		return null
-	for response in responses:
-		if not response is Dictionary or not response.get("ok", false):
-			return null
 
 	var first_response: Dictionary = responses[0]
 	if project_order_result:
@@ -149,6 +153,11 @@ func _send_persisted_sequence(command: Dictionary, project_order_result: bool = 
 
 func advance_turn() -> SnapshotModel:
 	return _send_persisted_sequence({"type": "next_turn"})
+
+
+func start_new_game() -> SnapshotModel:
+	_last_order_result = null
+	return _send_persisted_sequence({"type": "new_game"})
 
 
 static func _order_command(order_name: String, target: String) -> Dictionary:
