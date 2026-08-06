@@ -60,7 +60,7 @@ func _notification(what: int) -> void:
 		return
 	# Container layout can change the panel size after Main rendered the model;
 	# re-fit then so a first frame cannot retain a cluster sized for stale bounds.
-	fit_vertical_budget(_vertical_budget)
+	_fit_vertical_budget(_vertical_budget, true)
 
 
 func render_model(model: SnapshotModel) -> void:
@@ -87,14 +87,21 @@ func fit_vertical_budget(max_height: float) -> void:
 	## Scale occupied hex cluster so it fits both panel axes and max_height.
 	## Native 120×140 when budget allows; used only when MapView readability floor
 	## would otherwise be crushed by multi-row battle chrome.
+	_fit_vertical_budget(max_height, false)
+
+
+func _fit_vertical_budget(max_height: float, force_relayout: bool) -> void:
+	## A resize can change the cluster origin without changing its scale.
 	_vertical_budget = max_height
 	if not visible or _last_hexes.is_empty():
 		return
-	if max_height <= 0.0:
-		return
 	var native_h := _required_height_at_scale(1.0)
-	var target_scale := _horizontal_fit_scale()
-	if native_h > max_height:
+	var target_scale := (
+		MIN_CLUSTER_LAYOUT_SCALE
+		if max_height <= 0.0
+		else _horizontal_fit_scale()
+	)
+	if max_height > 0.0 and native_h > max_height:
 		# Header + result label/pad stay fixed; hex geometry and result gap scale.
 		var fixed_h := _battle_header_band_height() + _result_label_and_banner_pad()
 		var variable_h := maxf(1.0, native_h - fixed_h)
@@ -103,11 +110,10 @@ func fit_vertical_budget(max_height: float) -> void:
 			target_scale, clampf(room / variable_h, MIN_CLUSTER_LAYOUT_SCALE, 1.0)
 		)
 	target_scale = clampf(target_scale, MIN_CLUSTER_LAYOUT_SCALE, 1.0)
-	if absf(target_scale - _layout_scale) < 0.001:
+	if absf(target_scale - _layout_scale) < 0.001 and not force_relayout:
 		return
 	_layout_scale = target_scale
-	_clear_hex_tiles()
-	_render_hexes(_last_hexes)
+	_relayout_last_hexes()
 
 
 func clear_vertical_budget() -> void:
@@ -115,9 +121,7 @@ func clear_vertical_budget() -> void:
 	if _layout_scale == 1.0:
 		return
 	_layout_scale = 1.0
-	if visible and not _last_hexes.is_empty():
-		_clear_hex_tiles()
-		_render_hexes(_last_hexes)
+	_relayout_last_hexes()
 
 
 func _hex_size() -> Vector2:
@@ -276,6 +280,14 @@ func _clear_hex_tiles() -> void:
 	for child: Node in get_children():
 		if str(child.name).begins_with("HexTile_"):
 			child.free()
+
+
+func _relayout_last_hexes() -> void:
+	## Rebuild the current cluster after a scale or panel-size change.
+	if not visible or _last_hexes.is_empty():
+		return
+	_clear_hex_tiles()
+	_render_hexes(_last_hexes)
 
 
 func _battle_data(model: SnapshotModel) -> Variant:

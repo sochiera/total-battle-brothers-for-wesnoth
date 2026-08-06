@@ -138,11 +138,10 @@ func _make_selected_region_panel_style(texture: Texture2D) -> StyleBoxTexture:
 	return style
 
 
-func _order_action_buttons() -> Array[Button]:
-	return _all_order_bar_buttons()
-
-
 func _all_order_bar_buttons() -> Array[Button]:
+	## Return every button rendered inside the order bar, including save/load.
+	## Keeping the traversal rooted at the public content node means styling and
+	## button discovery cannot drift when the bar gains another button group.
 	var order_bar_content := find_child("OrderBarContent", true, false)
 	var buttons: Array[Button] = []
 	if order_bar_content != null:
@@ -200,7 +199,7 @@ func _apply_order_button_state_styles() -> void:
 	var style_by_state := {}
 	for row: Array in state_rows:
 		style_by_state[row[0]] = _make_order_button_style(texture, row[1])
-	for button: Button in _order_action_buttons():
+	for button: Button in _all_order_bar_buttons():
 		_apply_order_button_state_overrides(button, state_rows, style_by_state)
 
 
@@ -485,7 +484,11 @@ func _fit_map_column_to_viewport_with_battle() -> void:
 	if order_bar == null or main_layout == null or map_and_battle == null:
 		return
 
-	var viewport_h := size.y if size.y > 1.0 else VIEWPORT_HEIGHT_FALLBACK
+	# Fit against MainLayout's laid-out height. Before containers settle, use the
+	# same review-viewport fallback as the root Control instead of an offset.
+	var viewport_h := main_layout.size.y
+	if viewport_h <= 1.0:
+		viewport_h = VIEWPORT_HEIGHT_FALLBACK
 	var sep_main := float(main_layout.get_theme_constant("separation"))
 	var sep_mb := float(map_and_battle.get_theme_constant("separation"))
 	var order_h := order_bar.get_combined_minimum_size().y

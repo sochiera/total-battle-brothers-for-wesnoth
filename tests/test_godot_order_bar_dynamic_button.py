@@ -17,7 +17,7 @@ PREFIX = "ORDER_BAR_DYNAMIC_BUTTON "
 def test_order_bar_discovers_configured_commands_in_every_order_bar_row_for_style_and_binding():
     """A scene-added command must not become grey or inert.
 
-    Realistic defect existing gates miss: both ``_order_action_buttons`` and
+    Realistic defect existing gates miss: both ``_all_order_bar_buttons`` and
     ``_bind_order_buttons`` enumerate the ten current node names.  A designer
     can add a configured command button to any OrderBarContent row and it
     stays unstyled or does not dispatch its declared order, while every

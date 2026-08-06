@@ -96,6 +96,10 @@ WINDOW_BACKGROUND_SCREENSHOTS = (
     # G108.1d: live seed-73 bridge session after passive turns; the AI army
     # stands on the strategic map rather than disappearing on its spawn turn.
     GAME / "screenshots" / "task-606-live-enemy-army-1152x648.png",
+    # G108.1d / task-607: a second live seed-73 frame, after the player
+    # presses Engage against that army; it must preserve the full strategic
+    # chrome alongside the resolved battle.
+    GAME / "screenshots" / "task-607-live-engage-battle-1152x648.png",
 )
 ORDER_ICON_FILES = {
     "NextTurnButton": "icon_next_turn.png",
@@ -416,15 +420,16 @@ def test_window_background_review_screenshots_exist_at_target_resolution():
 
     Covers post-G100.1d window-background states, the G106.1a fresh-party
     frame, the G106.1b empty→selected region pair, the G106.1c visible battle
-    after K105, and G108.1d's live-session enemy-army frame. **Scope: file
-    presence, IHDR 1152×648, and size floor only** — visual inspection still
-    owns whether the G108.1d image shows the live bridge state, AI army, and
-    Polish chrome.
+    after K105, and G108.1d's two live-session frames (enemy army, then its
+    resolved engage battle). **Scope: file presence, IHDR 1152×648, and size
+    floor only** — visual inspection still owns whether the G108.1d images
+    show the live bridge state, AI army, resolved battle, and Polish chrome.
 
     Realistic defect existing gates miss: BattleView geometry/sides/PŻ/PL
     result and K105.1c cluster centering can stay green, while no committed
-    1152×648 frame proves that an enemy army remains on the strategic map
-    after passive live-bridge turns.
+    1152×648 frame proves either that an enemy army remains on the strategic
+    map after passive live-bridge turns or that pressing Engage renders its
+    resolved battle without losing the strategic chrome.
     """
     # Older task-565/task-568 captures predate the full-window parchment and
     # cannot demonstrate that root gaps no longer expose default grey chrome.
@@ -599,6 +604,12 @@ def test_strategic_composition_fits_review_viewport_collapses_empty_battle_and_u
     assert _rect_fully_inside_viewport(map_with_battle), (
         f"MapView must remain inside {VIEWPORT_W:.0f}×{VIEWPORT_H:.0f} "
         f"when BattleView is shown, got {map_with_battle!r}"
+    )
+    assert float(map_with_battle["y"]) >= 4.0, (
+        "with BattleView shown, MapView must keep at least a 4px upper rim "
+        "instead of being effectively pinned to the viewport edge and clipping "
+        "its strategic frame; "
+        f"got {map_with_battle!r}"
     )
 
     # Readable strategic map with battle: OwnerLegend must not cover region tiles,

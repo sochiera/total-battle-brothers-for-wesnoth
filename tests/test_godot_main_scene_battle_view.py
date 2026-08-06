@@ -41,6 +41,7 @@ FOREST_ASSET = TERRAIN_ASSETS["Forest"]
 HILLS_ASSET = TERRAIN_ASSETS["Hills"]
 BASE_HEX_W = 120
 BASE_HEX_H = 140
+MIN_CLUSTER_LAYOUT_SCALE = 0.45
 _LAYOUT_TOL_PX = 1.0
 
 # Native decoration pixel sizes (public contract from audited PNGs, G98.1b).
@@ -385,6 +386,37 @@ def test_battle_view_shows_one_axial_tile_per_hex_with_side_paint_and_polish_res
         f"left_margin={left_margin}, right_margin={right_margin}, "
         f"cluster=({cluster_left}, {cluster_right}), view={view}"
     )
+
+    # Container layout may widen the panel after render_model without changing
+    # the vertical fit scale. The occupied cluster must nevertheless be laid
+    # out again against the new width instead of retaining its old origin.
+    resized_view = payload["view_rect_after_width_resize"]
+    resized_tiles = payload["tiles_after_width_resize"]
+    resized_cluster_left = min(float(tile["x"]) for tile in resized_tiles)
+    resized_cluster_right = max(
+        float(tile["x"]) + float(tile["w"]) for tile in resized_tiles
+    )
+    resized_left_margin = resized_cluster_left - float(resized_view["x"])
+    resized_right_margin = (
+        float(resized_view["x"]) + float(resized_view["w"]) - resized_cluster_right
+    )
+    assert abs(resized_left_margin - resized_right_margin) <= _LAYOUT_TOL_PX, (
+        "after BattleView widens, the occupied cluster must be re-centred "
+        f"(side margins may differ by at most {_LAYOUT_TOL_PX}px); "
+        f"left_margin={resized_left_margin}, right_margin={resized_right_margin}, "
+        f"cluster=({resized_cluster_left}, {resized_cluster_right}), "
+        f"view={resized_view}"
+    )
+
+    # A non-positive vertical budget is an early-layout fallback, not a reason
+    # to drop the readability floor and use horizontal fit alone.
+    zero_budget_tiles = payload["tiles_after_zero_budget"]
+    assert len(zero_budget_tiles) == n, zero_budget_tiles
+    expected_w = BASE_HEX_W * MIN_CLUSTER_LAYOUT_SCALE
+    expected_h = BASE_HEX_H * MIN_CLUSTER_LAYOUT_SCALE
+    for tile in zero_budget_tiles:
+        assert abs(float(tile["w"]) - expected_w) <= _LAYOUT_TOL_PX, tile
+        assert abs(float(tile["h"]) - expected_h) <= _LAYOUT_TOL_PX, tile
 
 
 def _layer_rect(layer: dict) -> dict:

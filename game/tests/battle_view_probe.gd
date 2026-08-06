@@ -89,6 +89,9 @@ func _run() -> void:
 	scene_root.apply_model(_model_with_battle(hexes_full, "attacker_win"))
 	await process_frame
 	await process_frame
+	# Keep the geometry assertions below at the BattleView native baseline; the
+	# main-scene composition probe separately owns with-battle chrome fitting.
+	battle_view.call("clear_vertical_budget")
 	var tiles_first: Array = _collect_tiles(battle_view, hexes_full)
 	var count_first: int = _count_hex_tiles(battle_view)
 	var result_attacker: String = _result_text(battle_view)
@@ -107,6 +110,22 @@ func _run() -> void:
 		battle_view, "BattleResultBanner"
 	)
 	var battle_view_visible_with: bool = (battle_view as CanvasItem).is_visible_in_tree()
+	# A later container resize can widen BattleView after the model was rendered.
+	# Keep the scale fixed by widening the panel, then observe the tiles immediately:
+	# only a relayout can move this native-size cluster to the new centre.
+	var battle_control := battle_view as Control
+	var original_size := battle_control.size
+	battle_control.size = Vector2(original_size.x + 120.0, original_size.y)
+	var resized_view_rect: Variant = _control_rect(battle_control)
+	var tiles_after_width_resize: Array = _collect_tiles(battle_view, hexes_full)
+	battle_control.size = original_size
+	# A non-positive vertical budget must keep the cluster at its readable floor,
+	# even when the panel is wide enough that horizontal fitting would choose 1.0.
+	battle_control.size = Vector2(2000.0, original_size.y)
+	battle_view.call("fit_vertical_budget", 0.0)
+	var tiles_after_zero_budget: Array = _collect_tiles(battle_view, hexes_full)
+	battle_control.size = original_size
+	battle_view.call("clear_vertical_budget")
 
 	scene_root.apply_model(_model_with_battle(hexes_full, "attacker_win"))
 	await process_frame
@@ -170,6 +189,8 @@ func _run() -> void:
 		"hexes": hexes_full,
 		"hexes_fallback": hexes_fallback,
 		"tiles_after_first": tiles_first,
+		"tiles_after_width_resize": tiles_after_width_resize,
+		"tiles_after_zero_budget": tiles_after_zero_budget,
 		"tiles_after_second": tiles_second,
 		"tiles_after_empty": tiles_empty,
 		"tiles_after_direct_render": tiles_direct,
@@ -198,6 +219,7 @@ func _run() -> void:
 		"battle_view_visible_with_battle": battle_view_visible_with,
 		"battle_view_visible_no_battle": battle_view_visible_empty,
 		"view_rect": view_rect,
+		"view_rect_after_width_resize": resized_view_rect,
 		"result_label_rect": result_label_rect,
 		"header_label_rect": header_label_rect,
 	}))

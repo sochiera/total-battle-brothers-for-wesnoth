@@ -1386,15 +1386,15 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
       *(commit 21a2a3f; zaplanowane poza tym plikiem)*
 - [x] **G108.1e [GRAFIKA]** Ikona rozkazu „Uderz na wojsko wroga" w pasku.
       *(commit d4de6e1; zaplanowane poza tym plikiem)*
-- [ ] **G108.1d** Widoczny skutek: po kilku turach bez akcji gracza **wojsko
+- [x] **G108.1d** Widoczny skutek: po kilku turach bez akcji gracza **wojsko
       wroga stoi na mapie strategicznej** i jest rozpoznawalne jako wrogie
       (figura `party_ai_unit.png` w regionie AI), a klik „Uderz na wojsko wroga"
       na sąsiednim wrogim oddziale kończy się bitwą z wynikiem na ekranie.
       Dowód: screenshot 1152×648 mapy z wojskiem wroga oraz screenshot bitwy
-      po `engage`. **Rozcięte i zaplanowane poza tym plikiem** *(task-606:
-      dowód wojska wroga na mapie; task-607: dowód starcia po `engage` i
-      domknięcie K108)* — **nie planować ponownie**. Obok nich w kolejce stoi
-      task-605 (ekran bitwy nie wypycha mapy poza okno). *(standard)*
+      po `engage`. **Zamknięte i zaakceptowane wizualnie** na żywym moście:
+      `task-606-live-enemy-army-1152x648.png` oraz
+      `task-607-live-engage-battle-1152x648.png`; layout zachowuje mapę,
+      legendę, status i pasek rozkazów w viewport 1152×648. *(standard)*
 > **K108 — ZMIERZONY 2026-08-06 (uruchomienie rdzenia na `seed=73`, nie
 > lektura):** cel kamienia jest osiągnięty. Wojsko AI **stoi na mapie od
 > miesiąca 2** (`border` → `player outpost` → `player lands`, oddział 3 jednostek
@@ -1402,7 +1402,9 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
 > AI zdobywa obie osady gracza, snapshot daje
 > `result = {"is_over": true, "winner": "ai", "player_result": "defeat"}`.
 > Poprzedni objaw (AI traci oddział co turę, morale `-8`) nie występuje.
-> Zostały wyłącznie dowody wizualne (task-605…607).
+> Dowody wizualne K108 zostały zaakceptowane: ekran bitwy nie wypycha mapy
+> poza okno, a oba kadry z żywej sesji (`task-606` i `task-607`) pokazują
+> odpowiednio wojsko AI na mapie i rozstrzygnięte starcie po `engage`.
 
 ## Kamień milowy 109 — rozkaz wojskowy kosztuje miesiąc (pętla tura po turze)
 > **Zwrot kierunku (przegląd bootstrap-diff 2026-08-06, po K108).** K108 dał
@@ -1562,7 +1564,8 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
 - ~~**Pusty sandbox: da się wygrać w trzy miesiące, a wroga nie widać**~~ —
   rozplanowane jako **K108** i **zmierzone jako naprawione 2026-08-06**: wojsko
   AI stoi na mapie od miesiąca 2, a bierny gracz przegrywa w 13 turach. Zostały
-  tylko dowody wizualne (task-605…607). Diagnoza zostaje w sekcji K108.
+  dowody wizualne (task-605…607) zostały zaakceptowane. Diagnoza zostaje w
+  sekcji K108.
 - **Rozkaz wojskowy nic nie kosztuje: partię da się wygrać bez ani jednej
   tury** — rozplanowane jako **K109**. Pełna, zmierzona diagnoza w sekcji K109;
   nie powtarzać jej tutaj.

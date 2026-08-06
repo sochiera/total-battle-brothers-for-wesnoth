@@ -77,11 +77,11 @@ Warunek został spełniony 2026-08-06 w K106.
 
 - **Nowa partia z UI (K107) — DOMKNIĘTA:** most, przycisk, wiązanie i dowód
   wizualny paska (`2c4ace0`…`12d67bc`).
-- **K108 — zrobiony w kodzie, zostały dowody wizualne:** rozkaz „Uderz na
-  wojsko wroga" ze statusem i ikoną, klik rozgrywający starcie, warunek siły w
-  `ai.take_duchy_military_action` oraz refaktor paska rozkazów
-  (`7de20e4`…`d4de6e1`). W kolejce: task-605 (ekran bitwy nie wypycha mapy),
-  task-606/607 (dowody wizualne wojska wroga i starcia).
+- **K108 — DOMKNIĘTY:** rozkaz „Uderz na wojsko wroga" ze statusem i ikoną,
+  klik rozgrywający starcie, warunek siły w `ai.take_duchy_military_action`,
+  refaktor paska rozkazów oraz zaakceptowane dowody wizualne z żywej sesji
+  (`task-605` — ekran bitwy nie wypycha mapy, `task-606` — wojsko AI na mapie,
+  `task-607` — rozstrzygnięte starcie po `engage`).
 - **Rozgrywka — pomiar po K108 (2026-08-06, uruchomienie rdzenia na `seed=73`,
   nie lektura):** defekt z poprzedniego przeglądu **jest naprawiony** — wojsko
   AI stoi na mapie od miesiąca 2 i przesuwa się (`border` → `player outpost` →
@@ -229,9 +229,9 @@ bez reguł/mostu i bez otwierania nowej serii polish. **[W]**
 5. ~~**K106 — próg wizualny** — pakiet screenshotów 1152×648 po K105 i
    **jawna ludzka akceptacja 2026-08-06** zapisana tu i w `BACKLOG.md`.~~
 6. ~~**K107 — nowa partia z UI po końcu gry**~~ — **domknięte**.
-7. **K108 — przeciwnik, który nie roztrwania armii, i `engage` w kliencie** —
-   **zrobiony w kodzie i zmierzony jako skuteczny**; w kolejce zostały dowody
-   wizualne (task-605…607).
+7. ~~**K108 — przeciwnik, który nie roztrwania armii, i `engage` w kliencie**~~ —
+   **domknięte**: kod, pomiar oraz zaakceptowane dowody wizualne z żywej sesji
+   (task-605…607).
 8. **K109 — rozkaz wojskowy kosztuje miesiąc.** Znacznik akcji oddziału w
    rdzeniu (zerowany przez `tick_parties`, trwały w persystencji), blokada
    drugiej akcji wojskowej w tym samym miesiącu jako `changed=false` (nie
