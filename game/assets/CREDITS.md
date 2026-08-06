@@ -120,6 +120,7 @@ The field-order icons are adapted from Game-icons.net under CC-BY 3.0.
 |------|------------------|--------|---------|
 | icon_march.png | https://game-icons.net/1x1/lorc/boot-stomp.html (boot-stomp.svg) | Lorc | CC-BY 3.0 |
 | icon_assault.png | https://game-icons.net/1x1/skoll/siege-ram.html (siege-ram.svg) | Skoll | CC-BY 3.0 |
+| icon_engage.png | https://game-icons.net/1x1/lorc/crossed-swords.html (crossed-swords.svg) | Lorc | CC-BY 3.0 |
 
 The save/load icons are adapted from the Game-icons **save** and **load** symbols
 by Delapouite.

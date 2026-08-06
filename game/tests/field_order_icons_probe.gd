@@ -7,6 +7,7 @@ const PREFIX := "FIELD_ORDER_ICONS "
 const BUTTONS := [
 	{"name": "MarchButton", "text": "Wyrusz w pole"},
 	{"name": "AssaultButton", "text": "Szturmuj osadę"},
+	{"name": "EngageButton", "text": "Uderz na wojsko wroga"},
 ]
 
 

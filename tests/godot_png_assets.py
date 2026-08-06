@@ -30,11 +30,13 @@ def assert_asset_credited(
     asset_name: str,
     *,
     source_re: re.Pattern[str] | None = None,
+    author: str | None = None,
 ) -> None:
     """Assert CREDITS.md attributes *asset_name* with license + source nearby.
 
     Looks up the first line containing the file name, then requires a CC0/CC-BY
     token and a source marker within a ±3 line window (row or adjacent prose).
+    When supplied, ``author`` must also appear in that attribution window.
     """
     credits = credits_path.read_text(encoding="utf-8")
     credit_lines = credits.splitlines()
@@ -55,6 +57,10 @@ def assert_asset_credited(
     assert pattern.search(credit_window), (
         f"CREDITS.md must give a source page or pack-relative path for {asset_name}"
     )
+    if author is not None:
+        assert re.search(rf"\b{re.escape(author)}\b", credit_window), (
+            f"CREDITS.md must name author {author!r} for {asset_name}"
+        )
 
 
 def png_rgba8(path: Path) -> tuple[int, int, bytes]:

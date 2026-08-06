@@ -1,4 +1,4 @@
-"""Field order buttons: distinct credited icons with Polish labels (G95.1c)."""
+"""Field order buttons: distinct credited icons with Polish labels (G95.1c/G108.1e)."""
 
 from __future__ import annotations
 
@@ -24,11 +24,19 @@ ORDERS: tuple[dict[str, str], ...] = (
         "name": "MarchButton",
         "text": "Wyrusz w pole",
         "icon_rel": "assets/icon_march.png",
+        "author": "Lorc",
     },
     {
         "name": "AssaultButton",
         "text": "Szturmuj osadę",
         "icon_rel": "assets/icon_assault.png",
+        "author": "Skoll",
+    },
+    {
+        "name": "EngageButton",
+        "text": "Uderz na wojsko wroga",
+        "icon_rel": "assets/icon_engage.png",
+        "author": "Lorc",
     },
 )
 # Icon must be large enough to read beside the label on a 40px-tall control.
@@ -43,6 +51,7 @@ BAR_ICON_RELS: tuple[str, ...] = (
     "assets/icon_muster.png",
     "assets/icon_march.png",
     "assets/icon_assault.png",
+    "assets/icon_engage.png",
 )
 
 
@@ -57,17 +66,15 @@ def _payload_from(result: subprocess.CompletedProcess[str]) -> dict:
 
 
 def test_field_order_buttons_show_distinct_credited_icons_with_polish_labels():
-    """March / Assault must each show a distinct Texture2D icon.
+    """March / Assault / Engage must each show a distinct Texture2D icon.
 
-    Realistic defect existing gates miss: MarchButton and AssaultButton remain
-    plain ``Button`` nodes with only Polish ``text``. Existing probes
-    (march/assault unbound + binding, layout, e2e) and settlement/next-turn
-    icon gates assert names, labels, connections, geometry, and the *other*
-    order icons — so a purely textual field pair stays green while G95.1c
-    requires two mutually distinct, credited graphics under public
-    ``res://assets/icon_{march,assault}.png`` that do not replace the Polish
-    labels and are not copies of each other or of any other order-bar icon
-    (next-turn / develop / recruit / muster) used as a renamed placeholder.
+    Realistic defect existing gates miss: a field-order button remains a plain
+    ``Button`` with only Polish ``text``. Existing probes (field order binding,
+    layout, e2e) assert names, labels, connections, geometry, and behavior, so
+    a purely textual field order stays green while this gate requires a real,
+    credited graphic under a public ``res://assets/`` path. The icons must not
+    be copies of each other or of any other order-bar icon used as a renamed
+    placeholder.
     """
     digests: dict[str, str] = {}
     for rel in BAR_ICON_RELS:
@@ -81,7 +88,11 @@ def test_field_order_buttons_show_distinct_credited_icons_with_polish_labels():
         f"(field ≠ settlement/next-turn placeholders), digests={digests!r}"
     )
     for order in ORDERS:
-        assert_asset_credited(CREDITS, Path(order["icon_rel"]).name)
+        assert_asset_credited(
+            CREDITS,
+            Path(order["icon_rel"]).name,
+            author=order["author"],
+        )
 
     imported = _import_game_assets()
     assert imported.returncode == 0, (

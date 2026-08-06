@@ -201,12 +201,18 @@ func _apply_order_button_state_styles() -> void:
 	for row: Array in state_rows:
 		style_by_state[row[0]] = _make_order_button_style(texture, row[1])
 	for button: Button in _order_action_buttons():
-		for row: Array in state_rows:
-			var state_name: String = row[0]
-			button.add_theme_stylebox_override(
-				state_name, style_by_state[state_name].duplicate()
-			)
-			button.add_theme_color_override(row[2], row[3])
+		_apply_order_button_state_overrides(button, state_rows, style_by_state)
+
+
+func _apply_order_button_state_overrides(
+	button: Button, state_rows: Array, style_by_state: Dictionary
+) -> void:
+	for row: Array in state_rows:
+		var state_name: String = row[0]
+		button.add_theme_stylebox_override(
+			state_name, style_by_state[state_name].duplicate()
+		)
+		button.add_theme_color_override(row[2], row[3])
 
 
 func _order_button_state_rows() -> Array:
