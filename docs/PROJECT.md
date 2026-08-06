@@ -75,18 +75,23 @@ Warunek został spełniony 2026-08-06 w K106.
   braków CREDITS do follow-upu; dalsze poprawki oprawy nie są wymagane przez
   próg.
 
-- **Nowa partia z UI (K107) — w toku:** most wydaje `new_game` z klienta i
-  utrwala świeży stan (`2c4ace0`); przycisk, wiązanie i dowód wizualny czekają
-  w kolejce.
-- **Rozgrywka — pierwszy pomiar po odwołaniu bramki oprawy (2026-08-06,
-  uruchomienie rdzenia na `seed=73`, nie lektura):** pętla sandboxa **domyka
-  się, ale jest pusta**. Partię wygrywa się w **trzy miesiące gry**
-  (`recruit`×5 → `muster` → (`march`+`assault`)×2 → `player_result="victory"`),
-  a gdy gracz nic nie robi przez 20 tur, **wojsko wroga nigdy nie pojawia się
-  na mapie**: `ai.take_duchy_military_action` co turę bezwarunkowo zbiera
-  oddział i szturmuje nim broniony posterunek gracza, tracąc go w tej samej
-  turze (morale AI schodzi do `-8`). Do tego klient **nie ma rozkazu
-  `engage`**, choć most obsługuje go od K65. To jest zakres **K108**.
+- **Nowa partia z UI (K107) — DOMKNIĘTA:** most, przycisk, wiązanie i dowód
+  wizualny paska (`2c4ace0`…`12d67bc`).
+- **K108 — zrobiony w kodzie, zostały dowody wizualne:** rozkaz „Uderz na
+  wojsko wroga" ze statusem i ikoną, klik rozgrywający starcie, warunek siły w
+  `ai.take_duchy_military_action` oraz refaktor paska rozkazów
+  (`7de20e4`…`d4de6e1`). W kolejce: task-605 (ekran bitwy nie wypycha mapy),
+  task-606/607 (dowody wizualne wojska wroga i starcia).
+- **Rozgrywka — pomiar po K108 (2026-08-06, uruchomienie rdzenia na `seed=73`,
+  nie lektura):** defekt z poprzedniego przeglądu **jest naprawiony** — wojsko
+  AI stoi na mapie od miesiąca 2 i przesuwa się (`border` → `player outpost` →
+  `player lands`), a gracz bierny **przegrywa partię w 13 turach**
+  (`result = {"is_over": true, "winner": "ai", "player_result": "defeat"}`).
+  Ten sam pomiar odsłonił brak głębszy: **rozkazy wojskowe nic nie kosztują**.
+  Bez ani jednego `next_turn` sekwencja `recruit`×5 → `muster` →
+  (`march`+`assault`)×3 daje `player_result="victory"` w **roku 1, miesiącu 1** —
+  kalendarz nie drgnął, AI nie dostało tury, przeciwnik nie zdążył się pojawić.
+  To jest zakres **K109**.
 
 ## Ograniczenia i priorytety
 - **[W]** Rdzeń `tbb` jest **jedynym źródłem reguł**. Godot nie duplikuje logiki;
@@ -166,6 +171,28 @@ Warunek został spełniony 2026-08-06 w K106.
     wymaga braku osad **i** braku oddziałów, więc powściągliwszy AI **bez**
     rozkazu `engage` w kliencie uczyniłby partię niewygrywalną. Najpierw
     odpowiedź gracza na wojsko w polu, potem wojsko, które w polu zostaje.
+34. **Rozkaz bez kosztu = brak przeciwnika (2026-08-06, po K108).** AI gra
+    wyłącznie wewnątrz `next_turn`, a gracz może wydać dowolnie wiele rozkazów
+    wojskowych w jednym miesiącu — więc cała presja zbudowana w K108 działa
+    tylko na gracza, który dobrowolnie kończy turę. Naprawiony przeciwnik nie
+    czyni gry grą; czyni ją nią dopiero **ekonomia tury**.
+35. **Regułę tury zweryfikowano symulacją przed zaplanowaniem (2026-08-06).**
+    Przy jednej akcji wojskowej oddziału na miesiąc partia na `seed=73` jest
+    wygrywalna (zwycięstwo w roku 1, miesiącu 4) i **zawiera realne starcie w
+    polu** (`engage` w miesiącu 2). Kolejność z wniosku 33 zostaje zachowana:
+    gracz ma czym odpowiedzieć, zanim tura zacznie kosztować.
+    **Doprecyzowanie po recenzji (ta sama data):** pierwsza symulacja objęła
+    wyłącznie stronę gracza, więc nie rozstrzygała przypadku AI. Reguła
+    **obowiązuje także oddziały AI** (wniosek 16 — wyjęcie ich spod niej jest
+    wykluczone), a znacznik ustawia **wyłącznie akcja, która zmieniła świat**.
+    Powód jest zmierzony: `ai.take_duchy_military_action` (`src/tbb/ai.py:553`)
+    robi w jednej turze AI `muster` + `march` + `assault`, czyli dwie z czterech
+    blokowanych akcji. Przy dosłownym odczycie „pierwsza akcja ustawia znacznik"
+    (bezskuteczny `march` też liczy się jako akcja) AI po turze 11 nigdy już nie
+    szturmuje i bierny gracz nie przegrywa nawet po 20 turach — K109 **cofnąłby
+    K108**. Przy odczycie „tylko akcja zmieniająca świat" przegrana wypada w
+    turze 13, jak dziś, bo `march` oddziału już sąsiadującego z celem jest
+    no-opem. Regresja na `seed=73` jest kryterium G109.1b.
 
 ## Klimat, ton, kierunek wizualny
 Średniowiecze **bez magii i fantastyki**, surowy i realistyczny ton. **[W]**
@@ -201,15 +228,21 @@ bez reguł/mostu i bez otwierania nowej serii polish. **[W]**
 4. ~~K94–K105~~ — **zrobione** (oprawa aż po figury isometrii/¾ i chrome).
 5. ~~**K106 — próg wizualny** — pakiet screenshotów 1152×648 po K105 i
    **jawna ludzka akceptacja 2026-08-06** zapisana tu i w `BACKLOG.md`.~~
-6. **K107 — nowa partia z UI po końcu gry** — most zrobiony (`2c4ace0`);
-   przycisk, wiązanie i dowód wizualny w kolejce.
-7. **K108 — przeciwnik, który nie roztrwania armii, i `engage` w kliencie.**
-   Najpierw rozkaz „Uderz na wojsko wroga" (klient, most bez zmian), potem
-   warunek siły w `ai.take_duchy_military_action` (rdzeń) i dowód wizualny
-   wojska wroga stojącego na mapie. Powód i kolejność: wnioski 32–33.
-8. **Prawdopodobnie potem:** czy AI *naciera* (presja, nie tylko przetrwanie)
-   oraz ile garnizonu wolno zabrać `muster`-em. Osobne plasterki, nie razem
-   z K108.
+6. ~~**K107 — nowa partia z UI po końcu gry**~~ — **domknięte**.
+7. **K108 — przeciwnik, który nie roztrwania armii, i `engage` w kliencie** —
+   **zrobiony w kodzie i zmierzony jako skuteczny**; w kolejce zostały dowody
+   wizualne (task-605…607).
+8. **K109 — rozkaz wojskowy kosztuje miesiąc.** Znacznik akcji oddziału w
+   rdzeniu (zerowany przez `tick_parties`, trwały w persystencji), blokada
+   drugiej akcji wojskowej w tym samym miesiącu jako `changed=false` (nie
+   błąd) i czytelny polski status w kliencie. Powód: wnioski 34–35.
+   **Dwa warunki brzegowe, bez których K109 cofa K108** (wniosek 35): reguła
+   obejmuje **także oddziały AI** — żadnego wyjątku po właścicielu (wniosek 16)
+   — a znacznik ustawia **wyłącznie akcja, która zmieniła świat**, więc
+   bezskuteczny `march` nie zużywa miesiąca. G109.1b niesie regresję na
+   `seed=73`: bierny gracz nadal przegrywa w 13 turach.
+9. **Prawdopodobnie potem:** tempo presji AI (dopiero gdy tura kosztuje) oraz
+   ile garnizonu wolno zabrać `muster`-em. Osobne plasterki, nie razem z K109.
 
 ## Świadomie odłożone
 - Kampania/fabuła, multiplayer, magia, oddziały masowe, AAA, dźwięk, edytor map
@@ -218,8 +251,9 @@ bez reguł/mostu i bez otwierania nowej serii polish. **[W]**
 - Bogatszy model ran/terenu/budynków, więcej jednostek, balans/AI,
   `StrategicTurn` — po widocznej, grywalnej grze. Skala K92.2 ≠ balans.
   **Doprecyzowanie 2026-08-06:** jeden jawny warunek „nie szturmuj bez szans"
-  w `ai.take_duchy_military_action` (K108) to naprawa defektu rozgrywki, nie
-  strojenie AI; krzywe, wagi i taktyka AI zostają odłożone.
+  w `ai.take_duchy_military_action` (K108) oraz jedna akcja wojskowa oddziału
+  na miesiąc (K109) to naprawy defektów rozgrywki, nie strojenie AI; krzywe,
+  wagi, taktyka AI i koszty rozkazów gospodarczych zostają odłożone.
 - Szturm na osadę z oddziałem nie-obrońcą (G92.1c) — z 3. księstwem lub reprodukcją.
 - Podział dużych docs (ARCHITECTURE/DECISIONS/DESIGN) — dług, nie blokuje celu.
 - Niezależne reguły, AI, ekonomia, walka, ruch, rozkazy, protokół/most, rdzeń,
