@@ -13,7 +13,9 @@ import shlex
 from pathlib import Path
 
 from godot_runner import map_player_result, run_godot_script
-from tbbbridge.session import new_session
+from tbb.game import GameState
+from tbbbridge.persist import save_session
+from tbbbridge.session import Session, new_session
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -209,3 +211,75 @@ def test_player_sees_survival_after_first_turn_on_live_bridge(tmp_path):
     assert resumed["tile_visuals"].get(AI_LANDS) == after_visuals.get(AI_LANDS), (
         resumed
     )
+
+
+def test_new_game_button_restarts_a_finished_campaign_and_persists_it(tmp_path):
+    """G107.1c: click starts a fresh persisted campaign even after game over.
+
+    Realistic defect: the persistent BridgeClient exposes ``start_new_game()``,
+    while Main never binds the visible ``NewGameButton``. Client-only persistence
+    tests stay green, but a player trapped on the finished screen cannot restart.
+    """
+    seed = 73
+    state_path = tmp_path / "finished-campaign.json"
+    request_path = tmp_path / "bridge-request.jsonl"
+    base = new_session(seed)
+    finished = Session(
+        world=base.world,
+        game=GameState([base.game.duchies[0]]),
+        calendar=base.calendar,
+        rng=base.rng,
+        player_duchy_id=base.player_duchy_id,
+        seed=base.seed,
+    )
+    assert finished.game.is_over is True
+    save_session(finished, state_path)
+    command_prefix = (
+        f"PYTHONPATH={shlex.quote(str(ROOT / 'src'))} python3 -m tbbbridge"
+    )
+
+    payload = _run_probe(
+        command_prefix,
+        str(state_path),
+        str(request_path),
+        str(seed),
+        "restart_finished",
+        timeout=45,
+    )
+
+    assert payload["phase"] == "restart_finished"
+    assert payload["before_restart"]["result"] == map_player_result("victory")
+
+    fresh_controls = _controls(new_session(seed).snapshot())
+    for visible_state in (payload["after_restart"], payload["after_resume"]):
+        assert {
+            key: visible_state[key] for key in fresh_controls
+        } == fresh_controls, visible_state
+
+    assert payload["after_restart"]["order_status"] == "Rozpoczęto nową partię."
+    resumed_map = payload["after_resume"]
+    assert resumed_map["map_view_found"] is True, resumed_map
+    assert resumed_map["tile_visuals"] == payload["after_restart"]["tile_visuals"], (
+        resumed_map
+    )
+    assert resumed_map["tile_visuals"].get(PLAYER_LANDS) != resumed_map[
+        "tile_visuals"
+    ].get(AI_LANDS), resumed_map
+    assert payload["after_resumed_recruit"]["order_status"] == (
+        "Rozkaz rekrutacji zmienił stan."
+    )
+
+
+def test_new_game_button_reports_a_polish_failure_when_bridge_is_unavailable(tmp_path):
+    """G107.1c: a failed restart gives feedback through the live button."""
+    payload = _run_probe(
+        "false",
+        str(tmp_path / "persistent-session.json"),
+        str(tmp_path / "bridge-request.jsonl"),
+        str(SEED),
+        "restart_failure",
+    )
+
+    assert payload["phase"] == "restart_failure"
+    failed = payload["after_failed_restart"]
+    assert failed["order_status"] == "Nie udało się rozpocząć nowej partii."

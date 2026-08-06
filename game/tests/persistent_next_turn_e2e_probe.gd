@@ -5,6 +5,8 @@ extends SceneTree
 ## Default (4 args): two NextTurn presses across two scene+bridge processes.
 ## Phase ``survive_first_turn`` (5th arg): one NextTurn, then resume-only — G90.1b.
 ## Phase ``muster_then_two_turns``: muster + turn, then resume + turn — G92.1b.
+## Phase ``restart_finished``: ended save → NewGame click → resumed live order — G107.1c.
+## Phase ``restart_failure``: unavailable bridge → NewGame click reports failure — G107.1c.
 
 const MAIN_SCENE_PATH := "res://scenes/main.tscn"
 const BridgeClientScript = preload("res://scripts/bridge_client.gd")
@@ -16,14 +18,21 @@ const AI_LANDS := "ai lands"
 
 func _init() -> void:
 	var args: PackedStringArray = OS.get_cmdline_user_args()
-	if args.size() == 5 and args[4] == "muster_then_two_turns":
-		_run_muster_then_two_turns(args)
-		return
-	if args.size() == 5 and args[4] == "survive_first_turn":
-		_run_survive_first_turn(args)
+	if args.size() == 5:
+		match args[4]:
+			"muster_then_two_turns":
+				_run_muster_then_two_turns(args)
+			"survive_first_turn":
+				_run_survive_first_turn(args)
+			"restart_finished":
+				_run_restart_finished(args)
+			"restart_failure":
+				_run_restart_failure(args)
+			_:
+				_fail("unknown phase; expected survive_first_turn, muster_then_two_turns, restart_finished, or restart_failure")
 		return
 	if args.size() != 4:
-		_fail("expected command prefix, state path, request path, seed [, survive_first_turn]")
+		_fail("expected command prefix, state path, request path, seed [, phase]")
 		return
 	_run_two_presses(args)
 
@@ -145,6 +154,75 @@ func _run_survive_first_turn(args: PackedStringArray) -> void:
 	call_deferred("quit", 0)
 
 
+func _run_restart_finished(args: PackedStringArray) -> void:
+	## The Python gate seeds the state file with a resolved player victory.  This
+	## probes the public UI path: render finished → click NewGame → next bridge
+	## process resumes fresh state and accepts an order.
+	var first := _instantiate_persistent_scene(args)
+	if first.is_empty():
+		return
+	var first_scene := first["scene_root"] as Control
+	var before_restart := _controls_with_order_status(first_scene)
+	var new_game_button := first_scene.find_child("NewGameButton", true, false) as Button
+	if new_game_button == null:
+		_fail("missing NewGameButton")
+		return
+	new_game_button.emit_signal("pressed")
+	var after_restart := _survival_observation(first_scene)
+	first_scene.queue_free()
+
+	var second := _instantiate_persistent_scene(args)
+	if second.is_empty():
+		return
+	var second_scene := second["scene_root"] as Control
+	var after_resume := _survival_observation(second_scene)
+	var recruit_button := second_scene.find_child("RecruitButton", true, false) as Button
+	if recruit_button == null:
+		_fail("missing RecruitButton after restart")
+		return
+	recruit_button.emit_signal("pressed")
+
+	print(PREFIX, JSON.stringify({
+		"phase": "restart_finished",
+		"before_restart": before_restart,
+		"after_restart": after_restart,
+		"after_resume": after_resume,
+		"after_resumed_recruit": _controls_with_order_status(second_scene),
+	}))
+	call_deferred("quit", 0)
+
+
+func _run_restart_failure(args: PackedStringArray) -> void:
+	## The public button must leave a useful Polish error after the persistent
+	## bridge fails, rather than silently retaining the empty initial status.
+	var persistent_scene := _instantiate_persistent_scene(args)
+	if persistent_scene.is_empty():
+		return
+	var scene_root := persistent_scene["scene_root"] as Control
+	var new_game_button := scene_root.find_child("NewGameButton", true, false) as Button
+	if new_game_button == null:
+		_fail("missing NewGameButton")
+		return
+	new_game_button.emit_signal("pressed")
+
+	print(PREFIX, JSON.stringify({
+		"phase": "restart_failure",
+		"after_failed_restart": _controls_with_order_status(scene_root),
+	}))
+	call_deferred("quit", 0)
+
+
+func _instantiate_persistent_scene(args: PackedStringArray) -> Dictionary:
+	var scene_root := _instantiate_scene()
+	if scene_root == null:
+		return {}
+	var client = BridgeClientScript.create_persistent(
+		args[0], args[1], args[3].to_int(), args[2]
+	)
+	scene_root.bind_client(client)
+	return {"scene_root": scene_root}
+
+
 func _instantiate_scene() -> Control:
 	var scene := ResourceLoader.load(MAIN_SCENE_PATH) as PackedScene
 	if scene == null:
@@ -180,7 +258,7 @@ func _controls_with_order_status(scene_root: Control) -> Dictionary:
 
 
 func _survival_observation(scene_root: Control) -> Dictionary:
-	var base: Dictionary = _controls(scene_root)
+	var base: Dictionary = _controls_with_order_status(scene_root)
 	var map_view: Node = scene_root.find_child("MapView", true, false)
 	var tile_visuals: Dictionary = {}
 	if map_view != null:

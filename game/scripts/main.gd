@@ -11,6 +11,8 @@ const SAVE_SUCCESS_STATUS := "Partia została zapisana."
 const SAVE_FAILURE_STATUS := "Nie udało się zapisać partii."
 const LOAD_SUCCESS_STATUS := "Partia została wczytana."
 const LOAD_FAILURE_STATUS := "Nie udało się wczytać partii."
+const NEW_GAME_SUCCESS_STATUS := "Rozpoczęto nową partię."
+const NEW_GAME_FAILURE_STATUS := "Nie udało się rozpocząć nowej partii."
 # OrderBarContent scene offsets: left/right 10 each, top/bottom 8 each.
 # Both axes feed OrderControls.custom_minimum_size so the parchment bar does
 # not under-report size when MainLayout sizes from content minima.
@@ -257,6 +259,7 @@ func bind_client(client) -> void:
 	_connect_pressed_once(%AssaultButton, _on_assault_button_pressed)
 	_connect_pressed_once(%SaveGameButton, _on_save_game_button_pressed)
 	_connect_pressed_once(%LoadGameButton, _on_load_game_button_pressed)
+	_connect_pressed_once(%NewGameButton, _on_new_game_button_pressed)
 	_refresh_bound_client()
 
 
@@ -303,15 +306,22 @@ func _on_assault_button_pressed() -> void:
 
 func _on_save_game_button_pressed() -> void:
 	if _has_bound_client():
-		_apply_save_load_result(
+		_apply_model_with_status(
 			_client.save_party(_save_path), SAVE_SUCCESS_STATUS, SAVE_FAILURE_STATUS
 		)
 
 
 func _on_load_game_button_pressed() -> void:
 	if _has_bound_client():
-		_apply_save_load_result(
+		_apply_model_with_status(
 			_client.load_party(_save_path), LOAD_SUCCESS_STATUS, LOAD_FAILURE_STATUS
+		)
+
+
+func _on_new_game_button_pressed() -> void:
+	if _has_bound_client():
+		_apply_model_with_status(
+			_client.start_new_game(), NEW_GAME_SUCCESS_STATUS, NEW_GAME_FAILURE_STATUS
 		)
 
 
@@ -356,7 +366,7 @@ func _apply_model_if_present(model: SnapshotModel) -> bool:
 	return true
 
 
-func _apply_save_load_result(
+func _apply_model_with_status(
 	model: SnapshotModel, success_status: String, failure_status: String
 ) -> bool:
 	if _apply_model_if_present(model):
