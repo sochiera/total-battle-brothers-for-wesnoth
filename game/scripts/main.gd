@@ -135,16 +135,21 @@ func _make_selected_region_panel_style(texture: Texture2D) -> StyleBoxTexture:
 
 
 func _order_action_buttons() -> Array[Button]:
-	return [
+	var buttons: Array[Button] = [
 		%NextTurnButton,
 		%DevelopButton,
 		%RecruitButton,
 		%MusterButton,
 		%MarchButton,
 		%AssaultButton,
-		%SaveGameButton,
-		%LoadGameButton,
 	]
+	buttons.append_array(_party_action_buttons())
+	return buttons
+
+
+func _party_action_buttons() -> Array[Button]:
+	## Keep party controls in the same presentation/style pipeline as orders.
+	return [%SaveGameButton, %LoadGameButton, %NewGameButton]
 
 
 func _sync_order_controls_minimum_size() -> void:
@@ -174,13 +179,7 @@ func _apply_order_button_state_styles() -> void:
 	var texture: Texture2D = load(ORDER_BUTTON_PANEL_RES) as Texture2D
 	if texture == null:
 		return
-	# state_name, modulate, font theme key, font color — single table avoids
-	# three parallel maps drifting out of sync.
-	var state_rows: Array = [
-		["normal", ORDER_BUTTON_MODULATE_NORMAL, "font_color", ORDER_BUTTON_FONT_NORMAL],
-		["hover", ORDER_BUTTON_MODULATE_HOVER, "font_hover_color", ORDER_BUTTON_FONT_HOVER],
-		["pressed", ORDER_BUTTON_MODULATE_PRESSED, "font_pressed_color", ORDER_BUTTON_FONT_PRESSED],
-	]
+	var state_rows := _order_button_state_rows()
 	var style_by_state := {}
 	for row: Array in state_rows:
 		style_by_state[row[0]] = _make_order_button_style(texture, row[1])
@@ -191,6 +190,16 @@ func _apply_order_button_state_styles() -> void:
 				state_name, style_by_state[state_name].duplicate()
 			)
 			button.add_theme_color_override(row[2], row[3])
+
+
+func _order_button_state_rows() -> Array:
+	# state_name, modulate, font theme key, font color — single table avoids
+	# three parallel maps drifting out of sync.
+	return [
+		["normal", ORDER_BUTTON_MODULATE_NORMAL, "font_color", ORDER_BUTTON_FONT_NORMAL],
+		["hover", ORDER_BUTTON_MODULATE_HOVER, "font_hover_color", ORDER_BUTTON_FONT_HOVER],
+		["pressed", ORDER_BUTTON_MODULATE_PRESSED, "font_pressed_color", ORDER_BUTTON_FONT_PRESSED],
+	]
 
 
 func _make_order_button_style(texture: Texture2D, modulate: Color) -> StyleBoxTexture:

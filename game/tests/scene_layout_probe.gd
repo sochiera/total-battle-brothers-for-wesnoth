@@ -49,6 +49,7 @@ const CONTROL_NAMES: Array[String] = [
 	"AssaultButton",
 	"SaveGameButton",
 	"LoadGameButton",
+	"NewGameButton",
 ]
 
 
@@ -158,6 +159,10 @@ func _collect_controls(scene_root: Node) -> Dictionary:
 			"w": rect.size.x,
 			"h": rect.size.y,
 			"visible": node.visible,
+			"disabled": node.disabled if node is Button else false,
+			"minimum_w": node.get_combined_minimum_size().x,
+			"minimum_h": node.get_combined_minimum_size().y,
+			"clip_text": node.clip_text if node is Button else false,
 		}
 	return controls
 
@@ -338,6 +343,7 @@ func _order_button_states(scene_root: Node) -> Dictionary:
 		"AssaultButton",
 		"SaveGameButton",
 		"LoadGameButton",
+		"NewGameButton",
 	]:
 		var button: Button = scene_root.find_child(button_name, true, false) as Button
 		if button == null:

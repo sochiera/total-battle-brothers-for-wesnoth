@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene load_steps=20 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/map_view.gd" id="2_map_view"]
@@ -18,6 +18,7 @@
 [ext_resource type="Texture2D" path="res://assets/icon_assault.png" id="10_assault_icon"]
 [ext_resource type="Texture2D" path="res://assets/icon_save.png" id="11_save_icon"]
 [ext_resource type="Texture2D" path="res://assets/icon_load.png" id="12_load_icon"]
+[ext_resource type="Texture2D" path="res://assets/icon_new_game.png" id="13_new_game_icon"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -614,3 +615,10 @@ custom_minimum_size = Vector2(140, 40)
 layout_mode = 2
 icon = ExtResource("12_load_icon")
 text = "Wczytaj partię"
+
+[node name="NewGameButton" type="Button" parent="MainLayout/OrderControls/OrderBarContent/SaveLoadButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 40)
+layout_mode = 2
+icon = ExtResource("13_new_game_icon")
+text = "Nowa partia"

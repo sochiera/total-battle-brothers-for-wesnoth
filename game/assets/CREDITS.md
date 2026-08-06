@@ -129,6 +129,13 @@ by Delapouite.
 | icon_save.png | https://game-icons.net/1x1/delapouite/save.html (save.svg) | Delapouite | CC-BY 3.0 |
 | icon_load.png | https://game-icons.net/1x1/delapouite/load.html (load.svg) | Delapouite | CC-BY 3.0 |
 
+The new-game icon is adapted from the Game-icons **cycle** symbol by Lorc;
+the looping arrows communicate starting a fresh session without binding the button yet.
+
+| File | Source page/file | Author | License |
+|------|------------------|--------|---------|
+| icon_new_game.png | https://game-icons.net/1x1/lorc/cycle.html (cycle.svg) | Lorc | CC-BY 3.0 |
+
 The region ownership crests (G101.1a) are adapted from three Game-icons **shield**
 glyphs by Lorc, recolored for player / neutral / enemy readability at map scale.
 Source SVGs live in the Game-icons pack under `lorc/`.

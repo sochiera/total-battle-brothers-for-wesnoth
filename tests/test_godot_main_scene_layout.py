@@ -43,6 +43,7 @@ ORDER_CONTROLS = (
     "AssaultButton",
     "SaveGameButton",
     "LoadGameButton",
+    "NewGameButton",
 )
 ALL_CONTROLS = STATUS_CONTROLS + HIDDEN_CONTROLS + ORDER_CONTROLS
 
@@ -96,6 +97,7 @@ ORDER_ICON_FILES = {
     "AssaultButton": "icon_assault.png",
     "SaveGameButton": "icon_save.png",
     "LoadGameButton": "icon_load.png",
+    "NewGameButton": "icon_new_game.png",
 }
 
 
@@ -217,6 +219,16 @@ def test_main_scene_controls_have_disjoint_layout_and_hidden_contract_controls()
         )
 
     visible_controls = STATUS_CONTROLS + ORDER_CONTROLS
+    for name in ORDER_CONTROLS:
+        rect = controls[name]
+        assert rect["disabled"] is False, f"{name} must remain clickable, got {rect}"
+        assert rect["clip_text"] is False, f"{name} must not clip its label, got {rect}"
+        assert rect["w"] >= rect["minimum_w"], (
+            f"{name} must fit its icon/label minimum width, got {rect}"
+        )
+        assert rect["h"] >= rect["minimum_h"], (
+            f"{name} must fit its icon/label minimum height, got {rect}"
+        )
     for i, left_name in enumerate(visible_controls):
         for right_name in visible_controls[i + 1 :]:
             left = controls[left_name]
@@ -295,6 +307,7 @@ def test_order_buttons_expose_distinct_states_and_review_screenshots():
     payload = _load_layout_payload()
     states = (payload.get("order_bar") or {}).get("button_states") or {}
     assert set(states) == set(ORDER_CONTROLS), states
+    style_textures: set[str] = set()
     for button_name, button in states.items():
         assert button.get("found") is True, (button_name, button)
         signatures = []
@@ -320,6 +333,7 @@ def test_order_buttons_expose_distinct_states_and_review_screenshots():
                 texture_file.name,
                 source_re=re.compile(r"https?://\S+|oryginał projektu"),
             )
+            style_textures.add(texture_path)
             modulate = state.get("modulate_rgba")
             assert isinstance(modulate, list) and len(modulate) == 4, (
                 f"{button_name} {state_name} needs measurable modulation, "
@@ -344,6 +358,11 @@ def test_order_buttons_expose_distinct_states_and_review_screenshots():
             f"{button_name} icon modulate must remain effectively opaque, "
             f"got {icon_modulate!r}"
         )
+
+    assert len(style_textures) == 1, (
+        "all order-bar buttons must share the same textured frame, "
+        f"got {sorted(style_textures)!r}"
+    )
 
     for screenshot in ORDER_BAR_SCREENSHOTS:
         assert screenshot.is_file(), f"required human-review screenshot missing: {screenshot}"

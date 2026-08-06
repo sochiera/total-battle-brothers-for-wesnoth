@@ -20,10 +20,12 @@ func _init() -> void:
 
 	var save_button := scene_root.get_node_or_null("%SaveGameButton") as Button
 	var load_button := scene_root.get_node_or_null("%LoadGameButton") as Button
-	# Presence/labels + icon presentation (G95.1d); binding/status is save_load_binding_probe.
+	var new_game_button := scene_root.get_node_or_null("%NewGameButton") as Button
+	# Presence/labels + icon presentation (G95.1d/G107.1b); binding/status is save_load_binding_probe.
 	print(PREFIX, JSON.stringify({
 		"save": _button_payload(save_button),
 		"load": _button_payload(load_button),
+		"new_game": _button_payload(new_game_button),
 	}))
 	call_deferred("quit", 0)
 
@@ -44,6 +46,7 @@ func _button_payload(button: Button) -> Variant:
 		"text": button.text,
 		"disabled": button.disabled,
 		"visible": button.visible,
+		"unique_name_in_owner": button.unique_name_in_owner,
 		"icon_path": icon_path,
 		"icon_w": icon_w,
 		"icon_h": icon_h,

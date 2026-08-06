@@ -1,6 +1,6 @@
-"""G86.2a: main scene exposes Save/Load party buttons with Polish labels.
+"""G86.2a/G107.1b: main scene exposes party controls with Polish labels.
 
-G95.1d: the same pair shows distinct credited direction icons.
+G95.1d/G107.1b: the party-action buttons show distinct credited icons.
 """
 
 from __future__ import annotations
@@ -28,12 +28,21 @@ BUTTONS: tuple[dict[str, str], ...] = (
         "name": "SaveGameButton",
         "text": "Zapisz partię",
         "icon_rel": "assets/icon_save.png",
+        "author": "Delapouite",
     },
     {
         "key": "load",
         "name": "LoadGameButton",
         "text": "Wczytaj partię",
         "icon_rel": "assets/icon_load.png",
+        "author": "Delapouite",
+    },
+    {
+        "key": "new_game",
+        "name": "NewGameButton",
+        "text": "Nowa partia",
+        "icon_rel": "assets/icon_new_game.png",
+        "author": "Lorc",
     },
 )
 # Pin minimum source texture edge (pixels), not on-button rendered size.
@@ -50,6 +59,7 @@ CONTROL_ICON_RELS: tuple[str, ...] = (
     "assets/icon_assault.png",
     "assets/icon_save.png",
     "assets/icon_load.png",
+    "assets/icon_new_game.png",
 )
 
 
@@ -63,13 +73,13 @@ def _payload_from(result: subprocess.CompletedProcess[str]) -> dict:
     return json.loads(lines[0][len(PREFIX) :])
 
 
-def test_main_scene_exposes_save_and_load_party_buttons():
-    """Player-facing Save/Load controls must exist, be labeled and enabled.
+def test_main_scene_exposes_party_controls():
+    """Player-facing party controls must exist, be labeled and enabled.
 
-    Realistic defect this catches: main.tscn still has only order buttons
-    (NextTurn…Assault), so the player cannot invoke save/load without a
-    terminal. Existing scene probes pin the old control set and do not require
-    %SaveGameButton / %LoadGameButton or Polish labels.
+    Realistic defect this catches: main.tscn still has no %NewGameButton, so
+    the player has no visible entry point for starting a new party. Existing
+    scene probes pin the old order/save/load control set and do not require
+    %NewGameButton or its Polish label.
 
     Binding, status text and round-trip live in
     test_godot_main_scene_save_load_binding (G86.2b). This gate only pins
@@ -88,22 +98,21 @@ def test_main_scene_exposes_save_and_load_party_buttons():
         assert isinstance(row, dict), f"probe omitted {expected['key']}: {payload!r}"
         assert row.get("name") == expected["name"], row
         assert row.get("text") == expected["text"], row
+        assert row.get("unique_name_in_owner") is True, row
         assert row.get("disabled") is False, row
         assert row.get("visible") is True, row
 
 
-def test_save_and_load_buttons_show_distinct_credited_icons_with_polish_labels():
-    """Save / Load must each show a distinct Texture2D direction icon.
+def test_party_action_buttons_show_distinct_credited_icons_with_polish_labels():
+    """Save / Load / New Game each show a distinct Texture2D icon.
 
-    Realistic defect existing gates miss: SaveGameButton and LoadGameButton
-    remain plain ``Button`` nodes with only Polish ``text``. Existing probes
-    (save/load presence G86.2a, binding G86.2b, layout, order-icon gates) pin
-    names, labels, connections, geometry, and *order-bar* icons — so a purely
-    textual save/load pair stays green while G95.1d requires two mutually
-    distinct, credited graphics under public
-    ``res://assets/icon_{save,load}.png`` that keep the Polish labels and are
-    not copies of each other or of any order-bar icon used as a renamed
-    placeholder.
+    Realistic defect existing gates miss: a party-action button remains a
+    plain ``Button`` with only Polish ``text``. Existing probes (presence,
+    binding, layout, order-icon gates) pin names, labels, connections,
+    geometry, and *older order-bar* icons — so a purely textual control stays
+    green while this gate requires distinct, credited graphics under the
+    public ``res://assets/`` paths that keep the Polish labels and are not
+    renamed copies of another control-bar icon.
     """
     digests: dict[str, str] = {}
     for rel in CONTROL_ICON_RELS:
@@ -118,6 +127,12 @@ def test_save_and_load_buttons_show_distinct_credited_icons_with_polish_labels()
     )
     for button in BUTTONS:
         assert_asset_credited(CREDITS, Path(button["icon_rel"]).name)
+        credit_row = next(
+            line
+            for line in CREDITS.read_text(encoding="utf-8").splitlines()
+            if Path(button["icon_rel"]).name in line
+        )
+        assert f"| {button['author']} |" in credit_row, credit_row
 
     imported = import_game_assets(GAME)
     assert imported.returncode == 0, (
@@ -138,6 +153,7 @@ def test_save_and_load_buttons_show_distinct_credited_icons_with_polish_labels()
         assert row.get("text") == expected["text"], (
             f"Polish label must remain on {expected['name']}; icon is presentation only"
         )
+        assert row.get("unique_name_in_owner") is True, row
         icon_res = f"res://{expected['icon_rel']}"
         assert row.get("icon_path") == icon_res, (
             f"{expected['name']} icon must use public path {icon_res}, "
