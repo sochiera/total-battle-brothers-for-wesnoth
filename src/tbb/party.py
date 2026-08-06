@@ -13,12 +13,14 @@ class Party:
     hero: Unit
     units: tuple[Unit, ...] = ()
     owner_id: str | None = None
+    acted_this_month: bool = False
 
     def __init__(
         self,
         hero: Unit,
         units: Iterable[Unit] = (),
         owner_id: str | None = None,
+        acted_this_month: bool = False,
     ) -> None:
         if not isinstance(hero, Unit):
             raise TypeError("party hero must be a Unit")
@@ -26,6 +28,8 @@ class Party:
             raise TypeError("party owner_id must be text or None")
         if owner_id == "":
             raise ValueError("party owner_id cannot be empty")
+        if not isinstance(acted_this_month, bool):
+            raise TypeError("party acted_this_month must be a bool")
 
         copied_units = tuple(units)
         if len(copied_units) > 12:
@@ -36,6 +40,7 @@ class Party:
         object.__setattr__(self, "hero", hero)
         object.__setattr__(self, "units", copied_units)
         object.__setattr__(self, "owner_id", owner_id)
+        object.__setattr__(self, "acted_this_month", acted_this_month)
 
     @classmethod
     def reconstruct(
@@ -59,6 +64,7 @@ class Party:
             hero=strategic_survivors[0],
             units=strategic_survivors[1:],
             owner_id=original.owner_id,
+            acted_this_month=original.acted_this_month,
         )
 
     def tick_wounds(self, months: int = 1) -> "Party":
@@ -67,10 +73,10 @@ class Party:
             raise ValueError("healing months cannot be negative")
         if months == 0:
             return self
-        return Party(
+        return replace(
+            self,
             hero=self.hero.tick_wounds(months),
             units=tuple(unit.tick_wounds(months) for unit in self.units),
-            owner_id=self.owner_id,
         )
 
     def tick_training(self, months: int = 1) -> "Party":
@@ -79,8 +85,8 @@ class Party:
             raise ValueError("training months cannot be negative")
         if months == 0:
             return self
-        return Party(
+        return replace(
+            self,
             hero=self.hero.train(months),
             units=tuple(unit.train(months) for unit in self.units),
-            owner_id=self.owner_id,
         )

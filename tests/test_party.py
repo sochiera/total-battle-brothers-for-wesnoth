@@ -25,6 +25,47 @@ def test_party_owner_id_defaults_to_none_and_preserves_explicit_value():
     assert Party(Unit(), owner_id="north").owner_id == "north"
 
 
+def test_party_action_marker_defaults_and_survives_reconstruction():
+    hero = Unit(training=2)
+    units = (Unit(equipment=1),)
+    unmarked = Party(hero, units, owner_id="north")
+
+    assert unmarked.acted_this_month is False
+
+    marked = Party(
+        hero, units, owner_id="north", acted_this_month=True
+    )
+    assert marked.acted_this_month is True
+    assert marked != unmarked
+
+    reconstructed = Party.reconstruct(marked, (hero, *units))
+
+    assert reconstructed is not marked
+    assert reconstructed.hero is hero
+    assert reconstructed.units == units
+    assert reconstructed.owner_id == "north"
+    assert reconstructed.acted_this_month is True
+
+    with pytest.raises(FrozenInstanceError):
+        marked.acted_this_month = False
+
+
+@pytest.mark.parametrize("acted_this_month", [False, True])
+def test_party_monthly_action_marker_survives_transforms(acted_this_month):
+    party = Party(
+        Unit(training=2, wounds=(BRUISE,)),
+        [Unit(training=1)],
+        acted_this_month=acted_this_month,
+    )
+
+    healed = party.tick_wounds()
+    trained = party.tick_training()
+
+    assert healed.acted_this_month is acted_this_month
+    assert trained.acted_this_month is acted_this_month
+    assert party.acted_this_month is acted_this_month
+
+
 @pytest.mark.parametrize("owner_id", ["", 1, object()])
 def test_party_rejects_empty_or_non_text_owner_id(owner_id):
     with pytest.raises((TypeError, ValueError)):
