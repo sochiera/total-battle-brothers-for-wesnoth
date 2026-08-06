@@ -39,6 +39,7 @@ const OWNER_LEGEND_NAME := "OwnerLegend"
 const OWNER_LEGEND_PANEL_TEXTURE := preload("res://assets/owner_legend_panel.png")
 const OWNER_LEGEND_TEXTURE_MARGIN_LR := 10.0
 const OWNER_LEGEND_TEXTURE_MARGIN_TB := 8.0
+const OWNER_LEGEND_EDGE_PAD := 4.0
 # With-battle chrome may shrink MapView; region tiles must keep ≥ ¾ base height
 # (same contract as composition gate MIN_READABLE_REGION_TILE_H_WITH_BATTLE).
 const MIN_READABLE_TILE_HEIGHT_FRACTION := 0.75
@@ -599,25 +600,40 @@ func _owner_legend_metrics_at_scale(legend_scale: float, row_count: int) -> Dict
 	}
 
 
+func _owner_legend_compact_metrics() -> Dictionary:
+	## Shared scale-1 legend metrics for panel and layout reservations.
+	return _owner_legend_metrics_at_scale(1.0, _owner_legend_rows().size())
+
+
 func _owner_legend_reserved_band_height() -> float:
 	## Bottom band reserved so the region strip never shares area with OwnerLegend.
-	## Uses max compact legend (scale 1) + 4px pad above and below the plate.
-	var rows: int = _owner_legend_rows().size()
-	var m: Dictionary = _owner_legend_metrics_at_scale(1.0, rows)
-	return float(m["legend_h"]) + 8.0
+	## Uses max compact legend (scale 1) + edge padding above and below the plate.
+	var m: Dictionary = _owner_legend_compact_metrics()
+	return float(m["legend_h"]) + 2.0 * OWNER_LEGEND_EDGE_PAD
 
 
 func _owner_legend_side_reserve_width() -> float:
 	## Left column width when short MapView keeps tiles beside the legend plate.
-	var rows: int = _owner_legend_rows().size()
-	var m: Dictionary = _owner_legend_metrics_at_scale(1.0, rows)
-	return float(m["legend_w"]) + 8.0
+	var m: Dictionary = _owner_legend_compact_metrics()
+	return float(m["legend_w"]) + 2.0 * OWNER_LEGEND_EDGE_PAD
+
+
+func _owner_legend_min_panel_height() -> float:
+	## Minimum height for the full compact legend plate and its edge padding.
+	var m: Dictionary = _owner_legend_compact_metrics()
+	return float(m["legend_h"]) + 2.0 * OWNER_LEGEND_EDGE_PAD
 
 
 func min_readable_panel_height() -> float:
-	## Public floor for Main with-battle fit: enough for readable tiles (+ side legend).
+	## Public floor for Main with-battle fit: enough for readable tiles and the
+	## full owner legend badge with edge padding, so clip_contents cannot cut it.
 	## Name is map-panel only — not coupled to BattleView layout.
-	return maxf(MIN_READABLE_TILE_HEIGHT, _min_content_height_for_readable_tiles())
+	if _rendered_regions.is_empty():
+		return _min_content_height_for_readable_tiles()
+	return maxf(
+		_owner_legend_min_panel_height(),
+		_min_content_height_for_readable_tiles()
+	)
 
 
 func _min_content_height_for_readable_tiles() -> float:
@@ -673,7 +689,10 @@ func _refresh_owner_legend() -> void:
 	var inset_y: float = m["inset_y"]
 	var content_w: float = m["content_w"]
 	legend.size = Vector2(legend_w, legend_h)
-	legend.position = Vector2(4.0, maxf(4.0, size.y - legend_h - 4.0))
+	legend.position = Vector2(
+		OWNER_LEGEND_EDGE_PAD,
+		maxf(OWNER_LEGEND_EDGE_PAD, size.y - legend_h - OWNER_LEGEND_EDGE_PAD)
+	)
 	# Textured parchment frame (map theater), not a residual StyleBoxFlat slab.
 	var panel := Panel.new()
 	panel.name = "OwnerLegendPanel"

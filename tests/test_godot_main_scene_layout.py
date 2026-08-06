@@ -455,9 +455,10 @@ def test_strategic_composition_fits_review_viewport_collapses_empty_battle_and_u
     h>1px (or floors near ~96px) can leave region tiles as a ~24px top sliver
     with crushed/overlapping PL labels while viewport fit and legend/tile
     disjointness stay green. The with-battle probe must report legend + region
-    tile rects; legend and tiles must not share screen area, and each region
-    tile must keep a readable minimum height (¾ of MapView base tile height)
-    under the multi-hex fit that the proof PNG uses.
+    tile rects; the legend must not be clipped by MapView, legend and tiles
+    must not share screen area, and each region tile must keep a readable
+    minimum height (¾ of MapView base tile height) under the multi-hex fit
+    that the proof PNG uses.
     """
     assets_dir = GAME / "assets"
     background_path = assets_dir / STRATEGIC_BACKGROUND
@@ -614,6 +615,18 @@ def test_strategic_composition_fits_review_viewport_collapses_empty_battle_and_u
     )
     assert float(legend.get("w") or 0) > 0 and float(legend.get("h") or 0) > 0, (
         f"OwnerLegend must have non-zero size, got {legend!r}"
+    )
+    assert (
+        float(legend["x"]) >= float(map_with_battle["x"]) - 1.0
+        and float(legend["y"]) >= float(map_with_battle["y"]) - 1.0
+        and float(legend["x"]) + float(legend["w"])
+        <= float(map_with_battle["x"]) + float(map_with_battle["w"]) + 1.0
+        and float(legend["y"]) + float(legend["h"])
+        <= float(map_with_battle["y"]) + float(map_with_battle["h"]) + 1.0
+    ), (
+        "with multi-hex battle, OwnerLegend must fit fully inside MapView; "
+        "otherwise MapView.clip_contents cuts the strategic legend even though "
+        f"the panel itself is on-screen. legend={legend!r} map={map_with_battle!r}"
     )
     region_tiles = map_readability.get("region_tiles") or []
     assert len(region_tiles) >= 1, (
