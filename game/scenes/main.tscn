@@ -573,6 +573,7 @@ custom_minimum_size = Vector2(140, 40)
 layout_mode = 2
 icon = ExtResource("6_develop_icon")
 text = "Rozwiń osadę"
+metadata/order_name = "develop"
 
 [node name="RecruitButton" type="Button" parent="MainLayout/OrderControls/OrderBarContent/OrderButtons"]
 unique_name_in_owner = true
@@ -580,6 +581,7 @@ custom_minimum_size = Vector2(140, 40)
 layout_mode = 2
 icon = ExtResource("7_recruit_icon")
 text = "Rekrutuj jednostkę"
+metadata/order_name = "recruit"
 
 [node name="MusterButton" type="Button" parent="MainLayout/OrderControls/OrderBarContent/OrderButtons"]
 unique_name_in_owner = true
@@ -587,6 +589,7 @@ custom_minimum_size = Vector2(140, 40)
 layout_mode = 2
 icon = ExtResource("8_muster_icon")
 text = "Zbierz oddział"
+metadata/order_name = "muster"
 
 [node name="MarchButton" type="Button" parent="MainLayout/OrderControls/OrderBarContent/OrderButtons"]
 unique_name_in_owner = true
@@ -594,6 +597,7 @@ custom_minimum_size = Vector2(140, 40)
 layout_mode = 2
 icon = ExtResource("9_march_icon")
 text = "Wyrusz w pole"
+metadata/order_name = "march"
 
 [node name="AssaultButton" type="Button" parent="MainLayout/OrderControls/OrderBarContent/OrderButtons"]
 unique_name_in_owner = true
@@ -601,12 +605,14 @@ custom_minimum_size = Vector2(140, 40)
 layout_mode = 2
 icon = ExtResource("10_assault_icon")
 text = "Szturmuj osadę"
+metadata/order_name = "assault"
 
 [node name="EngageButton" type="Button" parent="MainLayout/OrderControls/OrderBarContent/OrderButtons"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(140, 40)
 layout_mode = 2
 text = "Uderz na wojsko wroga"
+metadata/order_name = "engage"
 
 [node name="SaveLoadButtons" type="HBoxContainer" parent="MainLayout/OrderControls/OrderBarContent"]
 layout_mode = 2

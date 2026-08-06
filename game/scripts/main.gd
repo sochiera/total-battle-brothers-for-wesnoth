@@ -34,6 +34,7 @@ const ORDER_BUTTON_MODULATE_PRESSED := Color(0.74, 0.58, 0.4, 1.0)
 const ORDER_BUTTON_FONT_NORMAL := Color(0.18, 0.11, 0.06, 1.0)
 const ORDER_BUTTON_FONT_HOVER := Color(0.14, 0.08, 0.04, 1.0)
 const ORDER_BUTTON_FONT_PRESSED := Color(0.1, 0.05, 0.02, 1.0)
+const ORDER_NAME_META := "order_name"
 const SELECTED_REGION_EMPTY_PL := "Nie wybrano regionu"
 # G101.1c: visible ResultLabel value cells (row key is ResultKeyLabel).
 const RESULT_VALUE_BY_CODE := {
@@ -59,6 +60,7 @@ var _save_path := ""
 var _current_regions: Array = []
 var _default_march_label := ""
 var _map_view_min_height_no_battle := 0.0
+var _order_button_handlers: Dictionary = {}
 
 func _ready() -> void:
 	_ensure_strategic_window_background()
@@ -137,18 +139,34 @@ func _make_selected_region_panel_style(texture: Texture2D) -> StyleBoxTexture:
 
 
 func _order_action_buttons() -> Array[Button]:
-	return [
-		%NextTurnButton,
-		%DevelopButton,
-		%RecruitButton,
-		%MusterButton,
-		%MarchButton,
-		%AssaultButton,
-		%EngageButton,
-		%SaveGameButton,
-		%LoadGameButton,
-		%NewGameButton,
-	]
+	return _all_order_bar_buttons()
+
+
+func _all_order_bar_buttons() -> Array[Button]:
+	var order_bar_content := find_child("OrderBarContent", true, false)
+	var buttons: Array[Button] = []
+	if order_bar_content != null:
+		_collect_order_bar_buttons(order_bar_content, buttons)
+	return buttons
+
+
+func _collect_order_bar_buttons(node: Node, buttons: Array[Button]) -> void:
+	for child: Node in node.get_children():
+		if child is Button:
+			buttons.append(child as Button)
+		_collect_order_bar_buttons(child, buttons)
+
+
+func _declared_order_buttons() -> Array[Button]:
+	var declared_buttons: Array[Button] = []
+	for button: Button in _all_order_bar_buttons():
+		if not _declared_order_name(button).is_empty():
+			declared_buttons.append(button)
+	return declared_buttons
+
+
+func _declared_order_name(button: Button) -> String:
+	return str(button.get_meta(ORDER_NAME_META, "")).strip_edges()
 
 
 func _sync_order_controls_minimum_size() -> void:
@@ -257,12 +275,24 @@ func bind_client(client) -> void:
 
 func _bind_order_buttons() -> void:
 	_connect_pressed_once(%NextTurnButton, _on_next_turn_button_pressed)
-	_connect_pressed_once(%DevelopButton, _on_develop_button_pressed)
-	_connect_pressed_once(%RecruitButton, _on_recruit_button_pressed)
-	_connect_pressed_once(%MusterButton, _on_muster_button_pressed)
-	_connect_pressed_once(%MarchButton, _on_march_button_pressed)
-	_connect_pressed_once(%AssaultButton, _on_assault_button_pressed)
-	_connect_pressed_once(%EngageButton, _on_engage_button_pressed)
+	for button: Button in _declared_order_buttons():
+		var order_name := _declared_order_name(button)
+		if order_name == "march":
+			_connect_pressed_once(button, _on_march_button_pressed)
+		else:
+			_connect_declared_order_button(button)
+
+
+func _connect_declared_order_button(button: Button) -> void:
+	if not _order_button_handlers.has(button):
+		_order_button_handlers[button] = _on_declared_order_button_pressed.bind(button)
+	_connect_pressed_once(button, _order_button_handlers[button])
+
+
+func _on_declared_order_button_pressed(button: Button) -> void:
+	var order_name := _declared_order_name(button)
+	if not order_name.is_empty():
+		_send_bound_order(order_name)
 
 
 func _refresh_bound_client() -> void:
@@ -284,30 +314,10 @@ func _on_next_turn_button_pressed() -> void:
 		advance_turn_from_bridge(_client)
 
 
-func _on_develop_button_pressed() -> void:
-	_send_bound_order("develop")
-
-
-func _on_recruit_button_pressed() -> void:
-	_send_bound_order("recruit")
-
-
-func _on_muster_button_pressed() -> void:
-	_send_bound_order("muster")
-
-
 func _on_march_button_pressed() -> void:
 	var selected_region_name: String = %MapView.selected_region_name
 	var order_name := "march" if selected_region_name.is_empty() else "move"
 	_send_bound_order(order_name, selected_region_name)
-
-
-func _on_assault_button_pressed() -> void:
-	_send_bound_order("assault")
-
-
-func _on_engage_button_pressed() -> void:
-	_send_bound_order("engage")
 
 
 func _on_save_game_button_pressed() -> void:
