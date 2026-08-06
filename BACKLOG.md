@@ -15,23 +15,24 @@ flagi ryzyka; bootstrap klienta przechodzi dodatkowo obowiązkowe review pętli
 agentowej. Bootstrap, toolchain i integracja Godot↔Python są routowane jako
 `complex`.
 
-### Stała bramka planowania oprawy (brief 2026-07-30)
-**[W] Do odwołania przez jawne osiągnięcie progu wizualnego każde wywołanie
-planisty i każdy nowy batch Forge ma dać 4–6 zadań, w tym co najmniej 4
-graficzne i najwyżej 2 mechaniczne.**
-Zadanie mechaniczne wolno dołączyć tylko jako bezpośrednią, niezbędną zależność
-bieżącego efektu graficznego. Brak czterech gotowych zadań graficznych oznacza
-obowiązek dopisania małych zadań graficznych, nie `no_more_tasks`.
+### Bramka planowania oprawy (brief 2026-07-30) — ODWOŁANA 2026-08-06
+**[W] Do jawnego osiągnięcia progu wizualnego każde wywołanie planisty i każdy
+nowy batch Forge miał dać 4–6 zadań, w tym co najmniej 4 graficzne i najwyżej 2
+mechaniczne.** Próg został jawnie osiągnięty po akceptacji K106; od tej daty
+bramka nie obowiązuje.
+Podczas obowiązywania bramki zadanie mechaniczne wolno było dołączyć tylko jako
+bezpośrednią, niezbędną zależność bieżącego efektu graficznego. Brak czterech
+gotowych zadań graficznych oznaczał obowiązek dopisania małych zadań graficznych,
+nie `no_more_tasks`.
 
-Zadanie liczy się jako graficzne tylko wtedy, gdy wskazuje konkretny asset lub
+Zadanie liczyło się jako graficzne tylko wtedy, gdy wskazywało konkretny asset lub
 element oprawy i miejsce użycia, daje widoczną zmianę w uruchomionym Godocie,
 kończy się screenshotem albo ludzkim review oraz utrzymuje per-plikowe źródło
 i licencję w `game/assets/CREDITS.md`. Sam test, dokumentacja lub refaktor nie
-liczy się jako grafika. K87 jest wyłącznie minimum technicznym. Próg pozostaje
-nieosiągnięty, dopóki mapa, osady, armie, bitwa i UI nie są spójne i wolne od
-przypadkowych placeholderów, licencje nie są kompletne, człowiek nie zaakceptuje
-screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
-`docs/PROJECT.md`.
+liczył się jako grafika. K87 było wyłącznie minimum technicznym. Warunek ten
+został spełniony: mapa, osady, armie, bitwa i UI są spójne i wolne od
+przypadkowych placeholderów, CREDITS nie ma luk, a człowiek zaakceptował
+screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
 
 ---
 
@@ -1281,70 +1282,34 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
 - [x] **G105.1d [GRAFIKA] — panel wyboru i karta statusu bez dominującej
       pustki.** `selected_region_empty_ornament.png` + HSeparators statusu.
       *(commit 1ebbbd4)*
-> **K105 — UKOŃCZONY** *(commity d054581…1ebbbd4)*: figury + chrome; próg
-> wizualny nadal nieosiągnięty (brak pakietu screenshotów po K105 i brak
-> ludzkiej akceptacji).
+> **K105 — UKOŃCZONY** *(commity d054581…1ebbbd4)*: figury + chrome; pakiet
+> screenshotów i ludzka akceptacja progu należały do K106.
 
-## Kamień milowy 106 — próg wizualny: pakiet dowodowy i jawna akceptacja — PRIORYTET
-> **Najcieńszy następny plasterek po K105: cztery zadania graficzne, zero
-> mechanicznych — bez nowej serii polish.** Po G105.1a–d zaplanowany zakres
-> oprawy przed progiem jest w kodzie (figury isometrii/¾, centrowanie bitwy,
-> ornament pustego wyboru). Kryterium progu z briefu wymaga jednak, by
-> **człowiek zaakceptował screenshoty** i by ten stan był **jawnie zapisany**
-> w `docs/PROJECT.md` i tu. K105 **nie zostawiło** plików w
-> `game/screenshots/` (ostatnie to `task-585-*` z K104 — top-down RTS).
-> K106 dostarcza wyłącznie **cztery stany dowodowe 1152×648** na żywym
-> kliencie po K105, z ludzkim review każdego; residualną poprawę assetu
-> wolno zrobić **tylko** gdy review odrzuci dany stan (wskazany plik +
-> miejsce użycia + CREDITS). Nie otwierać reguł, mostu, `new_game`, terenu
-> regionu, pustych heksów bitwy ani niezależnej mechaniki. Po akceptacji
-> wszystkich czterech — **jeden jawny zapis** progu (punkt w PROJECT + tu).
-> Bramka 4 graficzne / 0 mechanicznych.
-- [ ] **G106.1a [GRAFIKA] — dowód progu: świeża partia strategiczna po K105.**
-      Uruchomić natywny Godot na pięcioregionowym świecie (seed ustalony
-      w teście/sondzie) i zapisać screenshot **1152×648** pełnego ekranu
-      świeżej partii: mapa z keep/outpost, armie w isometrii/¾ (nie
-      top-down RTS z `task-585`), teatr, herby, legenda, pasek rozkazów,
-      karta statusu z dzielnikami, **pusty** panel wyboru z ornamentem
-      `selected_region_empty_ornament.png`. Bez reguł/mostu. Akceptacja:
-      plik w `game/screenshots/` (np. `task-NNN-fresh-post-k105-1152x648.png`),
-      test/sonda nie regresuje layoutu K99–K105, ludzkie review spójności
-      i braku residualnego chrome prototypu; użyte assety mają kompletne
-      wpisy w `CREDITS.md`. Residualna poprawa tylko po odrzuceniu review —
-      jeden wskazany element oprawy, nie przebudowa serii. *(standard;
-      ryzyko: kompozycja przy 1152×648, czytelność małych figurek)*
-- [ ] **G106.1b [GRAFIKA] — dowód progu: wybrany region (pusty → wybrany).**
-      Dwa screenshoty 1152×648: (1) brak wyboru z ornamentem i polskim
-      pustym stanem, (2) wskazany region z ramką `map_target_frame`,
-      polskimi wierszami panelu (nazwa/właściciel/osada/armia z
-      `WorldPresentation`) bez wypchnięcia przycisków poza ekran. Bez
-      zmian snapshotu/mostu. Akceptacja: oba pliki w `game/screenshots/`,
-      test panelu wyboru bez regresji K97/K100/K105.1d, ludzkie review
-      gęstości lewej kolumny; CREDITS bez luk dla użytych nośników.
-      *(standard; ryzyko: kompozycja lewej kolumny)*
-- [ ] **G106.1c [GRAFIKA] — dowód progu: bitwa z figurami isometrii i
-      wycentrowanym klastrem.** Screenshot 1152×648 widocznej bitwy
-      (fixture lub e2e szturm): strony `side_*` z rodziny G105, plakietki
-      PŻ K104, dekoracje terenu, baner wyniku PL, klaster heksów
-      wycentrowany w panelu (G105.1c), nie tonący w pustym pergaminie;
-      sterowanie i mapa nadal czytelne. Akceptacja: plik w
-      `game/screenshots/`, test `BattleView` bez regresji K98/K105,
-      ludzkie review hierarchii bitwy; CREDITS kompletne. *(standard;
-      ryzyko: clipping, z-order PŻ/dekoracji)*
-- [ ] **G106.1d [GRAFIKA] — audyt residualnego chrome + jawna akceptacja
-      progu.** Przejrzeć pełny ekran stanów z G106.1a–c pod kątem
-      przypadkowych placeholderów (goły `ColorRect`/`StyleBoxFlat` jako
-      nośnik treści, angielskie tokeny UI, top-down RTS na mapie/bitwie,
-      pusta płyta bez ornamentu). Uzupełnić braki atrybucji w
-      `game/assets/CREDITS.md` jeśli review je wskaże. **Gdy człowiek
-      akceptuje wszystkie trzy stany dowodowe:** zapisać jawnie w
-      `docs/PROJECT.md` (stan faktyczny + cel) i w tym pliku, że **próg
-      wizualny jest osiągnięty** (data akceptacji); w przeciwnym razie
-      wskazać **jeden** residualny element do cienkiego follow-upu — nie
-      otwierać nowej wielowarstwowej serii. Bez reguł/mostu. Akceptacja:
-      diff docs + ewentualny jeden asset; ludzki podpis progu albo jawny
-      odrzut z listą braków. *(standard; ryzyko: fałszywe „gotowe" bez
-      screenshotów — wymaga G106.1a–c)*
+## Kamień milowy 106 — próg wizualny: pakiet dowodowy i jawna akceptacja — UKOŃCZONY 2026-08-06
+> **K106 — UKOŃCZONY.** Człowiek zaakceptował 2026-08-06 trzy stany dowodowe
+> G106.1a–c na screenshotach 1152×648: świeżą partię
+> `task-591-fresh-post-k105-1152x648.png`, pusty i wybrany region
+> (`task-592-selected-region-{empty,selected}-1152x648.png`) oraz bitwę
+> (`task-593-visible-battle-post-k105-1152x648.png`). Audyt G106.1d nie
+> wskazał residualnego chrome, angielskich tokenów, top-downowych figur ani
+> pustego panelu bez ornamentu; `game/assets/CREDITS.md` nie ma luk. Nie ma
+> wskazanego residualu do follow-upu. Pakiet świadomie domknięto trzema stanami;
+> status i zakończenie pokrywają dowody świeżej partii i bitwy. Próg wizualny
+> jest osiągnięty, a bramka 4 graficzne / batch została odwołana tą akceptacją.
+- [x] **G106.1a [GRAFIKA] — świeża partia strategiczna po K105.** Dowód:
+      `task-591-fresh-post-k105-1152x648.png`; przegląd zaakceptowany
+      2026-08-06.
+- [x] **G106.1b [GRAFIKA] — wybrany region (pusty → wybrany).** Dowody:
+      `task-592-selected-region-empty-1152x648.png` oraz
+      `task-592-selected-region-selected-1152x648.png`; polski UI,
+      ornament i ramka wyboru zaakceptowane 2026-08-06.
+- [x] **G106.1c [GRAFIKA] — bitwa z figurami isometrii/¾ i wycentrowanym
+      klastrem.** Dowód: `task-593-visible-battle-post-k105-1152x648.png`;
+      strony, PŻ, dekoracje i polski wynik zaakceptowane 2026-08-06.
+- [x] **G106.1d [GRAFIKA] — audyt residualnego chrome i jawna akceptacja.**
+      Pełne ekrany G106.1a–c przejrzane; brak wskazanego residualnego chrome
+      i brak luk w CREDITS. Wpis progu znajduje się w `docs/PROJECT.md` oraz
+      tutaj. *(2026-08-06)*
 
 ## Dług/refaktor
 - [x] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
@@ -1359,11 +1324,11 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
 - [x] **R15.1 (refaktor)** Kompaktacja DESIGN.md do stanu obecnego; historia → DECISIONS.md. *(task-094)*
 - [x] **R16.1 (refaktor)** Wspólny generator formularzy celu marsz/szturm w `serve.py`. *(task-098)*
 
-## Kolejne kierunki (pod stałą bramką oprawy)
-> Kolejność wynika z kryterium „gotowe" w `docs/PROJECT.md`. Do jawnego
-> osiągnięcia progu wizualnego każdy kolejny batch spełnia regułę 4 graficzne /
-> najwyżej 2 mechaniczne / najwyżej 6 łącznie. Niezależne przyciski, reguły
-> rdzenia, AI, ekonomia, walka, ruch, protokół i porządki są wstrzymane.
+## Kolejne kierunki (po odwołaniu bramki oprawy)
+> Kolejność wynika z kryterium „gotowe" w `docs/PROJECT.md`. Próg wizualny
+> został osiągnięty 2026-08-06; niezależne przyciski, reguły rdzenia, AI,
+> ekonomia, walka, ruch, protokół i porządki nie są już wstrzymywane przez
+> bramkę oprawy.
 - ~~K94: spójność kafli, keep/outpost, tło i kompozycja~~ — **wykonane**.
 - ~~K95: ikony wszystkich bieżących rozkazów~~ — **wykonane**.
 - ~~G96.1a: sylwetki armii obu stron na mapie~~ — **wykonane**.
@@ -1383,15 +1348,15 @@ screenshotów, a ten stan nie zostanie jawnie zapisany tutaj i w
 - ~~K105: figury isometrii/¾ + centrowanie bitwy + ornament pustego wyboru~~
   — **wykonane** (commity `d054581`…`1ebbbd4`; bez `task-*` w
   `game/screenshots/`).
-- **Teraz K106:** pakiet dowodowy 1152×648 po K105 (świeża partia, wybór
-  regionu, bitwa) + jawna ludzka akceptacja progu wizualnego; residualna
-  poprawa tylko po odrzuceniu review — nie nowa seria polish.
+- ~~**K106:** pakiet dowodowy 1152×648 po K105 (świeża partia, wybór regionu,
+  bitwa) + jawna ludzka akceptacja progu wizualnego~~ — **wykonane 2026-08-06**;
+  brak wskazanego residualu, nie otwarto nowej serii polish.
 - ~~Zapis/odczyt z UI: jawne „Zapisz”/„Wczytaj”~~ — rozplanowane jako K86.
 - ~~Prawdziwe assety i tekstury zamiast `ColorRect`~~ — rozplanowane jako K87.
 - Assety / próg — K87–K105 dały nośnik, mapę, bitwę, hierarchię, PL/teatr,
   herby, plakietki, sterowanie, stonowane podłoże, ton pergaminu, rodzinę
-  kształtów figur i residualny chrome; **K106** domyka **dowód i akceptację**
-  progu, nie inventuje kolejnej warstwy oprawy.
+  kształtów figur i residualny chrome; **K106 domknął 2026-08-06 dowód i
+  akceptację progu**, bez inventowania kolejnej warstwy oprawy.
 - **Mechaniczny teren regionu na mapie strategicznej — ODŁOŻONY DO PROGU
   WIZUALNEGO.** `tbb.world.Region` ma dziś tylko
   `name`, więc `snapshot.map_state` nie ma czego wystawić i kafel mapy w K87

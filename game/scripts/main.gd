@@ -448,16 +448,15 @@ func _fit_map_column_to_viewport_with_battle() -> void:
 	var sep_main := float(main_layout.get_theme_constant("separation"))
 	var sep_mb := float(map_and_battle.get_theme_constant("separation"))
 	var order_h := order_bar.get_combined_minimum_size().y
+	var fixed_chrome_h := order_h + sep_main + sep_mb
 	# Readability floor: only MapView.min_readable_panel_height (no local 36 fallback).
 	var map_floor: float = maxf(1.0, map_view.min_readable_panel_height())
-	var battle_budget: float = viewport_h - order_h - sep_main - sep_mb - map_floor
+	var battle_budget: float = viewport_h - fixed_chrome_h - map_floor
 	battle_view.fit_vertical_budget(battle_budget)
 	var map_budget: float = (
 		viewport_h
-		- order_h
-		- sep_main
+		- fixed_chrome_h
 		- battle_view.get_combined_minimum_size().y
-		- sep_mb
 	)
 	map_view.custom_minimum_size.y = clampf(
 		map_budget, map_floor, _map_view_min_height_no_battle

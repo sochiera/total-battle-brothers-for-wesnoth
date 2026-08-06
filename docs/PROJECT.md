@@ -41,6 +41,7 @@ Próg jest osiągnięty dopiero, gdy mapa, osady i armie używają spójnych ass
 bitwa ma czytelne kafle/jednostki/strony, UI nie opiera się na przypadkowych
 placeholderach, licencje są kompletne, człowiek akceptuje screenshoty, a
 `docs/PROJECT.md` i `BACKLOG.md` jawnie zapisują ten stan. **[W]**
+Warunek został spełniony 2026-08-06 w K106.
 
 ## Stan faktyczny (aktualizowany przy przeglądach)
 - Rdzeń `tbb` (Python): kampania, ekonomia, kalendarz, jednostki/progresja,
@@ -49,7 +50,8 @@ placeholderach, licencje są kompletne, człowiek akceptuje screenshoty, a
   `serve`/`--resume`, round-trip save/load (RNG + `last_battle`) — **gotowe**.
 - Klient Godot 4 w `game/`: `SnapshotModel`, `BridgeClient` przez plik, oba
   widoki, statusy, bieżące rozkazy; **start bez terminala + save/load** (K82–K86).
-- **Minimum assetów — GOTOWE, próg wizualny — NIE** (K87). Kenney CC0 = minimum.
+- **Minimum assetów — GOTOWE (K87); próg wizualny — OSIĄGNIĘTY 2026-08-06
+  (K106).** Kenney CC0 było minimum technicznym.
 - **Pakiet Linuksa, pętla partii, obrona osady, 5 regionów / 2 osady na stronę**
   — DOMKNIĘTE (K88–K92).
 - **Oprawa K94–K105 — DOMKNIĘTA:** kompozycja mapy, ikony, armie, `move`+cel,
@@ -59,14 +61,19 @@ placeholderach, licencje są kompletne, człowiek akceptuje screenshoty, a
   pergaminu, cue PŻ, **figury armii/stron w isometrii/¾** (nie top-down RTS),
   centrowanie klastra bitwy, ornament pustego wyboru (`1ebbbd4`…`d054581`,
   wcześniej `task-579-*`…`task-585-*`). Bez reguł/mostu w tej serii.
+- **Próg wizualny K106 — OSIĄGNIĘTY 2026-08-06:** człowiek zaakceptował
+  pakiet G106.1a–c (`task-591-fresh-post-k105-1152x648.png`, parę
+  `task-592-selected-region-{empty,selected}-1152x648.png` oraz
+  `task-593-visible-battle-post-k105-1152x648.png`). Audyt pełnych ekranów
+  nie wskazał residualnego chrome, angielskich tokenów, top-downowych figur,
+  pustego panelu bez ornamentu ani luk atrybucji w `game/assets/CREDITS.md`.
+  Zapis odwołuje bramkę planowania oprawy 4 graficzne / batch.
 - `tbbui` — **tylko diagnostyka**, nie docelowy klient.
 
-**Najbliższa luka po K105:** zaplanowany zakres oprawy przed progiem jest w
-  kodzie; **brakuje pakietu screenshotów 1152×648 po K105** oraz **jawnej
-  ludzkiej akceptacji** progu (K105 nie zostawiło `task-*` w
-  `game/screenshots/`). Próg nieosiągnięty. **K106** — cztery stany dowodowe +
-  akceptacja; bez nowej serii polish i bez reguł/mostu, chyba że review
-  odrzuci konkretny stan.
+**K106 zamknął lukę po K105:** pakiet screenshotów 1152×648 po K105 został
+  przejrzany i zaakceptowany 2026-08-06. Nie ma otwartego residualu chrome ani
+  braków CREDITS do follow-upu; dalsze poprawki oprawy nie są wymagane przez
+  próg.
 
 ## Ograniczenia i priorytety
 - **[W]** Rdzeń `tbb` jest **jedynym źródłem reguł**. Godot nie duplikuje logiki;
@@ -82,10 +89,10 @@ placeholderach, licencje są kompletne, człowiek akceptuje screenshoty, a
   czymś widocznym, nie samą regułą.
 - **[W]** Widoki rysują **prawdziwe assety** (patrz kryterium). Ilość mała;
   *istnienie* assetów — nie.
-- **[W] Bramka oprawy:** do progu wizualnego każde planowanie i batch Forge:
-  ≥4 graficzne, ≤2 mechaniczne, ≤6 łącznie. Mechanika tylko jako niezbędna
-  zależność efektu graficznego. Brak 4 graficznych → dopisać małe, nigdy
-  `no_more_tasks`.
+- **[W] Bramka oprawy (odwołana 2026-08-06 po akceptacji K106):** do osiągnięcia
+  progu każde planowanie i batch Forge wymagały ≥4 graficznych, ≤2 mechanicznych
+  i ≤6 łącznie. Mechanika była dopuszczalna tylko jako niezbędna zależność
+  efektu graficznego; po osiągnięciu progu reguła nie obowiązuje.
 - **[W]** Zadanie graficzne: asset + miejsce użycia, widoczny efekt w Godocie,
   screenshot/ludzkie review, źródło/licencja per plik w `game/assets/CREDITS.md`.
   Sam test/dokumentacja/refaktor ≠ grafika.
@@ -130,9 +137,8 @@ placeholderach, licencje są kompletne, człowiek akceptuje screenshoty, a
     recolor top-down RTS **nie** domyka spójności z isometrią (wniosek: barwa ≠
     rodzina kształtów) → **K105**.
 31. **K105:** figury mapy/bitwy w isometrii/¾ + centrowanie klastra + ornament
-    pustego wyboru — **zrobione** w kodzie; brak screenshotów w
-    `game/screenshots/` i brak ludzkiej akceptacji → **K106** (pakiet progu,
-    nie kolejna warstwa inventowanej oprawy).
+    pustego wyboru — **zrobione** w kodzie; brak screenshotów i ludzkiej
+    akceptacji doprowadził do K106 (pakietu progu, nie kolejnej warstwy oprawy).
 
 ## Klimat, ton, kierunek wizualny
 Średniowiecze **bez magii i fantastyki**, surowy i realistyczny ton. **[W]**
@@ -149,28 +155,27 @@ wymieniane etapami. **[P]**
 Kolejność poprawy: (1–14) ~~mapa…herby, tabliczki/PŻ/panel, przyciski/legenda,
 podłoże, keep/outpost, dekoracje, recolor, cue PŻ, kształt figur isometrii/¾,
 kompozycja chrome (panel/bitwa)~~ — zrobione (K94–K105); (15) **pakiet progu**
-screenshotów 1152×648 + jawna ludzka akceptacja (K106) — bez reguł/mostu i bez
-otwierania nowej serii polish, chyba że review odrzuci stan. **[W]**
+screenshotów 1152×648 + jawna ludzka akceptacja (K106, 2026-08-06) — zrobione,
+bez reguł/mostu i bez otwierania nowej serii polish. **[W]**
 
 ## Sugestie autora briefu
 - `godot-notes.md` jest **niewiążące** — inspiracja, nie specyfikacja.
 - `tbbui` zostaje diagnostyką; nie rozwijamy go jako produktu (wstrzymany K62).
 - Porządek repo gry (sondy vs produkcja, `out/`) — **[P]** *(zrobione: R82.1)*.
 - **Assety przesądzają o prawdziwym MVP** (2026-07-27) — **[W]**, nie sugestia.
-- Brief 2026-07-30: bramka 4 zadań graficznych/batch do ludzkiej akceptacji;
-  K87 nie kończy oprawy. **[W]**
+- Brief 2026-07-30: bramka 4 zadań graficznych/batch obowiązywała do ludzkiej
+  akceptacji; K87 nie kończyło oprawy, a K106 zamknął ten warunek 2026-08-06.
+  **[W]**
 
 ## Kolejne prawdopodobne etapy
 1. ~~K82–K86~~ — **zrobione**.
-2. **K87** — minimum assetów gotowe technicznie; próg wizualny nie.
+2. ~~**K87** — minimum assetów gotowe technicznie~~; próg domknięty dopiero K106.
 3. ~~K88–K92~~ — **domknięte**.
 4. ~~K94–K105~~ — **zrobione** (oprawa aż po figury isometrii/¾ i chrome).
-5. **K106 — próg wizualny** — pakiet screenshotów 1152×648 po K105 (świeża
-   partia, wybór regionu, bitwa, status/zakończenie) + **jawna ludzka
-   akceptacja** zapisana tu i w `BACKLOG.md`. Bez reguł/mostu; residualna
-   poprawa tylko gdy review odrzuci konkretny stan.
+5. ~~**K106 — próg wizualny** — pakiet screenshotów 1152×648 po K105 i
+   **jawna ludzka akceptacja 2026-08-06** zapisana tu i w `BACKLOG.md`.~~
 6. **Nowa partia z UI po końcu gry** — most ma `new_game`, scena nie. Odłożone
-   do końca priorytetu graficznego / progu wizualnego.
+   poza zamknięty priorytet graficzny.
 
 ## Świadomie odłożone
 - Kampania/fabuła, multiplayer, magia, oddziały masowe, AAA, dźwięk, edytor map
@@ -180,6 +185,6 @@ otwierania nowej serii polish, chyba że review odrzuci stan. **[W]**
   `StrategicTurn` — po widocznej, grywalnej grze. Skala K92.2 ≠ balans.
 - Szturm na osadę z oddziałem nie-obrońcą (G92.1c) — z 3. księstwem lub reprodukcją.
 - Podział dużych docs (ARCHITECTURE/DECISIONS/DESIGN) — dług, nie blokuje celu.
-- Do progu wizualnego: niezależne reguły, AI, ekonomia, walka, ruch, rozkazy,
-  protokół/most, rdzeń, save/load, porządki i docs poza oprawą — wyjątek tylko
-  dla niezbędnej zależności konkretnego zadania graficznego w batchu.
+- Niezależne reguły, AI, ekonomia, walka, ruch, rozkazy, protokół/most, rdzeń,
+  save/load, porządki i docs poza oprawą pozostają odłożone względem celu
+  grywalnego MVP; po zamknięciu K106 nie podlegają już bramce oprawy.
