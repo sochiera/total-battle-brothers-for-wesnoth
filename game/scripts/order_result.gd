@@ -13,6 +13,18 @@ static func _move_status_text(changed: bool) -> String:
 	return MOVE_CHANGED_STATUS if changed else MOVE_UNCHANGED_STATUS
 
 
+static func _battle_status_text(
+	order: String, outcome: String, attacker_losses: int, defender_losses: int
+) -> String:
+	var battle_name := "Szturm" if order == "assault" else "Starcie"
+	return "%s: %s (straty: %d, wróg: %d)." % [
+		battle_name,
+		outcome,
+		attacker_losses,
+		defender_losses,
+	]
+
+
 static func status_text(order_result: Variant) -> String:
 	if not order_result is Dictionary:
 		return ""
@@ -24,7 +36,7 @@ static func status_text(order_result: Variant) -> String:
 
 	var order: String = order_result["order"]
 	if order_result.has("kind"):
-		if order_result["kind"] != "battle" or order != "assault":
+		if order_result["kind"] != "battle" or (order != "assault" and order != "engage"):
 			return ""
 		if not order_result.has("outcome") or not order_result["outcome"] is String:
 			return ""
@@ -35,11 +47,7 @@ static func status_text(order_result: Variant) -> String:
 		var outcome: String = order_result["outcome"]
 		var attacker_losses: int = order_result["attacker_losses"]
 		var defender_losses: int = order_result["defender_losses"]
-		return "Szturm: %s (straty: %d, wróg: %d)." % [
-			outcome,
-			attacker_losses,
-			defender_losses,
-		]
+		return _battle_status_text(order, outcome, attacker_losses, defender_losses)
 
 	if not order_result.has("changed") or not order_result["changed"] is bool:
 		return ""
@@ -60,6 +68,8 @@ static func status_text(order_result: Variant) -> String:
 			order_name = "marszu"
 		"assault":
 			order_name = "szturmu"
+		"engage":
+			order_name = "starcia"
 		_:
 			return ""
 

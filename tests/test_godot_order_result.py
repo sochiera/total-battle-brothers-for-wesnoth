@@ -76,6 +76,14 @@ def test_godot_order_result_projects_only_complete_successful_order_results():
         "attacker_losses": 0,
         "defender_losses": 0,
     }
+    assert payload["engage_battle"] == {
+        "kind": "battle",
+        "order": "engage",
+        "outcome": "porażka",
+        "attacker_losses": 1,
+        "defender_losses": 0,
+    }
+    assert payload["engage_unchanged"] == {"order": "engage", "changed": False}
     for case in (
         "missing_ok",
         "not_ok",
@@ -128,6 +136,8 @@ def test_godot_order_result_returns_polish_status_text_for_projected_orders():
         "assault_battle_from_wire": "Szturm: zwycięstwo (straty: 0, wróg: 2).",
         # Ten sam szablon co zwycięstwo/porażka/remis; outcome mostu wprost w tekście.
         "assault_battle_unresolved": "Szturm: nierozstrzygnięta (straty: 0, wróg: 0).",
+        "engage_unchanged": "Rozkaz starcia nie zmienił stanu.",
+        "engage_battle": "Starcie: porażka (straty: 1, wróg: 0).",
         "missing_result": "",
         "non_dictionary": "",
         "missing_order": "",

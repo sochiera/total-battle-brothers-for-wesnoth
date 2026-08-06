@@ -420,7 +420,7 @@ theme_override_constants/separation = 8
 
 [node name="MapView" type="Control" parent="MainLayout/ContentRow/MapAndBattle"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(420, 240)
+custom_minimum_size = Vector2(480, 240)
 layout_mode = 2
 size_flags_vertical = 3
 clip_contents = true
@@ -441,7 +441,7 @@ mouse_filter = 2
 
 [node name="BattleView" type="Control" parent="MainLayout/ContentRow/MapAndBattle"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(420, 0)
+custom_minimum_size = Vector2(480, 0)
 layout_mode = 2
 size_flags_vertical = 0
 visible = false
@@ -554,8 +554,11 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 4
 
-[node name="OrderButtons" type="HBoxContainer" parent="MainLayout/OrderControls/OrderBarContent"]
+[node name="OrderButtons" type="GridContainer" parent="MainLayout/OrderControls/OrderBarContent"]
 layout_mode = 2
+theme_override_constants/h_separation = 4
+theme_override_constants/v_separation = 4
+columns = 5
 
 [node name="NextTurnButton" type="Button" parent="MainLayout/OrderControls/OrderBarContent/OrderButtons"]
 unique_name_in_owner = true
@@ -599,8 +602,15 @@ layout_mode = 2
 icon = ExtResource("10_assault_icon")
 text = "Szturmuj osadę"
 
+[node name="EngageButton" type="Button" parent="MainLayout/OrderControls/OrderBarContent/OrderButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 40)
+layout_mode = 2
+text = "Uderz na wojsko wroga"
+
 [node name="SaveLoadButtons" type="HBoxContainer" parent="MainLayout/OrderControls/OrderBarContent"]
 layout_mode = 2
+size_flags_horizontal = 4
 
 [node name="SaveGameButton" type="Button" parent="MainLayout/OrderControls/OrderBarContent/SaveLoadButtons"]
 unique_name_in_owner = true

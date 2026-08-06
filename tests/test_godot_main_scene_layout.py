@@ -34,17 +34,21 @@ HIDDEN_CONTROLS = (
     "PlayerDuchyStatusLabel",
     "PartyPositionContractLabel",
 )
-ORDER_CONTROLS = (
+COMMAND_CONTROLS = (
     "NextTurnButton",
     "DevelopButton",
     "RecruitButton",
     "MusterButton",
     "MarchButton",
     "AssaultButton",
+    "EngageButton",
+)
+SAVE_LOAD_CONTROLS = (
     "SaveGameButton",
     "LoadGameButton",
     "NewGameButton",
 )
+ORDER_CONTROLS = COMMAND_CONTROLS + SAVE_LOAD_CONTROLS
 ALL_CONTROLS = STATUS_CONTROLS + HIDDEN_CONTROLS + ORDER_CONTROLS
 
 # G94.1d review resolution and strategic map panel background path.
@@ -236,6 +240,7 @@ def test_main_scene_controls_have_disjoint_layout_and_hidden_contract_controls()
     for name in ORDER_CONTROLS:
         rect = controls[name]
         assert rect["disabled"] is False, f"{name} must remain clickable, got {rect}"
+        assert rect["visible"] is True, f"{name} must be visible, got {rect}"
         assert rect["clip_text"] is False, f"{name} must not clip its label, got {rect}"
         assert rect["w"] >= rect["minimum_w"], (
             f"{name} must fit its icon/label minimum width, got {rect}"
@@ -259,6 +264,23 @@ def test_main_scene_controls_have_disjoint_layout_and_hidden_contract_controls()
     assert not _rects_share_a_point(status_box, order_box), (
         "status controls and order buttons must form separate groups, "
         f"got status={status_box} orders={order_box}"
+    )
+
+    command_rows = {round(float(controls[name]["y"]), 3) for name in COMMAND_CONTROLS}
+    save_load_rows = {
+        round(float(controls[name]["y"]), 3) for name in SAVE_LOAD_CONTROLS
+    }
+    assert 1 <= len(command_rows) <= 2, (
+        "the seven order buttons may use one row or a 5+2 command layout, "
+        f"got rows={command_rows}"
+    )
+    assert len(save_load_rows) == 1, (
+        "save/load/new-game buttons must remain on one separate row, "
+        f"got rows={save_load_rows}"
+    )
+    assert command_rows.isdisjoint(save_load_rows), (
+        "command and save/load rows must remain visually separate, "
+        f"got commands={command_rows} save_load={save_load_rows}"
     )
 
 
@@ -314,7 +336,7 @@ def test_order_buttons_expose_distinct_states_and_review_screenshots():
     order-bar background gates then remain green even though the interactive
     carriers are still the residual flat surfaces forbidden by G103.1a.
 
-    G107.1d adds a separate failure mode: all nine controls can be present and
+    G107.1d adds a separate failure mode: all order controls can be present and
     laid out correctly while the required post-G107 full-screen proof with
     ``NewGameButton`` is missing or is not a detailed 1152×648 frame.
 

@@ -55,6 +55,14 @@ var _last_hexes: Array = []
 var _vertical_budget := INF
 
 
+func _notification(what: int) -> void:
+	if what != NOTIFICATION_RESIZED or not visible or _last_hexes.is_empty():
+		return
+	# Container layout can change the panel size after Main rendered the model;
+	# re-fit then so a first frame cannot retain a cluster sized for stale bounds.
+	fit_vertical_budget(_vertical_budget)
+
+
 func render_model(model: SnapshotModel) -> void:
 	_reset_and_hide_view()
 	var battle: Variant = _battle_data(model)
@@ -69,13 +77,14 @@ func render_model(model: SnapshotModel) -> void:
 	_last_hexes = hexes.duplicate()
 	_layout_scale = 1.0
 	_render_hexes(_last_hexes)
-	# Re-apply a prior budget after re-render (e.g. second apply_model in one frame).
-	if _vertical_budget < INF:
-		fit_vertical_budget(_vertical_budget)
+	# Apply the horizontal panel fit even before Main supplies a vertical budget;
+	# probes and early layout frames can render this view with only its minimum
+	# width available. A later Main fit then adds the viewport-height constraint.
+	fit_vertical_budget(_vertical_budget)
 
 
 func fit_vertical_budget(max_height: float) -> void:
-	## Scale occupied hex cluster so required panel height ≤ max_height.
+	## Scale occupied hex cluster so it fits both panel axes and max_height.
 	## Native 120×140 when budget allows; used only when MapView readability floor
 	## would otherwise be crushed by multi-row battle chrome.
 	_vertical_budget = max_height
@@ -84,13 +93,16 @@ func fit_vertical_budget(max_height: float) -> void:
 	if max_height <= 0.0:
 		return
 	var native_h := _required_height_at_scale(1.0)
-	var target_scale := 1.0
+	var target_scale := _horizontal_fit_scale()
 	if native_h > max_height:
 		# Header + result label/pad stay fixed; hex geometry and result gap scale.
 		var fixed_h := _battle_header_band_height() + _result_label_and_banner_pad()
 		var variable_h := maxf(1.0, native_h - fixed_h)
 		var room := maxf(0.0, max_height - fixed_h)
-		target_scale = clampf(room / variable_h, MIN_CLUSTER_LAYOUT_SCALE, 1.0)
+		target_scale = minf(
+			target_scale, clampf(room / variable_h, MIN_CLUSTER_LAYOUT_SCALE, 1.0)
+		)
+	target_scale = clampf(target_scale, MIN_CLUSTER_LAYOUT_SCALE, 1.0)
 	if absf(target_scale - _layout_scale) < 0.001:
 		return
 	_layout_scale = target_scale
@@ -206,14 +218,26 @@ func _occupied_cluster_x_bounds(hexes: Array) -> Variant:
 	return Vector2(min_left, max_right)
 
 
+func _horizontal_fit_scale() -> float:
+	## Keep the full occupied AABB inside BattleView; the parent container may
+	## be wider than this panel, so centring against it would leak tiles out of
+	## the visible parchment by the excess parent width.
+	if _last_hexes.is_empty():
+		return 1.0
+	var saved := _layout_scale
+	_layout_scale = 1.0
+	var bounds: Variant = _occupied_cluster_x_bounds(_last_hexes)
+	_layout_scale = saved
+	if bounds == null:
+		return 1.0
+	var cluster_w: float = maxf(1.0, bounds.y - bounds.x)
+	return clampf(_panel_width_for_cluster() / cluster_w, 0.01, 1.0)
+
+
 func _panel_width_for_cluster() -> float:
-	## Prefer the laid-out panel width. Headless / early render can still report
-	## only custom_minimum_size.x on this Control while MapAndBattle is wider —
-	## parent width (and min size) keep centering against the real parchment.
+	## Use the actual panel width. MapAndBattle can be wider than BattleView;
+	## using the parent here centres the cluster partly outside this panel.
 	var view_w := size.x
-	var parent_ctrl := get_parent() as Control
-	if parent_ctrl != null:
-		view_w = maxf(view_w, parent_ctrl.size.x)
 	if view_w <= 0.0:
 		view_w = custom_minimum_size.x
 	return view_w

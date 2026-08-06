@@ -14,8 +14,24 @@ ORDER_STATUS_PREFIX = "ORDER_STATUS "
 MUSTER_PREFIX = "MUSTER_BUTTON "
 MARCH_PREFIX = "MARCH_BUTTON "
 ASSAULT_PREFIX = "ASSAULT_BUTTON "
+ENGAGE_PREFIX = "ENGAGE_BUTTON "
 ASSAULT_BINDING_PREFIX = "ASSAULT_BUTTON_BINDING "
 PARTY_POSITION_PREFIX = "PARTY_POSITION "
+
+
+def _assert_no_behavior_button_probe(
+    script: str, prefix: str, expected: dict
+) -> None:
+    result = run_godot_script(GAME, script, timeout=30)
+
+    assert result.returncode == 0, result.stderr
+    lines = [line for line in result.stdout.splitlines() if line.startswith(prefix)]
+    assert len(lines) == 1, result.stdout
+    assert "SCRIPT ERROR" not in result.stderr, result.stderr
+    assert "ERROR:" not in result.stderr, result.stderr
+
+    payload = json.loads(lines[0][len(prefix) :])
+    assert payload == expected
 
 
 def test_scene_probe_reports_main_scene_root():
@@ -47,6 +63,7 @@ def test_scene_probe_reports_main_scene_root():
         "MusterButton": "Button",
         "MarchButton": "Button",
         "AssaultButton": "Button",
+        "EngageButton": "Button",
     }
     for name, cls in expected_controls.items():
         assert name in by_name, f"missing public control {name}"
@@ -84,86 +101,67 @@ def test_player_party_position_renders_and_updates_through_bridge_paths():
 
 
 def test_develop_button_has_exact_text_and_no_behavior():
-    result = run_godot_script(
-        GAME, "res://tests/develop_button_probe.gd", timeout=30
+    _assert_no_behavior_button_probe(
+        "res://tests/develop_button_probe.gd",
+        DEVELOP_PREFIX,
+        {
+            "text": "Rozwiń osadę",
+            "pressed_connections": 0,
+            "child_count_unchanged": True,
+        },
     )
-
-    assert result.returncode == 0, result.stderr
-    lines = [
-        line for line in result.stdout.splitlines() if line.startswith(DEVELOP_PREFIX)
-    ]
-    assert len(lines) == 1, result.stdout
-    assert "SCRIPT ERROR" not in result.stderr, result.stderr
-
-    payload = json.loads(lines[0][len(DEVELOP_PREFIX) :])
-    assert payload == {
-        "text": "Rozwiń osadę",
-        "pressed_connections": 0,
-        "child_count_unchanged": True,
-    }
 
 
 def test_muster_button_has_exact_text_and_no_behavior():
-    result = run_godot_script(
-        GAME, "res://tests/muster_button_probe.gd", timeout=30
+    _assert_no_behavior_button_probe(
+        "res://tests/muster_button_probe.gd",
+        MUSTER_PREFIX,
+        {
+            "name": "MusterButton",
+            "text": "Zbierz oddział",
+            "pressed_connections": 0,
+            "controls_unchanged": True,
+        },
     )
-
-    assert result.returncode == 0, result.stderr
-    lines = [
-        line for line in result.stdout.splitlines() if line.startswith(MUSTER_PREFIX)
-    ]
-    assert len(lines) == 1, result.stdout
-    assert "SCRIPT ERROR" not in result.stderr, result.stderr
-
-    payload = json.loads(lines[0][len(MUSTER_PREFIX) :])
-    assert payload == {
-        "name": "MusterButton",
-        "text": "Zbierz oddział",
-        "pressed_connections": 0,
-        "controls_unchanged": True,
-    }
 
 
 def test_march_button_has_exact_text_and_no_behavior():
-    result = run_godot_script(
-        GAME, "res://tests/march_button_probe.gd", timeout=30
+    _assert_no_behavior_button_probe(
+        "res://tests/march_button_probe.gd",
+        MARCH_PREFIX,
+        {
+            "name": "MarchButton",
+            "text": "Wyrusz w pole",
+            "pressed_connections": 0,
+            "controls_unchanged": True,
+        },
     )
-
-    assert result.returncode == 0, result.stderr
-    lines = [
-        line for line in result.stdout.splitlines() if line.startswith(MARCH_PREFIX)
-    ]
-    assert len(lines) == 1, result.stdout
-    assert "SCRIPT ERROR" not in result.stderr, result.stderr
-
-    payload = json.loads(lines[0][len(MARCH_PREFIX) :])
-    assert payload == {
-        "name": "MarchButton",
-        "text": "Wyrusz w pole",
-        "pressed_connections": 0,
-        "controls_unchanged": True,
-    }
 
 
 def test_assault_button_has_exact_text_and_no_behavior():
-    result = run_godot_script(
-        GAME, "res://tests/assault_button_probe.gd", timeout=30
+    _assert_no_behavior_button_probe(
+        "res://tests/assault_button_probe.gd",
+        ASSAULT_PREFIX,
+        {
+            "name": "AssaultButton",
+            "text": "Szturmuj osadę",
+            "pressed_connections": 0,
+            "controls_unchanged": True,
+        },
     )
 
-    assert result.returncode == 0, result.stderr
-    lines = [
-        line for line in result.stdout.splitlines() if line.startswith(ASSAULT_PREFIX)
-    ]
-    assert len(lines) == 1, result.stdout
-    assert "SCRIPT ERROR" not in result.stderr, result.stderr
 
-    payload = json.loads(lines[0][len(ASSAULT_PREFIX) :])
-    assert payload == {
-        "name": "AssaultButton",
-        "text": "Szturmuj osadę",
-        "pressed_connections": 0,
-        "controls_unchanged": True,
-    }
+def test_engage_button_has_exact_text_and_no_behavior():
+    _assert_no_behavior_button_probe(
+        "res://tests/engage_button_probe.gd",
+        ENGAGE_PREFIX,
+        {
+            "name": "EngageButton",
+            "text": "Uderz na wojsko wroga",
+            "pressed_connections": 0,
+            "controls_unchanged": True,
+        },
+    )
 
 
 def test_assault_button_sends_the_assault_order_and_projects_a_battle_result():

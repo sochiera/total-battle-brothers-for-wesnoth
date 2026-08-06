@@ -144,6 +144,7 @@ func _order_action_buttons() -> Array[Button]:
 		%MusterButton,
 		%MarchButton,
 		%AssaultButton,
+		%EngageButton,
 		%SaveGameButton,
 		%LoadGameButton,
 		%NewGameButton,
@@ -155,17 +156,17 @@ func _sync_order_controls_minimum_size() -> void:
 	## full-rect behind the two button rows. Unlike VBoxContainer, Control does
 	## not inherit child minimums — without an explicit min width MainLayout
 	## collapses to Status+Map minima (848px) and MapView/BattleView stick at
-	## custom_minimum_size.x=420. Headless map/battle probes (and any window
+	## custom_minimum_size.x=480. Headless map/battle probes (and any window
 	## that sizes from content) then paint legacy 84px tiles and clip hex (2,2).
-	var bar := $MainLayout/OrderControls as Control
-	var content := $MainLayout/OrderControls/OrderBarContent as Control
-	if bar == null or content == null:
+	var order_controls := $MainLayout/OrderControls as Control
+	var order_bar_content := $MainLayout/OrderControls/OrderBarContent as VBoxContainer
+	if order_controls == null or order_bar_content == null:
 		return
-	var content_min := content.get_combined_minimum_size()
-	var padded := content_min + ORDER_BAR_CONTENT_PAD
-	bar.custom_minimum_size = Vector2(
-		padded.x,
-		maxf(padded.y, bar.custom_minimum_size.y)
+	var content_min := order_bar_content.get_combined_minimum_size()
+	var padded_minimum := content_min + ORDER_BAR_CONTENT_PAD
+	order_controls.custom_minimum_size = Vector2(
+		padded_minimum.x,
+		maxf(padded_minimum.y, order_controls.custom_minimum_size.y)
 	)
 
 
