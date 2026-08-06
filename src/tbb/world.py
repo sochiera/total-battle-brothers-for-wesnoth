@@ -144,7 +144,10 @@ class WorldMap:
     def tick_parties(self) -> "WorldMap":
         """Return a new world after every party heals wounds and trains one month."""
         parties = {
-            region: self.parties[region].tick_wounds(1).tick_training(1)
+            region: replace(
+                self.parties[region].tick_wounds(1).tick_training(1),
+                acted_this_month=False,
+            )
             for region in self.regions
             if region in self.parties
         }

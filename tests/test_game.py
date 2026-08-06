@@ -26,6 +26,39 @@ def test_two_contenders_keep_game_running_in_input_order():
     assert game.winner is None
 
 
+def test_headless_turn_clears_party_action_marker():
+    player_region = Region("player")
+    ai_region = Region("ai")
+    player_settlement = Settlement("Player Keep", 1, owner_id="player")
+    ai_settlement = Settlement("AI Keep", 1, owner_id="ai")
+    party = Party(Unit(), owner_id="player", acted_this_month=True)
+    world = WorldMap(
+        (player_region, ai_region),
+        settlements={
+            player_region: player_settlement,
+            ai_region: ai_settlement,
+        },
+        parties={player_region: party},
+    )
+    game = GameState(
+        (
+            Duchy(
+                "player",
+                Unit(),
+                settlements=(player_settlement,),
+                parties=(party,),
+            ),
+            Duchy("ai", Unit(), settlements=(ai_settlement,)),
+        )
+    )
+
+    result_world, _, _ = run_headless_game(
+        world, game, Rng(1), max_turns=1, player_duchy_id="player"
+    )
+
+    assert result_world.party_at(player_region).acted_this_month is False
+
+
 def test_only_undefeated_duchy_wins():
     defeated_north = Duchy("north", None)
     south_settlement = Settlement("South", 1, owner_id="south")
