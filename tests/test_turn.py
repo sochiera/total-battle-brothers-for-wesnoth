@@ -5,6 +5,7 @@ from dataclasses import FrozenInstanceError
 import pytest
 
 from tbb import Calendar, FARM, Region, Resources, Settlement, TurnPhase, WorldMap
+from tests.helpers import assert_moved_party
 from tbb.turn import end_turn
 
 
@@ -192,7 +193,7 @@ def test_move_party_in_movement_returns_new_turn_and_preserves_input():
     assert advanced is not turn
     assert advanced.phase is TurnPhase.MOVEMENT
     assert advanced.calendar is calendar
-    assert advanced.world.party_at(destination) is party
+    assert_moved_party(advanced.world, destination, party)
     assert advanced.world.party_at(source) is None
     assert turn.world is world
     assert world.party_at(source) is party

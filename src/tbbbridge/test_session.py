@@ -10,6 +10,7 @@ import pytest
 
 from tbb.game import GameState, create_headless_game
 from tbb.rng import Rng
+from tests.helpers import assert_moved_party
 from tbb.turn import Calendar
 
 from tbbbridge.session import Session, apply_command, new_session
@@ -450,12 +451,12 @@ def test_apply_command_order_march_with_target_applies_march_duchy_party_to():
     # Sanity: the automatic nearest-enemy march would step toward Near,
     # not Far — so a march-to(Far) result is observably different.
     auto = march_duchy_party(s.world, s.game.duchies[0])
-    assert auto.party_at(step_near) is party
+    assert_moved_party(auto, step_near, party)
     assert auto.party_at(step_far) is None
 
     expected_world = march_duchy_party_to(s.world, s.game.duchies[0], far)
     expected_game = s.game.sync_from_world(expected_world)
-    assert expected_world.party_at(step_far) is party
+    assert_moved_party(expected_world, step_far, party)
     assert expected_world.party_at(start) is None
     assert expected_world.party_at(step_near) is None
 
@@ -473,7 +474,7 @@ def test_apply_command_order_march_with_target_applies_march_duchy_party_to():
 
     # The transition used march_duchy_party_to(world, duchy, region_named_Far):
     # the party moved to StepFar (toward Far), NOT StepNear (nearest enemy).
-    assert after.world.party_at(step_far) is party
+    assert_moved_party(after.world, step_far, party)
     assert after.world.party_at(step_near) is None
     assert after.world.party_at(start) is None
     # The new game is sync_from_world of the new world.
@@ -661,6 +662,76 @@ def _build_move_order_session(
     return session, regions, party
 
 
+def _seed73_player_at_border_for_assault(recruit_count: int) -> Session:
+    """Build the seed-73 assault fixture through the public monthly boundary.
+
+    ``next_turn`` resets the player's movement marker, but the AI then occupies
+    the border.  The remaining setup is an explicit battle scene: remove that
+    AI field party, add one declared frontier defender, and move the player's
+    reset party to the border through ``WorldMap.move_party``.  The marker is
+    therefore set by the real movement transition, never cleared by a fixture.
+    """
+    from tbb.settlement import Settlement
+    from tbb.unit import Unit
+    from tbb.world import WorldMap
+
+    session = new_session(seed=73, player_duchy_id="player")
+    for _ in range(recruit_count):
+        session = apply_command(session, {"type": "order", "order": "recruit"})
+    for command in (
+        {"type": "order", "order": "muster"},
+        {"type": "order", "order": "march"},
+        {"type": "next_turn"},
+    ):
+        session = apply_command(session, command)
+
+    outpost = next(
+        region for region in session.world.regions if region.name == "player outpost"
+    )
+    border = next(region for region in session.world.regions if region.name == "border")
+    ai_outpost = next(
+        region for region in session.world.regions if region.name == "ai outpost"
+    )
+    player_party = session.world.party_at(outpost)
+    assert player_party is not None
+
+    # The AI's first turn must not decide this unit-level regression fixture.
+    # Make the defender explicit instead of relying on the AI's border move.
+    settlements = dict(session.world.settlements)
+    frontier = settlements[ai_outpost]
+    settlements[ai_outpost] = Settlement(
+        name=frontier.name,
+        population=frontier.population,
+        occupied=frontier.occupied,
+        active_buildings=frontier.active_buildings,
+        storage=frontier.storage,
+        capacity=frontier.capacity,
+        garrison=(Unit(training=5, equipment=12),),
+        owner_id=frontier.owner_id,
+    )
+    player_only_parties = {
+        region: party
+        for region, party in session.world.parties.items()
+        if party.owner_id == "player"
+    }
+    battle_scene = WorldMap(
+        regions=session.world.regions,
+        connections=session.world.connections,
+        settlements=settlements,
+        parties=player_only_parties,
+    )
+    second_world = battle_scene.move_party(outpost, border, move_points=1)
+    assert_moved_party(second_world, border, player_party)
+    return Session(
+        world=second_world,
+        game=session.game.sync_from_world(second_world),
+        calendar=session.calendar,
+        rng=session.rng,
+        player_duchy_id=session.player_duchy_id,
+        seed=session.seed,
+    )
+
+
 def test_apply_command_order_move_occupies_empty_adjacent_target():
     """G97.1a: ``{"type":"order","order":"move","target":<name>}`` applies
     ``ai.move_duchy_party_to_adjacent`` for a free direct neighbour.
@@ -688,7 +759,7 @@ def test_apply_command_order_move_occupies_empty_adjacent_target():
     assert march_duchy_party_to(s.world, duchy, neighbor) is s.world
     expected_world = move_duchy_party_to_adjacent(s.world, duchy, neighbor)
     assert expected_world is not s.world
-    assert expected_world.party_at(neighbor) is party
+    assert_moved_party(expected_world, neighbor, party)
 
     command = {"type": "order", "order": "move", "target": "Neighbor"}
     before = copy.deepcopy(s.snapshot())
@@ -701,7 +772,7 @@ def test_apply_command_order_move_occupies_empty_adjacent_target():
     assert after.calendar == calendar
     assert after.rng is s.rng
     assert after.rng.randint(0, 1000) == Rng(11).randint(0, 1000)
-    assert after.world.party_at(neighbor) is party
+    assert_moved_party(after.world, neighbor, party)
     assert after.world.party_at(start) is None
     assert after.world == expected_world
     assert after.game is not s.game
@@ -737,7 +808,7 @@ def test_apply_command_order_move_enters_adjacent_own_settlement():
     before = copy.deepcopy(s.snapshot())
     after = apply_command(s, command)
 
-    assert after.world.party_at(home) is party
+    assert_moved_party(after.world, home, party)
     assert after.world.party_at(start) is None
     assert after.calendar == calendar
     assert after.calendar == Calendar(year=2, month=3)
@@ -794,8 +865,10 @@ def test_apply_command_order_move_is_noop_for_missing_unknown_or_illegal_target(
 
     # Contrasts: march would move; move must not reuse either march path.
     auto = march_duchy_party(s0.world, duchy)
-    assert auto.party_at(step_near) is party
-    assert march_duchy_party_to(s0.world, duchy, far).party_at(step_far) is party
+    assert_moved_party(auto, step_near, party)
+    assert_moved_party(
+        march_duchy_party_to(s0.world, duchy, far), step_far, party
+    )
 
     noop_commands = (
         {"type": "order", "order": "move"},  # missing target
@@ -1568,18 +1641,23 @@ def test_apply_command_order_engage_fallback_and_guards_and_no_op_no_rng():
     # (gdyby kod pobrał liczbę, _ForbiddenRng.randint/chance rzuciłby AssertionError)
 
 
-def test_natural_seed73_assault_resolves_with_world_matching_battle_result():
-    """G89.2a-2 / G92.2a: natural seed-73 assault ends with a real result.
+def test_prepared_seed73_assault_resolves_with_world_matching_battle_result():
+    """G89.2a-2 / G92.2a: prepared seed-73 assault ends with a real result.
 
     Realistic defect: G89.2a-1 unit-level swap tests on synthetic three-hex
-    layouts stay green while the live recruit×2 → muster → march×2 → assault
-    path still exhausts auto_resolve with ``result() is None``. Unresolved
+    layouts stay green while the prepared recruit×2 → muster → march →
+    next_turn → explicit battle scene → assault path still exhausts auto_resolve
+    with ``result() is None``. Unresolved
     remains legal (K89.1) and keeps the party on border — so without this gate
     the repro looks like "nothing happened" again even though swap unit tests
     pass.
 
-    G92.2a: the chain needs two marches (lands → outpost → border) and the
-    assault hits the AI frontier keep (``ai outpost``), not the sole rear keep.
+    G92.2a: the public march crosses a monthly boundary before the explicit
+    battle scene reaches the AI frontier keep (``ai outpost``), not the sole
+    rear keep.
+
+    The natural public-button path is covered separately by the Godot e2e;
+    this core gate keeps the battle mechanics focused on an explicit fixture.
 
     Public contract: ``apply_command`` assault on seed 73 (which drives
     ``resolve_settlement_battle_recorded``) yields a decided ``BattleResult``
@@ -1596,11 +1674,7 @@ def test_natural_seed73_assault_resolves_with_world_matching_battle_result():
 
     outcomes = []
     for _ in range(2):
-        before_assault = new_session(seed=73, player_duchy_id="player")
-        for order in ("recruit", "recruit", "muster", "march", "march"):
-            before_assault = apply_command(
-                before_assault, {"type": "order", "order": order}
-            )
+        before_assault = _seed73_player_at_border_for_assault(recruit_count=2)
         assert before_assault.world.party_at(border) is not None
 
         after = apply_command(
@@ -1611,7 +1685,7 @@ def test_natural_seed73_assault_resolves_with_world_matching_battle_result():
         result = battle.result()
         # Kryt-1: real resolution (win or draw), not stalemate after max rounds.
         assert result is not None, (
-            "natural seed-73 assault must resolve; got result() is None "
+            "prepared seed-73 assault must resolve; got result() is None "
             "(round-limit stalemate — G89.2a-1 swap not closing the repro)"
         )
         assert result in resolved
@@ -1675,7 +1749,7 @@ def test_player_order_path_resolves_hero_survival_like_ai_when_party_is_lost():
 
     Realistic defect: ``resolve_hero_survival`` runs only in the AI driver loop;
     ``apply_command`` for player orders ends with ``sync_from_world`` alone. After
-    a natural seed-73 assault that wipes the player party, the duchy still reports
+    a prepared seed-73 assault that wipes the player party, the duchy still reports
     ``has_hero=True`` / unchanged morale, so the player hero is immortal and
     succession never fires on the bridge path.
 
@@ -1685,25 +1759,48 @@ def test_player_order_path_resolves_hero_survival_like_ai_when_party_is_lost():
     ``SUCCESSION_MORALE_PENALTY``. Orders that do not destroy the party leave
     hero/heir/morale unchanged. Same seed → same outcome.
 
-    G92.2a: path is recruit → muster → march×2 → assault (frontier keep); seed 73
-    still yields DEFENDER_WIN and a wiped player party on that weaker force.
+    G92.2a: the prepared one-recruit path reaches the explicit frontier scene;
+    seed 73 still yields DEFENDER_WIN and a wiped player party on that weaker
+    force.
     """
-    from tbb.duchy import SUCCESSION_MORALE_PENALTY
+    from tbb.duchy import Duchy, SUCCESSION_MORALE_PENALTY
 
     outcomes = []
     for _ in range(2):
-        session = new_session(seed=73, player_duchy_id="player")
+        session = _seed73_player_at_border_for_assault(recruit_count=1)
+        # ``next_turn`` legitimately designates an heir.  This explicit game
+        # setup keeps this branch focused on succession without altering the
+        # public movement fixture or its monthly marker.
+        player = next(d for d in session.game.duchies if d.duchy_id == "player")
+        session = Session(
+            world=session.world,
+            game=GameState(
+                Duchy(
+                    duchy_id=player.duchy_id,
+                    hero=player.hero,
+                    morale=player.morale,
+                    heir=None,
+                    settlements=player.settlements,
+                    parties=player.parties,
+                )
+                if d.duchy_id == "player"
+                else d
+                for d in session.game.duchies
+            ),
+            calendar=session.calendar,
+            rng=session.rng,
+            player_duchy_id=session.player_duchy_id,
+            seed=session.seed,
+        )
         start = next(d for d in session.game.duchies if d.duchy_id == "player")
         start_morale = start.morale
         assert start.has_hero is True
         assert start.heir is None
 
-        for order in ("recruit", "muster", "march", "march"):
-            session = apply_command(session, {"type": "order", "order": order})
-            player = next(d for d in session.game.duchies if d.duchy_id == "player")
-            assert player.has_hero is True
-            assert player.heir is None
-            assert player.morale == start_morale
+        player = next(d for d in session.game.duchies if d.duchy_id == "player")
+        assert player.has_hero is True
+        assert player.heir is None
+        assert player.morale == start_morale
 
         before_assault = session
         assert any(
@@ -1712,7 +1809,7 @@ def test_player_order_path_resolves_hero_survival_like_ai_when_party_is_lost():
 
         after = apply_command(before_assault, {"type": "order", "order": "assault"})
         player = next(d for d in after.game.duchies if d.duchy_id == "player")
-        # Party lost on the natural seed-73 assault (DEFENDER_WIN).
+        # Party lost on the prepared seed-73 assault (DEFENDER_WIN).
         assert not any(
             party.owner_id == "player" for party in after.world.parties.values()
         )
@@ -1747,19 +1844,17 @@ def test_player_order_path_promotes_heir_when_party_is_lost_with_successor():
 
     The no-heir branch is covered by
     ``test_player_order_path_resolves_hero_survival_like_ai_when_party_is_lost``.
-    This scenario injects a successor onto the natural seed-73 path (party wiped
+    This scenario injects a successor onto the prepared seed-73 path (party wiped
     by assault) so the bridge must surface ``succeed()`` with an heir: new hero is
     the former heir, ``has_heir`` is false, morale drops by
     ``SUCCESSION_MORALE_PENALTY`` — in game state and snapshot.
 
-    G92.2a: same frontier path needs two marches before assault.
+    G92.2a: the same prepared frontier path reaches border before assault.
     """
     from tbb.duchy import Duchy, SUCCESSION_MORALE_PENALTY
     from tbb.unit import Unit
 
-    session = new_session(seed=73, player_duchy_id="player")
-    for order in ("recruit", "muster", "march", "march"):
-        session = apply_command(session, {"type": "order", "order": order})
+    session = _seed73_player_at_border_for_assault(recruit_count=1)
 
     player = next(d for d in session.game.duchies if d.duchy_id == "player")
     start_morale = player.morale

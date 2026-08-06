@@ -13,6 +13,7 @@ from tbb.ai import (
     raise_duchy_hero,
 )
 import tbb.ai as ai
+from tests.helpers import assert_moved_party
 
 from tbb import (
     Duchy,
@@ -265,7 +266,7 @@ def test_march_moves_exactly_one_step_and_preserves_input_and_party():
 
     moved = march_toward_nearest_enemy(world, start)
 
-    assert moved.party_at(step) is party
+    assert_moved_party(moved, step, party)
     assert moved.party_at(start) is None
     assert world.party_at(start) is party
     assert world.party_at(step) is None
@@ -286,10 +287,32 @@ def test_march_duchy_party_applies_march_toward_nearest_enemy_from_party_positio
     moved = march_duchy_party(world, duchy)
 
     assert moved == march_toward_nearest_enemy(world, start)
-    assert moved.party_at(step) is party
+    assert_moved_party(moved, step, party)
     assert moved.party_at(start) is None
     assert world.party_at(start) is party
     assert world.party_at(step) is None
+
+
+def test_march_duchy_party_second_move_in_month_is_noop_for_ai_party():
+    start, first, second, target = map(
+        Region, ("Start", "First", "Second", "Target")
+    )
+    party = _owned_party("Hero", "ai")
+    world = WorldMap(
+        [start, first, second, target],
+        [(start, first), (first, second), (second, target)],
+        settlements={target: _settlement("Target", "enemy")},
+        parties={start: party},
+    )
+    duchy = Duchy("ai", party.hero, parties=(party,))
+
+    after_first = march_duchy_party(world, duchy)
+    assert_moved_party(after_first, first, party)
+    after_second = march_duchy_party(after_first, duchy)
+
+    assert after_second is after_first
+    assert after_second.party_at(first) is not None
+    assert after_second.party_at(second) is None
 
 
 def test_march_duchy_party_is_noop_without_party_on_map():
@@ -342,14 +365,14 @@ def test_march_duchy_party_to_moves_one_step_toward_explicit_target():
     assert expected_step is step_far
     # Sanity: automatic nearest-enemy march would go toward ``near``, not far.
     auto = march_duchy_party(world, duchy)
-    assert auto.party_at(step_near) is party
+    assert_moved_party(auto, step_near, party)
     assert auto.party_at(step_far) is None
 
     moved = ai.march_duchy_party_to(world, duchy, far)
 
     assert moved is not world
     assert moved == world.move_party(start, expected_step, 1)
-    assert moved.party_at(step_far) is party
+    assert_moved_party(moved, step_far, party)
     assert moved.party_at(start) is None
     assert moved.party_at(step_near) is None
     assert world.party_at(start) is party
@@ -426,7 +449,7 @@ def test_move_duchy_party_to_adjacent_occupies_empty_neighbor():
     moved = ai.move_duchy_party_to_adjacent(world, duchy, neighbor)
 
     assert moved is not world
-    assert moved.party_at(neighbor) is party
+    assert_moved_party(moved, neighbor, party)
     assert moved.party_at(start) is None
     assert moved.party_at(elsewhere) is bystander
     assert moved.settlement_at(start) is own_home
@@ -452,7 +475,7 @@ def test_move_duchy_party_to_adjacent_occupies_own_settlement_neighbor():
     moved = ai.move_duchy_party_to_adjacent(world, duchy, neighbor)
 
     assert moved is not world
-    assert moved.party_at(neighbor) is party
+    assert_moved_party(moved, neighbor, party)
     assert moved.party_at(start) is None
     assert moved.settlement_at(neighbor) is own
     assert world.party_at(start) is party
@@ -863,7 +886,7 @@ def test_march_target_and_route_ties_follow_world_region_order():
 
     moved = march_toward_nearest_enemy(world, start)
 
-    assert moved.party_at(first) is party
+    assert_moved_party(moved, first, party)
 
 
 @pytest.mark.parametrize("case", ["adjacent", "no_enemy", "blocked"])
@@ -1647,7 +1670,7 @@ def test_duchy_turn_takes_military_action_when_recruitment_is_unavailable():
 
     result = take_duchy_turn(world, duchy, _ForbiddenRng())
 
-    assert result.party_at(target) == party
+    assert_moved_party(result, target, party)
 
 
 def test_duchy_turn_is_deterministic_and_preserves_all_inputs():

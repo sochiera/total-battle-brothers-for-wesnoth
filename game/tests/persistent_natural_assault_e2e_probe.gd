@@ -1,7 +1,8 @@
 extends SceneTree
 
 
-## G89.1b-4 / G91.1b / G92.2a e2e: natural recruit×2 → muster → march×2 →
+## G89.1b-4 / G91.1b / G92.2a e2e: natural recruit → muster → march →
+## next_turn → engage →
 ## assault on a live bridge process must end with a readable battle outcome,
 ## map ownership of the captured frontier keep (ai outpost), and resume of
 ## that state. Multi-keep world keeps the campaign ongoing after one capture.
@@ -9,6 +10,7 @@ extends SceneTree
 const MAIN_SCENE_PATH := "res://scenes/main.tscn"
 const BridgeClient = preload("res://scripts/bridge_client.gd")
 const PartyMapMark = preload("res://tests/party_map_mark_helpers.gd")
+const AssaultPrecondition = preload("res://tests/persistent_assault_precondition.gd")
 const PREFIX := "PERSISTENT_NATURAL_ASSAULT "
 const PLAYER_LANDS := "player lands"
 const AI_OUTPOST := "ai outpost"
@@ -37,21 +39,33 @@ func _run() -> void:
 	var phase: String = args[4]
 	var order_results: Array = []
 	var after_start: Dictionary = {}
+	var assault_precondition: Dictionary = {}
 	match phase:
 		"play":
 			after_start = _observation(scene_root)
-			# G92.2a: two marches reach border before assault on the AI frontier keep.
-			for button_name in [
-				"RecruitButton",
-				"RecruitButton",
-				"MusterButton",
-				"MarchButton",
-				"MarchButton",
-				"AssaultButton",
-			]:
+			# One military move per month; next_turn resets the marker before the
+			# player engages the AI party on the border and assaults the keep.
+			for button_name in ["RecruitButton", "MusterButton", "MarchButton"]:
 				if not _press(scene_root, button_name):
 					return
 				order_results.append(client.last_order_result())
+			# Three passive AI turns are the smallest seed-73 staging window that
+			# leaves the frontier garrison alive after Engage clears its field party.
+			for _turn in range(AssaultPrecondition.NEXT_TURNS_TO_STAGE_LIVE_FRONTIER):
+				if not _press(scene_root, "NextTurnButton"):
+					return
+				order_results.append(client.last_order_result())
+			for button_name in ["EngageButton"]:
+				if not _press(scene_root, button_name):
+					return
+				order_results.append(client.last_order_result())
+			assault_precondition = AssaultPrecondition.inspect(client)
+			if not assault_precondition.get("ready", false):
+				_fail("assault precondition failed: %s" % assault_precondition)
+				return
+			if not _press(scene_root, "AssaultButton"):
+				return
+			order_results.append(client.last_order_result())
 		"resume":
 			pass
 		_:
@@ -68,6 +82,7 @@ func _run() -> void:
 		"state_exists": FileAccess.file_exists(args[1]),
 		"session_command": client.session_command(),
 		"map_view": _map_view_observation(scene_root),
+		"assault_precondition": assault_precondition,
 	}
 	if phase == "play":
 		payload["after_start"] = after_start

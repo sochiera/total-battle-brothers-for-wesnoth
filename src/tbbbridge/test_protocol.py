@@ -7,6 +7,8 @@ import copy
 import io
 import json
 
+import pytest
+
 from tbbbridge.session import Session, apply_command, new_session
 from tbbbridge.protocol import command_result, handle_command_line, serve_stream
 
@@ -264,6 +266,184 @@ def test_command_result_non_battle_order_changed_flag_matches_world_identity():
         "changed": False,
     }
     json.dumps(result_unchanged)
+
+
+@pytest.mark.parametrize(
+    ("order", "first_target", "second_target"),
+    (("march", None, None), ("move", "player outpost", "border")),
+)
+def test_second_military_move_in_month_is_protocol_noop(
+    order, first_target, second_target
+):
+    """G109.1b: a party may change the world by movement only once per month.
+
+    Realistic defect: the existing bridge gates cover a successful single
+    movement and unrelated no-ops, but miss the second movement boundary;
+    without the monthly guard, the second command still moves the party and
+    reports ``changed: true``.
+    """
+    def command_for(order_name, target_name):
+        command = {"type": "order", "order": order_name}
+        if target_name is not None:
+            command["target"] = target_name
+        return json.dumps(command)
+
+    session = new_session(seed=73, player_duchy_id="player")
+    session, muster = handle_command_line(
+        session, '{"type":"order","order":"muster"}'
+    )
+    assert muster["ok"] is True
+    assert muster["result"] == {
+        "kind": "order",
+        "order": "muster",
+        "changed": True,
+    }
+
+    session, first = handle_command_line(
+        session, command_for(order, first_target)
+    )
+    assert first["ok"] is True
+    assert first["result"] == {
+        "kind": "order",
+        "order": order,
+        "changed": True,
+    }
+    before_second_snapshot = session.snapshot()
+    before_second_world = session.world
+    before_second_rng_state = session.rng.state()
+    session, second = handle_command_line(
+        session, command_for(order, second_target)
+    )
+
+    assert second["ok"] is True
+    assert second["result"] == {
+        "kind": "order",
+        "order": order,
+        "changed": False,
+    }
+    assert session.world is before_second_world
+    assert session.snapshot() == before_second_snapshot
+    assert session.rng.state() == before_second_rng_state
+
+
+def test_military_move_is_reenabled_after_next_turn_via_protocol():
+    """The same march becomes effective after a public ``next_turn``."""
+    from tbb.game import GameState
+    from tbb.duchy import Duchy
+    from tbb.party import Party
+    from tbb.settlement import Settlement
+    from tbb.unit import Unit
+    from tbb.world import Region, WorldMap
+    from tbb.rng import Rng
+    from tbb.turn import Calendar
+
+    start, first, second, target = map(
+        Region, ("Start", "First", "Second", "Target")
+    )
+    party = Party(Unit(), owner_id="player")
+    target_settlement = Settlement("Target Keep", 1, owner_id="south")
+    world = WorldMap(
+        (start, first, second, target),
+        ((start, first), (first, second), (second, target)),
+        settlements={target: target_settlement},
+        parties={start: party},
+    )
+    game = GameState(
+        (
+            Duchy("player", party.hero, parties=(party,)),
+            Duchy("south", None, settlements=(target_settlement,)),
+            Duchy("neutral", Unit()),
+        )
+    )
+    session = Session(
+        world=world,
+        game=game,
+        calendar=Calendar(),
+        rng=Rng(73),
+        player_duchy_id="player",
+        seed=73,
+    )
+
+    session, first_response = handle_command_line(
+        session, '{"type":"order","order":"march","target":"Target"}'
+    )
+    assert first_response["result"] == {
+        "kind": "order",
+        "order": "march",
+        "changed": True,
+    }
+    assert session.world.party_at(first).acted_this_month is True
+
+    session, turn_response = handle_command_line(
+        session, '{"type":"next_turn"}'
+    )
+    assert turn_response["result"]["date"] == {"year": 1, "month": 2}
+
+    session, second_response = handle_command_line(
+        session, '{"type":"order","order":"march","target":"Target"}'
+    )
+    assert second_response["result"] == {
+        "kind": "order",
+        "order": "march",
+        "changed": True,
+    }
+    assert session.world.party_at(second).acted_this_month is True
+
+
+def test_ineffective_military_move_does_not_consume_monthly_marker():
+    """A march that cannot move leaves a later legal move available."""
+    session = new_session(seed=73, player_duchy_id="player")
+    session, muster = handle_command_line(
+        session, '{"type":"order","order":"muster"}'
+    )
+    assert muster["ok"] is True
+
+    session, ineffective = handle_command_line(
+        session,
+        '{"type":"order","order":"march","target":"player outpost"}',
+    )
+    assert ineffective["result"] == {
+        "kind": "order",
+        "order": "march",
+        "changed": False,
+    }
+    lands = next(r for r in session.world.regions if r.name == "player lands")
+    assert session.world.party_at(lands).acted_this_month is False
+
+    session, effective = handle_command_line(
+        session,
+        '{"type":"order","order":"move","target":"player outpost"}',
+    )
+    assert effective["result"] == {
+        "kind": "order",
+        "order": "move",
+        "changed": True,
+    }
+
+
+@pytest.mark.parametrize("order", ("develop", "recruit"))
+def test_settlement_orders_remain_available_after_military_move(order):
+    """Economic orders remain effective and do not clear the military marker."""
+    session = new_session(seed=73, player_duchy_id="player")
+    session, _ = handle_command_line(
+        session, '{"type":"order","order":"muster"}'
+    )
+    session, moved = handle_command_line(
+        session, '{"type":"order","order":"march"}'
+    )
+    assert moved["result"]["changed"] is True
+
+    session, economic = handle_command_line(
+        session, json.dumps({"type": "order", "order": order})
+    )
+    assert economic["ok"] is True
+    assert economic["result"] == {
+        "kind": "order",
+        "order": order,
+        "changed": True,
+    }
+    outpost = next(r for r in session.world.regions if r.name == "player outpost")
+    assert session.world.party_at(outpost).acted_this_month is True
 
 
 def _session_with_game_over() -> Session:

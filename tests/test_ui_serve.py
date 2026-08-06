@@ -11,6 +11,7 @@ from tbb.game import GameState
 from tbb.party import Party
 from tbb.rng import Rng
 from tbb.settlement import Settlement
+from tests.helpers import assert_moved_party
 from tbb.turn import Calendar
 from tbb.unit import Unit
 from tbb.world import Region, WorldMap
@@ -142,7 +143,7 @@ def test_dispatch_passes_full_path_with_query_over_real_socket():
 
     # Nearest-enemy fallback would have stepped toward Near, not Far — the
     # query only takes effect if _dispatch handed the full path to handle.
-    assert app.world.party_at(step_far) is party
+    assert_moved_party(app.world, step_far, party)
     assert app.world.party_at(step_near) is None
 
 

@@ -6,6 +6,7 @@ extends SceneTree
 
 const MAIN_SCENE_PATH := "res://scenes/main.tscn"
 const BridgeClient = preload("res://scripts/bridge_client.gd")
+const AssaultPrecondition = preload("res://tests/persistent_assault_precondition.gd")
 const PREFIX := "PERSISTENT_ORDER_PROCESS "
 
 
@@ -37,20 +38,44 @@ func _run() -> void:
 	var controls_before_order := _controls(scene_root)
 	var battle_before_order := _battle_observation(battle_view)
 	var controls_after_muster: Variant = null
+	var assault_precondition: Dictionary = {}
 	var phase: String = args[4]
 
 	match phase:
 		"prepare":
+			if not _press(scene_root, "RecruitButton"):
+				return
 			if not _press(scene_root, "MusterButton"):
 				return
 			controls_after_muster = _controls(scene_root)
-			# G92.2a chain: player lands → player outpost → border (two marches).
+			# One player march per month; the next turn resets the marker before
+			# the second-month movement.  Engage clears the AI party from border
+			# so the following assault fixture remains adjacent to the keep.
 			if not _press(scene_root, "MarchButton"):
 				return
-			if not _press(scene_root, "MarchButton"):
+			# Three passive AI turns are the smallest seed-73 staging window that
+			# leaves the frontier garrison alive after Engage clears its field party.
+			for _turn in range(AssaultPrecondition.NEXT_TURNS_TO_STAGE_LIVE_FRONTIER):
+				if not _press(scene_root, "NextTurnButton"):
+					return
+			if not _press(scene_root, "EngageButton"):
 				return
-		"battle", "second_assault":
+			# Clear Engage's displayed battle with a non-military order; it cannot
+			# move the party or depend on march's monthly no-op behavior.
+			if not _press(scene_root, "DevelopButton"):
+				return
+			assault_precondition = AssaultPrecondition.inspect(client)
+			if not assault_precondition.get("ready", false):
+				_fail("assault precondition failed: %s" % assault_precondition)
+				return
+		"battle":
 			if not _press(scene_root, "AssaultButton"):
+				return
+		"second_engage_clear":
+			# The first assault leaves the player at AI Outpost.  There is no
+			# adjacent enemy party left, so engage is a legal unchanged order
+			# that clears the persisted battle view.
+			if not _press(scene_root, "EngageButton"):
 				return
 		"engage", "second_engage":
 			if not _press(scene_root, "EngageButton"):
@@ -69,6 +94,7 @@ func _run() -> void:
 		"controls": _controls(scene_root),
 		"battle_before_order": battle_before_order,
 		"battle": _battle_observation(battle_view),
+		"assault_precondition": assault_precondition,
 		"state_exists": FileAccess.file_exists(args[1]),
 		"session_command": client.session_command(),
 	}))

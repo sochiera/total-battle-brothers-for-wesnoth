@@ -545,7 +545,15 @@ def test_move_party_to_adjacent_region_preserves_input_and_settlement():
     assert world.party_at(camp) is party
     assert world.party_at(vale) is None
     assert moved.party_at(camp) is None
-    assert moved.party_at(vale) is party
+    moved_party = moved.party_at(vale)
+    assert moved_party is not party
+    assert moved_party == replace(party, acted_this_month=True)
+    assert moved_party.hero is party.hero
+
+    moved_again = moved.move_party(vale, camp, move_points=1)
+    assert moved_again is moved
+    assert moved_again.party_at(vale) is moved_party
+    assert moved_again.party_at(camp) is None
     assert world.settlement_at(vale) is settlement
     assert moved.settlement_at(vale) is settlement
     assert moved.settlement_at(vale).garrison == garrison

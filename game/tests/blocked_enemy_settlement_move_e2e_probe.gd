@@ -2,8 +2,8 @@ extends SceneTree
 
 
 ## G97.1f e2e: blocked targeted move into an adjacent enemy settlement.
-## Seed 73 after muster: party on "player lands". Legal steps reach "border"
-## (player outpost → border); "ai outpost" is then an adjacent enemy settlement.
+## The Python gate prepares a seed-73 session with the player party on "border"
+## and no enemy field party; "ai outpost" is then an adjacent enemy settlement.
 ## Public Main controls only — party mark, selection frame, panel and
 ## LastOrderStatusLabel after MapView select → MarchButton → JSONL → core → render.
 ## Scaffolding: map_order_e2e_helpers.gd (shared with legal_targeted_move_e2e).
@@ -14,8 +14,6 @@ const PREFIX := "BLOCKED_ENEMY_SETTLEMENT_MOVE_E2E "
 const VIEWPORT_W := 1152.0
 const VIEWPORT_H := 648.0
 
-const SOURCE_START := "player lands"
-const STEP_OWN := "player outpost"
 const SOURCE_REGION := "border"
 const TARGET_REGION := "ai outpost"
 
@@ -48,20 +46,7 @@ func _run() -> void:
 		_fail("missing MapView")
 		return
 
-	if not MapOrderE2E.press(self, scene_root, "MusterButton"):
-		return
-	await process_frame
-	await process_frame
-	var after_muster: Dictionary = MapOrderE2E.observe(scene_root, map_view)
-
-	# Legal approach: own outpost, then empty border next to the enemy settlement.
-	if not await _select_and_march(scene_root, map_view, STEP_OWN):
-		return
-	var after_step_own: Dictionary = MapOrderE2E.observe(scene_root, map_view)
-
-	if not await _select_and_march(scene_root, map_view, SOURCE_REGION):
-		return
-	var after_step_border: Dictionary = MapOrderE2E.observe(scene_root, map_view)
+	var after_prepared: Dictionary = MapOrderE2E.observe(scene_root, map_view)
 
 	if not MapOrderE2E.click_region(self, map_view, TARGET_REGION):
 		return
@@ -76,13 +61,9 @@ func _run() -> void:
 	var after_blocked: Dictionary = MapOrderE2E.observe(scene_root, map_view)
 
 	print(PREFIX, JSON.stringify({
-		"source_start": SOURCE_START,
-		"step_own": STEP_OWN,
 		"source_region": SOURCE_REGION,
 		"target_region": TARGET_REGION,
-		"after_muster": after_muster,
-		"after_step_own": after_step_own,
-		"after_step_border": after_step_border,
+		"after_prepared": after_prepared,
 		"after_select": after_select,
 		"after_blocked": after_blocked,
 		"state_exists": FileAccess.file_exists(args[1]),

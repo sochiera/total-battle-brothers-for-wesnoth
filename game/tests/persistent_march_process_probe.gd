@@ -32,13 +32,12 @@ func _init() -> void:
 			_fail("missing MusterButton")
 			return
 		muster_button.emit_signal("pressed")
-		# G92.2a: party lands → outpost → border needs two marches; last press below
-		# is the second hop (still a change) so resume can assert no-op at the border.
-		march_button.emit_signal("pressed")
 	else:
 		if args[4] != "resume":
 			_fail("unknown phase")
 			return
+	# One effective march is persisted by the first process; the resumed process
+	# issues the second same-month march and must observe a protocol no-op.
 	march_button.emit_signal("pressed")
 	print(PREFIX, JSON.stringify({
 		"controls": _controls(scene_root),

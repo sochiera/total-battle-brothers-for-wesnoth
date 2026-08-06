@@ -8,6 +8,9 @@ from pathlib import Path
 
 from godot_png_assets import assert_asset_credited
 from godot_runner import run_godot_script
+from tbbbridge.persist import save_session
+from tbbbridge.session import Session, apply_command, new_session
+from tbb.world import WorldMap
 
 ROOT = Path(__file__).resolve().parents[1]
 GAME = ROOT / "game"
@@ -31,10 +34,47 @@ CREDITED_ASSETS = (
 )
 
 
+def _prepared_border_session() -> Session:
+    """Build a live blocked-move precondition without an AI turn.
+
+    The natural seed-73 route needs two player moves, but ``next_turn`` lets
+    the AI occupy ``border`` before the second move.  The UI flow under test
+    starts at the resulting public state; this fixture keeps the precondition
+    deterministic while leaving selection, command transport and rendering
+    fully end-to-end.  Effective UI march coverage remains in
+    ``test_godot_legal_targeted_move_e2e.py`` and
+    ``test_godot_persistent_march_e2e.py``; this test owns the blocked-target
+    rendering and status path.
+    """
+    session = apply_command(
+        new_session(seed=SEED, player_duchy_id="player"),
+        {"type": "order", "order": "muster"},
+    )
+    source = next(region for region in session.world.regions if region.name == "player lands")
+    border = next(region for region in session.world.regions if region.name == "border")
+    party = session.world.party_at(source)
+    assert party is not None
+    world = WorldMap(
+        session.world.regions,
+        session.world.connections,
+        session.world.settlements,
+        parties={border: party},
+    )
+    return Session(
+        world=world,
+        game=session.game.sync_from_world(world),
+        calendar=session.calendar,
+        rng=session.rng,
+        player_duchy_id=session.player_duchy_id,
+        seed=session.seed,
+    )
+
+
 def _run(tmp_path: Path) -> dict:
     state_path = tmp_path / "blocked-enemy-settlement-move.json"
     request_path = tmp_path / "bridge-request.jsonl"
     command_prefix = f"PYTHONPATH={shlex.quote(str(ROOT / 'src'))} python3 -m tbbbridge"
+    save_session(_prepared_border_session(), state_path)
     result = run_godot_script(
         GAME,
         PROBE,
@@ -68,31 +108,19 @@ def test_blocked_move_into_enemy_settlement_keeps_unit_and_polish_status(tmp_pat
     keeps those green gates while this AC fails.
     """
     payload = _run(tmp_path)
-    source_start = payload["source_start"]
-    step_own = payload["step_own"]
     source = payload["source_region"]
     target = payload["target_region"]
-    assert source_start == "player lands"
-    assert step_own == "player outpost"
     assert source == "border"
     assert target == "ai outpost"
     assert payload["state_exists"] is True
 
-    after_muster = payload["after_muster"]
-    after_step_own = payload["after_step_own"]
-    after_border = payload["after_step_border"]
+    after_prepared = payload["after_prepared"]
     after_select = payload["after_select"]
     after_blocked = payload["after_blocked"]
 
-    # Seed topology: muster on player lands, then legal step through own outpost.
-    assert after_muster["marker_count"] == 1, after_muster
-    assert after_muster["marked_regions"] == [source_start], after_muster
-    assert after_step_own["marker_count"] == 1, after_step_own
-    assert after_step_own["marked_regions"] == [step_own], after_step_own
-
-    # Precondition: party stands on border next to the enemy outpost.
-    assert after_border["marker_count"] == 1, after_border
-    assert after_border["marked_regions"] == [source], after_border
+    # Prepared precondition: party stands on border next to the enemy outpost.
+    assert after_prepared["marker_count"] == 1, after_prepared
+    assert after_prepared["marked_regions"] == [source], after_prepared
 
     # Selection names the hostile neighbour; contextual label follows.
     assert after_select["selected_region_name"] == target, after_select

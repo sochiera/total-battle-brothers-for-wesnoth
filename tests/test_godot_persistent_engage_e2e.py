@@ -38,17 +38,28 @@ def _run_process(command_prefix: str, state_path: Path, request_path: Path, phas
 
 
 def _adjacent_parties_session() -> Session:
-    """Build the documented seed-73 state with both adjacent parties alive."""
+    """Build the seed-73 state with both adjacent parties alive.
+
+    The monthly movement marker is reset through ``next_turn`` before the
+    fixture asks the AI to provide the opposing adjacent party.
+    """
     session = new_session(seed=SEED, player_duchy_id="player")
-    for order in ("muster", "march", "march"):
-        session = apply_command(session, {"type": "order", "order": order})
+    for command in (
+        {"type": "order", "order": "muster"},
+        {"type": "order", "order": "march"},
+        {"type": "next_turn"},
+    ):
+        session = apply_command(session, command)
 
     ai_duchy = next(duchy for duchy in session.game.duchies if duchy.duchy_id == "ai")
     world = ai.muster_duchy_party(session.world, ai_duchy)
-    return session._derive(
-        world,
-        session.game.sync_from_world(world),
-        session.calendar,
+    return Session(
+        world=world,
+        game=session.game.sync_from_world(world),
+        calendar=session.calendar,
+        rng=session.rng,
+        player_duchy_id=session.player_duchy_id,
+        seed=session.seed,
         last_battle=session.last_battle,
     )
 
@@ -94,7 +105,7 @@ def test_engage_button_resolves_party_battle_and_persists_it_across_processes(tm
 
     assert battle["session_command"] == f"{command_prefix} serve --resume '{state_path}'"
     assert battle["battle_before_order"]["tile_count"] == 0
-    assert battle["controls_before_order"]["party_position"] == "Położenie oddziału: Pogranicze"
+    assert battle["controls_before_order"]["party_position"] == "Położenie oddziału: Posterunek gracza"
 
     # Visible player effect: resolved result and tiles from both sides.
     after = battle["battle"]

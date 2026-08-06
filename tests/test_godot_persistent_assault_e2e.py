@@ -57,20 +57,29 @@ def test_assault_button_shows_battle_view_across_godot_processes(tmp_path):
 
     prepared = _run_process(command_prefix, state_path, request_path, "prepare")
     battle = _run_process(command_prefix, state_path, request_path, "battle")
-    resumed = _run_process(command_prefix, state_path, request_path, "second_assault")
+    resumed = _run_process(command_prefix, state_path, request_path, "second_engage_clear")
 
     assert prepared["state_exists"] is True
     assert battle["session_command"] == f"{command_prefix} serve --resume '{state_path}'"
     assert resumed["session_command"] == f"{command_prefix} serve --resume '{state_path}'"
 
+    # The staging window is diagnostic only: the actual assault precondition
+    # proves that the player is on border and the frontier garrison is alive.
+    precondition = prepared["assault_precondition"]
+    assert precondition["ready"] is True, precondition
+    assert precondition["player_party_at_border"] is True, precondition
+    assert precondition["frontier_garrison_live"] is True, precondition
+    assert precondition["frontier_garrison"] >= 1, precondition
+
     # K80 regression: order status text still carries battle outcome / no-op.
     assert prepared["controls_after_muster"]["party_position"] == "Położenie oddziału: Ziemie gracza"
     assert prepared["controls"]["party_position"] == "Położenie oddziału: Pogranicze"
     assert battle["controls_before_order"]["party_position"] == "Położenie oddziału: Pogranicze"
-    assert battle["controls"]["party_position"] == "Położenie oddziału: brak"
-    assert battle["controls"]["order_status"] == "Szturm: porażka (straty: 0, wróg: 0)."
-    assert resumed["controls"]["order_status"] == "Rozkaz szturmu nie zmienił stanu."
-    assert prepared["controls"]["date"] == prepared["controls_before_order"]["date"]
+    assert battle["controls"]["party_position"] == "Położenie oddziału: Posterunek wroga"
+    assert battle["controls"]["order_status"] == "Szturm: zwycięstwo (straty: 1, wróg: 1)."
+    assert resumed["controls"]["order_status"] == "Rozkaz starcia nie zmienił stanu."
+    assert prepared["controls"]["date"] != prepared["controls_before_order"]["date"]
+    assert battle["controls_before_order"]["date"] == prepared["controls"]["date"]
     assert battle["controls"]["date"] == prepared["controls"]["date"]
     assert resumed["controls"]["date"] == battle["controls"]["date"]
 
@@ -79,7 +88,7 @@ def test_assault_button_shows_battle_view_across_godot_processes(tmp_path):
     assert prep_start["tile_count"] == 0, prep_start
     assert prep_start["result_text"] == "", prep_start
 
-    # Before first assault (prepare after muster+march): still empty battle view.
+    # Before first assault (prepare after march+three next_turns+engage): still empty.
     prep_battle = prepared["battle"]
     assert prep_battle["tile_count"] == 0, prep_battle
     assert prep_battle["result_text"] == "", prep_battle
@@ -88,8 +97,9 @@ def test_assault_button_shows_battle_view_across_godot_processes(tmp_path):
     assert battle["battle_before_order"]["tile_count"] == 0, battle["battle_before_order"]
     assert battle["battle_before_order"]["result_text"] == "", battle["battle_before_order"]
 
-    # After assault: both sides' tiles + Polish result readable on BattleView.
-    # paint_groups: distinct visuals (G98.1b = side silhouettes, not ground tint).
+    # After assault: both resolved sides' tiles + Polish result are readable
+    # on BattleView.  The third next_turn lets the AI keep a live garrison
+    # while the engage clears its field party before the settlement assault.
     after = battle["battle"]
     assert after["tile_count"] >= 2, after
     assert after["paint_groups"] >= 2, (
@@ -98,7 +108,7 @@ def test_assault_button_shows_battle_view_across_godot_processes(tmp_path):
     )
     assert all(t.get("visible") for t in after["tiles"]), after
     assert _polish_battle_result(after["result_text"]), after
-    assert "porażka" in after["result_text"].casefold(), after
+    assert "zwycięstwo" in after["result_text"].casefold(), after
 
     # Next process resumes from state file: battle still visible before re-order
     # (two-process persistence of last battle — the core K85.1c risk).

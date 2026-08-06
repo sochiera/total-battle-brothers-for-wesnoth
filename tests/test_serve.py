@@ -14,6 +14,7 @@ from tbb.resources import Resources
 from tbb.rng import Rng
 import tbb.settlement as settlement_module
 from tbb.settlement import Settlement
+from tests.helpers import assert_moved_party
 from tbb.turn import Calendar
 from tbb.unit import Unit
 from tbb.world import Region, WorldMap
@@ -2659,7 +2660,7 @@ def test_game_app_post_order_march_applies_march_and_resyncs():
 
     expected_world = ai.march_duchy_party(world_before, game_before.duchies[0])
     expected_game = game_before.sync_from_world(expected_world)
-    assert expected_world.party_at(step) is party
+    assert_moved_party(expected_world, step, party)
     assert expected_world.party_at(start) is None
     assert expected_world is not world_before
 
@@ -2673,7 +2674,7 @@ def test_game_app_post_order_march_applies_march_and_resyncs():
 
     # World replaced with march result; game re-synced from that world.
     assert app.world is not world_before
-    assert app.world.party_at(step) is party
+    assert_moved_party(app.world, step, party)
     assert app.world.party_at(start) is None
     assert app.world.party_at(step) == expected_world.party_at(step)
     assert app.game is not game_before
@@ -2793,6 +2794,8 @@ def test_game_app_order_march_form_noop_and_determinism():
     seq = (
         ("GET", "/"),
         ("POST", "/order/march"),
+        # Movement consumes the party's monthly military action.
+        ("POST", "/turn"),
         ("GET", "/"),
         ("POST", "/order/march"),
     )
@@ -2806,7 +2809,7 @@ def test_game_app_order_march_form_noop_and_determinism():
         bodies_a.append(ba)
         bodies_b.append(bb)
     assert bodies_a == bodies_b
-    # Two successful marches: party advanced Start → Mid → Approach.
+    # Two successful marches in separate months: Start → Mid → Approach.
     start_r, mid_r, approach_r, target_r = a.world.regions
     assert a.world.party_at(start_r) is None
     assert a.world.party_at(mid_r) is None
@@ -3152,14 +3155,14 @@ def test_game_app_post_order_march_with_target_applies_march_to():
     game_before = app.game
     # Automatic nearest-enemy march would step toward Near, not Far.
     auto = ai.march_duchy_party(world_before, game_before.duchies[0])
-    assert auto.party_at(step_near) is party
+    assert_moved_party(auto, step_near, party)
     assert auto.party_at(step_far) is None
 
     expected_world = ai.march_duchy_party_to(
         world_before, game_before.duchies[0], far
     )
     expected_game = game_before.sync_from_world(expected_world)
-    assert expected_world.party_at(step_far) is party
+    assert_moved_party(expected_world, step_far, party)
     assert expected_world.party_at(start) is None
     assert expected_world.party_at(step_near) is None
     assert expected_world is not world_before
@@ -3174,7 +3177,7 @@ def test_game_app_post_order_march_with_target_applies_march_to():
 
     # World replaced with explicit-target march; game re-synced.
     assert app.world is not world_before
-    assert app.world.party_at(step_far) is party
+    assert_moved_party(app.world, step_far, party)
     assert app.world.party_at(start) is None
     assert app.world.party_at(step_near) is None
     assert app.world.party_at(step_far) == expected_world.party_at(step_far)
@@ -3231,7 +3234,7 @@ def test_game_app_post_order_march_empty_or_unknown_target_falls_back():
         assert code == 200
         assert body.strip() != ""
         # Fallback nearest-enemy march steps toward Near, not Far.
-        assert app.world.party_at(step_near) is party
+        assert_moved_party(app.world, step_near, party)
         assert app.world.party_at(step_far) is None
 
 
@@ -5626,4 +5629,3 @@ def test_recommended_order_form_omits_caution_when_not_risky():
     assert code_none == 200
     assert "data-recommended-order-caution" not in body_none
     assert 'data-recommended-order=""' not in body_none
-

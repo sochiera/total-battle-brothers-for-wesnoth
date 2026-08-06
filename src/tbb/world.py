@@ -189,7 +189,12 @@ class WorldMap:
     def move_party(
         self, source: Region, destination: Region, move_points: int
     ) -> "WorldMap":
-        """Return a new world after moving a party along one connection."""
+        """Return a new world after moving a party along one connection.
+
+        A party may move only once per month.  An already acted party makes a
+        legal movement request a world-identity-preserving no-op; a successful
+        move carries the monthly action marker to the moved party.
+        """
         if source not in self._neighbors or destination not in self._neighbors:
             raise ValueError("region is outside the world map")
         if move_points < 1:
@@ -200,9 +205,14 @@ class WorldMap:
             raise ValueError("source region has no party")
         if destination in self.parties:
             raise ValueError("destination is already occupied by a party")
+        party = self.parties[source]
+        if party.acted_this_month:
+            return self
 
         parties = dict(self.parties)
-        parties[destination] = parties.pop(source)
+        parties[destination] = replace(
+            parties.pop(source), acted_this_month=True
+        )
         return WorldMap(
             self.regions,
             self.connections,
