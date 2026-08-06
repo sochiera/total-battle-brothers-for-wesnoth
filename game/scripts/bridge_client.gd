@@ -99,13 +99,20 @@ static func _responses_are_ok(responses: Array) -> bool:
 	return true
 
 
-func send(request: Dictionary) -> Variant:
+func _write_requests(requests: Array) -> bool:
+	if requests.is_empty():
+		return false
 	var file := FileAccess.open(_request_path, FileAccess.WRITE)
 	if file == null:
-		return null
-
-	file.store_line(request_line(request))
+		return false
+	file.store_string(request_lines(requests))
 	file.close()
+	return true
+
+
+func send(request: Dictionary) -> Variant:
+	if not _write_requests([request]):
+		return null
 
 	var stdout: Variant = _run_request_file()
 	if stdout == null:
@@ -117,13 +124,8 @@ func send(request: Dictionary) -> Variant:
 func send_many(requests: Array) -> Array:
 	if requests.is_empty():
 		return []
-
-	var file := FileAccess.open(_request_path, FileAccess.WRITE)
-	if file == null:
+	if not _write_requests(requests):
 		return []
-
-	file.store_string(request_lines(requests))
-	file.close()
 
 	var stdout: Variant = _run_request_file()
 	if stdout == null:

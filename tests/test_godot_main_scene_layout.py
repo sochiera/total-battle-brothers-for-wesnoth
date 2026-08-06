@@ -93,6 +93,9 @@ WINDOW_BACKGROUND_SCREENSHOTS = (
     # PL result banner, centered occupied cluster; map + order bar still
     # readable. Pre-K105 task-569/579/585 battle frames are not this proof.
     GAME / "screenshots" / "task-593-visible-battle-post-k105-1152x648.png",
+    # G108.1d: live seed-73 bridge session after passive turns; the AI army
+    # stands on the strategic map rather than disappearing on its spawn turn.
+    GAME / "screenshots" / "task-606-live-enemy-army-1152x648.png",
 )
 ORDER_ICON_FILES = {
     "NextTurnButton": "icon_next_turn.png",
@@ -409,21 +412,19 @@ def test_order_buttons_expose_distinct_states_and_review_screenshots():
 
 
 def test_window_background_review_screenshots_exist_at_target_resolution():
-    """G100.1d (+ G106.1a/b/c): review PNGs exist at 1152×648 with non-trivial size.
+    """G100.1d (+ G106.1a/b/c, G108.1d): review PNGs exist at 1152×648.
 
     Covers post-G100.1d window-background states, the G106.1a fresh-party
-    frame, the G106.1b empty→selected region pair, and the G106.1c visible
-    battle after K105. **Scope: file presence, IHDR 1152×648, and size
-    floor only** — not chrome fit, hierarchy, or visual content of the
-    frame. Full chrome with multi-hex battle is enforced by the composition
-    layout gate and by ``capture_battle_post_k105_review.gd``; human review
-    still owns hierarchy/oprawa of the PNG.
+    frame, the G106.1b empty→selected region pair, the G106.1c visible battle
+    after K105, and G108.1d's live-session enemy-army frame. **Scope: file
+    presence, IHDR 1152×648, and size floor only** — visual inspection still
+    owns whether the G108.1d image shows the live bridge state, AI army, and
+    Polish chrome.
 
     Realistic defect existing gates miss: BattleView geometry/sides/PŻ/PL
-    result and K105.1c cluster centering can stay green, and older battle
-    screenshots (task-569/579/585) can exist, while the G106 threshold
-    package still lacks a dedicated post-K105 battle proof file at the
-    review resolution. G106.1a/b cover only fresh party and region selection.
+    result and K105.1c cluster centering can stay green, while no committed
+    1152×648 frame proves that an enemy army remains on the strategic map
+    after passive live-bridge turns.
     """
     # Older task-565/task-568 captures predate the full-window parchment and
     # cannot demonstrate that root gaps no longer expose default grey chrome.
