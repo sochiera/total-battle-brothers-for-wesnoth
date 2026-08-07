@@ -1153,6 +1153,49 @@ def test_apply_command_order_assault_auto_applies_recorded_primitive_sets_last_b
     assert expected_battle_auto != expected_battle_t
 
 
+def test_apply_command_order_assault_without_target_from_enemy_settlement_returns_battle():
+    """G110.1b-2: the public untargeted assault works in place.
+
+    Realistic defect: the core assault entry points can resolve an in-place
+    battle while the bridge fallback still treats a missing target as an
+    unchanged order.  Existing bridge coverage starts with the party outside
+    the enemy settlement, so it would not catch that client-shaped command.
+    """
+    from tbb.duchy import Duchy
+    from tbb.party import Party
+    from tbb.settlement import Settlement
+    from tbb.unit import Unit
+    from tbb.world import Region, WorldMap
+    from tbbbridge.protocol import command_result
+
+    keep = Region("Keep")
+    party = Party(Unit(training=5, equipment=6), owner_id="north")
+    settlement = Settlement("Keep", population=1, owner_id="south")
+    world = WorldMap([keep], settlements={keep: settlement}, parties={keep: party})
+    session = Session(
+        world=world,
+        game=GameState(
+            (
+                Duchy("north", party.hero, parties=(party,)),
+                Duchy("south", Unit(), settlements=(settlement,)),
+            )
+        ),
+        calendar=Calendar(year=2, month=3),
+        rng=Rng(2),
+        player_duchy_id="north",
+        seed=2,
+    )
+    command = {"type": "order", "order": "assault"}
+
+    after = apply_command(session, command)
+    result = command_result(session, after, command)
+
+    assert result["kind"] == "battle"
+    assert result["outcome"] in {"zwycięstwo", "porażka", "remis"}
+    assert after.world.settlement_at(keep).owner_id == "north"
+    assert after.world.party_at(keep).acted_this_month is True
+
+
 class _ForbiddenRng:
     """RNG proxy that raises on any draw, proving no-op paths never pull."""
 
