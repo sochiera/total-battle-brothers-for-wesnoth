@@ -59,6 +59,13 @@ func _run() -> void:
 				if not _press(scene_root, button_name):
 					return
 				order_results.append(client.last_order_result())
+			# Engage consumed this month's military action; assault in a later
+			# month so the two battle orders are not an intentional monthly no-op.
+			# The first AI turn relocates its field party to the keep; the second
+			# restores a live garrison for the settlement assault.
+			for _turn in range(AssaultPrecondition.NEXT_TURNS_AFTER_ENGAGE_TO_STAGE_LIVE_FRONTIER):
+				if not _press(scene_root, "NextTurnButton"):
+					return
 			assault_precondition = AssaultPrecondition.inspect(client)
 			if not assault_precondition.get("ready", false):
 				_fail("assault precondition failed: %s" % assault_precondition)

@@ -668,8 +668,9 @@ def _seed73_player_at_border_for_assault(recruit_count: int) -> Session:
     ``next_turn`` resets the player's movement marker, but the AI then occupies
     the border.  The remaining setup is an explicit battle scene: remove that
     AI field party, add one declared frontier defender, and move the player's
-    reset party to the border through ``WorldMap.move_party``.  The marker is
-    therefore set by the real movement transition, never cleared by a fixture.
+    reset party to the border through ``WorldMap.move_party``.  Since that move
+    is itself the monthly military action, a public ``next_turn`` opens the
+    month in which the battle assertions run.
     """
     from tbb.settlement import Settlement
     from tbb.unit import Unit
@@ -722,7 +723,7 @@ def _seed73_player_at_border_for_assault(recruit_count: int) -> Session:
     )
     second_world = battle_scene.move_party(outpost, border, move_points=1)
     assert_moved_party(second_world, border, player_party)
-    return Session(
+    battle_ready = Session(
         world=second_world,
         game=session.game.sync_from_world(second_world),
         calendar=session.calendar,
@@ -730,6 +731,7 @@ def _seed73_player_at_border_for_assault(recruit_count: int) -> Session:
         player_duchy_id=session.player_duchy_id,
         seed=session.seed,
     )
+    return apply_command(battle_ready, {"type": "next_turn"})
 
 
 def test_apply_command_order_move_occupies_empty_adjacent_target():

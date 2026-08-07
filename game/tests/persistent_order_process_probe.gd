@@ -64,6 +64,13 @@ func _run() -> void:
 			# move the party or depend on march's monthly no-op behavior.
 			if not _press(scene_root, "DevelopButton"):
 				return
+			# Engage consumed this month's military action.  Open the next month
+			# before the separate assault process exercises the battle view.  The
+			# first AI turn relocates its field party to the keep; the second
+			# restores a live garrison for the settlement assault.
+			for _turn in range(AssaultPrecondition.NEXT_TURNS_AFTER_ENGAGE_TO_STAGE_LIVE_FRONTIER):
+				if not _press(scene_root, "NextTurnButton"):
+					return
 			assault_precondition = AssaultPrecondition.inspect(client)
 			if not assault_precondition.get("ready", false):
 				_fail("assault precondition failed: %s" % assault_precondition)

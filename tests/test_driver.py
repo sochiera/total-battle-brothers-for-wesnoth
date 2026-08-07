@@ -657,6 +657,12 @@ def test_player_orders_can_defeat_seed_73_ai_field_party():
     world = ai.move_duchy_party_to_adjacent(world, player, player_outpost)
     world, game, player = sync_player(world)
 
+    def next_month(current_world):
+        """Reset the military marker between the explicit battle actions."""
+        return sync_player(current_world.tick_parties())
+
+    world, game, player = next_month(world)
+
     order_rng = Rng(2)
 
     def apply(order, target):
@@ -664,12 +670,16 @@ def test_player_orders_can_defeat_seed_73_ai_field_party():
         assert battle is not None
         return sync_player(current_world)
 
-    for order, target in (
-        (ai.engage_duchy_party_to_recorded, border),
-        (ai.assault_duchy_party_to_recorded, ai_outpost),
-        (ai.assault_duchy_party_to_recorded, ai_lands),
+    for index, (order, target) in enumerate(
+        (
+            (ai.engage_duchy_party_to_recorded, border),
+            (ai.assault_duchy_party_to_recorded, ai_outpost),
+            (ai.assault_duchy_party_to_recorded, ai_lands),
+        )
     ):
         world, game, player = apply(order, target)
+        if index < 2:
+            world, game, player = next_month(world)
 
     ai_duchy = next(duchy for duchy in game.duchies if duchy.duchy_id == "ai")
     assert ai_duchy.is_defeated is True

@@ -2,6 +2,7 @@ extends RefCounted
 
 
 const NEXT_TURNS_TO_STAGE_LIVE_FRONTIER := 3
+const NEXT_TURNS_AFTER_ENGAGE_TO_STAGE_LIVE_FRONTIER := 2
 
 
 ## Machine-readable entry condition for the prepared assault probes.

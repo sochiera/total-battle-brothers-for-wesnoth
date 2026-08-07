@@ -619,6 +619,260 @@ def _build_battle_session_assault():
     )
 
 
+def _build_two_target_battle_session(order: str) -> Session:
+    """Build a seed-73 bridge session with two sequential battle targets."""
+    from tbb.duchy import Duchy
+    from tbb.game import GameState
+    from tbb.party import Party
+    from tbb.rng import Rng
+    from tbb.settlement import Settlement
+    from tbb.turn import Calendar
+    from tbb.unit import Unit
+    from tbb.world import Region, WorldMap
+
+    start, middle, far = map(Region, ("Start", "Middle", "Far"))
+    attacker = Party(Unit(training=5, equipment=6), owner_id="north")
+    if order == "assault":
+        middle_target = Settlement(
+            "Middle Keep", 1, garrison=(Unit(equipment=1),), owner_id="south"
+        )
+        far_target = Settlement(
+            "Far Keep", 1, garrison=(Unit(equipment=1),), owner_id="south"
+        )
+        world = WorldMap(
+            (start, middle, far),
+            ((start, middle), (middle, far)),
+            settlements={middle: middle_target, far: far_target},
+            parties={start: attacker},
+        )
+        defender = Duchy(
+            "south",
+            Unit(),
+            settlements=(middle_target, far_target),
+        )
+    elif order == "engage":
+        middle_target = Party(Unit(equipment=1), owner_id="south")
+        far_target = Party(Unit(equipment=1), owner_id="south")
+        world = WorldMap(
+            (start, middle, far),
+            ((start, middle), (middle, far)),
+            parties={start: attacker, middle: middle_target, far: far_target},
+        )
+        defender = Duchy(
+            "south",
+            Unit(),
+            parties=(middle_target, far_target),
+        )
+    else:
+        raise ValueError(f"unsupported battle order: {order!r}")
+
+    return Session(
+        world=world,
+        game=GameState(
+            (Duchy("north", attacker.hero, parties=(attacker,)), defender)
+        ),
+        calendar=Calendar(),
+        rng=Rng(73),
+        player_duchy_id="north",
+        seed=73,
+    )
+
+
+def _build_move_then_battle_session(order: str) -> Session:
+    """Build a seed-73 bridge session where movement precedes a battle target."""
+    from tbb.duchy import Duchy
+    from tbb.game import GameState
+    from tbb.party import Party
+    from tbb.rng import Rng
+    from tbb.settlement import Settlement
+    from tbb.turn import Calendar
+    from tbb.unit import Unit
+    from tbb.world import Region, WorldMap
+
+    start, staging, target = map(Region, ("Start", "Staging", "Target"))
+    attacker = Party(Unit(training=5, equipment=6), owner_id="north")
+    if order == "assault":
+        target_entity = Settlement(
+            "Target Keep", 1, garrison=(Unit(equipment=1),), owner_id="south"
+        )
+        world = WorldMap(
+            (start, staging, target),
+            ((start, staging), (staging, target)),
+            settlements={target: target_entity},
+            parties={start: attacker},
+        )
+        defender = Duchy("south", Unit(), settlements=(target_entity,))
+    elif order == "engage":
+        target_entity = Party(Unit(equipment=1), owner_id="south")
+        world = WorldMap(
+            (start, staging, target),
+            ((start, staging), (staging, target)),
+            parties={start: attacker, target: target_entity},
+        )
+        defender = Duchy("south", Unit(), parties=(target_entity,))
+    else:
+        raise ValueError(f"unsupported battle order: {order!r}")
+
+    return Session(
+        world=world,
+        game=GameState(
+            (Duchy("north", attacker.hero, parties=(attacker,)), defender)
+        ),
+        calendar=Calendar(),
+        rng=Rng(73),
+        player_duchy_id="north",
+        seed=73,
+    )
+
+
+def _send_battle_order(
+    session: Session, order: str, target: str
+) -> tuple[Session, dict]:
+    return handle_command_line(
+        session,
+        json.dumps({"type": "order", "order": order, "target": target}),
+    )
+
+
+@pytest.mark.parametrize("order", ("assault", "engage"))
+@pytest.mark.parametrize(
+    ("movement_order", "movement_target"),
+    (("move", "Staging"), ("march", "Target")),
+)
+def test_military_move_consumes_monthly_action_before_battle(
+    order, movement_order, movement_target
+):
+    """A changed move or march makes a later assault/engage a no-op."""
+    session = _build_move_then_battle_session(order)
+    session, moved = handle_command_line(
+        session,
+        json.dumps(
+            {
+                "type": "order",
+                "order": movement_order,
+                "target": movement_target,
+            }
+        ),
+    )
+    assert moved["ok"] is True
+    assert moved["result"] == {
+        "kind": "order",
+        "order": movement_order,
+        "changed": True,
+    }
+
+    before_battle_world = session.world
+    before_battle_rng_state = session.rng.state()
+    session, battle = _send_battle_order(session, order, "Target")
+
+    assert battle["ok"] is True
+    assert battle["result"] == {
+        "kind": "order",
+        "order": order,
+        "changed": False,
+    }
+    assert session.world is before_battle_world
+    assert session.rng.state() == before_battle_rng_state
+    assert session.last_battle is None
+
+
+@pytest.mark.parametrize("order", ("assault", "engage"))
+def test_second_battle_in_month_is_protocol_noop(order):
+    """G109.1b: a successful battle consumes the party's monthly action.
+
+    Realistic defect: existing bridge gates cover a successful battle and a
+    second movement, but miss a second battle with another adjacent enemy;
+    without the monthly guard the second command resolves another battle,
+    consumes RNG, and returns ``kind: battle`` instead of ``changed: false``.
+    """
+    session = _build_two_target_battle_session(order)
+    session, first = _send_battle_order(session, order, "Middle")
+    assert first["ok"] is True
+    assert first["result"]["kind"] == "battle"
+
+    before_second_world = session.world
+    before_second_rng_state = session.rng.state()
+    session, second = _send_battle_order(session, order, "Far")
+
+    assert second["ok"] is True
+    assert second["result"] == {
+        "kind": "order",
+        "order": order,
+        "changed": False,
+    }
+    assert session.world is before_second_world
+    assert session.rng.state() == before_second_rng_state
+    assert session.last_battle is None
+
+
+@pytest.mark.parametrize("order", ("assault", "engage"))
+def test_battle_is_reenabled_after_next_turn_via_protocol(order):
+    """The same battle order becomes effective again in the next month."""
+    session = _build_two_target_battle_session(order)
+    session, first = _send_battle_order(session, order, "Middle")
+    assert first["result"]["kind"] == "battle"
+
+    session, turn = handle_command_line(session, '{"type":"next_turn"}')
+    assert turn["result"] == {
+        "kind": "turn",
+        "date": {"year": 1, "month": 2},
+    }
+
+    before_second_world = session.world
+    session, second = _send_battle_order(session, order, "Far")
+
+    assert second["ok"] is True
+    assert second["result"]["kind"] == "battle"
+    assert second["result"]["order"] == order
+    assert session.world is not before_second_world
+    assert session.last_battle is not None
+
+
+@pytest.mark.parametrize("order", ("assault", "engage"))
+def test_ineffective_battle_does_not_consume_monthly_marker(order):
+    """A battle without an adjacent target leaves the monthly action available."""
+    session = _build_two_target_battle_session(order)
+    before_world = session.world
+    before_rng_state = session.rng.state()
+
+    session, ineffective = _send_battle_order(session, order, "Far")
+
+    assert ineffective["ok"] is True
+    assert ineffective["result"] == {
+        "kind": "order",
+        "order": order,
+        "changed": False,
+    }
+    assert session.world is before_world
+    assert session.rng.state() == before_rng_state
+    assert session.last_battle is None
+
+    session, effective = _send_battle_order(session, order, "Middle")
+    assert effective["ok"] is True
+    assert effective["result"]["kind"] == "battle"
+    assert session.last_battle is not None
+
+
+def test_passive_seed73_game_still_loses_to_ai_after_thirteen_next_turns():
+    """K108: monthly battle guards must not stop the AI's pressure."""
+    session = new_session(seed=73, player_duchy_id="player")
+
+    for turn in range(13):
+        session, response = handle_command_line(
+            session, '{"type":"next_turn"}'
+        )
+        assert response["ok"] is True
+        if turn < 12:
+            assert session.snapshot()["result"]["is_over"] is False
+
+    assert response["result"]["date"] == {"year": 2, "month": 1}
+    assert session.snapshot()["result"] == {
+        "is_over": True,
+        "winner": "ai",
+        "player_result": "defeat",
+    }
+
+
 def test_command_result_battle_order_with_last_battle_returns_kind_battle_with_outcome_and_losses():
     """G66.2b kryt-1: ``command_result(before, after, {"type": "order",
     "order": "assault"})`` gdy ``after.last_battle is not None`` zwraca

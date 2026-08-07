@@ -1,10 +1,11 @@
 """G89.1b-4 / G91.1b / G92.2a e2e: natural sequence shows battle effect and capture.
 
-On seed 73 the path recruit → muster → march → next_turn × 3 → engage → assault drives a settlement
-battle across a live bridge process bound to the Godot client — the unique risk
-named in task-504 / PROJECT.md conclusion 13. Slice tests (core, protocol,
-order_result, assault e2e without the two recruits) already pass; this path
-must still surface a readable battle outcome, not a failed-order message.
+On seed 73 the path recruit → muster → march → next_turn × 3 → engage →
+next_turn × 2 → assault drives a settlement battle across a live bridge process
+bound to the Godot client — the unique risk named in task-504 / PROJECT.md
+conclusion 13. Slice tests (core, protocol, order_result, assault e2e without
+the two recruits) already pass; this path must still surface a readable battle
+outcome, not a failed-order message.
 
 After G89.2a-1 (swap past own stunned ally) the seed-73 natural fight is no
 longer a round-limit stalemate. After G90.1a keeps start with a veteran garrison.
@@ -34,9 +35,10 @@ PREFIX = "PERSISTENT_NATURAL_ASSAULT "
 SEED = 73
 PLAYER_LANDS = "player lands"
 AI_OUTPOST = "ai outpost"
-# Matches G85 assault e2e status shape; natural path with G91.1a recruits wins
-# against the replenished frontier garrison, with losses on both sides.
-EXPECTED_ORDER_STATUS = "Szturm: zwycięstwo (straty: 1, wróg: 1)."
+# The two public turns between engage and assault let the AI restore a live
+# frontier garrison; the exact seed-73 battle remains pinned with losses on both
+# sides rather than accepting an arbitrary successful outcome.
+EXPECTED_ORDER_STATUS = "Szturm: zwycięstwo (straty: 2, wróg: 3)."
 EXPECTED_PARTY_POSITION = "Położenie oddziału: Posterunek wroga"
 # One captured keep of two leaves both sides standing (G92.2a AC3).
 EXPECTED_PARTY_RESULT = PLAYER_RESULT_PL["ongoing"]
@@ -44,8 +46,8 @@ EXPECTED_BATTLE_RESULT = {
     "kind": "battle",
     "order": "assault",
     "outcome": "zwycięstwo",
-    "attacker_losses": 1,
-    "defender_losses": 1,
+    "attacker_losses": 2,
+    "defender_losses": 3,
 }
 
 
@@ -129,7 +131,7 @@ def _assert_capture_visible_on_screen(play: dict, *, phase: str = "play") -> Non
 
 
 def test_natural_sequence_captures_frontier_keep_campaign_ongoing_on_live_bridge(tmp_path):
-    """Recruit → muster → march → three next_turns → engage → assault: capture.
+    """Recruit → muster → march → next_turns → engage → next_turns → assault: capture.
 
     Realistic defect: G89 battle-outcome e2e and G90.2b fixture binding stay
     green while the natural live path still shows a failed-order message, leaves

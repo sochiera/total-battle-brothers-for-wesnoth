@@ -734,7 +734,11 @@ def test_apply_party_battle_result_updates_occupancy(
     vale = Region("Vale")
     attacker = Party(Unit(training=1), owner_id="north")
     defender = Party(Unit(training=2), owner_id="south")
-    parties = {"attacker": attacker, "defender": defender, None: None}
+    parties = {
+        "attacker": replace(attacker, acted_this_month=True),
+        "defender": defender,
+        None: None,
+    }
     world = WorldMap(
         [camp, vale], [(camp, vale)], parties={camp: attacker, vale: defender}
     )
@@ -742,7 +746,7 @@ def test_apply_party_battle_result_updates_occupancy(
     resolved = world.apply_party_battle_result(camp, vale, result)
 
     assert resolved.party_at(camp) is parties[expected_source]
-    assert resolved.party_at(vale) is parties[expected_destination]
+    assert resolved.party_at(vale) == parties[expected_destination]
     assert world.party_at(camp) is attacker
     assert world.party_at(vale) is defender
     assert resolved is not world
@@ -873,7 +877,7 @@ def test_apply_party_unresolved_keeps_both_parties_with_survivors():
     )
 
     assert resolved.party_at(camp) == Party.reconstruct(
-        attacker, attacker_survivors
+        replace(attacker, acted_this_month=True), attacker_survivors
     )
     assert resolved.party_at(vale) == Party.reconstruct(
         defender, defender_survivors
@@ -925,7 +929,8 @@ def test_resolve_party_unresolved_returns_world_without_raising():
     assert recorded_battle.result() is None
     assert plain == recorded_world
     assert plain.party_at(camp) == Party.reconstruct(
-        attacker, recorded_battle.side_survivors(BattleSide.ATTACKER)
+        replace(attacker, acted_this_month=True),
+        recorded_battle.side_survivors(BattleSide.ATTACKER),
     )
     assert plain.party_at(vale) == Party.reconstruct(
         defender, recorded_battle.side_survivors(BattleSide.DEFENDER)
@@ -1397,8 +1402,9 @@ def test_apply_settlement_battle_result_updates_world(
     resolved = world.apply_settlement_battle_result(camp, vale, result)
 
     assert resolved.party_at(camp) is None
-    assert resolved.party_at(vale) is (
-        attacker if expected_party == "attacker" else None
+    expected_attacker = replace(attacker, acted_this_month=True)
+    assert resolved.party_at(vale) == (
+        expected_attacker if expected_party == "attacker" else None
     )
     assert resolved.settlement_at(vale).owner_id == expected_owner
     assert resolved.settlement_at(vale).garrison == garrison
@@ -1439,7 +1445,7 @@ def test_apply_settlement_attacker_win_clears_defending_party_at_destination():
     )
 
     assert resolved.party_at(camp) is None
-    assert resolved.party_at(vale) is attacker
+    assert resolved.party_at(vale) == replace(attacker, acted_this_month=True)
     assert resolved.settlement_at(vale).owner_id == "north"
     assert world.party_at(vale) is defender_party
     assert world.settlement_at(vale).owner_id == "south"
@@ -1522,7 +1528,8 @@ def test_apply_settlement_attacker_win_clears_enemy_party_with_battle_survivors(
         unit not in conquered.garrison for unit in (home.hero, *home.units)
     )
     assert resolved.party_at(vale) == Party.reconstruct(
-        attacker, battle.side_survivors(BattleSide.ATTACKER)
+        replace(attacker, acted_this_month=True),
+        battle.side_survivors(BattleSide.ATTACKER),
     )
     assert resolved.party_at(camp) is None
     assert world.party_at(vale) is home
@@ -1722,7 +1729,8 @@ def test_apply_settlement_attacker_win_rebuilds_conquered_garrison():
     )
     assert all(not unit.stunned for unit in conquered.garrison)
     assert resolved.party_at(vale) == Party.reconstruct(
-        attacker, battle.side_survivors(BattleSide.ATTACKER)
+        replace(attacker, acted_this_month=True),
+        battle.side_survivors(BattleSide.ATTACKER),
     )
     assert world.settlement_at(vale) is settlement
     assert settlement.garrison is garrison
@@ -1873,7 +1881,8 @@ def test_apply_settlement_non_attacker_win_splits_defenders_by_origin(result):
     assert garrison[0] not in (home_after.hero, *home_after.units)
     if result is None:
         assert resolved.party_at(camp) == Party.reconstruct(
-            attacker, battle.side_survivors(BattleSide.ATTACKER)
+            replace(attacker, acted_this_month=True),
+            battle.side_survivors(BattleSide.ATTACKER),
         )
     else:
         assert resolved.party_at(camp) is None
@@ -2259,7 +2268,9 @@ def test_apply_settlement_unresolved_keeps_attacker_survivors_and_settlement():
         camp, vale, None, battle=battle
     )
 
-    assert resolved.party_at(camp) == Party.reconstruct(attacker, survivors)
+    assert resolved.party_at(camp) == Party.reconstruct(
+        replace(attacker, acted_this_month=True), survivors
+    )
     assert resolved.party_at(vale) is None
     assert resolved.settlement_at(vale) is settlement
     assert resolved.settlement_at(vale).owner_id == "south"
@@ -2313,7 +2324,8 @@ def test_resolve_settlement_unresolved_returns_world_without_raising():
     assert recorded_battle.result() is None
     assert plain == recorded_world
     assert plain.party_at(camp) == Party.reconstruct(
-        attacker, recorded_battle.side_survivors(BattleSide.ATTACKER)
+        replace(attacker, acted_this_month=True),
+        recorded_battle.side_survivors(BattleSide.ATTACKER),
     )
     assert plain.party_at(vale) is None
     assert plain.settlement_at(vale) is settlement

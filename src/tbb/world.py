@@ -205,8 +205,7 @@ class WorldMap:
             raise ValueError("source region has no party")
         if destination in self.parties:
             raise ValueError("destination is already occupied by a party")
-        party = self.parties[source]
-        if party.acted_this_month:
+        if not self._party_can_act(source):
             return self
 
         parties = dict(self.parties)
@@ -219,6 +218,13 @@ class WorldMap:
             self.settlements,
             parties,
         )
+
+    def _party_can_act(self, source: Region) -> bool:
+        """Return whether the party at ``source`` still has its action.
+
+        Requires ``self.parties[source]`` to exist.
+        """
+        return not self.parties[source].acted_this_month
 
     def start_battle(self, source: Region, destination: Region) -> HexBattle:
         """Create a battle for parties occupying two adjacent regions."""
@@ -254,7 +260,12 @@ class WorldMap:
         result: BattleResult | None,
         battle: HexBattle | None = None,
     ) -> "WorldMap":
-        """Return a new world with a party battle's result applied."""
+        """Return a new world with a party battle's result applied.
+
+        This low-level transition does not enforce the monthly-action marker;
+        callers are expected to validate through ``resolve_party_battle`` or
+        ``resolve_party_battle_recorded``.
+        """
         if source not in self._neighbors or destination not in self._neighbors:
             raise ValueError("region is outside the world map")
         if source == destination:
@@ -269,7 +280,7 @@ class WorldMap:
             raise ValueError("unknown battle result")
 
         parties = dict(self.parties)
-        attacker = parties.pop(source)
+        attacker = replace(parties.pop(source), acted_this_month=True)
         if result is None:
             parties[source] = (
                 attacker
@@ -317,9 +328,16 @@ class WorldMap:
         move_points: int = 1,
         attacker_morale: int = 0,
         defender_morale: int = 0,
-    ) -> tuple["WorldMap", HexBattle]:
-        """Play an adjacent party battle; return map and resolved battle."""
+    ) -> tuple["WorldMap", HexBattle | None]:
+        """Play an adjacent party battle; return map and resolved battle.
+
+        An already acted attacker is a monthly-action no-op.  The battle is
+        built first so invalid regions still raise before the ``_party_can_act``
+        guard, but RNG is not touched on the no-op path.
+        """
         battle = self.start_battle(source, destination)
+        if not self._party_can_act(source):
+            return self, None
         resolved = battle.auto_resolve(
             move_points,
             rng,
@@ -452,7 +470,12 @@ class WorldMap:
         result: BattleResult | None,
         battle: HexBattle | None = None,
     ) -> "WorldMap":
-        """Return a new world with a settlement battle's result applied."""
+        """Return a new world with a settlement battle's result applied.
+
+        This low-level transition does not enforce the monthly-action marker;
+        callers are expected to validate through ``resolve_settlement_battle``
+        or ``resolve_settlement_battle_recorded``.
+        """
         if source not in self._neighbors or destination not in self._neighbors:
             raise ValueError("region is outside the world map")
         if source == destination:
@@ -465,7 +488,7 @@ class WorldMap:
             raise ValueError("destination region has no settlement")
         if result is not None and not isinstance(result, BattleResult):
             raise ValueError("unknown battle result")
-        attacker = self.parties[source]
+        attacker = replace(self.parties[source], acted_this_month=True)
         settlement = self.settlements[destination]
         destination_party = self.parties.get(destination)
         if (
@@ -536,9 +559,15 @@ class WorldMap:
         move_points: int = 1,
         attacker_morale: int = 0,
         defender_morale: int = 0,
-    ) -> tuple["WorldMap", HexBattle]:
-        """Play an adjacent settlement battle; return map and resolved battle."""
+    ) -> tuple["WorldMap", HexBattle | None]:
+        """Play an adjacent settlement battle; return map and resolved battle.
+
+        The monthly-action no-op follows the same ``_party_can_act`` rule as
+        ``resolve_party_battle_recorded``.
+        """
         battle = self.start_settlement_battle(source, destination)
+        if not self._party_can_act(source):
+            return self, None
         resolved = battle.auto_resolve(
             move_points,
             rng,

@@ -1121,7 +1121,7 @@ def test_muster_duchy_party_transition_is_publicly_exported():
     assert tbb.muster_duchy_party is muster_duchy_party
 
 
-def test_duchy_military_action_musters_marches_once_and_assaults():
+def test_duchy_military_action_musters_and_marches_once():
     home, road, target = map(Region, ("Home", "Road", "Target"))
     hero = Unit(training=5, equipment=6)
     guard = Unit(equipment=2)
@@ -1141,13 +1141,14 @@ def test_duchy_military_action_musters_marches_once_and_assaults():
     result = take_duchy_military_action(world, duchy, tbb.Rng(4))
     mustered = muster_duchy_party(world, duchy)
     marched = march_toward_nearest_enemy(mustered, home)
-    expected = assault_nearest_enemy_settlement(marched, road, tbb.Rng(4))
 
-    assert result == expected
-    assert result != marched
+    assert result == marched
+    assert result.party_at(road) is not None
+    assert result.party_at(target) is None
+    assert result.settlement_at(target) is enemy_settlement
 
 
-def test_duchy_military_action_reuses_party_and_assaults_from_marched_position():
+def test_duchy_military_action_respects_monthly_marker_after_march():
     start, road, target = map(Region, ("Start", "Road", "Target"))
     party = Party(Unit(training=5, equipment=6), owner_id="ai")
     world = WorldMap(
@@ -1161,7 +1162,9 @@ def test_duchy_military_action_reuses_party_and_assaults_from_marched_position()
     result = take_duchy_military_action(world, duchy, tbb.Rng(8))
     marched = march_toward_nearest_enemy(world, start)
 
-    assert result == assault_nearest_enemy_settlement(marched, road, tbb.Rng(8))
+    assert result == marched
+    assert result.party_at(road) is not None
+    assert result.party_at(target) is None
     assert world.party_at(start) is party
 
 
@@ -1602,7 +1605,7 @@ def test_duchy_turn_recruits_and_marches_when_all_buildings_are_already_open():
     assert world.party_at(road) is None
 
 
-def test_duchy_turn_recruits_before_muster_march_and_adjacent_assault():
+def test_duchy_turn_recruits_before_muster_and_march():
     home, road, target = map(Region, ("Home", "Road", "Target"))
     hero = Unit(training=8, equipment=8)
     home_settlement = Settlement(
@@ -1625,10 +1628,13 @@ def test_duchy_turn_recruits_before_muster_march_and_adjacent_assault():
 
     assert result == expected
     assert result.settlement_at(home).garrison == ()
-    assault_units = result.party_at(target).units
-    assert len(assault_units) == 1
-    assert assault_units[0].damage > 0
-    assert assault_units[0].defense > 0
+    marched = result.party_at(road)
+    assert marched is not None
+    assert len(marched.units) == 1
+    assert marched.units[0].damage > 0
+    assert marched.units[0].defense > 0
+    assert result.party_at(target) is None
+    assert result.settlement_at(target) is enemy_settlement
 
 
 def test_duchy_turn_leaves_recruit_in_garrison_when_party_already_exists():
@@ -1653,7 +1659,9 @@ def test_duchy_turn_leaves_recruit_in_garrison_when_party_already_exists():
     assert len(home_garrison) == 1
     assert home_garrison[0].damage > 0
     assert home_garrison[0].defense > 0
-    assert result.party_at(target).units == (veteran,)
+    assert_moved_party(result, road, party)
+    assert result.party_at(road).units == (veteran,)
+    assert result.party_at(target) is None
 
 
 def test_duchy_turn_takes_military_action_when_recruitment_is_unavailable():
@@ -1670,7 +1678,8 @@ def test_duchy_turn_takes_military_action_when_recruitment_is_unavailable():
 
     result = take_duchy_turn(world, duchy, _ForbiddenRng())
 
-    assert_moved_party(result, target, party)
+    assert_moved_party(result, road, party)
+    assert result.party_at(target) is None
 
 
 def test_duchy_turn_is_deterministic_and_preserves_all_inputs():

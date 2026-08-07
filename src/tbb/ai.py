@@ -556,7 +556,11 @@ def take_duchy_military_action(
     rng: Rng,
     morale_by_owner: dict[str, int] | None = None,
 ) -> WorldMap:
-    """Muster, march once, and assault only with a strength advantage."""
+    """Muster, march once, and assault only with a strength advantage.
+
+    The assault is effective only when muster and march leave the party's
+    monthly action available; either operation may make the assault a no-op.
+    """
     if duchy.hero is None:
         return world
 
