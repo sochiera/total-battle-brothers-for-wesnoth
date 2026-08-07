@@ -1909,3 +1909,4 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
 - Dług dokumentacji: `docs/ARCHITECTURE.md` ma 116 KB — zaplanuj podział pliku.
 - Dług dokumentacji: `docs/DESIGN.md` ma 27 KB — zaplanuj podział pliku.
 - Dług dokumentacji: `docs/DECISIONS.md` ma 74 KB — zaplanuj podział pliku.
+- Dług dokumentacji: `docs/PROJECT.md` ma 20 KB — zaplanuj podział pliku.
