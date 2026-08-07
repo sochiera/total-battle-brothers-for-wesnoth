@@ -100,6 +100,9 @@ WINDOW_BACKGROUND_SCREENSHOTS = (
     # presses Engage against that army; it must preserve the full strategic
     # chrome alongside the resolved battle.
     GAME / "screenshots" / "task-607-live-engage-battle-1152x648.png",
+    # G109.1c / task-613: live frame after a repeated military action is
+    # blocked, with the Polish exhausted-month status still visible.
+    GAME / "screenshots" / "task-613-blocked-military-order-1152x648.png",
 )
 ORDER_ICON_FILES = {
     "NextTurnButton": "icon_next_turn.png",

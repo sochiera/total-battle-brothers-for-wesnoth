@@ -125,7 +125,8 @@ def test_godot_order_result_returns_polish_status_text_for_projected_orders():
         "recruit_unchanged": "Rozkaz rekrutacji nie zmienił stanu.",
         "muster_changed": "Rozkaz zbiórki zmienił stan.",
         "muster_unchanged": "Rozkaz zbiórki nie zmienił stanu.",
-        "assault_unchanged": "Rozkaz szturmu nie zmienił stanu.",
+        "assault_unchanged": "Oddział już działał w tym miesiącu — zakończ turę.",
+        "assault_unchanged_default": "Rozkaz szturmu nie zmienił stanu.",
         # G97.1f: targeted move has dedicated PL (not the generic order template).
         # Blocked move (changed=false), e.g. enemy settlement: exact AC wording.
         "move_changed": "Oddział przemieścił się.",
@@ -136,7 +137,8 @@ def test_godot_order_result_returns_polish_status_text_for_projected_orders():
         "assault_battle_from_wire": "Szturm: zwycięstwo (straty: 0, wróg: 2).",
         # Ten sam szablon co zwycięstwo/porażka/remis; outcome mostu wprost w tekście.
         "assault_battle_unresolved": "Szturm: nierozstrzygnięta (straty: 0, wróg: 0).",
-        "engage_unchanged": "Rozkaz starcia nie zmienił stanu.",
+        "engage_unchanged": "Oddział już działał w tym miesiącu — zakończ turę.",
+        "engage_unchanged_default": "Rozkaz starcia nie zmienił stanu.",
         "engage_battle": "Starcie: porażka (straty: 1, wróg: 0).",
         "missing_result": "",
         "non_dictionary": "",

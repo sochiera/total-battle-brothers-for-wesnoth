@@ -71,13 +71,16 @@ def test_assault_button_shows_battle_view_across_godot_processes(tmp_path):
     assert precondition["frontier_garrison_live"] is True, precondition
     assert precondition["frontier_garrison"] >= 1, precondition
 
-    # K80 regression: order status text still carries battle outcome / no-op.
+    # K80/G109.1c regression: order status text carries battle outcome and the
+    # second military action names the exhausted monthly action.
     assert prepared["controls_after_muster"]["party_position"] == "Położenie oddziału: Ziemie gracza"
     assert prepared["controls"]["party_position"] == "Położenie oddziału: Pogranicze"
     assert battle["controls_before_order"]["party_position"] == "Położenie oddziału: Pogranicze"
     assert battle["controls"]["party_position"] == "Położenie oddziału: Posterunek wroga"
     assert battle["controls"]["order_status"] == "Szturm: zwycięstwo (straty: 2, wróg: 3)."
-    assert resumed["controls"]["order_status"] == "Rozkaz starcia nie zmienił stanu."
+    assert resumed["controls"]["order_status"] == (
+        "Oddział już działał w tym miesiącu — zakończ turę."
+    )
     assert prepared["controls"]["date"] != prepared["controls_before_order"]["date"]
     assert battle["controls_before_order"]["date"] == prepared["controls"]["date"]
     assert battle["controls"]["date"] == prepared["controls"]["date"]

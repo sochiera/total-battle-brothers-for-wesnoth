@@ -7,6 +7,7 @@ extends SceneTree
 const MAIN_SCENE_PATH := "res://scenes/main.tscn"
 const BridgeClient = preload("res://scripts/bridge_client.gd")
 const AssaultPrecondition = preload("res://tests/persistent_assault_precondition.gd")
+const MapOrderE2E = preload("res://tests/map_order_e2e_helpers.gd")
 const PREFIX := "PERSISTENT_ORDER_PROCESS "
 
 
@@ -39,6 +40,7 @@ func _run() -> void:
 	var battle_before_order := _battle_observation(battle_view)
 	var controls_after_muster: Variant = null
 	var assault_precondition: Dictionary = {}
+	var sequence: Dictionary = {}
 	var phase: String = args[4]
 
 	match phase:
@@ -87,6 +89,42 @@ func _run() -> void:
 		"engage", "second_engage":
 			if not _press(scene_root, "EngageButton"):
 				return
+		"second_engage_next_turn":
+			var blocked := {}
+			var after_turn := {}
+			var effective := {}
+			if not _press(scene_root, "EngageButton"):
+				return
+			blocked = _controls(scene_root)
+			if not _press(scene_root, "NextTurnButton"):
+				return
+			after_turn = _controls(scene_root)
+			if not _press(scene_root, "EngageButton"):
+				return
+			effective = _controls(scene_root)
+			sequence = {
+				"blocked": blocked,
+				"after_turn": after_turn,
+				"effective": effective,
+			}
+		"march_then_engage":
+			var march := {}
+			var engage := {}
+			var map_view := scene_root.find_child("MapView", true, false)
+			if not MapOrderE2E.click_region(self, map_view, "player outpost"):
+				return
+			await process_frame
+			await process_frame
+			if not _press(scene_root, "MarchButton"):
+				return
+			march = _controls(scene_root)
+			if not _press(scene_root, "EngageButton"):
+				return
+			engage = _controls(scene_root)
+			sequence = {
+				"march": march,
+				"engage": engage,
+			}
 		_:
 			_fail("unknown phase")
 			return
@@ -102,6 +140,7 @@ func _run() -> void:
 		"battle_before_order": battle_before_order,
 		"battle": _battle_observation(battle_view),
 		"assault_precondition": assault_precondition,
+		"sequence": sequence,
 		"state_exists": FileAccess.file_exists(args[1]),
 		"session_command": client.session_command(),
 	}))

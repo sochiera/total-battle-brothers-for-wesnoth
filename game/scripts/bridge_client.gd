@@ -12,6 +12,9 @@ var _is_persistent: bool = false
 var state_path: String
 var seed: int
 var _last_order_result: Variant = null
+var _party_acted_this_month := false
+var _last_model_year := -1
+var _last_model_month := -1
 
 
 static func create(command: String, request_path: String = "") -> BridgeClient:
@@ -135,7 +138,11 @@ func send_many(requests: Array) -> Array:
 	return responses if responses.size() == requests.size() else []
 
 
-func _send_persisted_sequence(command: Dictionary, project_order_result: bool = false) -> SnapshotModel:
+func _send_persisted_sequence(
+	command: Dictionary,
+	project_order_result: bool = false,
+	reset_monthly_action: bool = false,
+) -> SnapshotModel:
 	if not _is_persistent:
 		return null
 
@@ -148,9 +155,13 @@ func _send_persisted_sequence(command: Dictionary, project_order_result: bool = 
 		return null
 
 	var first_response: Dictionary = responses[0]
+	var order_result: Variant = null
 	if project_order_result:
-		_last_order_result = OrderResult.from_response(first_response)
-	return SnapshotModel.from_response(first_response)
+		order_result = OrderResult.from_response(first_response, _party_acted_this_month)
+		_last_order_result = order_result
+	var model := SnapshotModel.from_response(first_response)
+	_update_monthly_action_marker(model, order_result, reset_monthly_action)
+	return model
 
 
 func advance_turn() -> SnapshotModel:
@@ -159,7 +170,7 @@ func advance_turn() -> SnapshotModel:
 
 func start_new_game() -> SnapshotModel:
 	_last_order_result = null
-	return _send_persisted_sequence({"type": "new_game"})
+	return _send_persisted_sequence({"type": "new_game"}, false, true)
 
 
 static func _order_command(order_name: String, target: String) -> Dictionary:
@@ -167,6 +178,31 @@ static func _order_command(order_name: String, target: String) -> Dictionary:
 	if not target.is_empty():
 		command["target"] = target
 	return command
+
+
+func _update_monthly_action_marker(
+	model: SnapshotModel, order_result: Variant, reset_monthly_action: bool = false
+) -> void:
+	if model == null:
+		return
+
+	var date_changed := (
+		_last_model_year >= 0
+		and (model.year != _last_model_year or model.month != _last_model_month)
+	)
+	if reset_monthly_action or date_changed:
+		_party_acted_this_month = false
+	elif OrderResult.consumes_monthly_action(order_result):
+		_party_acted_this_month = true
+	else:
+		# The unchanged bridge protocol does not expose Party.acted_this_month.
+		# A persisted battle is therefore only a restart hint; the local order
+		# result remains the authoritative signal for actions made in this client.
+		if model.battle != null:
+			_party_acted_this_month = true
+
+	_last_model_year = model.year
+	_last_model_month = model.month
 
 
 func send_order(order_name: String, target: String = "") -> SnapshotModel:
@@ -190,7 +226,9 @@ func snapshot_model() -> SnapshotModel:
 	var response: Variant = send({"type": "snapshot"})
 	if response == null or not response is Dictionary:
 		return null
-	return SnapshotModel.from_response(response)
+	var model := SnapshotModel.from_response(response)
+	_update_monthly_action_marker(model, null)
+	return model
 
 
 func persist_snapshot() -> SnapshotModel:

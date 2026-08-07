@@ -17,6 +17,8 @@ GAME = ROOT / "game"
 PROBE = "res://tests/persistent_order_process_probe.gd"
 PREFIX = "PERSISTENT_ORDER_PROCESS "
 SEED = 73
+EXHAUSTED_ACTION_STATUS = "Oddział już działał w tym miesiącu — zakończ turę."
+NO_TARGET_STATUS = "Rozkaz starcia nie zmienił stanu."
 
 
 def _run_process(command_prefix: str, state_path: Path, request_path: Path, phase: str) -> dict:
@@ -41,10 +43,13 @@ def _adjacent_parties_session() -> Session:
     """Build the seed-73 state with both adjacent parties alive.
 
     The monthly movement marker is reset through ``next_turn`` before the
-    fixture asks the AI to provide the opposing adjacent party.
+    fixture asks the AI to provide the opposing adjacent party. One recruited
+    unit keeps the player party alive after the first engage, so the next AI
+    turn can provide a fresh adjacent target for the cycle assertion.
     """
     session = new_session(seed=SEED, player_duchy_id="player")
     for command in (
+        {"type": "order", "order": "recruit"},
         {"type": "order", "order": "muster"},
         {"type": "order", "order": "march"},
         {"type": "next_turn"},
@@ -68,6 +73,29 @@ def _party_without_adjacent_enemy_session() -> Session:
     return apply_command(
         new_session(seed=SEED, player_duchy_id="player"),
         {"type": "order", "order": "muster"},
+    )
+
+
+def _march_then_engage_session() -> Session:
+    """Build a player path whose effective march leaves an adjacent AI party."""
+    session = new_session(seed=SEED, player_duchy_id="player")
+    for command in (
+        {"type": "order", "order": "recruit"},
+        {"type": "order", "order": "muster"},
+    ):
+        session = apply_command(session, command)
+
+    ai_duchy = next(duchy for duchy in session.game.duchies if duchy.duchy_id == "ai")
+    world = ai.muster_duchy_party(session.world, ai_duchy)
+    world = ai.march_duchy_party(world, ai_duchy)
+    return Session(
+        world=world,
+        game=session.game.sync_from_world(world),
+        calendar=session.calendar,
+        rng=session.rng,
+        player_duchy_id=session.player_duchy_id,
+        seed=session.seed,
+        last_battle=session.last_battle,
     )
 
 
@@ -101,7 +129,10 @@ def test_engage_button_resolves_party_battle_and_persists_it_across_processes(tm
     save_session(before_battle, state_path)
 
     battle = _run_process(command_prefix, state_path, request_path, "engage")
-    resumed = _run_process(command_prefix, state_path, request_path, "second_engage")
+    persisted_after_battle = read_session(state_path)
+    cycle = _run_process(
+        command_prefix, state_path, request_path, "second_engage_next_turn"
+    )
 
     assert battle["session_command"] == f"{command_prefix} serve --resume '{state_path}'"
     assert battle["battle_before_order"]["tile_count"] == 0
@@ -114,22 +145,35 @@ def test_engage_button_resolves_party_battle_and_persists_it_across_processes(tm
     assert after["paint_groups"] >= 2, after
     assert _polish_battle_outcome(after["result_text"]), after
 
-    persisted_after_battle = read_session(state_path)
     assert persisted_after_battle.world != before_battle.world
 
     # A new bridge process reads the post-battle file, rather than pre-click state.
-    assert resumed["session_command"] == f"{command_prefix} serve --resume '{state_path}'"
-    assert resumed["controls_before_order"]["party_position"] == battle["controls"]["party_position"]
-    assert resumed["controls_before_order"]["duchy_status"] == battle["controls"]["duchy_status"]
-    assert resumed["battle_before_order"]["tile_count"] == after["tile_count"]
-    assert resumed["battle_before_order"]["result_text"] == after["result_text"]
+    assert cycle["session_command"] == f"{command_prefix} serve --resume '{state_path}'"
+    assert cycle["controls_before_order"]["party_position"] == battle["controls"]["party_position"]
+    assert cycle["controls_before_order"]["duchy_status"] == battle["controls"]["duchy_status"]
+    assert cycle["battle_before_order"]["tile_count"] == after["tile_count"]
+    assert cycle["battle_before_order"]["result_text"] == after["result_text"]
 
-    # With no adjacent enemy after the loss, another click gives a Polish no-op,
-    # and the fresh no-battle snapshot removes the old battle panel.
-    assert resumed["controls"]["order_status"] == "Rozkaz starcia nie zmienił stanu."
+    # The live two-process sequence is: same action blocked, next month, then
+    # the same action resolves again with a fresh visible battle result.
+    sequence = cycle["sequence"]
+    assert sequence["blocked"]["order_status"] == EXHAUSTED_ACTION_STATUS
+    assert sequence["after_turn"]["date"] != sequence["blocked"]["date"]
+    assert _polish_engage_result(sequence["effective"]["order_status"])
+    assert cycle["battle"]["tile_count"] >= 2, cycle
+    assert _polish_battle_outcome(cycle["battle"]["result_text"]), cycle
+
+    persisted_after_cycle = read_session(state_path)
+    assert persisted_after_cycle.calendar != persisted_after_battle.calendar
+
+    # A third process sees the second battle and its consumed monthly action.
+    resumed = _run_process(command_prefix, state_path, request_path, "second_engage")
+    assert resumed["controls"]["order_status"] == EXHAUSTED_ACTION_STATUS
+    assert resumed["battle_before_order"]["tile_count"] == cycle["battle"]["tile_count"]
+    assert resumed["battle_before_order"]["result_text"] == cycle["battle"]["result_text"]
     assert resumed["battle"]["tile_count"] == 0
     assert resumed["battle"]["result_text"] == ""
-    assert read_session(state_path).world == persisted_after_battle.world
+    assert read_session(state_path).world == persisted_after_cycle.world
 
     # The same no-op is also useful while the player's party is still alive:
     # it proves the missing-target branch, rather than merely the no-party one.
@@ -143,7 +187,29 @@ def test_engage_button_resolves_party_battle_and_persists_it_across_processes(tm
 
     assert no_enemy["controls_before_order"]["party_position"] != "Położenie oddziału: brak"
     assert no_enemy["controls"]["party_position"] == no_enemy["controls_before_order"]["party_position"]
-    assert no_enemy["controls"]["order_status"] == "Rozkaz starcia nie zmienił stanu."
+    assert no_enemy["controls"]["order_status"] == NO_TARGET_STATUS
     assert no_enemy["battle_before_order"]["tile_count"] == 0
     assert no_enemy["battle"]["tile_count"] == 0
     assert read_session(no_enemy_state_path).world == living_party_without_enemy.world
+
+
+def test_march_then_engage_shows_exhausted_month_status_on_live_bridge(tmp_path):
+    """An effective March must block the next same-month Engage visibly.
+
+    Realistic defect: the core marks a successful march as acted for the month,
+    but BridgeClient currently records the marker only after a battle snapshot.
+    The existing Engage e2e starts after a turn reset, so it cannot catch the
+    direct march → engage path and the client falls back to the generic no-op.
+    """
+    state_path = tmp_path / "persistent-march-engage-session.json"
+    request_path = tmp_path / "bridge-request.jsonl"
+    command_prefix = f"PYTHONPATH={shlex.quote(str(ROOT / 'src'))} python3 -m tbbbridge"
+    save_session(_march_then_engage_session(), state_path)
+
+    result = _run_process(command_prefix, state_path, request_path, "march_then_engage")
+    sequence = result["sequence"]
+
+    assert sequence["march"]["order_status"] == "Oddział przemieścił się."
+    assert sequence["march"]["party_position"] == "Położenie oddziału: Posterunek gracza"
+    assert sequence["engage"]["party_position"] == sequence["march"]["party_position"]
+    assert sequence["engage"]["order_status"] == EXHAUSTED_ACTION_STATUS

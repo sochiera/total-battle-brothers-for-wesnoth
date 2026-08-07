@@ -40,7 +40,8 @@ const EXPECTED_STATUS_TEXT := {
 	"recruit_unchanged": "Rozkaz rekrutacji nie zmienił stanu.",
 	"muster_changed": "Rozkaz zbiórki zmienił stan.",
 	"muster_unchanged": "Rozkaz zbiórki nie zmienił stanu.",
-	"assault_unchanged": "Rozkaz szturmu nie zmienił stanu.",
+	"assault_unchanged": "Oddział już działał w tym miesiącu — zakończ turę.",
+	"assault_unchanged_default": "Rozkaz szturmu nie zmienił stanu.",
 	# G97.1f: celowany move ma własne PL (nie szablon „Rozkaz … zmienił stan.”).
 	# Blokada (changed=false), m.in. wroga osada: „Ruch nie nastąpił.”
 	"move_changed": "Oddział przemieścił się.",
@@ -50,7 +51,8 @@ const EXPECTED_STATUS_TEXT := {
 	"assault_battle": "Szturm: porażka (straty: 0, wróg: 0).",
 	"assault_battle_from_wire": "Szturm: zwycięstwo (straty: 0, wróg: 2).",
 	"assault_battle_unresolved": "Szturm: nierozstrzygnięta (straty: 0, wróg: 0).",
-	"engage_unchanged": "Rozkaz starcia nie zmienił stanu.",
+	"engage_unchanged": "Oddział już działał w tym miesiącu — zakończ turę.",
+	"engage_unchanged_default": "Rozkaz starcia nie zmienił stanu.",
 	"engage_battle": "Starcie: porażka (straty: 1, wróg: 0).",
 	"missing_result": "",
 	"non_dictionary": "",
@@ -113,7 +115,9 @@ func _init() -> void:
 		"recruit_unchanged": OrderResult.from_response({"ok": true, "result": {"kind": "order", "order": "recruit", "changed": false}}),
 		"muster_changed": OrderResult.from_response({"ok": true, "result": {"kind": "order", "order": "muster", "changed": true}}),
 		"muster_unchanged": OrderResult.from_response({"ok": true, "result": {"kind": "order", "order": "muster", "changed": false}}),
-		"assault_unchanged": OrderResult.from_response({"ok": true, "result": {"kind": "order", "order": "assault", "changed": false}}),
+		# The exhausted-month wording requires the bridge's explicit context.
+		"assault_unchanged": OrderResult.from_response({"ok": true, "result": {"kind": "order", "order": "assault", "changed": false}}, true),
+		"assault_unchanged_default": OrderResult.from_response({"ok": true, "result": {"kind": "order", "order": "assault", "changed": false}}),
 		"move_changed": OrderResult.from_response({"ok": true, "result": {"kind": "order", "order": "move", "changed": true}}),
 		"move_unchanged": OrderResult.from_response({"ok": true, "result": {"kind": "order", "order": "move", "changed": false}}),
 		"game_over_order": OrderResult.from_response({
@@ -124,7 +128,8 @@ func _init() -> void:
 		"assault_battle_from_wire": projected["battle_from_wire"],
 		"assault_battle_unresolved": projected["battle_unresolved"],
 		"engage_battle": projected["engage_battle"],
-		"engage_unchanged": projected["engage_unchanged"],
+		"engage_unchanged": OrderResult.from_response({"ok": true, "result": {"kind": "order", "order": "engage", "changed": false}}, true),
+		"engage_unchanged_default": projected["engage_unchanged"],
 		"missing_result": null,
 		"non_dictionary": [],
 		"missing_order": {"changed": true},
