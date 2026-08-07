@@ -1279,6 +1279,173 @@ def test_start_settlement_battle_at_rejects_invalid_contacts(world, region, mess
         world.start_settlement_battle_at(region)
 
 
+def test_apply_settlement_battle_result_at_conquers_empty_garrison_in_place():
+    """A wall assault applies ATTACKER_WIN without inventing a destination.
+
+    Defect: the existing result transition requires distinct adjacent source
+    and destination regions, so the legal empty-garrison assault has no way to
+    change the settlement owner or keep its surviving attacker in place.
+    """
+    keep = Region("Keep")
+    attacker = Party(
+        Unit(training=3), [Unit(equipment=1), Unit(experience=2)], "north"
+    )
+    settlement = Settlement("Oakrest", population=4, garrison=(), owner_id="south")
+    world = WorldMap([keep], settlements={keep: settlement}, parties={keep: attacker})
+    battle = world.start_settlement_battle_at(keep)
+
+    resolved = world.apply_settlement_battle_result_at(
+        keep, BattleResult.ATTACKER_WIN, battle=battle
+    )
+
+    assert resolved.settlement_at(keep).owner_id == "north"
+    assert resolved.party_at(keep) == Party.reconstruct(
+        replace(attacker, acted_this_month=True),
+        battle.side_survivors(BattleSide.ATTACKER),
+    )
+
+
+@pytest.mark.parametrize(
+    "result, expected_owner",
+    [
+        (BattleResult.ATTACKER_WIN, "north"),
+        (BattleResult.DEFENDER_WIN, "south"),
+        (BattleResult.DRAW, "south"),
+        (None, "south"),
+    ],
+    ids=["attacker-win", "defender-win", "draw", "unresolved"],
+)
+def test_apply_settlement_battle_result_at_bumps_occupied_before_wiped_garrison(
+    result, expected_owner
+):
+    """A dead garrison cannot make occupied population negative for any result.
+
+    Defect: the in-place transition absorbs fallen defenders before restoring
+    occupied to the number of garrison slots.  With ``occupied < len(garrison)``
+    this raises instead of applying a valid transition.
+    """
+    keep = Region("Keep")
+    attacker = Party(Unit(), owner_id="north")
+    garrison = (Unit(), Unit())
+    settlement = Settlement(
+        "Oakrest",
+        population=5,
+        occupied=0,
+        garrison=garrison,
+        owner_id="south",
+    )
+    world = WorldMap([keep], settlements={keep: settlement}, parties={keep: attacker})
+    battle = world.start_settlement_battle_at(keep)
+    for position in tuple(battle.units):
+        if battle.side_at(position) is BattleSide.DEFENDER:
+            unit = battle.unit_at(position)
+            battle = battle.damage(position, unit.hp)
+            battle = battle.resolve_defeat(position, Rng(1))
+
+    assert battle.side_survivors(BattleSide.DEFENDER) == ()
+    resolved = world.apply_settlement_battle_result_at(
+        keep, result, battle=battle
+    )
+
+    conquered = resolved.settlement_at(keep)
+    assert conquered.owner_id == expected_owner
+    assert (conquered.population, conquered.occupied, conquered.garrison) == (
+        3,
+        0,
+        (),
+    )
+
+
+@pytest.mark.parametrize(
+    "result",
+    [BattleResult.DEFENDER_WIN, BattleResult.DRAW],
+    ids=["defender-win", "draw"],
+)
+def test_apply_settlement_battle_result_at_keeps_attacker_without_battle(result):
+    """An unrecorded failed assault leaves its party in the assault region."""
+    keep = Region("Keep")
+    attacker = Party(Unit(), owner_id="north")
+    settlement = Settlement("Oakrest", population=5, owner_id="south")
+    world = WorldMap([keep], settlements={keep: settlement}, parties={keep: attacker})
+
+    resolved = world.apply_settlement_battle_result_at(keep, result)
+
+    assert resolved.party_at(keep) == replace(attacker, acted_this_month=True)
+    assert resolved.settlement_at(keep) is settlement
+
+
+@pytest.mark.parametrize(
+    "result, expected_owner",
+    [
+        (BattleResult.ATTACKER_WIN, "north"),
+        (BattleResult.DEFENDER_WIN, "south"),
+        (BattleResult.DRAW, "south"),
+        (None, "south"),
+    ],
+    ids=["attacker-win", "defender-win", "draw", "unresolved"],
+)
+def test_apply_settlement_battle_result_at_reconstructs_survivors_in_place(
+    result, expected_owner
+):
+    keep = Region("Keep")
+    attacker = Party(
+        Unit(experience=6),
+        [Unit(training=2), Unit(equipment=4)],
+        owner_id="north",
+    )
+    garrison = (Unit(training=3), Unit(equipment=2), Unit(experience=1))
+    settlement = Settlement(
+        "Oakrest",
+        5,
+        occupied=3,
+        garrison=garrison,
+        owner_id="south",
+    )
+    world = WorldMap([keep], settlements={keep: settlement}, parties={keep: attacker})
+    battle = _battle_with_fallen_subordinates(
+        attacker, Party(garrison[0], garrison[1:], owner_id="south")
+    )
+
+    resolved = world.apply_settlement_battle_result_at(
+        keep, result, battle=battle
+    )
+
+    assert resolved.party_at(keep) == Party.reconstruct(
+        replace(attacker, acted_this_month=True),
+        battle.side_survivors(BattleSide.ATTACKER),
+    )
+    assert resolved.settlement_at(keep).owner_id == expected_owner
+    assert resolved.settlement_at(keep).garrison == battle.side_survivors(
+        BattleSide.DEFENDER
+    )
+    assert world.party_at(keep) is attacker
+    assert world.settlement_at(keep) is settlement
+
+
+def test_apply_settlement_battle_result_at_removes_wiped_attacker_in_place():
+    keep = Region("Keep")
+    attacker = Party(Unit(), [Unit()], owner_id="north")
+    settlement = Settlement(
+        "Oakrest", population=2, garrison=(Unit(),), owner_id="south"
+    )
+    world = WorldMap([keep], settlements={keep: settlement}, parties={keep: attacker})
+    battle = world.start_settlement_battle_at(keep)
+    for position in tuple(battle.units):
+        if battle.side_at(position) is BattleSide.ATTACKER:
+            unit = battle.unit_at(position)
+            battle = battle.damage(position, unit.hp)
+            battle = battle.resolve_defeat(position, Rng(1))
+
+    resolved = world.apply_settlement_battle_result_at(
+        keep, BattleResult.DEFENDER_WIN, battle=battle
+    )
+
+    assert battle.side_survivors(BattleSide.ATTACKER) == ()
+    assert resolved.party_at(keep) is None
+    assert resolved.settlement_at(keep).owner_id == "south"
+    assert world.party_at(keep) is attacker
+
+
 def test_start_settlement_battle_includes_enemy_party_at_destination_with_garrison():
     """Enemy party in the assaulted region fights with the garrison.
 

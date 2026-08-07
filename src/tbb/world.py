@@ -446,6 +446,13 @@ class WorldMap:
         return party is not None and party.owner_id == settlement.owner_id
 
     @staticmethod
+    def _ensure_garrison_occupancy(settlement: Settlement) -> Settlement:
+        """Keep enough occupied population reserved for every garrison slot."""
+        if settlement.occupied >= len(settlement.garrison):
+            return settlement
+        return replace(settlement, occupied=len(settlement.garrison))
+
+    @staticmethod
     def _absorb_settlement_defenders(
         settlement: Settlement,
         parties: dict[Region, Party],
@@ -519,8 +526,7 @@ class WorldMap:
             raise ValueError("source region has no party")
         if destination not in self.settlements:
             raise ValueError("destination region has no settlement")
-        if result is not None and not isinstance(result, BattleResult):
-            raise ValueError("unknown battle result")
+        self._require_battle_result(result)
         attacker = replace(self.parties[source], acted_this_month=True)
         settlement = self.settlements[destination]
         destination_party = self.parties.get(destination)
@@ -547,11 +553,7 @@ class WorldMap:
                 )
         elif result is BattleResult.ATTACKER_WIN:
             if battle is not None:
-                if settlement.occupied < len(settlement.garrison):
-                    settlement = replace(
-                        settlement,
-                        occupied=len(settlement.garrison),
-                    )
+                settlement = self._ensure_garrison_occupancy(settlement)
                 settlement = self._absorb_settlement_defenders(
                     settlement,
                     parties,
@@ -583,6 +585,67 @@ class WorldMap:
         return world_with_updated_parties.with_settlement(
             destination, settlement
         )
+
+    def apply_settlement_battle_result_at(
+        self,
+        region: Region,
+        result: BattleResult | None,
+        battle: HexBattle | None = None,
+    ) -> "WorldMap":
+        """Apply a wall-assault result when party and settlement share a region.
+
+        This transition is separate from ``apply_settlement_battle_result``:
+        there is no source/destination movement for an assault already inside
+        the settlement's region.  With a recorded battle, both the attacking
+        party and the garrison are rebuilt from their surviving units.  A
+        failed assault leaves attacking survivors in place, since they have no
+        retreat destination.  This operation intentionally validates that the
+        party and settlement have known, different owners, which is stricter
+        than the lower-level reconstruction performed after a battle.  It does
+        not validate ``acted_this_month``; callers are responsible for that
+        higher-level action check.
+        """
+        if region not in self._neighbors:
+            raise ValueError("region is outside the world map")
+        if region not in self.parties:
+            raise ValueError("region has no party")
+        if region not in self.settlements:
+            raise ValueError("region has no settlement")
+        self._require_battle_result(result)
+
+        attacker = replace(self.parties[region], acted_this_month=True)
+        settlement = self.settlements[region]
+        self._require_enemy_owners(attacker.owner_id, settlement.owner_id)
+
+        parties = dict(self.parties)
+        if battle is None:
+            surviving_attacker = attacker
+        else:
+            attacker_survivors = battle.side_survivors(BattleSide.ATTACKER)
+            surviving_attacker = (
+                Party.reconstruct(attacker, attacker_survivors)
+                if attacker_survivors
+                else None
+            )
+            settlement = self._ensure_garrison_occupancy(settlement)
+            settlement = settlement.absorb_defenders(
+                battle.side_survivors(BattleSide.DEFENDER)
+            )
+
+        if result is BattleResult.ATTACKER_WIN:
+            settlement = replace(settlement, owner_id=attacker.owner_id)
+
+        if surviving_attacker is None:
+            parties.pop(region)
+        else:
+            parties[region] = surviving_attacker
+
+        return WorldMap(
+            self.regions,
+            self.connections,
+            self.settlements,
+            parties,
+        ).with_settlement(region, settlement)
 
     def resolve_settlement_battle_recorded(
         self,
@@ -641,3 +704,9 @@ class WorldMap:
             raise ValueError("battle participants must have owners")
         if attacker_owner_id == defender_owner_id:
             raise ValueError("battle participants must have different owners")
+
+    @staticmethod
+    def _require_battle_result(result: BattleResult | None) -> None:
+        """Reject values outside the public battle-result contract."""
+        if result is not None and not isinstance(result, BattleResult):
+            raise ValueError("unknown battle result")
