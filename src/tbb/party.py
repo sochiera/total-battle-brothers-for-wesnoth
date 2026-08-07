@@ -1,7 +1,7 @@
 """Immutable strategic party composition."""
 
 from dataclasses import dataclass, replace
-from typing import Iterable
+from typing import ClassVar, Iterable
 
 from tbb.unit import Unit
 
@@ -9,6 +9,8 @@ from tbb.unit import Unit
 @dataclass(frozen=True)
 class Party:
     """A required hero and up to twelve subordinate units."""
+
+    MAX_SUBORDINATES: ClassVar[int] = 12
 
     hero: Unit
     units: tuple[Unit, ...] = ()
@@ -32,7 +34,7 @@ class Party:
             raise TypeError("party acted_this_month must be a bool")
 
         copied_units = tuple(units)
-        if len(copied_units) > 12:
+        if len(copied_units) > self.MAX_SUBORDINATES:
             raise ValueError("party cannot have more than twelve subordinates")
         if any(not isinstance(unit, Unit) for unit in copied_units):
             raise TypeError("party subordinates must be Units")
@@ -52,7 +54,7 @@ class Party:
             raise ValueError("cannot reconstruct a party without a surviving hero")
         if not isinstance(ordered_survivors[0], Unit):
             raise TypeError("party hero must be a Unit")
-        if len(ordered_survivors) > 13:
+        if len(ordered_survivors) > cls.MAX_SUBORDINATES + 1:
             raise ValueError("party cannot have more than twelve subordinates")
         if any(not isinstance(unit, Unit) for unit in ordered_survivors[1:]):
             raise TypeError("party subordinates must be Units")

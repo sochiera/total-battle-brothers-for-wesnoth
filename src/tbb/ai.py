@@ -144,6 +144,14 @@ def muster_duchy_party(world: WorldMap, duchy: Duchy) -> WorldMap:
     return world
 
 
+def reinforce_duchy_party(world: WorldMap, duchy: Duchy) -> WorldMap:
+    """Reinforce a duchy's party from the settlement where it is standing."""
+    position = _duchy_party_position(world, duchy.duchy_id)
+    if position is None:
+        return world
+    return world.reinforce_party(position)
+
+
 def nearest_enemy_settlement(
     world: WorldMap, start: Region, owner_id: str
 ) -> Region | None:

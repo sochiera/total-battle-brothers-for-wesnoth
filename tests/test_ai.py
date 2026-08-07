@@ -2363,3 +2363,51 @@ def test_engage_duchy_party_recorded_is_noop_when_no_adjacent_enemy_party():
     assert result_world is world
     assert battle is None
     assert world.party_at(start) is party
+
+
+def test_reinforce_duchy_party_absorbs_garrison_where_party_stands():
+    home = Region("Home")
+    hero = Unit(training=4)
+    garrison = (Unit(equipment=1), Unit(experience=2))
+    settlement = Settlement(
+        "Home", population=6, occupied=3, garrison=garrison, owner_id="ai"
+    )
+    party = Party(hero, (Unit(),), owner_id="ai")
+    world = WorldMap(
+        [home], settlements={home: settlement}, parties={home: party}
+    )
+
+    reinforced = ai.reinforce_duchy_party(world, Duchy("ai", hero))
+
+    assert reinforced.party_at(home) == Party(
+        hero, (*party.units, *garrison), owner_id="ai", acted_this_month=True
+    )
+    assert reinforced.settlement_at(home).garrison == ()
+    assert world.settlement_at(home) is settlement
+
+
+def test_reinforce_duchy_party_is_noop_without_duchy_party():
+    home = Region("Home")
+    settlement = Settlement(
+        "Home", population=6, occupied=3, garrison=(Unit(),), owner_id="ai"
+    )
+    enemy_party = Party(Unit(), owner_id="enemy")
+    world = WorldMap(
+        [home], settlements={home: settlement}, parties={home: enemy_party}
+    )
+
+    assert ai.reinforce_duchy_party(world, Duchy("ai", Unit())) is world
+
+
+def test_reinforce_duchy_party_leaves_foreign_settlement_garrison_alone():
+    home = Region("Home")
+    garrison = (Unit(equipment=1), Unit(experience=2))
+    settlement = Settlement(
+        "Home", population=6, occupied=3, garrison=garrison, owner_id="enemy"
+    )
+    party = Party(Unit(training=4), (Unit(),), owner_id="ai")
+    world = WorldMap(
+        [home], settlements={home: settlement}, parties={home: party}
+    )
+
+    assert ai.reinforce_duchy_party(world, Duchy("ai", Unit())) is world

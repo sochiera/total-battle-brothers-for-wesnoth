@@ -2954,3 +2954,117 @@ def test_resolve_settlement_battle_delegates_contact_validation(
         world.resolve_settlement_battle(
             regions[source_name], regions[destination_name], Rng(1)
         )
+
+
+VALE = Region("Vale")
+REINFORCE_HERO = Unit(training=4)
+REINFORCE_GARRISON = (Unit(equipment=1), Unit(experience=2, wounds=(BRUISE,)))
+
+
+def reinforce_settlement(
+    garrison=REINFORCE_GARRISON, owner_id="north"
+) -> Settlement:
+    """Return the settlement used by the reinforcement tests."""
+    return Settlement(
+        "Oakrest",
+        population=4 + len(garrison),
+        occupied=1 + len(garrison),
+        garrison=garrison,
+        owner_id=owner_id,
+    )
+
+
+def standing_party(
+    acted_this_month=False, owner_id="north", units=(Unit(training=1),)
+) -> Party:
+    """Return the standing party used by the reinforcement tests."""
+    return Party(
+        REINFORCE_HERO,
+        units,
+        owner_id=owner_id,
+        acted_this_month=acted_this_month,
+    )
+
+
+def reinforce_world(settlement: Settlement | None, party: Party | None):
+    """Return a one-region world holding the given settlement and party."""
+    return WorldMap(
+        [VALE],
+        settlements={VALE: settlement} if settlement else {},
+        parties={VALE: party} if party else {},
+    )
+
+
+@pytest.mark.parametrize("owner_id", ["north", "south"])
+def test_reinforce_party_absorbs_own_settlement_garrison(owner_id):
+    settlement = reinforce_settlement(owner_id=owner_id)
+    party = standing_party(owner_id=owner_id)
+    world = reinforce_world(settlement, party)
+
+    reinforced = world.reinforce_party(VALE)
+
+    assert reinforced.party_at(VALE) == Party(
+        REINFORCE_HERO,
+        (*party.units, *REINFORCE_GARRISON),
+        owner_id=owner_id,
+        acted_this_month=True,
+    )
+    assert reinforced.settlement_at(VALE) == Settlement(
+        "Oakrest",
+        population=4,
+        occupied=1,
+        garrison=(),
+        owner_id=owner_id,
+    )
+    assert world.settlement_at(VALE) is settlement
+    assert world.party_at(VALE) is party
+
+
+@pytest.mark.parametrize(
+    "settlement, party",
+    [
+        (reinforce_settlement(), None),
+        (None, standing_party()),
+        (reinforce_settlement(owner_id="south"), standing_party()),
+        (reinforce_settlement(garrison=()), standing_party()),
+        (reinforce_settlement(), standing_party(acted_this_month=True)),
+        (
+            reinforce_settlement(),
+            standing_party(units=tuple(Unit() for _ in range(11))),
+        ),
+        (reinforce_settlement(owner_id=None), standing_party(owner_id=None)),
+    ],
+    ids=[
+        "no party",
+        "no settlement",
+        "foreign owner",
+        "empty garrison",
+        "already acted",
+        "garrison does not fit",
+        "both sides ownerless",
+    ],
+)
+def test_reinforce_party_leaves_world_unchanged(settlement, party):
+    world = reinforce_world(settlement, party)
+
+    assert world.reinforce_party(VALE) is world
+
+
+def test_reinforce_party_absorbs_garrison_filling_the_party_to_twelve():
+    party = standing_party(units=tuple(Unit() for _ in range(10)))
+    world = reinforce_world(reinforce_settlement(), party)
+
+    reinforced = world.reinforce_party(VALE)
+
+    assert reinforced.party_at(VALE).units == (
+        *party.units,
+        *REINFORCE_GARRISON,
+    )
+    assert reinforced.settlement_at(VALE).garrison == ()
+
+
+def test_reinforce_party_rejects_region_outside_map():
+    world = reinforce_world(reinforce_settlement(), standing_party())
+
+    with pytest.raises(ValueError):
+        world.reinforce_party(Region("Elsewhere"))

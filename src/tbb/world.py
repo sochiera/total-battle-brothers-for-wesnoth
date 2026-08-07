@@ -97,11 +97,20 @@ class WorldMap:
         """Return a new world with one settlement inserted or replaced."""
         settlements = dict(self.settlements)
         settlements[region] = settlement
+        return self._with_maps(settlements=settlements)
+
+    def _with_maps(
+        self,
+        *,
+        settlements: Mapping[Region, Settlement] | None = None,
+        parties: Mapping[Region, Party] | None = None,
+    ) -> "WorldMap":
+        """Return a copy with selected strategic maps replaced."""
         return WorldMap(
             self.regions,
             self.connections,
-            settlements,
-            self.parties,
+            self.settlements if settlements is None else settlements,
+            self.parties if parties is None else parties,
         )
 
     def party_at(self, region: Region) -> Party | None:
@@ -170,6 +179,43 @@ class WorldMap:
         party, settlement = self.settlements[region].muster(hero)
         return self.with_settlement(region, settlement).place_party(party, region)
 
+    def reinforce_party(self, region: Region) -> "WorldMap":
+        """Move a settlement's garrison into its party in the same region.
+
+        This returns the unchanged world when the region has no party or
+        settlement, the party is ownerless or belongs to another owner, the
+        garrison is empty, the party has already acted this month, or the
+        garrison would exceed ``Party.MAX_SUBORDINATES``.
+        """
+        if region not in self._neighbors:
+            raise ValueError("region is outside the world map")
+
+        party = self.parties.get(region)
+        settlement = self.settlements.get(region)
+        if party is None or settlement is None:
+            return self
+        if party.owner_id is None:
+            return self
+        if party.owner_id != settlement.owner_id:
+            return self
+        if not settlement.garrison:
+            return self
+        if not self._party_can_act(region):
+            return self
+        if len(party.units) + len(settlement.garrison) > Party.MAX_SUBORDINATES:
+            return self
+
+        garrison_party, settlement = settlement.muster(party.hero)
+        parties = dict(self.parties)
+        parties[region] = replace(
+            party,
+            units=party.units + garrison_party.units,
+            acted_this_month=True,
+        )
+        return self.with_settlement(region, settlement)._with_maps(
+            parties=parties
+        )
+
     def place_party(self, party: Party, region: Region) -> "WorldMap":
         """Return a new world with a party placed in an empty region."""
         if region not in self._neighbors:
@@ -179,12 +225,7 @@ class WorldMap:
 
         parties = dict(self.parties)
         parties[region] = party
-        return WorldMap(
-            self.regions,
-            self.connections,
-            self.settlements,
-            parties,
-        )
+        return self._with_maps(parties=parties)
 
     def move_party(
         self, source: Region, destination: Region, move_points: int
@@ -212,12 +253,7 @@ class WorldMap:
         parties[destination] = replace(
             parties.pop(source), acted_this_month=True
         )
-        return WorldMap(
-            self.regions,
-            self.connections,
-            self.settlements,
-            parties,
-        )
+        return self._with_maps(parties=parties)
 
     def _party_can_act(self, source: Region) -> bool:
         """Return whether the party at ``source`` still has its action.
