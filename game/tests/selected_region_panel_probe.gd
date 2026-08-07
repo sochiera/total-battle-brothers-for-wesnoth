@@ -19,6 +19,18 @@ const SETTLEMENT_PLAYER := "Player Keep"
 const SETTLEMENT_AI := "AI Outpost"
 const SETTLEMENT_AI_REFRESHED := "AI Keep"
 
+# Fixture strengths: party sizes/hp follow the values measured for task-626
+# (new_session(73)); the player garrison is a deliberate 0 edge case, so the
+# panel must not drop it as a falsy value. The panel must carry all of these
+# through, and the refreshed model must move the AI garrison.
+const PLAYER_PARTY_SIZE := 5
+const PLAYER_PARTY_HP := 73
+const AI_PARTY_SIZE := 1
+const AI_PARTY_HP := 25
+const SETTLEMENT_PLAYER_GARRISON := 0
+const SETTLEMENT_AI_GARRISON := 1
+const SETTLEMENT_AI_GARRISON_REFRESHED := 4
+
 
 func _init() -> void:
 	call_deferred("_run")
@@ -125,87 +137,92 @@ func _run() -> void:
 			"settlement_ai": SETTLEMENT_AI,
 			"settlement_ai_refreshed": SETTLEMENT_AI_REFRESHED,
 		},
+		"strengths": {
+			"player_party_size": PLAYER_PARTY_SIZE,
+			"player_party_hp": PLAYER_PARTY_HP,
+			"ai_party_size": AI_PARTY_SIZE,
+			"ai_party_hp": AI_PARTY_HP,
+			"settlement_player_garrison": SETTLEMENT_PLAYER_GARRISON,
+			"settlement_ai_garrison": SETTLEMENT_AI_GARRISON,
+			"settlement_ai_garrison_refreshed": SETTLEMENT_AI_GARRISON_REFRESHED,
+		},
 	}))
 	quit(0)
 
 
 func _model_full() -> SnapshotModel:
 	return _model([
-		{
-			"name": REGION_PLAYER,
-			"col": 0,
-			"row": 0,
-			"owner": "player",
-			"settlement": {"name": SETTLEMENT_PLAYER},
-			"party": {"owner": "player"},
-		},
-		{
-			"name": REGION_NEUTRAL,
-			"col": 1,
-			"row": 0,
-			"owner": null,
-			"settlement": null,
-			"party": null,
-		},
+		_player_region(),
+		_neutral_region(),
 		{
 			"name": REGION_AI,
 			"col": 2,
 			"row": 0,
 			"owner": "ai",
-			"settlement": {"name": SETTLEMENT_AI},
-			"party": {"owner": "ai"},
+			"settlement": {
+				"name": SETTLEMENT_AI,
+				"garrison": SETTLEMENT_AI_GARRISON,
+			},
+			"party": {
+				"owner": "ai",
+				"size": AI_PARTY_SIZE,
+				"hp": AI_PARTY_HP,
+			},
 		},
 	])
 
 
 func _model_ai_refreshed() -> SnapshotModel:
+	# Same selection name, moved numbers: settlement renamed and garrison
+	# changed, party gone. Refresh must re-read all of it.
 	return _model([
-		{
-			"name": REGION_PLAYER,
-			"col": 0,
-			"row": 0,
-			"owner": "player",
-			"settlement": {"name": SETTLEMENT_PLAYER},
-			"party": {"owner": "player"},
-		},
-		{
-			"name": REGION_NEUTRAL,
-			"col": 1,
-			"row": 0,
-			"owner": null,
-			"settlement": null,
-			"party": null,
-		},
+		_player_region(),
+		_neutral_region(),
 		{
 			"name": REGION_AI,
 			"col": 2,
 			"row": 0,
 			"owner": "ai",
-			"settlement": {"name": SETTLEMENT_AI_REFRESHED},
+			"settlement": {
+				"name": SETTLEMENT_AI_REFRESHED,
+				"garrison": SETTLEMENT_AI_GARRISON_REFRESHED,
+			},
 			"party": null,
 		},
 	])
 
 
 func _model_without_ai() -> SnapshotModel:
-	return _model([
-		{
-			"name": REGION_PLAYER,
-			"col": 0,
-			"row": 0,
+	return _model([_player_region(), _neutral_region()])
+
+
+func _player_region() -> Dictionary:
+	return {
+		"name": REGION_PLAYER,
+		"col": 0,
+		"row": 0,
+		"owner": "player",
+		"settlement": {
+			"name": SETTLEMENT_PLAYER,
+			"garrison": SETTLEMENT_PLAYER_GARRISON,
+		},
+		"party": {
 			"owner": "player",
-			"settlement": {"name": SETTLEMENT_PLAYER},
-			"party": {"owner": "player"},
+			"size": PLAYER_PARTY_SIZE,
+			"hp": PLAYER_PARTY_HP,
 		},
-		{
-			"name": REGION_NEUTRAL,
-			"col": 1,
-			"row": 0,
-			"owner": null,
-			"settlement": null,
-			"party": null,
-		},
-	])
+	}
+
+
+func _neutral_region() -> Dictionary:
+	return {
+		"name": REGION_NEUTRAL,
+		"col": 1,
+		"row": 0,
+		"owner": null,
+		"settlement": null,
+		"party": null,
+	}
 
 
 func _model(regions: Array) -> SnapshotModel:

@@ -313,3 +313,121 @@ def test_empty_selected_region_panel_has_credited_visual_content():
         "empty-state ornament must be hidden after selecting a region, "
         f"got {selected_step!r}"
     )
+
+
+def _detail_row(step: dict, prefix: str, *, phase: str) -> str:
+    """The single visible panel row carrying `prefix` (e.g. „Armia:")."""
+    labels = [str(text) for text in (step or {}).get("label_texts") or []]
+    matched = [text for text in labels if text.startswith(prefix)]
+    assert len(matched) == 1, (
+        f"{phase}: expected exactly one {prefix!r} row, got label_texts={labels!r}"
+    )
+    return matched[0]
+
+
+def test_selected_region_panel_shows_party_and_garrison_strength():
+    """G113.1b: the region panel carries the numbers behind „bić czy nie".
+
+    Realistic defect existing gates miss: task-625 landed
+    WorldPresentation.party_strength_text / settlement_strength_text, but
+    Main still formats the „Osada:" / „Armia:" rows with its own private
+    _settlement_text / _party_text, which drop size, hp and garrison. Every
+    existing panel assertion (name, owner, side wording, absence clearing,
+    empty state) stays green while both measured runs — a 5-unit army and a
+    1-unit army — render identically as „Armia: własny (gracz)". The player
+    still picks fights by icon.
+    """
+    payload = _load_panel()
+    strengths = payload.get("strengths") or {}
+
+    player_army = _detail_row(payload.get("after_player") or {}, "Armia:",
+                              phase="after_player")
+    size = strengths["player_party_size"]
+    hp = strengths["player_party_hp"]
+    assert re.search(rf"(?<!\d){size}(?!\d)", player_army), (
+        f"own party row must show its unit count {size!r}, got {player_army!r}"
+    )
+    assert re.search(rf"(?<!\d){hp}(?!\d)", player_army), (
+        f"own party row must show its hit points {hp!r}, got {player_army!r}"
+    )
+
+    player_settlement = _detail_row(payload.get("after_player") or {}, "Osada:",
+                                    phase="after_player")
+    player_garrison = strengths["settlement_player_garrison"]
+    assert re.search(rf"(?<!\d){player_garrison}(?!\d)", player_settlement), (
+        f"own settlement row must show garrison {player_garrison!r} — a zero "
+        f"that must not vanish as a falsy value, got {player_settlement!r}"
+    )
+
+    # Enemy side: both an enemy party and an enemy settlement garrison.
+    ai_step = payload.get("after_ai") or {}
+    ai_army = _detail_row(ai_step, "Armia:", phase="after_ai")
+    ai_size = strengths["ai_party_size"]
+    ai_hp = strengths["ai_party_hp"]
+    assert re.search(rf"(?<!\d){ai_size}(?!\d)", ai_army), (
+        f"enemy party row must show its unit count {ai_size!r}, got {ai_army!r}"
+    )
+    assert re.search(rf"(?<!\d){ai_hp}(?!\d)", ai_army), (
+        f"enemy party row must show its hit points {ai_hp!r}, got {ai_army!r}"
+    )
+
+    ai_settlement = _detail_row(ai_step, "Osada:", phase="after_ai")
+    ai_garrison = strengths["settlement_ai_garrison"]
+    assert re.search(rf"(?<!\d){ai_garrison}(?!\d)", ai_settlement), (
+        f"enemy settlement row must show garrison {ai_garrison!r}, "
+        f"got {ai_settlement!r}"
+    )
+
+
+def test_selected_region_panel_strength_refreshes_without_reselecting():
+    """G113.1b: numbers follow the snapshot, not the click.
+
+    Realistic defect existing gates miss: a panel can read strength once on
+    selection and cache it, so after an order or a turn the still-selected
+    region keeps yesterday's garrison. Existing refresh coverage only watches
+    the settlement *name* change, which a cached-numbers panel survives.
+    """
+    payload = _load_panel()
+    strengths = payload.get("strengths") or {}
+    before = strengths["settlement_ai_garrison"]
+    after = strengths["settlement_ai_garrison_refreshed"]
+    assert before != after, "fixture must move the garrison to prove refresh"
+
+    refreshed = _detail_row(payload.get("after_refresh") or {}, "Osada:",
+                            phase="after_refresh")
+    assert re.search(rf"(?<!\d){after}(?!\d)", refreshed), (
+        f"refresh must show the new garrison {after!r} for the still-selected "
+        f"region, got {refreshed!r}"
+    )
+    assert not re.search(rf"(?<!\d){before}(?!\d)", refreshed), (
+        f"stale garrison {before!r} must not survive the refresh, "
+        f"got {refreshed!r}"
+    )
+
+
+def test_selected_region_panel_invents_no_strength_without_party_or_settlement():
+    """G113.1b: a bare region shows placeholders, never a made-up 0.
+
+    Realistic defect existing gates miss: wiring strength into the rows
+    invites a `int(party.get("size"))` default that renders „0 jednostek" for
+    a region with no army at all — numbers taken from thin air, which is
+    exactly what makes the readout untrustworthy.
+    """
+    payload = _load_panel()
+    neutral_step = payload.get("after_neutral") or {}
+
+    army = _detail_row(neutral_step, "Armia:", phase="after_neutral")
+    assert PARTY_ABSENT_RE.search(army), (
+        f"bare region must keep the army placeholder, got {army!r}"
+    )
+    assert not re.search(r"\d", army), (
+        f"bare region must not show any army number, got {army!r}"
+    )
+
+    settlement = _detail_row(neutral_step, "Osada:", phase="after_neutral")
+    assert SETTLEMENT_ABSENT_RE.search(settlement), (
+        f"bare region must keep the settlement placeholder, got {settlement!r}"
+    )
+    assert not re.search(r"\d", settlement), (
+        f"bare region must not show any garrison number, got {settlement!r}"
+    )

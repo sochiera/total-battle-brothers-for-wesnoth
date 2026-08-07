@@ -115,6 +115,10 @@ WINDOW_BACKGROUND_SCREENSHOTS = (
     # resolved battle from the same seed-73 party.
     GAME / "screenshots" / "task-624-live-blocked-march-1152x648.png",
     GAME / "screenshots" / "task-624-live-engage-battle-1152x648.png",
+    # G113.1b / task-626: live seed-73 pair proving the selected-region panel
+    # carries party strength and settlement garrison for both sides.
+    GAME / "screenshots" / "task-626-live-selected-party-1152x648.png",
+    GAME / "screenshots" / "task-626-live-selected-enemy-settlement-1152x648.png",
 )
 ORDER_ICON_FILES = {
     "NextTurnButton": "icon_next_turn.png",

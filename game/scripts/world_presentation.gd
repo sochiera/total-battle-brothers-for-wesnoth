@@ -60,7 +60,7 @@ static func settlement_strength_text(settlement: Variant) -> String:
 	return "%s, garnizon: %s" % [settlement_text, str(garrison)]
 
 
-static func _side_text(owner: Variant) -> String:
+static func side_text(owner: Variant) -> String:
 	match owner:
 		"player":
 			return "własny (gracz)"
@@ -84,7 +84,7 @@ static func _party_text(party: Variant) -> String:
 	if party is Dictionary:
 		var party_owner: Variant = party.get("owner")
 		if party_owner != null and party_owner != "":
-			return _side_text(party_owner)
+			return side_text(party_owner)
 	return "brak armii"
 
 

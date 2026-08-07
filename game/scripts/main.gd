@@ -302,8 +302,9 @@ func _on_declared_order_button_pressed(button: Button) -> void:
 
 
 func _refresh_bound_client() -> void:
-	if _has_bound_client() and _client.has_method("snapshot_model"):
-		refresh_from_bridge(_client)
+	if not _has_bound_client() or not _client.has_method("snapshot_model"):
+		return
+	refresh_from_bridge(_client)
 
 
 func _has_bound_client() -> bool:
@@ -613,9 +614,13 @@ func _selected_region_detail_row_texts(selected_region: Dictionary) -> Array[Str
 		"Nazwa: %s" % WorldPresentation.region_label(
 			str(selected_region.get("name", ""))
 		),
-		"Właściciel: %s" % _side_text(selected_region.get("owner")),
-		"Osada: %s" % _settlement_text(selected_region.get("settlement")),
-		"Armia: %s" % _party_text(selected_region.get("party")),
+		"Właściciel: %s" % WorldPresentation.side_text(selected_region.get("owner")),
+		"Osada: %s" % WorldPresentation.settlement_strength_text(
+			selected_region.get("settlement")
+		),
+		"Armia: %s" % WorldPresentation.party_strength_text(
+			selected_region.get("party")
+		),
 	]
 
 
@@ -641,34 +646,6 @@ func _find_selected_region(regions: Array) -> Dictionary:
 		if region is Dictionary and region.get("name") == selected_region_name:
 			return region
 	return {}
-
-
-func _side_text(owner: Variant) -> String:
-	match owner:
-		"player":
-			return "własny (gracz)"
-		"ai":
-			return "AI (wróg)"
-		null, "":
-			return "neutralny (brak właściciela)"
-		_:
-			return str(owner)
-
-
-func _settlement_text(settlement: Variant) -> String:
-	if settlement is Dictionary:
-		var settlement_name: Variant = settlement.get("name")
-		if settlement_name is String and not settlement_name.is_empty():
-			return WorldPresentation.settlement_label(settlement_name)
-	return "brak osady"
-
-
-func _party_text(party: Variant) -> String:
-	if party is Dictionary:
-		var party_owner: Variant = party.get("owner")
-		if party_owner != null and party_owner != "":
-			return _side_text(party_owner)
-	return "brak armii"
 
 
 func _player_party_position_value(player_party_region: Variant) -> String:
