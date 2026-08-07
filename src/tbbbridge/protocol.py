@@ -2,9 +2,16 @@
 
 import json
 
+import tbb.ai as ai
 from tbb.battle import BattleSide
 from tbbbridge.persist import read_session, save_session
-from tbbbridge.session import Session, apply_command, new_session
+from tbbbridge.session import (
+    Session,
+    _find_region_by_name,
+    _resolve_player_duchy,
+    apply_command,
+    new_session,
+)
 
 _BATTLE_ORDERS = ("assault", "engage")
 
@@ -23,6 +30,45 @@ def _validated_path(command: dict, command_name: str) -> tuple[str | None, str |
     if isinstance(path, str) and path != "":
         return path, None
     return None, f"{command_name} command requires a non-empty string path"
+
+
+def _blocked_region_name(session: Session, command: dict) -> str | None:
+    """Return the region blocking an ineffective player movement order."""
+    order_name = command.get("order")
+    if order_name not in ("march", "move"):
+        return None
+
+    # Mirror the core's _resolve_player_duchy, _duchy_party_position,
+    # WorldMap._party_can_act, and _can_enter_adjacent_region guards so a
+    # diagnostic never appears for an order the core cannot execute.
+    player_duchy = _resolve_player_duchy(session)
+    if player_duchy is None:
+        return None
+
+    owner_id = player_duchy.duchy_id
+    start = ai._duchy_party_position(session.world, owner_id)
+    if start is None or not session.world._party_can_act(start):
+        return None
+
+    target = _find_region_by_name(session.world, command.get("target"))
+    if order_name == "march":
+        # A resolved explicit march target is a core no-op when adjacent;
+        # only the no-target/automatic march gets a blocking diagnostic.
+        if target is not None:
+            return None
+        target = None
+    elif target is None or target not in session.world.neighbors(start):
+        return None
+    if (
+        order_name == "move"
+        and ai._can_enter_adjacent_region(session.world, start, target, owner_id)
+    ):
+        return None
+
+    blocked = ai.blocking_foreign_party_region(
+        session.world, start, owner_id, target
+    )
+    return blocked.name if blocked is not None else None
 
 
 def command_result(before: Session, after: Session, command: dict) -> dict:
@@ -72,6 +118,10 @@ def command_result(before: Session, after: Session, command: dict) -> dict:
             "order": order_name,
             "changed": after.world is not before.world,
         }
+        if not result["changed"]:
+            blocked_region = _blocked_region_name(before, command)
+            if blocked_region is not None:
+                result["blocked_region"] = blocked_region
         if after.game.is_over:
             result["game_over"] = True
         return result

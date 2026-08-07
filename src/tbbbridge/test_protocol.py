@@ -421,6 +421,112 @@ def test_ineffective_military_move_does_not_consume_monthly_marker():
     }
 
 
+def test_blocked_automatic_march_reports_the_foreign_party_region():
+    """G111.1b kryt-1: a blocked no-target march names the blocking region.
+
+    Realistic defect: existing protocol gates cover ``changed: false`` for a
+    march that has no available step, but do not tell the client that an enemy
+    party is the reason.  On the measured seed-73 route, the AI party in
+    ``border`` blocks the player's automatic march after the first AI turn.
+    """
+    session = new_session(seed=73, player_duchy_id="player")
+    for command in (
+        {"type": "order", "order": "recruit"},
+        {"type": "order", "order": "recruit"},
+        {"type": "order", "order": "muster"},
+        {"type": "order", "order": "march"},
+        {"type": "next_turn"},
+    ):
+        session, response = handle_command_line(session, json.dumps(command))
+        assert response["ok"] is True
+
+    explicit_before = session.snapshot()
+    session, explicit_response = handle_command_line(
+        session,
+        '{"type":"order","order":"march","target":"border"}',
+    )
+    assert explicit_response["result"] == {
+        "kind": "order",
+        "order": "march",
+        "changed": False,
+    }
+    assert session.snapshot() == explicit_before
+
+    before_blocked_world = session.world
+    before_blocked_snapshot = session.snapshot()
+    before_blocked_rng_state = session.rng.state()
+
+    session, response = handle_command_line(
+        session, '{"type":"order","order":"march"}'
+    )
+
+    assert response["result"] == {
+        "kind": "order",
+        "order": "march",
+        "changed": False,
+        "blocked_region": "border",
+    }
+    assert session.world is before_blocked_world
+    assert session.snapshot() == before_blocked_snapshot
+    assert session.rng.state() == before_blocked_rng_state
+    assert session.world.party_at(
+        next(r for r in session.world.regions if r.name == "player outpost")
+    ).acted_this_month is False
+
+    session, battle = handle_command_line(
+        session,
+        '{"type":"order","order":"engage","target":"border"}',
+    )
+    assert battle["result"]["kind"] == "battle"
+
+
+def test_blocked_region_is_omitted_for_a_game_over_march():
+    """A terminal-game no-op must not report a stale movement blocker."""
+    from tbb.game import GameState
+
+    session = new_session(seed=73, player_duchy_id="player")
+    for command in (
+        {"type": "order", "order": "recruit"},
+        {"type": "order", "order": "recruit"},
+        {"type": "order", "order": "muster"},
+        {"type": "order", "order": "march"},
+        {"type": "next_turn"},
+    ):
+        session, response = handle_command_line(session, json.dumps(command))
+        assert response["ok"] is True
+
+    ended = Session(
+        world=session.world,
+        game=GameState([session.game.duchies[0]]),
+        calendar=session.calendar,
+        rng=session.rng,
+        player_duchy_id=session.player_duchy_id,
+        seed=session.seed,
+    )
+    assert ended.game.is_over is True
+    assert ended.world.party_at(
+        next(r for r in ended.world.regions if r.name == "player outpost")
+    ) is not None
+    assert ended.world.party_at(
+        next(r for r in ended.world.regions if r.name == "border")
+    ) is not None
+
+    before = ended.snapshot()
+    after, response = handle_command_line(
+        ended, '{"type":"order","order":"march"}'
+    )
+
+    assert response["result"] == {
+        "kind": "order",
+        "order": "march",
+        "changed": False,
+        "game_over": True,
+    }
+    assert after.world is ended.world
+    assert after.game is ended.game
+    assert after.snapshot() == before
+
+
 @pytest.mark.parametrize("order", ("develop", "recruit"))
 def test_settlement_orders_remain_available_after_military_move(order):
     """Economic orders remain effective and do not clear the military marker."""

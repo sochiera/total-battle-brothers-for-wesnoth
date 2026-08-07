@@ -898,11 +898,14 @@ def test_apply_command_order_move_is_noop_for_missing_unknown_or_illegal_target(
         assert after.world.party_at(by_name["StepFar"]) is None
         assert after.world.party_at(by_name["Occupied"]) is not None  # blocker
         assert after.world.party_at(by_name["Near"]) is None
-        assert command_result(s0, after, command) == {
+        expected_result = {
             "kind": "order",
             "order": "move",
             "changed": False,
         }
+        if command.get("target") == "Occupied":
+            expected_result["blocked_region"] = "Occupied"
+        assert command_result(s0, after, command) == expected_result
         assert after.snapshot()["map"] == before["map"]
         assert s0.snapshot() == before
         assert s0.world.party_at(by_name["Start"]) is not None
