@@ -44,6 +44,10 @@ const OWNER_LEGEND_EDGE_PAD := 4.0
 # (same contract as composition gate MIN_READABLE_REGION_TILE_H_WITH_BATTLE).
 const MIN_READABLE_TILE_HEIGHT_FRACTION := 0.75
 const MIN_READABLE_TILE_HEIGHT := BASE_TILE_SIZE.y * MIN_READABLE_TILE_HEIGHT_FRACTION
+# Keep a semantic label band visible when BattleView shares the column. The
+# panel floor is two base tile heights (2 × 48px), while the tile/legend floor
+# alone is only ~73px for the three-row owner legend.
+const MIN_READABLE_PANEL_HEIGHT := BASE_TILE_SIZE.y * 2.0
 # Legend layout: "band" = full-width bottom reserve; "side" = left column so a
 # short panel keeps readable tiles; "none" = plate does not fit.
 const LEGEND_LAYOUT_BAND := "band"
@@ -626,13 +630,14 @@ func _owner_legend_min_panel_height() -> float:
 
 func min_readable_panel_height() -> float:
 	## Public floor for Main with-battle fit: enough for readable tiles and the
-	## full owner legend badge with edge padding, so clip_contents cannot cut it.
+	## full owner legend badge with edge padding, so clip_contents cannot cut it,
+	## plus a semantic label band for the compressed strategic map.
 	## Name is map-panel only — not coupled to BattleView layout.
 	if _rendered_regions.is_empty():
-		return _min_content_height_for_readable_tiles()
+		return MIN_READABLE_PANEL_HEIGHT
 	return maxf(
-		_owner_legend_min_panel_height(),
-		_min_content_height_for_readable_tiles()
+		MIN_READABLE_PANEL_HEIGHT,
+		maxf(_owner_legend_min_panel_height(), _min_content_height_for_readable_tiles())
 	)
 
 

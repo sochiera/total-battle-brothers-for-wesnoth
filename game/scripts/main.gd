@@ -52,6 +52,7 @@ const RESULT_FONT_DRAW := Color(0.52, 0.36, 0.08, 1)
 # r∈{0,1,2}) is ~400px; keeping the no-battle map min would push orders past
 # 1152×648, so with-battle fit lowers MapView.custom_minimum_size.y instead.
 # Fallback only when Control.size is not yet known (headless / first frame).
+# This is the review viewport height, not a readability floor for MapView.
 const VIEWPORT_HEIGHT_FALLBACK := 648.0
 
 
@@ -484,16 +485,12 @@ func _fit_map_column_to_viewport_with_battle() -> void:
 	if order_bar == null or main_layout == null or map_and_battle == null:
 		return
 
-	# Fit against MainLayout's laid-out height. Before containers settle, use the
+	# Fit against MainLayout's laid-out height; before containers settle, use the
 	# same review-viewport fallback as the root Control instead of an offset.
-	var viewport_h := main_layout.size.y
-	if viewport_h <= 1.0:
-		viewport_h = VIEWPORT_HEIGHT_FALLBACK
-	var sep_main := float(main_layout.get_theme_constant("separation"))
-	var sep_mb := float(map_and_battle.get_theme_constant("separation"))
-	var order_h := order_bar.get_combined_minimum_size().y
-	var fixed_chrome_h := order_h + sep_main + sep_mb
-	# Readability floor: only MapView.min_readable_panel_height (no local 36 fallback).
+	var viewport_h := _layout_viewport_height(main_layout)
+	var fixed_chrome_h := _fixed_chrome_height(main_layout, map_and_battle, order_bar)
+	# Readability floor is owned by MapView (currently 96px / two base tile
+	# heights); keep that policy out of this composition calculation.
 	var map_floor: float = maxf(1.0, map_view.min_readable_panel_height())
 	var battle_budget: float = viewport_h - fixed_chrome_h - map_floor
 	battle_view.fit_vertical_budget(battle_budget)
@@ -504,6 +501,22 @@ func _fit_map_column_to_viewport_with_battle() -> void:
 	)
 	map_view.custom_minimum_size.y = clampf(
 		map_budget, map_floor, _map_view_min_height_no_battle
+	)
+
+
+func _layout_viewport_height(main_layout: Control) -> float:
+	if main_layout.size.y > 1.0:
+		return main_layout.size.y
+	return VIEWPORT_HEIGHT_FALLBACK
+
+
+func _fixed_chrome_height(
+	main_layout: Control, map_and_battle: Control, order_bar: Control
+) -> float:
+	return (
+		order_bar.get_combined_minimum_size().y
+		+ float(main_layout.get_theme_constant("separation"))
+		+ float(map_and_battle.get_theme_constant("separation"))
 	)
 
 

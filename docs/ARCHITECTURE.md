@@ -905,8 +905,9 @@ zapisu PNG gdy `OrderControls` / `DateLabel` / Save/Load nie mieszczą się w
 viewportcie). **Chrome fit:** `Main._fit_map_column_to_viewport_with_battle`
 obniża `MapView.custom_minimum_size.y` gdy BattleView jest widoczny, ale z
 **dolną granicą czytelności** (`MapView.min_readable_panel_height` —
-≥ ¾ wysokości bazowego kafla mapy, 36px przy `BASE_TILE` 48px; próg wyłącznie
-w `map_view.gd`). Gdy natywna wysokość multi-hex BattleView zjadłaby tę podłogę,
+panel zachowuje co najmniej 96px w kompozycji z bitwą; wewnętrzny floor kafla
+pozostaje ≥ ¾ wysokości bazowego kafla, 36px przy `BASE_TILE` 48px; progi są
+wyłącznie w `map_view.gd`). Gdy natywna wysokość multi-hex BattleView zjadłaby tę podłogę,
 `BattleView.fit_vertical_budget` skaluje klaster heksów (nadal wycentrowany),
 zamiast spłaszczać mapę do sliveru. Bez bitwy mapa wraca do min. ze sceny (`main.tscn`, zwykle 240px) i
 budget bitwy jest czyszczony. **Czytelność mapy z bitwą:** `OwnerLegend` nie

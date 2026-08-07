@@ -43,29 +43,11 @@ func _run() -> void:
 	match phase:
 		"play":
 			after_start = _observation(scene_root)
-			# One military move per month; next_turn resets the marker before the
-			# player engages the AI party on the border and assaults the keep.
-			for button_name in ["RecruitButton", "MusterButton", "MarchButton"]:
-				if not _press(scene_root, button_name):
-					return
-				order_results.append(client.last_order_result())
-			# Three passive AI turns are the smallest seed-73 staging window that
-			# leaves the frontier garrison alive after Engage clears its field party.
-			for _turn in range(AssaultPrecondition.NEXT_TURNS_TO_STAGE_LIVE_FRONTIER):
-				if not _press(scene_root, "NextTurnButton"):
-					return
-				order_results.append(client.last_order_result())
-			for button_name in ["EngageButton"]:
-				if not _press(scene_root, button_name):
-					return
-				order_results.append(client.last_order_result())
-			# Engage consumed this month's military action; assault in a later
-			# month so the two battle orders are not an intentional monthly no-op.
-			# The first AI turn relocates its field party to the keep; the second
-			# restores a live garrison for the settlement assault.
-			for _turn in range(AssaultPrecondition.NEXT_TURNS_AFTER_ENGAGE_TO_STAGE_LIVE_FRONTIER):
-				if not _press(scene_root, "NextTurnButton"):
-					return
+			var staging := AssaultPrecondition.stage_live_frontier(scene_root)
+			if not staging.get("ok", false):
+				_fail("live frontier staging failed: %s" % staging)
+				return
+			order_results.append_array(staging.get("order_results", []))
 			assault_precondition = AssaultPrecondition.inspect(client)
 			if not assault_precondition.get("ready", false):
 				_fail("assault precondition failed: %s" % assault_precondition)
@@ -112,8 +94,8 @@ func _instantiate_scene() -> Control:
 
 func _press(scene_root: Control, button_name: String) -> bool:
 	var button := scene_root.find_child(button_name, true, false) as Button
-	if button == null:
-		_fail("missing %s" % button_name)
+	if button == null or button.disabled:
+		_fail("missing or disabled %s" % button_name)
 		return false
 	button.emit_signal("pressed")
 	return true
