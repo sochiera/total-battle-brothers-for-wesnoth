@@ -937,12 +937,117 @@ def test_assault_resolves_adjacent_enemy_settlement():
     assert resolved != world
 
 
+def _run_assault_route(route, world, duchy, position, rng):
+    if route == "nearest":
+        return assault_nearest_enemy_settlement(world, position, rng), None
+    if route == "duchy":
+        return assault_duchy_party(world, duchy, rng), None
+    if route == "duchy_recorded":
+        return ai.assault_duchy_party_recorded(world, duchy, rng)
+    if route == "explicit":
+        return ai.assault_duchy_party_to(world, duchy, position, rng), None
+    if route == "explicit_recorded":
+        return ai.assault_duchy_party_to_recorded(
+            world, duchy, position, rng
+        )
+    assert route == "military"
+    return take_duchy_military_action(world, duchy, rng), None
+
+
+@pytest.mark.parametrize(
+    "route",
+    [
+        "nearest",
+        "duchy",
+        "duchy_recorded",
+        "explicit",
+        "explicit_recorded",
+        "military",
+    ],
+)
+def test_assault_from_enemy_settlement_resolves_in_place(route):
+    """Every assault entry point can attack the settlement it occupies."""
+    keep = Region("Keep")
+    party = Party(Unit(training=5, equipment=6), owner_id="ai")
+    settlement = Settlement("Keep", population=1, owner_id="enemy")
+    world = WorldMap([keep], settlements={keep: settlement}, parties={keep: party})
+    duchy = Duchy("ai", party.hero, parties=(party,))
+
+    resolved, battle = _run_assault_route(route, world, duchy, keep, tbb.Rng(2))
+    if route.endswith("_recorded"):
+        assert battle is not None
+    else:
+        assert battle is None
+
+    assert resolved is not world
+    assert resolved.settlement_at(keep).owner_id == "ai"
+    assert resolved.party_at(keep) is not None
+    assert resolved.party_at(keep).acted_this_month is True
+
+
 class _ForbiddenRng:
     def randint(self, *_args):
         raise AssertionError("RNG must not be consumed")
 
     def chance(self, *_args):
         raise AssertionError("RNG must not be consumed")
+
+
+class _DefenderWinsRng:
+    def chance(self, probability):
+        """Make attacks above 50% hit while keeping a defeated unit stunned."""
+        return probability > 0.5
+
+
+@pytest.mark.parametrize(
+    "route",
+    [
+        "nearest",
+        "duchy",
+        "duchy_recorded",
+        "explicit",
+        "explicit_recorded",
+        "military",
+    ],
+)
+def test_assault_in_place_is_noop_after_monthly_action_without_rng(route):
+    keep = Region("Keep")
+    party = Party(
+        Unit(training=5, equipment=6),
+        owner_id="ai",
+        acted_this_month=True,
+    )
+    settlement = Settlement("Keep", population=1, owner_id="enemy")
+    world = WorldMap([keep], settlements={keep: settlement}, parties={keep: party})
+    duchy = Duchy("ai", party.hero, parties=(party,))
+
+    resolved, battle = _run_assault_route(
+        route, world, duchy, keep, _ForbiddenRng()
+    )
+
+    assert resolved is world
+    assert battle is None
+    assert world.settlement_at(keep) is settlement
+    assert world.party_at(keep) is party
+
+
+def test_assault_from_enemy_settlement_keeps_owner_after_defeat_and_acts():
+    keep = Region("Keep")
+    party = Party(Unit(), owner_id="ai")
+    settlement = Settlement(
+        "Keep",
+        population=1,
+        garrison=(Unit(training=5, equipment=12),),
+        owner_id="enemy",
+    )
+    world = WorldMap([keep], settlements={keep: settlement}, parties={keep: party})
+
+    resolved = assault_nearest_enemy_settlement(world, keep, _DefenderWinsRng())
+
+    assert resolved is not world
+    assert resolved.settlement_at(keep).owner_id == "enemy"
+    assert resolved.party_at(keep) is not None
+    assert resolved.party_at(keep).acted_this_month is True
 
 
 @pytest.mark.parametrize("case", ["distant", "no_enemy"])

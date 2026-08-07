@@ -319,7 +319,7 @@ def assault_duchy_party_recorded(
         raise ValueError("party must have an explicit owner_id")
 
     target = nearest_enemy_settlement(world, position, party.owner_id)
-    if target is None or target not in world.neighbors(position):
+    if target is None or not _is_legal_assault_target(world, position, target):
         return world, None
 
     attacker_morale = 0
@@ -328,10 +328,12 @@ def assault_duchy_party_recorded(
         settlement = world.settlement_at(target)
         attacker_morale = morale_by_owner.get(party.owner_id, 0)
         defender_morale = morale_by_owner.get(settlement.owner_id, 0)
-    return world.resolve_settlement_battle_recorded(
+    return _resolve_settlement_assault(
+        world,
         position,
         target,
         rng,
+        recorded=True,
         attacker_morale=attacker_morale,
         defender_morale=defender_morale,
     )
@@ -442,7 +444,7 @@ def assault_duchy_party_to(
     position = _duchy_party_position(world, duchy.duchy_id)
     if position is None:
         return world
-    if target not in world.neighbors(position):
+    if not _is_legal_assault_target(world, position, target):
         return world
     settlement = world.settlement_at(target)
     if (
@@ -458,10 +460,12 @@ def assault_duchy_party_to(
     if morale_by_owner is not None:
         attacker_morale = morale_by_owner.get(party.owner_id, 0)
         defender_morale = morale_by_owner.get(settlement.owner_id, 0)
-    return world.resolve_settlement_battle(
+    return _resolve_settlement_assault(
+        world,
         position,
         target,
         rng,
+        recorded=False,
         attacker_morale=attacker_morale,
         defender_morale=defender_morale,
     )
@@ -482,7 +486,7 @@ def assault_duchy_party_to_recorded(
     position = _duchy_party_position(world, duchy.duchy_id)
     if position is None:
         return world, None
-    if target not in world.neighbors(position):
+    if not _is_legal_assault_target(world, position, target):
         return world, None
     settlement = world.settlement_at(target)
     if (
@@ -498,10 +502,12 @@ def assault_duchy_party_to_recorded(
     if morale_by_owner is not None:
         attacker_morale = morale_by_owner.get(party.owner_id, 0)
         defender_morale = morale_by_owner.get(settlement.owner_id, 0)
-    return world.resolve_settlement_battle_recorded(
+    return _resolve_settlement_assault(
+        world,
         position,
         target,
         rng,
+        recorded=True,
         attacker_morale=attacker_morale,
         defender_morale=defender_morale,
     )
@@ -523,7 +529,7 @@ def assault_nearest_enemy_settlement(
         raise ValueError("party must have an explicit owner_id")
 
     target = nearest_enemy_settlement(world, start, party.owner_id)
-    if target is None or target not in world.neighbors(start):
+    if target is None or not _is_legal_assault_target(world, start, target):
         return world
 
     attacker_morale = 0
@@ -532,10 +538,12 @@ def assault_nearest_enemy_settlement(
         settlement = world.settlement_at(target)
         attacker_morale = morale_by_owner.get(party.owner_id, 0)
         defender_morale = morale_by_owner.get(settlement.owner_id, 0)
-    return world.resolve_settlement_battle(
+    return _resolve_settlement_assault(
+        world,
         start,
         target,
         rng,
+        recorded=False,
         attacker_morale=attacker_morale,
         defender_morale=defender_morale,
     )
@@ -548,6 +556,51 @@ def _has_assault_advantage(
     return _combat_strength(attackers) >= (
         _MINIMUM_ASSAULT_STRENGTH_RATIO * _combat_strength(defenders)
     )
+
+
+def _resolve_settlement_assault(
+    world: WorldMap,
+    position: Region,
+    target: Region,
+    rng: Rng,
+    *,
+    recorded: bool,
+    attacker_morale: int,
+    defender_morale: int,
+) -> WorldMap | tuple[WorldMap, HexBattle | None]:
+    """Resolve an adjacent or in-place settlement assault in either API form."""
+    if target == position:
+        resolver = (
+            world.resolve_settlement_battle_at_recorded
+            if recorded
+            else world.resolve_settlement_battle_at
+        )
+        return resolver(
+            position,
+            rng,
+            attacker_morale=attacker_morale,
+            defender_morale=defender_morale,
+        )
+
+    resolver = (
+        world.resolve_settlement_battle_recorded
+        if recorded
+        else world.resolve_settlement_battle
+    )
+    return resolver(
+        position,
+        target,
+        rng,
+        attacker_morale=attacker_morale,
+        defender_morale=defender_morale,
+    )
+
+
+def _is_legal_assault_target(
+    world: WorldMap, position: Region, target: Region
+) -> bool:
+    """Return whether target is adjacent or the settlement occupied by position."""
+    return target == position or target in world.neighbors(position)
 
 
 def take_duchy_military_action(
