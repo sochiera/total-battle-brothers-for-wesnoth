@@ -11,6 +11,11 @@ const EXPECTED := {
 	"battle_unresolved": {"kind": "battle", "order": "assault", "outcome": "nierozstrzygnięta", "attacker_losses": 0, "defender_losses": 0},
 	"engage_battle": {"kind": "battle", "order": "engage", "outcome": "porażka", "attacker_losses": 1, "defender_losses": 0},
 	"engage_unchanged": {"order": "engage", "changed": false},
+	"march_blocked": {"order": "march", "changed": false, "blocked_region": "border"},
+	"move_blocked": {"order": "move", "changed": false, "blocked_region": "border"},
+	"move_blocked_missing_region": {"order": "move", "changed": false},
+	"move_blocked_invalid_region": {"order": "move", "changed": false},
+	"move_blocked_unknown_region": {"order": "move", "changed": false, "blocked_region": "unknown-region"},
 	"missing_ok": null,
 	"not_ok": null,
 	"missing_result": null,
@@ -46,6 +51,12 @@ const EXPECTED_STATUS_TEXT := {
 	# Blokada (changed=false), m.in. wroga osada: „Ruch nie nastąpił.”
 	"move_changed": "Oddział przemieścił się.",
 	"move_unchanged": "Ruch nie nastąpił.",
+	"march_blocked": "Droga zablokowana w regionie Pogranicze: stoi tam wojsko wroga. Uderz na wojsko wroga.",
+	"move_blocked": "Droga zablokowana w regionie Pogranicze: stoi tam wojsko wroga. Uderz na wojsko wroga.",
+	"move_changed_with_blocker": "Oddział przemieścił się.",
+	"move_blocked_missing_region": "Ruch nie nastąpił.",
+	"move_blocked_invalid_region": "Ruch nie nastąpił.",
+	"move_blocked_unknown_region": "Ruch nie nastąpił.",
 	# G91.2b: most (task-516) dodaje game_over — status nie może brzmieć jak no-op w trwającej partii.
 	"game_over_order": "Partia jest zakończona.",
 	"assault_battle": "Szturm: porażka (straty: 0, wróg: 0).",
@@ -91,6 +102,11 @@ func _init() -> void:
 		"battle_unresolved": {"ok": true, "result": {"kind": "battle", "order": "assault", "outcome": "nierozstrzygnięta", "attacker_losses": 0, "defender_losses": 0}},
 		"engage_battle": {"ok": true, "result": {"kind": "battle", "order": "engage", "outcome": "porażka", "attacker_losses": 1, "defender_losses": 0}},
 		"engage_unchanged": {"ok": true, "result": {"kind": "order", "order": "engage", "changed": false}},
+		"march_blocked": {"ok": true, "result": {"kind": "order", "order": "march", "changed": false, "blocked_region": "border"}},
+		"move_blocked": {"ok": true, "result": {"kind": "order", "order": "move", "changed": false, "blocked_region": "border"}},
+		"move_blocked_missing_region": {"ok": true, "result": {"kind": "order", "order": "move", "changed": false}},
+		"move_blocked_invalid_region": {"ok": true, "result": {"kind": "order", "order": "move", "changed": false, "blocked_region": 42}},
+		"move_blocked_unknown_region": {"ok": true, "result": {"kind": "order", "order": "move", "changed": false, "blocked_region": "unknown-region"}},
 		"battle_missing_outcome": {"ok": true, "result": {"kind": "battle", "order": "assault", "attacker_losses": 0, "defender_losses": 0}},
 		"battle_missing_order": {"ok": true, "result": {"kind": "battle", "outcome": "porażka", "attacker_losses": 0, "defender_losses": 0}},
 		"battle_invalid_order": {"ok": true, "result": {"kind": "battle", "order": 1, "outcome": "porażka", "attacker_losses": 0, "defender_losses": 0}},
@@ -120,6 +136,9 @@ func _init() -> void:
 		"assault_unchanged_default": OrderResult.from_response({"ok": true, "result": {"kind": "order", "order": "assault", "changed": false}}),
 		"move_changed": OrderResult.from_response({"ok": true, "result": {"kind": "order", "order": "move", "changed": true}}),
 		"move_unchanged": OrderResult.from_response({"ok": true, "result": {"kind": "order", "order": "move", "changed": false}}),
+		"march_blocked": projected["march_blocked"],
+		"move_blocked": projected["move_blocked"],
+		"move_changed_with_blocker": {"order": "move", "changed": true, "blocked_region": "border"},
 		"game_over_order": OrderResult.from_response({
 			"ok": true,
 			"result": {"kind": "order", "order": "recruit", "changed": false, "game_over": true},
@@ -139,6 +158,9 @@ func _init() -> void:
 		"unknown_kind": {"kind": "turn", "order": "assault"},
 		"deterministic": projected["changed"],
 		"deterministic_muster": {"order": "muster", "changed": true},
+		"move_blocked_missing_region": projected["move_blocked_missing_region"],
+		"move_blocked_invalid_region": projected["move_blocked_invalid_region"],
+		"move_blocked_unknown_region": projected["move_blocked_unknown_region"],
 	}
 	var status_text: Dictionary = {}
 	for name: String in status_cases:

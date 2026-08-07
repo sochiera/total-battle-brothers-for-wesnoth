@@ -1,6 +1,8 @@
 class_name OrderResult
 extends RefCounted
 
+const WorldPresentation = preload("res://scripts/world_presentation.gd")
+
 const MOVE_CHANGED_STATUS := "Oddział przemieścił się."
 const MOVE_UNCHANGED_STATUS := "Ruch nie nastąpił."
 const MONTHLY_ACTION_EXHAUSTED_STATUS := "Oddział już działał w tym miesiącu — zakończ turę."
@@ -12,6 +14,17 @@ static func failure_status_text() -> String:
 
 static func _move_status_text(changed: bool) -> String:
 	return MOVE_CHANGED_STATUS if changed else MOVE_UNCHANGED_STATUS
+
+
+static func _blocked_region_status_text(order_result: Dictionary, order: String) -> String:
+	if order != "move" and order != "march":
+		return ""
+	if not order_result.has("blocked_region") or not order_result["blocked_region"] is String:
+		return ""
+	var blocked_region: String = order_result["blocked_region"]
+	if not WorldPresentation.REGION_PL.has(blocked_region):
+		return ""
+	return "Droga zablokowana w regionie %s: stoi tam wojsko wroga. Uderz na wojsko wroga." % WorldPresentation.region_label(blocked_region)
 
 
 static func _is_military_order(order: String) -> bool:
@@ -39,8 +52,6 @@ static func _order_name(order: String) -> String:
 static func _unchanged_status_text(
 	order_result: Dictionary, order: String, is_military_order: bool
 ) -> String:
-	if order == "move":
-		return _move_status_text(false)
 	if is_military_order:
 		var exhausted: Variant = order_result.get("monthly_action_exhausted", false)
 		if exhausted is bool and exhausted:
@@ -93,10 +104,15 @@ static func status_text(order_result: Variant) -> String:
 		return ""
 
 	var changed: bool = order_result["changed"]
-	if order == "move":
-		return _move_status_text(changed)
 	if not changed:
+		var blocked_status := _blocked_region_status_text(order_result, order)
+		if not blocked_status.is_empty():
+			return blocked_status
+		if order == "move":
+			return _move_status_text(false)
 		return _unchanged_status_text(order_result, order, is_military_order)
+	if order == "move":
+		return _move_status_text(true)
 
 	var order_name := _order_name(order)
 	if order_name.is_empty():
@@ -129,6 +145,8 @@ static func from_response(response: Dictionary, monthly_action_exhausted: bool =
 			var projected = {"order": order, "changed": changed}
 			if monthly_action_exhausted and not changed and is_military_order:
 				projected["monthly_action_exhausted"] = true
+			if result.has("blocked_region") and result["blocked_region"] is String:
+				projected["blocked_region"] = result["blocked_region"]
 			if result.has("game_over") and result["game_over"] is bool and result["game_over"]:
 				projected["game_over"] = true
 			return projected

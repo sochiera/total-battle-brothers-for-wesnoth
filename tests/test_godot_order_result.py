@@ -138,6 +138,12 @@ def test_godot_order_result_returns_polish_status_text_for_projected_orders():
         # Ten sam szablon co zwycięstwo/porażka/remis; outcome mostu wprost w tekście.
         "assault_battle_unresolved": "Szturm: nierozstrzygnięta (straty: 0, wróg: 0).",
         "engage_unchanged": "Oddział już działał w tym miesiącu — zakończ turę.",
+        "march_blocked": "Droga zablokowana w regionie Pogranicze: stoi tam wojsko wroga. Uderz na wojsko wroga.",
+        "move_blocked": "Droga zablokowana w regionie Pogranicze: stoi tam wojsko wroga. Uderz na wojsko wroga.",
+        "move_changed_with_blocker": "Oddział przemieścił się.",
+        "move_blocked_missing_region": "Ruch nie nastąpił.",
+        "move_blocked_invalid_region": "Ruch nie nastąpił.",
+        "move_blocked_unknown_region": "Ruch nie nastąpił.",
         "engage_unchanged_default": "Rozkaz starcia nie zmienił stanu.",
         "engage_battle": "Starcie: porażka (straty: 1, wróg: 0).",
         "missing_result": "",
