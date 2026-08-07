@@ -111,6 +111,10 @@ WINDOW_BACKGROUND_SCREENSHOTS = (
     # click, then player ownership plus the Polish battle result after it.
     GAME / "screenshots" / "task-619-live-assault-before-1152x648.png",
     GAME / "screenshots" / "task-619-live-assault-after-1152x648.png",
+    # G111.1d: live blocked march status, then the Engage escape hatch and
+    # resolved battle from the same seed-73 party.
+    GAME / "screenshots" / "task-624-live-blocked-march-1152x648.png",
+    GAME / "screenshots" / "task-624-live-engage-battle-1152x648.png",
 )
 ORDER_ICON_FILES = {
     "NextTurnButton": "icon_next_turn.png",
@@ -432,16 +436,16 @@ def test_window_background_review_screenshots_exist_at_target_resolution():
     Covers post-G100.1d window-background states, the G106.1a fresh-party
     frame, the G106.1b empty→selected region pair, the G106.1c visible battle
     after K105, G108.1d's two live-session frames (enemy army, then its
-    resolved engage battle), and G110.1c's before/after live-assault pair.
+    resolved engage battle), G110.1c's before/after live-assault pair, and
+    G111.1d's blocked-march/engage pair.
     **Scope: file presence, IHDR 1152×648, and size floor only** — visual
     inspection still owns whether the live frames show the required bridge
     state, ownership change, resolved battle, and Polish chrome.
 
     Realistic defect existing gates miss: live bridge/e2e assertions can stay
-    green while the required human-review evidence is absent, or the task-619
-    before/after pair is replaced by a wrong-resolution placeholder and no
-    committed frame proves the settlement ownership change beside the Polish
-    assault result.
+    green while the required human-review evidence is absent, or a live pair
+    is replaced by a wrong-resolution placeholder with no committed frame
+    proving the described status and battle state beside the Polish chrome.
     """
     # Older task-565/task-568 captures predate the full-window parchment and
     # cannot demonstrate that root gaps no longer expose default grey chrome.

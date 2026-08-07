@@ -287,7 +287,7 @@ text = ""
 [node name="OrderStatusSlot" type="Control" parent="MainLayout/ContentRow/StatusControls/StatusCardContent"]
 unique_name_in_owner = true
 visible = false
-custom_minimum_size = Vector2(0, 54)
+custom_minimum_size = Vector2(0, 75)
 layout_mode = 2
 size_flags_horizontal = 3
 

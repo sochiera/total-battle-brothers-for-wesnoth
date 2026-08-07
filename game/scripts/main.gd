@@ -368,11 +368,15 @@ func develop_from_bridge(client) -> bool:
 
 func send_order_from_bridge(client, order_name: String, target: String = "") -> bool:
 	var model: SnapshotModel = client.send_order(order_name, target)
-	if _apply_model_if_present(model):
-		_set_last_order_status(OrderResult.status_text(_last_order_result(client)))
-		return true
-	_set_last_order_status(OrderResult.failure_status_text())
-	return false
+	var applied := _apply_model_if_present(model)
+	_set_last_order_status(
+		_applied_order_status(client) if applied else OrderResult.failure_status_text()
+	)
+	return applied
+
+
+func _applied_order_status(client) -> String:
+	return OrderResult.status_text(_last_order_result(client))
 
 
 func _last_order_result(client) -> Variant:

@@ -20,6 +20,12 @@ PREFIX = "PERSISTENT_ORDER_PROCESS "
 SEED = 73
 EXHAUSTED_ACTION_STATUS = "Oddział już działał w tym miesiącu — zakończ turę."
 NO_TARGET_STATUS = "Rozkaz starcia nie zmienił stanu."
+# The OrderStatusSlot minimum height in main.tscn (75 px) is sized for the
+# wrapped form of this, the longest status text we currently ship.
+BLOCKED_MARCH_STATUS = (
+    "Droga zablokowana w regionie Pogranicze: stoi tam wojsko wroga. "
+    "Uderz na wojsko wroga."
+)
 
 
 def _run_process(command_prefix: str, state_path: Path, request_path: Path, phase: str) -> dict:
@@ -75,6 +81,24 @@ def _party_without_adjacent_enemy_session() -> Session:
         new_session(seed=SEED, player_duchy_id="player"),
         {"type": "order", "order": "muster"},
     )
+
+
+def _blocked_march_session() -> Session:
+    """Build the measured seed-73 state: player at outpost, AI at border.
+
+    The second recruit keeps the player party alive into the Engage phase so
+    the resumed process still has a battle target.
+    """
+    session = new_session(seed=SEED, player_duchy_id="player")
+    for command in (
+        {"type": "order", "order": "recruit"},
+        {"type": "order", "order": "recruit"},
+        {"type": "order", "order": "muster"},
+        {"type": "order", "order": "march"},
+        {"type": "next_turn"},
+    ):
+        session = apply_command(session, command)
+    return session
 
 
 def _march_then_engage_session() -> Session:
@@ -174,7 +198,9 @@ def test_engage_button_resolves_party_battle_and_persists_it_across_processes(tm
 
     assert battle["session_command"] == f"{command_prefix} serve --resume '{state_path}'"
     assert battle["battle_before_order"]["tile_count"] == 0
-    assert battle["controls_before_order"]["party_position"] == "Położenie oddziału: Posterunek gracza"
+    assert battle["controls_before_order"]["party_position"] == (
+        "Położenie oddziału: Posterunek gracza"
+    )
 
     # Visible player effect: resolved result and tiles from both sides.
     after = battle["battle"]
@@ -224,11 +250,62 @@ def test_engage_button_resolves_party_battle_and_persists_it_across_processes(tm
     )
 
     assert no_enemy["controls_before_order"]["party_position"] != "Położenie oddziału: brak"
-    assert no_enemy["controls"]["party_position"] == no_enemy["controls_before_order"]["party_position"]
+    assert no_enemy["controls"]["party_position"] == (
+        no_enemy["controls_before_order"]["party_position"]
+    )
     assert no_enemy["controls"]["order_status"] == NO_TARGET_STATUS
     assert no_enemy["battle_before_order"]["tile_count"] == 0
     assert no_enemy["battle"]["tile_count"] == 0
     assert read_session(no_enemy_state_path).world == living_party_without_enemy.world
+
+
+def test_blocked_march_status_and_followup_engage_survive_process_boundary(tmp_path):
+    """A live blocked march explains the blocker; the same saved party can fight.
+
+    Realistic defect: the core/protocol/order-result tests can all pass while
+    the live MarchButton drops ``blocked_region`` or the resumed scene loses the
+    adjacent AI party.  Then the first process shows a generic no-op and the
+    second process cannot reach the in-game Engage escape hatch.  A separate
+    layout defect can preserve the exact text while a fixed-height status slot
+    lets its wrapped glyphs spill into the party-position row; text-only e2e
+    assertions do not catch that visual failure.
+    """
+    state_path = tmp_path / "persistent-blocked-march-session.json"
+    request_path = tmp_path / "bridge-request.jsonl"
+    command_prefix = f"PYTHONPATH={shlex.quote(str(ROOT / 'src'))} python3 -m tbbbridge"
+    prepared = _blocked_march_session()
+    save_session(prepared, state_path)
+
+    blocked = _run_process(command_prefix, state_path, request_path, "blocked_march")
+    persisted_after_block = read_session(state_path)
+
+    assert blocked["controls_before_order"]["party_position"] == (
+        "Położenie oddziału: Posterunek gracza"
+    )
+    assert blocked["controls"]["order_status"] == BLOCKED_MARCH_STATUS
+    status_layout = blocked["controls"]["order_status_layout"]
+    assert status_layout["found"] is True, status_layout
+    # The label fills the slot via anchors, so only the slot height is a real
+    # guard: it must cover the wrapped text of the longest status we ship.
+    slot = status_layout["slot"]
+    assert slot["h"] >= status_layout["label_minimum_h"], status_layout
+    assert blocked["controls"]["party_position"] == (
+        blocked["controls_before_order"]["party_position"]
+    )
+    assert blocked["battle"]["tile_count"] == 0
+    assert persisted_after_block.world == prepared.world
+
+    resumed = _run_process(command_prefix, state_path, request_path, "engage")
+
+    assert resumed["controls_before_order"]["party_position"] == (
+        blocked["controls"]["party_position"]
+    )
+    assert resumed["battle_before_order"]["tile_count"] == 0
+    assert resumed["controls"]["order_status"].startswith("Starcie: ")
+    assert resumed["battle"]["tile_count"] >= 2, resumed
+    assert resumed["battle"]["paint_groups"] >= 2, resumed
+    assert resumed["battle"]["result_text"].strip() != ""
+    assert read_session(state_path).world != persisted_after_block.world
 
 
 def test_march_then_engage_shows_exhausted_month_status_on_live_bridge(tmp_path):
@@ -271,7 +348,9 @@ def test_fresh_bridge_reads_acted_marker_after_persisted_march(tmp_path):
         command_prefix, state_path, engage_request_path, "engage_after_march"
     )
 
-    assert resumed["controls_before_order"]["party_position"] == marched["sequence"]["march"]["party_position"]
+    assert resumed["controls_before_order"]["party_position"] == (
+        marched["sequence"]["march"]["party_position"]
+    )
     assert resumed["battle_before_order"]["tile_count"] == 0
     assert resumed["controls"]["order_status"] == EXHAUSTED_ACTION_STATUS
 

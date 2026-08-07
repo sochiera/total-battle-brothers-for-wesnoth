@@ -123,6 +123,9 @@ func _run() -> void:
 				if not _press(scene_root, "EngageButton"):
 					return
 				sequence["engage"] = _controls(scene_root)
+		"blocked_march":
+			if not _press(scene_root, "MarchButton"):
+				return
 		"engage_after_march":
 			if not _press(scene_root, "EngageButton"):
 				return
@@ -188,10 +191,34 @@ func _controls(scene_root: Control) -> Dictionary:
 	return {
 		"date": (scene_root.find_child("DateLabel", true, false) as Label).text,
 		"result": (scene_root.find_child("ResultContractLabel", true, false) as Label).text,
-		"party_position": (scene_root.find_child("PartyPositionContractLabel", true, false) as Label).text,
+		"party_position": (
+			(scene_root.find_child("PartyPositionContractLabel", true, false) as Label).text
+		),
 		"regions": regions,
 		"duchy_status": (scene_root.find_child("PlayerDuchyStatusLabel", true, false) as Label).text,
 		"order_status": (scene_root.find_child("LastOrderStatusLabel", true, false) as Label).text,
+		"order_status_layout": _order_status_layout(scene_root),
+	}
+
+
+func _order_status_layout(scene_root: Control) -> Dictionary:
+	var slot := scene_root.find_child("OrderStatusSlot", true, false) as Control
+	var label := scene_root.find_child("LastOrderStatusLabel", true, false) as Label
+	if slot == null or label == null:
+		return {"found": false}
+	return {
+		"found": true,
+		"slot": _rect_payload(slot.get_global_rect()),
+		"label_minimum_h": label.get_combined_minimum_size().y,
+	}
+
+
+func _rect_payload(rect: Rect2) -> Dictionary:
+	return {
+		"x": rect.position.x,
+		"y": rect.position.y,
+		"w": rect.size.x,
+		"h": rect.size.y,
 	}
 
 
