@@ -1649,6 +1649,15 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
 > Nie ruszamy progu z K108, tempa AI, balansu, celowanego `develop`/`recruit`
 > ani reguły „ile garnizonu wolno zabrać" (nadal odłożona — wzmocnienie zabiera
 > cały garnizon, symetrycznie do `muster`).
+>
+> **Nota kolejności (przegląd 2026-08-07, po K110/R111.1):** „licznik oddziału"
+> z G112.1d **nie istnieje dziś w kliencie** — panel wybranego regionu mówi
+> wyłącznie „Armia: twoja armia" / „brak armii", bez jednej liczby
+> (`game/scripts/main.gd:654-667`). Wzrost oddziału po `reinforce` da się więc
+> dziś pokazać tylko figurą i statusem rozkazu. Liczby daje **K113**; wykonawca
+> G112.1d albo bierze K113 wcześniej i pokazuje wzrost licznikiem, albo
+> ogranicza kryterium do statusu i figury i **nie wymyśla własnego licznika**
+> obok tego z K113.
 - [ ] **G112.1a [RDZEŃ]** Oddział stojący w regionie **własnej** osady wciąga jej
       garnizon: nowa reguła obok `muster_party`, oddział rośnie o wszystkie
       jednostki garnizonu, osada zostaje z garnizonem 0, hero i rany bez zmian.
@@ -1682,6 +1691,62 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
       a licznik/figura oddziału na mapie zmienia się bez ręcznego odświeżania.
       E2e przez dwa procesy mostu + dowód wizualny 1152×648 pary kadrów
       „przed / po" wzmocnienia. *(standard)*
+
+## Kamień milowy 113 — siła widoczna liczbą: oddział i garnizon w panelu regionu
+> **Zmierzone przy przeglądzie bootstrap-diff 2026-08-07** (uruchomiony
+> `tbbbridge`, `new_session(73)`, wyłącznie rozkazy dostępne w kliencie) — nie
+> z lektury: most niesie na region komplet liczb siły od K63/K74, a klient
+> **nie pokazuje ani jednej**.
+>
+> - `snapshot.map.regions[*].party` ma `size`, `hp`, `attack`, `defense`,
+>   `wounded`, `acted_this_month` (`src/tbbbridge/snapshot.py:61-88`);
+>   `…[*].settlement` ma `garrison`, `population`, `free`, zapasy i produkcję
+>   (`snapshot.py:23-58`). `SnapshotModel._placeable_regions` przepuszcza cały
+>   słownik regionu (`game/scripts/snapshot_model.gd:32-50`), więc dane **są
+>   już w kliencie**.
+> - Panel wybranego regionu renderuje z tego cztery wiersze, z czego dwa gubią
+>   całą treść: `_settlement_text` daje samą nazwę osady, a `_party_text` samo
+>   „twoja armia" / „wroga armia" / „brak armii"
+>   (`game/scripts/main.gd:654-667`). Karta statusu pokazuje morale i **liczbę**
+>   osad/oddziałów, nie ich siłę (`main.gd:523-552`); mapa pokazuje obecność
+>   figury, nie jej wielkość. PŻ widać dopiero w widoku bitwy (K98) — czyli
+>   **po** decyzji.
+> - Dwa przebiegi różniące się **wyłącznie** dziesięcioma `develop` przed
+>   rekrutacją: `recruit`×10 → `muster` daje oddział `size 5, hp 73, atk 29`,
+>   a `develop`×10 → `recruit`×10 → `muster` daje `size 1, hp 25` (bohater sam).
+>   **Na ekranie oba wyglądają identycznie**: ta sama figura, ten sam wiersz
+>   „Armia: twoja armia". Gracz nie ma jak zauważyć, że idzie na szturm
+>   jedynką — a to dokładnie pułapka z wniosku 39, którą K112 usuwa w regułach,
+>   ale nie w widoku.
+> - To samo dotyczy strony wroga: przed `assault`/`engage` gracz nie widzi ani
+>   garnizonu osady (`AI Keep`: 1 na starcie, rośnie z turami), ani siły armii
+>   AI stojącej na `border`. Decyzja „bić czy nie" jest dziś **ślepa**, choć
+>   rdzeń AI podejmuje ją po jawnym stosunku sił 2:1 (K108).
+>
+> Kryterium z briefu **[W]** brzmi „da się grać patrząc, a nie czytając logi";
+> tu nie da się grać nawet czytając — liczby nie docierają na ekran w ogóle.
+> Zakres celowo wąski: **wyłącznie klient**. Bez zmian w rdzeniu, moście,
+> kontrakcie snapshotu i bez nowego rozkazu. To nie jest balans ani nowa
+> warstwa oprawy — to brakująca projekcja danych, które już przychodzą.
+- [ ] **G113.1a [KLIENT]** Czysty polski tekst siły w kliencie: funkcja
+      projekcji zamienia słownik `party` na tekst z **liczbą jednostek i PŻ**
+      (np. „twoja armia: 5 jednostek, 73 PŻ"), a słownik `settlement` na tekst
+      z **garnizonem** (np. „Twierdza gracza · garnizon 2"). Brakujące,
+      niepoprawne lub nieliczbowe pola → dotychczasowy tekst zastępczy
+      („brak armii" / „brak osady" / sama nazwa) bez błędu i bez „0" wziętego
+      z powietrza. Testy headless na fixture'ach snapshotu, bez uruchamiania
+      mostu; dotychczasowe testy panelu przechodzą bez zmian w kryteriach.
+      *(simple)*
+- [ ] **G113.1b [KLIENT]** Panel wybranego regionu pokazuje te liczby dla
+      **obu stron**: wybór regionu z własnym oddziałem daje jego siłę, wybór
+      regionu z wrogą osadą daje jej garnizon, a wartości odświeżają się po
+      rozkazie i po turze **bez ręcznego odświeżania** (szturm zmniejsza
+      garnizon, straty zmniejszają oddział). E2e przez dwa procesy mostu na
+      `seed=73` dowodzi rozróżnienia zmierzonego wyżej: po `recruit`×10 →
+      `muster` panel pokazuje oddział 5 jednostek, a po `develop`×10 →
+      `recruit`×10 → `muster` — oddział 1 jednostki. Dowód wizualny 1152×648:
+      kadr z zaznaczonym regionem własnego oddziału i kadr z zaznaczonym
+      regionem wrogiej osady. *(standard)*
 
 ## Dług/refaktor
 - [x] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
@@ -1772,6 +1837,10 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
   rozplanowane jako **K112** po pomiarze 2026-08-07 (120 tur bez zmiany, AI
   nieruchome przy `str_att` 78→108 vs `str_def` 40→63). Pełna diagnoza w sekcji
   K112; nie powtarzać jej tutaj.
+- **Siły nie widać liczbą: gracz decyduje o szturmie na ślepo** —
+  rozplanowane jako **K113** po pomiarze 2026-08-07 (ten sam ekran dla oddziału
+  5 jednostek i dla jedynki). Pełna diagnoza w sekcji K113; klient-only,
+  bez zmian rdzenia i mostu.
 - **Rozkazy osadowe bez wyboru osady** (`develop`/`recruit`/`muster` biorą
   *pierwszą* pasującą osadę, cel jest po cichu ignorowany) — obserwacja z tego
   samego pomiaru, **jeszcze nie planowana**. K112 usuwa najgorszy skutek
