@@ -82,16 +82,26 @@ Warunek został spełniony 2026-08-06 w K106.
   refaktor paska rozkazów oraz zaakceptowane dowody wizualne z żywej sesji
   (`task-605` — ekran bitwy nie wypycha mapy, `task-606` — wojsko AI na mapie,
   `task-607` — rozstrzygnięte starcie po `engage`).
-- **Rozgrywka — pomiar po K108 (2026-08-06, uruchomienie rdzenia na `seed=73`,
-  nie lektura):** defekt z poprzedniego przeglądu **jest naprawiony** — wojsko
-  AI stoi na mapie od miesiąca 2 i przesuwa się (`border` → `player outpost` →
-  `player lands`), a gracz bierny **przegrywa partię w 13 turach**
-  (`result = {"is_over": true, "winner": "ai", "player_result": "defeat"}`).
-  Ten sam pomiar odsłonił brak głębszy: **rozkazy wojskowe nic nie kosztują**.
-  Bez ani jednego `next_turn` sekwencja `recruit`×5 → `muster` →
-  (`march`+`assault`)×3 daje `player_result="victory"` w **roku 1, miesiącu 1** —
-  kalendarz nie drgnął, AI nie dostało tury, przeciwnik nie zdążył się pojawić.
-  To jest zakres **K109**.
+- **Rozgrywka — pomiar po K108 (2026-08-06, `seed=73`):** wojsko AI stoi na
+  mapie od miesiąca 2, naciera i bierny gracz przegrywa w 13 turach. Ten sam
+  pomiar odsłonił brak głębszy — **rozkazy wojskowe nic nie kosztowały** (bez
+  ani jednego `next_turn` dało się wygrać w roku 1, miesiącu 1). To był zakres
+  **K109**.
+- **K109 — DOMKNIĘTY** (`53d6d98`…`6d6946a`): znacznik `Party.acted_this_month`,
+  zerowanie na nowy miesiąc, round-trip w persystencji, blokada drugiej akcji
+  wojskowej jako `changed=false` (nie błąd) i polski status w kliencie.
+- **Rozgrywka — pomiar po K109 (2026-08-07, uruchomienie mostu na `seed=73`,
+  nie lektura):** ekonomia tury działa. Bierny gracz nadal przegrywa w **13
+  turach**, a aktywny (priorytet `assault` → `engage` → `march`, jedna akcja
+  wojskowa na miesiąc) wygrywa w **roku 1, miesiącu 4**, ze starciami w polu po
+  drodze. Ten sam pomiar odsłonił brak następny: **partia potrafi zakleszczyć
+  się na amen**. Gracz wygrywa wszystkie starcia w polu, po czym `engage`
+  wstawia jego oddział do regionu `ai lands` — tam, gdzie stoi AI Keep — i od
+  tej chwili `move`/`march`/`assault`/`engage` zwracają `changed=false` **bez
+  końca** (sprawdzone do roku 7, miesiąca 3: `is_over: false`, oba księstwa po
+  dwie osady, zero ruchu, gry nie da się ani wygrać, ani przegrać). Szturm w
+  rdzeniu istnieje wyłącznie „z sąsiedniego regionu"; szturmu „spod murów" nie
+  ma. To jest zakres **K110**.
 
 ## Ograniczenia i priorytety
 - **[W]** Rdzeń `tbb` jest **jedynym źródłem reguł**. Godot nie duplikuje logiki;
@@ -176,23 +186,33 @@ Warunek został spełniony 2026-08-06 w K106.
     wojskowych w jednym miesiącu — więc cała presja zbudowana w K108 działa
     tylko na gracza, który dobrowolnie kończy turę. Naprawiony przeciwnik nie
     czyni gry grą; czyni ją nią dopiero **ekonomia tury**.
-35. **Regułę tury zweryfikowano symulacją przed zaplanowaniem (2026-08-06).**
-    Przy jednej akcji wojskowej oddziału na miesiąc partia na `seed=73` jest
-    wygrywalna (zwycięstwo w roku 1, miesiącu 4) i **zawiera realne starcie w
-    polu** (`engage` w miesiącu 2). Kolejność z wniosku 33 zostaje zachowana:
-    gracz ma czym odpowiedzieć, zanim tura zacznie kosztować.
-    **Doprecyzowanie po recenzji (ta sama data):** pierwsza symulacja objęła
-    wyłącznie stronę gracza, więc nie rozstrzygała przypadku AI. Reguła
-    **obowiązuje także oddziały AI** (wniosek 16 — wyjęcie ich spod niej jest
-    wykluczone), a znacznik ustawia **wyłącznie akcja, która zmieniła świat**.
-    Powód jest zmierzony: `ai.take_duchy_military_action` (`src/tbb/ai.py:553`)
-    robi w jednej turze AI `muster` + `march` + `assault`, czyli dwie z czterech
-    blokowanych akcji. Przy dosłownym odczycie „pierwsza akcja ustawia znacznik"
-    (bezskuteczny `march` też liczy się jako akcja) AI po turze 11 nigdy już nie
-    szturmuje i bierny gracz nie przegrywa nawet po 20 turach — K109 **cofnąłby
-    K108**. Przy odczycie „tylko akcja zmieniająca świat" przegrana wypada w
-    turze 13, jak dziś, bo `march` oddziału już sąsiadującego z celem jest
-    no-opem. Regresja na `seed=73` jest kryterium G109.1b.
+35. **Regułę tury zweryfikowano symulacją przed zaplanowaniem (2026-08-06),
+    potwierdzono pomiarem po wdrożeniu (2026-08-07).** Jedna akcja wojskowa
+    oddziału na miesiąc zostawia partię wygrywalną (rok 1, miesiąc 4) i ze
+    starciem w polu po drodze. Dwa warunki brzegowe okazały się nietrywialne i
+    zostają w mocy na przyszłość: reguła **obowiązuje także oddziały AI**
+    (wniosek 16), a znacznik ustawia **wyłącznie akcja, która zmieniła świat** —
+    bo `ai.take_duchy_military_action` (`src/tbb/ai.py:553`) robi w jednej turze
+    `muster`+`march`+`assault`, a dosłowny odczyt „pierwsza akcja liczy się
+    zawsze" zatrzymywał szturmy AI po turze 11 i cofał K108. Wzorzec do
+    powtarzania: **regresję K108 mierzy się na `seed=73` przy każdej zmianie
+    reguł ruchu i walki.**
+36. **Kosztowna tura odsłania koniec ścieżki, nie koniec pracy (2026-08-07).**
+    Dopóki rozkazy były darmowe, partia kończyła się w trzy miesiące i nikt nie
+    dochodził do stanu „armia stoi pod obcą stolicą". Po K109 partia trwa
+    latami — i wtedy widać, że **rdzeń nie zna szturmu spod murów**:
+    `nearest_enemy_settlement` (`src/tbb/ai.py:134`) zwraca własny region
+    oddziału (dystans 0), a `assault_nearest_enemy_settlement` (`ai.py:510`)
+    odrzuca go warunkiem sąsiedztwa; niżej `start_settlement_battle`
+    (`src/tbb/world.py:378-381`) zabrania `source == destination`. Wniosek
+    kierunkowy: **każde domknięcie ekonomii tury trzeba domierzyć długą partią,
+    nie krótką** — defekty kolejnego etapu leżą za horyzontem poprzedniego.
+37. **Zakleszczenie ≠ przegrana, i to jest gorsze (2026-08-07).** Stan bez
+    wyjścia nie daje graczowi żadnego sygnału: rozkazy odpowiadają „bez zmian",
+    kalendarz idzie, nic się nie dzieje. Reguła symetryczna (wniosek 16)
+    zakleszcza tak samo AI. Warunek zwycięstwa z briefu („utrata osad **oraz**
+    śmierć bohatera") jest wtedy nieosiągalny dla obu stron, więc **K110 broni
+    samego kryterium sukcesu**, nie wygody gracza.
 
 ## Klimat, ton, kierunek wizualny
 Średniowiecze **bez magii i fantastyki**, surowy i realistyczny ton. **[W]**
@@ -232,17 +252,24 @@ bez reguł/mostu i bez otwierania nowej serii polish. **[W]**
 7. ~~**K108 — przeciwnik, który nie roztrwania armii, i `engage` w kliencie**~~ —
    **domknięte**: kod, pomiar oraz zaakceptowane dowody wizualne z żywej sesji
    (task-605…607).
-8. **K109 — rozkaz wojskowy kosztuje miesiąc.** Znacznik akcji oddziału w
-   rdzeniu (zerowany przez `tick_parties`, trwały w persystencji), blokada
-   drugiej akcji wojskowej w tym samym miesiącu jako `changed=false` (nie
-   błąd) i czytelny polski status w kliencie. Powód: wnioski 34–35.
-   **Dwa warunki brzegowe, bez których K109 cofa K108** (wniosek 35): reguła
-   obejmuje **także oddziały AI** — żadnego wyjątku po właścicielu (wniosek 16)
-   — a znacznik ustawia **wyłącznie akcja, która zmieniła świat**, więc
-   bezskuteczny `march` nie zużywa miesiąca. G109.1b niesie regresję na
-   `seed=73`: bierny gracz nadal przegrywa w 13 turach.
-9. **Prawdopodobnie potem:** tempo presji AI (dopiero gdy tura kosztuje) oraz
-   ile garnizonu wolno zabrać `muster`-em. Osobne plasterki, nie razem z K109.
+8. ~~**K109 — rozkaz wojskowy kosztuje miesiąc**~~ — **domknięte 2026-08-07**
+   (`53d6d98`…`6d6946a`): znacznik akcji oddziału zerowany przez `tick_parties`,
+   trwały w persystencji, druga akcja w miesiącu jako `changed=false`, polski
+   status w kliencie. Regresja K108 potwierdzona pomiarem (bierny gracz
+   przegrywa w 13 turach; aktywny wygrywa w roku 1, miesiącu 4). Warunki
+   brzegowe → wniosek 35.
+9. **K110 — armia stojąca w regionie wrogiej osady potrafi ją zdobyć.** Szturm
+   „spod murów" w rdzeniu (osobna ścieżka obok szturmu z sąsiedztwa, z jawnym
+   rozstrzygnięciem, gdzie ląduje zwycięzca — guard
+   `apply_settlement_battle_result`, `src/tbb/world.py:494-499`), skierowanie
+   `assault` bez celu do tej ścieżki w moście oraz widoczna zmiana strony
+   regionu na mapie po kliku. Powód: wnioski 36–37. **Warunek brzegowy, bez
+   którego K110 cofa K108/K109:** reguła obejmuje tak samo oddziały AI
+   (wniosek 16), a regresje na `seed=73` — przegrana biernego gracza w 13
+   turach i zwycięstwo aktywnego w roku 1, miesiącu 4 — są kryterium G110.1b.
+10. **Prawdopodobnie potem:** czytelny powód, gdy marsz blokuje wroga armia
+   (dziś tylko „bez zmian"), tempo presji AI oraz ile garnizonu wolno zabrać
+   `muster`-em. Osobne plasterki, nie razem z K110.
 
 ## Świadomie odłożone
 - Kampania/fabuła, multiplayer, magia, oddziały masowe, AAA, dźwięk, edytor map
@@ -251,10 +278,14 @@ bez reguł/mostu i bez otwierania nowej serii polish. **[W]**
 - Bogatszy model ran/terenu/budynków, więcej jednostek, balans/AI,
   `StrategicTurn` — po widocznej, grywalnej grze. Skala K92.2 ≠ balans.
   **Doprecyzowanie 2026-08-06:** jeden jawny warunek „nie szturmuj bez szans"
-  w `ai.take_duchy_military_action` (K108) oraz jedna akcja wojskowa oddziału
-  na miesiąc (K109) to naprawy defektów rozgrywki, nie strojenie AI; krzywe,
-  wagi, taktyka AI i koszty rozkazów gospodarczych zostają odłożone.
-- Szturm na osadę z oddziałem nie-obrońcą (G92.1c) — z 3. księstwem lub reprodukcją.
+  w `ai.take_duchy_military_action` (K108), jedna akcja wojskowa oddziału
+  na miesiąc (K109) oraz szturm spod murów (K110) to naprawy defektów
+  rozgrywki, nie strojenie AI; krzywe, wagi, taktyka AI i koszty rozkazów
+  gospodarczych zostają odłożone.
+- Szturm na osadę **sąsiedniego** regionu zajętego przez oddział nie-obrońcę
+  (G92.1c) — nadal odłożony: z 3. księstwem lub reprodukcją. **To nie jest
+  K110** (tam oddział stoi w regionie samej osady); wspólny mają wyłącznie
+  guard `apply_settlement_battle_result`.
 - Podział dużych docs (ARCHITECTURE/DECISIONS/DESIGN) — dług, nie blokuje celu.
 - Niezależne reguły, AI, ekonomia, walka, ruch, rozkazy, protokół/most, rdzeń,
   save/load, porządki i docs poza oprawą pozostają odłożone względem celu
