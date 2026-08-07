@@ -1554,7 +1554,8 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
 >
 > Zakres celowo wąski: **jedna brakująca reguła zdobycia osady**. Nie ruszamy
 > `muster`, tempa AI, balansu ani reguł ruchu w bitwie.
-- [ ] **G110.1a [RDZEŃ]** Rdzeń umie rozstrzygnąć szturm oddziału stojącego
+- [x] **G110.1a [RDZEŃ]** *(rozcięte na trzy plasterki: `b9682a5` rozstawienie,
+      `f434804` skutek w świecie, `86aaceb` koszt miesiąca)* Rdzeń umie rozstrzygnąć szturm oddziału stojącego
       **w tym samym regionie** co wroga osada: nowa ścieżka obok
       `start_settlement_battle` / `resolve_settlement_battle*` (`source ==
       destination` przestaje być `ValueError` **tylko** w tej nowej ścieżce —
@@ -1569,7 +1570,8 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
       dotychczasowe testy szturmu przechodzą bez zmian w kryteriach.
       *(standard, ryzyko: dotyka rdzenia — jedynego źródła reguł; nie zmieniać
       przy okazji reguł ruchu, `muster` ani warunku siły z K108)*
-- [ ] **G110.1b [RDZEŃ + MOST]** `assault` przestaje być martwy pod murami:
+- [x] **G110.1b [RDZEŃ + MOST]** *(rozcięte: `1580ca5` rdzeń kieruje rozkaz,
+      `f7c1e88` most daje wynik bitwy i zakleszczenie znika)* `assault` przestaje być martwy pod murami:
       gdy oddział stoi w regionie wrogiej osady, `assault` **bez celu** oraz
       `assault` z celem równym własnemu regionowi kierują do ścieżki z G110.1a
       zamiast zwracać świat bez zmian; most odpowiada `{"kind":"battle", …}`
@@ -1585,12 +1587,101 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
       80 tur) kończy partię rozstrzygnięciem. Rozkazy gospodarcze i `muster`
       bez zmian. *(standard, ryzyko: te same funkcje `ai.*` obsługują gracza i
       AI; łatwo po cichu odwrócić K108 — patrz kryteria (b) i (c))*
-- [ ] **G110.1c** Gracz widzi zdobycie osady, pod którą stoi: klik „Szturmuj
+- [x] **G110.1c** *(commit `d81cb79`)* Gracz widzi zdobycie osady, pod którą stoi: klik „Szturmuj
       osadę" oddziałem stojącym w regionie wrogiej osady pokazuje wynik bitwy
       i straty w statusie, a region **na mapie** zmienia stronę (herb/kolor
       właściciela) bez ręcznego odświeżania. E2e przez dwa procesy mostu +
       dowód wizualny 1152×648 pary kadrów „przed / po" szturmu spod murów.
       *(standard)*
+> **Kamień 110 — UKOŃCZONY.** Zweryfikowane ponownym uruchomieniem mostu przy
+> przeglądzie 2026-08-07 (`new_session(73)`, sekwencje wyłącznie z rozkazów
+> klienta): zakleszczenie z diagnozy **zniknęło** — sekwencja `engage` →
+> `assault` → `march`, martwa przez 80 tur, kończy się teraz zwycięstwem gracza
+> w **roku 1, miesiącu 7**. Regresje stoją: bierny gracz przegrywa w **13
+> turach** (rok 2, miesiąc 1), a priorytet `assault` → `engage` → `march`
+> wygrywa w **roku 1, miesiącu 4**.
+
+## Kamień milowy 111 — czytelny powód, gdy marsz blokuje wroga armia
+> Zaplanowany poza tym plikiem jako **task-621…624** (G111.1a rdzeń wskazuje
+> blokujący oddział, G111.1b most nazywa blokujący region w bezskutecznym
+> rozkazie ruchu, G111.1c polski status w kliencie, G111.1d dowód z żywej
+> sesji) — dopisane tu dla ciągłości, **nie planować ich ponownie**.
+> Diagnoza (pomiar 2026-08-07, potwierdzony po K110): sekwencja `assault` →
+> `march` bez `engage` stoi w miejscu od miesiąca 3 przez ≥25 tur, bo wroga
+> armia okupuje `border`, a klient mówi wyłącznie „bez zmian". Odpowiedź w grze
+> **istnieje** („Uderz na wojsko wroga"), więc to defekt czytelności, nie reguł.
+- [x] **R111.1 (dług techniczny)** Znacznik akcji miesiąca pochodzi z rdzenia,
+      nie ze zgadywania w kliencie (+ testy regresji). *(commit `24f5a4a`)*
+
+## Kamień milowy 112 — wojsko z garnizonu trafia w pole (koniec martwej partii bez armii)
+> **Zwrot kierunku (przegląd bootstrap-diff 2026-08-07, po K110).** K110 usunął
+> zakleszczenie „armia pod murami", więc partia toczy się dalej — i za jego
+> horyzontem (wniosek 36) leży **kolejny stan bez wyjścia, tym razem po stronie
+> AI**. Zmierzone na uruchomionym moście, nie z lektury (`new_session(73)`,
+> wyłącznie rozkazy dostępne w kliencie):
+>
+> 1. **Rekruci nie docierają do pola.** `recruit` (`src/tbb/ai.py:101`) obsadza
+>    *pierwszą* osadę z wolną ludnością, a `muster` (`ai.py:116`) zbiera garnizon
+>    *pierwszej* osady bez oddziału — obie po kolejności `world.regions`, obie
+>    bez celu. Gracz „rozwojowy" (`develop`×10 → `recruit`×10 → `muster`) dostaje
+>    oddział **1 jednostki** (hero, hp 25), bo `develop` wyczerpało `free`
+>    w „player lands", więc rekruci wylądowali w „player outpost" — i tam
+>    **zostają**. Gracz „wojenny" (`recruit`×10 → `muster`) dostaje oddział
+>    **5 jednostek** (hp 73) i wygrywa w roku 1, miesiącu 4. Ta sama sekwencja
+>    rozkazów, dwa różne wyniki, a klient nie mówi o tym ani słowa.
+> 2. **Po utracie oddziału partia zamiera na 10 lat gry.** Gracz „rozwojowy"
+>    traci jedynkę w pierwszym szturmie (miesiąc 3) — i od tej chwili **nic się
+>    nie dzieje**: sprawdzone do tury 120 (rok 10, miesiąc 4), `is_over: false`,
+>    po 2 osady na stronę. Armia AI (3 jednostki) stoi na `border` **bez ruchu**,
+>    bo `take_duchy_military_action` (`ai.py:630`) szturmuje wyłącznie przy
+>    przewadze 2:1 z K108, a siły rosną równolegle: `str_att` 78 → 108,
+>    `str_def` 40 → 63 przez 120 tur. Ratio nigdy nie osiąga progu, więc AI
+>    **nigdy** nie zaatakuje. Jednocześnie własne osady AI trzymają **4 + 3
+>    jednostki garnizonu**, których nie ma jak wprowadzić do pola.
+>
+> **Wspólny brak jest jeden i nie jest strojeniem AI:** w rdzeniu **nie istnieje
+> reguła wzmocnienia stojącego oddziału garnizonem osady**. `muster_party`
+> tworzy oddział raz, jedno księstwo ma jeden oddział, a garnizon zrekrutowany
+> później zostaje w murach na zawsze. Progu 2:1 z K108 **nie ruszamy** — po
+> wzmocnieniu AI spełni go własną, niezmienioną regułą.
+>
+> Zakres celowo wąski: **jedna brakująca reguła** + jej widoczny skutek.
+> Nie ruszamy progu z K108, tempa AI, balansu, celowanego `develop`/`recruit`
+> ani reguły „ile garnizonu wolno zabrać" (nadal odłożona — wzmocnienie zabiera
+> cały garnizon, symetrycznie do `muster`).
+- [ ] **G112.1a [RDZEŃ]** Oddział stojący w regionie **własnej** osady wciąga jej
+      garnizon: nowa reguła obok `muster_party`, oddział rośnie o wszystkie
+      jednostki garnizonu, osada zostaje z garnizonem 0, hero i rany bez zmian.
+      Brak osady w regionie, cudza osada, pusty garnizon albo brak oddziału →
+      świat **bez zmian** (`changed=false`, nie wyjątek — wniosek 14). Znacznik
+      akcji miesiąca z K109 obowiązuje tak samo jak przy `march`/`assault`, dla
+      oddziałów obu stron (wniosek 16). Dotychczasowe testy `muster` przechodzą
+      bez zmian w kryteriach. *(standard, ryzyko: dotyka rdzenia — jedynego
+      źródła reguł; nie zmieniać przy okazji `muster`, progu 2:1 z K108 ani reguł
+      ruchu)*
+- [ ] **G112.1b [MOST]** Rozkaz `reinforce` w `apply_command`: kieruje do reguły
+      z G112.1a dla księstwa gracza, odpowiada `{"kind":"order","changed":…}`,
+      nieskuteczny (brak własnej osady pod oddziałem, pusty garnizon, akcja już
+      wykonana w tym miesiącu) → `changed:false` przy `ok:true`, nigdy błąd.
+      Test na `seed=73` dowodzi: `recruit`×10 → `muster` → `move("player
+      outpost")` → `next_turn` → `reinforce` daje oddział większy o garnizon
+      outpostu, a **regresje stoją**: bierny gracz przegrywa w 13 turach,
+      priorytet `assault` → `engage` → `march` wygrywa w roku 1, miesiącu 4.
+      *(standard)*
+- [ ] **G112.1c [RDZEŃ]** AI bez przewagi 2:1 nie stoi bezczynnie: gdy
+      `take_duchy_military_action` odrzuci szturm warunkiem siły, oddział AI
+      stojący w regionie własnej osady wzmacnia się jej garnizonem zamiast
+      kończyć turę bez ruchu. Test odtwarza zmierzony stan (gracz bez oddziału,
+      armia AI na `border`, garnizony AI 4 + 3) i dowodzi, że partia
+      **rozstrzyga się** zamiast trwać 120 tur bez zmiany; regresje K108/K109
+      z G112.1b przechodzą bez zmian. **Progu 2:1 nie wolno tknąć.**
+      *(standard, ryzyko: te same funkcje obsługują gracza i AI)*
+- [ ] **G112.1d [KLIENT]** Gracz widzi, jak oddział rośnie: przycisk „Wzmocnij
+      oddział" w pasku rozkazów wydaje `reinforce`, status po polsku mówi
+      o wzmocnieniu albo o jego braku (np. „oddział nie stoi w twojej osadzie"),
+      a licznik/figura oddziału na mapie zmienia się bez ręcznego odświeżania.
+      E2e przez dwa procesy mostu + dowód wizualny 1152×648 pary kadrów
+      „przed / po" wzmocnienia. *(standard)*
 
 ## Dług/refaktor
 - [x] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
@@ -1670,25 +1761,29 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
   2026-08-07**: przy jednej akcji wojskowej na miesiąc bierny gracz nadal
   przegrywa w 13 turach, a aktywny wygrywa w roku 1, miesiącu 4. Diagnoza
   zostaje w sekcji K109.
-- **Zakleszczenie: armia stojąca w regionie wrogiej osady nie potrafi jej
-  zdobyć** — rozplanowane jako **K110**. Pełna, zmierzona diagnoza (80 tur bez
-  rozstrzygnięcia, mechanizm w `ai.py:134/510` i `world.py:378`) w sekcji K110;
-  nie powtarzać jej tutaj.
-- **Marsz zablokowany przez wrogą armię nie mówi o tym graczowi** — obserwacja
-  z tego samego pomiaru 2026-08-07, **jeszcze nie planowana**. `next_march_step`
-  (`src/tbb/ai.py:196`) pomija regiony zajęte przez jakikolwiek oddział, więc
-  wroga armia na `border` zatrzymuje pochód gracza: sekwencja priorytetów
-  `assault` → `march` (bez `engage`) stoi w miejscu od miesiąca 3 do roku 4 i
-  klient pokazuje tylko „bez zmian". Odpowiedź w grze **istnieje** („Uderz na
-  wojsko wroga"), więc to defekt czytelności, nie zakleszczenie reguł — dlatego
-  po K110, i najpewniej jako jeden status/podpowiedź, nie jako zmiana reguły.
+- ~~**Zakleszczenie: armia stojąca w regionie wrogiej osady nie potrafi jej
+  zdobyć**~~ — rozplanowane jako **K110** i **zmierzone jako naprawione
+  2026-08-07**: martwa dotąd sekwencja `engage` → `assault` → `march` kończy
+  partię w roku 1, miesiącu 7, a regresje K108/K109 stoją. Diagnoza zostaje
+  w sekcji K110.
+- **Marsz zablokowany przez wrogą armię nie mówi o tym graczowi** —
+  rozplanowane jako **K111** (task-621…624), diagnoza w sekcji K111.
+- **Wojsko z garnizonu nie ma jak trafić w pole, a partia bez armii zamiera** —
+  rozplanowane jako **K112** po pomiarze 2026-08-07 (120 tur bez zmiany, AI
+  nieruchome przy `str_att` 78→108 vs `str_def` 40→63). Pełna diagnoza w sekcji
+  K112; nie powtarzać jej tutaj.
+- **Rozkazy osadowe bez wyboru osady** (`develop`/`recruit`/`muster` biorą
+  *pierwszą* pasującą osadę, cel jest po cichu ignorowany) — obserwacja z tego
+  samego pomiaru, **jeszcze nie planowana**. K112 usuwa najgorszy skutek
+  (rekruci zamknięci w murach), ale nie daje wyboru osady. Mapa ma już wybór
+  regionu (K97, używany przez `move`), więc naturalny plasterek to
+  „rozkaz gospodarczy trafia w zaznaczoną osadę" — **po K112**, żeby nie mieszać
+  dwóch zmian kontraktu rozkazu w jednym kroku.
 - **`muster` zabiera cały garnizon osady** — obserwacja z przeglądu 2026-07-28,
-  **odblokowana do planowania** po osiągnięciu progu wizualnego (2026-08-06):
-  po zbiórce osada zostaje pusta, więc każde wyjście w pole odsłania dom. Ta
-  sama reguła po stronie AI współtworzy defekt z K108 (posterunek oddaje
-  jedynego obrońcę oddziałowi, który zaraz ginie). **Podejmować dopiero po
-  K109** — najpierw niech tura cokolwiek kosztuje, potem strojenie, ile
-  garnizonu wolno zabrać.
+  nadal **nie planowana**: po zbiórce osada zostaje pusta, więc każde wyjście
+  w pole odsłania dom. K112 świadomie powiela tę regułę we wzmocnieniu
+  (symetria z `muster`), żeby nie strojić dwóch rzeczy naraz. „Ile garnizonu
+  wolno zabrać" podejmować dopiero, gdy pętla stoi — to strojenie, nie defekt.
 - ~~**Po K108: presja ze strony AI** („czy AI kiedykolwiek naciera")~~ —
   **odpowiedziane pomiarem 2026-08-06**, bez osobnego plasterka: po G108.1c AI
   maszeruje do osad gracza i je zdobywa, więc naciera. Otwarte zostaje pytanie
