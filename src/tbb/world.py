@@ -664,7 +664,8 @@ class WorldMap:
         battle = self.start_settlement_battle(source, destination)
         if not self._party_can_act(source):
             return self, None
-        resolved = battle.auto_resolve(
+        resolved = self._auto_resolve_settlement_battle(
+            battle,
             move_points,
             rng,
             attacker_morale=attacker_morale,
@@ -694,6 +695,70 @@ class WorldMap:
             defender_morale=defender_morale,
         )
         return new_world
+
+    def resolve_settlement_battle_at_recorded(
+        self,
+        region: Region,
+        rng: Rng,
+        move_points: int = 1,
+        attacker_morale: int = 0,
+        defender_morale: int = 0,
+    ) -> tuple["WorldMap", HexBattle | None]:
+        """Play a wall assault in place; return map and resolved battle.
+
+        An already acted party is a monthly-action no-op.  The battle is
+        built before the action guard so invalid regions and contacts still
+        raise, while the no-op path leaves the RNG untouched.
+        """
+        battle = self.start_settlement_battle_at(region)
+        if not self._party_can_act(region):
+            return self, None
+        resolved = self._auto_resolve_settlement_battle(
+            battle,
+            move_points,
+            rng,
+            attacker_morale=attacker_morale,
+            defender_morale=defender_morale,
+        )
+        new_world = self.apply_settlement_battle_result_at(
+            region, resolved.result(), battle=resolved
+        )
+        return new_world, resolved
+
+    def resolve_settlement_battle_at(
+        self,
+        region: Region,
+        rng: Rng,
+        move_points: int = 1,
+        attacker_morale: int = 0,
+        defender_morale: int = 0,
+    ) -> "WorldMap":
+        """Play a wall assault in place and apply its result to the world."""
+        new_world, _ = self.resolve_settlement_battle_at_recorded(
+            region,
+            rng,
+            move_points=move_points,
+            attacker_morale=attacker_morale,
+            defender_morale=defender_morale,
+        )
+        return new_world
+
+    @staticmethod
+    def _auto_resolve_settlement_battle(
+        battle: HexBattle,
+        move_points: int,
+        rng: Rng,
+        *,
+        attacker_morale: int,
+        defender_morale: int,
+    ) -> HexBattle:
+        """Resolve a settlement battle with the strategic combat settings."""
+        return battle.auto_resolve(
+            move_points,
+            rng,
+            attacker_morale=attacker_morale,
+            defender_morale=defender_morale,
+        )
 
     @staticmethod
     def _require_enemy_owners(

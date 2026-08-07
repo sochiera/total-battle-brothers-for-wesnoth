@@ -2841,6 +2841,74 @@ def test_resolve_settlement_battle_recorded_is_deterministic():
     assert first_battle == second_battle
 
 
+def test_resolve_settlement_battle_at_recorded_blocks_a_second_monthly_action():
+    """An acted party cannot resolve a second in-place settlement assault.
+
+    Realistic defect: the existing in-place setup and result tests can stay
+    green while a new resolver skips ``_party_can_act``. That would consume
+    RNG and alter an enemy settlement on a second assault in the same month.
+    """
+    keep = Region("Keep")
+    attacker = Party(
+        Unit(training=5, equipment=5),
+        owner_id="north",
+        acted_this_month=True,
+    )
+    settlement = Settlement(
+        "Oakrest", population=4, garrison=(Unit(equipment=1),), owner_id="south"
+    )
+    world = WorldMap([keep], settlements={keep: settlement}, parties={keep: attacker})
+    rng = Rng(73)
+    rng_before = rng.state()
+
+    same_world, battle = world.resolve_settlement_battle_at_recorded(keep, rng)
+
+    assert same_world is world
+    assert battle is None
+    assert rng.state() == rng_before
+    assert world.party_at(keep) is attacker
+    assert world.settlement_at(keep) is settlement
+
+
+@pytest.mark.parametrize(
+    "attacker_owner, settlement_owner",
+    [("player", "ai"), ("ai", "player")],
+    ids=["player-assaults-ai", "ai-assaults-player"],
+)
+def test_resolve_settlement_battle_at_applies_and_records_for_either_owner(
+    attacker_owner, settlement_owner
+):
+    keep = Region("Keep")
+    attacker = Party(Unit(equipment=2), owner_id=attacker_owner)
+    settlement = Settlement(
+        "Oakrest",
+        population=4,
+        garrison=(Unit(equipment=1),),
+        owner_id=settlement_owner,
+    )
+    world = WorldMap([keep], settlements={keep: settlement}, parties={keep: attacker})
+    kwargs = dict(move_points=1, attacker_morale=100, defender_morale=0)
+
+    plain = world.resolve_settlement_battle_at(keep, Rng(0), **kwargs)
+    first, first_battle = world.resolve_settlement_battle_at_recorded(
+        keep, Rng(0), **kwargs
+    )
+    second, second_battle = world.resolve_settlement_battle_at_recorded(
+        keep, Rng(0), **kwargs
+    )
+
+    assert isinstance(first_battle, HexBattle)
+    assert first_battle.result() is BattleResult.ATTACKER_WIN
+    assert first == plain == second
+    assert first_battle == second_battle
+    assert first.party_at(keep).owner_id == attacker_owner
+    assert first.party_at(keep).acted_this_month is True
+    assert first.settlement_at(keep).owner_id == attacker_owner
+    assert first.tick_parties().party_at(keep).acted_this_month is False
+    assert world.party_at(keep) is attacker
+    assert world.settlement_at(keep) is settlement
+
+
 @pytest.mark.parametrize(
     "party_region, settlement_region, source_name, destination_name, same_owner",
     [
