@@ -10,6 +10,7 @@ import tbb.ai as ai
 from godot_runner import run_godot_script
 from tbbbridge.persist import read_session, save_session
 from tbbbridge.session import Session, apply_command, new_session
+from tbb.world import WorldMap
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -96,6 +97,43 @@ def _march_then_engage_session() -> Session:
         player_duchy_id=session.player_duchy_id,
         seed=session.seed,
         last_battle=session.last_battle,
+    )
+
+
+def _stale_battle_after_month_reset_session() -> Session:
+    """Keep a previous battle visible while the core marker is reset.
+
+    Use the public next-turn command to keep this fixture aligned with the
+    session path used by the bridge.  That command clears ``last_battle``, so
+    restore the deliberately stale battle only after the turn transition.
+    """
+    after_battle = apply_command(
+        _adjacent_parties_session(),
+        {"type": "order", "order": "engage"},
+    )
+    after_reset = apply_command(after_battle, {"type": "next_turn"})
+    # The public next-turn path also runs the AI.  Keep this fixture's original
+    # no-current-target precondition by removing only the AI party after that
+    # command, then reattach the intentionally stale battle below.
+    player_parties = {
+        region: party
+        for region, party in after_reset.world.parties.items()
+        if party.owner_id == after_reset.player_duchy_id
+    }
+    reset_world = WorldMap(
+        after_reset.world.regions,
+        after_reset.world.connections,
+        after_reset.world.settlements,
+        player_parties,
+    )
+    return Session(
+        world=reset_world,
+        game=after_reset.game.sync_from_world(reset_world),
+        calendar=after_reset.calendar,
+        rng=after_reset.rng,
+        player_duchy_id=after_reset.player_duchy_id,
+        seed=after_reset.seed,
+        last_battle=after_battle.last_battle,
     )
 
 
@@ -213,3 +251,45 @@ def test_march_then_engage_shows_exhausted_month_status_on_live_bridge(tmp_path)
     assert sequence["march"]["party_position"] == "Położenie oddziału: Posterunek gracza"
     assert sequence["engage"]["party_position"] == sequence["march"]["party_position"]
     assert sequence["engage"]["order_status"] == EXHAUSTED_ACTION_STATUS
+
+
+def test_fresh_bridge_reads_acted_marker_after_persisted_march(tmp_path):
+    """A fresh client must read a march marker from the saved snapshot."""
+    state_path = tmp_path / "persistent-march-fresh-session.json"
+    march_request_path = tmp_path / "march-request.jsonl"
+    engage_request_path = tmp_path / "engage-request.jsonl"
+    command_prefix = f"PYTHONPATH={shlex.quote(str(ROOT / 'src'))} python3 -m tbbbridge"
+    save_session(_march_then_engage_session(), state_path)
+
+    marched = _run_process(
+        command_prefix, state_path, march_request_path, "march_only"
+    )
+    assert marched["sequence"]["march"]["order_status"] == "Oddział przemieścił się."
+    assert marched["state_exists"] is True
+
+    resumed = _run_process(
+        command_prefix, state_path, engage_request_path, "engage_after_march"
+    )
+
+    assert resumed["controls_before_order"]["party_position"] == marched["sequence"]["march"]["party_position"]
+    assert resumed["battle_before_order"]["tile_count"] == 0
+    assert resumed["controls"]["order_status"] == EXHAUSTED_ACTION_STATUS
+
+
+def test_fresh_bridge_reads_party_marker_instead_of_stale_previous_month_battle(tmp_path):
+    """A stale battle must not make a fresh client invent an exhausted action."""
+    state_path = tmp_path / "stale-battle-session.json"
+    request_path = tmp_path / "bridge-request.jsonl"
+    command_prefix = f"PYTHONPATH={shlex.quote(str(ROOT / 'src'))} python3 -m tbbbridge"
+    prepared = _stale_battle_after_month_reset_session()
+    save_session(prepared, state_path)
+
+    result = _run_process(
+        command_prefix, state_path, request_path, "previous_month_battle"
+    )
+
+    assert result["fresh_party_acted_this_month"] is False
+    assert result["controls_before_order"]["date"] == "Rok 1, miesiąc 3"
+    assert result["controls_before_order"]["party_position"] != "Położenie oddziału: brak"
+    assert result["battle_before_order"]["tile_count"] >= 2
+    assert result["controls"]["order_status"] == NO_TARGET_STATUS

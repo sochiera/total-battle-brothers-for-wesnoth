@@ -18,29 +18,6 @@ static func _is_military_order(order: String) -> bool:
 	return order == "assault" or order == "engage"
 
 
-static func consumes_monthly_action(order_result: Variant) -> bool:
-	if not order_result is Dictionary:
-		return false
-	if not order_result.has("order") or not order_result["order"] is String:
-		return false
-
-	var order: String = order_result["order"]
-	if order == "move" or order == "march":
-		return order_result.get("changed", false) == true
-	var is_military_order := _is_military_order(order)
-	if not is_military_order:
-		return false
-	# Battle responses have no changed flag, while ordinary order responses
-	# (including their projected form) consume the action when they changed the
-	# state.  The missing kind in a projected order is intentional.
-	var kind: Variant = order_result.get("kind", "order")
-	if kind == "battle":
-		return true
-	if kind != "order":
-		return false
-	return order_result.get("changed", false) == true
-
-
 static func _order_name(order: String) -> String:
 	match order:
 		"develop":

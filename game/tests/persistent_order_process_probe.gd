@@ -41,6 +41,7 @@ func _run() -> void:
 	var controls_after_muster: Variant = null
 	var assault_precondition: Dictionary = {}
 	var sequence: Dictionary = {}
+	var fresh_party_acted_this_month: Variant = null
 	var phase: String = args[4]
 
 	match phase:
@@ -107,9 +108,8 @@ func _run() -> void:
 				"after_turn": after_turn,
 				"effective": effective,
 			}
-		"march_then_engage":
+		"march_only", "march_then_engage":
 			var march := {}
-			var engage := {}
 			var map_view := scene_root.find_child("MapView", true, false)
 			if not MapOrderE2E.click_region(self, map_view, "player outpost"):
 				return
@@ -118,13 +118,23 @@ func _run() -> void:
 			if not _press(scene_root, "MarchButton"):
 				return
 			march = _controls(scene_root)
+			sequence = {"march": march}
+			if phase == "march_then_engage":
+				if not _press(scene_root, "EngageButton"):
+					return
+				sequence["engage"] = _controls(scene_root)
+		"engage_after_march":
 			if not _press(scene_root, "EngageButton"):
 				return
-			engage = _controls(scene_root)
-			sequence = {
-				"march": march,
-				"engage": engage,
-			}
+			sequence = {"engage": _controls(scene_root)}
+		"previous_month_battle":
+			var fresh_model := client.snapshot_model()
+			if fresh_model == null:
+				_fail("fresh snapshot model unavailable")
+				return
+			fresh_party_acted_this_month = fresh_model.player_party_acted_this_month
+			if not _press(scene_root, "EngageButton"):
+				return
 		_:
 			_fail("unknown phase")
 			return
@@ -141,6 +151,7 @@ func _run() -> void:
 		"battle": _battle_observation(battle_view),
 		"assault_precondition": assault_precondition,
 		"sequence": sequence,
+		"fresh_party_acted_this_month": fresh_party_acted_this_month,
 		"state_exists": FileAccess.file_exists(args[1]),
 		"session_command": client.session_command(),
 	}))

@@ -3,6 +3,8 @@
 import copy
 import json
 
+import pytest
+
 import tbbui.unitstrength
 from tbb import BRUISE, BARRACKS, FARM, MARKET, Resources, Settlement, Unit
 from tbb.duchy import Duchy
@@ -76,17 +78,33 @@ def test_settlement_state_owner_none_is_preserved_and_json_serializable():
     json.dumps(state)
 
 
-def _sample_party() -> Party:
+def _sample_party(*, acted_this_month: bool = False) -> Party:
     """A party with a hero, subordinates, a wounded member, and a real owner."""
     hero = Unit(training=2, equipment=1, experience=1)
     healthy = Unit(training=1, equipment=0, experience=1)
     wounded = Unit(training=0, equipment=1, experience=0, wounds=(BRUISE,))
-    return Party(hero=hero, units=(healthy, wounded), owner_id="north")
+    return Party(
+        hero=hero,
+        units=(healthy, wounded),
+        owner_id="north",
+        acted_this_month=acted_this_month,
+    )
 
 
-def test_party_state_returns_pure_json_serializable_dict_with_contract_keys_and_values():
-    expected_keys = ["owner", "size", "hp", "attack", "defense", "wounded"]
-    party = _sample_party()
+@pytest.mark.parametrize("acted_this_month", [False, True])
+def test_party_state_returns_pure_json_serializable_dict_with_contract_keys_and_values(
+    acted_this_month,
+):
+    expected_keys = [
+        "owner",
+        "size",
+        "hp",
+        "attack",
+        "defense",
+        "wounded",
+        "acted_this_month",
+    ]
+    party = _sample_party(acted_this_month=acted_this_month)
     before = copy.deepcopy(party)
 
     state = party_state(party)
@@ -102,6 +120,7 @@ def test_party_state_returns_pure_json_serializable_dict_with_contract_keys_and_
     assert state["attack"] == attack
     assert state["defense"] == defense
     assert state["wounded"] == tbbui.unitstrength.wounded_count(roster)
+    assert state["acted_this_month"] is party.acted_this_month
     # Contract: result must be json-serializable.
     json.dumps(state)
     # Contract: the party must not be mutated by the call (byte-for-byte equal).

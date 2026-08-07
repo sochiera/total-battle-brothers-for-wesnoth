@@ -71,6 +71,7 @@ def party_state(party: Party) -> dict[str, Any]:
       attack   -> combat_totals((party.hero, *party.units))[1]
       defense  -> combat_totals((party.hero, *party.units))[2]
       wounded  -> wounded_count((party.hero, *party.units))
+      acted_this_month -> party.acted_this_month
     """
     roster = (party.hero, *party.units)
     hp, attack, defense = combat_totals(roster)
@@ -81,6 +82,7 @@ def party_state(party: Party) -> dict[str, Any]:
         "attack": attack,
         "defense": defense,
         "wounded": wounded_count(roster),
+        "acted_this_month": party.acted_this_month,
     }
     _assert_json_serializable(state)
     return state

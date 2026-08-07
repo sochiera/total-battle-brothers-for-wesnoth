@@ -21,6 +21,7 @@ var regions: Array
 var player_result: String
 var player_duchy_status: Variant = null
 var player_party_region: Variant = null
+var player_party_acted_this_month: Variant = null
 var battle: Variant = null
 
 
@@ -65,7 +66,7 @@ static func _player_duchy_status(snapshot: Dictionary) -> Variant:
 	return null
 
 
-static func _player_party_region(snapshot: Dictionary) -> Variant:
+static func _player_party(snapshot: Dictionary) -> Variant:
 	var player_duchy: Variant = snapshot.get("player_duchy")
 	var map: Variant = snapshot.get("map")
 	if not player_duchy is String or player_duchy.is_empty() or not map is Dictionary:
@@ -79,10 +80,27 @@ static func _player_party_region(snapshot: Dictionary) -> Variant:
 		var party: Variant = region.get("party")
 		if not party is Dictionary or party.get("owner") != player_duchy:
 			continue
-		var region_name: Variant = region.get("name")
-		if region_name is String:
-			return region_name
+		return region
 	return null
+
+
+static func _player_party_region(snapshot: Dictionary) -> Variant:
+	var region: Variant = _player_party(snapshot)
+	if not region is Dictionary:
+		return null
+	var region_name: Variant = region.get("name")
+	return region_name if region_name is String else null
+
+
+static func _player_party_acted_this_month(snapshot: Dictionary) -> Variant:
+	var region: Variant = _player_party(snapshot)
+	if not region is Dictionary:
+		return null
+	var party: Variant = region.get("party")
+	if not party is Dictionary:
+		return null
+	var acted_this_month: Variant = party.get("acted_this_month")
+	return acted_this_month if acted_this_month is bool else null
 
 
 static func _battle(snapshot: Dictionary) -> Variant:
@@ -154,5 +172,6 @@ static func from_response(response: Dictionary) -> SnapshotModel:
 	model.player_result = "" if result["player_result"] == null else result["player_result"]
 	model.player_duchy_status = _player_duchy_status(snapshot)
 	model.player_party_region = _player_party_region(snapshot)
+	model.player_party_acted_this_month = _player_party_acted_this_month(snapshot)
 	model.battle = _battle(snapshot)
 	return model
