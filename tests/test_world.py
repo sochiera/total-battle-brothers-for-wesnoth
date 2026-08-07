@@ -1195,6 +1195,90 @@ def test_start_settlement_battle_deploys_party_and_garrison_in_deterministic_row
     )
 
 
+def test_start_settlement_battle_at_deploys_party_against_empty_garrison():
+    """A party standing in an enemy settlement can start a wall assault.
+
+    Defect: the current settlement-battle API only accepts two adjacent
+    regions, so an occupied enemy settlement with an empty garrison has no
+    legal battle-construction path.
+    """
+    keep = Region("Keep")
+    attacker = Party(
+        Unit(training=3), [Unit(equipment=1), Unit(experience=2)], "north"
+    )
+    settlement = Settlement("Oakrest", population=4, garrison=(), owner_id="south")
+    world = WorldMap([keep], settlements={keep: settlement}, parties={keep: attacker})
+
+    battle = world.start_settlement_battle_at(keep)
+
+    assert isinstance(battle, HexBattle)
+    assert tuple(
+        (position, battle.unit_at(position), battle.side_at(position))
+        for position in battle.units
+    ) == (
+        (Hex(0, 0), attacker.hero, BattleSide.ATTACKER),
+        (Hex(0, 1), attacker.units[0], BattleSide.ATTACKER),
+        (Hex(0, 2), attacker.units[1], BattleSide.ATTACKER),
+    )
+    assert not any(
+        battle.side_at(position) is BattleSide.DEFENDER for position in battle.units
+    )
+
+
+@pytest.mark.parametrize(
+    "world, region, message",
+    [
+        (
+            WorldMap([Region("Keep")]),
+            Region("Outside"),
+            "region is outside the world map",
+        ),
+        (
+            WorldMap(
+                [Region("Keep")],
+                settlements={
+                    Region("Keep"): Settlement("Oakrest", 4, owner_id="south")
+                },
+            ),
+            Region("Keep"),
+            "source region has no party",
+        ),
+        (
+            WorldMap(
+                [Region("Keep")],
+                parties={Region("Keep"): Party(Unit(), owner_id="north")},
+            ),
+            Region("Keep"),
+            "region has no settlement",
+        ),
+        (
+            WorldMap(
+                [Region("Keep")],
+                settlements={
+                    Region("Keep"): Settlement("Oakrest", 4, owner_id="north")
+                },
+                parties={Region("Keep"): Party(Unit(), owner_id="north")},
+            ),
+            Region("Keep"),
+            "battle participants must have different owners",
+        ),
+        (
+            WorldMap(
+                [Region("Keep")],
+                settlements={Region("Keep"): Settlement("Oakrest", 4)},
+                parties={Region("Keep"): Party(Unit(), owner_id="north")},
+            ),
+            Region("Keep"),
+            "battle participants must have owners",
+        ),
+    ],
+    ids=["outside-map", "no-party", "no-settlement", "same-owner", "no-owner"],
+)
+def test_start_settlement_battle_at_rejects_invalid_contacts(world, region, message):
+    with pytest.raises(ValueError, match=message):
+        world.start_settlement_battle_at(region)
+
+
 def test_start_settlement_battle_includes_enemy_party_at_destination_with_garrison():
     """Enemy party in the assaulted region fights with the garrison.
 

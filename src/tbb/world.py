@@ -387,14 +387,47 @@ class WorldMap:
         party = self.parties[source]
         settlement = self.settlements[destination]
         self._require_enemy_owners(party.owner_id, settlement.owner_id)
+        home_party = self.parties.get(destination)
+        defending_party = (
+            home_party
+            if self._party_defends_settlement(home_party, settlement)
+            else None
+        )
+        return self._build_settlement_battle(
+            party, settlement, defending_party=defending_party
+        )
+
+    def start_settlement_battle_at(self, region: Region) -> HexBattle:
+        """Create a wall assault for a party occupying an enemy settlement."""
+        if region not in self._neighbors:
+            raise ValueError("region is outside the world map")
+        if region not in self.parties:
+            raise ValueError("source region has no party")
+        if region not in self.settlements:
+            raise ValueError("region has no settlement")
+
+        party = self.parties[region]
+        settlement = self.settlements[region]
+        self._require_enemy_owners(party.owner_id, settlement.owner_id)
+        return self._build_settlement_battle(party, settlement)
+
+    @staticmethod
+    def _build_settlement_battle(
+        attacker: Party,
+        settlement: Settlement,
+        *,
+        defending_party: Party | None = None,
+    ) -> HexBattle:
+        """Deploy a party and settlement defenders on the assault battlefield."""
         battle = HexBattle(Battlefield())
-        for row, unit in enumerate((party.hero, *party.units)):
+        for row, unit in enumerate((attacker.hero, *attacker.units)):
             battle = battle.deploy(unit, Hex(0, row), BattleSide.ATTACKER)
         for row, unit in enumerate(settlement.garrison):
             battle = battle.deploy(unit, Hex(2, row), BattleSide.DEFENDER)
-        home_party = self.parties.get(destination)
-        if self._party_defends_settlement(home_party, settlement):
-            for row, unit in enumerate((home_party.hero, *home_party.units)):
+        if defending_party is not None:
+            for row, unit in enumerate(
+                (defending_party.hero, *defending_party.units)
+            ):
                 battle = battle.deploy(unit, Hex(3, row), BattleSide.DEFENDER)
         return battle
 
