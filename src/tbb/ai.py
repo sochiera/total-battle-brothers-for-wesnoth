@@ -8,6 +8,7 @@ import tbb.settlement as settlement_module
 from tbb.battle import HexBattle
 from tbb.building import BARRACKS, FARM, MARKET, SMITH
 from tbb.duchy import Duchy
+from tbb.party import Party
 from tbb.rng import Rng
 from tbb.unit import Unit
 from tbb.world import Region, WorldMap
@@ -98,6 +99,18 @@ def designate_duchy_heir(world: WorldMap, duchy: Duchy) -> tuple[WorldMap, Duchy
     return world, duchy
 
 
+def _region_distances(world: WorldMap, start: Region) -> dict[Region, int]:
+    distances = {start: 0}
+    pending = deque([start])
+    while pending:
+        current = pending.popleft()
+        for neighbor in world.neighbors(current):
+            if neighbor not in distances:
+                distances[neighbor] = distances[current] + 1
+                pending.append(neighbor)
+    return distances
+
+
 def recruit_duchy_unit(world: WorldMap, duchy: Duchy) -> WorldMap:
     """Recruit one fresh unit in the first eligible owned settlement."""
     for region in world.regions:
@@ -142,14 +155,7 @@ def nearest_enemy_settlement(
     if start not in world.regions:
         raise ValueError("start region is outside the world map")
 
-    distances = {start: 0}
-    pending = deque([start])
-    while pending:
-        current = pending.popleft()
-        for neighbor in world.neighbors(current):
-            if neighbor not in distances:
-                distances[neighbor] = distances[current] + 1
-                pending.append(neighbor)
+    distances = _region_distances(world, start)
 
     best: Region | None = None
     best_distance: int | None = None
@@ -178,19 +184,7 @@ def region_distance(
     if start == target:
         return 0
 
-    distances = {start: 0}
-    pending = deque([start])
-    while pending:
-        current = pending.popleft()
-        for neighbor in world.neighbors(current):
-            if neighbor in distances:
-                continue
-            distance = distances[current] + 1
-            if neighbor == target:
-                return distance
-            distances[neighbor] = distance
-            pending.append(neighbor)
-    return None
+    return _region_distances(world, start).get(target)
 
 
 def next_march_step(
@@ -213,6 +207,102 @@ def next_march_step(
                 continue
             visited.add(neighbor)
             pending.append((neighbor, neighbor if first_step is None else first_step))
+    return None
+
+
+def _is_foreign_party(party: Party, owner_id: str) -> bool:
+    return party.owner_id != owner_id
+
+
+def _foreign_party_regions_on_shortest_routes(
+    world: WorldMap,
+    start: Region,
+    owner_id: str,
+    destination: Region,
+) -> tuple[Region, ...]:
+    distances_from_start = _region_distances(world, start)
+    shortest_distance = distances_from_start.get(destination)
+    if shortest_distance is None:
+        return ()
+
+    distances_to_destination = _region_distances(world, destination)
+    return tuple(
+        region
+        for region in world.regions
+        if (
+            region != start
+            and region != destination
+            and (party := world.parties.get(region)) is not None
+            and _is_foreign_party(party, owner_id)
+            and distances_from_start.get(region) is not None
+            and distances_to_destination.get(region) is not None
+            and distances_from_start[region]
+            + distances_to_destination[region]
+            == shortest_distance
+        )
+    )
+
+
+def _world_without_party(world: WorldMap, region: Region) -> WorldMap:
+    parties = dict(world.parties)
+    del parties[region]
+    return WorldMap(world.regions, world.connections, world.settlements, parties)
+
+
+def blocking_foreign_party_region(
+    world: WorldMap,
+    start: Region,
+    owner_id: str,
+    target: Region | None = None,
+) -> Region | None:
+    """Return the foreign party region blocking a march route, if any.
+
+    The query follows the same route and occupancy semantics as
+    :func:`next_march_step`, but reports a foreign occupied region when that
+    occupancy is the only reason no step is available.
+    """
+    if not isinstance(owner_id, str):
+        raise TypeError("owner_id must be text")
+    if owner_id == "":
+        raise ValueError("owner_id cannot be empty")
+    if start not in world.regions:
+        raise ValueError("start region is outside the world map")
+    if target is not None and target not in world.regions:
+        raise ValueError("target region is outside the world map")
+
+    explicit_target = target is not None
+    destination = (
+        target
+        if explicit_target
+        else nearest_enemy_settlement(world, start, owner_id)
+    )
+    if destination is None or destination == start:
+        return None
+    if destination in world.neighbors(start):
+        party = world.parties.get(destination)
+        if (
+            explicit_target
+            and party is not None
+            and _is_foreign_party(party, owner_id)
+        ):
+            return destination
+        return None
+    if next_march_step(world, start, destination) is not None:
+        return None
+
+    candidates = _foreign_party_regions_on_shortest_routes(
+        world, start, owner_id, destination
+    )
+    # Explicit adjacent targets are handled above; after removing a candidate,
+    # verify that no second foreign blocker still prevents the route.
+    for candidate in candidates:
+        candidate_removed = _world_without_party(world, candidate)
+        if next_march_step(candidate_removed, start, destination) is None:
+            continue
+        if not _foreign_party_regions_on_shortest_routes(
+            candidate_removed, start, owner_id, destination
+        ):
+            return candidate
     return None
 
 

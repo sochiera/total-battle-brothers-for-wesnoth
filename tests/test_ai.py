@@ -906,6 +906,128 @@ def test_march_stays_put_when_no_step_is_available(case):
     assert result.party_at(start) is party
 
 
+def test_blocking_foreign_party_region_reports_blocked_nearest_route():
+    start, step, target = map(Region, ("Start", "Step", "Target"))
+    world = WorldMap(
+        [start, step, target],
+        [(start, step), (step, target)],
+        settlements={target: _settlement("Target", "enemy")},
+        parties={
+            start: _owned_party("Hero", "ai"),
+            step: _owned_party("Blocker", "other"),
+        },
+    )
+
+    assert ai.blocking_foreign_party_region(world, start, "ai") is step
+
+
+@pytest.mark.parametrize("blocker_owner", ["enemy", None])
+def test_blocking_foreign_party_region_reports_explicit_adjacent_target(blocker_owner):
+    start, target = Region("Start"), Region("Target")
+    world = WorldMap(
+        [start, target],
+        [(start, target)],
+        parties={
+            start: _owned_party("Hero"),
+            target: _owned_party("Blocker", blocker_owner),
+        },
+    )
+
+    assert ai.blocking_foreign_party_region(world, start, "ai", target) is target
+
+
+@pytest.mark.parametrize("blocker_owner", ["enemy", None])
+def test_blocking_foreign_party_region_excludes_garrisoned_destination(blocker_owner):
+    start, target, step = map(Region, ("Start", "Target", "Step"))
+    world = WorldMap(
+        [start, target, step],
+        [(start, step), (step, target)],
+        settlements={target: _settlement("Target", "enemy")},
+        parties={
+            start: _owned_party("Hero", "ai"),
+            target: _owned_party("Garrison", "enemy"),
+            step: _owned_party("Blocker", blocker_owner),
+        },
+    )
+
+    assert ai.blocking_foreign_party_region(world, start, "ai") is step
+
+
+def test_blocking_foreign_party_region_requires_one_party_to_unblock_route():
+    start, left, right, target = map(Region, ("Start", "Left", "Right", "Target"))
+    world = WorldMap(
+        [start, left, right, target],
+        [(start, left), (left, target), (start, right), (right, target)],
+        settlements={target: _settlement("Target", "enemy")},
+        parties={
+            start: _owned_party("Hero", "ai"),
+            left: _owned_party("Left blocker", "enemy"),
+            right: _owned_party("Right blocker", "enemy"),
+        },
+    )
+
+    assert ai.blocking_foreign_party_region(world, start, "ai") is None
+
+
+@pytest.mark.parametrize("case", ["free_step", "no_enemy", "adjacent", "own_party"])
+def test_blocking_foreign_party_region_returns_none_without_foreign_blocker(case):
+    start, step, target = map(Region, ("Start", "Step", "Target"))
+    connections = [(start, target)] if case == "adjacent" else [(start, step), (step, target)]
+    settlements = {} if case == "no_enemy" else {target: _settlement("Target", "enemy")}
+    parties = {start: _owned_party("Hero", "ai")}
+    if case == "no_enemy":
+        parties[step] = _owned_party("Other", "enemy")
+    elif case == "adjacent":
+        parties[target] = _owned_party("Other", "enemy")
+    elif case == "own_party":
+        parties[step] = _owned_party("Ally", "ai")
+    world = WorldMap([start, step, target], connections, settlements, parties)
+
+    assert ai.blocking_foreign_party_region(world, start, "ai") is None
+
+
+def test_blocking_foreign_party_region_is_pure_and_repeatable():
+    start, step, target = map(Region, ("Start", "Step", "Target"))
+    party = _owned_party("Hero", "ai")
+    blocker = _owned_party("Blocker", "enemy")
+    settlement = _settlement("Target", "enemy")
+    world = WorldMap(
+        [start, step, target],
+        [(start, step), (step, target)],
+        settlements={target: settlement},
+        parties={start: party, step: blocker},
+    )
+    before_parties = dict(world.parties)
+    before_settlements = dict(world.settlements)
+
+    first = ai.blocking_foreign_party_region(world, start, "ai")
+    second = ai.blocking_foreign_party_region(world, start, "ai")
+
+    assert first is step
+    assert second is first
+    assert dict(world.parties) == before_parties
+    assert dict(world.settlements) == before_settlements
+    assert world.party_at(start) is party
+    assert world.party_at(step) is blocker
+    assert world.settlement_at(target) is settlement
+
+
+@pytest.mark.parametrize("invalid", ["start", "target", "owner"])
+def test_blocking_foreign_party_region_rejects_invalid_input(invalid):
+    start, target = Region("Start"), Region("Target")
+    world = WorldMap([start, target], [(start, target)])
+    arguments = {"start": start, "owner_id": "ai", "target": target}
+    if invalid == "start":
+        arguments["start"] = Region("Outside")
+    elif invalid == "target":
+        arguments["target"] = Region("Outside")
+    else:
+        arguments["owner_id"] = ""
+
+    with pytest.raises(ValueError):
+        ai.blocking_foreign_party_region(world, **arguments)
+
+
 @pytest.mark.parametrize("case", ["outside", "empty", "ownerless"])
 def test_march_rejects_invalid_start_or_party(case):
     start = Region("Start")
