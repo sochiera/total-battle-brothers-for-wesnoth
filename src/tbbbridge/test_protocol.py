@@ -3,6 +3,7 @@
 Tests live next to the module under test per task-319/320 \"Ścieżki testów\".
 """
 
+from collections import Counter
 import copy
 import io
 import json
@@ -1580,3 +1581,77 @@ def test_handle_command_line_snapshot_returns_same_session_with_snapshot_and_res
     assert resp["result"] == {"kind": "snapshot"}
     json.dumps(resp)
     assert s.snapshot() == before_snapshot
+
+
+def test_reinforce_over_the_bridge_reports_changed_and_survives_persistence():
+    """G112.1b kryt-1/3: ``{"type":"order","order":"reinforce"}`` przechodzi
+    przez ``handle_command_line`` bez wyjątku.  Na seed 73, gdy oddział stoi we
+    własnym posterunku, most odpowiada ``ok:true`` i ``{"kind":"order",
+    "order":"reinforce","changed":true}``, a stan po rozkazie przechodzi
+    round-trip persystencji (ten sam oddział i pusty garnizon).
+    """
+    from tbbbridge import persist
+
+    session = new_session(seed=73, player_duchy_id="player")
+    for _ in range(10):
+        session, _ = handle_command_line(
+            session, '{"type":"order","order":"recruit"}'
+        )
+    for line in (
+        '{"type":"order","order":"muster"}',
+        '{"type":"order","order":"move","target":"player outpost"}',
+        '{"type":"next_turn"}',
+    ):
+        session, resp = handle_command_line(session, line)
+        assert resp["ok"] is True
+
+    outpost = next(
+        region for region in session.world.regions if region.name == "player outpost"
+    )
+    before_units = session.world.party_at(outpost).units
+    before_garrison = session.world.settlement_at(outpost).garrison
+
+    session, resp = handle_command_line(
+        session, '{"type":"order","order":"reinforce"}'
+    )
+
+    assert resp["ok"] is True
+    assert resp["result"] == {
+        "kind": "order",
+        "order": "reinforce",
+        "changed": True,
+    }
+    json.dumps(resp)
+    assert Counter(session.world.party_at(outpost).units) == Counter(
+        before_units + before_garrison
+    )
+    assert session.world.settlement_at(outpost).garrison == ()
+
+    restored = persist.load_session(persist.dump_session(session))
+    assert restored.world == session.world
+
+
+def test_ineffective_reinforce_over_the_bridge_is_ok_with_changed_false():
+    """G112.1b kryt-2: nieskuteczny ``reinforce`` (brak wystawionego oddziału)
+    nie jest błędem — most odpowiada ``ok:true`` i ``changed:false``, nie
+    ruszając świata ani rng.
+    """
+    session = new_session(seed=73, player_duchy_id="player")
+    before_snapshot = session.snapshot()
+    before_world = session.world
+    before_rng_state = session.rng.state()
+
+    session, resp = handle_command_line(
+        session, '{"type":"order","order":"reinforce"}'
+    )
+
+    assert resp["ok"] is True
+    assert resp["result"] == {
+        "kind": "order",
+        "order": "reinforce",
+        "changed": False,
+    }
+    json.dumps(resp)
+    assert session.world is before_world
+    assert session.snapshot() == before_snapshot
+    assert session.rng.state() == before_rng_state

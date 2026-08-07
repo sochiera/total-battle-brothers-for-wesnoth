@@ -16,6 +16,7 @@ _ORDER_TRANSITIONS = {
     "develop": ai.develop_duchy_settlement,
     "recruit": ai.recruit_duchy_unit,
     "muster": ai.muster_duchy_party,
+    "reinforce": ai.reinforce_duchy_party,
     "move": None,  # handled specially because of the required target
     "march": None,  # handled specially because of optional target
 }
@@ -295,8 +296,8 @@ def apply_command(session: Session, command: dict) -> Session:
         ``"seed"`` w komendzie. Zachowany jest ``session.player_duchy_id``.
       * ``"order"`` — wydaje rozkaz dla księstwa gracza; rozpoznawane
         ``command["order"]`` to ``"develop"``, ``"recruit"``, ``"muster"``,
-        ``"move"``, ``"march"``, ``"assault"`` oraz ``"engage"``. Nieznana
-        nazwa rozkazu podnosi ``ValueError``.
+        ``"reinforce"``, ``"move"``, ``"march"``, ``"assault"`` oraz
+        ``"engage"``. Nieznana nazwa rozkazu podnosi ``ValueError``.
 
     Brak klucza ``type`` lub nieznana wartość podnoszą ``ValueError``.
     Wejściowa sesja nigdy nie jest mutowana.

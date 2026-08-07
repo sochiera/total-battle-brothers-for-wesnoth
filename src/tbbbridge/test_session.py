@@ -3,6 +3,7 @@
 Tests live next to the module under test per task-312 \"Ścieżki testów\".
 """
 
+from collections import Counter
 import copy
 import json
 
@@ -15,6 +16,7 @@ from tbb.turn import Calendar
 
 from tbbbridge.session import Session, apply_command, new_session
 from tbbbridge.snapshot import game_state
+from tbb.world import Region
 
 
 def test_new_session_builds_session_with_headless_game_calendar_rng_defaults_and_fields():
@@ -1947,3 +1949,105 @@ def test_player_order_path_promotes_heir_when_party_is_lost_with_successor():
     assert snap_player["has_hero"] is True
     assert snap_player["has_heir"] is False
     assert snap_player["morale"] == start_morale - SUCCESSION_MORALE_PENALTY
+
+
+def _seed73_party_standing_in_own_outpost() -> tuple[Session, Region]:
+    """Build the seed-73 reinforce fixture through the public session API.
+
+    ``recruit``×10 → ``muster`` → ``move("player outpost")`` leaves the player
+    party standing in its own outpost; the ``next_turn`` boundary then clears
+    the monthly military action so ``reinforce`` is legal.  Returns the session
+    and the outpost region.
+    """
+    session = new_session(seed=73, player_duchy_id="player")
+    for _ in range(10):
+        session = apply_command(session, {"type": "order", "order": "recruit"})
+    for command in (
+        {"type": "order", "order": "muster"},
+        {"type": "order", "order": "move", "target": "player outpost"},
+        {"type": "next_turn"},
+    ):
+        session = apply_command(session, command)
+    outpost = next(
+        region for region in session.world.regions if region.name == "player outpost"
+    )
+    return session, outpost
+
+
+def test_apply_command_order_reinforce_absorbs_own_settlement_garrison():
+    """G112.1b crit-1/3/4: ``{"type":"order","order":"reinforce"}`` routes to
+    the task-627 core rule for the player duchy.  On seed 73, after
+    ``recruit``×10 → ``muster`` → ``move("player outpost")`` → ``next_turn``
+    the party of 5 standing in ``Player Outpost`` absorbs that settlement's
+    garrison of 5 and grows to 10, leaving the settlement with an empty
+    garrison.  A new Session is returned with calendar/rng/seed/
+    player_duchy_id preserved; the input session is not mutated.
+    """
+    session, outpost = _seed73_party_standing_in_own_outpost()
+    before_snapshot = copy.deepcopy(session.snapshot())
+    before_units = session.world.party_at(outpost).units
+    before_garrison = session.world.settlement_at(outpost).garrison
+    assert len(before_units) == 5
+    assert len(before_garrison) == 5
+
+    after = apply_command(session, {"type": "order", "order": "reinforce"})
+
+    assert isinstance(after, Session)
+    assert after is not session
+    assert after.world is not session.world
+    assert after.player_duchy_id == "player"
+    assert after.seed == 73
+    assert after.calendar == session.calendar
+    assert after.rng is session.rng
+
+    assert Counter(after.world.party_at(outpost).units) == Counter(
+        before_units + before_garrison
+    )
+    assert after.world.settlement_at(outpost).garrison == ()
+    assert session.snapshot() == before_snapshot
+
+
+def test_apply_command_order_reinforce_is_a_silent_noop_when_ineffective():
+    """G112.1b crit-2: an ineffective ``reinforce`` is never an error.  With no
+    mustered party at all the order returns a session whose world is the input
+    world by identity (so the bridge reports ``changed: false``), leaving
+    game and calendar untouched and the input session unmutated.
+    """
+    session = new_session(seed=73, player_duchy_id="player")
+    before_snapshot = copy.deepcopy(session.snapshot())
+
+    after = apply_command(session, {"type": "order", "order": "reinforce"})
+
+    assert after.world is session.world
+    assert after.calendar is session.calendar
+    assert after.player_duchy_id == "player"
+    assert after.seed == 73
+    assert session.snapshot() == before_snapshot
+
+
+def test_apply_command_order_reinforce_is_a_silent_noop_after_party_already_acted():
+    """G112.1b kryt-2: a party that moved this month cannot reinforce.
+
+    The order remains a no-op after the player party has reached its own
+    outpost, because ``move`` has already consumed the monthly military action.
+    """
+    session = new_session(seed=73, player_duchy_id="player")
+    for _ in range(10):
+        session = apply_command(session, {"type": "order", "order": "recruit"})
+    for command in (
+        {"type": "order", "order": "muster"},
+        {"type": "order", "order": "move", "target": "player outpost"},
+    ):
+        session = apply_command(session, command)
+    outpost = next(
+        region for region in session.world.regions if region.name == "player outpost"
+    )
+    party = session.world.party_at(outpost)
+    assert party is not None
+    assert party.acted_this_month is True
+    assert session.world.settlement_at(outpost).garrison
+    before_world = session.world
+
+    after = apply_command(session, {"type": "order", "order": "reinforce"})
+
+    assert after.world is before_world
