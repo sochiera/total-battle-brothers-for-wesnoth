@@ -2001,6 +2001,47 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
 > odroście dają `changed:true`, bez powodu odmowy. Regresje rozstrzygnięcia
 > stoją: bierna partia przegrywa w **R1M7**, a aktywna wygrywa w **R1M4**.
 
+## Kamień milowy 116 — rozkaz gospodarczy trafia we wskazaną osadę
+> **Kandydat odblokowany domknięciem K115** (patrz „Kolejne kierunki"): blokada
+> „głód ma priorytet" wygasła, bo K115 przywrócił odrost wolnej ludności — obie
+> osady nie stoją już na `free=0`, więc wybór osady znowu **coś odblokowuje**.
+>
+> **Defekt zmierzony ponownie przy planowaniu 2026-08-08** (`seed=73`, żywy
+> most `python -m tbbbridge serve 73`): świeża partia daje obu osadom gracza
+> `population` 5, `free` 4, garnizon 1; dwa `recruit` z jawnym
+> `target: "Player Outpost"` obsadzają mimo to **Player Keep** (`free` 4→2,
+> garnizon 1→3), a Player Outpost stoi bez zmian. Przyczyna jest w rdzeniu, nie
+> w moście: `develop_duchy_settlement`, `recruit_duchy_unit` i
+> `muster_duchy_party` (`src/tbb/ai.py`) iterują `world.regions` i biorą
+> **pierwszą** uprawnioną osadę, a `session.apply_command` czyta `target`
+> wyłącznie dla `move`/`march`/`assault`/`engage`.
+>
+> Skutek dla gracza: mapa ma wybór regionu od K97 i klient używa go do ruchu,
+> ale trzy przyciski gospodarcze go ignorują — kliknięcie „Rekrutuj jednostkę"
+> przy wybranej drugiej osadzie robi coś innego, niż widać na ekranie. To
+> wprost wniosek 40 („czy gracz widzi to, czego reguła od niego wymaga")
+> w odwrotną stronę: gracz wskazuje, a reguła nie słucha.
+>
+> Kolejność jak w K111/K114: **rdzeń → most → klient → pomiar**. Powód odmowy
+> liczy rdzeń (wniosek 42); most rozstrzyga tylko to, co jest pojęciem
+> protokołu (nazwa regionu, która do niczego nie pasuje). Zakres wąski:
+> `develop`/`recruit`/`muster`. **Bez zmian ekonomii z K115, progu 2:1 z K108,
+> tempa AI, kosztów rozkazów, reguł ruchu i walki oraz „ile garnizonu wolno
+> zabrać".**
+- [ ] **G116.1a [RDZEŃ]** `develop` działa na wskazanym regionie albo nie robi
+      nic; brak celu = dotychczasowe zachowanie. *(standard, task-641)*
+- [ ] **G116.1b [RDZEŃ]** `recruit` i `muster` tak samo. *(standard, task-642)*
+- [ ] **G116.1c [RDZEŃ]** Powód odmowy z K114 dotyczy **wskazanej** osady;
+      region bez własnej osady dostaje odrębny powód. *(standard, task-643)*
+- [ ] **G116.1d [MOST]** `{"type":"order","order":"develop"|"recruit"|"muster",
+      "target":"<nazwa regionu>"}` — cel opcjonalny, nierozpoznany cel to
+      bezskuteczny rozkaz z powodem, nigdy `ok:false`. *(standard, task-644)*
+- [ ] **G116.1e [KLIENT]** Wybrany region kieruje przyciskami gospodarczymi;
+      bez wyboru jak dziś. Dowód wizualny 1152×648. *(standard, task-645)*
+- [ ] **G116.1f [POMIAR]** Żywy most `seed=73` przez dwa procesy: osady
+      rozchodzą się zgodnie ze wskazaniem, regresje rozstrzygnięcia i K115
+      stoją. Zapis pomiaru tutaj. *(standard, task-646)*
+
 ## Dług/refaktor
 - [x] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
       poza kodem produkcyjnym klienta (R82.1a) i wygenerowane artefakty `out/`
@@ -2118,7 +2159,9 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
   to **K115**. Pełna diagnoza i zakres → sekcja K115; wybór osady ustępuje, bo
   w stanie trwałym obie osady mają `free=0`.
 - **Rozkazy osadowe bez wyboru osady** (`develop`/`recruit`/`muster` biorą
-  *pierwszą* pasującą osadę, cel jest po cichu ignorowany) — **potwierdzone
+  *pierwszą* pasującą osadę, cel jest po cichu ignorowany) — **ROZPLANOWANE
+  JAKO K116 (2026-08-08, po domknięciu K115)**; pełna diagnoza w sekcji K116,
+  nie powtarzać jej tutaj. **Potwierdzone
   ponownie pomiarem 2026-08-08**: `recruit` z jawnym `target: "Player Outpost"`
   obsadza mimo to Player Keep, dopóki starczy tam wolnej ludności. Nadal
   **nie planowane**; blokada „po K112" wygasła (K112 domknięty), więc to
