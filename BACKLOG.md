@@ -1612,6 +1612,17 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
 > **istnieje** („Uderz na wojsko wroga"), więc to defekt czytelności, nie reguł.
 - [x] **R111.1 (dług techniczny)** Znacznik akcji miesiąca pochodzi z rdzenia,
       nie ze zgadywania w kliencie (+ testy regresji). *(commit `24f5a4a`)*
+- [x] **G111.1a [RDZEŃ]** Rdzeń wskazuje obcy oddział blokujący marsz.
+      *(commit `e82a078`)*
+- [x] **G111.1b [MOST]** Bezskuteczny rozkaz ruchu niesie nazwę blokującego
+      regionu (`blocked_region`). *(commit `22b99c0`)*
+- [x] **G111.1c [KLIENT]** Status marszu mówi po polsku, kto zagradza drogę
+      i co z tym zrobić. *(commit `1afc76d`)*
+- [x] **G111.1d [POMIAR]** Gracz w żywej sesji widzi, że drogę zagradza wojsko
+      wroga. *(commit `5baf330`)*
+> **Kamień 111 — UKOŃCZONY 2026-08-08.** Wzorzec „rozkaz bez skutku niesie
+> powód" (pole diagnostyczne w `command_result` → projekcja w `order_result.gd`
+> → polski tekst statusu) jest gotowy do reużycia — bierze go **K114**.
 
 ## Kamień milowy 112 — wojsko z garnizonu trafia w pole (koniec martwej partii bez armii) — UKOŃCZONY
 > **Zwrot kierunku (przegląd bootstrap-diff 2026-08-07, po K110).** K110 usunął
@@ -1736,7 +1747,7 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
 > Zakres celowo wąski: **wyłącznie klient**. Bez zmian w rdzeniu, moście,
 > kontrakcie snapshotu i bez nowego rozkazu. To nie jest balans ani nowa
 > warstwa oprawy — to brakująca projekcja danych, które już przychodzą.
-- [ ] **G113.1a [KLIENT]** Czysty polski tekst siły w kliencie: funkcja
+- [x] **G113.1a [KLIENT]** Czysty polski tekst siły w kliencie: funkcja
       projekcji zamienia słownik `party` na tekst z **liczbą jednostek i PŻ**
       (np. „twoja armia: 5 jednostek, 73 PŻ"), a słownik `settlement` na tekst
       z **garnizonem** (np. „Twierdza gracza · garnizon 2"). Brakujące,
@@ -1744,8 +1755,8 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
       („brak armii" / „brak osady" / sama nazwa) bez błędu i bez „0" wziętego
       z powietrza. Testy headless na fixture'ach snapshotu, bez uruchamiania
       mostu; dotychczasowe testy panelu przechodzą bez zmian w kryteriach.
-      *(simple)*
-- [ ] **G113.1b [KLIENT]** Panel wybranego regionu pokazuje te liczby dla
+      *(simple, commit `0235b89`)*
+- [x] **G113.1b [KLIENT]** Panel wybranego regionu pokazuje te liczby dla
       **obu stron**: wybór regionu z własnym oddziałem daje jego siłę, wybór
       regionu z wrogą osadą daje jej garnizon, a wartości odświeżają się po
       rozkazie i po turze **bez ręcznego odświeżania** (szturm zmniejsza
@@ -1754,7 +1765,172 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
       `muster` panel pokazuje oddział 5 jednostek, a po `develop`×10 →
       `recruit`×10 → `muster` — oddział 1 jednostki. Dowód wizualny 1152×648:
       kadr z zaznaczonym regionem własnego oddziału i kadr z zaznaczonym
-      regionem wrogiej osady. *(standard)*
+      regionem wrogiej osady. *(standard, commit `a1643fe`)*
+> **Kamień 113 — UKOŃCZONY 2026-08-08.** `WorldPresentation.party_strength_text`
+> / `settlement_strength_text` dają liczbę jednostek, PŻ i garnizon; panel
+> wybranego regionu pokazuje je dla obu stron.
+
+## Kamień milowy 114 — rozkaz gospodarczy mówi, dlaczego nic nie zrobił (koniec ślepego klikania)
+> **Zmierzone przy przeglądzie bootstrap-diff 2026-08-08 na uruchomionym
+> moście** (`new_session(73)`, wyłącznie rozkazy dostępne w kliencie), nie
+> z lektury. `pytest` w całości zielony (3m06s).
+> **SPROSTOWANE po recenzji tego przeglądu — pierwsza wersja diagnozy wskazała
+> zły mechanizm.** Odtworzono ją i obalono na tym samym ziarnie; niżej stoją
+> wyłącznie liczby, które daje uruchomiony kod. Nie planować pod poprzednią
+> wersję (współdzielona pula jako przyczyna trwałego zastoju) — to **nie** jest
+> to, co się dzieje.
+>
+> 1. **Blokada nr 1 — chwilowa, w obrębie tury.** `develop_duchy_settlement`
+>    (`src/tbb/ai.py:26-45`) wymaga `settlement.free >= building.staff`,
+>    a `recruit_duchy_unit` (`ai.py:112`) wymaga `free > 0` i złota — to **ta
+>    sama** wolna ludność. Przebieg: `recruit`×8 na świeżej partii daje **osiem
+>    razy `changed:true`** (`free` obu osad 4 → 0, złoto 10 → 6, garnizon
+>    1 → 5), a **następne osiem `develop` w tej samej turze daje osiem razy
+>    `changed:false`**. Odwrotna kolejność jest symetryczna: `develop`×8 buduje
+>    `Farm/Smith/Barracks/Market` w obu osadach, zjada `free` do 0 i następny
+>    `recruit` zwraca `changed:false`.
+>    **Ta blokada sama z siebie mija.** Po jednej turze `free` odrasta, więc
+>    klikanie `develop` **raz na turę** po `recruit`×8 daje **`changed:true`
+>    w turach 2–6** (w turze 1 jeszcze `false`, pula dopiero co zeszła do 0),
+>    a `changed:false` dopiero od tury 7: Farm/Smith/Barracks/Market w Player
+>    Keep, Farm/Smith w Player Outpost, `wheat_production` 0 → 3 w obu.
+>    „`buildings: []` i produkcja 0/0 na zawsze" zachodzi **wyłącznie** wtedy,
+>    gdy gracz już nigdy nie kliknie „Rozwiń osadę".
+> 2. **Gracz nie dostaje ani powodu, ani liczby.** Most odpowiada
+>    `{"kind":"order","order":"develop","changed":false}` — bez przyczyny;
+>    klient pokazuje samo „bez zmian" (`order_result.gd`). Panel wybranego
+>    regionu po K113 pokazuje nazwę osady i **garnizon**, a `free`, złoto i
+>    budynki są w snapshocie (`snapshot.py:23-58`) i **nie trafiają na ekran**.
+>    Gracz nie ma jak odróżnić „kliknij za turę" od „nigdy już nie zadziała".
+> 3. **Blokada nr 2 — trwała, i to ona zabija gospodarkę: głód.** Konsumpcja
+>    osady = jej ludność (`settlement.py:62`), a Farm daje `wheat=3`
+>    (`building.py:22`), więc saldo jest ujemne od startu: zapas pszenicy
+>    spada 10 → 0 w 2–4 turach, `free` zamarza na 0 i rozkaz gospodarczy
+>    odmawia turę po turze (zmierzone: `recruit` co turę → `changed:false`
+>    od tury 5 w nieskończoność, partia wciąż `is_over: false`).
+> 4. **Próg głodu leży PRZED pustym spichlerzem — to poprawka po drugiej
+>    recenzji i najważniejsza liczba tej diagnozy.** `tick_settlements`
+>    (`src/tbb/world.py:133-145`) woła `tick_economy()` **przed**
+>    `tick_growth()`, a `tick_growth` (`settlement.py:72-76`) patrzy na zapas
+>    **po ticku** i dodatkowo na `below_capacity`. Ludność rośnie więc dokładnie
+>    wtedy, gdy `wheat + production − consumption > 0` **i** `capacity is None
+>    or population < capacity` — nie wtedy, gdy `storage.wheat > 0`.
+>    Te dwa warunki **rozjeżdżają się na progu**, i to zmierzone na `seed=73`
+>    zwykłym graniem (co turę `develop` i `recruit` do odmowy): w turze 3 obie
+>    osady mają `free=0` i **niezerowy** zapas (Keep 5, Outpost 4), więc test
+>    `wheat > 0` orzekłby „poczekaj, ludność przybędzie", a saldo wynosi już
+>    **0** (Keep) i **−2** (Outpost) — w turze 4 ludność stoi (Keep 8 → 8,
+>    Outpost 9 → 9) i zapas jest 0. Naiwny predykat kłamie **dokładnie w turze
+>    wejścia w stan pochłaniający**, czyli w jedynym momencie, w którym rada
+>    jeszcze cokolwiek zmienia. Uwaga na `saldo == 0`: zero **nie** rośnie,
+>    warunek jest ostry.
+> 5. **Z tego stanu nie ma wyjścia żadnym rozkazem klienta.** Sprawdzone
+>    empirycznie: `muster` opróżnia garnizon i zbija ludność Keep 8 → 3
+>    (konsumpcja 8 → 3), ale przy produkcji 3 saldo wynosi **0**, zapas zostaje
+>    **0** i ludność nadal nie przybywa — 9 kolejnych tur bez zmiany. Dlatego
+>    rada „poczekaj na przyrost ludności albo wydaj rozkaz w drugiej osadzie"
+>    jest w tym stanie **pusta**: druga osada jest równie głodna.
+>
+> To ten sam kształt defektu co K111 (rozkaz bez skutku milczy o powodzie),
+> tylko po stronie gospodarki, i ten sam wzorzec wniosku 40 (reguła wymaga
+> stanu, którego gracz nie widzi). **K114 zostaje defektem czytelności** —
+> mówi prawdę o stanie, w tym prawdę „tego się nie doczekasz". Naprawa samego
+> głodu (produkcja / próg wzrostu / zapas) to **osobny plasterek po K114**,
+> patrz „Kolejne kierunki" i wniosek 43 w `docs/PROJECT.md`.
+>
+> **Zakres celowo wąski.** Nie ruszamy kosztów rozkazów gospodarczych, progu
+> 2:1 z K108, tempa AI, balansu ani reguły „ile garnizonu wolno zabrać".
+> **Nie otwieramy pełnego panelu ekonomii osady** (nadal odłożony): na ekran
+> wchodzi **wyłącznie wolna ludność**, bo to ona rozstrzyga, czy kliknięcie
+> cokolwiek zrobi. Zapasy, produkcja i konsumpcja zostają poza kadrem.
+> **Wybór osady dla rozkazu gospodarczego to osobny, późniejszy plasterek** —
+> K114 tłumaczy odmowę, nie zmienia kontraktu rozkazu.
+>
+> **Wzorzec do reużycia, nie do wymyślania:** K111 przeprowadził diagnostykę
+> rozkazu przez wszystkie warstwy — pole w `command_result`
+> (`protocol.py:35-71`), projekcja w `order_result.gd:162`, polski tekst
+> w `order_result.gd:21-29`. K114 idzie tą samą ścieżką.
+> **Uwaga na dług:** `_blocked_region_name` z K111 **powiela guardy rdzenia**
+> w moście (komentarz „Mirror the core's…" w `protocol.py:41`). Powtórzenie
+> tego byłoby złamaniem „[W] rdzeń jedynym źródłem reguł" — dlatego powód
+> odmowy liczy **rdzeń** (G114.1a), a most go wyłącznie przenosi.
+- [ ] **G114.1a [RDZEŃ]** Rdzeń umie powiedzieć, **dlaczego** rozkaz
+      gospodarczy nie zmieni świata: czysta funkcja obok
+      `develop_duchy_settlement` / `recruit_duchy_unit` zwraca jawny, skończony
+      powód dla księstwa albo `None`, gdy rozkaz się powiedzie. Zbiór powodów
+      **rozróżnia dwie blokady zmierzone w diagnozie**: `brak wolnej ludności`
+      (przejściowa — ludność przybędzie w kolejnej turze) oraz `brak wolnej
+      ludności — osada nie wyżywi przyrostu` (trwała), a obok nich `brak
+      złota`, `komplet budynków`, `limit garnizonu`, `brak własnej osady`.
+      **Predykat rozróżnienia jest przesądzony pomiarem (pkt 4 diagnozy) i nie
+      wolno go upraszczać do `storage.wheat > 0`:** powód jest przejściowy
+      wtedy i tylko wtedy, gdy `storage.wheat + production.wheat −
+      consumption.wheat > 0` (saldo **po** `tick_economy`, warunek ostry — zero
+      nie rośnie) **oraz** `capacity is None or population < capacity` (ta sama
+      bramka, co w `tick_growth`); w każdym innym przypadku powód jest trwały.
+      Wartości wyliczane z tych samych progów, co sama reguła
+      (`building.staff`, `RECRUIT_GOLD_COST`, warunek wzrostu z `tick_growth`
+      czytany po `tick_economy`, limit 12) — **bez drugiej kopii warunków**.
+      Testy odtwarzają zmierzony układ na `seed=73`: świeża partia → `None`;
+      `recruit`×8 w pierwszej turze → powód `develop` = brak wolnej ludności
+      **przejściowy** (zapas 10, saldo +5); **oraz — test, który obala naiwny
+      predykat — tura 3 przebiegu „co turę `develop` i `recruit` do odmowy":
+      zapas jeszcze niezerowy (Keep 5, Outpost 4), a powód `recruit` już
+      trwały**, bo saldo wynosi 0 i −2; ten sam przebieg dwie tury dalej
+      (zapas 0) → nadal trwały. Reguły `develop`/`recruit` **bez zmian
+      zachowania** i bez zmian samej ekonomii — to zapytanie, nie naprawa głodu
+      (naprawa = osobny plasterek po K114). *(standard, ryzyko: dotyka rdzenia
+      — jedynego źródła reguł; nie zmieniać przy okazji kosztów, produkcji,
+      progu wzrostu ani kolejności osad)*
+- [ ] **G114.1b [MOST]** Bezskuteczny `develop`/`recruit`/`muster` niesie ten
+      powód: `command_result` dokłada pole diagnostyczne obok
+      `{"kind":"order","changed":false}`, **wyłącznie** gdy rdzeń go zwrócił;
+      skuteczny rozkaz i wszystkie dotychczasowe kształty wyniku bez zmian,
+      nigdy `ok:false`. Most **nie powiela** warunków rdzenia — pyta funkcję
+      z G114.1a. Test na `seed=73` odtwarza `recruit`×8 → `develop`.
+      *(standard)*
+- [ ] **G114.1c [KLIENT]** Gracz widzi powód i pulę: status rozkazu mówi po
+      polsku, czego zabrakło, a panel wybranego regionu dokłada do wiersza
+      osady **wolną ludność** obok garnizonu z K113 (np. „Twierdza gracza,
+      garnizon: 5, wolni mieszkańcy: 0").
+      **Twardy warunek, z recenzji tego przeglądu: tekst nie może obiecywać
+      wyjścia, którego w danym stanie nie ma.** Powód przejściowy z G114.1a
+      może radzić czekanie (np. „Brak wolnych mieszkańców — ludność przybędzie
+      w kolejnej turze."), ale powód **trwały** ma nazwać stan bez fałszywej
+      rady (np. „Osada nie wyżywi więcej ludzi — ludność nie przybywa.").
+      Tekst **nie może odwoływać się do pustego spichlerza**: pkt 4 diagnozy
+      pokazuje, że stan zaczyna się przy zapasie jeszcze niezerowym (5 i 4),
+      więc „pusty spichlerz" byłby na progu nieprawdą widoczną na ekranie.
+      Kryterium testowe: dla powodu trwałego status **nie zawiera** zachęty do
+      czekania ani do wydania rozkazu w drugiej osadzie — bo zmierzono
+      (pkt 4–5 diagnozy), że w tym stanie obie osady stoją i żaden rozkaz go
+      nie odwraca. Gdyby G114.1a nie dowiozło rozróżnienia, G114.1c **nie
+      narzuca żadnej treści rady** i poprzestaje na nazwaniu braku.
+      Brakujące/nieliczbowe pole → dotychczasowy tekst bez „0" wziętego
+      z powietrza; nieznany powód → dotychczasowe „bez zmian" (nigdy pusty
+      status). Bez nowego rozkazu, bez zmian rdzenia i mostu, bez dokładania
+      zapasów/produkcji/konsumpcji do panelu — stan trwały niesie **tekst
+      powodu**, nie liczba pszenicy (tym bardziej, że na progu ta liczba jest
+      jeszcze dodatnia i sama w sobie myli). Testy headless na fixture'ach + dowód
+      wizualny 1152×648: kadr z osadą o zerowej wolnej ludności i widocznym
+      powodem odmowy. *(standard)*
+- [ ] **G114.1d [POMIAR]** Dowód na żywym moście przez dwa procesy
+      (`seed=73`), **trzy stany, nie dwa** — trzeci dopisany po recenzji, bo
+      dwa pierwsze mierzą wyłącznie skrajności i przepuszczają błąd predykatu:
+      (a) `recruit`×8 → `develop` w tej samej turze kończy się na ekranie
+      powodem **przejściowym** zamiast „bez zmian" (zapas 10, saldo +5);
+      (b) **tura wejścia w głód przy zapasie jeszcze niezerowym** — przebieg
+      „co turę `develop` i `recruit` do odmowy", tura 3: obie osady mają
+      `free=0`, zapas **5 i 4**, saldo **0 i −2**, więc odmowa `recruit`
+      pokazuje powód **trwały**, a status **nie** radzi czekać; kolejna tura
+      potwierdza pomiarem, że ludność faktycznie nie urosła (Keep 8 → 8,
+      Outpost 9 → 9); (c) ten sam przebieg przy zapasie 0 — powód nadal trwały.
+      Stan (b) jest kryterium **rozstrzygającym**: sam (a) i (c) przechodzą
+      także dla błędnego predykatu `storage.wheat > 0`.
+      **Regresje stoją**: bierny gracz przegrywa w **roku
+      1, miesiącu 7** (6× „Następna tura"), a gracz aktywny (`recruit`×10 →
+      `muster` → `assault`/`engage`/`march`) wygrywa w **roku 1, miesiącu 4**.
+      Zapis pomiaru trafia tutaj, do sekcji K114. *(standard)*
 
 ## Dług/refaktor
 - [x] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
@@ -1849,13 +2025,39 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
   rozplanowane jako **K113** po pomiarze 2026-08-07 (ten sam ekran dla oddziału
   5 jednostek i dla jedynki). Pełna diagnoza w sekcji K113; klient-only,
   bez zmian rdzenia i mostu.
+- **Rozkaz gospodarczy odmawia bez powodu, a wolnej ludności nie widać** —
+  rozplanowane jako **K114** po pomiarze 2026-08-08, **sprostowanym po
+  recenzji**: w jednej turze `recruit`×8 → osiem `develop` z `changed:false`
+  (blokada chwilowa), a od tury 6 `develop` odmawia przez 25 kolejnych tur,
+  bo osady głodują i ludność nie rośnie (blokada trwała). Pełna diagnoza
+  w sekcji K114; nie powtarzać jej tutaj.
+- **Głód jest ślepą uliczką: ujemne saldo pszenicy zatrzymuje ludność na
+  zawsze** — **nie planowane, kandydat nr 1 po K114**. Zmierzone 2026-08-08
+  przy recenzjach tego przeglądu (`seed=73`): konsumpcja osady równa się jej
+  ludności (`settlement.py:62`), Farm daje `wheat=3` (`building.py:22`), więc
+  zapas spada 10 → 0 w 2–4 turach. **Próg leży wcześniej, niż widać:**
+  `tick_settlements` (`world.py:133-145`) puszcza `tick_growth` **po**
+  `tick_economy`, więc ludność rośnie tylko przy saldzie
+  `wheat + production − consumption > 0` — zmierzona tura 3 ma zapas 5 i 4,
+  saldo 0 i −2, i ludność już nie rośnie. Dalej `free` stoi na 0, a **żaden
+  rozkaz dostępny w kliencie tego nie odwraca** — `muster` zbija konsumpcję
+  8 → 3, ale przy produkcji 3 saldo wynosi 0 i zapas zostaje 0 (9 tur bez
+  zmiany). To defekt rozgrywki, nie balans: „koniec wzrostu na zawsze" blokuje
+  pętlę, natomiast **wartości** produkcji i konsumpcji pozostają odłożone jako
+  strojenie. K114 tego **nie** naprawia — tylko nazywa stan graczowi.
+  Kolejność wobec „wyboru osady" rozstrzygnie pomiar po K114.
 - **Rozkazy osadowe bez wyboru osady** (`develop`/`recruit`/`muster` biorą
-  *pierwszą* pasującą osadę, cel jest po cichu ignorowany) — obserwacja z tego
-  samego pomiaru, **jeszcze nie planowana**. K112 usuwa najgorszy skutek
-  (rekruci zamknięci w murach), ale nie daje wyboru osady. Mapa ma już wybór
-  regionu (K97, używany przez `move`), więc naturalny plasterek to
-  „rozkaz gospodarczy trafia w zaznaczoną osadę" — **po K112**, żeby nie mieszać
-  dwóch zmian kontraktu rozkazu w jednym kroku.
+  *pierwszą* pasującą osadę, cel jest po cichu ignorowany) — **potwierdzone
+  ponownie pomiarem 2026-08-08**: `recruit` z jawnym `target: "Player Outpost"`
+  obsadza mimo to Player Keep, dopóki starczy tam wolnej ludności. Nadal
+  **nie planowane**; blokada „po K112" wygasła (K112 domknięty), więc to
+  kandydat **po K114** — nie razem z nim, żeby nie mieszać wyjaśnienia odmowy
+  ze zmianą kontraktu rozkazu. Mapa ma już wybór regionu (K97, używany przez
+  `move`). **Korekta wartości po recenzji 2026-08-08:** argument „gracz zobaczy
+  pustą pulę i wskaże drugą osadę" jest słabszy, niż zakładano — w zmierzonym
+  stanie trwałym **obie** osady mają `free` 0, więc wybór osady niczego tam nie
+  odblokowuje. Wciąż ma wartość w turach 1–5 (pule są wtedy różne: Outpost ma
+  2 wolnych, gdy Keep 0), ale przed nim stoi kandydat „głód".
 - **`muster` zabiera cały garnizon osady** — obserwacja z przeglądu 2026-07-28,
   nadal **nie planowana**: po zbiórce osada zostaje pusta, więc każde wyjście
   w pole odsłania dom. K112 świadomie powiela tę regułę we wzmocnieniu

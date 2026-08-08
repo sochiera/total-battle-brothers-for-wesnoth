@@ -48,55 +48,39 @@ człowieka**. **[W]** Spełnione 2026-08-06 w K106.
   widoki, statusy, bieżące rozkazy; **start bez terminala + save/load** (K82–K86).
 - **Pakiet Linuksa, pętla partii, obrona osady, 5 regionów / 2 osady na stronę**
   — DOMKNIĘTE (K88–K92).
-- **Oprawa K94–K105 — DOMKNIĘTA:** kompozycja mapy, ikony, armie, `move`+cel,
-  bitwa (heks/dekoracje/PŻ), hierarchia ekranu, PL/teatr (`WorldPresentation`),
-  herby/status/baner, tabliczki/panel/feedback, przyciski/legenda, podłoże,
-  keep/outpost, cue PŻ, **figury w isometrii/¾**, centrowanie bitwy
-  (`1ebbbd4`…`d054581`). Bez reguł/mostu w tej serii.
-- **Minimum assetów GOTOWE (K87, Kenney CC0); próg wizualny OSIĄGNIĘTY
-  2026-08-06 (K106)** — człowiek zaakceptował pakiet G106.1a–c (screenshoty
-  `task-591…593` w 1152×648), audyt bez residuali i bez follow-upu. Zapis
-  odwołuje bramkę planowania oprawy 4 graficzne / batch.
+- **Oprawa K94–K105 — DOMKNIĘTA** (`1ebbbd4`…`d054581`): kompozycja, ikony,
+  armie, `move`+cel, bitwa, hierarchia ekranu, PL/teatr (`WorldPresentation`),
+  chrome, figury isometrii/¾. Bez reguł/mostu. **Assety K87 (Kenney CC0)
+  i próg wizualny K106 — OSIĄGNIĘTE 2026-08-06**, człowiek zaakceptował
+  G106.1a–c (1152×648); to odwołało bramkę oprawy 4/batch.
 - `tbbui` — **tylko diagnostyka**, nie docelowy klient.
-- **Nowa partia z UI (K107) — DOMKNIĘTA** (`2c4ace0`…`12d67bc`).
-- **K108 — DOMKNIĘTY:** rozkaz „Uderz na wojsko wroga" ze statusem i ikoną,
-  warunek siły 2:1 w `ai.take_duchy_military_action`, dowody wizualne
-  `task-605…607`.
-- **K109 — DOMKNIĘTY** (`53d6d98`…`6d6946a`): znacznik `Party.acted_this_month`,
-  zerowanie na nowy miesiąc, round-trip w persystencji, blokada drugiej akcji
-  wojskowej jako `changed=false` (nie błąd) i polski status w kliencie.
-- **Pomiary po K108/K109 (2026-08-06/07, `seed=73`)** — pełne zapisy
-  w `BACKLOG.md`, sekcje K108–K110. Skrót: presja AI i ekonomia tury działają;
-  pomiar po K109 odsłonił zakleszczenie „armia pod murami" → **K110**.
-- **K110 — DOMKNIĘTY 2026-08-07** (`b9682a5`…`d81cb79`): szturm „spod murów"
-  w rdzeniu (rozstawienie, skutek w świecie, koszt miesiąca), `assault` bez
-  celu skierowany do tej ścieżki w moście i widoczna zmiana strony regionu po
-  kliku. **R111.1** (`24f5a4a`) zdjął zgadywanie znacznika akcji w kliencie.
-- **Rozgrywka — pomiar po K110 (2026-08-07, uruchomienie mostu na `seed=73`):**
-  zakleszczenie zniknęło — martwa dotąd sekwencja `engage` → `assault` →
-  `march` kończy partię zwycięstwem w **roku 1, miesiącu 7**; regresje stoją
-  (bierny gracz przegrywa w 13 turach, priorytet `assault` → `engage` → `march`
-  wygrywa w roku 1, miesiącu 4). **K111** (marsz zablokowany przez wrogą armię
-  mówi tylko „bez zmian") jest w kolejce jako task-621…624. Ten sam pomiar
-  odsłonił brak następny — **wojsko z garnizonu nie ma jak trafić w pole**:
-  `recruit`/`muster` biorą *pierwszą* pasującą osadę, więc gracz „rozwojowy"
-  wychodzi w pole **jedynką**, a po jej stracie partia **zamiera** (120 tur,
-  `is_over: false`, armia AI nieruchoma przy niespełnionym progu 2:1). Zakres
-  **K112**; pełne liczby → `BACKLOG.md`.
-- **Pomiar przy przeglądzie 2026-08-07 (po R111.1):** `pytest` zielony w
-  całości. Uruchomiony most (`seed=73`) potwierdził pułapkę z wniosku 39
-  liczbowo (`recruit`×10 → `muster` = `size 5, hp 73`; z `develop`×10 wcześniej
-  = `size 1, hp 25`) i odsłonił brak **po stronie widoku**: oba stany wyglądają
-  na ekranie **identycznie**. Most niesie na region siłę oddziału i garnizon
-  osady, `SnapshotModel` je przepuszcza, a panel regionu pokazuje wyłącznie
-  „twoja armia" i nazwę osady (`game/scripts/main.gd:654-667`); siły wroga
-  przed szturmem też nie widać. Zakres **K113** — klient-only.
-- **K112 — DOMKNIĘTY 2026-08-08:** pomiar przez żywy most na `seed=73`, po
-  `develop`×10 → `recruit`×10 → `muster`, kończy partię po **6 turach** z
-  `winner: "ai"` i `player_result: "defeat"`. W przebiegu wzmocnienia
-  oddział AI rośnie **2 → 4** po pobraniu garnizonu własnego `ai outpost`,
-  którego stan spada **1 → 0**. Reguła usuwa martwą partię bez armii; wynik
-  i pełny zapis przebiegu są w sekcji K112 w `BACKLOG.md`.
+- **K107–K110 — DOMKNIĘTE:** nowa partia z UI; „Uderz na wojsko wroga" + próg
+  2:1 w `ai.take_duchy_military_action` (K108); jedna akcja wojskowa na miesiąc
+  — `Party.acted_this_month`, round-trip, `changed=false` zamiast błędu (K109);
+  szturm „spod murów" (K110). **R111.1** zdjął zgadywanie znacznika akcji
+  w kliencie. Pomiary → `BACKLOG.md`, K108–K110.
+- **K111 — DOMKNIĘTY 2026-08-08**: rdzeń wskazuje
+  blokujący oddział, most niesie `blocked_region`, klient mówi, kto zagradza
+  drogę. **Wzorzec diagnostyki rozkazu** przez warstwy — reużywa go K114.
+- **K112 — DOMKNIĘTY 2026-08-08:** oddział wciąga garnizon własnej osady
+  (`reinforce`), symetrycznie dla AI. Pomiar `seed=73`: `develop`×10 →
+  `recruit`×10 → `muster` kończy partię po **6 turach** (`winner: "ai"`),
+  oddział AI rośnie **2 → 4** kosztem garnizonu `ai outpost` **1 → 0**.
+- **K113 — DOMKNIĘTY 2026-08-08**: panel wybranego regionu pokazuje liczbę
+  jednostek, PŻ i garnizon dla obu stron (`WorldPresentation`).
+- **Pomiar przy przeglądzie 2026-08-08 (po K112/K113), sprostowany po
+  recenzji:** `pytest` zielony w całości (3m06s). Żywy most `seed=73`:
+  regresje stoją — aktywny gracz (`recruit`×10 → `muster` →
+  `assault`/`engage`/`march`) wygrywa w **roku 1, miesiącu 4**, bierny
+  przegrywa w **roku 1, miesiącu 7** (6× „Następna tura"). Odsłonięty brak
+  następny: **rozkaz gospodarczy odmawia bez powodu**, przy czym zmierzone są
+  **dwie różne blokady**. (a) Chwilowa, w obrębie tury: `develop` i `recruit`
+  czerpią z tej samej wolnej ludności, więc `recruit`×8 zeruje `free` i osiem
+  kolejnych `develop` daje `changed:false`; po turze `free` odrasta.
+  (b) Trwała, i to ona zabija gospodarkę: konsumpcja równa ludności
+  przewyższa produkcję, więc ludność zamiera, `free` stoi na 0 i rozkaz
+  gospodarczy odmawia turę po turze bez końca. Klient pokazuje na obie to
+  samo „bez zmian". Zakres **K114**; pełne liczby → `BACKLOG.md`.
 
 ## Ograniczenia i priorytety
 - **[W]** Rdzeń `tbb` jest **jedynym źródłem reguł**. Godot nie duplikuje logiki;
@@ -127,81 +111,65 @@ człowieka**. **[W]** Spełnione 2026-08-06 w K106.
   CPythona **[O]**.
 - **[O]** Kod/zasoby z Battle for Wesnoth.
 
-**Wnioski kierunkowe** *(1–12 z K82–K88; dawne 21–31 scalone w 21–27, stąd luka
-przed 32; detale → DECISIONS/BACKLOG)*:
-1. Ścieżka rozkazu jest sparametryzowana — „kolejny przycisk" nie zbliża do celu.
-2. Godot 4.2.2 bez `OS.execute_with_pipe`: one-shot + plik stanu (`--resume`).
-3. Kontrakt po jednym polu/grupie ratuje mikro-TDD.
-4. **Dowód „działa" dotyczy tylko artefaktu, na którym go zrobiono** (dev ≠ PCK).
-5. `battle.hexes` = tylko heksy z jednostkami; pełna siatka = późniejsza zmiana mostu.
-6. Prostokąt ≠ MVP; K84/85 geometria, K87 nośnik — podmiana nośnika nie rusza geometrii.
-7. Toolchain (import/eksport) jako osobna bramka przed treścią.
-8. **Teren tylko w bitwie** — `Region` bez terenu; teren mapy = zmiana rdzenia+mostu.
-9. Warianty: tekstura + `modulate`, nie osobny plik na wariant.
-10. **Pakiet bez własnego Pythona** — systemowy `python3` + czytelny brak.
-11. **„Plik się ładuje" ≠ poprawna treść obrazka** — CREDITS + kształt + review człowieka.
-12. **Odstępstwo od [P]:** Hexagon Pack bez postaci → RTS Medieval; strony = para plików, nie tint.
-13. **Zielone testy ≠ grywalność** — sekwencja gracza na żywym moście (+ pakiet po K88).
+**Wnioski kierunkowe** *(1–27 z K82–K106 skompaktowane przy przeglądzie
+2026-08-08 dla progu 20 KB — pełne brzmienie w historii gita, detale →
+DECISIONS/BACKLOG; dawne 21–31 scalone w 21–27, stąd luka przed 32)*:
+1–12. **(bootstrap, most, pakiet, assety — K82–K88).** Ścieżka rozkazu jest
+    sparametryzowana, więc „kolejny przycisk" nie zbliża do celu; Godot 4.2.2
+    bez `OS.execute_with_pipe` → one-shot + plik stanu (`--resume`); kontrakt
+    po jednym polu ratuje mikro-TDD; **dowód „działa" dotyczy tylko artefaktu,
+    na którym go zrobiono** (dev ≠ PCK); `battle.hexes` = tylko heksy
+    z jednostkami; **teren istnieje wyłącznie w bitwie** (teren mapy = zmiana
+    rdzenia i mostu); toolchain to osobna bramka przed treścią; **pakiet bez
+    własnego Pythona**; **„plik się ładuje" ≠ poprawna treść obrazka** (CREDITS
+    + review człowieka); Hexagon Pack bez postaci → RTS Medieval, strony = para
+    plików, nie tint.
+13. **Zielone testy ≠ grywalność** — sekwencja gracza na żywym moście.
 14. Legalny wynik bitwy ≠ błąd rozkazu (K89: kontrakt przed regułą ruchu).
 15. Pozycja startowa to reguła gry (K90), nie odłożony balans.
 16. Gracz i AI przez te same reguły świata (K90/K91).
-17. Jedna osada/stronę za mała — min. dwie w pięciu regionach (K92.2), nie duża mapa.
-18. Obrona osady odblokowała skalowanie (G92.1); skraj z oddziałem nie-obrońcą odłożony.
-19. 5 regionów odsłoniło brak sterowania, nie defekt skali — wartość w wyborze celu.
-20. `march` (ku osadzie) ≠ `move` (jeden krok do sąsiada, bez wrogiej osady).
-21. **Tekstury ≠ osiągnięty wygląd** — każdy przyrost widoczny na ekranie
-    z dowodem wizualnym 1152×648.
-22. Oprawę da się poprawiać bez reguł (K94–G96, K97 `move(target)`).
-23. **Rola assetu = obraz/źródło, nie nazwa** (`plains`=heks; forest/hills=dekoracje).
-24. Lokalny widok ≠ spójny ekran — ocena na pełnej scenie świeżej partii/bitwy.
-25. Tabliczki ≠ pełna warstwa PL — jedno mapowanie (`WorldPresentation`, K100).
-26. **K101–K105:** residuale przeszły bez reguł, ale recolor top-down RTS **nie**
-    domknął spójności — barwa ≠ rodzina kształtów (stąd figury isometrii/¾).
-27. **K105→K106:** figury zrobione w kodzie, a i tak dopiero brak screenshotów
-    i ludzkiej akceptacji wymusił pakiet progu, nie kolejną warstwę oprawy.
+17–20. **(skala i sterowanie — K92, K97).** Jedna osada/stronę za mała (min.
+    dwie w pięciu regionach), obrona osady odblokowała skalowanie, a 5 regionów
+    odsłoniło brak **sterowania**, nie defekt skali; `march` (ku osadzie) ≠
+    `move` (krok do sąsiada, bez wrogiej osady).
+21–27. **(oprawa — K94–K106).** **Tekstury ≠ osiągnięty wygląd**: każdy
+    przyrost widoczny na ekranie z dowodem 1152×648; oprawę da się poprawiać
+    bez reguł; **rola assetu = obraz/źródło, nie nazwa**; lokalny widok ≠
+    spójny ekran (ocena na pełnej scenie); jedno mapowanie PL
+    (`WorldPresentation`); barwa ≠ rodzina kształtów; i dopiero **brak
+    screenshotów oraz ludzkiej akceptacji** wymusił pakiet progu.
 32. **Odhaczone kryterium ≠ gra (2026-08-06).** Po K106 wszystkie punkty
     kryterium „gotowe" są spełnione, a pierwszy pomiar samej rozgrywki pokazał
     trzymiesięczną, bezoporową partię. Widoczność stanu została zbudowana
     **zanim** było co pokazywać.
-33. **Reguła przegranej dyktuje kolejność plasterków.** `Duchy.is_defeated`
-    wymaga braku osad **i** braku oddziałów, więc powściągliwszy AI **bez**
-    rozkazu `engage` w kliencie uczyniłby partię niewygrywalną.
-34. **Rozkaz bez kosztu = brak przeciwnika (2026-08-06, po K108).** AI gra
-    wyłącznie wewnątrz `next_turn`, więc cała presja z K108 działała tylko na
-    gracza, który dobrowolnie kończy turę. Przeciwnika czyni grą dopiero
-    **ekonomia tury**.
-35. **Regułę tury zweryfikowano symulacją przed planowaniem i pomiarem po
-    wdrożeniu.** Dwa warunki brzegowe w mocy: reguła **obowiązuje także
-    oddziały AI** (wniosek 16), a znacznik ustawia **wyłącznie akcja, która
-    zmieniła świat** (`take_duchy_military_action` robi w jednej turze
-    `muster`+`march`+`assault`, więc „pierwsza akcja zawsze" cofało K108).
-    Wzorzec: **regresję K108 mierzy się na `seed=73` przy każdej zmianie reguł
-    ruchu i walki.**
+33–35. **(K108–K109).** `Duchy.is_defeated` wymaga braku osad **i** oddziałów,
+    więc reguła przegranej dyktuje kolejność plasterków (powściągliwsze AI bez
+    `engage` w kliencie czyniło partię niewygrywalną). **Rozkaz bez kosztu =
+    brak przeciwnika:** AI gra wyłącznie wewnątrz `next_turn`, więc presję robi
+    dopiero **ekonomia tury**. Warunki brzegowe znacznika akcji: obowiązuje też
+    oddziały AI (wniosek 16) i ustawia go **wyłącznie akcja, która zmieniła
+    świat**. Wzorzec: **regresję K108 mierzy się na `seed=73` przy każdej
+    zmianie reguł ruchu i walki.**
 36. **Kosztowna tura odsłania koniec ścieżki, nie koniec pracy (2026-08-07).**
-    Dopóki rozkazy były darmowe, partia kończyła się w trzy miesiące i nikt nie
-    dochodził do stanu „armia stoi pod obcą stolicą". Po K109 partia trwa
-    latami — i dopiero wtedy było widać, że **rdzeń nie znał szturmu spod
-    murów** (mechanizm → `BACKLOG.md`, sekcja K110). Wniosek
-    kierunkowy: **każde domknięcie ekonomii tury trzeba domierzyć długą partią,
-    nie krótką** — defekty kolejnego etapu leżą za horyzontem poprzedniego.
-37. **Zakleszczenie ≠ przegrana, i to jest gorsze (2026-08-07).** Stan bez
-    wyjścia nie daje graczowi sygnału: rozkazy mówią „bez zmian", kalendarz
-    idzie, nic się nie dzieje; reguła symetryczna (wniosek 16) zakleszcza tak
-    samo AI, a warunek zwycięstwa z briefu staje się nieosiągalny dla obu
-    stron. **K110 broni kryterium sukcesu**, nie wygody gracza.
-38. **Wniosek 36 potwierdził się natychmiast (2026-08-07, po K110).** Naprawa
-    szturmu spod murów odsłoniła **drugi stan bez wyjścia**, po stronie AI:
-    armia bez progu 2:1 z K108 nie robi **nic** — przez 120 zmierzonych tur.
-    Dopóki jedynym kształtem akcji AI jest „maszeruj i szturmuj przy
+    Dopóki rozkazy były darmowe, nikt nie dochodził do stanu „armia stoi pod
+    obcą stolicą"; po K109 partia trwa latami i dopiero wtedy było widać, że
+    **rdzeń nie znał szturmu spod murów** (→ `BACKLOG.md`, K110). Wzorzec:
+    **każde domknięcie ekonomii tury domierzyć długą partią, nie krótką** —
+    defekty kolejnego etapu leżą za horyzontem poprzedniego.
+37–38. **Zakleszczenie ≠ przegrana, i to jest gorsze (2026-08-07).** Stan bez
+    wyjścia nie daje sygnału: „bez zmian", kalendarz idzie, nic się nie dzieje;
+    reguła symetryczna (wniosek 16) zakleszcza tak samo AI, więc **K110 broni
+    kryterium sukcesu**, nie wygody gracza. Naprawa natychmiast odsłoniła drugi
+    taki stan po stronie AI (armia bez progu 2:1 stoi 120 zmierzonych tur):
+    dopóki jedynym kształtem akcji AI jest „maszeruj i szturmuj przy
     przewadze", każdy niespełniony warunek zamienia przeciwnika w dekorację.
     **Nie naprawia się tego stałą.**
 39. **Rekrut, który nigdy nie wychodzi za mury, to zmarnowana ekonomia
     (2026-08-07).** `recruit`/`muster` biorą *pierwszą* pasującą osadę, więc ta
     sama sekwencja daje oddział 1 albo 5 jednostek zależnie od tego, czy padło
-    wcześniej `develop`. Brakuje **reguły wzmocnienia oddziału garnizonem**,
-    nie kolejnego przycisku: zdejmuje pułapkę graczowi i daje AI sposób na
-    własny, niezmieniony próg (**K112**). Wybór osady dla rozkazów
-    gospodarczych zostaje osobnym, późniejszym plasterkiem.
+    wcześniej `develop`. Brakowało **reguły wzmocnienia garnizonem** (**K112**),
+    nie kolejnego przycisku; wybór osady dla rozkazów gospodarczych zostaje
+    osobnym, późniejszym plasterkiem.
 40. **Dane w moście ≠ dane na ekranie (2026-08-07).** Cztery kamienie z rzędu
     naprawiały *reguły* pętli, a przy pomiarze okazało się, że klient nie
     pokazuje **żadnej liczby siły**, choć most niesie je od K63. Kryterium
@@ -211,6 +179,48 @@ przed 32; detale → DECISIONS/BACKLOG)*:
     reguła działa" pytać **„czy gracz widzi to, czego reguła od niego
     wymaga"**. **K113** to pierwsza spłata — projekcja danych, które już
     przychodzą, nie nowa seria polish.
+41. **Rozkaz gospodarczy odmawia bez powodu — a powód bywa nieodwracalny
+    (2026-08-08, po K112/K113; SPROSTOWANE po recenzji tego przeglądu).**
+    Zmierzone są **dwie** blokady, nie jedna. (a) **Chwilowa, w obrębie
+    tury:** `develop` i `recruit` czerpią z tej samej wolnej ludności, więc po
+    `recruit`×8 osiem kolejnych `develop` daje `changed:false`. (b) **Trwała:**
+    głód (wniosek 43) zamraża `free` na 0 i rozkaz odmawia bez końca. Pierwsza
+    diagnoza wskazała wyłącznie (a) i była **błędna co do trwałości** —
+    „produkcja 0/0 na zawsze" zachodzi tylko wtedy, gdy gracz nigdy więcej nie
+    kliknie „Rozwiń osadę". Stąd trzy wzorce przekrojowe: (i) każdy rozkaz
+    bez skutku ma nieść
+    **powód**, nie samo „bez zmian" (K111 dla ruchu, K114 dla gospodarki);
+    (ii) powód musi rozróżniać **„poczekaj" od „nie doczekasz się"**, bo
+    inaczej rada myli dokładnie w stanie, który trwa najdłużej (→ wniosek 43);
+    (iii) zasób, o który konkurują dwa rozkazy, ma być widoczny **zanim** gracz
+    go wyda. **K114 nie otwiera panelu ekonomii** — na ekran wchodzi wyłącznie
+    wolna ludność.
+42. **Diagnostyka rozkazu należy do rdzenia, nie do mostu.**
+    `_blocked_region_name` z K111 (`tbbbridge/protocol.py:41`) powiela guardy
+    rdzenia z komentarzem „Mirror the core's…". Jednorazowo przeszło, ale
+    powtórzenie wzorca dałoby drugą kopię reguł w moście — wprost przeciw
+    „[W] rdzeń jedynym źródłem reguł". W K114 powód odmowy liczy **rdzeń**,
+    most go wyłącznie przenosi; zduplikowane guardy z K111 zostają jako
+    nazwany dług.
+43. **Głód jest stanem pochłaniającym, a wchodzi się w niego przed pustym
+    spichlerzem (2026-08-08, pomiar przy dwóch recenzjach przeglądu).** Gdy
+    saldo pszenicy osady przestaje być dodatnie, **żaden rozkaz dostępny
+    w kliencie tego nie odwraca**: `muster` zbija konsumpcję 8 → 3, ale przy
+    produkcji 3 saldo wynosi 0, zapas zostaje 0, ludność nie rośnie
+    (9 zmierzonych tur). Stąd ograniczenie dla K114: klient ma **nazwać
+    stan**, nie doradzać wyjścia, którego nie ma — „poczekaj na przyrost
+    ludności" byłoby powtórzeniem defektu z wniosku 40 jedną warstwę wyżej.
+    **Poprawka po drugiej recenzji, kosztowna, gdyby przeszła:** pierwsza
+    wersja K114 rozpoznawała ten stan po `storage.wheat > 0`, a `tick_growth`
+    czyta zapas **po** `tick_economy` (`world.py:133-145`) i sprawdza jeszcze
+    `below_capacity`. Warunki rozjeżdżają się **dokładnie w turze wejścia
+    w stan pochłaniający** (zmierzone: zapas 5 i 4, saldo 0 i −2, ludność już
+    nie rośnie) — czyli wtedy, gdy rada jeszcze cokolwiek znaczy. Wzorzec:
+    **predykat „czy to minie" bierze się z sekwencji ticków, nie z pola
+    stanu**, a pomiar takiego rozróżnienia musi trafić w **próg**, nie
+    w skrajności. Naprawa samej reguły (produkcja / próg wzrostu / zapas
+    startowy) to **osobny plasterek po K114** i defekt rozgrywki, nie balans;
+    wartość progów zostaje odłożona.
 
 ## Klimat, ton, kierunek wizualny
 Średniowiecze **bez magii i fantastyki**, surowy i realistyczny ton. **[W]**
@@ -234,65 +244,59 @@ czysto informacyjny, jak liczby z K113 — nadal wymaga dowodu wizualnego
 - `tbbui` zostaje diagnostyką; nie rozwijamy go jako produktu (wstrzymany K62).
 - Porządek repo gry (sondy vs produkcja, `out/`) — **[P]** *(zrobione: R82.1)*.
 - **Assety przesądzają o prawdziwym MVP** (2026-07-27) — **[W]**, nie sugestia.
-- Brief 2026-07-30: bramka 4 zadań graficznych/batch obowiązywała do ludzkiej
-  akceptacji — K106 zamknął ten warunek 2026-08-06. **[W]**
+- Brief 2026-07-30 (bramka 4 zadań graficznych/batch): zamknięty K106. **[W]**
 
 ## Kolejne prawdopodobne etapy
-1–6. ~~K82–K92, K94–K105, **K106 (próg wizualny, akceptacja 2026-08-06)**,
-   K107~~ — **zrobione**; szczegóły w „Stan faktyczny" i `BACKLOG.md`.
-7. ~~**K108 — przeciwnik, który nie roztrwania armii, i `engage` w kliencie**~~
-   — **domknięte** (kod, pomiar, dowody wizualne task-605…607).
-8. ~~**K109 — rozkaz wojskowy kosztuje miesiąc**~~ — **domknięte 2026-08-07**
-   (`53d6d98`…`6d6946a`). Warunki brzegowe → wniosek 35.
-9. ~~**K110 — armia stojąca w regionie wrogiej osady potrafi ją zdobyć**~~ —
-   **domknięte 2026-08-07** (`b9682a5`…`d81cb79`, + `24f5a4a` R111.1);
-   zakleszczenie zmierzone jako usunięte, regresje K108/K109 stoją.
-10. **K111 — czytelny powód, gdy marsz blokuje wroga armia** — w kolejce
-   (task-621…624): rdzeń wskazuje blokujący oddział, most nazywa region,
-   klient mówi po polsku, kto zagradza drogę, dowód z żywej sesji. Defekt
-   czytelności, nie reguł — odpowiedź („Uderz na wojsko wroga") już istnieje.
-   `R111.1` (`24f5a4a`) już wpadł: znacznik akcji miesiąca idzie z rdzenia.
-11. **K112 — wojsko z garnizonu trafia w pole.** Jedna brakująca reguła
-   rdzenia: oddział w regionie własnej osady wciąga jej garnizon (symetrycznie
-   dla AI, koszt miesiąca), rozkaz `reinforce` w moście, użycie po stronie AI
-   zamiast bezczynności przy niespełnionym progu oraz widoczny wzrost oddziału
-   w kliencie. Powód: wnioski 38–39. **Progu 2:1 z K108 nie wolno tknąć** —
-   regresje `seed=73` (13 tur / rok 1, miesiąc 4) są kryterium G112.1b.
-12. **K113 — siła widoczna liczbą** (nowe, ten przegląd): panel wybranego
-   regionu pokazuje liczebność i PŻ oddziału oraz garnizon osady, dla obu
-   stron, z odświeżeniem po rozkazie i turze. **Wyłącznie klient** — bez
-   rdzenia, bez mostu, bez nowego rozkazu; dane już przychodzą. Powód:
-   wniosek 40. Uwaga kolejności: „licznik oddziału" z G112.1d dziś nie
-   istnieje — albo K113 idzie przed nim, albo G112.1d ogranicza się do statusu
-   i figury i **nie tworzy drugiego licznika**.
-13. **Prawdopodobnie potem:** wybór osady dla `develop`/`recruit`/`muster`
-   (mapa ma już zaznaczenie regionu z K97), tempo presji AI oraz ile garnizonu
-   wolno zabrać. Osobne plasterki, nie razem z K112 ani K113.
+1–12. ~~K82–K113~~ — **zrobione** (K111–K113 dnia 2026-08-08); regresje
+   K108/K109 stoją. Szczegóły w „Stan faktyczny" i `BACKLOG.md`.
+13. **K114 — rozkaz gospodarczy mówi, dlaczego nic nie zrobił** (nowe, ten
+   przegląd): rdzeń zwraca jawny powód odmowy `develop`/`recruit`/`muster`
+   (brak złota, komplet budynków, limit garnizonu oraz — **rozdzielnie** —
+   brak wolnej ludności *przejściowy* i *trwały*, rozróżniane **saldem
+   miesięcznym po ticku**, nie stanem spichlerza — wniosek 43), most przenosi
+   go obok `changed:false`, klient mówi to po polsku
+   i pokazuje w panelu osady **wolną ludność** obok garnizonu z K113; pomiar
+   na żywym moście z regresjami. Powód: wnioski 41–43. **Bez zmian kosztów,
+   progu 2:1, tempa AI i bez pełnego panelu ekonomii.**
+14. **Prawdopodobnie potem, dwaj kandydaci — kolejność rozstrzygnie pomiar po
+   K114:** (a) **naprawa głodu** — wniosek 43: niedodatnie saldo pszenicy jest
+   stanem, z którego gracz nie ma wyjścia żadnym dostępnym rozkazem, więc
+   gospodarka umiera niezależnie od tego, co widać na ekranie; (b) **wybór
+   osady** dla
+   `develop`/`recruit`/`muster` (dziś `target` jest po cichu ignorowany —
+   potwierdzone pomiarem 2026-08-08; mapa ma zaznaczenie regionu z K97).
+   Osobno i później: tempo presji AI, ile garnizonu wolno zabrać, sterowanie
+   jednostką w bitwie.
 
 ## Świadomie odłożone
 - Kampania/fabuła, multiplayer, magia, oddziały masowe, AAA, dźwięk, edytor map
   — **poza zakresem**. Alert gospodarczy HTML (K62) — **wstrzymany**.
 - Bogatszy model ran/terenu/budynków, więcej jednostek, balans/AI,
   `StrategicTurn` — po widocznej, grywalnej grze. Skala K92.2 ≠ balans.
-  **Doprecyzowanie 2026-08-06/07:** warunek „nie szturmuj bez szans" (K108),
-  jedna akcja wojskowa na miesiąc (K109), szturm spod murów (K110) i
-  wzmocnienie oddziału garnizonem (K112) to naprawy defektów rozgrywki, nie
-  strojenie AI; krzywe, wagi, **wartość progu 2:1**, taktyka AI i koszty
-  rozkazów gospodarczych zostają odłożone. Miarą jest pomiar na uruchomionym
-  kodzie (`seed=73`), nie ocena „czy gra jest ciekawa".
+  **Doprecyzowanie 2026-08-06/07:** K108 (nie szturmuj bez szans), K109 (akcja
+  na miesiąc), K110 (szturm spod murów) i K112 (wzmocnienie garnizonem) to
+  naprawy defektów rozgrywki, nie strojenie AI; krzywe, wagi, **wartość progu
+  2:1**, taktyka AI i koszty rozkazów gospodarczych zostają odłożone. Miarą
+  jest pomiar na `seed=73`, nie ocena „czy gra jest ciekawa". **To samo
+  rozróżnienie dotyczy głodu (wniosek 43):** „niedodatnie saldo = koniec
+  wzrostu na zawsze" to defekt, ale konkretne liczby produkcji i konsumpcji
+  to balans.
 - **Pełny panel ekonomii osady w kliencie** (zapasy, produkcja, konsumpcja,
-  ludność — most niesie to od K63) — **odłożone**. K113 bierze z tego
-  **wyłącznie** garnizon i siłę oddziału, bo tylko te dwie liczby są potrzebne
-  do decyzji „bić czy nie". Reszta dopiero, gdy pokaże ją zmierzona potrzeba.
+  ludność — most niesie to od K63) — **nadal odłożone**. K113 wziął garnizon
+  i siłę oddziału (decyzja „bić czy nie"); K114 dokłada **wyłącznie wolną
+  ludność**, bo zmierzono (wniosek 41), że to ona rozstrzyga, czy przycisk
+  gospodarczy zadziała — a stan głodu niesie **tekst powodu**, nie liczby
+  pszenicy (na progu zapas jest jeszcze dodatni i sam w sobie myli, wniosek
+  43). Zapasy i produkcja — dopiero gdy pokaże je zmierzona potrzeba.
 - Wybór osady dla rozkazów gospodarczych (`develop`/`recruit`/`muster` biorą
-  *pierwszą* pasującą osadę, `target` jest ignorowany) — **odłożone do po
-  K112**, żeby nie mieszać dwóch zmian kontraktu rozkazu naraz.
-- „Ile garnizonu wolno zabrać" (`muster` i wzmocnienie z K112 opróżniają osadę
-  do zera) — **odłożone**: to strojenie, nie defekt blokujący pętlę.
+  *pierwszą* pasującą osadę, `target` ignorowany) — blokada „do po K112"
+  **wygasła**; teraz odłożone **do po K114**, patrz etap 14b.
+- „Ile garnizonu wolno zabrać" (`muster` i K112 opróżniają osadę do zera) —
+  **odłożone**: strojenie, nie defekt blokujący pętlę.
 - Szturm na osadę **sąsiedniego** regionu zajętego przez oddział nie-obrońcę
   (G92.1c) — nadal odłożony: z 3. księstwem lub reprodukcją. **To nie jest
   K110**; wspólny mają wyłącznie guard `apply_settlement_battle_result`.
 - Podział dużych docs (ARCHITECTURE/DECISIONS/DESIGN) — dług, nie blokuje celu.
+  Ten plik trzymany pod 20 KB kompaktowaniem starych wniosków, nie podziałem.
 - Niezależne reguły, AI, ekonomia, ruch, protokół, save/load, porządki i docs
-  pozostają odłożone względem celu grywalnego MVP (bramce oprawy już nie
-  podlegają — K106).
+  pozostają odłożone względem celu grywalnego MVP.
