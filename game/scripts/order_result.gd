@@ -8,6 +8,12 @@ const MOVE_UNCHANGED_STATUS := "Ruch nie nastąpił."
 const MONTHLY_ACTION_EXHAUSTED_STATUS := "Oddział już działał w tym miesiącu — zakończ turę."
 const REINFORCE_CHANGED_STATUS := "Oddział został wzmocniony."
 const REINFORCE_UNCHANGED_STATUS := "Wzmocnienie nie zmieniło stanu oddziału."
+# Fallback intentionally keys on the bridge's Polish reason strings; AC5 keeps
+# the core/bridge contract unchanged, so this is not a mistaken ID lookup.
+const POPULATION_REASON_STATUS_PL := {
+	"brak wolnej ludności": "Brak wolnych mieszkańców — ludność przybędzie w kolejnej turze.",
+	"brak wolnej ludności — osada nie wyżywi przyrostu": "Osada nie wyżywi więcej ludzi — ludność nie przybywa.",
+}
 
 
 static func failure_status_text() -> String:
@@ -60,6 +66,14 @@ static func _monthly_action_was_exhausted(order_result: Dictionary) -> bool:
 	return exhausted is bool and exhausted
 
 
+static func _population_reason_status_text(order_result: Dictionary, order: String) -> String:
+	if order != "develop" and order != "recruit" and order != "muster":
+		return ""
+	if not order_result.has("reason") or not order_result["reason"] is String:
+		return ""
+	return POPULATION_REASON_STATUS_PL.get(order_result["reason"], "")
+
+
 static func _unchanged_status_text(
 	order_result: Dictionary, order: String, is_monthly_action_order: bool
 ) -> String:
@@ -67,6 +81,9 @@ static func _unchanged_status_text(
 		return MONTHLY_ACTION_EXHAUSTED_STATUS
 	if order == "reinforce":
 		return REINFORCE_UNCHANGED_STATUS
+	var population_reason_status := _population_reason_status_text(order_result, order)
+	if not population_reason_status.is_empty():
+		return population_reason_status
 
 	var order_name := _order_name(order)
 	if order_name.is_empty():
@@ -161,6 +178,8 @@ static func from_response(response: Dictionary, monthly_action_exhausted: bool =
 				projected["monthly_action_exhausted"] = true
 			if result.has("blocked_region") and result["blocked_region"] is String:
 				projected["blocked_region"] = result["blocked_region"]
+			if result.has("reason") and result["reason"] is String:
+				projected["reason"] = result["reason"]
 			if result.has("game_over") and result["game_over"] is bool and result["game_over"]:
 				projected["game_over"] = true
 			return projected

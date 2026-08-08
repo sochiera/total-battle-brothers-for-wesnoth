@@ -53,6 +53,37 @@ def test_godot_order_result_projects_only_complete_successful_order_results():
         "changed": False,
         "game_over": True,
     }
+    # G114.1c (task-637): the bridge diagnostic ``reason`` (task-636) must be
+    # projected through so status_text can name what was lacking. Projection is
+    # a faithful carrier (wzorzec K111 / blocked_region): any string reason is
+    # carried, including ones status_text will later map to a fallback.
+    assert payload["recruit_reason_transient"] == {
+        "order": "recruit",
+        "changed": False,
+        "reason": "brak wolnej ludności",
+    }
+    assert payload["recruit_reason_permanent"] == {
+        "order": "recruit",
+        "changed": False,
+        "reason": "brak wolnej ludności — osada nie wyżywi przyrostu",
+    }
+    assert payload["recruit_reason_unknown"] == {
+        "order": "recruit",
+        "changed": False,
+        "reason": "nieznany defekt xyz",
+    }
+    # G114.1c: the bridge carries ``reason`` for develop and muster too
+    # (test_protocol.py); projection must treat all economic orders alike.
+    assert payload["develop_reason_transient"] == {
+        "order": "develop",
+        "changed": False,
+        "reason": "brak wolnej ludności",
+    }
+    assert payload["muster_reason_transient"] == {
+        "order": "muster",
+        "changed": False,
+        "reason": "brak wolnej ludności",
+    }
     assert payload["battle"] == {
         "kind": "battle",
         "order": "assault",
@@ -149,6 +180,15 @@ def test_godot_order_result_returns_polish_status_text_for_projected_orders():
         "move_blocked_unknown_region": "Ruch nie nastąpił.",
         "engage_unchanged_default": "Rozkaz starcia nie zmienił stanu.",
         "engage_battle": "Starcie: porażka (straty: 1, wróg: 0).",
+        # G114.1c (task-637): the refusal reason (task-636 field) surfaces in
+        # Polish. Transient hunger may advise waiting; permanent hunger names
+        # the state. An unrecognized reason falls back to the generic no-op
+        # text (never empty), so a future core reason does not show a blank.
+        "recruit_reason_transient": "Brak wolnych mieszkańców — ludność przybędzie w kolejnej turze.",
+        "recruit_reason_permanent": "Osada nie wyżywi więcej ludzi — ludność nie przybywa.",
+        "recruit_reason_unknown": "Rozkaz rekrutacji nie zmienił stanu.",
+        "develop_reason_transient": "Brak wolnych mieszkańców — ludność przybędzie w kolejnej turze.",
+        "muster_reason_transient": "Brak wolnych mieszkańców — ludność przybędzie w kolejnej turze.",
         "missing_result": "",
         "non_dictionary": "",
         "missing_order": "",
@@ -164,3 +204,20 @@ def test_godot_order_result_returns_polish_status_text_for_projected_orders():
     assert unresolved != "Szturm: remis (straty: 0, wróg: 0)."
     assert unresolved != "Rozkaz nie powiódł się."
     assert "nierozstrzyg" in unresolved.lower()
+
+    # G114.1c AC2: permanent refusal names the state and MUST NOT advise
+    # waiting, promise a way out, refer to an empty granary, or push a second
+    # settlement — on the measured threshold the wheat store is still positive
+    # and neither settlement recovers, so any such advice would be a lie.
+    transient = payload["recruit_reason_transient"]
+    permanent = payload["recruit_reason_permanent"]
+    unknown = payload["recruit_reason_unknown"]
+    assert transient != permanent, "transient and permanent reasons must read differently"
+    assert "kolejnej turze" in transient.lower(), "transient reason should advise waiting"
+    for forbidden in ("kolejnej turze", "poczekaj", "czekaj", "spichlerz", "pusty", "druga osada", "w drugiej"):
+        assert forbidden.lower() not in permanent.lower(), (
+            f"permanent refusal must not say {forbidden!r}: {permanent!r}"
+        )
+    # Never an empty status, and an unrecognized reason keeps the generic no-op text.
+    assert permanent.strip() != ""
+    assert unknown == "Rozkaz rekrutacji nie zmienił stanu."

@@ -58,7 +58,9 @@ def test_persistent_bridge_send_order_persists_and_returns_the_post_order_model(
     assert payload["last_order_result"] == {"order": "develop", "changed": True}
 
     assert payload["unchanged_order"] is not None
-    assert payload["unchanged_order_result"] == {"order": "develop", "changed": False}
+    # G114.1c (task-637): the bridge now carries ``reason`` for no-op economic
+    # orders (task-636); ``from_response`` projects it so status_text can map it.
+    assert payload["unchanged_order_result"] == {"order": "develop", "changed": False, "reason": "komplet budynków"}
     assert payload["rejected_order_is_null"] is True
     assert payload["rejected_order_result"] is None
 

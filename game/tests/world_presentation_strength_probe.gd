@@ -19,6 +19,14 @@ func _init() -> void:
 		"missing": null,
 		"missing_garrison": {"name": "AI Keep"},
 		"non_numeric_garrison": {"name": "AI Outpost", "garrison": "x"},
+		# G114.1c (task-637) AC3: snapshot niesie ``free`` (snapshot.py) — wiersz
+		# osady dokłada wolną ludność obok garnizonu. Zero jest realną wartością
+		# (jak garnizon: 0), więc go nie trać. AC4: brakujące/nieliczbowe ``free``
+		# → dotychczasowy tekst BEZ fabrykowanego „0" (symetrycznie do garnizonu).
+		"keep_garrison_zero_free_zero": {"name": "Player Keep", "garrison": 0, "free": 0},
+		"outpost_garrison_five_free_three": {"name": "Player Outpost", "garrison": 5, "free": 3},
+		"keep_garrison_two_missing_free": {"name": "AI Keep", "garrison": 2},
+		"keep_garrison_two_non_numeric_free": {"name": "AI Outpost", "garrison": 2, "free": "x"},
 	}
 
 	var party_text: Dictionary = {}

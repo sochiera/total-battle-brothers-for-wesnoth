@@ -94,3 +94,35 @@ def test_settlement_strength_text_falls_back_without_fabricating_garrison():
     non_numeric_garrison = texts["non_numeric_garrison"]
     assert "Posterunek wroga" in non_numeric_garrison, non_numeric_garrison
     assert not _has_digit(non_numeric_garrison), non_numeric_garrison
+
+
+def test_settlement_strength_text_reports_free_population_alongside_garrison():
+    texts = _load_texts()["settlement"]
+
+    # G114.1c (task-637) AC3: wiersz osady dokłada wolną ludność obok garnizonu
+    # z K113. Zero jest realną wartością (jak garnizon: 0), więc go nie trać.
+    zero_free = texts["keep_garrison_zero_free_zero"]
+    assert "Twierdza gracza" in zero_free, zero_free
+    assert "garnizon: 0" in zero_free, zero_free
+    assert "wolni mieszkańcy: 0" in zero_free, zero_free
+
+    three_free = texts["outpost_garrison_five_free_three"]
+    assert "Posterunek gracza" in three_free, three_free
+    assert "garnizon: 5" in three_free, three_free
+    assert "wolni mieszkańcy: 3" in three_free, three_free
+
+
+def test_settlement_strength_text_omits_free_population_without_fabricating_zero():
+    texts = _load_texts()["settlement"]
+
+    # G114.1c (task-637) AC4: brakujące/nieliczbowe ``free`` → dotychczasowy
+    # tekst zastępczy BEZ „0" wziętego z powietrza (symetrycznie do garnizonu).
+    missing_free = texts["keep_garrison_two_missing_free"]
+    assert "Twierdza wroga" in missing_free, missing_free
+    assert "garnizon: 2" in missing_free, missing_free
+    assert "wolni" not in missing_free.lower(), missing_free
+
+    non_numeric_free = texts["keep_garrison_two_non_numeric_free"]
+    assert "Posterunek wroga" in non_numeric_free, non_numeric_free
+    assert "garnizon: 2" in non_numeric_free, non_numeric_free
+    assert "wolni" not in non_numeric_free.lower(), non_numeric_free

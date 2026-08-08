@@ -28,7 +28,9 @@ def _expected_controls(recruits: int) -> dict:
             "Rozkaz rekrutacji zmienił stan."
             # G92.2a: two keeps × four free garrison slots = eight productive recruits.
             if recruits <= 8
-            else "Rozkaz rekrutacji nie zmienił stanu."
+            # G114.1c (task-637): no-op recruit carries the transient population
+            # reason through the bridge → status names what was lacking.
+            else "Brak wolnych mieszkańców — ludność przybędzie w kolejnej turze."
         ),
     }
 

@@ -57,7 +57,11 @@ static func settlement_strength_text(settlement: Variant) -> String:
 	var garrison: Variant = settlement.get("garrison")
 	if not _is_number(garrison):
 		return settlement_text
-	return "%s, garnizon: %s" % [settlement_text, str(garrison)]
+	var strength_text := _append_numeric_detail(settlement_text, "garnizon", garrison)
+	strength_text = _append_numeric_detail(
+		strength_text, "wolni mieszkańcy", settlement.get("free")
+	)
+	return strength_text
 
 
 static func side_text(owner: Variant) -> String:
@@ -90,6 +94,12 @@ static func _party_text(party: Variant) -> String:
 
 static func _is_number(value: Variant) -> bool:
 	return value is int or value is float
+
+
+static func _append_numeric_detail(text: String, label: String, value: Variant) -> String:
+	if not _is_number(value):
+		return text
+	return "%s, %s: %s" % [text, label, str(value)]
 
 
 static func _unit_word(size: Variant) -> String:
