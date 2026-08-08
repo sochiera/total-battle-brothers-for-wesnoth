@@ -121,9 +121,14 @@ def economic_order_reason(
     return "brak złota"
 
 
-def develop_duchy_settlement(world: WorldMap, duchy: Duchy) -> WorldMap:
-    """Open one priority building in the first eligible owned settlement."""
-    for region in world.regions:
+def develop_duchy_settlement(
+    world: WorldMap, duchy: Duchy, target: Region | None = None
+) -> WorldMap:
+    """Open one priority building in the target or first eligible settlement."""
+    if target is not None:
+        world.settlement_at(target)
+    regions = (target,) if target is not None else world.regions
+    for region in regions:
         settlement = world.settlements.get(region)
         if settlement is None or settlement.owner_id != duchy.duchy_id:
             continue

@@ -2105,6 +2105,79 @@ def test_develop_duchy_settlement_fulfills_priority_selection_and_purity_contrac
     assert develop_duchy_settlement(exhausted_world, duchy) is exhausted_world
 
 
+@pytest.mark.parametrize(
+    "target_name, developed_name",
+    [
+        ("second", "second"),
+        ("empty", None),
+        ("foreign", None),
+        ("unowned", None),
+        ("full", None),
+        ("built", None),
+    ],
+)
+def test_develop_duchy_settlement_honors_indicated_region_target(
+    target_name, developed_name
+):
+    foreign, unowned, full, built, first, second, empty = map(
+        Region,
+        ("Foreign", "Unowned", "Full", "Built", "First", "Second", "Empty"),
+    )
+    named = {
+        "foreign": foreign,
+        "unowned": unowned,
+        "full": full,
+        "built": built,
+        "first": first,
+        "second": second,
+        "empty": empty,
+    }
+    settlements = {
+        foreign: Settlement("Foreign", population=1, owner_id="enemy"),
+        unowned: Settlement("Unowned", population=1),
+        full: Settlement("Full", population=1, occupied=1, owner_id="ai"),
+        built: Settlement(
+            "Built",
+            population=8,
+            occupied=4,
+            active_buildings=(tbb.FARM, tbb.SMITH, tbb.BARRACKS, tbb.MARKET),
+            owner_id="ai",
+        ),
+        first: Settlement("First", population=4, owner_id="ai"),
+        second: Settlement("Second", population=3, owner_id="ai"),
+    }
+    world = WorldMap(
+        [foreign, unowned, full, built, first, second, empty],
+        settlements=settlements,
+    )
+    duchy = Duchy("ai", Unit())
+
+    result = develop_duchy_settlement(world, duchy, target=named[target_name])
+
+    if developed_name is None:
+        assert result == world
+        assert result.settlement_at(first).active_buildings == ()
+        assert result.settlement_at(second).active_buildings == ()
+    else:
+        developed = named[developed_name]
+        assert result.settlement_at(developed).active_buildings == (tbb.FARM,)
+        assert result.settlement_at(developed).occupied == tbb.FARM.staff
+        for region in (first, second):
+            if region is not developed:
+                assert result.settlement_at(region).active_buildings == ()
+
+
+def test_develop_duchy_settlement_rejects_target_outside_the_world():
+    home = Region("Home")
+    world = WorldMap(
+        [home], settlements={home: Settlement("Home", population=4, owner_id="ai")}
+    )
+    duchy = Duchy("ai", Unit())
+
+    with pytest.raises(ValueError):
+        develop_duchy_settlement(world, duchy, target=Region("Outside"))
+
+
 def test_duchy_turn_develops_farm_before_recruiting_one_unit():
     home = Region("Home")
     settlement = Settlement(
