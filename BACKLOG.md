@@ -2038,9 +2038,18 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
       bezskuteczny rozkaz z powodem, nigdy `ok:false`. *(standard, task-644)*
 - [ ] **G116.1e [KLIENT]** Wybrany region kieruje przyciskami gospodarczymi;
       bez wyboru jak dziś. Dowód wizualny 1152×648. *(standard, task-645)*
-- [ ] **G116.1f [POMIAR]** Żywy most `seed=73` przez dwa procesy: osady
+- [x] **G116.1f [POMIAR]** Żywy most `seed=73` przez dwa procesy: osady
       rozchodzą się zgodnie ze wskazaniem, regresje rozstrzygnięcia i K115
       stoją. Zapis pomiaru tutaj. *(standard, task-646)*
+> **Pomiar zamykający G116.1f (2026-08-08, żywy most `seed=73`):** bierna
+> partia po **6× `next_turn`** kończy się porażką w **R1M7**; aktywna ścieżka
+> `recruit` → `muster` → `march` → `next_turn` → `engage` → `next_turn` →
+> `assault` → `next_turn` → `assault` kończy się zwycięstwem w **R1M4**.
+> Po `develop`×2 `player lands` ma `population=5`, `free=2`, `garrison=1`, a
+> `player outpost` `population=5`, `free=4`, `garrison=1`; po 5× `next_turn`
+> `player lands` odrasta do `population=8`, `free=5`, `garrison=1`, a przed
+> przejęciem osady przez AI `player outpost` osiąga `population=7`, `free=6`,
+> `garrison=1`. Kolejny `develop` zwraca `changed:true`.
 
 ## Dług/refaktor
 - [x] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
