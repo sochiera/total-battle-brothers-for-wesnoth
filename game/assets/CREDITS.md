@@ -113,6 +113,7 @@ The settlement-order icons are adapted from Game-icons.net under CC-BY 3.0.
 | icon_develop.png | https://game-icons.net/1x1/delapouite/growth.html (growth.svg) | Delapouite | CC-BY 3.0 |
 | icon_recruit.png | https://game-icons.net/1x1/delapouite/medieval-barracks.html (medieval-barracks.svg) | Delapouite | CC-BY 3.0 |
 | icon_muster.png | https://game-icons.net/1x1/lorc/rally-the-troops.html (rally-the-troops.svg) | Lorc | CC-BY 3.0 |
+| icon_reinforce.png | https://game-icons.net/1x1/delapouite/upgrade.html (upgrade.svg) | Delapouite | CC-BY 3.0 |
 
 The field-order icons are adapted from Game-icons.net under CC-BY 3.0.
 

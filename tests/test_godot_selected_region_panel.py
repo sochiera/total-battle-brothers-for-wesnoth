@@ -6,6 +6,8 @@ import json
 import re
 from pathlib import Path
 
+import pytest
+
 from godot_png_assets import assert_asset_credited
 from godot_runner import run_godot_script
 
@@ -431,3 +433,183 @@ def test_selected_region_panel_invents_no_strength_without_party_or_settlement()
     assert not re.search(r"\d", settlement), (
         f"bare region must not show any garrison number, got {settlement!r}"
     )
+
+
+def test_reinforce_button_refreshes_selected_region_strength_without_manual_refresh():
+    """G112.1d crit-3: clicking reinforce redraws the selected panel.
+
+    Realistic defect existing gates miss: Main can render snapshot numbers and
+    can dispatch other order buttons, yet a reinforce handler can omit the
+    post-order model application or leave the selected-region panel cached.
+    """
+    payload = _load_panel()
+    reinforce = payload.get("reinforce") or {}
+    assert reinforce.get("button_found") is True, payload
+    assert reinforce.get("pressed") is True, reinforce
+    assert reinforce.get("orders") == ["reinforce"], reinforce
+
+    before = reinforce.get("before") or {}
+    after = reinforce.get("after") or {}
+    before_army = _detail_row(before, "Armia:", phase="reinforce_before")
+    after_army = _detail_row(after, "Armia:", phase="reinforce_after")
+    before_settlement = _detail_row(before, "Osada:", phase="reinforce_before")
+    after_settlement = _detail_row(after, "Osada:", phase="reinforce_after")
+
+    assert re.search(r"(?<!\d)5(?!\d)", before_army), before_army
+    assert re.search(r"(?<!\d)5(?!\d)", before_settlement), before_settlement
+    assert re.search(r"(?<!\d)10(?!\d)", after_army), after_army
+    assert re.search(r"(?<!\d)0(?!\d)", after_settlement), after_settlement
+    assert not re.search(r"(?<!\d)5(?!\d)", after_army), after_army
+    assert not re.search(r"(?<!\d)5(?!\d)", after_settlement), after_settlement
+
+
+def test_ineffective_reinforce_shows_a_reason_in_the_real_ui():
+    """G112.1d crit-2: changed:false must explain an empty garrison.
+
+    Realistic defect existing gates miss: the live button can send an
+    ineffective order and leave the panel rendered with a valid party/garrison
+    snapshot, while the status still reports only a generic no-op. The fixture
+    deliberately has a party of five and a zero garrison, so the client can
+    identify the reason without guessing at the core result.
+    """
+    payload = _load_panel()
+    reinforce = payload.get("reinforce_ineffective") or {}
+    assert reinforce.get("button_found") is True, payload
+    assert reinforce.get("pressed") is True, reinforce
+    assert reinforce.get("orders") == ["reinforce"], reinforce
+
+    status = reinforce.get("status") or {}
+    status_text = str(status.get("text") or "")
+    assert status.get("visible") is True, status
+    assert status_text, "an ineffective reinforce must not leave the status empty"
+    assert "garnizon" in status_text.lower(), status_text
+    assert status_text != "Wzmocnienie nie zmieniło stanu oddziału.", status_text
+
+    after = reinforce.get("after") or {}
+    army = _detail_row(after, "Armia:", phase="reinforce_ineffective_after")
+    settlement = _detail_row(after, "Osada:", phase="reinforce_ineffective_after")
+    assert re.search(r"(?<!\d)5(?!\d)", army), army
+    assert re.search(r"(?<!\d)0(?!\d)", settlement), settlement
+
+
+def test_ineffective_reinforce_explains_a_foreign_settlement():
+    """G112.1d review regression: foreign ownership is a distinct cause.
+
+    Realistic defect existing gates miss: a failed reinforce at a foreign
+    settlement with zero garrison is indistinguishable from an own settlement
+    with no garrison unless the client compares the party and settlement
+    owners from the snapshot before checking the garrison count.
+    """
+    payload = _load_panel()
+    foreign = payload.get("reinforce_foreign_settlement") or {}
+    assert foreign.get("button_found") is True, foreign
+    assert foreign.get("pressed") is True, foreign
+    assert foreign.get("orders") == ["reinforce"], foreign
+    status = foreign.get("status") or {}
+    assert status.get("visible") is True, status
+    assert status.get("text") == "Oddział stoi w obcej osadzie.", status
+
+
+def test_reinforce_game_over_status_precedes_contextual_cause():
+    """G112.1d review regression: game-over status keeps its priority.
+
+    Realistic defect existing gates miss: changed:false with game_over:true
+    and a zero-garrison snapshot can be replaced by the contextual
+    reinforcement explanation, hiding the existing terminal-game contract.
+    """
+    payload = _load_panel()
+    game_over = payload.get("reinforce_game_over") or {}
+    assert game_over.get("orders") == ["reinforce"], game_over
+    status = game_over.get("status") or {}
+    assert status.get("visible") is True, status
+    assert status.get("text") == "Partia jest zakończona.", status
+
+
+def test_reinforce_status_uses_actual_party_position():
+    """G112.1d review regression: contextual status follows actual party.
+
+    Realistic defect existing gates miss: selecting another settlement with a
+    zero garrison can make a failed reinforce claim the wrong cause.
+    """
+    payload = _load_panel()
+
+    mismatch = payload.get("reinforce_selection_mismatch") or {}
+    assert mismatch.get("button_found") is True, mismatch
+    assert mismatch.get("orders") == ["reinforce"], mismatch
+    assert mismatch.get("actual_party_region") != mismatch.get("selected_region"), mismatch
+    mismatch_status = mismatch.get("status") or {}
+    assert mismatch_status.get("visible") is True, mismatch_status
+    assert mismatch_status.get("text") == "Wzmocnienie nie zmieniło stanu oddziału.", (
+        "reinforce status must use the actual party settlement, not the selected "
+        f"region's garrison, got {mismatch_status!r}"
+    )
+
+
+def test_reinforce_exhausted_status_has_priority_over_garrison_context():
+    """G112.1d review regression: exhausted action reason wins.
+
+    Realistic defect existing gates miss: a second failed click can hide the
+    bridge's monthly-action-exhausted reason after a successful reinforce.
+    """
+    payload = _load_panel()
+    exhausted = payload.get("reinforce_exhausted") or {}
+    assert exhausted.get("orders") == ["reinforce"], exhausted
+    exhausted_status = exhausted.get("status") or {}
+    assert exhausted_status.get("visible") is True, exhausted_status
+    assert exhausted_status.get("text") == "Oddział już działał w tym miesiącu — zakończ turę.", (
+        "monthly_action_exhausted must take priority over the selected party's "
+        f"zero-garrison context, got {exhausted_status!r}"
+    )
+
+
+@pytest.mark.parametrize(
+    ("case_name", "expected_status"),
+    [
+        ("reinforce_no_party", "Brak oddziału do wzmocnienia."),
+        ("reinforce_no_settlement", "Oddział nie stoi w osadzie."),
+    ],
+)
+def test_ineffective_reinforce_explains_missing_party_or_settlement(
+    case_name: str, expected_status: str
+):
+    """G112.1d review regression: snapshot context explains both no-op causes.
+
+    Realistic defect existing gates miss: the generic contextual status handles
+    a zero garrison, but falls through to the generic no-op when the snapshot
+    has no player party or has a party outside any settlement.
+    """
+    payload = _load_panel()
+
+    case = payload.get(case_name) or {}
+    assert case.get("button_found") is True, case
+    assert case.get("pressed") is True, case
+    assert case.get("orders") == ["reinforce"], case
+    status = case.get("status") or {}
+    assert status.get("visible") is True, status
+    assert status.get("text") == expected_status, (
+        f"{case_name} must explain the snapshot cause in Polish, got {status!r}"
+    )
+
+
+def test_ineffective_reinforce_explains_party_capacity_limit():
+    """G112.1d review regression: capacity no-op gets its own explanation.
+
+    Realistic defect existing gates miss: the client can explain an empty
+    garrison and missing context, yet still show the generic no-op when an
+    eight-unit party tries to absorb a five-unit garrison and would exceed the
+    core's maximum party size of twelve.
+    """
+    payload = _load_panel()
+
+    capacity = payload.get("reinforce_capacity_limit") or {}
+    assert capacity.get("button_found") is True, capacity
+    assert capacity.get("pressed") is True, capacity
+    assert capacity.get("orders") == ["reinforce"], capacity
+
+    status = capacity.get("status") or {}
+    status_text = str(status.get("text") or "")
+    assert status.get("visible") is True, status
+    assert status_text, "a capacity-limited reinforce must not leave the status empty"
+    assert status_text == (
+        "Wzmocnienie przekroczyłoby limit liczebności oddziału: 12 jednostek."
+    ), status_text

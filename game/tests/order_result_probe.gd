@@ -45,6 +45,9 @@ const EXPECTED_STATUS_TEXT := {
 	"recruit_unchanged": "Rozkaz rekrutacji nie zmienił stanu.",
 	"muster_changed": "Rozkaz zbiórki zmienił stan.",
 	"muster_unchanged": "Rozkaz zbiórki nie zmienił stanu.",
+	"reinforce_changed": "Oddział został wzmocniony.",
+	"reinforce_unchanged": "Wzmocnienie nie zmieniło stanu oddziału.",
+	"reinforce_exhausted": "Oddział już działał w tym miesiącu — zakończ turę.",
 	"assault_unchanged": "Oddział już działał w tym miesiącu — zakończ turę.",
 	"assault_unchanged_default": "Rozkaz szturmu nie zmienił stanu.",
 	# G97.1f: celowany move ma własne PL (nie szablon „Rozkaz … zmienił stan.”).
@@ -131,6 +134,9 @@ func _init() -> void:
 		"recruit_unchanged": OrderResult.from_response({"ok": true, "result": {"kind": "order", "order": "recruit", "changed": false}}),
 		"muster_changed": OrderResult.from_response({"ok": true, "result": {"kind": "order", "order": "muster", "changed": true}}),
 		"muster_unchanged": OrderResult.from_response({"ok": true, "result": {"kind": "order", "order": "muster", "changed": false}}),
+		"reinforce_changed": OrderResult.from_response({"ok": true, "result": {"kind": "order", "order": "reinforce", "changed": true}}),
+		"reinforce_unchanged": OrderResult.from_response({"ok": true, "result": {"kind": "order", "order": "reinforce", "changed": false}}),
+		"reinforce_exhausted": OrderResult.from_response({"ok": true, "result": {"kind": "order", "order": "reinforce", "changed": false}}, true),
 		# The exhausted-month wording requires the bridge's explicit context.
 		"assault_unchanged": OrderResult.from_response({"ok": true, "result": {"kind": "order", "order": "assault", "changed": false}}, true),
 		"assault_unchanged_default": OrderResult.from_response({"ok": true, "result": {"kind": "order", "order": "assault", "changed": false}}),

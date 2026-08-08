@@ -31,7 +31,7 @@ def test_order_bar_discovers_configured_commands_in_every_order_bar_row_for_styl
     lines = [line for line in result.stdout.splitlines() if line.startswith(PREFIX)]
     assert len(lines) == 1, result.stdout
     assert json.loads(lines[0][len(PREFIX) :]) == {
-        "calls": ["recruit", "recruit"],
+        "calls": ["recruit", "recruit", "reinforce"],
         "buttons": {
             "ProbeGridRecruitButton": {
                 "normal": {"carrier": "StyleBoxTexture", "explicit": True},
@@ -39,6 +39,17 @@ def test_order_bar_discovers_configured_commands_in_every_order_bar_row_for_styl
                 "pressed": {"carrier": "StyleBoxTexture", "explicit": True},
             },
             "ProbeOtherRowRecruitButton": {
+                "normal": {"carrier": "StyleBoxTexture", "explicit": True},
+                "hover": {"carrier": "StyleBoxTexture", "explicit": True},
+                "pressed": {"carrier": "StyleBoxTexture", "explicit": True},
+            },
+        },
+        "reinforce": {
+            "found": True,
+            "text": "Wzmocnij oddział",
+            "order_name": "reinforce",
+            "icon": "res://assets/icon_reinforce.png",
+            "styles": {
                 "normal": {"carrier": "StyleBoxTexture", "explicit": True},
                 "hover": {"carrier": "StyleBoxTexture", "explicit": True},
                 "pressed": {"carrier": "StyleBoxTexture", "explicit": True},

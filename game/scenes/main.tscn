@@ -1,4 +1,4 @@
-[gd_scene load_steps=21 format=3]
+[gd_scene load_steps=22 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/map_view.gd" id="2_map_view"]
@@ -14,6 +14,7 @@
 [ext_resource type="Texture2D" path="res://assets/icon_develop.png" id="6_develop_icon"]
 [ext_resource type="Texture2D" path="res://assets/icon_recruit.png" id="7_recruit_icon"]
 [ext_resource type="Texture2D" path="res://assets/icon_muster.png" id="8_muster_icon"]
+[ext_resource type="Texture2D" path="res://assets/icon_reinforce.png" id="15_reinforce_icon"]
 [ext_resource type="Texture2D" path="res://assets/icon_march.png" id="9_march_icon"]
 [ext_resource type="Texture2D" path="res://assets/icon_assault.png" id="10_assault_icon"]
 [ext_resource type="Texture2D" path="res://assets/icon_engage.png" id="14_engage_icon"]
@@ -592,6 +593,13 @@ layout_mode = 2
 icon = ExtResource("8_muster_icon")
 text = "Zbierz oddział"
 metadata/order_name = "muster"
+
+[node name="ReinforceButton" type="Button" parent="MainLayout/OrderControls/OrderBarContent/OrderButtons"]
+custom_minimum_size = Vector2(140, 40)
+layout_mode = 2
+icon = ExtResource("15_reinforce_icon")
+text = "Wzmocnij oddział"
+metadata/order_name = "reinforce"
 
 [node name="MarchButton" type="Button" parent="MainLayout/OrderControls/OrderBarContent/OrderButtons"]
 unique_name_in_owner = true

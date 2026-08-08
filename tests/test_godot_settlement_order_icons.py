@@ -1,4 +1,4 @@
-"""Settlement order buttons: distinct credited icons with Polish labels (G95.1b)."""
+"""Settlement order buttons: distinct credited icons with Polish labels (G95.1b/G112.1d)."""
 
 from __future__ import annotations
 
@@ -17,8 +17,8 @@ CREDITS = GAME / "assets" / "CREDITS.md"
 PROBE = "res://tests/settlement_order_icons_probe.gd"
 PREFIX = "SETTLEMENT_ORDER_ICONS "
 
-# Public presentation paths for settlement order icons (G95.1b).
-# Names mirror icon_next_turn.png and the three Polish settlement commands.
+# Public presentation paths for settlement order icons (G95.1b/G112.1d).
+# Names mirror icon_next_turn.png and the four Polish settlement commands.
 ORDERS: tuple[dict[str, str], ...] = (
     {
         "name": "DevelopButton",
@@ -34,6 +34,11 @@ ORDERS: tuple[dict[str, str], ...] = (
         "name": "MusterButton",
         "text": "Zbierz oddział",
         "icon_rel": "assets/icon_muster.png",
+    },
+    {
+        "name": "ReinforceButton",
+        "text": "Wzmocnij oddział",
+        "icon_rel": "assets/icon_reinforce.png",
     },
 )
 # Icon must be large enough to read beside the label on a 40px-tall control.
@@ -51,14 +56,14 @@ def _payload_from(result: subprocess.CompletedProcess[str]) -> dict:
 
 
 def test_settlement_order_buttons_show_distinct_credited_icons_with_polish_labels():
-    """Develop / Recruit / Muster must each show a distinct Texture2D icon.
+    """Develop / Recruit / Muster / Reinforce each show a distinct icon.
 
     Realistic defect existing gates miss: the three settlement order buttons
     remain plain ``Button`` nodes with only Polish ``text``. Existing probes
     (develop/recruit/muster unbound + binding) and layout/e2e gates assert
     names, labels, connections, and geometry — so a purely textual order bar
-    stays green while G95.1b requires three mutually distinct, credited
-    graphics under public ``res://assets/icon_{develop,recruit,muster}.png``
+    stays green while G95.1b/G112.1d requires four mutually distinct, credited
+    graphics under public ``res://assets/icon_{develop,recruit,muster,reinforce}.png``
     paths that do not replace the Polish labels.
     """
     digests: list[str] = []
@@ -71,7 +76,7 @@ def test_settlement_order_buttons_show_distinct_credited_icons_with_polish_label
         assert_asset_credited(CREDITS, Path(order["icon_rel"]).name)
     assert len(set(digests)) == len(digests), (
         "settlement order icon files must be pairwise distinct bytes "
-        f"(not three copies of one placeholder), digests={digests!r}"
+        f"(not copies of one placeholder), digests={digests!r}"
     )
 
     imported = _import_game_assets()
@@ -106,5 +111,5 @@ def test_settlement_order_buttons_show_distinct_credited_icons_with_polish_label
 
     assert len(set(icon_paths)) == len(icon_paths), (
         "settlement order icons must be pairwise distinct "
-        f"(develop ≠ recruit ≠ muster), got {icon_paths!r}"
+        f"(develop ≠ recruit ≠ muster ≠ reinforce), got {icon_paths!r}"
     )

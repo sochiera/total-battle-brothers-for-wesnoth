@@ -8,6 +8,7 @@ const BUTTONS := [
 	{"name": "DevelopButton", "text": "Rozwiń osadę"},
 	{"name": "RecruitButton", "text": "Rekrutuj jednostkę"},
 	{"name": "MusterButton", "text": "Zbierz oddział"},
+	{"name": "ReinforceButton", "text": "Wzmocnij oddział"},
 ]
 
 

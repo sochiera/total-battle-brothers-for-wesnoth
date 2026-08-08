@@ -36,6 +36,12 @@ const ORDER_BUTTON_FONT_HOVER := Color(0.14, 0.08, 0.04, 1.0)
 const ORDER_BUTTON_FONT_PRESSED := Color(0.1, 0.05, 0.02, 1.0)
 const ORDER_NAME_META := "order_name"
 const SELECTED_REGION_EMPTY_PL := "Nie wybrano regionu"
+const REINFORCE_NO_PARTY_STATUS := "Brak oddziału do wzmocnienia."
+const REINFORCE_NO_SETTLEMENT_STATUS := "Oddział nie stoi w osadzie."
+const REINFORCE_NO_GARRISON_STATUS := "Brak garnizonu do wzmocnienia oddziału."
+const REINFORCE_FOREIGN_SETTLEMENT_STATUS := "Oddział stoi w obcej osadzie."
+const REINFORCE_PARTY_CAPACITY := 12
+const REINFORCE_CAPACITY_STATUS := "Wzmocnienie przekroczyłoby limit liczebności oddziału: 12 jednostek."
 # G101.1c: visible ResultLabel value cells (row key is ResultKeyLabel).
 const RESULT_VALUE_BY_CODE := {
 	"ongoing": "gra trwa",
@@ -59,6 +65,7 @@ const VIEWPORT_HEIGHT_FALLBACK := 648.0
 var _client: Variant = null
 var _save_path := ""
 var _current_regions: Array = []
+var _player_party_region: Variant = null
 var _default_march_label := ""
 var _map_view_min_height_no_battle := 0.0
 var _order_button_handlers: Dictionary = {}
@@ -377,7 +384,52 @@ func send_order_from_bridge(client, order_name: String, target: String = "") -> 
 
 
 func _applied_order_status(client) -> String:
-	return OrderResult.status_text(_last_order_result(client))
+	var order_result: Variant = _last_order_result(client)
+	var contextual_status := _reinforce_context_status(order_result)
+	if not contextual_status.is_empty():
+		return contextual_status
+	return OrderResult.status_text(order_result)
+
+
+func _reinforce_context_status(order_result: Variant) -> String:
+	if not order_result is Dictionary:
+		return ""
+	if order_result.get("order") != "reinforce" or order_result.get("changed") != false:
+		return ""
+	# Terminal-game feedback must remain more important than snapshot context.
+	if order_result.get("game_over", false) == true:
+		return ""
+	if order_result.get("monthly_action_exhausted", false) == true:
+		return ""
+	var party_region := _find_region_by_name(_current_regions, _player_party_region)
+	if party_region.is_empty() or not party_region.get("party") is Dictionary:
+		return REINFORCE_NO_PARTY_STATUS
+	var party: Dictionary = party_region.get("party")
+	var settlement: Variant = party_region.get("settlement")
+	if not settlement is Dictionary:
+		return REINFORCE_NO_SETTLEMENT_STATUS
+	var settlement_owner: Variant = settlement.get("owner", party_region.get("owner"))
+	if party.get("owner") != settlement_owner:
+		return REINFORCE_FOREIGN_SETTLEMENT_STATUS
+	var capacity_status := _reinforce_capacity_status(party, settlement)
+	if not capacity_status.is_empty():
+		return capacity_status
+	var garrison: Variant = settlement.get("garrison")
+	if not (garrison is int or garrison is float) or garrison != 0:
+		return ""
+	return REINFORCE_NO_GARRISON_STATUS
+
+
+func _reinforce_capacity_status(party: Dictionary, settlement: Dictionary) -> String:
+	var party_size: Variant = party.get("size")
+	var garrison: Variant = settlement.get("garrison")
+	if not (party_size is int or party_size is float):
+		return ""
+	if not (garrison is int or garrison is float) or garrison <= 0:
+		return ""
+	if float(party_size) + float(garrison) <= REINFORCE_PARTY_CAPACITY:
+		return ""
+	return REINFORCE_CAPACITY_STATUS
 
 
 func _last_order_result(client) -> Variant:
@@ -417,6 +469,7 @@ func _sync_order_status_ribbon_visible(show_ribbon: bool) -> void:
 
 func apply_model(model: SnapshotModel) -> void:
 	_current_regions = model.regions
+	_player_party_region = model.player_party_region
 	# Status card hierarchy (G101.1c + G105.1d): label+value rows with major-group
 	# and dense duchy-row HSeparators, not a text wall or bare metric triple.
 	# Visible ResultLabel / PlayerPartyPositionLabel hold value cells only;
@@ -639,11 +692,14 @@ func _set_selected_region_detail_rows(
 
 
 func _find_selected_region(regions: Array) -> Dictionary:
-	var selected_region_name: String = %MapView.selected_region_name
-	if selected_region_name.is_empty():
+	return _find_region_by_name(regions, %MapView.selected_region_name)
+
+
+func _find_region_by_name(regions: Array, region_name: Variant) -> Dictionary:
+	if not region_name is String or region_name.is_empty():
 		return {}
 	for region: Variant in regions:
-		if region is Dictionary and region.get("name") == selected_region_name:
+		if region is Dictionary and region.get("name") == region_name:
 			return region
 	return {}
 

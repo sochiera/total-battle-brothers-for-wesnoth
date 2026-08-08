@@ -50,11 +50,18 @@ func _run() -> void:
 	scene_root.bind_client(RefCounted.new())
 	grid_button.emit_signal("pressed")
 	other_row_button.emit_signal("pressed")
+	var reinforce_button := scene_root.find_child("ReinforceButton", true, false) as Button
+	if reinforce_button != null:
+		reinforce_button.emit_signal("pressed")
 
 	var buttons := {}
 	for button: Button in [grid_button, other_row_button]:
 		buttons[button.name] = _button_states(button)
-	print(PREFIX, JSON.stringify({"calls": scene_root.calls, "buttons": buttons}))
+	print(PREFIX, JSON.stringify({
+		"calls": scene_root.calls,
+		"buttons": buttons,
+		"reinforce": _order_button_observation(reinforce_button),
+	}))
 	quit(0)
 
 
@@ -75,6 +82,21 @@ func _button_states(button: Button) -> Dictionary:
 			"explicit": button.has_theme_stylebox_override(state_name),
 		}
 	return states
+
+
+func _order_button_observation(button: Button) -> Dictionary:
+	if button == null:
+		return {"found": false}
+	var icon_path := ""
+	if button.icon != null:
+		icon_path = button.icon.resource_path
+	return {
+		"found": true,
+		"text": button.text,
+		"order_name": str(button.get_meta("order_name", "")),
+		"icon": icon_path,
+		"styles": _button_states(button),
+	}
 
 
 func _fail(message: String) -> void:

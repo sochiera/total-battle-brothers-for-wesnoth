@@ -6,6 +6,8 @@ const WorldPresentation = preload("res://scripts/world_presentation.gd")
 const MOVE_CHANGED_STATUS := "Oddział przemieścił się."
 const MOVE_UNCHANGED_STATUS := "Ruch nie nastąpił."
 const MONTHLY_ACTION_EXHAUSTED_STATUS := "Oddział już działał w tym miesiącu — zakończ turę."
+const REINFORCE_CHANGED_STATUS := "Oddział został wzmocniony."
+const REINFORCE_UNCHANGED_STATUS := "Wzmocnienie nie zmieniło stanu oddziału."
 
 
 static func failure_status_text() -> String:
@@ -31,6 +33,10 @@ static func _is_military_order(order: String) -> bool:
 	return order == "assault" or order == "engage"
 
 
+static func _is_monthly_action_order(order: String) -> bool:
+	return _is_military_order(order) or order == "reinforce"
+
+
 static func _order_name(order: String) -> String:
 	match order:
 		"develop":
@@ -49,13 +55,18 @@ static func _order_name(order: String) -> String:
 			return ""
 
 
+static func _monthly_action_was_exhausted(order_result: Dictionary) -> bool:
+	var exhausted: Variant = order_result.get("monthly_action_exhausted", false)
+	return exhausted is bool and exhausted
+
+
 static func _unchanged_status_text(
-	order_result: Dictionary, order: String, is_military_order: bool
+	order_result: Dictionary, order: String, is_monthly_action_order: bool
 ) -> String:
-	if is_military_order:
-		var exhausted: Variant = order_result.get("monthly_action_exhausted", false)
-		if exhausted is bool and exhausted:
-			return MONTHLY_ACTION_EXHAUSTED_STATUS
+	if is_monthly_action_order and _monthly_action_was_exhausted(order_result):
+		return MONTHLY_ACTION_EXHAUSTED_STATUS
+	if order == "reinforce":
+		return REINFORCE_UNCHANGED_STATUS
 
 	var order_name := _order_name(order)
 	if order_name.is_empty():
@@ -86,6 +97,7 @@ static func status_text(order_result: Variant) -> String:
 
 	var order: String = order_result["order"]
 	var is_military_order := _is_military_order(order)
+	var is_monthly_action_order := _is_monthly_action_order(order)
 	if order_result.has("kind"):
 		if order_result["kind"] != "battle" or not is_military_order:
 			return ""
@@ -110,9 +122,11 @@ static func status_text(order_result: Variant) -> String:
 			return blocked_status
 		if order == "move":
 			return _move_status_text(false)
-		return _unchanged_status_text(order_result, order, is_military_order)
+		return _unchanged_status_text(order_result, order, is_monthly_action_order)
 	if order == "move":
 		return _move_status_text(true)
+	if order == "reinforce":
+		return REINFORCE_CHANGED_STATUS
 
 	var order_name := _order_name(order)
 	if order_name.is_empty():
@@ -143,7 +157,7 @@ static func from_response(response: Dictionary, monthly_action_exhausted: bool =
 			if not changed is bool:
 				return null
 			var projected = {"order": order, "changed": changed}
-			if monthly_action_exhausted and not changed and is_military_order:
+			if monthly_action_exhausted and not changed and _is_monthly_action_order(order):
 				projected["monthly_action_exhausted"] = true
 			if result.has("blocked_region") and result["blocked_region"] is String:
 				projected["blocked_region"] = result["blocked_region"]

@@ -125,6 +125,9 @@ def test_godot_order_result_returns_polish_status_text_for_projected_orders():
         "recruit_unchanged": "Rozkaz rekrutacji nie zmienił stanu.",
         "muster_changed": "Rozkaz zbiórki zmienił stan.",
         "muster_unchanged": "Rozkaz zbiórki nie zmienił stanu.",
+        "reinforce_changed": "Oddział został wzmocniony.",
+        "reinforce_unchanged": "Wzmocnienie nie zmieniło stanu oddziału.",
+        "reinforce_exhausted": "Oddział już działał w tym miesiącu — zakończ turę.",
         "assault_unchanged": "Oddział już działał w tym miesiącu — zakończ turę.",
         "assault_unchanged_default": "Rozkaz szturmu nie zmienił stanu.",
         # G97.1f: targeted move has dedicated PL (not the generic order template).
