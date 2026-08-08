@@ -2028,19 +2028,26 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
 > `develop`/`recruit`/`muster`. **Bez zmian ekonomii z K115, progu 2:1 z K108,
 > tempa AI, kosztów rozkazów, reguł ruchu i walki oraz „ile garnizonu wolno
 > zabrać".**
-- [ ] **G116.1a [RDZEŃ]** `develop` działa na wskazanym regionie albo nie robi
-      nic; brak celu = dotychczasowe zachowanie. *(standard, task-641)*
-- [ ] **G116.1b [RDZEŃ]** `recruit` i `muster` tak samo. *(standard, task-642)*
-- [ ] **G116.1c [RDZEŃ]** Powód odmowy z K114 dotyczy **wskazanej** osady;
-      region bez własnej osady dostaje odrębny powód. *(standard, task-643)*
-- [ ] **G116.1d [MOST]** `{"type":"order","order":"develop"|"recruit"|"muster",
+- [x] **G116.1a [RDZEŃ]** `develop` działa na wskazanym regionie albo nie robi
+      nic; brak celu = dotychczasowe zachowanie. *(standard, task-641, commit
+      `118240d`)*
+- [x] **G116.1b [RDZEŃ]** `recruit` i `muster` tak samo. *(standard, task-642,
+      commit `bd24a50`)*
+- [x] **G116.1c [RDZEŃ]** Powód odmowy z K114 dotyczy **wskazanej** osady;
+      region bez własnej osady dostaje odrębny powód. *(standard, task-643,
+      commit `557497a`)*
+- [x] **G116.1d [MOST]** `{"type":"order","order":"develop"|"recruit"|"muster",
       "target":"<nazwa regionu>"}` — cel opcjonalny, nierozpoznany cel to
-      bezskuteczny rozkaz z powodem, nigdy `ok:false`. *(standard, task-644)*
-- [ ] **G116.1e [KLIENT]** Wybrany region kieruje przyciskami gospodarczymi;
-      bez wyboru jak dziś. Dowód wizualny 1152×648. *(standard, task-645)*
+      bezskuteczny rozkaz z powodem, nigdy `ok:false`. *(standard, task-644,
+      commit `71ffbfd`)*
+- [x] **G116.1e [KLIENT]** Wybrany region kieruje przyciskami gospodarczymi;
+      bez wyboru jak dziś. Dowód wizualny 1152×648. *(standard, task-645,
+      commit `d1b7a22`)*
 - [x] **G116.1f [POMIAR]** Żywy most `seed=73` przez dwa procesy: osady
       rozchodzą się zgodnie ze wskazaniem, regresje rozstrzygnięcia i K115
-      stoją. Zapis pomiaru tutaj. *(standard, task-646)*
+      stoją. Zapis pomiaru tutaj. *(standard, task-646, commit `101387e`)*
+> **Kamień 116 — UKOŃCZONY 2026-08-08.** Wszystkie sześć plasterków odhaczone
+> (commity `118240d`…`101387e`); pomiar zamykający poniżej.
 > **Pomiar zamykający G116.1f (2026-08-08, żywy most `seed=73`):** bierna
 > partia po **6× `next_turn`** kończy się porażką w **R1M7**; aktywna ścieżka
 > `recruit` → `muster` → `march` → `next_turn` → `engage` → `next_turn` →
@@ -2050,6 +2057,77 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
 > `player lands` odrasta do `population=8`, `free=5`, `garrison=1`, a przed
 > przejęciem osady przez AI `player outpost` osiąga `population=7`, `free=6`,
 > `garrison=1`. Kolejny `develop` zwraca `changed:true`.
+
+## Kamień milowy 117 — osada nie zostaje bezbronna po zbiórce/ wzmocnieniu
+> **Decyzja kierunku (przegląd kadencji bootstrap-diff 2026-08-09, po K116).**
+> Brief bez zmian; formalne kryterium sukcesu odhaczone (K88/K106), a pętla
+> sandboxa domyka się od K110/K116. Pomiar długiej partii na żywym moście
+> (wniosek 36 — „domknięcie ekonomii tury domierzyć długą partią, nie krótką")
+> odsłonił **nowy defekt rozgrywki, wcześniej uznany za strojenie**:
+>
+> **Zmierzone 2026-08-09 na `python -m tbbbridge serve 73` (nie z lektury),
+> wyłącznie rozkazami z klienta:**
+> 1. **Jedyna ścieżka wygranej to „rush".** `recruit`×5 → `muster` → `march` →
+>    `next_turn` → `march` → `next_turn` → `assault` daje `player_result =
+>    "victory"` w **R1M4** (oddział 5 jednostek, hp 79). Każda inna sekwencja
+>    przegrywa — bierny gracz w **R1M7**, gracz „gospodarczy" (`develop`×2 w
+>    obu osadach + 10× `next_turn`) w **R1M7**, gracz „mocna obrona"
+>    (`develop` obu + `recruit`×4 + 10× `next_turn`) w **R1M10**.
+> 2. **Gracz nie ma realnej strategii obronnej.** Powód jest w rdzeniu, nie w
+>    kliencie: `Settlement.muster` (`src/tbb/settlement.py:183-193`) i
+>    `WorldMap.reinforce_party` (`src/tbb/world.py:182-214`, przez ten sam
+>    `settlement.muster`) zostawiają osadę z `garrison=()` — **cały** garnizon
+>    wychodzi w pole. Wyjście z murem oznacza bezbronny dom; zostawienie
+>    garnizonu (brak `muster`) oznacza brak armii. Trzeciej drogi nie ma.
+> 3. **To nie jest balans.** Analogicznie do K115 („niedodatnie saldo = koniec
+>    wzrostu na zawsze"): zmiana **kształtu reguły** (osada nigdy nie jest bez
+>    obrońcy) to defekt rozgrywki; konkretna liczba zostawionych obrońców to
+>    strojenie, odłożone. Do tej pory „ile garnizonu wolno zabrać" figurowało w
+>    `docs/PROJECT.md` jako odłożone strojenie — pomiar długiej partii po K116
+>    je obala i przesuwa w priorytecie.
+> 4. **Symetria gracza i AI (wniosek 16).** `ai.take_duchy_military_action`
+>    idzie tą samą ścieżką `muster`/`reinforce` — zmiana reguły obowiązuje
+>    obu; regresja K108 (AI naciera i wygrywa z biernym graczem) musi stać.
+>
+> Zakres celowo wąski: **jeden kształt reguły** — osada nie zostaje bez
+> obrońcy. Minimalna liczba zostawionych obrońców to **1** (najcieńszy
+> wariant), wartość pozostaje do strojenia. Nie ruszamy progu 2:1 z K108,
+> tempa AI, kosztów rozkazów, reguł ruchu/walki ani ekonomii z K115. Klient
+> nie potrzebuje nowego rozkazu ani pola — `muster`/`reinforce` nadal wychodzą
+> po prostu z mniejszym oddziałem, a licznik garnizonu z K113 pokazuje zmianę.
+- [ ] **G117.1a [RDZEŃ]** `Settlement.muster` (oraz przez nią
+      `WorldMap.reinforce_party`) **nie opróżnia osady do zera**, gdy ma co
+      najmniej dwóch obrońców: co najmniej **1 jednostka** zostaje w garnizonie
+      (zasada „minimum obrońcy"), a `muster`/`reinforce` zabierają resztę.
+      Osada z jednym obrońcą zostawia go (zbiórka/wzmocnienie bez skutku,
+      `changed:false` — wniosek 14, nigdy wyjątek); osada bez garnizonu bez
+      zmian. Populacja/`occupied` traci dokładnie tyle, ile jednostek wyszło.
+      Testy odtwarzają zmierzone układy: (i) osada z garnizonem 5 po `muster`
+      odda 4 jednostki i zostawi 1; (ii) osada z garnizonem 1 po `muster`
+      zostaje bez zmian (`changed:false`, nie wyjątek); (iii) dotychczasowe
+      testy `muster`/`reinforce` przechodzą z jawną aktualizacją oczekiwań
+      (zmiana reguły, nie balans). *(standard, ryzyko: dotyka rdzenia —
+      jedynego źródła reguł; nie zmieniać progu 2:1, reguł ruchu ani ekonomii)*
+- [ ] **G117.1b [POMIAR — ZMIERZONY PRZY ZAPISYWANIU, 2026-08-09]**
+      **Regresje rozstrzygnięcia partii stoją** na żywym moście `seed=73` po
+      G117.1a (bez kolejnych plastrow): bierny gracz nadal przegrywa, a
+      aktywny rush (`recruit`×5 → `muster` → `march` → `nt` → `march` → `nt`
+      → `assault`) nadal wygrywa — dokładna liczba tur może się przesunąć
+      (mniejszy oddział), ale żadne z rozstrzygnięć nie znika. **Nowe
+      otwarcie, które G117.1a ma przynieść:** po `develop`×2 + `recruit`×4
+      (po dwie w obu osadach) + `muster` + `next_turn` osada gracza, z której
+      wyszedł oddział, ma **`garrison >= 1`** w snapshocie (nie 0 jak dziś).
+      Zapis pomiaru trafia tutaj. *(standard)*
+- [ ] **G117.1c [KLIENT]** Gracz widzi, że osada nie jest bezbronna po
+      zbiórce: po `muster`/`reinforce` licznik garnizonu z K113 pokazuje
+      zostawionego obrońcę, a status rozkazu nadal mówi o wzmocnieniu
+      oddziału. E2e przez dwa procesy mostu + dowód wizualny 1152×648 pary
+      kadrów „przed / po" `muster` w osadzie z garnizonem >1. *(standard)*
+> **Kamień 117 — zaplanowany 2026-08-09 (przegląd kadencji po K116).**
+> Po domknięciu K117 partia sandboxa ma realną strategię obronną obok
+> „rush"; wciąż **nie** ruszamy tempa AI ani progu 2:1 — to zostaje
+> świadomie odłożonym strojeniem. Kolejny pomiar długiej partii (wniosek 36)
+> zadecyduje, czy odsłoni się kolejny stan bez wyjścia.
 
 ## Dług/refaktor
 - [x] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
@@ -2167,26 +2245,29 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
   strojenie. K114 tego **nie** naprawia — tylko nazywa stan graczowi; naprawa
   to **K115**. Pełna diagnoza i zakres → sekcja K115; wybór osady ustępuje, bo
   w stanie trwałym obie osady mają `free=0`.
-- **Rozkazy osadowe bez wyboru osady** (`develop`/`recruit`/`muster` biorą
-  *pierwszą* pasującą osadę, cel jest po cichu ignorowany) — **ROZPLANOWANE
-  JAKO K116 (2026-08-08, po domknięciu K115)**; pełna diagnoza w sekcji K116,
-  nie powtarzać jej tutaj. **Potwierdzone
-  ponownie pomiarem 2026-08-08**: `recruit` z jawnym `target: "Player Outpost"`
-  obsadza mimo to Player Keep, dopóki starczy tam wolnej ludności. Nadal
-  **nie planowane**; blokada „po K112" wygasła (K112 domknięty), więc to
-  kandydat **po K115** (głód ma priorytet — w stanie trwałym obie osady mają
-  `free=0`, więc wybór niczego nie odblokowuje) — nie razem z K114/K115, żeby
-  nie mieszać wyjaśnienia odmowy ani naprawy głodu ze zmianą kontraktu rozkazu. Mapa ma już wybór regionu (K97, używany przez
-  `move`). **Korekta wartości po recenzji 2026-08-08:** argument „gracz zobaczy
-  pustą pulę i wskaże drugą osadę" jest słabszy, niż zakładano — w zmierzonym
-  stanie trwałym **obie** osady mają `free` 0, więc wybór osady niczego tam nie
-  odblokowuje. Wciąż ma wartość w turach 1–5 (pule są wtedy różne: Outpost ma
-  2 wolnych, gdy Keep 0), ale przed nim stoi kandydat „głód".
-- **`muster` zabiera cały garnizon osady** — obserwacja z przeglądu 2026-07-28,
-  nadal **nie planowana**: po zbiórce osada zostaje pusta, więc każde wyjście
-  w pole odsłania dom. K112 świadomie powiela tę regułę we wzmocnieniu
-  (symetria z `muster`), żeby nie strojić dwóch rzeczy naraz. „Ile garnizonu
-  wolno zabrać" podejmować dopiero, gdy pętla stoi — to strojenie, nie defekt.
+- ~~**Rozkazy osadowe bez wyboru osady** (`develop`/`recruit`/`muster` biorą
+  *pierwszą* pasującą osadę, cel jest po cichu ignorowany)~~ — **rozplanowane
+  jako K116 i wykonane 2026-08-08** (commity `118240d`…`101387e`). Pełna
+  diagnoza w sekcji K116, nie powtarzać jej tutaj.
+- **Osada bezbronna po zbiórce/ wzmocnieniu (`muster`/`reinforce` opróżniają
+  garnizon do zera, blokując strategię obronną)** — **rozplanowane jako K117
+  (przegląd kadencji 2026-08-09, po domknięciu K116)**. Pomiarem długiej partii
+  (`seed=73`, wyłącznie rozkazy z klienta) ustalono: jedyna ścieżka wygranej to
+  „rush" (4 miesiące), a każda strategia gospodarcza/obronna przegrywa
+  (7–10 miesięcy). `Settlement.muster` (`src/tbb/settlement.py:183-193`) i
+  `WorldMap.reinforce_party` (`src/tbb/world.py:182-214`) zostawiają
+  `garrison=()`, więc wyjście w pole = bezbronny dom. Dotychczas wpis
+  „ile garnizonu wolno zabrać" w `docs/PROJECT.md` figurował jako odłożone
+  **strojenie** — pomiar długiej partii (wniosek 36) obala to i przesuwa
+  w priorytet: kształt reguły (≥1 obrońca) to **defekt rozgrywki**, konkretna
+  liczba zostaje strojeniem. Pełna diagnoza → sekcja K117; nie powtarzać
+  tutaj.
+- ~~**`muster` zabiera cały garnizon osady**~~ — obserwacja z przeglądu
+  2026-07-28, **rozplanowana jako K117 2026-08-09** (przegląd kadencji):
+  pomiar długiej partii po K116 odsłonił, że to blokuje strategię obronną
+  (jeden defekt, nie osobne strojenie). Pełna diagnoza i zakres → sekcja K117.
+  „Ile garnizonu wolno zabrać" pozostaje odłożonym strojeniem **wartości**
+  (konkretna liczba); kształt reguły (≥1 obrońca) jest zakresem K117.
 - ~~**Po K108: presja ze strony AI** („czy AI kiedykolwiek naciera")~~ —
   **odpowiedziane pomiarem 2026-08-06**, bez osobnego plasterka: po G108.1c AI
   maszeruje do osad gracza i je zdobywa, więc naciera. Otwarte zostaje pytanie
