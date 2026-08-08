@@ -270,6 +270,81 @@ def test_command_result_non_battle_order_changed_flag_matches_world_identity():
     json.dumps(result_unchanged)
 
 
+def test_economic_order_result_carries_core_reason_without_rejecting_noop():
+    """G114.1b AC1/AC2/AC4: economic refusal diagnostics cross the bridge.
+
+    Realistic defect: the bridge can keep reporting an economic no-op as the
+    old bare ``changed: false`` result, or turn it into ``ok: false`` instead
+    of forwarding the reason returned by the core query.  Existing protocol
+    tests cover the old shape and movement diagnostics, but not this boundary.
+    """
+    session = new_session(seed=73, player_duchy_id="player")
+    session, develop_response = handle_command_line(
+        session, '{"type":"order","order":"develop"}'
+    )
+    assert develop_response["ok"] is True
+    assert develop_response["result"] == {
+        "kind": "order",
+        "order": "develop",
+        "changed": True,
+    }
+
+    session = new_session(seed=73, player_duchy_id="player")
+    for _ in range(8):
+        session, response = handle_command_line(
+            session, '{"type":"order","order":"recruit"}'
+        )
+        assert response["ok"] is True
+        assert response["result"] == {
+            "kind": "order",
+            "order": "recruit",
+            "changed": True,
+        }
+
+    session, response = handle_command_line(
+        session, '{"type":"order","order":"develop"}'
+    )
+    assert response["ok"] is True
+    assert response["result"] == {
+        "kind": "order",
+        "order": "develop",
+        "changed": False,
+        "reason": "brak wolnej ludności",
+    }
+    json.dumps(response)
+
+    session = new_session(seed=73, player_duchy_id="player")
+    session, first_muster = handle_command_line(
+        session, '{"type":"order","order":"muster"}'
+    )
+    assert first_muster["ok"] is True
+    assert first_muster["result"]["changed"] is True
+    assert "reason" not in first_muster["result"]
+
+    _, second_muster = handle_command_line(
+        session, '{"type":"order","order":"muster"}'
+    )
+    assert second_muster["ok"] is True
+    assert second_muster["result"] == {
+        "kind": "order",
+        "order": "muster",
+        "changed": False,
+        "reason": "już zmobilizowana armia",
+    }
+
+    for order in ("develop", "recruit", "muster"):
+        session = new_session(seed=73, player_duchy_id=None)
+        _, response = handle_command_line(
+            session, json.dumps({"type": "order", "order": order})
+        )
+        assert response["ok"] is True
+        assert response["result"] == {
+            "kind": "order",
+            "order": order,
+            "changed": False,
+        }
+
+
 @pytest.mark.parametrize(
     ("order", "first_target", "second_target"),
     (("march", None, None), ("move", "player outpost", "border")),

@@ -14,6 +14,7 @@ from tbbbridge.session import (
 )
 
 _BATTLE_ORDERS = ("assault", "engage")
+_ECONOMIC_ORDERS = ("develop", "recruit", "muster")
 
 _BATTLE_OUTCOME = {
     "attacker_win": "zwycięstwo",
@@ -118,6 +119,14 @@ def command_result(before: Session, after: Session, command: dict) -> dict:
             "order": order_name,
             "changed": after.world is not before.world,
         }
+        if not result["changed"] and order_name in _ECONOMIC_ORDERS:
+            player_duchy = _resolve_player_duchy(before)
+            if player_duchy is not None:
+                reason = ai.economic_order_reason(
+                    before.world, player_duchy, order_name
+                )
+                if reason is not None:
+                    result["reason"] = reason
         if not result["changed"]:
             blocked_region = _blocked_region_name(before, command)
             if blocked_region is not None:
