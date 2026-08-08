@@ -46,8 +46,11 @@ func _run() -> void:
 
 	match phase:
 		"prepare":
-			if not _press(scene_root, "RecruitButton"):
-				return
+			# The AI may now keep its reinforced party in the frontier keep;
+			# give the player enough deterministic strength to resolve the assault.
+			for _recruit in range(3):
+				if not _press(scene_root, "RecruitButton"):
+					return
 			if not _press(scene_root, "MusterButton"):
 				return
 			controls_after_muster = _controls(scene_root)
@@ -57,7 +60,7 @@ func _run() -> void:
 			if not _press(scene_root, "MarchButton"):
 				return
 			# Three passive AI turns are the smallest seed-73 staging window that
-			# leaves the frontier garrison alive after Engage clears its field party.
+			# leaves live frontier defenders after Engage clears its field party.
 			for _turn in range(AssaultPrecondition.NEXT_TURNS_TO_STAGE_LIVE_FRONTIER):
 				if not _press(scene_root, "NextTurnButton"):
 					return
@@ -67,10 +70,9 @@ func _run() -> void:
 			# move the party or depend on march's monthly no-op behavior.
 			if not _press(scene_root, "DevelopButton"):
 				return
-			# Engage consumed this month's military action.  Open the next month
-			# before the separate assault process exercises the battle view.  The
-			# first AI turn relocates its field party to the keep; the second
-			# restores a live garrison for the settlement assault.
+			# Engage consumed this month's military action. Open the next month
+			# before the separate assault process exercises the battle view. The
+			# AI now establishes live party defenders in the frontier keep.
 			for _turn in range(AssaultPrecondition.NEXT_TURNS_AFTER_ENGAGE_TO_STAGE_LIVE_FRONTIER):
 				if not _press(scene_root, "NextTurnButton"):
 					return

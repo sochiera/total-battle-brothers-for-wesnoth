@@ -11,7 +11,15 @@ const NEXT_TURNS_AFTER_ENGAGE_TO_STAGE_LIVE_FRONTIER := 2
 static func stage_live_frontier(scene_root: Control) -> Dictionary:
 	var client: Variant = scene_root.get("_client")
 	var order_results: Array = []
-	var sequence: Array[String] = ["RecruitButton", "MusterButton", "MarchButton"]
+	# Keep the player force ahead of an AI party that now remains in its own
+	# settlement after consuming the garrison through reinforcement.
+	var sequence: Array[String] = [
+		"RecruitButton",
+		"RecruitButton",
+		"RecruitButton",
+		"MusterButton",
+		"MarchButton",
+	]
 	sequence.append_array(
 		_array_repeated("NextTurnButton", NEXT_TURNS_TO_STAGE_LIVE_FRONTIER)
 	)
@@ -43,7 +51,7 @@ static func _array_repeated(value: String, count: int) -> Array[String]:
 ## Machine-readable entry condition for the prepared assault probes.
 ## The scenario may use several passive AI turns, but the assault must never
 ## rely on that count alone: the player party must be on border and the
-## frontier settlement must still have a live garrison.
+## frontier settlement must still have live defenders.
 static func inspect(client) -> Dictionary:
 	var model = client.snapshot_model()
 	if model == null:
@@ -61,12 +69,21 @@ static func inspect(client) -> Dictionary:
 	var frontier_garrison := 0
 	if frontier_settlement is Dictionary:
 		frontier_garrison = int(frontier_settlement.get("garrison", 0))
-	var ready: bool = player_party_at_border and frontier_garrison > 0
+	var frontier_defenders := frontier_garrison
+	var frontier_party: Variant = frontier.get("party")
+	if (
+		frontier_party is Dictionary
+		and frontier_settlement is Dictionary
+		and frontier_party.get("owner") == frontier_settlement.get("owner")
+	):
+		frontier_defenders += 1 + int(frontier_party.get("size", 0))
+	var ready: bool = player_party_at_border and frontier_defenders > 0
 	return {
 		"ready": ready,
 		"player_party_at_border": player_party_at_border,
 		"frontier_garrison": frontier_garrison,
-		"frontier_garrison_live": frontier_garrison > 0,
+		"frontier_defenders": frontier_defenders,
+		"frontier_defenders_live": frontier_defenders > 0,
 	}
 
 

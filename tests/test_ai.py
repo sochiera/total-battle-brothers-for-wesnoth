@@ -1489,6 +1489,129 @@ def test_duchy_military_action_keeps_party_when_enemy_garrison_is_stronger():
     assert result.settlement_at(target) is settlement
 
 
+@pytest.mark.parametrize("owner_id", ["ai", "player"])
+def test_duchy_military_action_reinforces_before_march_when_assault_lacks_advantage(
+    owner_id,
+):
+    home, road, target = map(Region, ("Home", "Road", "Target"))
+    hero = Unit()
+    garrison = (Unit(), Unit(experience=2))
+    home_settlement = Settlement(
+        "Home", 3, occupied=2, garrison=garrison, owner_id=owner_id
+    )
+    enemy_settlement = Settlement(
+        "Target",
+        1,
+        garrison=(Unit(training=5, equipment=12),),
+        owner_id="enemy",
+    )
+    party = Party(hero, owner_id=owner_id)
+    world = WorldMap(
+        [home, road, target],
+        [(home, road), (road, target)],
+        {home: home_settlement, target: enemy_settlement},
+        {home: party},
+    )
+    duchy = Duchy(owner_id, hero, parties=(party,))
+
+    result = take_duchy_military_action(world, duchy, tbb.Rng(8))
+
+    reinforced = result.party_at(home)
+    assert reinforced is not None
+    assert reinforced.units == garrison
+    assert reinforced.acted_this_month is True
+    assert result.party_at(road) is None
+    assert result.settlement_at(home).garrison == ()
+    assert result.settlement_at(target).owner_id == "enemy"
+
+
+@pytest.mark.parametrize(
+    "case",
+    ["no_settlement", "empty_garrison", "full_party", "strong_non_adjacent"],
+)
+def test_duchy_military_action_keeps_marching_when_reinforcement_is_not_applicable(
+    case,
+):
+    """No-op reinforcement and a non-legal strong assault preserve the march.
+
+    Realistic defect: an unconditional reinforcement fallback consumes the
+    action when a strong party's nearest target is not legally assaultable.
+    """
+    home, road, target = map(Region, ("Home", "Road", "Target"))
+    enemy_settlement = Settlement(
+        "Target",
+        1,
+        garrison=(
+            Unit()
+            if case == "strong_non_adjacent"
+            else Unit(training=100, equipment=100),
+        ),
+        owner_id="enemy",
+    )
+    own_garrison = () if case == "empty_garrison" else (Unit(),)
+    settlements = {target: enemy_settlement}
+    if case != "no_settlement":
+        settlements[home] = Settlement(
+            "Home", 1, occupied=1, garrison=own_garrison, owner_id="ai"
+        )
+    subordinate_count = {
+        "strong_non_adjacent": Party.MAX_SUBORDINATES - 1,
+        "full_party": Party.MAX_SUBORDINATES,
+    }.get(case, 0)
+    units = (Unit(),) * subordinate_count
+    party = Party(Unit(), units, owner_id="ai")
+    world = WorldMap(
+        [home, road, target],
+        [(home, road), (road, target)],
+        settlements,
+        {home: party},
+    )
+    duchy = Duchy("ai", party.hero, parties=(party,))
+
+    result = take_duchy_military_action(world, duchy, tbb.Rng(8))
+
+    assert result == march_toward_nearest_enemy(world, home)
+    assert result.party_at(home) is None
+    assert result.party_at(road) is not None
+    assert result.party_at(road).acted_this_month is True
+    assert result.settlement_at(target).owner_id == "enemy"
+    if case != "no_settlement":
+        assert result.settlement_at(home).garrison == own_garrison
+
+
+@pytest.mark.parametrize(
+    ("hero", "defender"),
+    [
+        (Unit(training=5, equipment=6), Unit(equipment=1)),
+        (Unit(equipment=5), Unit()),
+    ],
+)
+def test_duchy_military_action_assaults_before_reinforcing_with_advantage(
+    hero, defender
+):
+    start, target = Region("Start"), Region("Target")
+    garrison = (Unit(experience=2),)
+    own_settlement = Settlement(
+        "Start", 1, occupied=1, garrison=garrison, owner_id="ai"
+    )
+    enemy_settlement = Settlement(
+        "Target", 1, garrison=(defender,), owner_id="enemy"
+    )
+    party = Party(hero, owner_id="ai")
+    world = WorldMap(
+        [start, target],
+        [(start, target)],
+        {start: own_settlement, target: enemy_settlement},
+        {start: party},
+    )
+    duchy = Duchy("ai", party.hero, parties=(party,))
+
+    result = take_duchy_military_action(world, duchy, tbb.Rng(9))
+
+    assert result == assault_nearest_enemy_settlement(world, start, tbb.Rng(9))
+    assert result.settlement_at(start).garrison == garrison
+
+
 @pytest.mark.parametrize("case", ["no_hero", "no_source", "no_enemy"])
 def test_duchy_military_action_noop_does_not_use_rng_without_battle(case):
     home = Region("Home")

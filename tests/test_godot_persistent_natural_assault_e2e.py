@@ -35,10 +35,10 @@ PREFIX = "PERSISTENT_NATURAL_ASSAULT "
 SEED = 73
 PLAYER_LANDS = "player lands"
 AI_OUTPOST = "ai outpost"
-# The two public turns between engage and assault let the AI restore a live
-# frontier garrison; the exact seed-73 battle remains pinned with losses on both
-# sides rather than accepting an arbitrary successful outcome.
-EXPECTED_ORDER_STATUS = "Szturm: zwycięstwo (straty: 2, wróg: 3)."
+# The two public turns between engage and assault let the AI establish live
+# frontier party defenders; the exact seed-73 battle remains pinned with losses
+# on both sides rather than accepting an arbitrary successful outcome.
+EXPECTED_ORDER_STATUS = "Szturm: zwycięstwo (straty: 1, wróg: 3)."
 EXPECTED_PARTY_POSITION = "Położenie oddziału: Posterunek wroga"
 # One captured keep of two leaves both sides standing (G92.2a AC3).
 EXPECTED_PARTY_RESULT = PLAYER_RESULT_PL["ongoing"]
@@ -46,7 +46,7 @@ EXPECTED_BATTLE_RESULT = {
     "kind": "battle",
     "order": "assault",
     "outcome": "zwycięstwo",
-    "attacker_losses": 2,
+    "attacker_losses": 1,
     "defender_losses": 3,
 }
 
@@ -151,8 +151,8 @@ def test_natural_sequence_captures_frontier_keep_campaign_ongoing_on_live_bridge
         precondition = play["assault_precondition"]
         assert precondition["ready"] is True, precondition
         assert precondition["player_party_at_border"] is True, precondition
-        assert precondition["frontier_garrison_live"] is True, precondition
-        assert precondition["frontier_garrison"] >= 1, precondition
+        assert precondition["frontier_defenders_live"] is True, precondition
+        assert precondition["frontier_defenders"] >= 1, precondition
         _assert_capture_visible_on_screen(play, phase="play")
         outcomes.append(play["order_results"][-1])
         party_results.append(play["controls"]["result"])

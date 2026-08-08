@@ -736,10 +736,12 @@ def take_duchy_military_action(
     rng: Rng,
     morale_by_owner: dict[str, int] | None = None,
 ) -> WorldMap:
-    """Muster, march once, and assault only with a strength advantage.
+    """Muster, reinforce when possible, march once, and assault with advantage.
 
-    The assault is effective only when muster and march leave the party's
-    monthly action available; either operation may make the assault a no-op.
+    A party without assault advantage uses a same-region settlement garrison
+    before marching when that reinforcement can change the world. The assault
+    is effective only when muster and march leave the party's monthly action
+    available; either operation may make the assault a no-op.
     """
     if duchy.hero is None:
         return world
@@ -748,8 +750,24 @@ def take_duchy_military_action(
     position = _duchy_party_position(current, duchy.duchy_id)
     if position is None:
         return current
-    if nearest_enemy_settlement(current, position, duchy.duchy_id) is None:
+    target = nearest_enemy_settlement(current, position, duchy.duchy_id)
+    if target is None:
         return world
+
+    party = current.party_at(position)
+    if party is not None:
+        has_advantage = _has_assault_advantage(
+            (party.hero, *party.units), current.settlement_defenders(target)
+        )
+        if has_advantage and _is_legal_assault_target(current, position, target):
+            return assault_duchy_party_to(
+                current, duchy, target, rng, morale_by_owner=morale_by_owner
+            )
+
+        if not has_advantage:
+            reinforced = reinforce_duchy_party(current, duchy)
+            if reinforced is not current:
+                return reinforced
 
     current = march_toward_nearest_enemy(current, position)
     position = _duchy_party_position(current, duchy.duchy_id)
