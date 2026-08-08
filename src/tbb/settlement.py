@@ -72,7 +72,13 @@ class Settlement:
     def tick_growth(self) -> "Settlement":
         """Return the settlement state after deterministic monthly births."""
         below_capacity = self.capacity is None or self.population < self.capacity
-        growth = 1 if self.storage.wheat > 0 and below_capacity else 0
+        production = self.production.wheat
+        consumption = self.consumption.wheat
+        self_sustaining = (
+            production > 0 and production >= consumption
+        )
+        fed = self.storage.wheat > 0 or self_sustaining
+        growth = 1 if fed and below_capacity else 0
         return replace(self, population=self.population + growth)
 
     def tick_immigration(self) -> "Settlement":

@@ -245,6 +245,40 @@ def test_settlement_without_capacity_grows_with_wheat_surplus():
     assert settlement.tick_growth().population == 6
 
 
+def test_break_even_settlement_grows_instead_of_freezing_at_zero_balance():
+    """G115.1a (task-639) AC1+AC3: break-even wheat is not starvation.
+
+    Realistic defect (wniosek 43, K114 §4–5): ``tick_growth`` gates on strict
+    ``storage.wheat > 0`` read AFTER ``tick_economy``, so a settlement whose
+    Farm exactly meets consumption (post-economy balance 0) never grows — it
+    freezes at a fixed population forever, and ``muster`` (the only order that
+    cuts consumption) can at best reach balance 0, so even an emptied settlement
+    never recovers (9 measured turns of no change on seed=73). Existing growth
+    tests cover surplus (grows) and foodless starvation (does not grow), but not
+    the break-even point where the strict gate turns a viable, productive
+    settlement into a permanent freeze. The rule-shape fix (production–consumption
+    relation, base production of free population, or growth threshold) must make
+    break-even grow — not a balance-constant bump that merely postpones the freeze.
+    """
+    break_even = Settlement(
+        "Vale",
+        population=3,
+        occupied=1,                   # one resident staffs the Farm
+        active_buildings=(FARM,),     # wheat output 3 == consumption 3
+        storage=Resources(0, 0),
+    )
+    assert break_even.production.wheat == break_even.consumption.wheat
+    assert break_even.storage.wheat == 0
+
+    ticked = break_even.tick_economy().tick_growth()
+
+    assert ticked.population > break_even.population
+    assert ticked.free > break_even.free
+
+    deficit = Settlement("Fallow", population=3, storage=Resources(0, 0))
+    assert deficit.tick_economy().tick_growth().population == deficit.population
+
+
 def test_tick_growth_returns_new_state_without_mutating_original():
     original = Settlement("A", population=2, storage=Resources(1, 0))
 
