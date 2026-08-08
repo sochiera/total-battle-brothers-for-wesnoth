@@ -35,6 +35,7 @@ const ORDER_BUTTON_FONT_NORMAL := Color(0.18, 0.11, 0.06, 1.0)
 const ORDER_BUTTON_FONT_HOVER := Color(0.14, 0.08, 0.04, 1.0)
 const ORDER_BUTTON_FONT_PRESSED := Color(0.1, 0.05, 0.02, 1.0)
 const ORDER_NAME_META := "order_name"
+const REGION_TARGETED_ORDER_NAMES := ["develop", "recruit", "muster"]
 const SELECTED_REGION_EMPTY_PL := "Nie wybrano regionu"
 const REINFORCE_NO_PARTY_STATUS := "Brak oddziału do wzmocnienia."
 const REINFORCE_NO_SETTLEMENT_STATUS := "Oddział nie stoi w osadzie."
@@ -305,7 +306,8 @@ func _connect_declared_order_button(button: Button) -> void:
 func _on_declared_order_button_pressed(button: Button) -> void:
 	var order_name := _declared_order_name(button)
 	if not order_name.is_empty():
-		_send_bound_order(order_name)
+		var target: String = %MapView.selected_region_name if order_name in REGION_TARGETED_ORDER_NAMES else ""
+		_send_bound_order(order_name, target)
 
 
 func _refresh_bound_client() -> void:
