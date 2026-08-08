@@ -1334,6 +1334,157 @@ def test_seed73_three_refusal_states_measured_on_live_bridge_and_k114_is_closed(
     )
 
 
+def test_economic_order_target_routes_to_indicated_settlement_and_absence_is_unchanged():
+    """G116.1d AC1..AC5: a targeted economic order acts on the named region's
+    settlement; an absent ``target`` keeps today's first-eligible behaviour;
+    an unresolvable target is a bridge-side no-op.
+
+    Realistic defect the existing gates cannot catch: the bridge drops
+    ``target`` for ``develop``/``recruit``/``muster`` — they route through
+    ``_ORDER_TRANSITIONS``, which hands the AI primitive only ``(world,
+    duchy)`` — so every economic order acts on the first-eligible settlement
+    regardless of which region the command names. AC1 proves the target is
+    honoured on the measured seed=73 world (the non-first-eligible
+    ``player outpost`` opens a building while ``player lands`` is untouched);
+    AC2 proves the no-target path and the ``command_result`` shape are
+    unchanged. AC3 proves a region with no player settlement is a no-op with a
+    reason distinct from a population block. AC4 is the one bridge-side
+    condition: a present but unresolvable ``target`` (unknown name, empty,
+    non-text) must never act on another settlement — ``ok:true``,
+    ``changed:false`` and a reason — distinct from "target absent" (AC2),
+    which keeps today's fallback. AC5 proves a settlement *name* is not a
+    region target and so falls under AC4.
+    """
+
+    def player_buildings(sess):
+        return {
+            region.name: tuple(b.name for b in settle.active_buildings)
+            for region in sess.world.regions
+            if (settle := sess.world.settlement_at(region)) is not None
+            and settle.owner_id == "player"
+        }
+
+    def player_garrison_free(sess):
+        return {
+            region.name: (len(settle.garrison), settle.free)
+            for region in sess.world.regions
+            if (settle := sess.world.settlement_at(region)) is not None
+            and settle.owner_id == "player"
+        }
+
+    # --- AC1: develop targets "player outpost", not the first-eligible "player lands" ---
+    session = new_session(seed=73, player_duchy_id="player")
+    assert player_buildings(session) == {"player lands": (), "player outpost": ()}
+
+    after, response = handle_command_line(
+        session,
+        json.dumps(
+            {"type": "order", "order": "develop", "target": "player outpost"}
+        ),
+    )
+    assert response["ok"] is True, response
+    assert response["result"]["changed"] is True, (
+        "AC1: a targeted develop that can act must change the world"
+    )
+    routed = player_buildings(after)
+    assert routed["player outpost"] == ("Farm",), (
+        "AC1: the targeted settlement opened the building"
+    )
+    assert routed["player lands"] == (), (
+        "AC1: the non-targeted settlement is untouched"
+    )
+
+    # --- AC1 (recruit): the same target plumbing routes a *different* economic
+    #     order to the named settlement, so the bridge wiring is not
+    #     develop-specific. On seed=73 the first-eligible settlement is
+    #     "player lands"; without the target, recruit would act there. ---
+    recruit_sess = new_session(seed=73, player_duchy_id="player")
+    assert player_garrison_free(recruit_sess) == {
+        "player lands": (1, 4),
+        "player outpost": (1, 4),
+    }
+    recruit_after, recruit_resp = handle_command_line(
+        recruit_sess,
+        json.dumps(
+            {"type": "order", "order": "recruit", "target": "player outpost"}
+        ),
+    )
+    assert recruit_resp["ok"] is True, recruit_resp
+    assert recruit_resp["result"]["changed"] is True, (
+        "AC1 [recruit]: a targeted recruit that can act must change the world"
+    )
+    assert player_garrison_free(recruit_after) == {
+        "player lands": (1, 4),
+        "player outpost": (2, 3),
+    }, (
+        "AC1 [recruit]: the targeted 'player outpost' gains garrison and loses "
+        "free population; 'player lands' (first-eligible) is untouched"
+    )
+
+    # --- AC2: no target -> today's behaviour (first-eligible = "player lands"), shape intact ---
+    after2, response2 = handle_command_line(
+        after, json.dumps({"type": "order", "order": "develop"})
+    )
+    assert response2["result"] == {
+        "kind": "order",
+        "order": "develop",
+        "changed": True,
+    }, "AC2: no-target command_result shape is unchanged"
+    routed2 = player_buildings(after2)
+    assert routed2["player lands"] == ("Farm",), (
+        "AC2: no-target develop acts on the first-eligible settlement"
+    )
+
+    # --- AC3: target names a real region with no player settlement -> no-op,
+    #     with a reason that is NOT the population-block reason ---
+    session_ac3 = new_session(seed=73, player_duchy_id="player")
+    after3, response3 = handle_command_line(
+        session_ac3,
+        json.dumps({"type": "order", "order": "develop", "target": "border"}),
+    )
+    assert response3["ok"] is True, response3
+    assert response3["result"]["changed"] is False, (
+        "AC3: a region with no player settlement must not change the world"
+    )
+    reason3 = response3["result"].get("reason")
+    assert reason3 == "brak własnej osady w tym regionie", (
+        "AC3: a region with no player settlement must carry the core's own "
+        "targeted reason — proving delegation to economic_order_reason(target) "
+        "and distinguishing 'no settlement here' from 'no free population'"
+    )
+    assert player_buildings(after3) == {"player lands": (), "player outpost": ()}, (
+        "AC3: neither player settlement is touched"
+    )
+
+    # --- AC4 + AC5: a present but unresolvable target is a bridge-side no-op.
+    #     It must never act on another settlement and never report ok:false.
+    #     AC5 contributes the settlement *name* "Player Outpost" (capitalised),
+    #     which is not a region name and so must behave like any unknown name. ---
+    pristine = {"player lands": (), "player outpost": ()}
+    for label, payload in [
+        ("unknown-name", "nonexistent-region"),
+        ("empty-string", ""),
+        ("non-text", 123),
+        ("settlement-name-AC5", "Player Outpost"),
+    ]:
+        sess_ac4 = new_session(seed=73, player_duchy_id="player")
+        after4, response4 = handle_command_line(
+            sess_ac4,
+            json.dumps({"type": "order", "order": "develop", "target": payload}),
+        )
+        assert response4["ok"] is True, (label, response4)
+        assert response4["result"]["changed"] is False, (
+            f"AC4/AC5 [{label}]: an unresolvable target must be a no-op"
+        )
+        assert response4["result"]["reason"] == "nieznany region", (
+            f"AC4/AC5 [{label}]: the bridge carries its one own reason for an "
+            "unresolvable target — never ok:false, never a leaked core reason"
+        )
+        assert player_buildings(after4) == pristine, (
+            f"AC4/AC5 [{label}]: an unresolvable target must never touch another settlement"
+        )
+
+
 def test_command_result_battle_order_with_last_battle_returns_kind_battle_with_outcome_and_losses():
     """G66.2b kryt-1: ``command_result(before, after, {"type": "order",
     "order": "assault"})`` gdy ``after.last_battle is not None`` zwraca

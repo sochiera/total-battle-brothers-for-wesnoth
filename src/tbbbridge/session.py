@@ -20,6 +20,8 @@ _ORDER_TRANSITIONS = {
     "move": None,  # handled specially because of the required target
     "march": None,  # handled specially because of optional target
 }
+_ECONOMIC_ORDERS = ("develop", "recruit", "muster")
+_MISSING_TARGET = object()
 
 
 def _find_region_by_name(world: WorldMap, name: object) -> object | None:
@@ -58,6 +60,18 @@ def _apply_move_order(world: WorldMap, duchy: Duchy, target_name: str | None) ->
     if target is None:
         return world
     return ai.move_duchy_party_to_adjacent(world, duchy, target)
+
+
+def _apply_economic_order(
+    world: WorldMap, duchy: Duchy, target_name: object, transition
+) -> WorldMap:
+    """Apply an economic order, preserving fallback only for a missing target."""
+    if target_name is _MISSING_TARGET:
+        return transition(world, duchy)
+    target = _find_region_by_name(world, target_name)
+    if target is None:
+        return world
+    return transition(world, duchy, target)
 
 
 def _morale_by_owner(game: GameState) -> dict[str, int]:
@@ -356,6 +370,16 @@ def apply_command(session: Session, command: dict) -> Session:
                     game,
                     to_recorded=ai.engage_duchy_party_to_recorded,
                     auto_recorded=ai.engage_duchy_party_recorded,
+                ),
+            )
+        if order in _ECONOMIC_ORDERS:
+            return _apply_order(
+                session,
+                lambda world, duchy: _apply_economic_order(
+                    world,
+                    duchy,
+                    command.get("target", _MISSING_TARGET),
+                    _ORDER_TRANSITIONS[order],
                 ),
             )
         if order not in _ORDER_TRANSITIONS:
