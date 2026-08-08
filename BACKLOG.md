@@ -1930,7 +1930,59 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
       **Regresje stoją**: bierny gracz przegrywa w **roku
       1, miesiącu 7** (6× „Następna tura"), a gracz aktywny (`recruit`×10 →
       `muster` → `assault`/`engage`/`march`) wygrywa w **roku 1, miesiącu 4**.
-      Zapis pomiaru trafia tutaj, do sekcji K114. *(standard)*
+       Zapis pomiaru trafia tutaj, do sekcji K114. *(standard)*
+
+## Kamień milowy 115 — głód przestaje być ślepą uliczką (ekonomia daje się utrzymać)
+> **Decyzja kierunku (przegląd bootstrap-diff 2026-08-08, po zaplanowaniu K114).**
+> Wniosek 43 i pełna diagnoza w sekcji K114 pokazują, że niedodatnie saldo
+> pszenicy zatrzymuje wzrost ludności na zawsze, a **żaden rozkaz dostępny
+> w kliencie tego nie odwraca**. K114 ten stan **nazywa** graczowi, ale go nie
+> naprawia — po przeczytaniu „osada nie wyżywi więcej ludzi" gracz nie ma co
+> zrobić. Dlatego naprawa jest następnym plastrem (K115), a kandydat „wybór
+> osady" ustępuje: w zmierzonym stanie trwałym **obie** osady mają `free=0`,
+> więc wybór osady niczego nie odblokowuje (korekta wartości przy tym przeglądzie).
+>
+> **Defekt rozgrywki, nie balans** (wniosek 43 i `docs/PROJECT.md`):
+> „niedodatnie saldo = koniec wzrostu na zawsze" blokuje pętlę sandboxa.
+> K115 rusza **regułę**, która czyni głód nieodwracalnym; konkretne wartości
+> produkcji i konsumpcji zostają odłożone jako strojenie.
+>
+> **Zmierzony mechanizm (`seed=73`, wniosek 43):** konsumpcja osady = jej
+> ludność (`settlement.py:62`), Farm daje stałe `wheat=3` (`building.py:22`),
+> `tick_growth` (`settlement.py:72-76`) wymaga ostrego salda
+> `wheat + production − consumption > 0`. Przy ludności startowej ~8 i produkcji
+> 0 (bez Farm) albo 3 (z Farm) saldo jest ujemne od staru — osada głoduje w dół
+> i stoi. `muster` zbija konsumpcję, ale przy produkcji 3 saldo wynosi 0
+> (warunek ostry — zero nie rośnie), więc nawet opróżniona osada nie wraca do
+> wzrostu (9 zmierzonych tur bez zmiany).
+>
+> Zakres celowo wąski: **jeden kształt reguły głodu**, który daje gospodarce
+> racjonalny punkt równowagi (ludność rośnie przy rozwiniętej osadzie, a nie
+> zamiera na zawsze). Nie ruszamy progu 2:1 z K108, tempa AI, kosztów rozkazów
+> ani reguł ruchu/walki. Konkretne krzywe i wartości zostają odłożone.
+- [ ] **G115.1a [RDZEŃ]** Ekonomia osady nie wchodzi w nieodwracalny głód:
+      standardowa gra (`develop` budujący infrastrukturę pszenicy, `recruit`
+      i `muster` w miarę potrzeb) prowadzi do stanu, w którym ludność **rośnie
+      albo stoi, a nie kurczy się bez powrotu**. Test na `seed=73`: świeża
+      partia → `develop` w obu osadach (Farm) → 5× `next_turn` → `free > 0`
+      w co najmniej jednej osadzie i `population` nie spada w kolejnych turach;
+      **regresja bez K115**: ten sam przebieg zostawia `free=0` na zawsze
+      i ludność zamarza (wniosek 43). Mechanizm pozostawiony pomiarowi —
+      poprawka dotyka **reguły** (relacja produkcja–konsumpcja, bazowa
+      produkcja wolnej ludności, próg wzrostu), nie wartości balansu.
+      **Regresje rozstrzygnięcia partii stoją** (bierny gracz przegrywa,
+      aktywny wygrywa) — dokładna liczba tur może się przesunąć wraz ze zmianą
+      ekonomii, co jest oczekiwane i wymaga ponownego pomiaru przy domknięciu:
+      K108 (AI naciera), K109 (akcja na miesiąc), K112 (wzmocnienie, partia bez
+      armii się rozstrzyga). *(standard, ryzyko: dotyka rdzenia — jedynego
+      źródła reguł; nie zmieniać progu 2:1, tempa AI, kosztów rozkazów ani reguł
+      ruchu/walki)*
+- [ ] **G115.1b [POMIAR]** Dowód na żywym moście przez dwa procesy (`seed=73`):
+      sekwencja `develop`×2 → 5× `next_turn` pokazuje w kliencie (po K114 panel
+      osady niesie `free`), że wolna ludność odrasta po turach, a status rozkazu
+      gospodarczego po odroście daje `changed:true` (nie „trwały brak" z K114).
+      Regresje rozstrzygnięcia partii stoją. Zapis pomiaru trafia tutaj, do
+      sekcji K115. *(standard, wymaga K114)*
 
 ## Dług/refaktor
 - [x] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
@@ -2032,7 +2084,8 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
   bo osady głodują i ludność nie rośnie (blokada trwała). Pełna diagnoza
   w sekcji K114; nie powtarzać jej tutaj.
 - **Głód jest ślepą uliczką: ujemne saldo pszenicy zatrzymuje ludność na
-  zawsze** — **nie planowane, kandydat nr 1 po K114**. Zmierzone 2026-08-08
+  zawsze** — **rozplanowane jako K115 (przegląd 2026-08-08)**. Zmierzone
+  2026-08-08
   przy recenzjach tego przeglądu (`seed=73`): konsumpcja osady równa się jej
   ludności (`settlement.py:62`), Farm daje `wheat=3` (`building.py:22`), więc
   zapas spada 10 → 0 w 2–4 turach. **Próg leży wcześniej, niż widać:**
@@ -2044,15 +2097,17 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
   8 → 3, ale przy produkcji 3 saldo wynosi 0 i zapas zostaje 0 (9 tur bez
   zmiany). To defekt rozgrywki, nie balans: „koniec wzrostu na zawsze" blokuje
   pętlę, natomiast **wartości** produkcji i konsumpcji pozostają odłożone jako
-  strojenie. K114 tego **nie** naprawia — tylko nazywa stan graczowi.
-  Kolejność wobec „wyboru osady" rozstrzygnie pomiar po K114.
+  strojenie. K114 tego **nie** naprawia — tylko nazywa stan graczowi; naprawa
+  to **K115**. Pełna diagnoza i zakres → sekcja K115; wybór osady ustępuje, bo
+  w stanie trwałym obie osady mają `free=0`.
 - **Rozkazy osadowe bez wyboru osady** (`develop`/`recruit`/`muster` biorą
   *pierwszą* pasującą osadę, cel jest po cichu ignorowany) — **potwierdzone
   ponownie pomiarem 2026-08-08**: `recruit` z jawnym `target: "Player Outpost"`
   obsadza mimo to Player Keep, dopóki starczy tam wolnej ludności. Nadal
   **nie planowane**; blokada „po K112" wygasła (K112 domknięty), więc to
-  kandydat **po K114** — nie razem z nim, żeby nie mieszać wyjaśnienia odmowy
-  ze zmianą kontraktu rozkazu. Mapa ma już wybór regionu (K97, używany przez
+  kandydat **po K115** (głód ma priorytet — w stanie trwałym obie osady mają
+  `free=0`, więc wybór niczego nie odblokowuje) — nie razem z K114/K115, żeby
+  nie mieszać wyjaśnienia odmowy ani naprawy głodu ze zmianą kontraktu rozkazu. Mapa ma już wybór regionu (K97, używany przez
   `move`). **Korekta wartości po recenzji 2026-08-08:** argument „gracz zobaczy
   pustą pulę i wskaże drugą osadę" jest słabszy, niż zakładano — w zmierzonym
   stanie trwałym **obie** osady mają `free` 0, więc wybór osady niczego tam nie

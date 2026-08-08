@@ -179,48 +179,27 @@ DECISIONS/BACKLOG; dawne 21–31 scalone w 21–27, stąd luka przed 32)*:
     reguła działa" pytać **„czy gracz widzi to, czego reguła od niego
     wymaga"**. **K113** to pierwsza spłata — projekcja danych, które już
     przychodzą, nie nowa seria polish.
-41. **Rozkaz gospodarczy odmawia bez powodu — a powód bywa nieodwracalny
-    (2026-08-08, po K112/K113; SPROSTOWANE po recenzji tego przeglądu).**
-    Zmierzone są **dwie** blokady, nie jedna. (a) **Chwilowa, w obrębie
-    tury:** `develop` i `recruit` czerpią z tej samej wolnej ludności, więc po
-    `recruit`×8 osiem kolejnych `develop` daje `changed:false`. (b) **Trwała:**
-    głód (wniosek 43) zamraża `free` na 0 i rozkaz odmawia bez końca. Pierwsza
-    diagnoza wskazała wyłącznie (a) i była **błędna co do trwałości** —
-    „produkcja 0/0 na zawsze" zachodzi tylko wtedy, gdy gracz nigdy więcej nie
-    kliknie „Rozwiń osadę". Stąd trzy wzorce przekrojowe: (i) każdy rozkaz
-    bez skutku ma nieść
-    **powód**, nie samo „bez zmian" (K111 dla ruchu, K114 dla gospodarki);
-    (ii) powód musi rozróżniać **„poczekaj" od „nie doczekasz się"**, bo
-    inaczej rada myli dokładnie w stanie, który trwa najdłużej (→ wniosek 43);
-    (iii) zasób, o który konkurują dwa rozkazy, ma być widoczny **zanim** gracz
-    go wyda. **K114 nie otwiera panelu ekonomii** — na ekran wchodzi wyłącznie
-    wolna ludność.
-42. **Diagnostyka rozkazu należy do rdzenia, nie do mostu.**
-    `_blocked_region_name` z K111 (`tbbbridge/protocol.py:41`) powiela guardy
-    rdzenia z komentarzem „Mirror the core's…". Jednorazowo przeszło, ale
-    powtórzenie wzorca dałoby drugą kopię reguł w moście — wprost przeciw
-    „[W] rdzeń jedynym źródłem reguł". W K114 powód odmowy liczy **rdzeń**,
-    most go wyłącznie przenosi; zduplikowane guardy z K111 zostają jako
-    nazwany dług.
+41. **Rozkaz gospodarczy odmawia bez powodu, a powód bywa nieodwracalny
+    (2026-08-08).** Dwie blokady: (a) chwilowa — `develop`/`recruit` czerpią z
+    tej samej wolnej ludności, więc po `recruit`×8 kolejne `develop` dają
+    `changed:false` (mija po turze); (b) trwała — głód (wniosek 43) zamraża
+    `free` na 0 bez końca. Wzorce: (i) rozkaz bez skutku niesie **powód**, nie
+    „bez zmian" (K111 ruch, K114 gospodarka); (ii) powód rozróżnia **„poczekaj"
+    od „nie doczekasz się"**; (iii) zasób konkurujący ma być widoczny **zanim**
+    gracz go wyda. K114 dokłada na ekran wyłącznie wolną ludność.
+42. **Diagnostyka rozkazu należy do rdzenia, nie do mostu.** K111
+    (`_blocked_region_name` w `protocol.py:41`) powiela guardy rdzenia —
+    nazwany dług. W K114 powód odmowy liczy **rdzeń**, most go tylko przenosi.
 43. **Głód jest stanem pochłaniającym, a wchodzi się w niego przed pustym
-    spichlerzem (2026-08-08, pomiar przy dwóch recenzjach przeglądu).** Gdy
-    saldo pszenicy osady przestaje być dodatnie, **żaden rozkaz dostępny
-    w kliencie tego nie odwraca**: `muster` zbija konsumpcję 8 → 3, ale przy
-    produkcji 3 saldo wynosi 0, zapas zostaje 0, ludność nie rośnie
-    (9 zmierzonych tur). Stąd ograniczenie dla K114: klient ma **nazwać
-    stan**, nie doradzać wyjścia, którego nie ma — „poczekaj na przyrost
-    ludności" byłoby powtórzeniem defektu z wniosku 40 jedną warstwę wyżej.
-    **Poprawka po drugiej recenzji, kosztowna, gdyby przeszła:** pierwsza
-    wersja K114 rozpoznawała ten stan po `storage.wheat > 0`, a `tick_growth`
-    czyta zapas **po** `tick_economy` (`world.py:133-145`) i sprawdza jeszcze
-    `below_capacity`. Warunki rozjeżdżają się **dokładnie w turze wejścia
-    w stan pochłaniający** (zmierzone: zapas 5 i 4, saldo 0 i −2, ludność już
-    nie rośnie) — czyli wtedy, gdy rada jeszcze cokolwiek znaczy. Wzorzec:
-    **predykat „czy to minie" bierze się z sekwencji ticków, nie z pola
-    stanu**, a pomiar takiego rozróżnienia musi trafić w **próg**, nie
-    w skrajności. Naprawa samej reguły (produkcja / próg wzrostu / zapas
-    startowy) to **osobny plasterek po K114** i defekt rozgrywki, nie balans;
-    wartość progów zostaje odłożona.
+    spichlerzem (2026-08-08).** Gdy saldo pszenicy przestaje być dodatnie,
+    **żaden rozkaz klienta tego nie odwraca** (`muster` zbija konsumpcję, ale
+    przy produkcji 3 saldo 0 — warunek ostry, ludność nie rośnie). K114 ma
+    **nazwać** stan, nie doradzać wyjścia, którego nie ma. Klucz: predykat
+    „czy to minie" bierze się z **sekwencji ticków** (`tick_growth` po
+    `tick_economy`, `world.py:133-145`; warunki rozjeżdżają się na progu —
+    zapas 5 i 4, saldo 0 i −2), nie z pola stanu (`wheat > 0` kłamie na progu).
+    Naprawa reguły (produkcja / próg / zapas) to **K115**, defekt rozgrywki,
+    nie balans; wartości progów odłożone.
 
 ## Klimat, ton, kierunek wizualny
 Średniowiecze **bez magii i fantastyki**, surowy i realistyczny ton. **[W]**
@@ -258,15 +237,17 @@ czysto informacyjny, jak liczby z K113 — nadal wymaga dowodu wizualnego
    i pokazuje w panelu osady **wolną ludność** obok garnizonu z K113; pomiar
    na żywym moście z regresjami. Powód: wnioski 41–43. **Bez zmian kosztów,
    progu 2:1, tempa AI i bez pełnego panelu ekonomii.**
-14. **Prawdopodobnie potem, dwaj kandydaci — kolejność rozstrzygnie pomiar po
-   K114:** (a) **naprawa głodu** — wniosek 43: niedodatnie saldo pszenicy jest
-   stanem, z którego gracz nie ma wyjścia żadnym dostępnym rozkazem, więc
-   gospodarka umiera niezależnie od tego, co widać na ekranie; (b) **wybór
-   osady** dla
-   `develop`/`recruit`/`muster` (dziś `target` jest po cichu ignorowany —
-   potwierdzone pomiarem 2026-08-08; mapa ma zaznaczenie regionu z K97).
-   Osobno i później: tempo presji AI, ile garnizonu wolno zabrać, sterowanie
-   jednostką w bitwie.
+14. **K115 — naprawa głodu (przesądzona pomiarem przy tym przeglądzie):**
+    wniosek 43 — niedodatnie saldo pszenicy jest stanem, z którego gracz nie ma
+    wyjścia żadnym dostępnym rozkazem. K114 ten stan **nazywa**, K115 go
+    **naprawia**; kandydat „wybór osady" ustępuje, bo w stanie trwałym obie osady
+    mają `free=0` i wybór niczego nie odblokowuje. **Defekt rozgrywki, nie
+    balans** — zmienia się kształt reguły, wartości zostają odłożone. Pełna
+    diagnoza → `BACKLOG.md`, K115.
+15. **Prawdopodobnie potem:** wybór osady dla
+    `develop`/`recruit`/`muster` (`target` ignorowany — potwierdzone pomiarem
+    2026-08-08), tempo presji AI, ile garnizonu wolno zabrać, sterowanie
+    jednostką w bitwie.
 
 ## Świadomie odłożone
 - Kampania/fabuła, multiplayer, magia, oddziały masowe, AAA, dźwięk, edytor map
