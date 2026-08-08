@@ -207,9 +207,14 @@ def _region_distances(world: WorldMap, start: Region) -> dict[Region, int]:
     return distances
 
 
-def recruit_duchy_unit(world: WorldMap, duchy: Duchy) -> WorldMap:
-    """Recruit one fresh unit in the first eligible owned settlement."""
-    for region in world.regions:
+def recruit_duchy_unit(
+    world: WorldMap, duchy: Duchy, target: Region | None = None
+) -> WorldMap:
+    """Recruit one fresh unit in the target or first eligible settlement."""
+    if target is not None:
+        world.settlement_at(target)
+    regions = (target,) if target is not None else world.regions
+    for region in regions:
         settlement = world.settlements.get(region)
         if (
             settlement is not None
@@ -222,14 +227,19 @@ def recruit_duchy_unit(world: WorldMap, duchy: Duchy) -> WorldMap:
     return world
 
 
-def muster_duchy_party(world: WorldMap, duchy: Duchy) -> WorldMap:
-    """Muster a duchy's hero and first available owned settlement garrison."""
+def muster_duchy_party(
+    world: WorldMap, duchy: Duchy, target: Region | None = None
+) -> WorldMap:
+    """Muster a duchy's hero and target or first available settlement garrison."""
+    if target is not None:
+        world.settlement_at(target)
     if any(party.owner_id == duchy.duchy_id for party in world.parties.values()):
         return world
     if duchy.hero is None:
         return world
 
-    for region in world.regions:
+    regions = (target,) if target is not None else world.regions
+    for region in regions:
         settlement = world.settlements.get(region)
         if (
             settlement is not None

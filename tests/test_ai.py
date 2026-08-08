@@ -1421,6 +1421,73 @@ def test_muster_duchy_party_transition_is_publicly_exported():
     assert tbb.muster_duchy_party is muster_duchy_party
 
 
+@pytest.mark.parametrize(
+    "target_name, mustered_name",
+    [
+        ("second", "second"),
+        ("foreign", None),
+        ("unowned", None),
+        ("occupied", None),
+        ("empty", None),
+    ],
+)
+def test_muster_duchy_party_honors_indicated_region_target(
+    target_name, mustered_name
+):
+    foreign, unowned, occupied, first, second, empty = map(
+        Region, ("Foreign", "Unowned", "Occupied", "First", "Second", "Empty")
+    )
+    named = {
+        "foreign": foreign,
+        "unowned": unowned,
+        "occupied": occupied,
+        "first": first,
+        "second": second,
+        "empty": empty,
+    }
+    hero = Unit(training=3)
+    guard = (Unit(equipment=1), Unit(experience=2))
+    settlements = {
+        foreign: Settlement(
+            "Foreign", population=2, occupied=2, garrison=guard, owner_id="enemy"
+        ),
+        unowned: Settlement(
+            "Unowned", population=2, occupied=2, garrison=guard
+        ),
+        occupied: Settlement(
+            "Occupied", population=2, occupied=2, garrison=guard, owner_id="ai"
+        ),
+        first: Settlement(
+            "First", population=2, occupied=2, garrison=guard, owner_id="ai"
+        ),
+        second: Settlement(
+            "Second", population=2, occupied=2, garrison=guard, owner_id="ai"
+        ),
+    }
+    world = WorldMap(
+        [foreign, unowned, occupied, first, second, empty],
+        settlements=settlements,
+        parties={occupied: Party(Unit(), owner_id="enemy")},
+    )
+    duchy = Duchy("ai", hero)
+
+    result = muster_duchy_party(world, duchy, target=named[target_name])
+
+    if mustered_name is None:
+        assert result is world
+        for region in (first, second):
+            assert result.party_at(region) is None
+            assert result.settlement_at(region).garrison == guard
+    else:
+        mustered = named[mustered_name]
+        assert result.party_at(mustered) == Party(hero, guard, owner_id="ai")
+        assert result.settlement_at(mustered).garrison == ()
+        for region in (first, second):
+            if region is not mustered:
+                assert result.party_at(region) is None
+                assert result.settlement_at(region).garrison == guard
+
+
 def test_duchy_military_action_musters_and_marches_once():
     home, road, target = map(Region, ("Home", "Road", "Target"))
     hero = Unit(training=5, equipment=6)
@@ -2030,6 +2097,100 @@ def test_recruit_duchy_unit_is_noop_without_eligible_settlement():
 
 def test_recruit_duchy_unit_is_publicly_exported():
     assert tbb.recruit_duchy_unit is recruit_duchy_unit
+
+
+@pytest.mark.parametrize(
+    "target_name, recruited_name",
+    [
+        ("second", "second"),
+        ("foreign", None),
+        ("unowned", None),
+        ("no_gold", None),
+        ("no_free", None),
+        ("full", None),
+        ("empty", None),
+    ],
+)
+def test_recruit_duchy_unit_honors_indicated_region_target(
+    target_name, recruited_name
+):
+    foreign, unowned, no_gold, no_free, full, first, second, empty = map(
+        Region,
+        (
+            "Foreign",
+            "Unowned",
+            "No gold",
+            "No free",
+            "Full",
+            "First",
+            "Second",
+            "Empty",
+        ),
+    )
+    named = {
+        "foreign": foreign,
+        "unowned": unowned,
+        "no_gold": no_gold,
+        "no_free": no_free,
+        "full": full,
+        "first": first,
+        "second": second,
+        "empty": empty,
+    }
+    full_garrison = tuple(Unit(experience=index) for index in range(12))
+    settlements = {
+        foreign: Settlement(
+            "Foreign", population=1, storage=Resources(0, 1), owner_id="enemy"
+        ),
+        unowned: Settlement("Unowned", population=1, storage=Resources(0, 1)),
+        no_gold: Settlement("No gold", population=1, owner_id="ai"),
+        no_free: Settlement(
+            "No free",
+            population=1,
+            occupied=1,
+            storage=Resources(0, 1),
+            owner_id="ai",
+        ),
+        full: Settlement(
+            "Full",
+            population=13,
+            occupied=12,
+            garrison=full_garrison,
+            storage=Resources(0, 1),
+            owner_id="ai",
+        ),
+        first: Settlement(
+            "First", population=1, storage=Resources(0, 1), owner_id="ai"
+        ),
+        second: Settlement(
+            "Second", population=1, storage=Resources(0, 1), owner_id="ai"
+        ),
+    }
+    world = WorldMap(
+        [foreign, unowned, no_gold, no_free, full, first, second, empty],
+        settlements=settlements,
+    )
+    duchy = Duchy("ai", Unit())
+
+    result = recruit_duchy_unit(world, duchy, target=named[target_name])
+
+    if recruited_name is None:
+        assert result is world
+        for region in (first, second):
+            assert result.settlement_at(region).garrison == ()
+            assert result.settlement_at(region).occupied == 0
+    else:
+        recruited = named[recruited_name]
+        recruited_settlement = result.settlement_at(recruited)
+        assert len(recruited_settlement.garrison) == 1
+        assert recruited_settlement.garrison[0].damage > 0
+        assert recruited_settlement.garrison[0].defense > 0
+        assert recruited_settlement.occupied == 1
+        assert recruited_settlement.storage == Resources(0, 0)
+        for region in (first, second):
+            if region is not recruited:
+                assert result.settlement_at(region).garrison == ()
+                assert result.settlement_at(region).occupied == 0
 
 
 def test_development_priorities_are_farm_smith_barracks_market():
