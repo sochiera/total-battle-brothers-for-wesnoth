@@ -152,16 +152,20 @@ def reinforce_duchy_party(world: WorldMap, duchy: Duchy) -> WorldMap:
     return world.reinforce_party(position)
 
 
-def nearest_enemy_settlement(
-    world: WorldMap, start: Region, owner_id: str
-) -> Region | None:
-    """Return the nearest reachable enemy settlement region."""
+def _validate_settlement_query(world: WorldMap, start: Region, owner_id: str) -> None:
     if not isinstance(owner_id, str):
         raise TypeError("owner_id must be text")
     if owner_id == "":
         raise ValueError("owner_id cannot be empty")
     if start not in world.regions:
         raise ValueError("start region is outside the world map")
+
+
+def nearest_enemy_settlement(
+    world: WorldMap, start: Region, owner_id: str
+) -> Region | None:
+    """Return the nearest reachable enemy settlement region."""
+    _validate_settlement_query(world, start, owner_id)
 
     distances = _region_distances(world, start)
 
@@ -174,6 +178,31 @@ def nearest_enemy_settlement(
             or settlement is None
             or settlement.owner_id is None
             or settlement.owner_id == owner_id
+        ):
+            continue
+        distance = distances[region]
+        if best_distance is None or distance < best_distance:
+            best = region
+            best_distance = distance
+    return best
+
+
+def nearest_own_garrison_settlement(
+    world: WorldMap, start: Region, owner_id: str
+) -> Region | None:
+    """Return the nearest reachable own settlement with a non-empty garrison."""
+    _validate_settlement_query(world, start, owner_id)
+
+    distances = _region_distances(world, start)
+    best: Region | None = None
+    best_distance: int | None = None
+    for region in world.regions:
+        settlement = world.settlements.get(region)
+        if (
+            region not in distances
+            or settlement is None
+            or settlement.owner_id != owner_id
+            or not settlement.garrison
         ):
             continue
         distance = distances[region]

@@ -91,18 +91,87 @@ def test_own_unowned_and_disconnected_settlements_are_ignored():
     assert nearest_enemy_settlement(world, start, "ai") is None
 
 
-@pytest.mark.parametrize("owner_id", ["", None, 7])
-def test_invalid_owner_id_is_rejected(owner_id):
+def _nearest_own_garrison_settlement(world, start, owner_id):
+    return ai.nearest_own_garrison_settlement(world, start, owner_id)
+
+
+def test_nearest_own_garrison_settlement_is_publicly_exported():
+    assert tbb.nearest_own_garrison_settlement is ai.nearest_own_garrison_settlement
+
+
+def test_nearest_own_garrison_settlement_filters_empty_and_unreachable_candidates():
+    start, empty, near, far, island = map(
+        Region, ("Start", "Empty", "Near", "Far", "Island")
+    )
+    world = WorldMap(
+        [start, empty, near, far, island],
+        [(start, empty), (empty, near), (near, far)],
+        settlements={
+            empty: _settlement("Empty", "ai"),
+            near: Settlement("Near", 1, garrison=(Unit(),), owner_id="ai"),
+            far: Settlement("Far", 1, garrison=(Unit(),), owner_id="ai"),
+            island: Settlement("Island", 1, garrison=(Unit(),), owner_id="ai"),
+        },
+    )
+
+    assert _nearest_own_garrison_settlement(world, start, "ai") is near
+
+
+@pytest.mark.parametrize("case", ["no_own", "all_empty", "unreachable"])
+def test_nearest_own_garrison_settlement_returns_none_without_eligible_candidate(case):
+    start, target, island = map(Region, ("Start", "Target", "Island"))
+    settlements = {}
+    connections = [(start, target)]
+    if case == "no_own":
+        settlements[target] = _settlement("Enemy", "enemy")
+    elif case == "all_empty":
+        settlements[target] = _settlement("Empty", "ai")
+    else:
+        settlements[island] = Settlement(
+            "Island", 1, garrison=(Unit(),), owner_id="ai"
+        )
+    world = WorldMap([start, target, island], connections, settlements=settlements)
+
+    assert _nearest_own_garrison_settlement(world, start, "ai") is None
+
+
+def test_nearest_own_garrison_settlement_accepts_start_and_breaks_ties_by_region_order():
+    start, first, second = map(Region, ("Start", "First", "Second"))
+    first_settlement = Settlement("First", 1, garrison=(Unit(),), owner_id="ai")
+    second_settlement = Settlement("Second", 1, garrison=(Unit(),), owner_id="ai")
+    world = WorldMap(
+        [start, first, second],
+        [(start, second), (start, first)],
+        settlements={second: second_settlement, first: first_settlement},
+    )
+
+    assert _nearest_own_garrison_settlement(world, first, "ai") is first
+    assert _nearest_own_garrison_settlement(world, start, "ai") is first
+
+
+@pytest.mark.parametrize(
+    "query", [nearest_enemy_settlement, ai.nearest_own_garrison_settlement]
+)
+@pytest.mark.parametrize(
+    "owner_id, expected_error",
+    [("", ValueError), (None, TypeError), (7, TypeError)],
+)
+def test_invalid_owner_id_is_rejected_by_settlement_queries(
+    query, owner_id, expected_error
+):
     start = Region("Start")
     world = WorldMap([start])
 
-    with pytest.raises((TypeError, ValueError)):
-        nearest_enemy_settlement(world, start, owner_id)
+    with pytest.raises(expected_error):
+        query(world, start, owner_id)
 
 
-def test_start_region_outside_world_is_rejected():
+@pytest.mark.parametrize(
+    "query", [nearest_enemy_settlement, ai.nearest_own_garrison_settlement]
+)
+def test_start_region_outside_world_is_rejected_by_settlement_queries(query):
     with pytest.raises(ValueError):
-        nearest_enemy_settlement(WorldMap([Region("Known")]), Region("Unknown"), "ai")
+        query(WorldMap([Region("Known")]), Region("Unknown"), "ai")
 
 
 def test_query_does_not_mutate_world_settlement_mapping_or_settlements():
