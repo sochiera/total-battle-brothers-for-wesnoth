@@ -1943,7 +1943,7 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
 > kończy się przegraną w **R1M7**, a aktywna wygraną w **R1M4**. K114 domknięty;
 > wszystkie G114.1a–d odhaczone.
 
-## Kamień milowy 115 — głód przestaje być ślepą uliczką (ekonomia daje się utrzymać)
+## Kamień milowy 115 — UKOŃCZONY — głód przestaje być ślepą uliczką (ekonomia daje się utrzymać)
 > **Decyzja kierunku (przegląd bootstrap-diff 2026-08-08, po zaplanowaniu K114).**
 > Wniosek 43 i pełna diagnoza w sekcji K114 pokazują, że niedodatnie saldo
 > pszenicy zatrzymuje wzrost ludności na zawsze, a **żaden rozkaz dostępny
@@ -1988,12 +1988,18 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
       armii się rozstrzyga). *(standard, ryzyko: dotyka rdzenia — jedynego
       źródła reguł; nie zmieniać progu 2:1, tempa AI, kosztów rozkazów ani reguł
       ruchu/walki)*
-- [ ] **G115.1b [POMIAR]** Dowód na żywym moście przez dwa procesy (`seed=73`):
+- [x] **G115.1b [POMIAR]** Dowód na żywym moście przez dwa procesy (`seed=73`):
       sekwencja `develop`×2 → 5× `next_turn` pokazuje w kliencie (po K114 panel
       osady niesie `free`), że wolna ludność odrasta po turach, a status rozkazu
       gospodarczego po odroście daje `changed:true` (nie „trwały brak" z K114).
       Regresje rozstrzygnięcia partii stoją. Zapis pomiaru trafia tutaj, do
       sekcji K115. *(standard, wymaga K114)*
+> **Pomiar zamykający K115 (2026-08-08, żywy most `seed=73`):** po
+> `develop`×2 i 5× `next_turn` wolna ludność odrasta: player lands `free`
+> **2→5** (population **5→8**), player outpost `free` **4→6** (population
+> **5→7**; osada utracona na rzecz AI w turze 5). `develop` i `recruit` po
+> odroście dają `changed:true`, bez powodu odmowy. Regresje rozstrzygnięcia
+> stoją: bierna partia przegrywa w **R1M7**, a aktywna wygrywa w **R1M4**.
 
 ## Dług/refaktor
 - [x] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe

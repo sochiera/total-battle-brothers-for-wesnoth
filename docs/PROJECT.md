@@ -73,6 +73,12 @@ człowieka**. **[W]** Spełnione 2026-08-06 w K106.
   przy niezerowym zapasie 5/4 i saldzie 0/−2, z potwierdzonym brakiem wzrostu
   Keep 8→8 i Outpost 9→9, oraz nadal trwały przy zapasie 0. Regresje stoją:
   bierna partia kończy się w R1M7, aktywna w R1M4.
+- **K115 — DOMKNIĘTY 2026-08-08:** żywy most `seed=73` potwierdza, że po
+  `develop`×2 i 5× `next_turn` wolna ludność odrasta: player lands `free`
+  2→5 (population 5→8), player outpost `free` 4→6 (population 5→7; osada
+  utracona na rzecz AI w turze 5). `develop` i `recruit` po odroście dają
+  `changed:true` bez powodu odmowy;
+  regresje stoją: bierna partia przegrywa w R1M7, aktywna wygrywa w R1M4.
 - **Pomiar przy przeglądzie 2026-08-08 (po K112/K113), sprostowany po
   recenzji:** `pytest` zielony w całości (3m06s). Żywy most `seed=73`:
   regresje stoją — aktywny gracz (`recruit`×10 → `muster` →

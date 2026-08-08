@@ -2009,3 +2009,172 @@ def test_ineffective_reinforce_over_the_bridge_is_ok_with_changed_false():
     assert session.world is before_world
     assert session.snapshot() == before_snapshot
     assert session.rng.state() == before_rng_state
+
+
+def test_seed73_free_population_regrows_on_live_bridge_and_k115_is_closed():
+    """G115.1b: pomiar na żywym moście dowodzi, że wolna ludność odrasta po
+    turach, a rozkaz gospodarczy po odroście daje ``changed:true`` — nie „trwały
+    brak" z K114 — plus domknięcie K115 w dokumentacji projektu.
+
+    Realistyczny defekt niewidoczny dla istniejących bramek: rdzenny test
+    ``test_break_even_settlement_grows_instead_of_freezing_at_zero_balance``
+    udowadnia regułę na izolowanym Settlement, a mostowy
+    ``test_seed73_three_refusal_states_measured_on_live_bridge_and_k114_is_closed``
+    pinuje *trwałą* ścieżkę głodu — żaden nie udowadnia, że publiczna ścieżka
+    mostu ``develop``×2 → tury faktycznie odrasta ``free`` na ``seed=73``, ani
+    że pomiar i domknięcie K115 trafiają do rejestru projektu. Błąd w mostowaniu
+    (stary strict-``storage>0`` gate dotrze do ścieżki seed=73) lub zapis pomiaru
+    tylko w komentarzu przepuści tę bramkę w części zachowania albo dokumentacji.
+
+    Kryteria AC1+AC2+AC4. AC3 (regresje rozstrzygnięcia stoją) jest już
+    behawioralnie pilnowane przez ``test_passive_seed73_game_still_loses_to_ai_``
+    ``after_six_next_turns`` (bierna przegrywa R1M7) oraz aktywną ścieżkę w
+    ``test_seed73_live_growth_measurement_is_recorded_and_k112_is_closed``
+    (aktywna wygrywa R1M4); tu tylko wymagamy zmierzonej liczby tur w dokumencie.
+
+    Pomiar czyta stan GRACZA filtrem ``owner == 'player'`` (wzorzec
+    ``player_settlements`` w bramce K114, test_protocol.py:1241): na ``seed=73``
+    AI zajmuje ``player outpost`` w turze 5, więc czytanie samej nazwy regionu
+    podmieniłoby dane AI (population 6) za dane gracza (population 7) i bramka
+    przechodziłaby z fałszywego powodu albo false-failowa przy spadku free.
+    """
+    names = ("player lands", "player outpost")
+
+    def player_free_and_pop(snapshot):
+        # Filtrowanie po właścicielu: na seed=73 AI przejmuje 'player outpost'
+        # w turze 5 — czytanie po samej nazwie miksuje dane AI z danymi gracza.
+        out = {}
+        for region in snapshot["map"]["regions"]:
+            if region["name"] in names:
+                settle = region["settlement"]
+                if settle is not None and settle["owner"] == "player":
+                    out[region["name"]] = {
+                        "free": settle["free"],
+                        "pop": settle["population"],
+                    }
+        return out
+
+    # --- AC1: develop×2 -> 5× next_turn: free GRACZA odrasta po turach. ---
+    session = new_session(seed=73, player_duchy_id="player")
+    for _ in range(2):
+        session, develop_resp = handle_command_line(
+            session, '{"type":"order","order":"develop"}'
+        )
+        assert develop_resp["ok"] is True
+        assert develop_resp["result"]["changed"] is True
+
+    drained = player_free_and_pop(session.snapshot())
+    assert drained == {
+        "player lands": {"free": 2, "pop": 5},
+        "player outpost": {"free": 4, "pop": 5},
+    }, "AC1: po develop×2 free player lands spada 4->2; player outpost trzyma free 4 (bez spadku)"
+
+    turn_states = []
+    for _ in range(5):
+        session, turn_resp = handle_command_line(
+            session, '{"type":"next_turn"}'
+        )
+        assert turn_resp["ok"] is True
+        turn_states.append(player_free_and_pop(turn_resp["snapshot"]))
+
+    # Na seed=73 AI zajmuje 'player outpost' w turze 5 — ostatnia tura, w której
+    # gracz wciąż posiada osadę, niesie population 7 (NIE 6 = to dane AI).
+    last_player_outpost = next(
+        (
+            state["player outpost"]
+            for state in reversed(turn_states)
+            if "player outpost" in state
+        ),
+        None,
+    )
+    assert last_player_outpost is not None, (
+        "AC1: przynajmniej jedna tura musi zmierzyć stan gracza z outpostem, "
+        "zanim AI je przejmie (na seed=73 to tury 1-4)"
+    )
+    assert last_player_outpost == {"free": 6, "pop": 7}, (
+        "AC1: player outpost GRACZA — free 4->6, population 5->7 (tury 1-4); "
+        "w turze 5 AI przejmuje osadę, więc '6' w population to stan AI, nie gracza"
+    )
+    assert "player outpost" not in turn_states[-1], (
+        "AC1: w turze 5 'player outpost' należy do AI — pomiar stanu gracza "
+        "nie może czytać tej osady jako należącej do gracza"
+    )
+
+    # player lands odrasta i pozostaje przy graczu przez całą sekwencję.
+    assert turn_states[-1]["player lands"] == {"free": 5, "pop": 8}, (
+        "AC1: player lands free 2->5, population 5->8"
+    )
+    for name in names:
+        peak = max(state[name]["free"] for state in turn_states if name in state)
+        assert peak > drained[name]["free"], (
+            f'AC1: wolna ludność GRACZA w „{name}" musi ODROSNĄĆ '
+            f"(po develop={drained[name]['free']}, szczyt={peak}) — to naprawia K115"
+        )
+        assert peak > 0, (
+            f'AC1: „{name}" ma niezerową wolną ludność do pokazania w panelu (K114)'
+        )
+
+    # --- AC2: rozkaz gospodarczy po odroście daje changed:true, nie trwały powód. ---
+    session, develop_after = handle_command_line(
+        session, '{"type":"order","order":"develop"}'
+    )
+    assert develop_after["result"] == {
+        "kind": "order",
+        "order": "develop",
+        "changed": True,
+    }, "AC2: develop po odroście zmienia świat, nie odmawia"
+    assert "reason" not in develop_after["result"], (
+        "AC2: po odroście nie ma powodu odmowy (odedłany stan trwały z K114)"
+    )
+
+    session, recruit_after = handle_command_line(
+        session, '{"type":"order","order":"recruit"}'
+    )
+    assert recruit_after["result"] == {
+        "kind": "order",
+        "order": "recruit",
+        "changed": True,
+    }, "AC2: recruit po odroście również działa"
+    assert "reason" not in recruit_after["result"]
+
+    # --- AC3 (zapisać zmierzone liczby tur regresji) + AC4: dokumentacja. ---
+    # Zmierzony przebieg GRACZA: player lands free 2->5/pop 5->8,
+    # player outpost free 4->6/pop 5->7 (utrata osady w turze 5).
+    root = Path(__file__).resolve().parents[2]
+    backlog = (root / "BACKLOG.md").read_text()
+    project = (root / "docs" / "PROJECT.md").read_text()
+
+    k115_start = backlog.index("## Kamień milowy 115")
+    k115_end = backlog.index("## Dług/refaktor", k115_start)
+    backlog_k115 = backlog[k115_start:k115_end]
+
+    assert "— UKOŃCZONY" in backlog_k115.splitlines()[0], (
+        "AC4: nagłówek K115 w BACKLOG.md ma być oznaczony UKOŃCZONY"
+    )
+    assert "- [x] **G115.1b [POMIAR]**" in backlog_k115, (
+        "AC4: pozycja G115.1b w BACKLOG.md ma być odhaczona"
+    )
+    assert "> **Pomiar zamykający K115" in backlog_k115, (
+        "AC4: pomiar odrastania z żywego mostu zapisany jako blok zamykający K115"
+    )
+    # Poprawna trajektoria GRACZA: population outpost 5->7 (NIE 5->6 = dane AI
+    # po zajęciu osady w turze 5). To rozstrzyga uwagę review o miksu właścicieli.
+    assert "5→7" in backlog_k115, (
+        "AC4: sekcja K115 ma nosić zmierzony population GRACZA outpost 5→7 "
+        "(5→6 to population AI po przejęciu osady w turze 5)"
+    )
+    for marker in ("R1M7", "R1M4"):
+        assert marker in backlog_k115, (
+            f"AC3/AC4: zmierzona liczba tur regresji ({marker}) w sekcji K115 BACKLOG.md"
+        )
+
+    assert "- **K115 — DOMKNIĘTY" in project, (
+        "AC4: K115 ma figurować jako DOMKNIĘTY w „Stan faktyczny\" w docs/PROJECT.md"
+    )
+    assert "5→7" in project, (
+        "AC4: docs/PROJECT.md ma nosić population GRACZA outpost 5→7 (nie 5→6 = AI)"
+    )
+    for marker in ("odrasta", "changed:true", "R1M7", "R1M4"):
+        assert marker in project, (
+            f"AC4: docs/PROJECT.md ma nosić zmierzone markery K115 ({marker!r})"
+        )
