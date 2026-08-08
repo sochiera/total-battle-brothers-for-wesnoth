@@ -1207,6 +1207,133 @@ def test_seed73_live_growth_measurement_is_recorded_and_k112_is_closed():
     assert active.snapshot()["calendar"] == {"year": 1, "month": 4}
 
 
+def test_seed73_three_refusal_states_measured_on_live_bridge_and_k114_is_closed():
+    """G114.1d: trzy stany odmowy rozkazu gospodarczego zmierzone przez publiczny
+    protokół mostu (``handle_command_line`` — ten sam punkt wejścia, którego używa proces
+    ``serve``), plus domknięcie K114 w dokumentacji projektu.
+
+    Realistyczny defekt niewidoczny dla istniejących bramek: mostowy test
+    ``test_economic_order_result_carries_core_reason_without_rejecting_noop``
+    pokrywa tylko stan (a) (przejściowy), a rdzenny
+    ``test_seed73_turn_three_positive_storage_is_already_permanent_hunger``
+    dowodzi ``economic_order_reason`` na poziomie rdzenia — żaden nie udowadnia,
+    że *most* niesie powód **trwały** na zmierzonej ścieżce głodu ``seed=73``,
+    ani że pomiar i domknięcie K114 trafiają do rejestru projektu. Błędny
+    predykat ``storage.wheat > 0`` przepuściłby stany (a) i (c), ale w (b)
+    pokazałby radę czekania przy niezerowym zapasie — dokładnie to łapie
+    rozstrzygająca asercja (b).
+    """
+    transient = "brak wolnej ludności"
+    permanent = "brak wolnej ludności — osada nie wyżywi przyrostu"
+
+    def drain(session, order):
+        """Zastosuj ``order`` do skutku-brak-zmiany; zwróć (sesja, ostatnia odpowiedź)."""
+        response = {}
+        while True:
+            before = session.world
+            session, response = handle_command_line(
+                session, json.dumps({"type": "order", "order": order})
+            )
+            assert response["ok"] is True, response
+            if session.world is before:
+                return session, response
+
+    def player_settlements(session):
+        return {
+            region.name: session.world.settlement_at(region)
+            for region in session.world.regions
+            if session.world.settlement_at(region) is not None
+            and session.world.settlement_at(region).owner_id == "player"
+        }
+
+    # --- (a) przejściowy: recruit x8 -> develop w tej samej turze ---
+    session = new_session(seed=73, player_duchy_id="player")
+    for _ in range(8):
+        session, response = handle_command_line(
+            session, '{"type":"order","order":"recruit"}'
+        )
+        assert response["result"]["changed"] is True
+    session, develop_transient = handle_command_line(
+        session, '{"type":"order","order":"develop"}'
+    )
+    assert develop_transient["result"] == {
+        "kind": "order",
+        "order": "develop",
+        "changed": False,
+        "reason": transient,
+    }, "AC1(a): recruit x8 -> develop niesie powód PRZEJŚCIOWY przez most"
+
+    # --- (b) ROZSTRZYGAJĄCY: tura 3 głodu przy niezerowym zapasie -> TRWAŁY ---
+    session = new_session(seed=73, player_duchy_id="player")
+    recruit_refusal = {}
+    for turn in range(3):
+        session, _ = drain(session, "develop")
+        session, recruit_refusal = drain(session, "recruit")
+        if turn < 2:
+            session, _ = handle_command_line(session, '{"type":"next_turn"}')
+
+    assert {
+        name: (settle.free, settle.storage.wheat)
+        for name, settle in player_settlements(session).items()
+    } == {
+        "player lands": (0, 5),
+        "player outpost": (0, 4),
+    }, "AC1(b)/AC2: w turze odmowy zapas jest wciąż NIEZEROWY (5 i 4) — próg rozstrzygający"
+    assert recruit_refusal["result"] == {
+        "kind": "order",
+        "order": "recruit",
+        "changed": False,
+        "reason": permanent,
+    }, "AC1(b)/AC2: przy niezerowym zapasie most niesie powód TRWAŁY (obalą wheat>0)"
+
+    # Kolejna tura: ludność faktycznie nie rośnie (Keep 8, Outpost 9), zapas spada do 0.
+    session, _ = handle_command_line(session, '{"type":"next_turn"}')
+    stalled = player_settlements(session)
+    assert {
+        name: (settle.population, settle.storage.wheat)
+        for name, settle in stalled.items()
+    } == {
+        "player lands": (8, 0),
+        "player outpost": (9, 0),
+    }, "AC1(b): trwały oznacza, że ludność stoi (Keep 8, Outpost 9), a zapas padł do 0"
+
+    # --- (c) ten sam przebieg przy zapasie 0 -> nadal TRWAŁY ---
+    session, _ = drain(session, "develop")
+    session, recruit_at_zero = drain(session, "recruit")
+    assert all(
+        settle.storage.wheat == 0 for settle in player_settlements(session).values()
+    ), "AC1(c): zapas wyczerpany"
+    assert recruit_at_zero["result"] == {
+        "kind": "order",
+        "order": "recruit",
+        "changed": False,
+        "reason": permanent,
+    }, "AC1(c): przy zerowym zapasie powód nadal TRWAŁY"
+
+    # --- AC4: pomiar zapisany w BACKLOG.md (K114) i PROJECT.md, K114 domknięty ---
+    root = Path(__file__).resolve().parents[2]
+    backlog = (root / "BACKLOG.md").read_text()
+    project = (root / "docs" / "PROJECT.md").read_text()
+
+    k114_start = backlog.index("## Kamień milowy 114")
+    k114_end = backlog.index("## Kamień milowy 115", k114_start)
+    backlog_k114 = backlog[k114_start:k114_end]
+
+    assert "— UKOŃCZONY" in backlog_k114.splitlines()[0], (
+        "AC4: nagłówek K114 w BACKLOG.md ma być oznaczony UKOŃCZONY"
+    )
+    assert "- [x] **G114.1d [POMIAR]**" in backlog_k114, (
+        "AC4: pozycja G114.1d w BACKLOG.md ma być odhaczona"
+    )
+    assert "> **Pomiar zamykający K114" in backlog_k114, (
+        "AC4: pomiar z żywego mostu zapisany jako blok zamykający K114 (wzorzec K112)"
+    )
+
+    assert "- **K114 — DOMKNIĘTY" in project, (
+        "AC4: K114 ma figurować jako DOMKNIĘTY w „Stan faktyczny\" w docs/PROJECT.md"
+    )
+
+
 def test_command_result_battle_order_with_last_battle_returns_kind_battle_with_outcome_and_losses():
     """G66.2b kryt-1: ``command_result(before, after, {"type": "order",
     "order": "assault"})`` gdy ``after.last_battle is not None`` zwraca

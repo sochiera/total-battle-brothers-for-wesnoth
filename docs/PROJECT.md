@@ -68,6 +68,11 @@ człowieka**. **[W]** Spełnione 2026-08-06 w K106.
   oddział AI rośnie **2 → 4** kosztem garnizonu `ai outpost` **1 → 0**.
 - **K113 — DOMKNIĘTY 2026-08-08**: panel wybranego regionu pokazuje liczbę
   jednostek, PŻ i garnizon dla obu stron (`WorldPresentation`).
+- **K114 — DOMKNIĘTY 2026-08-08:** żywy most `seed=73` potwierdza trzy stany
+  odmowy rozkazu gospodarczego: przejściowy po `recruit`×8 → `develop`, trwały
+  przy niezerowym zapasie 5/4 i saldzie 0/−2, z potwierdzonym brakiem wzrostu
+  Keep 8→8 i Outpost 9→9, oraz nadal trwały przy zapasie 0. Regresje stoją:
+  bierna partia kończy się w R1M7, aktywna w R1M4.
 - **Pomiar przy przeglądzie 2026-08-08 (po K112/K113), sprostowany po
   recenzji:** `pytest` zielony w całości (3m06s). Żywy most `seed=73`:
   regresje stoją — aktywny gracz (`recruit`×10 → `muster` →

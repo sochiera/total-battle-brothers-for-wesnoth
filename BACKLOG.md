@@ -1770,7 +1770,7 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
 > / `settlement_strength_text` dają liczbę jednostek, PŻ i garnizon; panel
 > wybranego regionu pokazuje je dla obu stron.
 
-## Kamień milowy 114 — rozkaz gospodarczy mówi, dlaczego nic nie zrobił (koniec ślepego klikania)
+## Kamień milowy 114 — rozkaz gospodarczy mówi, dlaczego nic nie zrobił (koniec ślepego klikania) — UKOŃCZONY
 > **Zmierzone przy przeglądzie bootstrap-diff 2026-08-08 na uruchomionym
 > moście** (`new_session(73)`, wyłącznie rozkazy dostępne w kliencie), nie
 > z lektury. `pytest` w całości zielony (3m06s).
@@ -1854,7 +1854,7 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
 > w moście (komentarz „Mirror the core's…" w `protocol.py:41`). Powtórzenie
 > tego byłoby złamaniem „[W] rdzeń jedynym źródłem reguł" — dlatego powód
 > odmowy liczy **rdzeń** (G114.1a), a most go wyłącznie przenosi.
-- [ ] **G114.1a [RDZEŃ]** Rdzeń umie powiedzieć, **dlaczego** rozkaz
+- [x] **G114.1a [RDZEŃ]** Rdzeń umie powiedzieć, **dlaczego** rozkaz
       gospodarczy nie zmieni świata: czysta funkcja obok
       `develop_duchy_settlement` / `recruit_duchy_unit` zwraca jawny, skończony
       powód dla księstwa albo `None`, gdy rozkaz się powiedzie. Zbiór powodów
@@ -1882,14 +1882,14 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
       (naprawa = osobny plasterek po K114). *(standard, ryzyko: dotyka rdzenia
       — jedynego źródła reguł; nie zmieniać przy okazji kosztów, produkcji,
       progu wzrostu ani kolejności osad)*
-- [ ] **G114.1b [MOST]** Bezskuteczny `develop`/`recruit`/`muster` niesie ten
+- [x] **G114.1b [MOST]** Bezskuteczny `develop`/`recruit`/`muster` niesie ten
       powód: `command_result` dokłada pole diagnostyczne obok
       `{"kind":"order","changed":false}`, **wyłącznie** gdy rdzeń go zwrócił;
       skuteczny rozkaz i wszystkie dotychczasowe kształty wyniku bez zmian,
       nigdy `ok:false`. Most **nie powiela** warunków rdzenia — pyta funkcję
       z G114.1a. Test na `seed=73` odtwarza `recruit`×8 → `develop`.
       *(standard)*
-- [ ] **G114.1c [KLIENT]** Gracz widzi powód i pulę: status rozkazu mówi po
+- [x] **G114.1c [KLIENT]** Gracz widzi powód i pulę: status rozkazu mówi po
       polsku, czego zabrakło, a panel wybranego regionu dokłada do wiersza
       osady **wolną ludność** obok garnizonu z K113 (np. „Twierdza gracza,
       garnizon: 5, wolni mieszkańcy: 0").
@@ -1914,7 +1914,7 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
       jeszcze dodatnia i sama w sobie myli). Testy headless na fixture'ach + dowód
       wizualny 1152×648: kadr z osadą o zerowej wolnej ludności i widocznym
       powodem odmowy. *(standard)*
-- [ ] **G114.1d [POMIAR]** Dowód na żywym moście przez dwa procesy
+- [x] **G114.1d [POMIAR]** Dowód na żywym moście przez dwa procesy
       (`seed=73`), **trzy stany, nie dwa** — trzeci dopisany po recenzji, bo
       dwa pierwsze mierzą wyłącznie skrajności i przepuszczają błąd predykatu:
       (a) `recruit`×8 → `develop` w tej samej turze kończy się na ekranie
@@ -1931,6 +1931,17 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
       1, miesiącu 7** (6× „Następna tura"), a gracz aktywny (`recruit`×10 →
       `muster` → `assault`/`engage`/`march`) wygrywa w **roku 1, miesiącu 4**.
        Zapis pomiaru trafia tutaj, do sekcji K114. *(standard)*
+
+> **Pomiar zamykający K114 (2026-08-08, żywy most `seed=73`):** przez
+> `handle_command_line` zmierzono trzy stany odmowy: (a) `recruit`×8 →
+> `develop` w tej samej turze zwraca powód **przejściowy** przy zapasie 10 i
+> saldzie +5; (b) w turze 3 przebiegu co-turę `develop` + `recruit` obie osady
+> mają `free=0`, zapas **5 i 4** oraz saldo **0 i −2**, a odmowa `recruit`
+> zwraca powód **trwały** bez rady czekania; kolejna tura potwierdza brak
+> wzrostu (**Keep 8→8, Outpost 9→9**) i sprowadza zapas do 0; (c) przy zapasie
+> 0 powód nadal jest **trwały**. Regresje rozstrzygnięcia stoją: bierna partia
+> kończy się przegraną w **R1M7**, a aktywna wygraną w **R1M4**. K114 domknięty;
+> wszystkie G114.1a–d odhaczone.
 
 ## Kamień milowy 115 — głód przestaje być ślepą uliczką (ekonomia daje się utrzymać)
 > **Decyzja kierunku (przegląd bootstrap-diff 2026-08-08, po zaplanowaniu K114).**
