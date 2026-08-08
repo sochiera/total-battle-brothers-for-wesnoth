@@ -91,6 +91,12 @@ człowieka**. **[W]** Spełnione 2026-08-06 w K106.
   osady, `SnapshotModel` je przepuszcza, a panel regionu pokazuje wyłącznie
   „twoja armia" i nazwę osady (`game/scripts/main.gd:654-667`); siły wroga
   przed szturmem też nie widać. Zakres **K113** — klient-only.
+- **K112 — DOMKNIĘTY 2026-08-08:** pomiar przez żywy most na `seed=73`, po
+  `develop`×10 → `recruit`×10 → `muster`, kończy partię po **6 turach** z
+  `winner: "ai"` i `player_result: "defeat"`. W przebiegu wzmocnienia
+  oddział AI rośnie **2 → 4** po pobraniu garnizonu własnego `ai outpost`,
+  którego stan spada **1 → 0**. Reguła usuwa martwą partię bez armii; wynik
+  i pełny zapis przebiegu są w sekcji K112 w `BACKLOG.md`.
 
 ## Ograniczenia i priorytety
 - **[W]** Rdzeń `tbb` jest **jedynym źródłem reguł**. Godot nie duplikuje logiki;

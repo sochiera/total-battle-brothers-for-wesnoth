@@ -7,6 +7,7 @@ from collections import Counter
 import copy
 import io
 import json
+from pathlib import Path
 
 import pytest
 
@@ -978,6 +979,157 @@ def test_passive_seed73_game_still_loses_to_ai_after_six_next_turns():
         "winner": "ai",
         "player_result": "defeat",
     }
+
+
+def test_seed73_live_growth_measurement_is_recorded_and_k112_is_closed():
+    """G112.1c-4: the measured live bridge path resolves and is documented.
+
+    Realistic defect: direct AI/core tests and the short passive regression can
+    pass while the public JSON Lines path fails to carry the exact
+    develop/recruit/muster setup, or while the measured AI reinforcement is
+    recorded only in code comments and not in the project status.
+    """
+    session = new_session(seed=73, player_duchy_id="player")
+    setup_commands = (
+        {"type": "order", "order": "develop"},
+    ) * 10 + (
+        {"type": "order", "order": "recruit"},
+    ) * 10 + (
+        {"type": "order", "order": "muster"},
+    )
+    for command in setup_commands:
+        session, response = handle_command_line(session, json.dumps(command))
+        assert response["ok"] is True
+
+    setup = session.snapshot()
+    ai_outpost_setup = next(
+        region
+        for region in setup["map"]["regions"]
+        if region["name"] == "ai outpost"
+    )
+    assert ai_outpost_setup["settlement"]["garrison"] == 1
+    assert ai_outpost_setup["party"] is None
+
+    turn_snapshots = []
+    for _ in range(120):
+        session, response = handle_command_line(
+            session, '{"type":"next_turn"}'
+        )
+        assert response["ok"] is True
+        turn_snapshots.append(response["snapshot"])
+        if response["snapshot"]["result"]["is_over"]:
+            break
+
+    assert len(turn_snapshots) == 6, (
+        "AC1: seed=73 development path should resolve in the measured six turns"
+    )
+    assert turn_snapshots[-1]["result"] == {
+        "is_over": True,
+        "winner": "ai",
+        "player_result": "defeat",
+    }, "AC1: the live bridge result must name the resolved AI winner"
+
+    def region_at(snapshot, name):
+        return next(
+            region for region in snapshot["map"]["regions"] if region["name"] == name
+        )
+
+    reinforcement = next(
+        (
+            (before, after)
+            for before, after in zip(turn_snapshots, turn_snapshots[1:])
+            if (
+                region_at(before, "ai outpost")["party"] is not None
+                and region_at(after, "ai outpost")["party"] is not None
+                and region_at(after, "ai outpost")["party"]["size"]
+                > region_at(before, "ai outpost")["party"]["size"]
+                and region_at(after, "ai outpost")["settlement"]["garrison"]
+                < region_at(before, "ai outpost")["settlement"]["garrison"]
+            )
+        ),
+        None,
+    )
+    assert reinforcement is not None, (
+        "AC2: the AI army must grow while its own outpost garrison decreases"
+    )
+    before_reinforcement, after_reinforcement = reinforcement
+    before_ai_outpost = region_at(before_reinforcement, "ai outpost")
+    reinforced_ai_outpost = region_at(after_reinforcement, "ai outpost")
+    assert before_ai_outpost["party"]["size"] == 2
+    assert before_ai_outpost["settlement"]["garrison"] == 1
+    assert reinforced_ai_outpost["party"]["size"] == 4
+    assert reinforced_ai_outpost["settlement"]["garrison"] == 0
+
+    root = Path(__file__).resolve().parents[2]
+    backlog = (root / "BACKLOG.md").read_text()
+    project = (root / "docs" / "PROJECT.md").read_text()
+    backlog_k112 = backlog[
+        backlog.index(
+            "## Kamień milowy 112 — wojsko z garnizonu trafia w pole "
+            "(koniec martwej partii bez armii) — UKOŃCZONY"
+        ) : backlog.index("## Kamień milowy 113", backlog.index("## Kamień milowy 112"))
+    ]
+    project_k112 = project[
+        project.index("- **K112 — DOMKNIĘTY 2026-08-08:") : project.index(
+            "\n\n## Ograniczenia", project.index("- **K112 — DOMKNIĘTY")
+        )
+    ]
+    missing = [
+        marker
+        for marker in (
+            "## Kamień milowy 112 — wojsko z garnizonu trafia w pole (koniec martwej partii bez armii) — UKOŃCZONY",
+            "6 tur",
+            'winner: "ai"',
+            "oddział AI rośnie",
+        )
+        if marker not in backlog_k112
+    ]
+    missing.extend(
+        marker
+        for marker in ("6 tur", 'winner: "ai"', "oddział AI rośnie")
+        if marker not in project_k112
+    )
+    assert not missing, (
+        "AC5: measured turns, winner, AI reinforcement, and K112 closure are "
+        f"missing from project records: {missing}"
+    )
+
+    # AC3: keep the seed-73 player regressions on the same public bridge gate.
+    passive = new_session(seed=73, player_duchy_id="player")
+    for _ in range(13):
+        passive, response = handle_command_line(
+            passive, '{"type":"next_turn"}'
+        )
+        assert response["ok"] is True
+        if passive.snapshot()["result"]["is_over"]:
+            break
+    assert passive.snapshot()["result"] == {
+        "is_over": True,
+        "winner": "ai",
+        "player_result": "defeat",
+    }
+
+    active = new_session(seed=73, player_duchy_id="player")
+    active_commands = (
+        {"type": "order", "order": "recruit"},
+        {"type": "order", "order": "muster"},
+        {"type": "order", "order": "march"},
+        {"type": "next_turn"},
+        {"type": "order", "order": "engage", "target": "border"},
+        {"type": "next_turn"},
+        {"type": "order", "order": "assault", "target": "ai outpost"},
+        {"type": "next_turn"},
+        {"type": "order", "order": "assault", "target": "ai lands"},
+    )
+    for command in active_commands:
+        active, response = handle_command_line(active, json.dumps(command))
+        assert response["ok"] is True
+    assert active.snapshot()["result"] == {
+        "is_over": True,
+        "winner": "player",
+        "player_result": "victory",
+    }
+    assert active.snapshot()["calendar"] == {"year": 1, "month": 4}
 
 
 def test_command_result_battle_order_with_last_battle_returns_kind_battle_with_outcome_and_losses():

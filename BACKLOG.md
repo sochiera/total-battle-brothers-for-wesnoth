@@ -1613,7 +1613,7 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
 - [x] **R111.1 (dług techniczny)** Znacznik akcji miesiąca pochodzi z rdzenia,
       nie ze zgadywania w kliencie (+ testy regresji). *(commit `24f5a4a`)*
 
-## Kamień milowy 112 — wojsko z garnizonu trafia w pole (koniec martwej partii bez armii)
+## Kamień milowy 112 — wojsko z garnizonu trafia w pole (koniec martwej partii bez armii) — UKOŃCZONY
 > **Zwrot kierunku (przegląd bootstrap-diff 2026-08-07, po K110).** K110 usunął
 > zakleszczenie „armia pod murami", więc partia toczy się dalej — i za jego
 > horyzontem (wniosek 36) leży **kolejny stan bez wyjścia, tym razem po stronie
@@ -1658,7 +1658,7 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
 > G112.1d albo bierze K113 wcześniej i pokazuje wzrost licznikiem, albo
 > ogranicza kryterium do statusu i figury i **nie wymyśla własnego licznika**
 > obok tego z K113.
-- [ ] **G112.1a [RDZEŃ]** Oddział stojący w regionie **własnej** osady wciąga jej
+- [x] **G112.1a [RDZEŃ]** Oddział stojący w regionie **własnej** osady wciąga jej
       garnizon: nowa reguła obok `muster_party`, oddział rośnie o wszystkie
       jednostki garnizonu, osada zostaje z garnizonem 0, hero i rany bez zmian.
       Brak osady w regionie, cudza osada, pusty garnizon albo brak oddziału →
@@ -1668,7 +1668,7 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
       bez zmian w kryteriach. *(standard, ryzyko: dotyka rdzenia — jedynego
       źródła reguł; nie zmieniać przy okazji `muster`, progu 2:1 z K108 ani reguł
       ruchu)*
-- [ ] **G112.1b [MOST]** Rozkaz `reinforce` w `apply_command`: kieruje do reguły
+- [x] **G112.1b [MOST]** Rozkaz `reinforce` w `apply_command`: kieruje do reguły
       z G112.1a dla księstwa gracza, odpowiada `{"kind":"order","changed":…}`,
       nieskuteczny (brak własnej osady pod oddziałem, pusty garnizon, akcja już
       wykonana w tym miesiącu) → `changed:false` przy `ok:true`, nigdy błąd.
@@ -1677,7 +1677,7 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
       outpostu, a **regresje stoją**: bierny gracz przegrywa w 13 turach,
       priorytet `assault` → `engage` → `march` wygrywa w roku 1, miesiącu 4.
       *(standard)*
-- [ ] **G112.1c [RDZEŃ]** AI bez przewagi 2:1 nie stoi bezczynnie: gdy
+- [x] **G112.1c [RDZEŃ]** AI bez przewagi 2:1 nie stoi bezczynnie: gdy
       `take_duchy_military_action` odrzuci szturm warunkiem siły, oddział AI
       stojący w regionie własnej osady wzmacnia się jej garnizonem zamiast
       kończyć turę bez ruchu. Test odtwarza zmierzony stan (gracz bez oddziału,
@@ -1685,12 +1685,20 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
       **rozstrzyga się** zamiast trwać 120 tur bez zmiany; regresje K108/K109
       z G112.1b przechodzą bez zmian. **Progu 2:1 nie wolno tknąć.**
       *(standard, ryzyko: te same funkcje obsługują gracza i AI)*
-- [ ] **G112.1d [KLIENT]** Gracz widzi, jak oddział rośnie: przycisk „Wzmocnij
+- [x] **G112.1d [KLIENT]** Gracz widzi, jak oddział rośnie: przycisk „Wzmocnij
       oddział" w pasku rozkazów wydaje `reinforce`, status po polsku mówi
       o wzmocnieniu albo o jego braku (np. „oddział nie stoi w twojej osadzie"),
       a licznik/figura oddziału na mapie zmienia się bez ręcznego odświeżania.
       E2e przez dwa procesy mostu + dowód wizualny 1152×648 pary kadrów
       „przed / po" wzmocnienia. *(standard)*
+
+> **Pomiar zamykający K112 (2026-08-08, żywy most `seed=73`):** po sekwencji
+> `develop`×10 → `recruit`×10 → `muster` partia kończy się po **6 turach**;
+> `result` ma `winner: "ai"` i `player_result: "defeat"`. Przebieg
+> wzmocnienia AI: oddział na `border` rośnie z 2 jednostek, po dojściu do
+> `ai outpost` nadal ma 2, a następnie **oddział AI rośnie 2 → 4**, pobierając
+> garnizon osady **1 → 0**. To potwierdza, że partia rozstrzyga się dzięki
+> wzmocnieniu, a nie samemu upływowi czasu.
 
 ## Kamień milowy 113 — siła widoczna liczbą: oddział i garnizon w panelu regionu
 > **Zmierzone przy przeglądzie bootstrap-diff 2026-08-07** (uruchomiony
