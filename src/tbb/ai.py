@@ -410,6 +410,24 @@ def move_duchy_party_to_adjacent(
     return _move_party_one_step(world, position, target)
 
 
+def _return_duchy_party_to_garrison(world: WorldMap, duchy: Duchy) -> WorldMap:
+    """Move one step toward the nearest reachable own garrison settlement."""
+    position = _duchy_party_position(world, duchy.duchy_id)
+    if position is None:
+        return world
+
+    target = nearest_own_garrison_settlement(world, position, duchy.duchy_id)
+    if target is None:
+        return world
+    if target in world.neighbors(position):
+        return move_duchy_party_to_adjacent(world, duchy, target)
+
+    step = next_march_step(world, position, target)
+    if step is None:
+        return world
+    return _move_party_one_step(world, position, step)
+
+
 def assault_duchy_party(
     world: WorldMap,
     duchy: Duchy,
@@ -768,6 +786,11 @@ def take_duchy_military_action(
             reinforced = reinforce_duchy_party(current, duchy)
             if reinforced is not current:
                 return reinforced
+            settlement = current.settlement_at(position)
+            if settlement is None or settlement.owner_id != duchy.duchy_id:
+                returned = _return_duchy_party_to_garrison(current, duchy)
+                if returned is not current:
+                    return returned
 
     current = march_toward_nearest_enemy(current, position)
     position = _duchy_party_position(current, duchy.duchy_id)

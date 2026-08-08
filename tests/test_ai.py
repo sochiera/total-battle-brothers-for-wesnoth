@@ -5,6 +5,8 @@ from dataclasses import FrozenInstanceError
 import pytest
 import tbb
 import tbb.settlement as settlement_module
+from tbb.driver import run_headless_game
+from tbb.game import create_headless_game
 from tbb.ai import (
     assault_duchy_party,
     designate_duchy_heir,
@@ -32,6 +34,8 @@ from tbb import (
     take_duchy_military_action,
     take_duchy_turn,
 )
+from tbbbridge.snapshot import game_state
+from tbbbridge.session import apply_command, new_session
 
 
 def _settlement(name: str, owner_id: str | None) -> Settlement:
@@ -1487,6 +1491,189 @@ def test_duchy_military_action_keeps_party_when_enemy_garrison_is_stronger():
     assert result is world
     assert result.party_at(start) is party
     assert result.settlement_at(target) is settlement
+
+
+def test_duchy_military_action_returns_to_adjacent_own_garrison_after_failed_assault():
+    """A failed assault makes a field party take one step toward own supplies.
+
+    Realistic defect: the existing AI falls through to the enemy march after
+    rejecting an adjacent assault, so it ends the month in place even when an
+    adjacent own settlement has a reachable non-empty garrison.
+    """
+    start, home, target = map(Region, ("Start", "Home", "Target"))
+    party = Party(Unit(), owner_id="ai")
+    own_settlement = Settlement(
+        "Home", 1, garrison=(Unit(),), owner_id="ai"
+    )
+    enemy_settlement = Settlement(
+        "Target",
+        1,
+        garrison=(Unit(training=5, equipment=12),),
+        owner_id="enemy",
+    )
+    world = WorldMap(
+        [start, home, target],
+        [(start, home), (start, target)],
+        settlements={home: own_settlement, target: enemy_settlement},
+        parties={start: party},
+    )
+    duchy = Duchy("ai", party.hero, parties=(party,))
+
+    result = take_duchy_military_action(world, duchy, tbb.Rng(8))
+
+    assert result is not world
+    assert_moved_party(result, home, party)
+    assert result.party_at(start) is None
+    assert result.party_at(target) is None
+    assert result.settlement_at(home) is own_settlement
+    assert result.settlement_at(target) is enemy_settlement
+
+
+def test_duchy_military_action_returns_to_distant_own_garrison_by_first_step():
+    """A distant garrison fallback follows its first free route step."""
+    start, step, home, target = map(Region, ("Start", "Step", "Home", "Target"))
+    party = Party(Unit(), owner_id="ai")
+    own_settlement = Settlement("Home", 1, garrison=(Unit(),), owner_id="ai")
+    enemy_settlement = Settlement(
+        "Target",
+        1,
+        garrison=(Unit(training=5, equipment=12),),
+        owner_id="enemy",
+    )
+    world = WorldMap(
+        [start, step, home, target],
+        [(start, step), (step, home), (start, target)],
+        settlements={home: own_settlement, target: enemy_settlement},
+        parties={start: party},
+    )
+    duchy = Duchy("ai", party.hero, parties=(party,))
+
+    result = take_duchy_military_action(world, duchy, tbb.Rng(8))
+
+    assert result is not world
+    assert_moved_party(result, step, party)
+    assert result.party_at(step).acted_this_month is True
+    assert result.party_at(start) is None
+    assert result.party_at(home) is None
+    assert result.party_at(target) is None
+    assert result.settlement_at(home) is own_settlement
+    assert result.settlement_at(target) is enemy_settlement
+
+
+def test_duchy_military_action_keeps_old_march_when_garrison_route_is_blocked():
+    """A foreign party blocking the fallback route must preserve the old march."""
+    start, blocked, home, enemy_road, target = map(
+        Region, ("Start", "Blocked", "Home", "Enemy Road", "Target")
+    )
+    party = Party(Unit(), owner_id="ai")
+    blocker = Party(Unit(), owner_id="enemy")
+    own_settlement = Settlement(
+        "Home", 1, garrison=(Unit(),), owner_id="ai"
+    )
+    enemy_settlement = Settlement(
+        "Target",
+        1,
+        garrison=(Unit(training=5, equipment=12),),
+        owner_id="enemy",
+    )
+    world = WorldMap(
+        [start, blocked, home, enemy_road, target],
+        [
+            (start, blocked),
+            (blocked, home),
+            (start, enemy_road),
+            (enemy_road, target),
+        ],
+        settlements={home: own_settlement, target: enemy_settlement},
+        parties={start: party, blocked: blocker},
+    )
+    duchy = Duchy("ai", party.hero, parties=(party,))
+
+    result = take_duchy_military_action(world, duchy, tbb.Rng(8))
+
+    assert result == march_toward_nearest_enemy(world, start)
+    assert_moved_party(result, enemy_road, party)
+    assert result.party_at(blocked) is blocker
+    assert result.settlement_at(home) is own_settlement
+    assert result.settlement_at(target) is enemy_settlement
+
+
+@pytest.mark.parametrize(
+    ("defender", "expected_action"),
+    [(Unit(), "assault"), (Unit(equipment=1), "return")],
+)
+def test_duchy_military_action_preserves_the_exact_two_to_one_assault_gate(
+    defender, expected_action
+):
+    """The return fallback never changes the existing 2:1 assault threshold."""
+    start, home, target = map(Region, ("Start", "Home", "Target"))
+    party = Party(Unit(), (Unit(),), owner_id="ai")
+    own_garrison = (Unit(),)
+    own_settlement = Settlement(
+        "Home", 1, garrison=own_garrison, owner_id="ai"
+    )
+    enemy_settlement = Settlement(
+        "Target", 1, garrison=(defender,), owner_id="enemy"
+    )
+    world = WorldMap(
+        [start, home, target],
+        [(start, home), (start, target)],
+        settlements={home: own_settlement, target: enemy_settlement},
+        parties={start: party},
+    )
+    duchy = Duchy("ai", party.hero, parties=(party,))
+
+    result = take_duchy_military_action(world, duchy, tbb.Rng(9))
+
+    if expected_action == "assault":
+        assert result == assault_nearest_enemy_settlement(world, start, tbb.Rng(9))
+        assert result.settlement_at(home).garrison == own_garrison
+    else:
+        assert_moved_party(result, home, party)
+        assert result.party_at(target) is None
+        assert result.settlement_at(target) is enemy_settlement
+
+
+def test_seed_73_passive_player_is_defeated_by_thirteenth_turn():
+    """No player order on seed 73 still ends in an AI victory by turn 13."""
+    world, game = create_headless_game()
+    result_world, result_game, calendar = run_headless_game(
+        world, game, tbb.Rng(73), max_turns=13, player_duchy_id="player"
+    )
+
+    elapsed_turns = (calendar.year - 1) * 13 + calendar.month - 1
+    assert game_state(result_world, result_game, calendar, "player")["result"] == {
+        "is_over": True,
+        "winner": "ai",
+        "player_result": "defeat",
+    }
+    assert elapsed_turns <= 13
+
+
+def test_seed_73_active_player_wins_in_first_year_month_four():
+    """The measured assault/engage/march player path still wins in R1M4."""
+    session = new_session(73)
+    commands = (
+        {"type": "order", "order": "recruit"},
+        {"type": "order", "order": "muster"},
+        {"type": "order", "order": "march"},
+        {"type": "next_turn"},
+        {"type": "order", "order": "engage", "target": "border"},
+        {"type": "next_turn"},
+        {"type": "order", "order": "assault", "target": "ai outpost"},
+        {"type": "next_turn"},
+        {"type": "order", "order": "assault", "target": "ai lands"},
+    )
+
+    for command in commands:
+        session = apply_command(session, command)
+
+    assert session.snapshot()["result"] == {
+        "is_over": True,
+        "winner": "player",
+        "player_result": "victory",
+    }
+    assert (session.calendar.year, session.calendar.month) == (1, 4)
 
 
 @pytest.mark.parametrize("owner_id", ["ai", "player"])

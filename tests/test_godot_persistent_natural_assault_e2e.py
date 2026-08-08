@@ -1,6 +1,6 @@
 """G89.1b-4 / G91.1b / G92.2a e2e: natural sequence shows battle effect and capture.
 
-On seed 73 the path recruit → muster → march → next_turn × 3 → engage →
+On seed 73 the path recruit → muster → march → next_turn → engage →
 next_turn × 2 → assault drives a settlement battle across a live bridge process
 bound to the Godot client — the unique risk named in task-504 / PROJECT.md
 conclusion 13. Slice tests (core, protocol, order_result, assault e2e without
@@ -10,7 +10,7 @@ outcome, not a failed-order message.
 After G89.2a-1 (swap past own stunned ally) the seed-73 natural fight is no
 longer a round-limit stalemate. After G90.1a keeps start with a veteran garrison.
 After G91.1a default recruits enter with positive training/equipment, so the
-path on seed 73 resolves as attacker zwycięstwo (defender_losses=1, no attacker
+path on seed 73 resolves as attacker zwycięstwo (defender_losses=2, no attacker
 losses; party holds the captured frontier keep).
 
 G92.2a multi-keep world: the assault hits ``ai outpost`` (not the sole AI keep),
@@ -36,9 +36,9 @@ SEED = 73
 PLAYER_LANDS = "player lands"
 AI_OUTPOST = "ai outpost"
 # The two public turns between engage and assault let the AI establish live
-# frontier party defenders; the exact seed-73 battle remains pinned with losses
-# on both sides rather than accepting an arbitrary successful outcome.
-EXPECTED_ORDER_STATUS = "Szturm: zwycięstwo (straty: 1, wróg: 3)."
+# frontier party defenders; the exact seed-73 battle remains pinned rather than
+# accepting an arbitrary successful outcome.
+EXPECTED_ORDER_STATUS = "Szturm: zwycięstwo (straty: 0, wróg: 2)."
 EXPECTED_PARTY_POSITION = "Położenie oddziału: Posterunek wroga"
 # One captured keep of two leaves both sides standing (G92.2a AC3).
 EXPECTED_PARTY_RESULT = PLAYER_RESULT_PL["ongoing"]
@@ -46,8 +46,8 @@ EXPECTED_BATTLE_RESULT = {
     "kind": "battle",
     "order": "assault",
     "outcome": "zwycięstwo",
-    "attacker_losses": 1,
-    "defender_losses": 3,
+    "attacker_losses": 0,
+    "defender_losses": 2,
 }
 
 

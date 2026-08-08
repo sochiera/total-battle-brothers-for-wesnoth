@@ -59,8 +59,8 @@ func _run() -> void:
 			# so the following assault fixture remains adjacent to the keep.
 			if not _press(scene_root, "MarchButton"):
 				return
-			# Three passive AI turns are the smallest seed-73 staging window that
-			# leaves live frontier defenders after Engage clears its field party.
+			# One passive AI turn leaves the field party on the frontier so Engage
+			# can clear it before the return-to-garrison fallback takes effect.
 			for _turn in range(AssaultPrecondition.NEXT_TURNS_TO_STAGE_LIVE_FRONTIER):
 				if not _press(scene_root, "NextTurnButton"):
 					return

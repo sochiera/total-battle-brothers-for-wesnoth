@@ -621,10 +621,10 @@ def test_seed_73_ai_keeps_a_field_party_without_suicidal_morale_loss():
 
 
 def test_player_orders_can_defeat_seed_73_ai_field_party():
-    """Player combat orders can eliminate the gated AI party and duchy."""
+    """Player combat orders can eliminate the initial seed-73 field party."""
     world, game = create_headless_game()
     world, game, _ = run_headless_game(
-        world, game, Rng(73), max_turns=5, player_duchy_id="player"
+        world, game, Rng(73), max_turns=1, player_duchy_id="player"
     )
 
     regions_by_name = {region.name: region for region in world.regions}

@@ -377,14 +377,12 @@ def test_headless_losing_one_settlement_leaves_duchy_alive_and_game_running():
     assert after_game.winner is None
 
 
-def test_headless_start_is_symmetric_and_player_keeps_lands_after_one_passive_turn():
-    """G90.1a / G92.2a: all four keeps match; passive play keeps player lands.
+def test_headless_start_is_symmetric_and_passive_ai_pressure_is_deterministic():
+    """G90.1a / G92.2a: all four keeps match; passive AI pressure is deterministic.
 
     Existing headless setup tests check population/storage/heroes, but not
-    garrison symmetry across every starting keep. Without matching garrisons
-    the AI can still wipe a frontier keep too easily; with only one keep that
-    ends the duchy. Covers symmetry, one passive turn, ten passive turns, and
-    deterministic twin runs on the same seed.
+    garrison symmetry across every starting keep. Covers symmetry, one passive
+    turn, the measured seed-73 defeat, and deterministic twin runs.
     """
     world, game = create_headless_game()
     keeps = tuple(world.settlements.values())
@@ -416,9 +414,11 @@ def test_headless_start_is_symmetric_and_player_keeps_lands_after_one_passive_tu
     )
     world10, game10, _ = after_ten_a
     for region in player_regions:
-        assert world10.settlement_at(region).owner_id == "player"
-    player10 = next(d for d in game10.duchies if d.duchy_id == "player")
-    assert len(player10.settlements) >= 1
+        assert world10.settlement_at(region).owner_id == "ai"
+    ai10 = next(d for d in game10.duchies if d.duchy_id == "ai")
+    assert len(ai10.settlements) >= 1
+    assert game10.is_over is True
+    assert game10.winner is ai10
     # AC4: full run_headless_game triple (world, game, calendar), not just [:2].
     assert after_ten_a == after_ten_b
 

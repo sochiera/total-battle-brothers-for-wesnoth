@@ -77,7 +77,7 @@ def test_assault_button_shows_battle_view_across_godot_processes(tmp_path):
     assert prepared["controls"]["party_position"] == "Położenie oddziału: Pogranicze"
     assert battle["controls_before_order"]["party_position"] == "Położenie oddziału: Pogranicze"
     assert battle["controls"]["party_position"] == "Położenie oddziału: Posterunek wroga"
-    assert battle["controls"]["order_status"] == "Szturm: zwycięstwo (straty: 1, wróg: 3)."
+    assert battle["controls"]["order_status"] == "Szturm: zwycięstwo (straty: 0, wróg: 2)."
     assert resumed["controls"]["order_status"] == (
         "Oddział już działał w tym miesiącu — zakończ turę."
     )
@@ -91,7 +91,7 @@ def test_assault_button_shows_battle_view_across_godot_processes(tmp_path):
     assert prep_start["tile_count"] == 0, prep_start
     assert prep_start["result_text"] == "", prep_start
 
-    # Before first assault (prepare after march+three next_turns+engage): still empty.
+    # Before first assault (prepare after march+one next_turn+engage): still empty.
     prep_battle = prepared["battle"]
     assert prep_battle["tile_count"] == 0, prep_battle
     assert prep_battle["result_text"] == "", prep_battle

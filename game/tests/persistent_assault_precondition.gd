@@ -1,7 +1,7 @@
 extends RefCounted
 
 
-const NEXT_TURNS_TO_STAGE_LIVE_FRONTIER := 3
+const NEXT_TURNS_TO_STAGE_LIVE_FRONTIER := 1
 const NEXT_TURNS_AFTER_ENGAGE_TO_STAGE_LIVE_FRONTIER := 2
 
 
@@ -11,8 +11,8 @@ const NEXT_TURNS_AFTER_ENGAGE_TO_STAGE_LIVE_FRONTIER := 2
 static func stage_live_frontier(scene_root: Control) -> Dictionary:
 	var client: Variant = scene_root.get("_client")
 	var order_results: Array = []
-	# Keep the player force ahead of an AI party that now remains in its own
-	# settlement after consuming the garrison through reinforcement.
+	# Engage while the AI party is still on the frontier; the new return fallback
+	# moves it home on the following turn when a garrison is available.
 	var sequence: Array[String] = [
 		"RecruitButton",
 		"RecruitButton",

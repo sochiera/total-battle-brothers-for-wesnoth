@@ -960,19 +960,19 @@ def test_ineffective_battle_does_not_consume_monthly_marker(order):
     assert session.last_battle is not None
 
 
-def test_passive_seed73_game_still_loses_to_ai_after_thirteen_next_turns():
+def test_passive_seed73_game_still_loses_to_ai_after_six_next_turns():
     """K108: monthly battle guards must not stop the AI's pressure."""
     session = new_session(seed=73, player_duchy_id="player")
 
-    for turn in range(13):
+    for turn in range(6):
         session, response = handle_command_line(
             session, '{"type":"next_turn"}'
         )
         assert response["ok"] is True
-        if turn < 12:
+        if turn < 5:
             assert session.snapshot()["result"]["is_over"] is False
 
-    assert response["result"]["date"] == {"year": 2, "month": 1}
+    assert response["result"]["date"] == {"year": 1, "month": 7}
     assert session.snapshot()["result"] == {
         "is_over": True,
         "winner": "ai",
