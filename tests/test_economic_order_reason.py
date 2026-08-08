@@ -13,6 +13,7 @@ from tbb import (
     MARKET,
     SMITH,
     Duchy,
+    Party,
     Region,
     Resources,
     Settlement,
@@ -316,3 +317,199 @@ def test_seed73_turn_three_positive_storage_is_already_permanent_hunger():
     assert _economic_order_reason(
         session.world, player, "recruit"
     ) == PERMANENT_POPULATION
+
+
+NO_OWN_SETTLEMENT_IN_REGION = "brak własnej osady w tym regionie"
+ALREADY_MOBILIZED = "już zmobilizowana armia"
+NO_HERO = "brak bohatera"
+NO_FREE_SETTLEMENT = "brak wolnej osady"
+
+# Presets for the targeted-reason gate. ``base`` keeps the world free of
+# parties with a hero-led duchy and exercises develop/recruit. The muster
+# presets share a foreign party at ``ready`` so the target-specific branch has
+# both a free target (``transiently_blocked`` -> None) and an occupied one
+# (``ready`` -> ``brak wolnej osady``); the two remaining presets add the
+# minimum state that lets a global muster guard override that verdict.
+BASE = "base"
+FOREIGN_PARTY_AT_READY = "foreign_party_at_ready"
+OWN_PARTY_PRESENT = "own_party_present"
+HEROLESS = "heroless"
+
+
+def _reason_for_target(world, duchy, order, target):
+    """Fail on the public contract, not on import, until the API accepts it."""
+    query = getattr(ai, "economic_order_reason", None)
+    assert callable(query), (
+        "G116.1c requires tbb.ai.economic_order_reason(world, duchy, order, target=...)"
+    )
+    assert query is economic_order_reason
+    return query(world, duchy, order, target=target)
+
+
+def _targeted_reason_world(preset=BASE):
+    """Three own settlements of distinct states plus non-own regions.
+
+    The permanently-blocked own settlement is first in region order; a no-target
+    ``develop``/``recruit`` query reaches ``ready`` and returns None, so any
+    targeted query that still scans all settlements would answer for the wrong
+    one (or claim it can act). The transient and permanent blocks differ only
+    in wheat, never in a state field, so the reason must come from the tick
+    sequence of the *indicated* settlement.
+
+    The ``muster`` presets pin a foreign party at ``ready`` so the same free
+    target (``transiently_blocked``) returns None while the occupied target
+    (``ready``) returns ``brak wolnej osady`` — a no-target fall-through would
+    answer None for the occupied target, and an inverted condition would swap
+    the two. ``own_party_present`` and ``heroless`` then confirm the global
+    muster guards fire before the target-specific answer.
+    """
+    permanently_blocked = Region("Permanently blocked")
+    transiently_blocked = Region("Transiently blocked")
+    ready = Region("Ready")
+    foreign = Region("Foreign")
+    unowned = Region("Unowned")
+    empty = Region("Empty")
+    settlements = {
+        permanently_blocked: Settlement(
+            "Permanently blocked",
+            population=2,
+            occupied=2,
+            storage=Resources(2, 1),
+            owner_id="north",
+        ),
+        transiently_blocked: Settlement(
+            "Transiently blocked",
+            population=2,
+            occupied=2,
+            storage=Resources(3, 1),
+            owner_id="north",
+        ),
+        ready: Settlement(
+            "Ready", population=4, storage=Resources(0, 1), owner_id="north"
+        ),
+        foreign: Settlement("Foreign", population=1, owner_id="enemy"),
+        unowned: Settlement("Unowned", population=1),
+    }
+    foreign_party_at_ready = {ready: Party(Unit(), owner_id="enemy")}
+    if preset == FOREIGN_PARTY_AT_READY:
+        parties, hero = foreign_party_at_ready, Unit()
+    elif preset == OWN_PARTY_PRESENT:
+        parties = {
+            **foreign_party_at_ready,
+            permanently_blocked: Party(Unit(), owner_id="north"),
+        }
+        hero = Unit()
+    elif preset == HEROLESS:
+        parties, hero = foreign_party_at_ready, None
+    else:
+        parties, hero = {}, Unit()
+    world = WorldMap(
+        [permanently_blocked, transiently_blocked, ready, foreign, unowned, empty],
+        settlements=settlements,
+        parties=parties,
+    )
+    named = {
+        "permanently_blocked": permanently_blocked,
+        "transiently_blocked": transiently_blocked,
+        "ready": ready,
+        "foreign": foreign,
+        "unowned": unowned,
+        "empty": empty,
+    }
+    return world, Duchy("north", hero), named
+
+
+@pytest.mark.parametrize(
+    ("name", "preset", "order", "target_name", "expected"),
+    (
+        (
+            "develop-transient-target-returns-transient-not-first-blocked",
+            BASE,
+            "develop",
+            "transiently_blocked",
+            TRANSIENT_POPULATION,
+        ),
+        (
+            "develop-ready-target-returns-none-though-others-block",
+            BASE,
+            "develop",
+            "ready",
+            None,
+        ),
+        (
+            "develop-empty-region-returns-distinct-reason",
+            BASE,
+            "develop",
+            "empty",
+            NO_OWN_SETTLEMENT_IN_REGION,
+        ),
+        (
+            "recruit-permanent-target-returns-permanent-not-none",
+            BASE,
+            "recruit",
+            "permanently_blocked",
+            PERMANENT_POPULATION,
+        ),
+        (
+            "recruit-foreign-region-returns-distinct-reason",
+            BASE,
+            "recruit",
+            "foreign",
+            NO_OWN_SETTLEMENT_IN_REGION,
+        ),
+        (
+            "muster-free-target-returns-none-though-another-occupied",
+            FOREIGN_PARTY_AT_READY,
+            "muster",
+            "transiently_blocked",
+            None,
+        ),
+        (
+            "muster-occupied-target-returns-no-free-settlement",
+            FOREIGN_PARTY_AT_READY,
+            "muster",
+            "ready",
+            NO_FREE_SETTLEMENT,
+        ),
+        (
+            "muster-priority-already-mobilized-over-target-specific",
+            OWN_PARTY_PRESENT,
+            "muster",
+            "ready",
+            ALREADY_MOBILIZED,
+        ),
+        (
+            "muster-priority-no-hero-over-target-specific",
+            HEROLESS,
+            "muster",
+            "ready",
+            NO_HERO,
+        ),
+    ),
+)
+def test_economic_order_reason_describes_indicated_settlement(
+    name, preset, order, target_name, expected
+):
+    """AC1-3, AC5: a targeted refusal reason describes the indicated settlement.
+
+    Realistic defects the no-target gates cannot catch: the query ignores the
+    target and diagnoses the first-matching settlement (player reads a foreign
+    settlement's reason), collapses transient/permanent through the wrong
+    settlement, reuses ``brak własnej osady`` for a region where the duchy
+    merely lacks its own settlement, answers a ``muster`` target from another
+    region or inverts its free/occupied condition, lets a global muster guard
+    answer before the target-specific one (or vice versa), or mutates the
+    world/session while diagnosing the target.
+    """
+    world, duchy, named = _targeted_reason_world(preset)
+    world_before = world
+    duchy_before = duchy
+    rng_before = random.getstate()
+
+    assert (
+        _reason_for_target(world, duchy, order, named[target_name]) == expected
+    ), name
+
+    assert world == world_before
+    assert duchy == duchy_before
+    assert random.getstate() == rng_before

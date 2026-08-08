@@ -51,23 +51,30 @@ def _population_block_reason(settlement: Settlement) -> str:
 
 
 def economic_order_reason(
-    world: WorldMap, duchy: Duchy, order: str
+    world: WorldMap, duchy: Duchy, order: str, target: Region | None = None
 ) -> str | None:
     """Return why an economic order would be a no-op, or ``None`` if it can act.
 
     The query follows the same first-eligible-settlement guards as the economic
     actions and only constructs immutable settlement values while checking the
-    post-economy growth condition.
+    post-economy growth condition. An explicit target limits the diagnosis to
+    that region.
     """
     if order not in ("develop", "recruit", "muster"):
         raise ValueError("unknown economic order")
 
-    owned = tuple(
-        settlement
-        for region in world.regions
-        if (settlement := world.settlements.get(region)) is not None
-        and settlement.owner_id == duchy.duchy_id
-    )
+    if target is not None:
+        settlement = world.settlement_at(target)
+        if settlement is None or settlement.owner_id != duchy.duchy_id:
+            return "brak własnej osady w tym regionie"
+        owned = (settlement,)
+    else:
+        owned = tuple(
+            settlement
+            for region in world.regions
+            if (settlement := world.settlements.get(region)) is not None
+            and settlement.owner_id == duchy.duchy_id
+        )
     if not owned:
         return "brak własnej osady"
 
@@ -78,6 +85,8 @@ def economic_order_reason(
             return "już zmobilizowana armia"
         if duchy.hero is None:
             return "brak bohatera"
+        if target is not None:
+            return None if target not in world.parties else "brak wolnej osady"
         if any(
             region not in world.parties
             for region in world.regions
