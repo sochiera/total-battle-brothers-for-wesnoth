@@ -6,21 +6,119 @@ from collections.abc import Iterable
 import tbb.settlement as settlement_module
 
 from tbb.battle import HexBattle
-from tbb.building import BARRACKS, FARM, MARKET, SMITH
+from tbb.building import BARRACKS, FARM, MARKET, SMITH, Building
 from tbb.duchy import Duchy
 from tbb.party import Party
 from tbb.rng import Rng
+from tbb.settlement import Settlement
 from tbb.unit import Unit
 from tbb.world import Region, WorldMap
 
 
 _DEVELOPMENT_PRIORITIES = (FARM, SMITH, BARRACKS, MARKET)
 _MINIMUM_ASSAULT_STRENGTH_RATIO = 2
+_TRANSIENT_POPULATION_REASON = "brak wolnej ludności"
+_PERMANENT_POPULATION_REASON = (
+    "brak wolnej ludności — osada nie wyżywi przyrostu"
+)
 
 
 def _combat_strength(units: Iterable[Unit]) -> int:
     """Return the deterministic strategic strength of a unit collection."""
     return sum(unit.hp + unit.damage + unit.defense for unit in units)
+
+
+def _next_development(settlement: Settlement) -> Building | None:
+    return next(
+        (
+            candidate
+            for candidate in _DEVELOPMENT_PRIORITIES
+            if candidate not in settlement.active_buildings
+        ),
+        None,
+    )
+
+
+def _population_block_reason(settlement: Settlement) -> str:
+    """Explain whether the settlement can grow into a free population slot."""
+    after_economy = settlement.tick_economy()
+    grows = after_economy.tick_growth().population > after_economy.population
+    return (
+        _TRANSIENT_POPULATION_REASON
+        if grows
+        else _PERMANENT_POPULATION_REASON
+    )
+
+
+def economic_order_reason(
+    world: WorldMap, duchy: Duchy, order: str
+) -> str | None:
+    """Return why an economic order would be a no-op, or ``None`` if it can act.
+
+    The query follows the same first-eligible-settlement guards as the economic
+    actions and only constructs immutable settlement values while checking the
+    post-economy growth condition.
+    """
+    if order not in ("develop", "recruit", "muster"):
+        raise ValueError("unknown economic order")
+
+    owned = tuple(
+        settlement
+        for region in world.regions
+        if (settlement := world.settlements.get(region)) is not None
+        and settlement.owner_id == duchy.duchy_id
+    )
+    if not owned:
+        return "brak własnej osady"
+
+    if order == "muster":
+        if any(
+            party.owner_id == duchy.duchy_id for party in world.parties.values()
+        ):
+            return "już zmobilizowana armia"
+        if duchy.hero is None:
+            return "brak bohatera"
+        if any(
+            region not in world.parties
+            for region in world.regions
+            if (settlement := world.settlements.get(region)) is not None
+            and settlement.owner_id == duchy.duchy_id
+        ):
+            return None
+        return "brak wolnej osady"
+
+    if order == "develop":
+        population_settlement = None
+        for settlement in owned:
+            building = _next_development(settlement)
+            if building is None:
+                continue
+            if settlement.free >= building.staff:
+                return None
+            if population_settlement is None:
+                population_settlement = settlement
+        if population_settlement is not None:
+            return _population_block_reason(population_settlement)
+        return "komplet budynków"
+
+    population_settlement = None
+    garrison_blocked = False
+    for settlement in owned:
+        if settlement.storage.gold < settlement_module.RECRUIT_GOLD_COST:
+            continue
+        if settlement.free <= 0:
+            if population_settlement is None:
+                population_settlement = settlement
+            continue
+        if len(settlement.garrison) >= Party.MAX_SUBORDINATES:
+            garrison_blocked = True
+            continue
+        return None
+    if population_settlement is not None:
+        return _population_block_reason(population_settlement)
+    if garrison_blocked:
+        return "limit garnizonu"
+    return "brak złota"
 
 
 def develop_duchy_settlement(world: WorldMap, duchy: Duchy) -> WorldMap:
@@ -30,14 +128,7 @@ def develop_duchy_settlement(world: WorldMap, duchy: Duchy) -> WorldMap:
         if settlement is None or settlement.owner_id != duchy.duchy_id:
             continue
 
-        building = next(
-            (
-                candidate
-                for candidate in _DEVELOPMENT_PRIORITIES
-                if candidate not in settlement.active_buildings
-            ),
-            None,
-        )
+        building = _next_development(settlement)
         if building is None or settlement.free < building.staff:
             continue
 
@@ -120,7 +211,7 @@ def recruit_duchy_unit(world: WorldMap, duchy: Duchy) -> WorldMap:
             and settlement.owner_id == duchy.duchy_id
             and settlement.storage.gold >= settlement_module.RECRUIT_GOLD_COST
             and settlement.free > 0
-            and len(settlement.garrison) < 12
+            and len(settlement.garrison) < Party.MAX_SUBORDINATES
         ):
             return world.with_settlement(region, settlement.recruit())
     return world

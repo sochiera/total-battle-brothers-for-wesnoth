@@ -7,6 +7,7 @@ Nie importuj tu bibliotek prezentacji/UI — patrz docs/ARCHITECTURE.md.
 from tbb.building import BARRACKS, Building, FARM, MARKET, SMITH
 from tbb.ai import (
     assault_nearest_enemy_settlement,
+    economic_order_reason,
     march_toward_nearest_enemy,
     muster_duchy_party,
     nearest_enemy_settlement,
@@ -47,6 +48,7 @@ __all__ = [
     "assault_nearest_enemy_settlement",
     "Calendar",
     "Duchy",
+    "economic_order_reason",
     "GameState",
     "FARM",
     "FOREST",
