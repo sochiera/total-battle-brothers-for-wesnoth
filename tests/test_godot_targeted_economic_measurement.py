@@ -137,6 +137,7 @@ def test_live_bridge_remeasures_resolution_and_k115_growth(tmp_path):
     assert active["result"] == "victory"
     assert [state["order"] for state in active["states"]] == [
         "recruit",
+        "recruit",
         "muster",
         "march",
         "next_turn",

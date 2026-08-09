@@ -572,10 +572,10 @@ def test_muster_moves_garrison_to_party_and_preserves_free_population():
     party, mustered = original.muster(hero)
 
     assert party.hero is hero
-    assert party.units == units
-    assert mustered.garrison == ()
-    assert mustered.population == original.population - 3
-    assert mustered.occupied == original.occupied - 3
+    assert party.units == units[:2]
+    assert mustered.garrison == units[2:]
+    assert mustered.population == original.population - 2
+    assert mustered.occupied == original.occupied - 2
     assert mustered.free == original.free
 
 
@@ -617,7 +617,7 @@ def test_muster_preserves_settlement_fields_and_does_not_mutate_original():
 
 def test_muster_rejects_garrison_over_party_limit():
     settlement = Settlement(
-        "A", population=13, occupied=13, garrison=(Unit(),) * 13
+        "A", population=14, occupied=14, garrison=(Unit(),) * 14
     )
 
     with pytest.raises(ValueError):
@@ -640,6 +640,45 @@ def test_muster_empty_garrison_creates_hero_only_party_without_population_change
     assert mustered.garrison == ()
     assert mustered.population == original.population
     assert mustered.occupied == original.occupied
+
+
+def test_muster_with_one_defender_creates_hero_only_party_and_keeps_defender():
+    defender = Unit(training=2)
+    original = Settlement(
+        "A", population=4, occupied=1, garrison=(defender,), owner_id="north"
+    )
+    hero = Unit(training=3)
+
+    party, mustered = original.muster(hero)
+
+    assert party.hero is hero
+    assert party.units == ()
+    assert party.owner_id == "north"
+    assert mustered.garrison == (defender,)
+    assert mustered.population == original.population
+    assert mustered.occupied == original.occupied
+
+
+@pytest.mark.parametrize(
+    ("garrison_size", "defenders_to_leave", "expected_departing"),
+    [(1, 0, 0), (3, 0, 2), (3, 2, 1)],
+)
+def test_muster_applies_defender_floor_without_overriding_explicit_count(
+    garrison_size, defenders_to_leave, expected_departing
+):
+    original = Settlement(
+        "A",
+        population=8,
+        occupied=garrison_size,
+        garrison=tuple(Unit(training=index) for index in range(garrison_size)),
+    )
+
+    party, mustered = original.muster(
+        Unit(), defenders_to_leave=defenders_to_leave
+    )
+
+    assert len(party.units) == expected_departing
+    assert len(mustered.garrison) == garrison_size - expected_departing
 
 
 def test_absorb_defenders_replaces_garrison_and_accounts_for_fallen_purely():

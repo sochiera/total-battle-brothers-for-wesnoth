@@ -17,9 +17,9 @@ PROBE = "res://tests/party_strength_e2e_probe.gd"
 PREFIX = "PARTY_STRENGTH_E2E "
 SEED = 73
 
-# Measured at planning (task-626): recruit×10 → muster = 5 units,
-# develop×10 → recruit×10 → muster = 1 unit.
-EXPECTED_SIZE = {"plain": 5, "developed": 1}
+# Measured after K117: recruit×10 → muster = 4 units, while
+# develop×10 → recruit×10 → muster leaves the hero-only party at 0 units.
+EXPECTED_SIZE = {"plain": 4, "developed": 0}
 
 
 def _run(tmp_path: Path, mode: str) -> dict:
@@ -59,7 +59,7 @@ def test_panel_shows_measured_party_size_on_live_bridge(tmp_path, mode):
     snapshot never sends (``count`` instead of ``size``, strength nested under
     a different dict) stays green there while every real session renders the
     bare „Armia: własny (gracz)". Driving orders through JSONL → core → render
-    and contrasting the two measured runs (5 units vs 1 unit) pins the number
+    and contrasting the two measured runs (4 units vs 0 units) pins the number
     to what the player actually commanded.
     """
     payload = _run(tmp_path, mode)

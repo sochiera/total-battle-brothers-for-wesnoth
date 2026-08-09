@@ -108,6 +108,7 @@ func _measure_regressions(args: PackedStringArray) -> Dictionary:
 	)
 	var active_commands: Array = [
 		{"kind": "order", "order": "recruit", "target": ""},
+		{"kind": "order", "order": "recruit", "target": ""},
 		{"kind": "order", "order": "muster", "target": ""},
 		{"kind": "order", "order": "march", "target": ""},
 		{"kind": "turn"},

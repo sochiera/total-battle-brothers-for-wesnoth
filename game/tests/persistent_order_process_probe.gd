@@ -48,7 +48,7 @@ func _run() -> void:
 		"prepare":
 			# The AI may now keep its reinforced party in the frontier keep;
 			# give the player enough deterministic strength to resolve the assault.
-			for _recruit in range(3):
+			for _recruit in range(4):
 				if not _press(scene_root, "RecruitButton"):
 					return
 			if not _press(scene_root, "MusterButton"):

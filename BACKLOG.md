@@ -1703,13 +1703,14 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
       E2e przez dwa procesy mostu + dowód wizualny 1152×648 pary kadrów
       „przed / po" wzmocnienia. *(standard)*
 
-> **Pomiar zamykający K112 (2026-08-08, żywy most `seed=73`):** po sekwencji
-> `develop`×10 → `recruit`×10 → `muster` partia kończy się po **6 turach**;
-> `result` ma `winner: "ai"` i `player_result: "defeat"`. Przebieg
-> wzmocnienia AI: oddział na `border` rośnie z 2 jednostek, po dojściu do
-> `ai outpost` nadal ma 2, a następnie **oddział AI rośnie 2 → 4**, pobierając
-> garnizon osady **1 → 0**. To potwierdza, że partia rozstrzyga się dzięki
-> wzmocnieniu, a nie samemu upływowi czasu.
+> **Pomiar aktualizujący K112 po K117 (2026-08-09, żywy most `seed=73`):** po
+> sekwencji `develop`×10 → `recruit`×10 → `muster` partia kończy się po
+> **8 turach**; `result` ma `winner: "ai"` i `player_result: "defeat"`.
+> Przebieg wzmocnienia AI: oddział na `border` rośnie z 2 jednostek, po dojściu
+> do `ai outpost` nadal ma 2, a następnie **oddział AI rośnie 1 → 3** —
+> pierwszy obrońca zostaje w osadzie, więc garnizon przechodzi **2 → 1**
+> (`garrison: 1`). To potwierdza, że partia rozstrzyga się dzięki wzmocnieniu,
+> a osada zachowuje minimalny garnizon.
 
 ## Kamień milowy 113 — siła widoczna liczbą: oddział i garnizon w panelu regionu
 > **Zmierzone przy przeglądzie bootstrap-diff 2026-08-07** (uruchomiony

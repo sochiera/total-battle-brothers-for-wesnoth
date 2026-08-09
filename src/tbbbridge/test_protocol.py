@@ -1066,10 +1066,9 @@ def test_seed73_live_growth_measurement_is_recorded_and_k112_is_closed():
 
     K117 changes the current seed-73 outcome: the historical K112 measurement
     remains recorded below, while the live path now takes eight turns and the
-    one-defender outpost garrison remains in place.  This live trace contains
-    party growth from the outpost, but not a reinforcement transition: the
-    garrison is one defender before and after.  AI reinforcement itself is
-    covered by
+    one-defender outpost garrison remains in place after reinforcement.  This
+    live trace contains party growth from the outpost and reaches the
+    one-defender floor; AI reinforcement itself is covered by
     ``tests/test_ai.py::test_duchy_military_action_reinforces_before_march_when_assault_lacks_advantage``.
     """
     session = new_session(seed=73, player_duchy_id="player")
@@ -1137,10 +1136,14 @@ def test_seed73_live_growth_measurement_is_recorded_and_k112_is_closed():
     before_growth, after_growth = live_growth
     before_ai_outpost = region_at(before_growth, "ai outpost")
     after_ai_outpost = region_at(after_growth, "ai outpost")
-    assert before_ai_outpost["party"]["size"] == 2
-    assert before_ai_outpost["settlement"]["garrison"] == 1
+    assert before_ai_outpost["party"]["size"] == 1
+    assert before_ai_outpost["settlement"]["garrison"] == 2
     assert after_ai_outpost["party"]["size"] == 3
     assert after_ai_outpost["settlement"]["garrison"] == 1
+    assert all(
+        region_at(snapshot, "ai outpost")["settlement"]["garrison"] >= 1
+        for snapshot in turn_snapshots
+    )
 
     root = Path(__file__).resolve().parents[2]
     backlog = (root / "BACKLOG.md").read_text()
@@ -1160,15 +1163,23 @@ def test_seed73_live_growth_measurement_is_recorded_and_k112_is_closed():
         marker
         for marker in (
             "## Kamień milowy 112 — wojsko z garnizonu trafia w pole (koniec martwej partii bez armii) — UKOŃCZONY",
-            "6 tur",
+            "8 tur",
             'winner: "ai"',
             "oddział AI rośnie",
+            "1 → 3",
+            "garrison: 1",
         )
         if marker not in backlog_k112
     ]
     missing.extend(
         marker
-        for marker in ("6 tur", 'winner: "ai"', "oddział AI rośnie")
+        for marker in (
+            "8 tur",
+            'winner: "ai"',
+            "oddział AI rośnie",
+            "1 → 3",
+            "garrison: 1",
+        )
         if marker not in project_k112
     )
     assert not missing, (
@@ -1193,6 +1204,7 @@ def test_seed73_live_growth_measurement_is_recorded_and_k112_is_closed():
 
     active = new_session(seed=73, player_duchy_id="player")
     active_commands = (
+        {"type": "order", "order": "recruit"},
         {"type": "order", "order": "recruit"},
         {"type": "order", "order": "muster"},
         {"type": "order", "order": "march"},

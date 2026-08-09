@@ -1367,9 +1367,11 @@ def test_muster_duchy_party_moves_hero_and_garrison_without_mutating_input():
 
     mustered = muster_duchy_party(world, duchy)
 
-    assert mustered.party_at(home) == Party(hero, garrison, owner_id="ai")
-    assert mustered.party_at(home).units == garrison
-    assert mustered.settlement_at(home).garrison == ()
+    assert mustered.party_at(home) == Party(hero, garrison[:1], owner_id="ai")
+    assert mustered.party_at(home).units == garrison[:1]
+    assert mustered.settlement_at(home).garrison == garrison[1:]
+    assert mustered.settlement_at(home).population == settlement.population - 1
+    assert mustered.settlement_at(home).occupied == settlement.occupied - 1
     assert world.settlement_at(home) is settlement
     assert world.party_at(home) is None
     assert settlement.garrison == garrison
@@ -1481,8 +1483,8 @@ def test_muster_duchy_party_honors_indicated_region_target(
             assert result.settlement_at(region).garrison == guard
     else:
         mustered = named[mustered_name]
-        assert result.party_at(mustered) == Party(hero, guard, owner_id="ai")
-        assert result.settlement_at(mustered).garrison == ()
+        assert result.party_at(mustered) == Party(hero, guard[:1], owner_id="ai")
+        assert result.settlement_at(mustered).garrison == guard[1:]
         for region in (first, second):
             if region is not mustered:
                 assert result.party_at(region) is None
@@ -1722,6 +1724,7 @@ def test_seed_73_active_player_wins_in_first_year_month_four():
     """The measured assault/engage/march player path still wins in R1M4."""
     session = new_session(73)
     commands = (
+        {"type": "order", "order": "recruit"},
         {"type": "order", "order": "recruit"},
         {"type": "order", "order": "muster"},
         {"type": "order", "order": "march"},
@@ -2441,9 +2444,8 @@ def test_duchy_turn_recruits_and_marches_when_all_buildings_are_already_open():
     assert marched is not None
     assert marched.hero is hero
     assert marched.owner_id == "ai"
-    assert len(marched.units) == 1
-    assert marched.units[0].damage > 0
-    assert marched.units[0].defense > 0
+    assert marched.units == ()
+    assert len(result.settlement_at(home).garrison) == 1
     assert result.settlement_at(home).active_buildings == settlement.active_buildings
     assert result.settlement_at(home).storage == Resources(0, 0)
     assert world.settlement_at(home) is settlement
@@ -2472,12 +2474,10 @@ def test_duchy_turn_recruits_before_muster_and_march():
     expected = take_duchy_military_action(recruited, duchy, tbb.Rng(17))
 
     assert result == expected
-    assert result.settlement_at(home).garrison == ()
+    assert len(result.settlement_at(home).garrison) == 1
     marched = result.party_at(road)
     assert marched is not None
-    assert len(marched.units) == 1
-    assert marched.units[0].damage > 0
-    assert marched.units[0].defense > 0
+    assert marched.units == ()
     assert result.party_at(target) is None
     assert result.settlement_at(target) is enemy_settlement
 

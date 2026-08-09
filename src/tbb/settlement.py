@@ -183,9 +183,12 @@ class Settlement:
     def muster(
         self, hero: Unit, defenders_to_leave: int = 0
     ) -> tuple[Party, "Settlement"]:
-        """Move all but ``defenders_to_leave`` into a party led by ``hero``."""
+        """Move the garrison into a party, retaining at least one defender when non-empty."""
         if defenders_to_leave < 0 or defenders_to_leave > len(self.garrison):
             raise ValueError("cannot leave an invalid number of defenders")
+
+        if self.garrison and defenders_to_leave == 0:
+            defenders_to_leave = 1
 
         departing_count = len(self.garrison) - defenders_to_leave
         departing_garrison = self.garrison[:departing_count]

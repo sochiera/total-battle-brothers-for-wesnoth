@@ -459,13 +459,13 @@ def test_muster_party_atomically_replaces_settlement_and_places_garrison():
 
     mustered = world.muster_party(vale, hero)
 
-    assert mustered.party_at(vale) == Party(hero, garrison, owner_id="north")
-    assert mustered.party_at(vale).units == garrison
+    assert mustered.party_at(vale) == Party(hero, garrison[:1], owner_id="north")
+    assert mustered.party_at(vale).units == garrison[:1]
     assert mustered.settlement_at(vale) == Settlement(
         "Oakrest",
-        population=4,
-        occupied=1,
-        garrison=(),
+        population=5,
+        occupied=2,
+        garrison=garrison[1:],
         owner_id="north",
     )
 
@@ -484,8 +484,10 @@ def test_muster_party_does_not_mutate_or_duplicate_input_state():
     assert world.settlement_at(vale).garrison == garrison
     assert world.party_at(vale) is None
     assert mustered.settlement_at(vale) is not settlement
-    assert mustered.settlement_at(vale).garrison == ()
-    assert mustered.party_at(vale).units == garrison
+    assert mustered.settlement_at(vale).garrison == garrison[1:]
+    assert mustered.party_at(vale).units == garrison[:1]
+    assert mustered.settlement_at(vale).population == settlement.population - 1
+    assert mustered.settlement_at(vale).occupied == settlement.occupied - 1
     assert not set(mustered.settlement_at(vale).garrison) & set(
         mustered.party_at(vale).units
     )
@@ -525,6 +527,27 @@ def test_muster_party_with_empty_garrison_only_places_hero():
     assert mustered.party_at(vale) == Party(hero, owner_id="north")
     assert mustered.settlement_at(vale) == settlement
     assert mustered.settlement_at(vale) is not settlement
+
+
+def test_muster_party_with_one_defender_only_places_hero_and_keeps_defender():
+    vale = Region("Vale")
+    hero = Unit(training=2)
+    defender = Unit(training=3)
+    settlement = Settlement(
+        "Oakrest",
+        population=5,
+        occupied=2,
+        garrison=(defender,),
+        owner_id="north",
+    )
+    world = WorldMap([vale], settlements={vale: settlement})
+
+    mustered = world.muster_party(vale, hero)
+
+    assert mustered.party_at(vale) == Party(hero, owner_id="north")
+    assert mustered.settlement_at(vale).garrison == (defender,)
+    assert mustered.settlement_at(vale).population == settlement.population
+    assert mustered.settlement_at(vale).occupied == settlement.occupied
 
 
 def test_move_party_to_adjacent_region_preserves_input_and_settlement():

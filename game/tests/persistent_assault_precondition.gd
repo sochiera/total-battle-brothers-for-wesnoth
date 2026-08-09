@@ -17,6 +17,7 @@ static func stage_live_frontier(scene_root: Control) -> Dictionary:
 		"RecruitButton",
 		"RecruitButton",
 		"RecruitButton",
+		"RecruitButton",
 		"MusterButton",
 		"MarchButton",
 	]

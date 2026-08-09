@@ -943,7 +943,7 @@ def test_game_app_post_order_muster_sets_last_notice_wykonano_then_brak_zmian():
     code, body = app.handle("POST", "/order/muster")
     assert code == 200
     assert app.last_notice == "Zebranie oddziału: wykonano"
-    assert app.world.party_at(north) == Party(hero, garrison, owner_id="north")
+    assert app.world.party_at(north) == Party(hero, garrison[:1], owner_id="north")
     root = ET.fromstring(body)
     notices = _find_by_attr(root, "data-notice")
     assert len(notices) == 1
@@ -2286,8 +2286,8 @@ def test_game_app_post_order_muster_applies_muster_and_resyncs():
 
     expected_world = ai.muster_duchy_party(world_before, game_before.duchies[0])
     expected_game = game_before.sync_from_world(expected_world)
-    assert expected_world.party_at(north) == Party(hero, garrison, owner_id="north")
-    assert expected_world.settlement_at(north).garrison == ()
+    assert expected_world.party_at(north) == Party(hero, garrison[:1], owner_id="north")
+    assert expected_world.settlement_at(north).garrison == garrison[1:]
     assert expected_world is not world_before
 
     code, body = app.handle("POST", "/order/muster")
@@ -2301,7 +2301,7 @@ def test_game_app_post_order_muster_applies_muster_and_resyncs():
     # World replaced with muster result; game re-synced from that world.
     assert app.world is not world_before
     assert app.world.party_at(north) == expected_world.party_at(north)
-    assert app.world.settlement_at(north).garrison == ()
+    assert app.world.settlement_at(north).garrison == garrison[1:]
     assert app.game is not game_before
     player = next(d for d in app.game.duchies if d.duchy_id == "north")
     expected_player = next(
@@ -2432,9 +2432,9 @@ def test_game_app_order_muster_form_noop_and_determinism():
         north_b
     ).garrison
     # First muster succeeds; second is a no-op (party already fielded).
-    assert a.world.party_at(north_a) == Party(hero_a, garrison_a, owner_id="north")
-    assert a.world.settlement_at(north_a).garrison == ()
-    assert b.world.party_at(north_b) == Party(hero_b, garrison_b, owner_id="north")
+    assert a.world.party_at(north_a) == Party(hero_a, garrison_a[:1], owner_id="north")
+    assert a.world.settlement_at(north_a).garrison == garrison_a[1:]
+    assert b.world.party_at(north_b) == Party(hero_b, garrison_b[:1], owner_id="north")
 
 
 def test_game_app_post_order_develop_applies_develop_and_resyncs():

@@ -62,10 +62,11 @@ i **jawna akceptacja screenshotów przez człowieka**. **[W]** Spełnione
   (`blocked_region`) — **wzorzec diagnostyki rozkazu**, reużyty w K114/K116;
   panel wybranego regionu pokazuje jednostki, PŻ i garnizon obu stron
   (`WorldPresentation`).
-- **K112 — DOMKNIĘTY 2026-08-08:** oddział wciąga garnizon własnej osady
-  (`reinforce`), symetrycznie dla AI. Pomiar `seed=73`: `develop`×10 →
-  `recruit`×10 → `muster` kończy partię po **6 turach** (`winner: "ai"`),
-  oddział AI rośnie **2 → 4** kosztem garnizonu `ai outpost` **1 → 0**.
+- **K112 — DOMKNIĘTY 2026-08-08:** pomiar zaktualizowany po K117 (2026-08-09):
+  oddział wciąga garnizon własnej osady (`reinforce`), symetrycznie dla AI.
+  Pomiar `seed=73`: `develop`×10 → `recruit`×10 → `muster` kończy partię po
+  **8 turach** (`winner: "ai"`), a **oddział AI rośnie 1 → 3**; garnizon
+  `ai outpost` przechodzi **2 → 1** i utrzymuje `garrison: 1`.
 - **K114 — DOMKNIĘTY 2026-08-08:** rozkaz **gospodarczy** niesie powód odmowy
   (przejściowy vs trwały, liczy rdzeń — wniosek 42), klient pokazuje go po
   polsku i dokłada **wolną ludność** do panelu osady.

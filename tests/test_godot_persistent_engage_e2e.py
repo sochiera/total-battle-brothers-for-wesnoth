@@ -50,12 +50,13 @@ def _adjacent_parties_session() -> Session:
     """Build the seed-73 state with both adjacent parties alive.
 
     The monthly movement marker is reset through ``next_turn`` before the
-    fixture asks the AI to provide the opposing adjacent party. One recruited
-    unit keeps the player party alive after the first engage, so the next AI
+    fixture asks the AI to provide the opposing adjacent party. Two recruited
+    units keep the player party alive after the first engage, so the next AI
     turn can provide a fresh adjacent target for the cycle assertion.
     """
     session = new_session(seed=SEED, player_duchy_id="player")
     for command in (
+        {"type": "order", "order": "recruit"},
         {"type": "order", "order": "recruit"},
         {"type": "order", "order": "muster"},
         {"type": "order", "order": "march"},

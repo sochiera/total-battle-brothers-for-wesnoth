@@ -38,7 +38,7 @@ AI_OUTPOST = "ai outpost"
 # The two public turns between engage and assault let the AI establish live
 # frontier party defenders; the exact seed-73 battle remains pinned rather than
 # accepting an arbitrary successful outcome.
-EXPECTED_ORDER_STATUS = "Szturm: zwycięstwo (straty: 0, wróg: 1)."
+EXPECTED_ORDER_STATUS = "Szturm: zwycięstwo (straty: 0, wróg: 2)."
 EXPECTED_PARTY_POSITION = "Położenie oddziału: Posterunek wroga"
 # One captured keep of two leaves both sides standing (G92.2a AC3).
 EXPECTED_PARTY_RESULT = PLAYER_RESULT_PL["ongoing"]
@@ -47,7 +47,7 @@ EXPECTED_BATTLE_RESULT = {
     "order": "assault",
     "outcome": "zwycięstwo",
     "attacker_losses": 0,
-    "defender_losses": 1,
+    "defender_losses": 2,
 }
 
 

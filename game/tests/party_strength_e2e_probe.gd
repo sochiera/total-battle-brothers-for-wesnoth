@@ -2,9 +2,9 @@ extends SceneTree
 
 
 ## G113.1b e2e: party strength in the „Wybrany region" panel on a live bridge.
-## Two measured runs on seed 73 (task-626 planning): plain recruit×10 → muster
-## yields a 5-unit party, while develop×10 → recruit×10 → muster yields a
-## 1-unit party. The probe drives public Main controls only (order buttons +
+## Two measured runs on seed 73 after K117: plain recruit×10 → muster yields a
+## 4-unit party, while develop×10 → recruit×10 → muster yields a hero-only
+## party with 0 units. The probe drives public Main controls only (order buttons +
 ## MapView click) and reports the panel text for the party region.
 ## Scaffolding: map_order_e2e_helpers.gd (shared with the move e2e probes).
 

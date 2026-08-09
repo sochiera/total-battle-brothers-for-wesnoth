@@ -1746,7 +1746,9 @@ def test_prepared_seed73_assault_resolves_with_world_matching_battle_result():
         player_keep = after.world.settlement_at(player_lands)
         if result is BattleResult.DEFENDER_WIN:
             assert after.world.party_at(border) is None
-            assert after.world.party_at(ai_outpost) is None
+            defender_party = after.world.party_at(ai_outpost)
+            assert defender_party is not None
+            assert defender_party.owner_id == "ai"
             assert len(player.parties) == 0
             assert player_keep.owner_id == "player"
             assert frontier.owner_id == "ai"
@@ -1764,7 +1766,9 @@ def test_prepared_seed73_assault_resolves_with_world_matching_battle_result():
             # DRAW wipes the attacking party; settlement stays AI-owned.
             assert result is BattleResult.DRAW
             assert after.world.party_at(border) is None
-            assert after.world.party_at(ai_outpost) is None
+            defender_party = after.world.party_at(ai_outpost)
+            assert defender_party is not None
+            assert defender_party.owner_id == "ai"
             assert len(player.parties) == 0
             assert player_keep.owner_id == "player"
             assert frontier.owner_id == "ai"
@@ -1978,8 +1982,8 @@ def test_apply_command_order_reinforce_absorbs_own_settlement_garrison():
     """G112.1b crit-1/3/4: ``{"type":"order","order":"reinforce"}`` routes to
     the task-627 core rule for the player duchy.  On seed 73, after
     ``recruit``×10 → ``muster`` → ``move("player outpost")`` → ``next_turn``
-    the party of 5 standing in ``Player Outpost`` absorbs four of that
-    settlement's five defenders and grows to 9, leaving one defender in the
+    the party of 4 standing in ``Player Outpost`` absorbs four of that
+    settlement's five defenders and grows to 8, leaving one defender in the
     garrison.  A new Session is returned with calendar/rng/seed/
     player_duchy_id preserved; the input session is not mutated.
     """
@@ -1987,7 +1991,7 @@ def test_apply_command_order_reinforce_absorbs_own_settlement_garrison():
     before_snapshot = copy.deepcopy(session.snapshot())
     before_units = session.world.party_at(outpost).units
     before_garrison = session.world.settlement_at(outpost).garrison
-    assert len(before_units) == 5
+    assert len(before_units) == 4
     assert len(before_garrison) == 5
 
     after = apply_command(session, {"type": "order", "order": "reinforce"})

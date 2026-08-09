@@ -335,8 +335,8 @@ def test_selected_region_panel_shows_party_and_garrison_strength():
     Main still formats the „Osada:" / „Armia:" rows with its own private
     _settlement_text / _party_text, which drop size, hp and garrison. Every
     existing panel assertion (name, owner, side wording, absence clearing,
-    empty state) stays green while both measured runs — a 5-unit army and a
-    1-unit army — render identically as „Armia: własny (gracz)". The player
+    empty state) stays green while both measured runs — a 4-unit army and a
+    hero-only army — render identically as „Armia: własny (gracz)". The player
     still picks fights by icon.
     """
     payload = _load_panel()

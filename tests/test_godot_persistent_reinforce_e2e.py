@@ -73,15 +73,15 @@ def test_reinforce_ui_round_trips_through_two_bridge_processes(tmp_path):
         assert observation["selected_region_name"] == TARGET_REGION, observation
         assert TARGET_LABEL in observation["selected_panel_text"], observation
 
-    assert re.search(r"(?<!\d)5(?!\d)", _row(before["selected_panel_text"], "Armia:"))
+    assert re.search(r"(?<!\d)4(?!\d)", _row(before["selected_panel_text"], "Armia:"))
     assert re.search(r"(?<!\d)5(?!\d)", _row(before["selected_panel_text"], "Osada:"))
-    assert re.search(r"(?<!\d)9(?!\d)", _row(after["selected_panel_text"], "Armia:"))
+    assert re.search(r"(?<!\d)8(?!\d)", _row(after["selected_panel_text"], "Armia:"))
     assert re.search(r"(?<!\d)1(?!\d)", _row(after["selected_panel_text"], "Osada:"))
     assert after["order_status"] == SUCCESS_STATUS, after
 
     resumed_army = _row(resumed["selected_panel_text"], "Armia:")
     resumed_settlement = _row(resumed["selected_panel_text"], "Osada:")
-    assert re.search(r"(?<!\d)9(?!\d)", resumed_army), resumed
+    assert re.search(r"(?<!\d)8(?!\d)", resumed_army), resumed
     assert re.search(r"(?<!\d)1(?!\d)", resumed_settlement), resumed
 
     assert first["requests"] == [
