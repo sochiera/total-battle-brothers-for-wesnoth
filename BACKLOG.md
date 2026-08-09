@@ -2129,6 +2129,74 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
 > świadomie odłożonym strojeniem. Kolejny pomiar długiej partii (wniosek 36)
 > zadecyduje, czy odsłoni się kolejny stan bez wyjścia.
 
+## Kamień milowy 118 — szturm i starcie mówią, dlaczego nic nie zrobiły
+> **Decyzja kierunku (druga kadencja bootstrap-diff, 2026-08-09).** Brief bez
+> zmian. K117 stoi niezaczęty i **pozostaje pierwszy w kolejce** — K118 idzie
+> po nim. Ten kamień domyka klasę problemu, nie kolejny przycisk: wniosek 41(i)
+> („rozkaz bez skutku niesie **powód**, nie »bez zmian«") dostał realizację dla
+> marszu (K111) i dla gospodarki (K114), ale **rozkazy wojskowe zostały
+> pominięte**.
+>
+> **Zmierzone 2026-08-09 na `python -m tbbbridge serve 73` (nie z lektury),
+> wyłącznie rozkazami dostępnymi z klienta:**
+> 1. `muster target="player lands"` → `engage` → `assault` na świeżej partii
+>    (oddział stoi we własnym regionie, `acted_this_month: false`) daje
+>    dwa razy gołe `{"kind":"order","order":…,"changed":false}` — **bez
+>    `reason`, bez `blocked_region`**.
+> 2. Sytuacja realna, nie sztuczna: `recruit`×3 → `muster` → `march` →
+>    `next_turn` stawia oddział gracza (4 jednostki) w `player outpost`, a
+>    wojsko AI (2 jednostki) w `border`. `assault` → `changed:false` bez
+>    powodu; poprawnym ruchem jest `engage`, ale gracz nie ma jak tego
+>    wiedzieć. Sam `march` w tym układzie **mówi** graczowi o blokadzie
+>    (`blocked_region: "border"`, K111) — szturm milczy.
+> 3. Klient ma dziś **dokładnie jeden** powód dla rozkazu wojskowego:
+>    wyczerpaną akcję miesiąca, i to nie z odpowiedzi mostu, tylko z
+>    `acted_this_month` w snapshocie
+>    (`bridge_client.gd:180`, `order_result.gd:80`). Każdy inny przypadek
+>    spada do `_unchanged_status_text` → **„Rozkaz szturm nie zmienił
+>    stanu."** — zdanie, które nie niesie żadnej decyzji.
+>
+> **Powody istnieją w rdzeniu i są rozłączne** (sprawdzone w kodzie, nie
+> zgadnięte): `assault_nearest_enemy_settlement` / `assault_duchy_party_to`
+> odmawiają, gdy brak oddziału, gdy cel nie przechodzi
+> `_is_legal_assault_target` (`ai.py:859` — cel nie jest ani regionem
+> oddziału, ani sąsiadem) albo gdy oddział już działał w tym miesiącu (K109);
+> `engage_duchy_party*` odmawiają, gdy w sąsiedztwie nie ma oddziału
+> **innego** właściciela. To są cztery różne zdania dla gracza, nie jedno.
+>
+> Kolejność jak w K111/K114/K116: **rdzeń → most → klient → pomiar**. Powód
+> liczy **rdzeń** (wniosek 42) — most go wyłącznie przenosi, klient wyłącznie
+> tłumaczy. Zakres celowo wąski: **żadnych zmian reguł walki, ruchu, progu 2:1
+> z K108, tempa AI, kosztów rozkazów ani ekonomii z K115.** Nie dokładamy
+> nowego rozkazu ani pola na ekranie — zmienia się wyłącznie tekst statusu,
+> który gracz i tak już widzi. Wynik bitwy (`kind:"battle"`) zostaje bez zmian.
+- [ ] **G118.1a [RDZEŃ]** Bezskuteczny `assault` niesie powód: rdzeń
+      rozróżnia „brak własnego oddziału", „w zasięgu nie ma wrogiej osady"
+      i „oddział już działał w tym miesiącu", zwracając ten powód obok
+      niezmienionego świata (nigdy wyjątek — wniosek 14). Skuteczny szturm
+      i kształt wyniku bitwy bez zmian; dotychczasowe testy `assault`
+      przechodzą. *(standard, ryzyko: dotyka rdzenia — jedynego źródła reguł)*
+- [ ] **G118.1b [RDZEŃ]** To samo dla `engage`: „brak własnego oddziału",
+      „w sąsiedztwie nie ma wrogiego wojska", „oddział już działał w tym
+      miesiącu". Powody `assault` i `engage` pochodzą z **jednego** miejsca,
+      bez powielania guardów w moście (wniosek 42). *(standard)*
+- [ ] **G118.1c [MOST]** `{"type":"order","order":"assault"|"engage"}` bez
+      skutku zwraca `{"kind":"order","changed":false,"reason":"<powód>"}`;
+      nigdy `ok:false`, nigdy powód przy `changed:true`. Round-trip i
+      `command_result` bez zmian kształtu dla bitwy. *(standard)*
+- [ ] **G118.1d [KLIENT]** Status rozkazu tłumaczy każdy powód na polski,
+      a przypadek „droga/cel zajęty przez wojsko wroga" kieruje gracza do
+      `engage` tak samo jak K111 kieruje marsz. Wyczerpana akcja miesiąca
+      nadal działa jak dziś. Dowód wizualny 1152×648. *(standard)*
+- [ ] **G118.1e [POMIAR]** Żywy most `seed=73` przez dwa procesy: obie
+      zmierzone sekwencje z diagnozy wyżej dają **niepusty, konkretny powód**
+      zamiast „nie zmienił stanu", a regresje rozstrzygnięcia stoją (rush
+      wygrywa, bierny przegrywa) razem z regresjami K115/K116/K117. Zapis
+      pomiaru tutaj. *(standard)*
+> **Kamień 118 — zaplanowany 2026-08-09 (druga kadencja przeglądu).**
+> Po K118 **żaden** rozkaz gracza nie odmawia bez powodu — wniosek 41(i)
+> zostaje domknięty na całej klasie, nie na wybranych rozkazach.
+
 ## Dług/refaktor
 - [x] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
       poza kodem produkcyjnym klienta (R82.1a) i wygenerowane artefakty `out/`
@@ -2262,6 +2330,15 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
   w priorytet: kształt reguły (≥1 obrońca) to **defekt rozgrywki**, konkretna
   liczba zostaje strojeniem. Pełna diagnoza → sekcja K117; nie powtarzać
   tutaj.
+- **Rozkaz wojskowy odmawia bez powodu (`assault`/`engage` dają gołe
+  `changed:false`)** — **rozplanowane jako K118 (druga kadencja przeglądu
+  2026-08-09)**, po K117. Zmierzone na `seed=73`: oddział w `player outpost`
+  z wojskiem AI w `border` dostaje na `assault` samo `changed:false`, choć
+  `march` w tym samym układzie mówi `blocked_region: "border"` (K111). Klient
+  zna dla wojska **jeden** powód (wyczerpana akcja miesiąca, z
+  `acted_this_month`), reszta spada do „Rozkaz szturm nie zmienił stanu.".
+  Domyka wniosek 41(i) na całej klasie rozkazów. Pełna diagnoza → sekcja K118;
+  nie powtarzać tutaj.
 - ~~**`muster` zabiera cały garnizon osady**~~ — obserwacja z przeglądu
   2026-07-28, **rozplanowana jako K117 2026-08-09** (przegląd kadencji):
   pomiar długiej partii po K116 odsłonił, że to blokuje strategię obronną
