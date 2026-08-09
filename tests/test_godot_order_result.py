@@ -161,6 +161,13 @@ def test_godot_order_result_returns_polish_status_text_for_projected_orders():
         "reinforce_exhausted": "Oddział już działał w tym miesiącu — zakończ turę.",
         "assault_unchanged": "Oddział już działał w tym miesiącu — zakończ turę.",
         "assault_unchanged_default": "Rozkaz szturmu nie zmienił stanu.",
+        "assault_reason_no_own_party": "Brak własnego oddziału — nie można wykonać rozkazu.",
+        "assault_reason_no_enemy_in_reach": "W zasięgu nie ma wrogiej osady — uderz na wojsko wroga.",
+        "assault_reason_out_of_reach": "Cel jest poza zasięgiem.",
+        "assault_reason_no_enemy_at_target": "W wybranym celu nie ma wrogiej osady.",
+        "assault_reason_already_acted": "Oddział już działał w tym miesiącu — zakończ turę.",
+        "assault_reason_unknown": "Rozkaz szturmu nie zmienił stanu.",
+        "assault_reason_empty": "Rozkaz szturmu nie zmienił stanu.",
         # G97.1f: targeted move has dedicated PL (not the generic order template).
         # Blocked move (changed=false), e.g. enemy settlement: exact AC wording.
         "move_changed": "Oddział przemieścił się.",
@@ -172,6 +179,13 @@ def test_godot_order_result_returns_polish_status_text_for_projected_orders():
         # Ten sam szablon co zwycięstwo/porażka/remis; outcome mostu wprost w tekście.
         "assault_battle_unresolved": "Szturm: nierozstrzygnięta (straty: 0, wróg: 0).",
         "engage_unchanged": "Oddział już działał w tym miesiącu — zakończ turę.",
+        "engage_reason_no_own_party": "Brak własnego oddziału — nie można wykonać rozkazu.",
+        "engage_reason_no_enemy_in_reach": "W zasięgu nie ma wrogiego wojska.",
+        "engage_reason_out_of_reach": "Cel jest poza zasięgiem.",
+        "engage_reason_no_enemy_at_target": "W wybranym celu nie ma wrogiego wojska.",
+        "engage_reason_already_acted": "Oddział już działał w tym miesiącu — zakończ turę.",
+        "engage_reason_unknown": "Rozkaz starcia nie zmienił stanu.",
+        "engage_reason_empty": "Rozkaz starcia nie zmienił stanu.",
         "march_blocked": "Droga zablokowana w regionie Pogranicze: stoi tam wojsko wroga. Uderz na wojsko wroga.",
         "move_blocked": "Droga zablokowana w regionie Pogranicze: stoi tam wojsko wroga. Uderz na wojsko wroga.",
         "move_changed_with_blocker": "Oddział przemieścił się.",

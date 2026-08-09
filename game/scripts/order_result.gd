@@ -14,6 +14,22 @@ const POPULATION_REASON_STATUS_PL := {
 	"brak wolnej ludności": "Brak wolnych mieszkańców — ludność przybędzie w kolejnej turze.",
 	"brak wolnej ludności — osada nie wyżywi przyrostu": "Osada nie wyżywi więcej ludzi — ludność nie przybywa.",
 }
+const MILITARY_REASON_STATUS_PL := {
+	"assault": {
+		"brak własnego oddziału": "Brak własnego oddziału — nie można wykonać rozkazu.",
+		"brak wrogiej osady w zasięgu": "W zasięgu nie ma wrogiej osady — uderz na wojsko wroga.",
+		"cel poza zasięgiem": "Cel jest poza zasięgiem.",
+		"brak wrogiej osady w celu": "W wybranym celu nie ma wrogiej osady.",
+		"oddział już działał w tym miesiącu": MONTHLY_ACTION_EXHAUSTED_STATUS,
+	},
+	"engage": {
+		"brak własnego oddziału": "Brak własnego oddziału — nie można wykonać rozkazu.",
+		"brak wrogiego wojska w zasięgu": "W zasięgu nie ma wrogiego wojska.",
+		"cel poza zasięgiem": "Cel jest poza zasięgiem.",
+		"brak wrogiego wojska w celu": "W wybranym celu nie ma wrogiego wojska.",
+		"oddział już działał w tym miesiącu": MONTHLY_ACTION_EXHAUSTED_STATUS,
+	},
+}
 
 
 static func failure_status_text() -> String:
@@ -77,6 +93,18 @@ static func _population_reason_status_text(order_result: Dictionary, order: Stri
 	return POPULATION_REASON_STATUS_PL.get(order_result["reason"], "")
 
 
+static func _military_reason_status_text(order_result: Dictionary, order: String) -> String:
+	if not _is_military_order(order):
+		return ""
+	if not order_result.has("reason") or not order_result["reason"] is String:
+		return ""
+	var reason_statuses: Variant = MILITARY_REASON_STATUS_PL.get(order, {})
+	if not reason_statuses is Dictionary:
+		return ""
+	var status: Variant = reason_statuses.get(order_result["reason"], "")
+	return status if status is String else ""
+
+
 static func _unchanged_status_text(
 	order_result: Dictionary, order: String, is_monthly_action_order: bool
 ) -> String:
@@ -87,6 +115,9 @@ static func _unchanged_status_text(
 	var population_reason_status := _population_reason_status_text(order_result, order)
 	if not population_reason_status.is_empty():
 		return population_reason_status
+	var military_reason_status := _military_reason_status_text(order_result, order)
+	if not military_reason_status.is_empty():
+		return military_reason_status
 
 	var order_name := _order_name(order)
 	if order_name.is_empty():

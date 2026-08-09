@@ -116,6 +116,8 @@ WINDOW_BACKGROUND_SCREENSHOTS = (
     # resolved battle from the same seed-73 party.
     GAME / "screenshots" / "task-624-live-blocked-march-1152x648.png",
     GAME / "screenshots" / "task-624-live-engage-battle-1152x648.png",
+    # G118.1d / task-669: live military refusal with the new assault reason.
+    GAME / "screenshots" / "task-669-military-refusal-1152x648.png",
     # G113.1b / task-626: live seed-73 pair proving the selected-region panel
     # carries party strength and settlement garrison for both sides.
     GAME / "screenshots" / "task-626-live-selected-party-1152x648.png",

@@ -64,7 +64,7 @@ def assert_asset_credited(
 
 
 def png_rgba8(path: Path) -> tuple[int, int, bytes]:
-    """Decode a non-interlaced 8-bit RGBA PNG via stdlib."""
+    """Decode a non-interlaced 8-bit RGB/RGBA PNG as RGBA via stdlib."""
     data = path.read_bytes()
     assert data[:8] == b"\x89PNG\r\n\x1a\n", f"not a PNG: {path}"
     pos = 8
@@ -82,8 +82,8 @@ def png_rgba8(path: Path) -> tuple[int, int, bytes]:
                 ">IIBBBBB", chunk
             )
             assert inter == 0, f"interlaced PNG unsupported: {path}"
-            assert bit_depth == 8 and color_type == 6, (
-                f"expected 8-bit RGBA PNG, got bit={bit_depth} color={color_type} "
+            assert bit_depth == 8 and color_type in (2, 6), (
+                f"expected 8-bit RGB/RGBA PNG, got bit={bit_depth} color={color_type} "
                 f"for {path}"
             )
         elif chunk_type == b"IDAT":
@@ -92,8 +92,9 @@ def png_rgba8(path: Path) -> tuple[int, int, bytes]:
             break
     assert width is not None and height is not None, f"missing IHDR in {path}"
     raw = zlib.decompress(bytes(idat))
-    stride = width * 4
-    out = bytearray(height * stride)
+    channels = 4 if color_type == 6 else 3
+    stride = width * channels
+    out = bytearray(height * width * 4)
     prev = bytearray(stride)
     offset = 0
     for row in range(height):
@@ -105,27 +106,33 @@ def png_rgba8(path: Path) -> tuple[int, int, bytes]:
             pass
         elif filter_type == 1:  # Sub
             for i in range(stride):
-                left = scan[i - 4] if i >= 4 else 0
+                left = scan[i - channels] if i >= channels else 0
                 scan[i] = (scan[i] + left) & 0xFF
         elif filter_type == 2:  # Up
             for i in range(stride):
                 scan[i] = (scan[i] + prev[i]) & 0xFF
         elif filter_type == 3:  # Average
             for i in range(stride):
-                left = scan[i - 4] if i >= 4 else 0
+                left = scan[i - channels] if i >= channels else 0
                 scan[i] = (scan[i] + ((left + prev[i]) // 2)) & 0xFF
         elif filter_type == 4:  # Paeth
             for i in range(stride):
-                a = scan[i - 4] if i >= 4 else 0
+                a = scan[i - channels] if i >= channels else 0
                 b = prev[i]
-                c = prev[i - 4] if i >= 4 else 0
+                c = prev[i - channels] if i >= channels else 0
                 p = a + b - c
                 pa, pb, pc = abs(p - a), abs(p - b), abs(p - c)
                 pr = a if pa <= pb and pa <= pc else (b if pb <= pc else c)
                 scan[i] = (scan[i] + pr) & 0xFF
         else:
             raise AssertionError(f"unsupported PNG filter {filter_type} in {path}")
-        out[row * stride : (row + 1) * stride] = scan
+        if channels == 4:
+            out[row * width * 4 : (row + 1) * width * 4] = scan
+        else:
+            for column in range(width):
+                source = column * 3
+                target = (row * width + column) * 4
+                out[target : target + 4] = scan[source : source + 3] + b"\xff"
         prev = scan
     return width, height, bytes(out)
 

@@ -140,6 +140,16 @@ func _run() -> void:
 			fresh_party_acted_this_month = fresh_model.player_party_acted_this_month
 			if not _press(scene_root, "EngageButton"):
 				return
+		"military_refusals", "military_refusals_resume":
+			var assault := {}
+			var engage := {}
+			if not _press(scene_root, "AssaultButton"):
+				return
+			assault = _controls(scene_root)
+			if not _press(scene_root, "EngageButton"):
+				return
+			engage = _controls(scene_root)
+			sequence = {"assault": assault, "engage": engage}
 		_:
 			_fail("unknown phase")
 			return

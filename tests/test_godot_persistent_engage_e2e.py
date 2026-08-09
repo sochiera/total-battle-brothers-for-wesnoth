@@ -19,7 +19,10 @@ PROBE = "res://tests/persistent_order_process_probe.gd"
 PREFIX = "PERSISTENT_ORDER_PROCESS "
 SEED = 73
 EXHAUSTED_ACTION_STATUS = "Oddział już działał w tym miesiącu — zakończ turę."
-NO_TARGET_STATUS = "Rozkaz starcia nie zmienił stanu."
+NO_TARGET_STATUS = "W zasięgu nie ma wrogiego wojska."
+NO_ASSAULT_TARGET_STATUS = (
+    "W zasięgu nie ma wrogiej osady — uderz na wojsko wroga."
+)
 # The OrderStatusSlot minimum height in main.tscn (75 px) is sized for the
 # wrapped form of this, the longest status text we currently ship.
 BLOCKED_MARCH_STATUS = (
@@ -258,6 +261,35 @@ def test_engage_button_resolves_party_battle_and_persists_it_across_processes(tm
     assert no_enemy["battle_before_order"]["tile_count"] == 0
     assert no_enemy["battle"]["tile_count"] == 0
     assert read_session(no_enemy_state_path).world == living_party_without_enemy.world
+
+
+def test_military_refusal_statuses_survive_process_boundary(tmp_path):
+    """Both military no-target reasons remain concrete after a bridge resume."""
+    state_path = tmp_path / "persistent-military-refusals-session.json"
+    request_path = tmp_path / "bridge-military-refusals-request.jsonl"
+    command_prefix = f"PYTHONPATH={shlex.quote(str(ROOT / 'src'))} python3 -m tbbbridge"
+    prepared = _party_without_adjacent_enemy_session()
+    save_session(prepared, state_path)
+
+    first = _run_process(
+        command_prefix, state_path, request_path, "military_refusals"
+    )
+    persisted = read_session(state_path)
+    resumed = _run_process(
+        command_prefix,
+        state_path,
+        tmp_path / "bridge-military-refusals-resume-request.jsonl",
+        "military_refusals_resume",
+    )
+
+    for payload in (first, resumed):
+        assert payload["state_exists"] is True
+        assert payload["sequence"]["assault"]["order_status"] == NO_ASSAULT_TARGET_STATUS
+        assert payload["sequence"]["engage"]["order_status"] == NO_TARGET_STATUS
+        assert payload["controls"]["party_position"] == first["controls"]["party_position"]
+
+    assert persisted.world == prepared.world
+    assert read_session(state_path).world == prepared.world
 
 
 def test_blocked_march_status_and_followup_engage_survive_process_boundary(tmp_path):
