@@ -41,6 +41,7 @@ func _run() -> void:
 	var controls_after_muster: Variant = null
 	var assault_precondition: Dictionary = {}
 	var sequence: Dictionary = {}
+	var order_results: Dictionary = {}
 	var fresh_party_acted_this_month: Variant = null
 	var phase: String = args[4]
 
@@ -146,10 +147,17 @@ func _run() -> void:
 			if not _press(scene_root, "AssaultButton"):
 				return
 			assault = _controls(scene_root)
+			order_results["assault"] = client.last_order_result()
 			if not _press(scene_root, "EngageButton"):
 				return
 			engage = _controls(scene_root)
+			order_results["engage"] = client.last_order_result()
 			sequence = {"assault": assault, "engage": engage}
+		"real_assault_refusal":
+			if not _press(scene_root, "AssaultButton"):
+				return
+			sequence = {"assault": _controls(scene_root)}
+			order_results["assault"] = client.last_order_result()
 		_:
 			_fail("unknown phase")
 			return
@@ -166,6 +174,7 @@ func _run() -> void:
 		"battle": _battle_observation(battle_view),
 		"assault_precondition": assault_precondition,
 		"sequence": sequence,
+		"order_results": order_results,
 		"fresh_party_acted_this_month": fresh_party_acted_this_month,
 		"state_exists": FileAccess.file_exists(args[1]),
 		"session_command": client.session_command(),

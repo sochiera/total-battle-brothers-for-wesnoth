@@ -30,6 +30,13 @@ const MILITARY_REASON_STATUS_PL := {
 		"oddział już działał w tym miesiącu": MONTHLY_ACTION_EXHAUSTED_STATUS,
 	},
 }
+const ORDER_REASON_STATUS_PL := {
+	"develop": POPULATION_REASON_STATUS_PL,
+	"recruit": POPULATION_REASON_STATUS_PL,
+	"muster": POPULATION_REASON_STATUS_PL,
+	"assault": MILITARY_REASON_STATUS_PL["assault"],
+	"engage": MILITARY_REASON_STATUS_PL["engage"],
+}
 
 
 static func failure_status_text() -> String:
@@ -82,23 +89,10 @@ static func _monthly_action_was_exhausted(order_result: Dictionary) -> bool:
 	return exhausted is bool and exhausted
 
 
-const POPULATION_ORDERS := ["develop", "recruit", "muster"]
-
-
-static func _population_reason_status_text(order_result: Dictionary, order: String) -> String:
-	if order not in POPULATION_ORDERS:
-		return ""
+static func _reason_status_text(order_result: Dictionary, order: String) -> String:
 	if not order_result.has("reason") or not order_result["reason"] is String:
 		return ""
-	return POPULATION_REASON_STATUS_PL.get(order_result["reason"], "")
-
-
-static func _military_reason_status_text(order_result: Dictionary, order: String) -> String:
-	if not _is_military_order(order):
-		return ""
-	if not order_result.has("reason") or not order_result["reason"] is String:
-		return ""
-	var reason_statuses: Variant = MILITARY_REASON_STATUS_PL.get(order, {})
+	var reason_statuses: Variant = ORDER_REASON_STATUS_PL.get(order, {})
 	if not reason_statuses is Dictionary:
 		return ""
 	var status: Variant = reason_statuses.get(order_result["reason"], "")
@@ -112,12 +106,9 @@ static func _unchanged_status_text(
 		return MONTHLY_ACTION_EXHAUSTED_STATUS
 	if order == "reinforce":
 		return REINFORCE_UNCHANGED_STATUS
-	var population_reason_status := _population_reason_status_text(order_result, order)
-	if not population_reason_status.is_empty():
-		return population_reason_status
-	var military_reason_status := _military_reason_status_text(order_result, order)
-	if not military_reason_status.is_empty():
-		return military_reason_status
+	var reason_status := _reason_status_text(order_result, order)
+	if not reason_status.is_empty():
+		return reason_status
 
 	var order_name := _order_name(order)
 	if order_name.is_empty():

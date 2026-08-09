@@ -89,6 +89,16 @@ i **jawna akceptacja screenshotów przez człowieka**. **[W]** Spełnione
   Długa ścieżka obronna `develop`×2 → `recruit`×4 → `next_turn`×20 pozostaje
   `ongoing` po 20 turach, w **R2M8**; oba snapshoty osad zachowują `player lands`
   **`garrison=3`** i `player outpost` **`garrison=3`**.
+- **K118 — DOMKNIĘTY 2026-08-09:** żywy most `seed=73` przez dwa procesy
+  przenosi powody odmowy wojskowej przy `changed:false`: po `muster`
+  `engage` mówi „W zasięgu nie ma wrogiego wojska.”, a `assault` mówi
+  „W zasięgu nie ma wrogiej osady — uderz na wojsko wroga.”. Na trasie
+  `recruit`×3 → `muster` → `march` → `next_turn` oddział gracza w `player
+  outpost` dostaje od `assault` wskazanie `engage`, a wznowiony proces
+  rozstrzyga starcie; powód mostu i status klienta są identycznie zmapowane.
+  Regresje pozostają: rush wygrywa w **R1M4**, bierny gracz przegrywa w
+  **R1M7**, a K115/K116/K117 zachowują odpowiednio odrost ludności, wskazany
+  cel gospodarczy i `garrison>=1`.
 - **Pomiar kadencji 2026-08-09 (bazowy, przed K117, żywy most `seed=73`,
   wyłącznie rozkazy z klienta).** Regresje rozstrzygnięcia stały — rush
   (`recruit`×5 → `muster` → `march` → `nt` → `march` → `nt` → `assault`)

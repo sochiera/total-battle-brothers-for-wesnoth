@@ -2140,7 +2140,7 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
 > świadomie odłożonym strojeniem. Kolejny pomiar długiej partii (wniosek 36)
 > zadecyduje, czy odsłoni się kolejny stan bez wyjścia.
 
-## Kamień milowy 118 — szturm i starcie mówią, dlaczego nic nie zrobiły
+## Kamień milowy 118 — szturm i starcie mówią, dlaczego nic nie zrobiły — UKOŃCZONY
 > **Decyzja kierunku (druga kadencja bootstrap-diff, 2026-08-09).** Brief bez
 > zmian. K117 stoi niezaczęty i **pozostaje pierwszy w kolejce** — K118 idzie
 > po nim. Ten kamień domyka klasę problemu, nie kolejny przycisk: wniosek 41(i)
@@ -2199,12 +2199,26 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
       a przypadek „droga/cel zajęty przez wojsko wroga" kieruje gracza do
       `engage` tak samo jak K111 kieruje marsz. Wyczerpana akcja miesiąca
       nadal działa jak dziś. Dowód wizualny 1152×648. *(standard)*
-- [ ] **G118.1e [POMIAR]** Żywy most `seed=73` przez dwa procesy: obie
+- [x] **G118.1e [POMIAR]** Żywy most `seed=73` przez dwa procesy: obie
       zmierzone sekwencje z diagnozy wyżej dają **niepusty, konkretny powód**
       zamiast „nie zmienił stanu", a regresje rozstrzygnięcia stoją (rush
       wygrywa, bierny przegrywa) razem z regresjami K115/K116/K117. Zapis
       pomiaru tutaj. *(standard)*
-> **Kamień 118 — zaplanowany 2026-08-09 (druga kadencja przeglądu).**
+> **Pomiar zamykający K118 (2026-08-09, żywy most `seed=73`, dwa procesy).**
+> Po `muster target="player lands"` odmowa `engage` niesie powód `brak
+> wrogiego wojska w zasięgu`, a odmowa `assault` niesie `brak wrogiej osady w
+> zasięgu`; klient pokazuje odpowiednio „W zasięgu nie ma wrogiego wojska.” i
+> „W zasięgu nie ma wrogiej osady — uderz na wojsko wroga.”, więc oba statusy
+> są niepuste i różne, przy `changed:false`.
+> Trasa `recruit`×3 → `muster` → `march` → `next_turn` ustawia gracza w
+> `player outpost`, AI w `border`; `assault` zwraca ten sam mostowy powód o
+> braku wrogiej osady, a status klienta kieruje do `engage`, po czym wznowiony
+> proces rozstrzyga starcie. Powód został porównany 1:1 między mostem a
+> klientem. Regresje pozostały zgodne: rush wygrywa w **R1M4**, bierny gracz
+> przegrywa w **R1M7**; K115 zachowuje odrost `free` **2→5** / **4→6**, K116
+> trafia do wskazanej osady, a K117 utrzymuje `garrison>=1` po `muster`/
+> `reinforce`.
+> **Kamień 118 — UKOŃCZONY 2026-08-09 (druga kadencja przeglądu).**
 > Po K118 **żaden** rozkaz gracza nie odmawia bez powodu — wniosek 41(i)
 > zostaje domknięty na całej klasie, nie na wybranych rozkazach.
 

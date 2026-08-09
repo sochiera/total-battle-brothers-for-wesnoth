@@ -13,8 +13,9 @@ const EXPECTED := {
 	"recruit_reason_permanent": {"order": "recruit", "changed": false, "reason": "brak wolnej ludności — osada nie wyżywi przyrostu"},
 	"recruit_reason_unknown": {"order": "recruit", "changed": false, "reason": "nieznany defekt xyz"},
 	# G114.1c: most niesie ``reason`` także dla ``develop`` i ``muster``
-	# (test_protocol.py); ``_population_reason_status_text`` białej-listuje
-	# wszystkie trzy rozkazy gospodarcze, więc probe musi pilnować warunku.
+	# (test_protocol.py); ``_reason_status_text`` używa ``ORDER_REASON_STATUS_PL`` do
+	# białej-listy wszystkich trzech rozkazów gospodarczych, więc probe musi
+	# pilnować warunku.
 	"develop_reason_transient": {"order": "develop", "changed": false, "reason": "brak wolnej ludności"},
 	"muster_reason_transient": {"order": "muster", "changed": false, "reason": "brak wolnej ludności"},
 	"battle": {"kind": "battle", "order": "assault", "outcome": "porażka", "attacker_losses": 0, "defender_losses": 0},

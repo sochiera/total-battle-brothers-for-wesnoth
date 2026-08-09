@@ -9,6 +9,7 @@ from pathlib import Path
 import tbb.ai as ai
 from godot_runner import run_godot_script
 from tbbbridge.persist import read_session, save_session
+from tbbbridge.protocol import handle_command_line
 from tbbbridge.session import Session, apply_command, new_session
 from tbb.world import WorldMap
 
@@ -85,6 +86,28 @@ def _party_without_adjacent_enemy_session() -> Session:
         new_session(seed=SEED, player_duchy_id="player"),
         {"type": "order", "order": "muster"},
     )
+
+
+def _fresh_k118_muster_session() -> Session:
+    return apply_command(
+        new_session(seed=SEED, player_duchy_id="player"),
+        {"type": "order", "order": "muster", "target": "player lands"},
+    )
+
+
+def _real_k118_assault_refusal_session() -> Session:
+    """Build K118's measured player-outpost / AI-border refusal state."""
+    session = new_session(seed=SEED, player_duchy_id="player")
+    for command in (
+        {"type": "order", "order": "recruit"},
+        {"type": "order", "order": "recruit"},
+        {"type": "order", "order": "recruit"},
+        {"type": "order", "order": "muster"},
+        {"type": "order", "order": "march"},
+        {"type": "next_turn"},
+    ):
+        session = apply_command(session, command)
+    return session
 
 
 def _blocked_march_session() -> Session:
@@ -290,6 +313,132 @@ def test_military_refusal_statuses_survive_process_boundary(tmp_path):
 
     assert persisted.world == prepared.world
     assert read_session(state_path).world == prepared.world
+
+
+def test_seed73_k118_live_refusal_measurement_is_concrete_and_recorded(tmp_path):
+    """K118.1e: exact measured refusals carry through two live client processes.
+
+    Realistic defect: the unit bridge/client gates can pass while the actual
+    seed-73 route still drops ``reason`` at the process boundary, or while the
+    second measured state silently falls back to the generic assault status.
+    Existing live coverage exercises a synthetic no-target state and the
+    blocked March escape hatch, but not K118's exact ``recruit``×3 route or
+    the bridge-to-client reason identity on both measured sequences.
+
+    This first gate covers AC1+AC2 and the measurement record in AC4. AC3 is
+    intentionally deferred to the existing seed-73 resolution/regression
+    gates in ``src/tbbbridge/test_protocol.py``; changing those assertions here
+    would make this a duplicate long-game oracle.
+    """
+    command_prefix = f"PYTHONPATH={shlex.quote(str(ROOT / 'src'))} python3 -m tbbbridge"
+
+    # Sequence 1: fresh party after muster; both military refusals must be
+    # successful no-ops with distinct reasons, visible after a process resume.
+    fresh_state_path = tmp_path / "k118-fresh-refusal-session.json"
+    fresh = _fresh_k118_muster_session()
+    save_session(fresh, fresh_state_path)
+    fresh_first = _run_process(
+        command_prefix,
+        fresh_state_path,
+        tmp_path / "k118-fresh-first-request.jsonl",
+        "military_refusals",
+    )
+    fresh_resume = _run_process(
+        command_prefix,
+        fresh_state_path,
+        tmp_path / "k118-fresh-resume-request.jsonl",
+        "military_refusals_resume",
+    )
+
+    fresh_statuses = fresh_first["sequence"]
+    assault_status = fresh_statuses["assault"]["order_status"]
+    engage_status = fresh_statuses["engage"]["order_status"]
+    assert assault_status == NO_ASSAULT_TARGET_STATUS
+    assert engage_status == NO_TARGET_STATUS
+    assert assault_status != engage_status
+    assert assault_status != "Rozkaz szturmu nie zmienił stanu."
+    assert engage_status != "Rozkaz starcia nie zmienił stanu."
+
+    for payload in (fresh_first, fresh_resume):
+        for order in ("assault", "engage"):
+            projected = payload["order_results"][order]
+            assert projected["changed"] is False
+            assert projected["reason"].strip() != ""
+        assert payload["sequence"]["assault"]["order_status"] == assault_status
+        assert payload["sequence"]["engage"]["order_status"] == engage_status
+
+    # AC2: compare the live client's carried reason with the public bridge
+    # response for the same saved world; the UI must not invent a diagnostic.
+    bridge_fresh = fresh
+    for order in ("assault", "engage"):
+        bridge_fresh, response = handle_command_line(
+            bridge_fresh,
+            json.dumps({"type": "order", "order": order}),
+        )
+        result = response["result"]
+        assert response["ok"] is True
+        assert result["kind"] == "order"
+        assert result["changed"] is False
+        assert result["reason"].strip() != ""
+        assert result["reason"] == fresh_first["order_results"][order]["reason"]
+
+    # Sequence 2: exact measured route puts the player at player outpost and
+    # the AI party at border. Assault must explain that Engage is the escape
+    # route; the resumed second process proves that escape is live.
+    real_state_path = tmp_path / "k118-real-refusal-session.json"
+    real = _real_k118_assault_refusal_session()
+    real_snapshot = real.snapshot()
+    real_regions = {
+        region["name"]: region for region in real_snapshot["map"]["regions"]
+    }
+    assert real_regions["player outpost"]["party"]["owner"] == "player"
+    assert real_regions["border"]["party"]["owner"] == "ai"
+    save_session(real, real_state_path)
+
+    real_first = _run_process(
+        command_prefix,
+        real_state_path,
+        tmp_path / "k118-real-first-request.jsonl",
+        "real_assault_refusal",
+    )
+    real_resume = _run_process(
+        command_prefix,
+        real_state_path,
+        tmp_path / "k118-real-resume-request.jsonl",
+        "engage",
+    )
+
+    real_assault_status = real_first["controls"]["order_status"]
+    assert real_assault_status == NO_ASSAULT_TARGET_STATUS
+    assert "uderz na wojsko wroga" in real_assault_status.casefold()
+    assert real_first["order_results"]["assault"]["changed"] is False
+    assert real_first["order_results"]["assault"]["reason"].strip() != ""
+    assert real_resume["controls"]["order_status"].startswith("Starcie: ")
+
+    bridge_real, real_response = handle_command_line(
+        real,
+        '{"type":"order","order":"assault"}',
+    )
+    assert real_response["ok"] is True
+    assert real_response["result"]["changed"] is False
+    assert real_response["result"]["reason"] == real_first["order_results"]["assault"]["reason"]
+    assert bridge_real.world is real.world
+
+    # AC4: this is deliberately the red part on the pre-measurement baseline.
+    # Keep the lookup bounded to K118 so an unrelated historical marker cannot
+    # satisfy the gate.
+    backlog = (ROOT / "BACKLOG.md").read_text(encoding="utf-8")
+    project = (ROOT / "docs" / "PROJECT.md").read_text(encoding="utf-8")
+    k118_start = backlog.index("## Kamień milowy 118")
+    k118_end = backlog.index("## Dług/refaktor", k118_start)
+    backlog_k118 = backlog[k118_start:k118_end]
+    assert "— UKOŃCZONY" in backlog_k118.splitlines()[0]
+    assert "- [x] **G118.1e [POMIAR]**" in backlog_k118
+    assert "> **Pomiar zamykający K118" in backlog_k118
+    for marker in ("recruit`×3", "R1M4", "R1M7"):
+        assert marker in backlog_k118
+    assert "- **K118 — DOMKNIĘTY" in project
+    assert "R1M4" in project and "R1M7" in project
 
 
 def test_blocked_march_status_and_followup_engage_survive_process_boundary(tmp_path):
