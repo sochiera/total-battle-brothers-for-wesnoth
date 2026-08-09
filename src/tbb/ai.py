@@ -21,6 +21,11 @@ _TRANSIENT_POPULATION_REASON = "brak wolnej ludności"
 _PERMANENT_POPULATION_REASON = (
     "brak wolnej ludności — osada nie wyżywi przyrostu"
 )
+_NO_ASSAULT_PARTY_REASON = "brak własnego oddziału"
+_NO_ASSAULT_IN_REACH_REASON = "brak wrogiej osady w zasięgu"
+_ASSAULT_TARGET_OUT_OF_REACH_REASON = "cel poza zasięgiem"
+_NO_ASSAULT_ENEMY_AT_TARGET_REASON = "brak wrogiej osady w celu"
+_ASSAULT_ALREADY_ACTED_REASON = "oddział już działał w tym miesiącu"
 
 
 def _combat_strength(units: Iterable[Unit]) -> int:
@@ -128,6 +133,38 @@ def economic_order_reason(
     if garrison_blocked:
         return "limit garnizonu"
     return "brak złota"
+
+
+def assault_order_reason(
+    world: WorldMap, duchy: Duchy, target: Region | None = None
+) -> str | None:
+    """Return why an assault would be a no-op, or ``None`` if it can act.
+
+    The guard order mirrors the targeted and nearest-target assault entry
+    points without constructing a battle or touching an RNG.
+    """
+    position = _duchy_party_position(world, duchy.duchy_id)
+    if position is None:
+        return _NO_ASSAULT_PARTY_REASON
+
+    party = world.party_at(position)
+    if target is None:
+        target = nearest_enemy_settlement(world, position, party.owner_id)
+        if target is None or not _is_legal_assault_target(world, position, target):
+            return _NO_ASSAULT_IN_REACH_REASON
+    elif not _is_legal_assault_target(world, position, target):
+        return _ASSAULT_TARGET_OUT_OF_REACH_REASON
+
+    settlement = world.settlement_at(target)
+    if (
+        settlement is None
+        or settlement.owner_id is None
+        or settlement.owner_id == duchy.duchy_id
+    ):
+        return _NO_ASSAULT_ENEMY_AT_TARGET_REASON
+    if party.acted_this_month:
+        return _ASSAULT_ALREADY_ACTED_REASON
+    return None
 
 
 def develop_duchy_settlement(
