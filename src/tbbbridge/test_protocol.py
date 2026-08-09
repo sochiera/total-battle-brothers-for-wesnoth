@@ -345,6 +345,60 @@ def test_economic_order_result_carries_core_reason_without_rejecting_noop():
         }
 
 
+@pytest.mark.parametrize("order", ("assault", "engage"))
+def test_military_order_result_carries_core_refusal_reason_as_success(order):
+    """G118.1c AC1/AC3: a military no-op carries the core reason and stays ok.
+
+    Realistic defect: the bridge can leave a refused assault/engage in the old
+    bare ``changed: false`` shape, or classify the refusal as a protocol error,
+    even though the core already exposes the reason for the same world state.
+    Existing bridge tests cover battle results and economic reasons, but not
+    this military refusal boundary.
+    """
+    import tbb.ai as ai
+
+    session = new_session(seed=73, player_duchy_id="player")
+    player_duchy = next(
+        duchy for duchy in session.game.duchies if duchy.duchy_id == "player"
+    )
+    expected_reason = ai.military_order_reason(
+        session.world, player_duchy, order
+    )
+    assert isinstance(expected_reason, str) and expected_reason.strip()
+
+    returned, response = handle_command_line(
+        session, json.dumps({"type": "order", "order": order})
+    )
+
+    assert response["ok"] is True
+    assert "error" not in response
+    assert response["result"] == {
+        "kind": "order",
+        "order": order,
+        "changed": False,
+        "reason": expected_reason,
+    }
+    assert returned.world is session.world
+    json.dumps(response)
+
+    unknown_target_session, unknown_target_response = handle_command_line(
+        session,
+        json.dumps(
+            {"type": "order", "order": order, "target": "missing region"}
+        ),
+    )
+    assert unknown_target_response["ok"] is True
+    assert "error" not in unknown_target_response
+    assert unknown_target_response["result"] == {
+        "kind": "order",
+        "order": order,
+        "changed": False,
+        "reason": "nieznany region",
+    }
+    assert unknown_target_session.world is session.world
+    json.dumps(unknown_target_response)
+
+
 @pytest.mark.parametrize(
     ("order", "first_target", "second_target"),
     (("march", None, None), ("move", "player outpost", "border")),
@@ -953,6 +1007,7 @@ def test_military_move_consumes_monthly_action_before_battle(
         "kind": "order",
         "order": order,
         "changed": False,
+        "reason": "oddział już działał w tym miesiącu",
     }
     assert session.world is before_battle_world
     assert session.rng.state() == before_battle_rng_state
@@ -982,6 +1037,7 @@ def test_second_battle_in_month_is_protocol_noop(order):
         "kind": "order",
         "order": order,
         "changed": False,
+        "reason": "oddział już działał w tym miesiącu",
     }
     assert session.world is before_second_world
     assert session.rng.state() == before_second_rng_state
@@ -1025,6 +1081,7 @@ def test_ineffective_battle_does_not_consume_monthly_marker(order):
         "kind": "order",
         "order": order,
         "changed": False,
+        "reason": "cel poza zasięgiem",
     }
     assert session.world is before_world
     assert session.rng.state() == before_rng_state
@@ -1504,32 +1561,35 @@ def test_economic_order_target_routes_to_indicated_settlement_and_absence_is_unc
         )
 
 
-def test_command_result_battle_order_with_last_battle_returns_kind_battle_with_outcome_and_losses():
+@pytest.mark.parametrize("order", ("assault", "engage"))
+def test_command_result_battle_order_with_last_battle_returns_kind_battle_with_outcome_and_losses(order):
     """G66.2b kryt-1: ``command_result(before, after, {"type": "order",
-    "order": "assault"})`` gdy ``after.last_battle is not None`` zwraca
-    ``{"kind": "battle", "order": "assault", "outcome": <str|None>,
+    "order": <assault|engage>})`` gdy ``after.last_battle is not None`` zwraca
+    ``{"kind": "battle", "order": <order>, "outcome": <str|None>,
     "attacker_losses": int, "defender_losses": int}`` gdzie ``outcome`` jest
     mapowane z perspektywy atakującego z ``after.last_battle.report().result.value``
     (``"attacker_win"`` → ``"zwycięstwo"``, ``"defender_win"`` → ``"porażka"``,
     ``"draw"`` → ``"remis"``), a straty == ``len(report.attacker.fallen)`` /
     ``len(report.defender.fallen)``. Wynik przechodzi ``json.dumps``.
 
-    Scenariusz: party gracza (north) szturmem uderza na sąsiednią wrogą osadę
-    (south). ``after.last_battle`` jest rozegrana bitwą z realnym
-    ``BattleResult`` i poległymi, więc ``command_result`` musi odczytać raport
-    zamiast zwracać gałąź ``kind: "order"``.
+    Scenariusz: party gracza (north) skutecznie atakuje sąsiedni cel rozkazem
+    ``assault`` albo ``engage``. ``after.last_battle`` jest rozegraną bitwą z
+    realnym ``BattleResult`` i poległymi, więc ``command_result`` musi odczytać
+    raport zamiast zwracać gałąź ``kind: "order"``. Skuteczna gałąź nie może
+    dostać diagnostycznego ``reason``.
     """
     from tbb.battle import BattleResult
 
-    s = _build_battle_session_assault()
-    after = apply_command(s, {"type": "order", "order": "assault"})
+    command = {"type": "order", "order": order, "target": "Middle"}
+    s = _build_two_target_battle_session(order)
+    after = apply_command(s, command)
 
     # Warunki scenariusza: bitwa wybuchła i jest rozstrzygnięta.
     assert after.last_battle is not None
     report = after.last_battle.report()
     assert isinstance(report.result, BattleResult)
 
-    result = command_result(s, after, {"type": "order", "order": "assault"})
+    result = command_result(s, after, command)
 
     # Oczekiwane mapowanie outcome z perspektywy atakującego.
     _outcome_from_result = {
@@ -1540,7 +1600,7 @@ def test_command_result_battle_order_with_last_battle_returns_kind_battle_with_o
     expected_outcome = _outcome_from_result[report.result]
     expected = {
         "kind": "battle",
-        "order": "assault",
+        "order": order,
         "outcome": expected_outcome,
         "attacker_losses": len(report.attacker.fallen),
         "defender_losses": len(report.defender.fallen),
@@ -1554,8 +1614,19 @@ def test_command_result_battle_order_with_last_battle_returns_kind_battle_with_o
     assert isinstance(result["defender_losses"], int)
     # Brak klucza "changed" w gałęzi bitewnej.
     assert "changed" not in result
+    assert "reason" not in result
     # json-serializowalny.
     json.dumps(result)
+
+    returned, response = handle_command_line(
+        _build_two_target_battle_session(order), json.dumps(command)
+    )
+    assert returned.last_battle is not None
+    assert response["ok"] is True
+    assert "error" not in response
+    assert response["result"] == result
+    assert "reason" not in response["result"]
+    json.dumps(response)
 
 
 def _build_stalemate_battle_session(*, order: str) -> Session:

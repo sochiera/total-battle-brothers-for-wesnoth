@@ -72,6 +72,28 @@ def _blocked_region_name(session: Session, command: dict) -> str | None:
     return blocked.name if blocked is not None else None
 
 
+def _order_refusal_reason(
+    session: Session, command: dict, order_name: str
+) -> str | None:
+    """Return the core or bridge reason for an ineffective player order."""
+    target = _find_region_by_name(session.world, command.get("target"))
+    if "target" in command and target is None:
+        return "nieznany region"
+
+    player_duchy = _resolve_player_duchy(session)
+    if player_duchy is None:
+        return None
+    if order_name in _ECONOMIC_ORDERS:
+        return ai.economic_order_reason(
+            session.world, player_duchy, order_name, target=target
+        )
+    if order_name in _BATTLE_ORDERS:
+        return ai.military_order_reason(
+            session.world, player_duchy, order_name, target=target
+        )
+    return None
+
+
 def command_result(before: Session, after: Session, command: dict) -> dict:
     """Maszynowe podsumowanie skutku komendy (sterującej lub niebitewnej)."""
     command_type = command.get("type")
@@ -119,21 +141,13 @@ def command_result(before: Session, after: Session, command: dict) -> dict:
             "order": order_name,
             "changed": after.world is not before.world,
         }
-        if not result["changed"] and order_name in _ECONOMIC_ORDERS:
-            target = _find_region_by_name(before.world, command.get("target"))
-            if "target" in command and target is None:
-                result["reason"] = "nieznany region"
-            else:
-                player_duchy = _resolve_player_duchy(before)
-                if player_duchy is not None:
-                    reason = ai.economic_order_reason(
-                        before.world,
-                        player_duchy,
-                        order_name,
-                        target=target,
-                    )
-                    if reason is not None:
-                        result["reason"] = reason
+        if (
+            not result["changed"]
+            and order_name in (_ECONOMIC_ORDERS + _BATTLE_ORDERS)
+        ):
+            reason = _order_refusal_reason(before, command, order_name)
+            if reason is not None:
+                result["reason"] = reason
         if not result["changed"]:
             blocked_region = _blocked_region_name(before, command)
             if blocked_region is not None:
