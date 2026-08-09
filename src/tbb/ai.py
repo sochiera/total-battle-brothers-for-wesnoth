@@ -26,6 +26,11 @@ _NO_ASSAULT_IN_REACH_REASON = "brak wrogiej osady w zasięgu"
 _ASSAULT_TARGET_OUT_OF_REACH_REASON = "cel poza zasięgiem"
 _NO_ASSAULT_ENEMY_AT_TARGET_REASON = "brak wrogiej osady w celu"
 _ASSAULT_ALREADY_ACTED_REASON = "oddział już działał w tym miesiącu"
+_NO_ENGAGE_PARTY_REASON = "brak własnego oddziału"
+_NO_ENGAGE_IN_REACH_REASON = "brak wrogiego wojska w zasięgu"
+_ENGAGE_TARGET_OUT_OF_REACH_REASON = "cel poza zasięgiem"
+_NO_ENGAGE_ENEMY_AT_TARGET_REASON = "brak wrogiego wojska w celu"
+_ENGAGE_ALREADY_ACTED_REASON = "oddział już działał w tym miesiącu"
 
 
 def _combat_strength(units: Iterable[Unit]) -> int:
@@ -135,7 +140,7 @@ def economic_order_reason(
     return "brak złota"
 
 
-def assault_order_reason(
+def _assault_order_reason(
     world: WorldMap, duchy: Duchy, target: Region | None = None
 ) -> str | None:
     """Return why an assault would be a no-op, or ``None`` if it can act.
@@ -165,6 +170,64 @@ def assault_order_reason(
     if party.acted_this_month:
         return _ASSAULT_ALREADY_ACTED_REASON
     return None
+
+
+def _engage_order_reason(
+    world: WorldMap, duchy: Duchy, target: Region | None = None
+) -> str | None:
+    """Return why an engage would be a no-op, without resolving a battle."""
+    position = _duchy_party_position(world, duchy.duchy_id)
+    if position is None:
+        return _NO_ENGAGE_PARTY_REASON
+
+    party = world.party_at(position)
+    if target is None:
+        target = next(
+            (
+                neighbor
+                for neighbor in world.neighbors(position)
+                if (other := world.party_at(neighbor)) is not None
+                and other.owner_id is not None
+                and other.owner_id != party.owner_id
+            ),
+            None,
+        )
+        if target is None:
+            return _NO_ENGAGE_IN_REACH_REASON
+    elif target not in world.neighbors(position):
+        return _ENGAGE_TARGET_OUT_OF_REACH_REASON
+
+    other = world.party_at(target)
+    if (
+        other is None
+        or other.owner_id is None
+        or other.owner_id == party.owner_id
+    ):
+        return _NO_ENGAGE_ENEMY_AT_TARGET_REASON
+    if party.acted_this_month:
+        return _ENGAGE_ALREADY_ACTED_REASON
+    return None
+
+
+def military_order_reason(
+    world: WorldMap,
+    duchy: Duchy,
+    order: str,
+    target: Region | None = None,
+) -> str | None:
+    """Return why a military order would be a no-op, or ``None`` if it can act."""
+    if order == "assault":
+        return _assault_order_reason(world, duchy, target)
+    if order == "engage":
+        return _engage_order_reason(world, duchy, target)
+    raise ValueError("unknown military order")
+
+
+def assault_order_reason(
+    world: WorldMap, duchy: Duchy, target: Region | None = None
+) -> str | None:
+    """Compatibility wrapper for the original assault-only public query."""
+    return military_order_reason(world, duchy, "assault", target)
 
 
 def develop_duchy_settlement(
