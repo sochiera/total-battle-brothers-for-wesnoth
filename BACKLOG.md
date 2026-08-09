@@ -2059,7 +2059,7 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
 > przejęciem osady przez AI `player outpost` osiąga `population=7`, `free=6`,
 > `garrison=1`. Kolejny `develop` zwraca `changed:true`.
 
-## Kamień milowy 117 — osada nie zostaje bezbronna po zbiórce/ wzmocnieniu
+## Kamień milowy 117 — osada nie zostaje bezbronna po zbiórce/ wzmocnieniu — UKOŃCZONY 2026-08-09
 > **Decyzja kierunku (przegląd kadencji bootstrap-diff 2026-08-09, po K116).**
 > Brief bez zmian; formalne kryterium sukcesu odhaczone (K88/K106), a pętla
 > sandboxa domyka się od K110/K116. Pomiar długiej partii na żywym moście
@@ -2096,7 +2096,8 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
 > tempa AI, kosztów rozkazów, reguł ruchu/walki ani ekonomii z K115. Klient
 > nie potrzebuje nowego rozkazu ani pola — `muster`/`reinforce` nadal wychodzą
 > po prostu z mniejszym oddziałem, a licznik garnizonu z K113 pokazuje zmianę.
-- [ ] **G117.1a [RDZEŃ]** `Settlement.muster` (oraz przez nią
+- [x] **G117.1a [RDZEŃ]** *(rozcięte na dwa plasterki: `5cd022e` wzmocnienie,
+      `2a2ac9d` zbiórka)* `Settlement.muster` (oraz przez nią
       `WorldMap.reinforce_party`) **nie opróżnia osady do zera**, gdy ma co
       najmniej dwóch obrońców: co najmniej **1 jednostka** zostaje w garnizonie
       (zasada „minimum obrońcy"), a `muster`/`reinforce` zabierają resztę.
@@ -2109,7 +2110,7 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
       testy `muster`/`reinforce` przechodzą z jawną aktualizacją oczekiwań
       (zmiana reguły, nie balans). *(standard, ryzyko: dotyka rdzenia —
       jedynego źródła reguł; nie zmieniać progu 2:1, reguł ruchu ani ekonomii)*
-- [ ] **G117.1b [POMIAR — ZMIERZONY PRZY ZAPISYWANIU, 2026-08-09]**
+- [x] **G117.1b [POMIAR]** *(commit `e4e4e39`)*
       **Regresje rozstrzygnięcia partii stoją** na żywym moście `seed=73` po
       G117.1a (bez kolejnych plastrow): bierny gracz nadal przegrywa, a
       aktywny rush (`recruit`×5 → `muster` → `march` → `nt` → `march` → `nt`
@@ -2129,16 +2130,16 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
       pozostaje `ongoing` po 20 turach, w **R2M8**; oba snapshoty osad
       zachowują `player lands` **`garrison=3`** i `player outpost`
       **`garrison=3`**.
-- [ ] **G117.1c [KLIENT]** Gracz widzi, że osada nie jest bezbronna po
+- [x] **G117.1c [KLIENT]** *(commit `2028d00`)* Gracz widzi, że osada nie jest bezbronna po
       zbiórce: po `muster`/`reinforce` licznik garnizonu z K113 pokazuje
       zostawionego obrońcę, a status rozkazu nadal mówi o wzmocnieniu
       oddziału. E2e przez dwa procesy mostu + dowód wizualny 1152×648 pary
       kadrów „przed / po" `muster` w osadzie z garnizonem >1. *(standard)*
-> **Kamień 117 — zaplanowany 2026-08-09 (przegląd kadencji po K116).**
-> Po domknięciu K117 partia sandboxa ma realną strategię obronną obok
-> „rush"; wciąż **nie** ruszamy tempa AI ani progu 2:1 — to zostaje
-> świadomie odłożonym strojeniem. Kolejny pomiar długiej partii (wniosek 36)
-> zadecyduje, czy odsłoni się kolejny stan bez wyjścia.
+> **Kamień 117 — UKOŃCZONY 2026-08-09** (commity `5cd022e`, `2a2ac9d`,
+> `e4e4e39`, `2028d00`). Po domknięciu K117 partia sandboxa ma realną strategię
+> obronną obok „rush"; wciąż **nie** ruszaliśmy tempa AI ani progu 2:1 — to
+> zostaje świadomie odłożonym strojeniem. Pomiar długiej partii (wniosek 36)
+> potwierdził `garrison>=1` bez stanu bez wyjścia.
 
 ## Kamień milowy 118 — szturm i starcie mówią, dlaczego nic nie zrobiły — UKOŃCZONY
 > **Decyzja kierunku (druga kadencja bootstrap-diff, 2026-08-09).** Brief bez
@@ -2181,21 +2182,21 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
 > z K108, tempa AI, kosztów rozkazów ani ekonomii z K115.** Nie dokładamy
 > nowego rozkazu ani pola na ekranie — zmienia się wyłącznie tekst statusu,
 > który gracz i tak już widzi. Wynik bitwy (`kind:"battle"`) zostaje bez zmian.
-- [ ] **G118.1a [RDZEŃ]** Bezskuteczny `assault` niesie powód: rdzeń
+- [x] **G118.1a [RDZEŃ]** *(commit `da6ab27`)* Bezskuteczny `assault` niesie powód: rdzeń
       rozróżnia „brak własnego oddziału", „w zasięgu nie ma wrogiej osady"
       i „oddział już działał w tym miesiącu", zwracając ten powód obok
       niezmienionego świata (nigdy wyjątek — wniosek 14). Skuteczny szturm
       i kształt wyniku bitwy bez zmian; dotychczasowe testy `assault`
       przechodzą. *(standard, ryzyko: dotyka rdzenia — jedynego źródła reguł)*
-- [ ] **G118.1b [RDZEŃ]** To samo dla `engage`: „brak własnego oddziału",
+- [x] **G118.1b [RDZEŃ]** *(commit `5c99d0c`)* To samo dla `engage`: „brak własnego oddziału",
       „w sąsiedztwie nie ma wrogiego wojska", „oddział już działał w tym
       miesiącu". Powody `assault` i `engage` pochodzą z **jednego** miejsca,
       bez powielania guardów w moście (wniosek 42). *(standard)*
-- [ ] **G118.1c [MOST]** `{"type":"order","order":"assault"|"engage"}` bez
+- [x] **G118.1c [MOST]** *(commit `bd10880`)* `{"type":"order","order":"assault"|"engage"}` bez
       skutku zwraca `{"kind":"order","changed":false,"reason":"<powód>"}`;
       nigdy `ok:false`, nigdy powód przy `changed:true`. Round-trip i
       `command_result` bez zmian kształtu dla bitwy. *(standard)*
-- [ ] **G118.1d [KLIENT]** Status rozkazu tłumaczy każdy powód na polski,
+- [x] **G118.1d [KLIENT]** *(commit `ad19d98`)* Status rozkazu tłumaczy każdy powód na polski,
       a przypadek „droga/cel zajęty przez wojsko wroga" kieruje gracza do
       `engage` tak samo jak K111 kieruje marsz. Wyczerpana akcja miesiąca
       nadal działa jak dziś. Dowód wizualny 1152×648. *(standard)*
@@ -2221,6 +2222,95 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
 > **Kamień 118 — UKOŃCZONY 2026-08-09 (druga kadencja przeglądu).**
 > Po K118 **żaden** rozkaz gracza nie odmawia bez powodu — wniosek 41(i)
 > zostaje domknięty na całej klasie, nie na wybranych rozkazach.
+
+## Kamień milowy 119 — pierwszy krok ku taktycznej bitwie: gracz widzi bitwę w toku i przechodzi rundy
+> **Decyzja kierunku (trzecia kadencja bootstrap-diff, 2026-08-09, po K118).**
+> Brief bez zmian; K117/K118 domknięte. Wszystkie formalne kryteria „gotowe"
+> są odhaczone (K88/K106), a **żaden rozkaz gracza nie odmawia bez powodu**
+> (K118). Największa **otwarta rozbieżność z briefem** to bitwa: brief mówi
+> „taktyczne bitwy na heksach" i „rozegrać bitwę", a dziś szturm i starcie
+> są w całości `HexBattle.auto_resolve` w rdzeniu — gracz widzi wyłącznie
+> wynik, bez jakiejkolwiek agencji. Formalne kryterium odhaczyliśmy czytając
+> „rozegrać" jako „zobaczyć wynik" (`docs/PROJECT.md`), ale to był świadomy
+> kompromis, nie zgodność z briefem.
+>
+> **K119 to najcieńszy pierwszy krok:** gracz widzi planszę bitwy **przed**
+> rozstrzygnięciem i może animować rundy pojedynczo albo rozstrzygnąć od razu.
+> **Bez wyboru celu ani sterowania ruchem jednostki** (to K120+) —
+> `take_unit_turn` nadal wybiera najbliższego wroga; zmienia się wyłącznie
+> tempo, w jakim gracz ogląda bitwę, i to, że w ogóle widzi planszę przed
+> wynikiem. To ustanawia infrastrukturę (bitwa w toku jako stan sesji,
+> `resolve_round`, persystencja HexBattle), bez której wybór celu nie ma
+> gdzie wstąpić.
+>
+> **Mechanizm:** `assault`/`engage` wydane przez gracza przez most tworzą
+> bitwę (`start_*_battle`) i zatrzymują ją w sesji jako „w toku" — bez
+> `auto_resolve`; nowy rozkaz `battle_advance` rozgrywa jedną rundę
+> (`resolve_round`), a `battle_auto` rozgrywa resztę (`auto_resolve`). Gdy
+> `HexBattle.result()` przestaje być `None`, wynik stosuje się do świata
+> istniejącą regułą (`apply_*_battle_result`). **Ścieżka AI się nie zmienia**
+> — `take_duchy_turn` woła `auto_resolve` jak dziś (wniosek 16: te same
+> reguły świata, AI nie potrzebuje wejścia gracza).
+>
+> **Stan „bitwa w toku" blokuje inne rozkazy gracza** — dopóki bitwa nie
+> skończy się `battle_advance`/`battle_auto`, każdy inny rozkaz wraca
+> `changed:false` z powodem `bitwa w toku` (wzorzec K111/K114/K118). Sesja
+> niesie bitwę w toku przez persystencję: zapis podczas bitwy zachowuje ją,
+> a wznowienie w drugim procesie kontynuuje od tego samego stanu. `next_turn`
+> podczas bitwy w toku również wraca z powodem — kalendarz nie rusza, dopóki
+> bitwa nie jest rozstrzygnięta.
+>
+> Zakres celowo wąski: **zero zmian reguł walki, obrażeń, ruchu jednostki,
+> progu 2:1 z K108, tempa AI, kosztów rozkazów ani ekonomii z K115.** Nie
+> dokładamy wyboru celu ani sterowania ruchem — to K120+. `take_unit_turn`
+> zostaje nietknięty. Skutek bitwy (`outcome`, straty, zmiana właściciela)
+> jest identyczny jak dziś — zmienia się wyłącznie to, że gracz widzi planszę
+> przed wynikiem i może krokować rundy.
+- [ ] **G119.1a [RDZEŃ]** `HexBattle.resolve_round(move_points, rng,
+      attacker_morale, defender_morale)` — rozgrywa **jedną** rundę (jedną
+      iterację pętli z dzisiejszego `auto_resolve`, `battle.py:199-250`) i
+      zwraca nowy `HexBattle`; `auto_resolve` zostaje refaktorem wołającym
+      `resolve_round` w pętli do `result()` lub `max_rounds`. Zachowanie
+      bitwy bez zmian na żadnym ziarnie; dotychczasowe testy `auto_resolve`
+      i bitwy przechodzą bez zmian w kryteriach. *(simple, ryzyko: dotyka
+      rdzenia — jedynego źródła reguł; nie zmieniać reguł ruchu ani obrażeń)*
+- [ ] **G119.1b [RDZEŃ + MOST]** Bitwa gracza pauzuje po starcie. `assault`/
+      `engage` wydane przez gracza przez most tworzą bitwę i zatrzymują ją
+      w sesji (bez `auto_resolve`) — odpowiedź mostu to
+      `{"kind":"battle_pending","battle":{…deployment…}}`, a nie dzisiejszy
+      `{"kind":"battle",…}` (ten ostatni wraca dopiero po rozstrzygnięciu).
+      Nowe rozkazy: `{"type":"battle_advance"}` rozgrywa jedną rundę przez
+      `resolve_round`, `{"type":"battle_auto"}` rozgrywa resztę przez
+      `auto_resolve`. Gdy `result()` nie jest `None`, wynik stosuje się do
+      świata istniejącą regułą. Inny rozkaz (lub `next_turn`) podczas bitwy
+      w toku → `changed:false` z powodem `bitwa w toku`. **AI się nie zmienia**
+>     — `take_duchy_turn` nadal auto-rozstrzyga od razu (bez pauzy). Bitwa
+      w toku przechodzi persystencję round-trip (`dump/load_session`):
+      zapis podczas bitwy + wznowienie w drugim procesie kontynuuje od tego
+      samego stanu `HexBattle` (w tym pozycje, PŻ, ogłuszenia, polegli).
+      Test na `seed=73` dowodzi: `assault` zatrzymuje bitwę
+      (`battle_pending`), `battle_advance` zmienia stan heksów, `battle_auto`
+      rozstrzyga do `{"kind":"battle",…}`, a **regresje stoją**: rush wygrywa
+      w R1M4, bierny przegrywa w R1M7, K112 (`garrison>=1`), K115 (odrost
+      `free`), K116 (cel gospodarczy), K117 (zostaje obrońca), K118 (powód
+      odmowy). *(complex, ryzyka: nowy stan sesji, persystencja HexBattle,
+      zmiana odpowiedzi `assault`/`engage` dla gracza, blokada innych rozkazów,
+      integracja Godot↔Python — review pętli agentowej)*
+- [ ] **G119.1c [KLIENT]** Scena pokazuje bitwę **przed** rozstrzygnięciem:
+      po `assault`/`engage` widok bitwy rysuje planszę z deploymentu
+      (istniejący `BattleView`, dane z `battle_pending`), a pasek rozkazów
+      dokłada „Następna runda" (`battle_advance`) i „Rozstrzygnij od razu"
+      (`battle_auto`); po `battle_advance` heksy odświeżają się (pozycje,
+      PŻ, ogłuszenia), a po rozstrzygnięciu pokazuje się baner wyniku jak
+      dziś. Inne przyciski rozkazów są nieaktywne lub dają czytelny status
+      „bitwa w toku". E2e przez dwa procesy mostu + dowód wizualny
+      1152×648: kadr deploymentu i kadr po jednej rundzie. *(standard)*
+- [ ] **G119.1d [POMIAR]** Żywy most `seed=73` przez dwa procesy: `assault`
+      zatrzymuje bitwę, `battle_advance` rozgrywa rundy (widoczna zmiana na
+      planszy), `battle_auto` rozstrzyga do wyniku; zapis w trakcie bitwy +
+      wznowienie kontynuuje od tego samego stanu. Regresje rozstrzygnięcia
+      stoją (rush R1M4, bierny R1M7) razem z K112/K115/K116/K117/K118.
+      Zapis pomiaru trafia tutaj. *(standard)*
 
 ## Dług/refaktor
 - [x] **R82.1 (dług, prośba autora briefu)** Porządek w repo gry: sondy testowe
@@ -2375,9 +2465,17 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
   maszeruje do osad gracza i je zdobywa, więc naciera. Otwarte zostaje pytanie
   o *tempo* tej presji, a tego nie da się sensownie ocenić przed K109 —
   dziś gracz może wyprzedzić AI dowolną liczbą darmowych rozkazów.
+- **Bitwa bez agencji gracza (szturm i starcie są w całości `auto_resolve`,
+  brief mówi „taktyczne bitwy na heksach")** — **rozplanowane jako K119
+  (trzecia kadencja przeglądu 2026-08-09, po K118)**: pierwszy krok ku
+  taktycznej bitwie — gracz widzi planszę przed rozstrzygnięciem i przechodzi
+  rundy (`battle_advance`/`battle_auto`). **Bez wyboru celu ani sterowania
+  ruchem** (to K120+); `take_unit_turn` nietknięty, AI się nie zmienia.
+  Pełna diagnoza i zakres → sekcja K119; nie powtarzać tutaj.
 - Pełne pole bitwy (teren pustych heksów, wymiary pola) — wymaga rozszerzenia
-  `tbbbridge.snapshot.battle_state`; dopiero gdy sam widok bitwy (K85) stoi.
-- Sterowanie pojedynczą jednostką w bitwie — po K85.
+  `tbbbridge.snapshot.battle_state`; po K119 (bitwa w toku wystawia już stan).
+- Wybór celu jednostki i sterowanie ruchem w bitwie — po K119 (infrastruktura
+  rundy w toku + persystencja HexBattle).
 - ~~Szturm potrafi się nie rozstrzygnąć i wywala rozkaz~~ — **rozplanowane jako
   K89** (G89.1a kontrakt wyniku, G89.1b widoczny skutek, G89.2a reguła ruchu).
   Pełna diagnoza zostaje niżej, bo koder jej potrzebuje.
