@@ -9,7 +9,7 @@ from tbb.battlefield import Battlefield
 from tbb.hex import Hex
 from tbb.party import Party
 from tbb.rng import Rng
-from tbb.settlement import Settlement
+from tbb.settlement import MIN_SETTLEMENT_DEFENDERS, Settlement
 from tbb.unit import Unit
 
 
@@ -199,16 +199,16 @@ class WorldMap:
             return self
         if party.owner_id != settlement.owner_id:
             return self
-        if len(settlement.garrison) < 2:
+        if len(settlement.garrison) < MIN_SETTLEMENT_DEFENDERS + 1:
             return self
         if not self._party_can_act(region):
             return self
-        reinforcements = len(settlement.garrison) - 1
+        reinforcements = len(settlement.garrison) - MIN_SETTLEMENT_DEFENDERS
         if len(party.units) + reinforcements > Party.MAX_SUBORDINATES:
             return self
 
         garrison_party, settlement = settlement.muster(
-            party.hero, defenders_to_leave=1
+            party.hero, defenders_to_leave=MIN_SETTLEMENT_DEFENDERS
         )
         parties = dict(self.parties)
         parties[region] = replace(

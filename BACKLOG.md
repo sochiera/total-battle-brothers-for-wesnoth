@@ -2119,6 +2119,16 @@ screenshoty i stan został zapisany tutaj oraz w `docs/PROJECT.md`.
       (po dwie w obu osadach) + `muster` + `next_turn` osada gracza, z której
       wyszedł oddział, ma **`garrison >= 1`** w snapshocie (nie 0 jak dziś).
       Zapis pomiaru trafia tutaj. *(standard)*
+      **Pomiar zamykający G117.1b (2026-08-09, żywy most `seed=73`, sesje
+      trwałe):** otwarcie po `muster` ma `population=3`, `free=0`,
+      `garrison=1`, a po `next_turn` `population=4`, `free=1`, `garrison=1`
+      (identyczny snapshot po wznowieniu). Sama sekwencja `next_turn` kończy
+      się porażką gracza w **R1M7** (`winner: "ai"`). Zapisana aktywna
+      sekwencja `recruit`×5 → `muster` → `march` → `next_turn` → `reinforce` → `next_turn` → `march` → `next_turn` → `assault` → `next_turn` → `assault` → `next_turn` → `assault` kończy się zwycięstwem gracza w **R1M5** (`winner: "player"`).
+      Długa ścieżka obronna `develop`×2 → `recruit`×4 → `next_turn`×20
+      pozostaje `ongoing` po 20 turach, w **R2M8**; oba snapshoty osad
+      zachowują `player lands` **`garrison=3`** i `player outpost`
+      **`garrison=3`**.
 - [ ] **G117.1c [KLIENT]** Gracz widzi, że osada nie jest bezbronna po
       zbiórce: po `muster`/`reinforce` licznik garnizonu z K113 pokazuje
       zostawionego obrońcę, a status rozkazu nadal mówi o wzmocnieniu

@@ -78,17 +78,27 @@ i **jawna akceptacja screenshotów przez człowieka**. **[W]** Spełnione
 - **K116 — DOMKNIĘTY 2026-08-08:** `develop`/`recruit`/`muster` słuchają
   wskazanego regionu (`target`) — panel osady z K113 i wybór regionu z K97
   razem pozwalają wydawać rozkazy „w tę osadę, którą widać".
-- **Pomiar kadencji 2026-08-09 (po K116, żywy most `seed=73`, wyłącznie
-  rozkazy z klienta).** Regresje rozstrzygnięcia stoją — rush (`recruit`×5 →
-  `muster` → `march` → `nt` → `march` → `nt` → `assault`) wygrywa w **R1M4**,
-  bierny przegrywa w **R1M7**. Pomiar długiej partii (wniosek 36) odsłonił
-  defekt wcześniej uznany za strojenie: **każda strategia poza rushem
-  przegrywa** — „gospodarcza" w R1M7, „mocna obrona" w R1M10, bo
-  `Settlement.muster` (`settlement.py:183-193`) i `WorldMap.reinforce_party`
-  (`world.py:182-214`) zostawiają `garrison=()`. Zakres **K117** —
-  zaplanowany, **jeszcze niezaczęty**.
-- **Druga kadencja 2026-08-09 (przegląd bez nowych commitów).** K117 stoi
-  nietknięty i pozostaje priorytetem; diagnoza potwierdzona w kodzie. Dwa nowe
+- **K117.1b — POMIAR 2026-08-09, żywy most `seed=73`:** po `develop`×2,
+  `recruit`×4 i `muster` osada zachowuje `garrison=1` bezpośrednio po zbiórce
+  i po `next_turn` (snapshot po wznowieniu jest identyczny). Sama sekwencja
+  `next_turn` kończy się przegraną gracza w **R1M7** (`winner: "ai"`), a
+  aktywna sekwencja z `reinforce` (`recruit`×5 → `muster` → `march` →
+  `next_turn` → `reinforce` → `next_turn` → `march` → `next_turn` →
+  `assault` → `next_turn` → `assault` → `next_turn` → `assault`) daje
+  zwycięstwo gracza w **R1M5** (`winner: "player"`).
+  Długa ścieżka obronna `develop`×2 → `recruit`×4 → `next_turn`×20 pozostaje
+  `ongoing` po 20 turach, w **R2M8**; oba snapshoty osad zachowują `player lands`
+  **`garrison=3`** i `player outpost` **`garrison=3`**.
+- **Pomiar kadencji 2026-08-09 (bazowy, przed K117, żywy most `seed=73`,
+  wyłącznie rozkazy z klienta).** Regresje rozstrzygnięcia stały — rush
+  (`recruit`×5 → `muster` → `march` → `nt` → `march` → `nt` → `assault`)
+  wygrywał w **R1M4**, bierny przegrywał w **R1M7**. Pomiar długiej partii
+  (wniosek 36) odsłonił defekt wcześniej uznany za strojenie: **każda
+  strategia poza rushem przegrywała** — „gospodarcza" w R1M7, „mocna obrona"
+  w R1M10, bo `Settlement.muster` (`settlement.py:183-193`) i
+  `WorldMap.reinforce_party` (`world.py:182-214`) zostawiały `garrison=()`.
+- **Druga kadencja 2026-08-09 (przegląd po pomiarze K117.1b).** K117 pozostaje
+  priorytetem do domknięcia części klientowej i długiego pomiaru. Dwa nowe
   ustalenia: (a) **`pytest` nie był zielony** — poprzedni przegląd, kompaktując
   ten plik, wykasował z niego zmierzony marker `5→7` i wywalił
   `test_seed73_free_population_regrows_on_live_bridge_and_k115_is_closed`

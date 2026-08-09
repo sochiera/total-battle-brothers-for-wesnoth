@@ -16,6 +16,7 @@ RECRUIT_EQUIPMENT: int = 4
 HERO_GOLD_COST: int = 2
 EQUIP_GOLD_COST: int = 1
 EQUIP_INVESTMENT_PER_TURN: int = 1
+MIN_SETTLEMENT_DEFENDERS: int = 1
 
 
 @dataclass(frozen=True)
@@ -187,8 +188,8 @@ class Settlement:
         if defenders_to_leave < 0 or defenders_to_leave > len(self.garrison):
             raise ValueError("cannot leave an invalid number of defenders")
 
-        if self.garrison and defenders_to_leave == 0:
-            defenders_to_leave = 1
+        minimum_defenders = MIN_SETTLEMENT_DEFENDERS if self.garrison else 0
+        defenders_to_leave = max(defenders_to_leave, minimum_defenders)
 
         departing_count = len(self.garrison) - defenders_to_leave
         departing_garrison = self.garrison[:departing_count]
