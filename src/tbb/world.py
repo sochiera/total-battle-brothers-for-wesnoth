@@ -184,8 +184,9 @@ class WorldMap:
 
         This returns the unchanged world when the region has no party or
         settlement, the party is ownerless or belongs to another owner, the
-        garrison is empty, the party has already acted this month, or the
-        garrison would exceed ``Party.MAX_SUBORDINATES``.
+        garrison has fewer than two defenders, the party has already acted this
+        month, or the party would exceed ``Party.MAX_SUBORDINATES`` after
+        leaving one defender behind.
         """
         if region not in self._neighbors:
             raise ValueError("region is outside the world map")
@@ -198,14 +199,17 @@ class WorldMap:
             return self
         if party.owner_id != settlement.owner_id:
             return self
-        if not settlement.garrison:
+        if len(settlement.garrison) < 2:
             return self
         if not self._party_can_act(region):
             return self
-        if len(party.units) + len(settlement.garrison) > Party.MAX_SUBORDINATES:
+        reinforcements = len(settlement.garrison) - 1
+        if len(party.units) + reinforcements > Party.MAX_SUBORDINATES:
             return self
 
-        garrison_party, settlement = settlement.muster(party.hero)
+        garrison_party, settlement = settlement.muster(
+            party.hero, defenders_to_leave=1
+        )
         parties = dict(self.parties)
         parties[region] = replace(
             party,

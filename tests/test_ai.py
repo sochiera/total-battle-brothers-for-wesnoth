@@ -1,5 +1,6 @@
 """Tests for deterministic strategic AI queries."""
 
+from collections import Counter
 from dataclasses import FrozenInstanceError
 
 import pytest
@@ -1772,10 +1773,14 @@ def test_duchy_military_action_reinforces_before_march_when_assault_lacks_advant
 
     reinforced = result.party_at(home)
     assert reinforced is not None
-    assert reinforced.units == garrison
+    assert len(reinforced.units) == len(garrison) - 1
     assert reinforced.acted_this_month is True
     assert result.party_at(road) is None
-    assert result.settlement_at(home).garrison == ()
+    remaining = result.settlement_at(home).garrison
+    assert len(remaining) == 1
+    assert Counter(reinforced.units) + Counter(remaining) == Counter(garrison)
+    assert result.settlement_at(home).population == home_settlement.population - 1
+    assert result.settlement_at(home).occupied == home_settlement.occupied - 1
     assert result.settlement_at(target).owner_id == "enemy"
 
 
@@ -2978,7 +2983,7 @@ def test_engage_duchy_party_recorded_is_noop_when_no_adjacent_enemy_party():
     assert world.party_at(start) is party
 
 
-def test_reinforce_duchy_party_absorbs_garrison_where_party_stands():
+def test_reinforce_duchy_party_leaves_one_garrison_defender_where_party_stands():
     home = Region("Home")
     hero = Unit(training=4)
     garrison = (Unit(equipment=1), Unit(experience=2))
@@ -2992,10 +2997,20 @@ def test_reinforce_duchy_party_absorbs_garrison_where_party_stands():
 
     reinforced = ai.reinforce_duchy_party(world, Duchy("ai", hero))
 
-    assert reinforced.party_at(home) == Party(
-        hero, (*party.units, *garrison), owner_id="ai", acted_this_month=True
+    reinforced_party = reinforced.party_at(home)
+    reinforced_settlement = reinforced.settlement_at(home)
+    assert reinforced_party.hero is hero
+    assert reinforced_party.owner_id == "ai"
+    assert len(reinforced_party.units) == len(party.units) + len(garrison) - 1
+    assert reinforced_party.acted_this_month is True
+    assert len(reinforced_settlement.garrison) == 1
+    assert (
+        Counter(reinforced_party.units)
+        + Counter(reinforced_settlement.garrison)
+        == Counter((*party.units, *garrison))
     )
-    assert reinforced.settlement_at(home).garrison == ()
+    assert reinforced_settlement.population == settlement.population - 1
+    assert reinforced_settlement.occupied == settlement.occupied - 1
     assert world.settlement_at(home) is settlement
 
 

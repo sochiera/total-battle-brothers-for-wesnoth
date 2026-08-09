@@ -2996,26 +2996,41 @@ def reinforce_world(settlement: Settlement | None, party: Party | None):
 
 
 @pytest.mark.parametrize("owner_id", ["north", "south"])
-def test_reinforce_party_absorbs_own_settlement_garrison(owner_id):
-    settlement = reinforce_settlement(owner_id=owner_id)
+@pytest.mark.parametrize(
+    "garrison",
+    [
+        REINFORCE_GARRISON,
+        (*REINFORCE_GARRISON, Unit(training=3)),
+    ],
+    ids=["two defenders", "three defenders"],
+)
+def test_reinforce_party_leaves_one_own_settlement_defender(owner_id, garrison):
+    """K117.1a crit-1/3: reinforcement cannot empty its home settlement.
+
+    The previous expectation accepted the whole garrison being absorbed, so
+    it could not detect the regression where the last defender disappears.
+    The survivor is intentionally not pinned by identity: the contract only
+    requires one defender to remain, while every other original defender
+    moves to the party.
+    """
+    settlement = reinforce_settlement(garrison=garrison, owner_id=owner_id)
     party = standing_party(owner_id=owner_id)
     world = reinforce_world(settlement, party)
 
     reinforced = world.reinforce_party(VALE)
 
-    assert reinforced.party_at(VALE) == Party(
-        REINFORCE_HERO,
-        (*party.units, *REINFORCE_GARRISON),
-        owner_id=owner_id,
-        acted_this_month=True,
-    )
-    assert reinforced.settlement_at(VALE) == Settlement(
-        "Oakrest",
-        population=4,
-        occupied=1,
-        garrison=(),
-        owner_id=owner_id,
-    )
+    reinforced_party = reinforced.party_at(VALE)
+    reinforced_settlement = reinforced.settlement_at(VALE)
+    absorbed = Counter(reinforced_party.units) - Counter(party.units)
+    remaining = Counter(reinforced_settlement.garrison)
+
+    assert sum(absorbed.values()) == len(garrison) - 1
+    assert sum(remaining.values()) == 1
+    assert absorbed + remaining == Counter(garrison)
+    assert len(reinforced_party.units) - len(party.units) == len(absorbed)
+    assert reinforced_settlement.population == settlement.population - len(absorbed)
+    assert reinforced_settlement.occupied == settlement.occupied - len(absorbed)
+    assert reinforced_party.acted_this_month is True
     assert world.settlement_at(VALE) is settlement
     assert world.party_at(VALE) is party
 
@@ -3027,10 +3042,11 @@ def test_reinforce_party_absorbs_own_settlement_garrison(owner_id):
         (None, standing_party()),
         (reinforce_settlement(owner_id="south"), standing_party()),
         (reinforce_settlement(garrison=()), standing_party()),
+        (reinforce_settlement(garrison=(REINFORCE_GARRISON[0],)), standing_party()),
         (reinforce_settlement(), standing_party(acted_this_month=True)),
         (
             reinforce_settlement(),
-            standing_party(units=tuple(Unit() for _ in range(11))),
+            standing_party(units=tuple(Unit() for _ in range(12))),
         ),
         (reinforce_settlement(owner_id=None), standing_party(owner_id=None)),
     ],
@@ -3039,6 +3055,7 @@ def test_reinforce_party_absorbs_own_settlement_garrison(owner_id):
         "no settlement",
         "foreign owner",
         "empty garrison",
+        "one defender",
         "already acted",
         "garrison does not fit",
         "both sides ownerless",
@@ -3050,17 +3067,57 @@ def test_reinforce_party_leaves_world_unchanged(settlement, party):
     assert world.reinforce_party(VALE) is world
 
 
-def test_reinforce_party_absorbs_garrison_filling_the_party_to_twelve():
-    party = standing_party(units=tuple(Unit() for _ in range(10)))
+def test_reinforce_party_with_one_defender_preserves_monthly_action():
+    """K117.1a crit-2: an ineffective reinforcement does not spend the action.
+
+    A no-op with one remaining defender must still allow the party's next
+    military transition in the same month.  Existing no-op coverage only
+    checked the empty-garrison case and did not guard this boundary.
+    """
+    destination = Region("March")
+    settlement = reinforce_settlement(garrison=(REINFORCE_GARRISON[0],))
+    party = standing_party()
+    world = WorldMap(
+        [VALE, destination],
+        [(VALE, destination)],
+        settlements={VALE: settlement},
+        parties={VALE: party},
+    )
+
+    unchanged = world.reinforce_party(VALE)
+
+    assert unchanged is world
+    assert unchanged.settlement_at(VALE) is settlement
+    assert unchanged.party_at(VALE) is party
+
+    marched = unchanged.move_party(VALE, destination, move_points=1)
+
+    assert marched is not unchanged
+    assert marched.party_at(VALE) is None
+    assert marched.party_at(destination) == replace(
+        party, acted_this_month=True
+    )
+
+
+def test_reinforce_party_leaves_one_defender_at_party_capacity():
+    """K117.1a crit-3/5: legal reinforcement may end exactly at capacity."""
+    party = standing_party(units=tuple(Unit() for _ in range(11)))
     world = reinforce_world(reinforce_settlement(), party)
 
     reinforced = world.reinforce_party(VALE)
+    assert reinforced is not world
 
-    assert reinforced.party_at(VALE).units == (
-        *party.units,
-        *REINFORCE_GARRISON,
+    reinforced_party = reinforced.party_at(VALE)
+    reinforced_settlement = reinforced.settlement_at(VALE)
+    assert len(reinforced_party.units) == Party.MAX_SUBORDINATES
+    assert len(reinforced_settlement.garrison) == 1
+    assert (
+        Counter(reinforced_party.units)
+        + Counter(reinforced_settlement.garrison)
+        == Counter((*party.units, *REINFORCE_GARRISON))
     )
-    assert reinforced.settlement_at(VALE).garrison == ()
+    assert reinforced_settlement.population == world.settlement_at(VALE).population - 1
+    assert reinforced_settlement.occupied == world.settlement_at(VALE).occupied - 1
 
 
 def test_reinforce_party_rejects_region_outside_map():

@@ -1063,6 +1063,14 @@ def test_seed73_live_growth_measurement_is_recorded_and_k112_is_closed():
     pass while the public JSON Lines path fails to carry the exact
     develop/recruit/muster setup, or while the measured AI reinforcement is
     recorded only in code comments and not in the project status.
+
+    K117 changes the current seed-73 outcome: the historical K112 measurement
+    remains recorded below, while the live path now takes eight turns and the
+    one-defender outpost garrison remains in place.  This live trace contains
+    party growth from the outpost, but not a reinforcement transition: the
+    garrison is one defender before and after.  AI reinforcement itself is
+    covered by
+    ``tests/test_ai.py::test_duchy_military_action_reinforces_before_march_when_assault_lacks_advantage``.
     """
     session = new_session(seed=73, player_duchy_id="player")
     setup_commands = (
@@ -1095,8 +1103,8 @@ def test_seed73_live_growth_measurement_is_recorded_and_k112_is_closed():
         if response["snapshot"]["result"]["is_over"]:
             break
 
-    assert len(turn_snapshots) == 6, (
-        "AC1: seed=73 development path should resolve in the measured six turns"
+    assert len(turn_snapshots) == 8, (
+        "AC1: seed=73 development path should resolve in the measured eight turns"
     )
     assert turn_snapshots[-1]["result"] == {
         "is_over": True,
@@ -1109,7 +1117,7 @@ def test_seed73_live_growth_measurement_is_recorded_and_k112_is_closed():
             region for region in snapshot["map"]["regions"] if region["name"] == name
         )
 
-    reinforcement = next(
+    live_growth = next(
         (
             (before, after)
             for before, after in zip(turn_snapshots, turn_snapshots[1:])
@@ -1118,22 +1126,21 @@ def test_seed73_live_growth_measurement_is_recorded_and_k112_is_closed():
                 and region_at(after, "ai outpost")["party"] is not None
                 and region_at(after, "ai outpost")["party"]["size"]
                 > region_at(before, "ai outpost")["party"]["size"]
-                and region_at(after, "ai outpost")["settlement"]["garrison"]
-                < region_at(before, "ai outpost")["settlement"]["garrison"]
             )
         ),
         None,
     )
-    assert reinforcement is not None, (
-        "AC2: the AI army must grow while its own outpost garrison decreases"
+    assert live_growth is not None, (
+        "K112: the live AI outpost path must still show party growth; "
+        "this is not the reinforcement proof"
     )
-    before_reinforcement, after_reinforcement = reinforcement
-    before_ai_outpost = region_at(before_reinforcement, "ai outpost")
-    reinforced_ai_outpost = region_at(after_reinforcement, "ai outpost")
+    before_growth, after_growth = live_growth
+    before_ai_outpost = region_at(before_growth, "ai outpost")
+    after_ai_outpost = region_at(after_growth, "ai outpost")
     assert before_ai_outpost["party"]["size"] == 2
     assert before_ai_outpost["settlement"]["garrison"] == 1
-    assert reinforced_ai_outpost["party"]["size"] == 4
-    assert reinforced_ai_outpost["settlement"]["garrison"] == 0
+    assert after_ai_outpost["party"]["size"] == 3
+    assert after_ai_outpost["settlement"]["garrison"] == 1
 
     root = Path(__file__).resolve().parents[2]
     backlog = (root / "BACKLOG.md").read_text()
@@ -1165,8 +1172,8 @@ def test_seed73_live_growth_measurement_is_recorded_and_k112_is_closed():
         if marker not in project_k112
     )
     assert not missing, (
-        "AC5: measured turns, winner, AI reinforcement, and K112 closure are "
-        f"missing from project records: {missing}"
+        "AC5: historical K112 measurement and closure are missing from project "
+        f"records: {missing}"
     )
 
     # AC3: keep the seed-73 player regressions on the same public bridge gate.
@@ -2088,15 +2095,8 @@ def test_handle_command_line_snapshot_returns_same_session_with_snapshot_and_res
     assert s.snapshot() == before_snapshot
 
 
-def test_reinforce_over_the_bridge_reports_changed_and_survives_persistence():
-    """G112.1b kryt-1/3: ``{"type":"order","order":"reinforce"}`` przechodzi
-    przez ``handle_command_line`` bez wyjątku.  Na seed 73, gdy oddział stoi we
-    własnym posterunku, most odpowiada ``ok:true`` i ``{"kind":"order",
-    "order":"reinforce","changed":true}``, a stan po rozkazie przechodzi
-    round-trip persystencji (ten sam oddział i pusty garnizon).
-    """
-    from tbbbridge import persist
-
+def _seed73_party_standing_in_own_outpost_for_protocol():
+    """Build the public seed-73 fixture with an actionable player party."""
     session = new_session(seed=73, player_duchy_id="player")
     for _ in range(10):
         session, _ = handle_command_line(
@@ -2107,12 +2107,24 @@ def test_reinforce_over_the_bridge_reports_changed_and_survives_persistence():
         '{"type":"order","order":"move","target":"player outpost"}',
         '{"type":"next_turn"}',
     ):
-        session, resp = handle_command_line(session, line)
-        assert resp["ok"] is True
-
+        session, response = handle_command_line(session, line)
+        assert response["ok"] is True
     outpost = next(
         region for region in session.world.regions if region.name == "player outpost"
     )
+    return session, outpost
+
+
+def test_reinforce_over_the_bridge_reports_changed_and_survives_persistence():
+    """G112.1b kryt-1/3: ``{"type":"order","order":"reinforce"}`` przechodzi
+    przez ``handle_command_line`` bez wyjątku.  Na seed 73, gdy oddział stoi we
+    własnym posterunku, most odpowiada ``ok:true`` i ``{"kind":"order",
+    "order":"reinforce","changed":true}``, a stan po rozkazie przechodzi
+    round-trip persystencji (ten sam oddział i jeden obrońca w garnizonie).
+    """
+    from tbbbridge import persist
+
+    session, outpost = _seed73_party_standing_in_own_outpost_for_protocol()
     before_units = session.world.party_at(outpost).units
     before_garrison = session.world.settlement_at(outpost).garrison
 
@@ -2127,13 +2139,58 @@ def test_reinforce_over_the_bridge_reports_changed_and_survives_persistence():
         "changed": True,
     }
     json.dumps(resp)
-    assert Counter(session.world.party_at(outpost).units) == Counter(
-        before_units + before_garrison
+    after_party = session.world.party_at(outpost)
+    after_settlement = session.world.settlement_at(outpost)
+    assert len(after_party.units) == len(before_units) + len(before_garrison) - 1
+    assert len(after_settlement.garrison) == 1
+    assert (
+        Counter(after_party.units) + Counter(after_settlement.garrison)
+        == Counter(before_units + before_garrison)
     )
-    assert session.world.settlement_at(outpost).garrison == ()
 
     restored = persist.load_session(persist.dump_session(session))
     assert restored.world == session.world
+
+
+def test_one_defender_reinforce_over_the_bridge_is_noop_without_spending_action():
+    """K117.1a crit-2: one defender yields ``changed:false`` over the bridge.
+
+    After a successful reinforcement leaves one defender, a new month makes
+    the party actionable again.  The ineffective order must preserve the
+    world and still allow a move in that same month.
+    """
+    session, outpost = _seed73_party_standing_in_own_outpost_for_protocol()
+    session, response = handle_command_line(
+        session, '{"type":"order","order":"reinforce"}'
+    )
+    assert response["ok"] is True
+    assert response["result"]["changed"] is True
+
+    session, response = handle_command_line(session, '{"type":"next_turn"}')
+    assert response["ok"] is True
+    before_world = session.world
+    before_snapshot = session.snapshot()
+    assert session.world.party_at(outpost).acted_this_month is False
+    assert len(session.world.settlement_at(outpost).garrison) == 1
+
+    session, response = handle_command_line(
+        session, '{"type":"order","order":"reinforce"}'
+    )
+
+    assert response["ok"] is True
+    assert response["result"] == {
+        "kind": "order",
+        "order": "reinforce",
+        "changed": False,
+    }
+    assert session.world is before_world
+    assert session.snapshot() == before_snapshot
+
+    session, response = handle_command_line(
+        session, '{"type":"order","order":"move","target":"player lands"}'
+    )
+    assert response["ok"] is True
+    assert response["result"]["changed"] is True
 
 
 def test_ineffective_reinforce_over_the_bridge_is_ok_with_changed_false():

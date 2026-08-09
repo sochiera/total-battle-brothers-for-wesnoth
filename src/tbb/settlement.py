@@ -180,15 +180,25 @@ class Settlement:
         )
         return settlement, Unit()
 
-    def muster(self, hero: Unit) -> tuple[Party, "Settlement"]:
-        """Move the whole garrison into a new party led by ``hero``."""
-        party = Party(hero=hero, units=self.garrison, owner_id=self.owner_id)
-        departing = len(self.garrison)
+    def muster(
+        self, hero: Unit, defenders_to_leave: int = 0
+    ) -> tuple[Party, "Settlement"]:
+        """Move all but ``defenders_to_leave`` into a party led by ``hero``."""
+        if defenders_to_leave < 0 or defenders_to_leave > len(self.garrison):
+            raise ValueError("cannot leave an invalid number of defenders")
+
+        departing_count = len(self.garrison) - defenders_to_leave
+        departing_garrison = self.garrison[:departing_count]
+        remaining_garrison = self.garrison[departing_count:]
+        party = Party(
+            hero=hero, units=departing_garrison, owner_id=self.owner_id
+        )
+        departing = len(departing_garrison)
         settlement = replace(
             self,
             population=self.population - departing,
             occupied=self.occupied - departing,
-            garrison=(),
+            garrison=remaining_garrison,
         )
         return party, settlement
 

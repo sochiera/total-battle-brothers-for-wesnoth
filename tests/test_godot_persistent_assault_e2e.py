@@ -77,7 +77,7 @@ def test_assault_button_shows_battle_view_across_godot_processes(tmp_path):
     assert prepared["controls"]["party_position"] == "Położenie oddziału: Pogranicze"
     assert battle["controls_before_order"]["party_position"] == "Położenie oddziału: Pogranicze"
     assert battle["controls"]["party_position"] == "Położenie oddziału: Posterunek wroga"
-    assert battle["controls"]["order_status"] == "Szturm: zwycięstwo (straty: 0, wróg: 2)."
+    assert battle["controls"]["order_status"] == "Szturm: zwycięstwo (straty: 0, wróg: 1)."
     assert resumed["controls"]["order_status"] == (
         "Oddział już działał w tym miesiącu — zakończ turę."
     )

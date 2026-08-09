@@ -1978,8 +1978,8 @@ def test_apply_command_order_reinforce_absorbs_own_settlement_garrison():
     """G112.1b crit-1/3/4: ``{"type":"order","order":"reinforce"}`` routes to
     the task-627 core rule for the player duchy.  On seed 73, after
     ``recruit``×10 → ``muster`` → ``move("player outpost")`` → ``next_turn``
-    the party of 5 standing in ``Player Outpost`` absorbs that settlement's
-    garrison of 5 and grows to 10, leaving the settlement with an empty
+    the party of 5 standing in ``Player Outpost`` absorbs four of that
+    settlement's five defenders and grows to 9, leaving one defender in the
     garrison.  A new Session is returned with calendar/rng/seed/
     player_duchy_id preserved; the input session is not mutated.
     """
@@ -2000,10 +2000,14 @@ def test_apply_command_order_reinforce_absorbs_own_settlement_garrison():
     assert after.calendar == session.calendar
     assert after.rng is session.rng
 
-    assert Counter(after.world.party_at(outpost).units) == Counter(
-        before_units + before_garrison
+    after_party = after.world.party_at(outpost)
+    after_settlement = after.world.settlement_at(outpost)
+    assert len(after_party.units) == len(before_units) + len(before_garrison) - 1
+    assert len(after_settlement.garrison) == 1
+    assert (
+        Counter(after_party.units) + Counter(after_settlement.garrison)
+        == Counter(before_units + before_garrison)
     )
-    assert after.world.settlement_at(outpost).garrison == ()
     assert session.snapshot() == before_snapshot
 
 

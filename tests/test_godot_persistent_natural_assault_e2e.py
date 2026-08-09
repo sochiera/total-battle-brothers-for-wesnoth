@@ -10,8 +10,8 @@ outcome, not a failed-order message.
 After G89.2a-1 (swap past own stunned ally) the seed-73 natural fight is no
 longer a round-limit stalemate. After G90.1a keeps start with a veteran garrison.
 After G91.1a default recruits enter with positive training/equipment, so the
-path on seed 73 resolves as attacker zwycięstwo (defender_losses=2, no attacker
-losses; party holds the captured frontier keep).
+path on seed 73 resolves as attacker zwycięstwo (defender_losses=1, no attacker
+losses; one defender remains in the captured keep's garrison).
 
 G92.2a multi-keep world: the assault hits ``ai outpost`` (not the sole AI keep),
 so the campaign stays ongoing after one capture. G91.1b still requires the
@@ -38,7 +38,7 @@ AI_OUTPOST = "ai outpost"
 # The two public turns between engage and assault let the AI establish live
 # frontier party defenders; the exact seed-73 battle remains pinned rather than
 # accepting an arbitrary successful outcome.
-EXPECTED_ORDER_STATUS = "Szturm: zwycięstwo (straty: 0, wróg: 2)."
+EXPECTED_ORDER_STATUS = "Szturm: zwycięstwo (straty: 0, wróg: 1)."
 EXPECTED_PARTY_POSITION = "Położenie oddziału: Posterunek wroga"
 # One captured keep of two leaves both sides standing (G92.2a AC3).
 EXPECTED_PARTY_RESULT = PLAYER_RESULT_PL["ongoing"]
@@ -47,7 +47,7 @@ EXPECTED_BATTLE_RESULT = {
     "order": "assault",
     "outcome": "zwycięstwo",
     "attacker_losses": 0,
-    "defender_losses": 2,
+    "defender_losses": 1,
 }
 
 
