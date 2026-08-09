@@ -196,6 +196,52 @@ class HexBattle:
                 return self._swap(position, swap_target)
         return self
 
+    def resolve_round(
+        self,
+        move_points: int,
+        rng: Rng,
+        attacker_morale: int = 0,
+        defender_morale: int = 0,
+    ) -> "HexBattle":
+        """Play one deployment-ordered round."""
+        battle = self
+        turn_order = tuple(
+            (position, battle.unit_at(position))
+            for position in battle._deployment_order
+        )
+        acted = set()
+        for position, unit_at_round_start in turn_order:
+            if id(unit_at_round_start) in acted:
+                continue
+            current_position = next(
+                (
+                    pos
+                    for pos, unit in battle.units.items()
+                    if unit is unit_at_round_start
+                ),
+                None,
+            )
+            if current_position is None:
+                continue
+            unit = battle.unit_at(current_position)
+            if (
+                unit is None
+                or battle.current_hp_at(current_position) == 0
+                or unit.stunned
+            ):
+                continue
+            acted.add(id(unit))
+            side = battle.sides[current_position]
+            morale = (
+                attacker_morale
+                if side is BattleSide.ATTACKER
+                else defender_morale
+            )
+            battle = battle.take_unit_turn(current_position, move_points, morale, rng)
+            if battle.result() is not None:
+                break
+        return battle
+
     def auto_resolve(
         self,
         move_points: int,
@@ -211,41 +257,9 @@ class HexBattle:
         battle = self
         rounds = 0
         while battle.result() is None and rounds < max_rounds:
-            turn_order = tuple(
-                (position, battle.unit_at(position))
-                for position in battle._deployment_order
+            battle = battle.resolve_round(
+                move_points, rng, attacker_morale, defender_morale
             )
-            acted = set()
-            for position, unit_at_round_start in turn_order:
-                if battle.result() is not None:
-                    break
-                if id(unit_at_round_start) in acted:
-                    continue
-                current_position = next(
-                    (
-                        pos
-                        for pos, unit in battle.units.items()
-                        if unit is unit_at_round_start
-                    ),
-                    None,
-                )
-                if current_position is None:
-                    continue
-                unit = battle.unit_at(current_position)
-                if (
-                    unit is None
-                    or battle.current_hp_at(current_position) == 0
-                    or unit.stunned
-                ):
-                    continue
-                acted.add(id(unit))
-                side = battle.sides[current_position]
-                morale = (
-                    attacker_morale
-                    if side is BattleSide.ATTACKER
-                    else defender_morale
-                )
-                battle = battle.take_unit_turn(current_position, move_points, morale, rng)
             rounds += 1
         return battle
 

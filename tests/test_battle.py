@@ -1447,13 +1447,14 @@ def test_auto_resolve_finishes_seeded_duel_and_produces_report():
     assert resolved.report().result is BattleResult.ATTACKER_WIN
 
 
-def test_auto_resolve_is_deterministic_for_the_same_seed():
+@pytest.mark.parametrize("seed", [0, 1, 12, 42, 99])
+def test_auto_resolve_is_deterministic_for_the_same_seed(seed):
     battle = HexBattle(Battlefield()).deploy(
         Unit(equipment=3), Hex(0, 0), BattleSide.ATTACKER
     ).deploy(Unit(equipment=2), Hex(3, 0), BattleSide.DEFENDER)
 
-    first = battle.auto_resolve(move_points=1, rng=Rng(12))
-    second = battle.auto_resolve(move_points=1, rng=Rng(12))
+    first = battle.auto_resolve(move_points=1, rng=Rng(seed))
+    second = battle.auto_resolve(move_points=1, rng=Rng(seed))
 
     assert first == second
     assert first.result() is not None
@@ -1555,7 +1556,8 @@ def test_auto_resolve_side_morale_advantage_decides_symmetric_duel():
     assert high_defender.result() is BattleResult.DEFENDER_WIN
 
 
-def test_auto_resolve_equal_side_morale_matches_uniform_morale_semantics():
+@pytest.mark.parametrize("seed", [0, 1, 12, 42, 99])
+def test_auto_resolve_equal_side_morale_matches_uniform_morale_semantics(seed):
     """Equal attacker/defender morale matches the former uniform morale=X path.
 
     Same seed and multi-unit layout → same result and full battle state as
@@ -1564,7 +1566,6 @@ def test_auto_resolve_equal_side_morale_matches_uniform_morale_semantics():
     body that _swap moved onto a later deployment hex still acts at most once.
     """
     x = 30
-    seed = 42
     move_points = 1
     battle = (
         HexBattle(Battlefield())
@@ -1622,3 +1623,85 @@ def test_auto_resolve_equal_side_morale_matches_uniform_morale_semantics():
 
     assert via_sides == reference
     assert via_sides.result() is not None
+
+
+def test_resolve_round_advances_each_unit_once_and_returns_new_state():
+    attacker_position, defender_position = Hex(0, 0), Hex(4, 0)
+    attacker = Unit()
+    defender = Unit()
+    battle = (
+        HexBattle(Battlefield())
+        .deploy(attacker, attacker_position, BattleSide.ATTACKER)
+        .deploy(defender, defender_position, BattleSide.DEFENDER)
+    )
+    resolve_round = getattr(battle, "resolve_round", None)
+    assert callable(resolve_round), "HexBattle must expose public resolve_round"
+
+    rounded = resolve_round(move_points=1, rng=Rng(0))
+
+    assert rounded is not battle
+    assert rounded.unit_at(Hex(1, 0)) is attacker
+    assert rounded.unit_at(Hex(3, 0)) is defender
+    assert rounded.result() is None
+    assert battle.unit_at(attacker_position) is attacker
+    assert battle.unit_at(defender_position) is defender
+
+
+def test_resolve_round_stops_after_resolution_before_remaining_deployment_positions(
+    monkeypatch,
+):
+    defender = Unit()
+    attacker = Unit(equipment=defender.hp)
+    support = Unit()
+    battle = (
+        HexBattle(Battlefield())
+        .deploy(attacker, Hex(0, 0), BattleSide.ATTACKER)
+        .deploy(defender, Hex(1, 0), BattleSide.DEFENDER)
+        .deploy(support, Hex(3, 0), BattleSide.ATTACKER)
+    )
+    original_take_unit_turn = HexBattle.take_unit_turn
+    visited = []
+
+    def record_turn(self, position, move_points, morale, rng):
+        visited.append(self.unit_at(position))
+        return original_take_unit_turn(self, position, move_points, morale, rng)
+
+    monkeypatch.setattr(HexBattle, "take_unit_turn", record_turn)
+
+    resolved = battle.resolve_round(move_points=1, rng=ControlledRng(True), attacker_morale=100)
+
+    assert resolved.result() is BattleResult.ATTACKER_WIN
+    assert visited == [attacker]
+
+
+def test_resolve_round_composes_to_auto_resolve_and_honors_max_rounds():
+    battle = (
+        HexBattle(Battlefield())
+        .deploy(Unit(equipment=0), Hex(0, 0), BattleSide.ATTACKER)
+        .deploy(Unit(equipment=0), Hex(5, 0), BattleSide.DEFENDER)
+    )
+    resolve_round = getattr(battle, "resolve_round", None)
+    assert callable(resolve_round), "HexBattle must expose public resolve_round"
+    max_rounds = 2
+
+    stepped = battle
+    stepped_rng = Rng(42)
+    rounds = 0
+    while stepped.result() is None and rounds < max_rounds:
+        stepped = stepped.resolve_round(
+            move_points=1, rng=stepped_rng, attacker_morale=9,
+            defender_morale=-4,
+        )
+        rounds += 1
+
+    automatic = battle.auto_resolve(
+        move_points=1,
+        rng=Rng(42),
+        attacker_morale=9,
+        defender_morale=-4,
+        max_rounds=max_rounds,
+    )
+
+    assert rounds == max_rounds
+    assert stepped == automatic
+    assert automatic.result() is None
