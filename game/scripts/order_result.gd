@@ -66,8 +66,11 @@ static func _monthly_action_was_exhausted(order_result: Dictionary) -> bool:
 	return exhausted is bool and exhausted
 
 
+const POPULATION_ORDERS := ["develop", "recruit", "muster"]
+
+
 static func _population_reason_status_text(order_result: Dictionary, order: String) -> String:
-	if order != "develop" and order != "recruit" and order != "muster":
+	if order not in POPULATION_ORDERS:
 		return ""
 	if not order_result.has("reason") or not order_result["reason"] is String:
 		return ""

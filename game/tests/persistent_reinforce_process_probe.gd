@@ -69,6 +69,20 @@ func _run() -> void:
 				"state_exists": FileAccess.file_exists(args[1]),
 				"session_command": client.session_command(),
 			}))
+		"no_change":
+			if not await _select_region(map_view):
+				return
+			if not await _press(scene_root, "MusterButton"):
+				return
+			if not await _press(scene_root, "ReinforceButton"):
+				return
+			var no_change := _observation(scene_root, map_view)
+			print(PREFIX, JSON.stringify({
+				"phase": "no_change",
+				"no_change": no_change,
+				"state_exists": FileAccess.file_exists(args[1]),
+				"requests": _request_lines(args[2]),
+			}))
 		_:
 			_fail("unknown phase: %s" % args[4])
 			return

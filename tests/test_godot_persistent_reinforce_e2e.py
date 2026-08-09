@@ -46,13 +46,15 @@ def _row(panel_text: str, prefix: str) -> str:
 
 
 def test_reinforce_ui_round_trips_through_two_bridge_processes(tmp_path):
-    """A real client click must render the changed party and resume it cold.
+    """G117.1c AC2-3: reinforce stays visible and honest in the live client.
 
     Realistic defect existing synthetic gates miss: Main can pass a hand-written
     SnapshotModel through a fake client while the live ReinforceButton sends no
     JSONL order, applies no post-order snapshot, or the next process paints the
-    pre-reinforcement state. The request-file assertion also pins the public
-    BridgeClient batch (order + save), rather than merely testing a mock call.
+    pre-reinforcement state. A second live path also catches a UI that turns a
+    valid no-op with one remaining defender into the generic failure message.
+    The request-file assertion pins the public BridgeClient batch (order + save),
+    rather than merely testing a mock call.
     """
     state_path = tmp_path / "persistent-reinforce-session.json"
     request_path = tmp_path / "bridge-request.jsonl"
@@ -88,3 +90,18 @@ def test_reinforce_ui_round_trips_through_two_bridge_processes(tmp_path):
         {"type": "order", "order": "reinforce"},
         {"type": "save", "path": str(state_path)},
     ], first
+
+    no_change_state = tmp_path / "persistent-reinforce-no-change.json"
+    no_change_request = tmp_path / "bridge-reinforce-no-change.jsonl"
+    no_change = _run_process(
+        command_prefix, no_change_state, no_change_request, "no_change"
+    )
+    no_change_observation = no_change["no_change"]
+    assert no_change_observation["selected_region_name"] == TARGET_REGION, no_change
+    assert re.search(
+        r"(?<!\d)1(?!\d)", _row(no_change_observation["selected_panel_text"], "Osada:")
+    ), no_change
+    assert "Armia: własny (gracz)" in no_change_observation["selected_panel_text"], no_change
+    assert no_change_observation["order_status"] == (
+        "Wzmocnienie nie zmieniło stanu oddziału."
+    ), no_change
