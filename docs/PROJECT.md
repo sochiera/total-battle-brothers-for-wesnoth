@@ -230,15 +230,14 @@ czysto informacyjny, jak liczby z K113 — nadal wymaga dowodu wizualnego
 1–17. ~~K82–K118~~ — **zrobione** (bootstrap, most, pakiet, assety, próg
    wizualny, pętla sandboxa, ekonomia tury, diagnostyka rozkazów). Regresje
    stoją (bierna R1M7, aktywna R1M4–R1M5).
-18. **US-001–US-005 — pierwszy krok ku taktycznej bitwie (migracja K119,
-    2026-08-10):** dziś bitwa jest w całości rozstrzygana automatycznie, choć
-    brief mówi o taktycznych bitwach na heksach i rozegraniu bitwy. To
-    **największa otwarta rozbieżność z briefem**. Najcieńszy krok zachowuje
-    dotychczasowe reguły: gracz zobaczy rozmieszczenie przed wynikiem, przejdzie
-    rundę albo dokończy walkę automatycznie, dostanie jasną blokadę innych
-    działań podczas bitwy i wznowi zapisany stan walki. Bez wyboru celu,
+18. **US-001–US-005 — dostarczona pauzowana bitwa (migracja K119,
+    2026-08-10):** po `assault` lub `engage` gracz widzi rozmieszczenie obu
+    stron przed wynikiem, może przejść następną rundę albo dokończyć walkę
+    automatycznie, dostaje jasną blokadę innych działań podczas bitwy i może
+    wznowić zapisany stan walki. To dostarczony, najcieńszy krok ku taktycznej
+    bitwie na heksach; zachowuje dotychczasowe reguły, bez wyboru celu,
     ręcznego ruchu, zmian zachowania AI, reguł walki, progu 2:1, kosztów
-    rozkazów i ekonomii. Kolejność tych efektów zapisuje `BACKLOG.md`.
+    rozkazów i ekonomii. Dalsza kolejka pozostaje w `BACKLOG.md`.
 19. **Prawdopodobnie potem — dalsza agencja w bitwie:** wybór celu jednostki i
     sterowanie ruchem, a także pełne pole bitwy z pustymi heksami i wymiarami.
     To dawny kierunek K120+; wymaga stanu bitwy w toku z US-001–US-005.

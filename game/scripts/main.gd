@@ -309,11 +309,8 @@ func _connect_declared_order_button(button: Button) -> void:
 func _on_declared_order_button_pressed(button: Button) -> void:
 	var order_name := _declared_order_name(button)
 	if not order_name.is_empty():
-		if order_name == "battle_advance":
-			battle_advance_from_bridge(_client)
-			return
-		if order_name == "battle_auto":
-			battle_auto_from_bridge(_client)
+		if order_name in BATTLE_ROUND_ORDER_NAMES:
+			_send_battle_step_from_bridge(_client, order_name)
 			return
 		var target: String = %MapView.selected_region_name if order_name in REGION_TARGETED_ORDER_NAMES else ""
 		_send_bound_order(order_name, target)
