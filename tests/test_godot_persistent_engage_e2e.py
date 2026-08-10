@@ -230,12 +230,19 @@ def test_engage_button_resolves_party_battle_and_persists_it_across_processes(tm
         "Położenie oddziału: Posterunek gracza"
     )
 
+    pending = battle["battle_pending_before_auto"]
+    assert pending["tile_count"] >= 2, pending
+    assert pending["paint_groups"] >= 2, pending
+    assert all(tile["visible"] for tile in pending["tiles"]), pending
+    assert pending["result_text"] == "", pending
+
     # Visible player effect: resolved result and tiles from both sides.
     after = battle["battle"]
     assert _polish_engage_result(battle["controls"]["order_status"])
     assert after["tile_count"] >= 2, after
     assert after["paint_groups"] >= 2, after
     assert _polish_battle_outcome(after["result_text"]), after
+    assert battle["battle_after_auto"]["result_text"] == after["result_text"]
 
     assert persisted_after_battle.world != before_battle.world
 

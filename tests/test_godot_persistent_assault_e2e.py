@@ -57,7 +57,7 @@ def test_assault_button_shows_battle_view_across_godot_processes(tmp_path):
 
     prepared = _run_process(command_prefix, state_path, request_path, "prepare")
     battle = _run_process(command_prefix, state_path, request_path, "battle")
-    resumed = _run_process(command_prefix, state_path, request_path, "second_engage_clear")
+    resumed = _run_process(command_prefix, state_path, request_path, "resolve_assault")
 
     assert prepared["state_exists"] is True
     assert battle["session_command"] == f"{command_prefix} serve --resume '{state_path}'"
@@ -76,8 +76,8 @@ def test_assault_button_shows_battle_view_across_godot_processes(tmp_path):
     assert prepared["controls_after_muster"]["party_position"] == "Położenie oddziału: Ziemie gracza"
     assert prepared["controls"]["party_position"] == "Położenie oddziału: Pogranicze"
     assert battle["controls_before_order"]["party_position"] == "Położenie oddziału: Pogranicze"
-    assert battle["controls"]["party_position"] == "Położenie oddziału: Posterunek wroga"
-    assert battle["controls"]["order_status"] == "Szturm: zwycięstwo (straty: 0, wróg: 2)."
+    assert battle["controls"]["party_position"] == "Położenie oddziału: Pogranicze"
+    assert "bitwa" in battle["controls"]["order_status"].casefold()
     assert resumed["controls"]["order_status"] == (
         "Oddział już działał w tym miesiącu — zakończ turę."
     )
@@ -100,33 +100,38 @@ def test_assault_button_shows_battle_view_across_godot_processes(tmp_path):
     assert battle["battle_before_order"]["tile_count"] == 0, battle["battle_before_order"]
     assert battle["battle_before_order"]["result_text"] == "", battle["battle_before_order"]
 
-    # After assault: both resolved sides' tiles + Polish result are readable
-    # on BattleView.  The third next_turn lets the AI keep a live garrison
-    # while the engage clears its field party before the settlement assault.
-    after = battle["battle"]
-    assert after["tile_count"] >= 2, after
-    assert after["paint_groups"] >= 2, (
+    # After assault: both sides' deployment tiles are visible before the
+    # result exists. The state is saved at this point for the next process.
+    pending = battle["battle"]
+    assert pending["tile_count"] >= 2, pending
+    assert pending["paint_groups"] >= 2, (
         "attacker and defender tiles must differ visually "
-        "(silhouette or paint groups), got one paint group: %r" % after
+        "(silhouette or paint groups), got one paint group: %r" % pending
     )
-    assert all(t.get("visible") for t in after["tiles"]), after
-    assert _polish_battle_result(after["result_text"]), after
-    assert "zwycięstwo" in after["result_text"].casefold(), after
+    assert all(t.get("visible") for t in pending["tiles"]), pending
+    assert pending["result_text"] == "", pending
 
-    # Next process resumes from state file: battle still visible before re-order
-    # (two-process persistence of last battle — the core K85.1c risk).
+    # Next process resumes the pending deployment, then battle_auto produces
+    # the result and applies the world effect in that second process.
     resume_before = resumed["battle_before_order"]
     assert resume_before["tile_count"] >= 2, resume_before
     assert resume_before["paint_groups"] >= 2, (
         "resume must keep distinct side visuals (silhouette/paint groups): %r"
         % resume_before
     )
-    assert resume_before["result_text"] == after["result_text"], (
-        f"resume must restore same Polish battle result: after={after} resume={resume_before}"
+    assert resume_before["result_text"] == "", (
+        f"resume must restore the pending board without result: {resume_before}"
     )
-    assert resume_before["tile_count"] == after["tile_count"], (
-        f"resume must restore same battle tiles: after={after} resume={resume_before}"
+    assert resume_before["tile_count"] == pending["tile_count"], (
+        f"resume must restore same pending battle tiles: after={pending} resume={resume_before}"
     )
+
+    after = resumed["battle_after_auto"]
+    assert after["tile_count"] >= 2, after
+    assert after["paint_groups"] >= 2, after
+    assert all(t.get("visible") for t in after["tiles"]), after
+    assert _polish_battle_result(after["result_text"]), after
+    assert "zwycięstwo" in after["result_text"].casefold(), after
 
     # Domain: second assault is a no-op and the bridge snapshot drops "battle".
     # View must not keep stale tiles when the model has no battle (K85.1c kryt-5).

@@ -43,6 +43,8 @@ func _run() -> void:
 	var sequence: Dictionary = {}
 	var order_results: Dictionary = {}
 	var fresh_party_acted_this_month: Variant = null
+	var battle_pending_before_auto: Dictionary = {}
+	var battle_after_auto: Dictionary = {}
 	var phase: String = args[4]
 
 	match phase:
@@ -82,15 +84,25 @@ func _run() -> void:
 				_fail("assault precondition failed: %s" % assault_precondition)
 				return
 		"battle":
-			if not _press_battle_order(scene_root, client, "AssaultButton"):
+			if not _press(scene_root, "AssaultButton"):
 				return
-		"second_engage_clear":
-			# The first assault leaves the player at AI Outpost.  There is no
-			# adjacent enemy party left, so engage is a legal unchanged order
-			# that clears the persisted battle view.
+			battle_pending_before_auto = _battle_observation(battle_view)
+		"resolve_assault":
+			battle_pending_before_auto = _battle_observation(battle_view)
+			if not scene_root.call("battle_auto_from_bridge", client):
+				_fail("battle_auto failed after AssaultButton")
+				return
+			battle_after_auto = _battle_observation(battle_view)
 			if not _press_battle_order(scene_root, client, "EngageButton"):
 				return
-		"engage", "second_engage":
+		"engage":
+			if not _press(scene_root, "EngageButton"):
+				return
+			battle_pending_before_auto = _battle_observation(battle_view)
+			if not _resolve_pending_battle(scene_root, client, "EngageButton"):
+				return
+			battle_after_auto = _battle_observation(battle_view)
+		"second_engage":
 			if not _press_battle_order(scene_root, client, "EngageButton"):
 				return
 		"second_engage_next_turn":
@@ -176,6 +188,8 @@ func _run() -> void:
 		"sequence": sequence,
 		"order_results": order_results,
 		"fresh_party_acted_this_month": fresh_party_acted_this_month,
+		"battle_pending_before_auto": battle_pending_before_auto,
+		"battle_after_auto": battle_after_auto,
 		"state_exists": FileAccess.file_exists(args[1]),
 		"session_command": client.session_command(),
 	}))
@@ -207,6 +221,10 @@ func _press(scene_root: Control, button_name: String) -> bool:
 func _press_battle_order(scene_root: Control, client: BridgeClient, button_name: String) -> bool:
 	if not _press(scene_root, button_name):
 		return false
+	return _resolve_pending_battle(scene_root, client, button_name)
+
+
+func _resolve_pending_battle(scene_root: Control, client: BridgeClient, button_name: String) -> bool:
 	var pending_model: Variant = client.snapshot_model()
 	if pending_model == null or not pending_model.battle is Dictionary:
 		return true

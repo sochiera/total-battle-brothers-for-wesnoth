@@ -39,6 +39,19 @@ static func stage_live_frontier(scene_root: Control) -> Dictionary:
 		button.emit_signal("pressed")
 		if client != null and client.has_method("last_order_result"):
 			order_results.append(client.call("last_order_result"))
+		if button_name == "EngageButton" and client != null:
+			var pending_model: Variant = client.snapshot_model()
+			if (
+				pending_model != null
+				and pending_model.battle is Dictionary
+				and pending_model.battle.get("result") == null
+			):
+				if not scene_root.call("battle_auto_from_bridge", client):
+					return {
+						"ok": false,
+						"button": button_name,
+						"order_results": order_results,
+					}
 	return {"ok": true, "order_results": order_results}
 
 

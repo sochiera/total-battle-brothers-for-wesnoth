@@ -236,8 +236,44 @@ func snapshot_model() -> SnapshotModel:
 	var response: Variant = send({"type": "snapshot"})
 	if response == null or not response is Dictionary:
 		return null
-	return SnapshotModel.from_response(response)
+	var model := SnapshotModel.from_response(response)
+	_restore_battle_order_from_pending_state(model)
+	return model
 
 
 func persist_snapshot() -> SnapshotModel:
 	return _send_persisted_sequence({"type": "snapshot"})
+
+
+func _restore_battle_order_from_pending_state(model: SnapshotModel) -> void:
+	"""Restore the military order name lost when a persistent client resumes.
+
+	The public snapshot intentionally carries only the battle board.  The
+	persistent bridge state still has the pending battle context, whose kind is
+	stable enough to distinguish the two player battle orders.
+	"""
+	if (
+		model == null
+		or not model.battle is Dictionary
+		or model.battle.get("result") != null
+		or not _last_battle_order.is_empty()
+		or not _is_persistent
+		or state_path.is_empty()
+		or not FileAccess.file_exists(state_path)
+	):
+		return
+
+	var file := FileAccess.open(state_path, FileAccess.READ)
+	if file == null:
+		return
+	var persisted: Variant = JSON.parse_string(file.get_as_text())
+	file.close()
+	if not persisted is Dictionary or not persisted.get("pending_battle") is Dictionary:
+		return
+
+	var pending: Dictionary = persisted["pending_battle"]
+	match pending.get("kind"):
+		"party":
+			_last_battle_order = "engage"
+		"settlement", "settlement_at":
+			_last_battle_order = "assault"

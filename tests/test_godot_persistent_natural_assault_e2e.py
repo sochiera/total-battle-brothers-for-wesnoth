@@ -25,9 +25,7 @@ import json
 import shlex
 from pathlib import Path
 
-import pytest
-
-from godot_runner import DEFERRED_BATTLE_E2E_REASON, PLAYER_RESULT_PL, run_godot_script
+from godot_runner import PLAYER_RESULT_PL, run_godot_script
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -40,17 +38,9 @@ AI_OUTPOST = "ai outpost"
 # The two public turns between engage and assault let the AI establish live
 # frontier party defenders; the exact seed-73 battle remains pinned rather than
 # accepting an arbitrary successful outcome.
-EXPECTED_ORDER_STATUS = "Szturm: zwycięstwo (straty: 0, wróg: 2)."
 EXPECTED_PARTY_POSITION = "Położenie oddziału: Posterunek wroga"
 # One captured keep of two leaves both sides standing (G92.2a AC3).
 EXPECTED_PARTY_RESULT = PLAYER_RESULT_PL["ongoing"]
-EXPECTED_BATTLE_RESULT = {
-    "kind": "battle",
-    "order": "assault",
-    "outcome": "zwycięstwo",
-    "attacker_losses": 0,
-    "defender_losses": 2,
-}
 
 
 def _run_process(
@@ -74,21 +64,18 @@ def _run_process(
 
 
 def _assert_successful_resolved_assault(play: dict) -> None:
-    """Live order succeeds; client shows readable battle effect (G89.1b-4)."""
+    """Live battle_auto succeeds; client shows result and world effect."""
     assert play["state_exists"] is True
-    assert play["controls"]["order_status"] == EXPECTED_ORDER_STATUS, (
-        "expected readable battle outcome status, not a failed-order message; "
-        f"got {play['controls']['order_status']!r}"
-    )
+    assert play["battle_after_auto"]["result_text"].casefold() == "zwycięstwo", play
+    order_status = play["controls"]["order_status"]
+    assert order_status.startswith("Szturm: "), order_status
+    assert "zwycięstwo" in order_status.casefold(), order_status
     assert play["controls"]["party_position"] == EXPECTED_PARTY_POSITION
     # Settlement ownership lives in duchy_status (regions list shows names only).
     # Attacker win: frontier keep taken; start had 2 keeps → 3 after capture.
     assert "osady: 3" in play["controls"]["duchy_status"]
     assert "oddziały: 1" in play["controls"]["duchy_status"]
 
-    # Machine result from the bridge response projected by the client.
-    last = play["order_results"][-1]
-    assert last == EXPECTED_BATTLE_RESULT, last
 
 
 def _assert_capture_visible_on_screen(play: dict, *, phase: str = "play") -> None:
@@ -132,7 +119,6 @@ def _assert_capture_visible_on_screen(play: dict, *, phase: str = "play") -> Non
         )
 
 
-@pytest.mark.xfail(strict=True, reason=DEFERRED_BATTLE_E2E_REASON)
 def test_natural_sequence_captures_frontier_keep_campaign_ongoing_on_live_bridge(tmp_path):
     """Recruit → muster → march → next_turns → engage → next_turns → assault: capture.
 
@@ -150,17 +136,19 @@ def test_natural_sequence_captures_frontier_keep_campaign_ongoing_on_live_bridge
         state_path = tmp_path / f"natural-assault-{run_id}.json"
         request_path = tmp_path / f"bridge-request-{run_id}.jsonl"
         play = _run_process(command_prefix, state_path, request_path, "play")
-        _assert_successful_resolved_assault(play)
         precondition = play["assault_precondition"]
         assert precondition["ready"] is True, precondition
         assert precondition["player_party_at_border"] is True, precondition
         assert precondition["frontier_defenders_live"] is True, precondition
         assert precondition["frontier_defenders"] >= 1, precondition
-        _assert_capture_visible_on_screen(play, phase="play")
-        outcomes.append(play["order_results"][-1])
-        party_results.append(play["controls"]["result"])
+        pending = play["battle_pending"]
+        assert pending["tile_count"] >= 2, pending
+        assert pending["paint_groups"] >= 2, pending
+        assert all(tile["visible"] for tile in pending["tiles"]), pending
+        assert pending["result_text"] == "", pending
 
-        # Kryt-3: resume the persisted campaign after the frontier capture.
+        # Kryt-3: resume the persisted pending battle, then finish it in the
+        # second process so the pause itself crosses the process boundary.
         resumed = _run_process(
             command_prefix,
             state_path,
@@ -171,15 +159,23 @@ def test_natural_sequence_captures_frontier_keep_campaign_ongoing_on_live_bridge
             f"{command_prefix} serve --resume '{state_path}'"
         )
         assert resumed["state_exists"] is True
-        assert resumed["controls"]["party_position"] == EXPECTED_PARTY_POSITION
-        assert resumed["controls"]["date"] == play["controls"]["date"]
+        pending_controls = resumed["controls_pending"]
+        assert pending_controls["party_position"] == play["controls"]["party_position"]
+        assert pending_controls["date"] == play["controls"]["date"]
+        assert pending_controls["regions"] == play["controls"]["regions"]
+        pending_resume = resumed["battle_pending"]
+        assert pending_resume["tile_count"] == pending["tile_count"], pending_resume
+        assert pending_resume["tiles"] == pending["tiles"], pending_resume
+        assert pending_resume["result_text"] == "", pending_resume
+        _assert_successful_resolved_assault(resumed)
         # Attacker win: party holds captured outpost; player has 3 settlements.
         assert "osady: 3" in resumed["controls"]["duchy_status"]
         assert "oddziały: 1" in resumed["controls"]["duchy_status"]
-        assert resumed["controls"]["regions"] == play["controls"]["regions"]
         _assert_capture_visible_on_screen(resumed, phase="resume")
-        assert resumed["controls"]["result"] == play["controls"]["result"]
-        assert resumed["map_view"]["tile_visuals"] == play["map_view"]["tile_visuals"]
+        assert resumed["controls"]["result"] == EXPECTED_PARTY_RESULT
+        assert resumed["battle_after_auto"]["result_text"]
+        outcomes.append(resumed["battle_after_auto"]["result_text"])
+        party_results.append(resumed["controls"]["result"])
 
-    assert outcomes[0] == outcomes[1] == EXPECTED_BATTLE_RESULT
+    assert outcomes[0] == outcomes[1] == "Zwycięstwo"
     assert party_results[0] == party_results[1] == EXPECTED_PARTY_RESULT

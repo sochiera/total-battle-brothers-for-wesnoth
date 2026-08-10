@@ -40,6 +40,9 @@ func _run() -> void:
 	var order_results: Array = []
 	var after_start: Dictionary = {}
 	var assault_precondition: Dictionary = {}
+	var battle_pending: Dictionary = {}
+	var battle_after_auto: Dictionary = {}
+	var controls_pending: Dictionary = {}
 	match phase:
 		"play":
 			after_start = _observation(scene_root)
@@ -56,7 +59,13 @@ func _run() -> void:
 				return
 			order_results.append(client.last_order_result())
 		"resume":
-			pass
+			battle_pending = _battle_observation(scene_root)
+			controls_pending = _controls(scene_root)
+			if not scene_root.call("battle_auto_from_bridge", client):
+				_fail("battle_auto failed after AssaultButton")
+				return
+			battle_after_auto = _battle_observation(scene_root)
+			order_results.append(client.last_battle_result())
 		_:
 			_fail("unknown phase")
 			return
@@ -72,6 +81,9 @@ func _run() -> void:
 		"session_command": client.session_command(),
 		"map_view": _map_view_observation(scene_root),
 		"assault_precondition": assault_precondition,
+		"battle_pending": battle_pending if not battle_pending.is_empty() else _battle_observation(scene_root),
+		"battle_after_auto": battle_after_auto,
+		"controls_pending": controls_pending,
 	}
 	if phase == "play":
 		payload["after_start"] = after_start
@@ -138,6 +150,33 @@ func _map_view_observation(scene_root: Control) -> Dictionary:
 	}
 
 
+func _battle_observation(scene_root: Control) -> Dictionary:
+	var battle_view: Node = scene_root.find_child("BattleView", true, false)
+	var tiles: Array = []
+	var paint_groups: Dictionary = {}
+	if battle_view != null:
+		for child: Node in battle_view.get_children():
+			if not child is Control or not str(child.name).begins_with("HexTile_"):
+				continue
+			var tile := child as Control
+			var visual := _visual_key(tile)
+			tiles.append({
+				"name": str(child.name),
+				"visual": visual,
+				"visible": tile.is_visible_in_tree(),
+			})
+			paint_groups[visual] = true
+	var result_label: Node = null
+	if battle_view != null:
+		result_label = battle_view.find_child("BattleResultLabel", true, false)
+	return {
+		"tile_count": tiles.size(),
+		"tiles": tiles,
+		"paint_groups": paint_groups.size(),
+		"result_text": result_label.text.strip_edges() if result_label is Label else "",
+	}
+
+
 func _tile_visual(map_view: Node, region_name: String) -> String:
 	var label: Label = PartyMapMark.find_label_with_text(map_view, region_name)
 	if label == null:
@@ -161,8 +200,42 @@ func _visual_key(tile: Control) -> String:
 		if child is ColorRect:
 			return _color_key((child as ColorRect).color)
 		if child is TextureRect:
-			return _color_key((child as CanvasItem).modulate)
+			var child_mod: Color = (child as CanvasItem).modulate
+			if child_mod != Color(1, 1, 1, 1):
+				return _color_key(child_mod)
+	var side_paths: PackedStringArray = _side_texture_paths_under(tile)
+	if not side_paths.is_empty():
+		side_paths.sort()
+		return "|".join(side_paths)
 	return _color_key(tile.modulate)
+
+
+func _side_texture_paths_under(node: Node) -> PackedStringArray:
+	var paths: PackedStringArray = PackedStringArray()
+	var path: String = _direct_texture_path(node)
+	if not path.is_empty() and _is_side_texture_layer(node, path):
+		paths.append(path)
+	for child: Node in node.get_children():
+		paths.append_array(_side_texture_paths_under(child))
+	return paths
+
+
+func _is_side_texture_layer(node: Node, path: String) -> bool:
+	return str(node.name) == "SideSilhouette" or path.contains("side_attacker") or path.contains("side_defender")
+
+
+func _direct_texture_path(node: Node) -> String:
+	if node is TextureRect:
+		var texture_rect := node as TextureRect
+		if texture_rect.texture != null:
+			var texture_path: String = texture_rect.texture.resource_path
+			return texture_path if not texture_path.is_empty() else "<embedded>"
+	if node is Sprite2D:
+		var sprite := node as Sprite2D
+		if sprite.texture != null:
+			var sprite_path: String = sprite.texture.resource_path
+			return sprite_path if not sprite_path.is_empty() else "<embedded>"
+	return ""
 
 
 func _color_key(color: Color) -> String:
