@@ -23,7 +23,8 @@ from tbb.unit import Unit
 from tbb.wound import BRUISE, MAIMED, Wound
 from tbb.world import Region, WorldMap
 from tbbbridge import persist
-from tbbbridge.session import Session
+from tbbbridge.protocol import handle_command_line
+from tbbbridge.session import Session, new_session
 
 
 def test_dump_hex_returns_json_serializable_dict_with_q_r():
@@ -1176,12 +1177,12 @@ def test_load_rng_does_not_mutate_input_dict():
     assert data == data_before
 
 
-def test_dump_session_returns_json_serializable_dict_with_keys_world_game_calendar_rng_player_duchy_id_seed_and_last_battle():
+def test_dump_session_returns_json_serializable_dict_with_keys_world_game_calendar_rng_player_duchy_id_seed_last_battle_and_pending_battle():
     """G67.4a/G70.2a: ``dump_session(session)`` zwraca json-serializowalny
     ``dict`` z kluczami ``world`` (= ``dump_world``), ``game`` (= ``dump_gamestate``),
     ``calendar`` (= ``dump_calendar``), ``rng`` (= ``dump_rng``), ``player_duchy_id``
-    (``str | None``), ``seed`` (int) oraz ``last_battle`` (``None`` gdy brak bitwy);
-    wynik przechodzi ``json.dumps``.
+    (``str | None``), ``seed`` (int), ``last_battle`` i ``pending_battle``
+    (``dump_battle`` lub ``None``); wynik przechodzi ``json.dumps``.
     """
     from tbb.game import GameState
 
@@ -1205,8 +1206,10 @@ def test_dump_session_returns_json_serializable_dict_with_keys_world_game_calend
         "player_duchy_id",
         "seed",
         "last_battle",
+        "pending_battle",
     }
     assert dumped["last_battle"] is None
+    assert dumped["pending_battle"] is None
     assert dumped["world"] == persist.dump_world(session.world)
     assert dumped["game"] == persist.dump_gamestate(session.game)
     assert dumped["calendar"] == persist.dump_calendar(session.calendar)
@@ -1255,6 +1258,7 @@ def test_dump_session_with_last_battle_includes_last_battle_key():
 
     assert "last_battle" in dumped_with
     assert dumped_with["last_battle"] == persist.dump_battle(battle)
+    assert dumped_with["pending_battle"] is None
     assert json.dumps(dumped_with)
 
     assert "last_battle" in dumped_without
@@ -1284,8 +1288,113 @@ def test_round_trip_load_dump_session_restores_session_equality_and_rng_sequence
     assert r.player_duchy_id == s.player_duchy_id
     assert r.seed == s.seed
     assert r.last_battle is None
+    assert r.pending_battle is None
     restored_rng_sequence = [r.rng.randint(1, 100) for _ in range(10)]
     assert restored_rng_sequence == expected_continuation
+
+
+def _paused_battle_session():
+    """Return the measured seed-73 session with a real battle in progress."""
+    session = new_session(seed=73, player_duchy_id="player")
+    for command in (
+        '{"type":"order","order":"recruit"}',
+        '{"type":"order","order":"recruit"}',
+        '{"type":"order","order":"muster"}',
+        '{"type":"order","order":"march"}',
+        '{"type":"next_turn"}',
+    ):
+        session, response = handle_command_line(session, command)
+        assert response["ok"] is True
+
+    paused, response = handle_command_line(
+        session, '{"type":"order","order":"engage","target":"border"}'
+    )
+    assert response["ok"] is True
+    assert response["result"]["kind"] == "battle_pending"
+    return paused
+
+
+def test_round_trip_session_with_pending_battle_preserves_snapshot_and_board():
+    """G119.1b kryt-1: zapis/odczyt zachowuje trwającą bitwę i jej snapshot.
+
+    Jedna runda przed zapisem sprawdza, że utrwalany jest stan bitwy, a nie tylko
+    plansza rozstawienia. Istniejąca bramka ``HexBattle`` pokrywa już wszystkie
+    pola liścia (PŻ, ogłuszenia, polegli, battlefield, strony i deployment order).
+    Realistyczny defekt: ``load_session`` gubi ``pending_battle``, choć
+    ``last_battle`` jest nadal odtwarzane.
+    """
+    paused = _paused_battle_session()
+    paused, response = handle_command_line(paused, '{"type":"battle_advance"}')
+    assert response["ok"] is True
+    assert response["result"]["kind"] == "battle_pending"
+    expected_snapshot = paused.snapshot()
+
+    dumped = persist.dump_session(paused)
+    restored = persist.load_session(json.loads(json.dumps(dumped)))
+
+    assert restored.pending_battle is not None, (
+        "kryterium 1: load_session musi odtworzyć pending_battle"
+    )
+    restored_pending = restored.pending_battle
+    expected_pending = paused.pending_battle
+    assert expected_pending is not None
+    assert restored_pending.battle == expected_pending.battle
+    assert restored_pending.source == expected_pending.source
+    assert restored_pending.target == expected_pending.target
+    assert restored_pending.kind == expected_pending.kind
+    assert restored_pending.attacker_owner_id == expected_pending.attacker_owner_id
+    assert restored_pending.defender_owner_id == expected_pending.defender_owner_id
+    assert restored_pending.source in restored.world.regions
+    assert restored_pending.target in restored.world.regions
+    assert restored.rng.state() == paused.rng.state()
+    assert restored.snapshot() == expected_snapshot, (
+        "kryterium 1: snapshot wznowionej bitwy musi być identyczny"
+    )
+
+
+def test_round_trip_pending_battle_resumes_with_same_advance_and_auto_result():
+    """G119.1b kryt-2: zapis nie zmienia dalszych rund ani wyniku bitwy.
+
+    Sesja niezapisana i sesja po JSON wykonują tę samą sekwencję
+    ``battle_advance``/``battle_auto`` z odpowiadających sobie stanów.
+    Realistyczny defekt: brak kontekstu ``pending_battle`` po odczycie zwraca
+    ``brak bitwy w toku`` zamiast kontynuować i zastosować ten sam rezultat.
+    """
+    paused = _paused_battle_session()
+    restored = persist.load_session(
+        json.loads(json.dumps(persist.dump_session(paused)))
+    )
+    assert restored.rng.state() == paused.rng.state()
+
+    expected, expected_advance = handle_command_line(
+        paused, '{"type":"battle_advance"}'
+    )
+    resumed, resumed_advance = handle_command_line(
+        restored, '{"type":"battle_advance"}'
+    )
+
+    assert resumed_advance["result"] == expected_advance["result"], (
+        "kryterium 2: battle_advance po odczycie musi wykonać tę samą rundę"
+    )
+    assert resumed.snapshot() == expected.snapshot(), (
+        "kryterium 2: plansza po battle_advance musi być deterministyczna"
+    )
+    assert resumed.rng.state() == expected.rng.state()
+
+    expected, expected_auto = handle_command_line(
+        expected, '{"type":"battle_auto"}'
+    )
+    resumed, resumed_auto = handle_command_line(
+        resumed, '{"type":"battle_auto"}'
+    )
+
+    assert resumed_auto["result"] == expected_auto["result"], (
+        "kryterium 2: battle_auto po odczycie musi dać ten sam wynik i straty"
+    )
+    assert resumed.snapshot() == expected.snapshot(), (
+        "kryterium 2: końcowy snapshot musi być taki sam po round-tripie"
+    )
+    assert resumed.rng.state() == expected.rng.state()
 
 
 def test_load_session_with_last_battle_key_restores_battle():
@@ -1409,6 +1518,7 @@ def test_round_trip_session_with_battle_preserves_last_battle_and_components():
     restored = persist.load_session(dumped)
 
     assert restored.last_battle is not None
+    assert restored.pending_battle is None
     assert restored.last_battle == session.last_battle
     assert restored.last_battle.report().result == original_report.result
     assert restored.last_battle.report().attacker.fallen == original_report.attacker.fallen

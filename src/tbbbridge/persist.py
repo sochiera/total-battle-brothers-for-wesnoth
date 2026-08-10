@@ -22,7 +22,7 @@ from tbb.game import GameState
 from tbb.hex import Hex
 from tbb.rng import Rng
 from tbb.world import Region, WorldMap
-from tbbbridge.session import Session
+from tbbbridge.session import PendingBattle, Session
 
 
 def _convert_state(value, make_seq):
@@ -185,6 +185,44 @@ def load_battle(data: dict):
         sides=sides,
         _fallen=fallen,
         _deployment_order=tuple(deployment_order),
+    )
+
+
+def dump_pending_battle(pending_battle: PendingBattle) -> dict:
+    """Zwraca json-serializowalny zapis bitwy oczekującej na wznowienie.
+
+    ``battle`` pozostaje serializowane tym samym liściowym formatem co
+    ``last_battle``; pozostałe pola zachowują kontekst potrzebny do
+    zastosowania wyniku po odczycie sesji.
+    """
+    return {
+        "battle": dump_battle(pending_battle.battle),
+        "source": dump_region(pending_battle.source),
+        "target": dump_region(pending_battle.target),
+        "kind": pending_battle.kind,
+        "attacker_owner_id": pending_battle.attacker_owner_id,
+        "defender_owner_id": pending_battle.defender_owner_id,
+    }
+
+
+def _load_world_region(world: WorldMap, data: dict) -> Region:
+    """Return the serialized region object belonging to ``world``."""
+    region = load_region(data)
+    try:
+        return world.regions[world.regions.index(region)]
+    except ValueError as error:
+        raise ValueError(f"region {region.name!r} is missing from world") from error
+
+
+def load_pending_battle(data: dict, world: WorldMap) -> PendingBattle:
+    """Odtwarza oczekującą bitwę, wiążąc jej regiony z ``world``."""
+    return PendingBattle(
+        battle=load_battle(data["battle"]),
+        source=_load_world_region(world, data["source"]),
+        target=_load_world_region(world, data["target"]),
+        kind=data["kind"],
+        attacker_owner_id=data["attacker_owner_id"],
+        defender_owner_id=data["defender_owner_id"],
     )
 
 
@@ -449,9 +487,13 @@ def dump_session(session: Session) -> dict:
 
     Klucze: ``world`` (``dump_world``), ``game`` (``dump_gamestate``),
     ``calendar`` (``dump_calendar``), ``rng`` (``dump_rng``),
-    ``player_duchy_id`` (``str | None``), ``seed`` (int) oraz
-    ``last_battle`` (``dump_battle`` lub ``None``).
+    ``player_duchy_id`` (``str | None``), ``seed`` (int),
+    ``last_battle`` (``dump_battle`` lub ``None``) oraz
+    ``pending_battle`` (``dump_pending_battle`` lub ``None``).
     """
+    def dump_optional_battle(battle):
+        return dump_battle(battle) if battle is not None else None
+
     return {
         "world": dump_world(session.world),
         "game": dump_gamestate(session.game),
@@ -459,9 +501,10 @@ def dump_session(session: Session) -> dict:
         "rng": dump_rng(session.rng),
         "player_duchy_id": session.player_duchy_id,
         "seed": session.seed,
-        "last_battle": (
-            dump_battle(session.last_battle)
-            if session.last_battle is not None
+        "last_battle": dump_optional_battle(session.last_battle),
+        "pending_battle": (
+            dump_pending_battle(session.pending_battle)
+            if session.pending_battle is not None
             else None
         ),
     }
@@ -471,12 +514,16 @@ def load_session(data: dict) -> Session:
     """Odtwarza ``Session`` ze słownika wyprodukowanego przez ``dump_session``.
 
     ``last_battle`` odtwarza się z ``load_battle(data["last_battle"])`` gdy
-    klucz istnieje i nie jest ``None``; inaczej ``None`` (zgodność wstecz ze
-    starym formatem bez tego klucza).
+    klucz istnieje i nie jest ``None``; ``pending_battle`` analogicznie
+    odtwarza bitwę wraz z kontekstem, wiążąc regiony z załadowanym światem.
+    Brak któregoś klucza albo wartość ``None`` oznacza brak odpowiedniej
+    bitwy (zgodność wstecz ze starym formatem).
     """
+    world = load_world(data["world"])
     raw_last_battle = data.get("last_battle")
+    raw_pending_battle = data.get("pending_battle")
     return Session(
-        world=load_world(data["world"]),
+        world=world,
         game=load_gamestate(data["game"]),
         calendar=load_calendar(data["calendar"]),
         rng=load_rng(data["rng"]),
@@ -484,6 +531,9 @@ def load_session(data: dict) -> Session:
         seed=data["seed"],
         last_battle=load_battle(raw_last_battle)
         if raw_last_battle is not None
+        else None,
+        pending_battle=load_pending_battle(raw_pending_battle, world)
+        if raw_pending_battle is not None
         else None,
     )
 
