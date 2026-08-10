@@ -625,6 +625,18 @@ icon = ExtResource("14_engage_icon")
 text = "Uderz na wojsko wroga"
 metadata/order_name = "engage"
 
+[node name="BattleAdvanceButton" type="Button" parent="MainLayout/OrderControls/OrderBarContent/OrderButtons"]
+custom_minimum_size = Vector2(170, 40)
+layout_mode = 2
+text = "Następna runda"
+metadata/order_name = "battle_advance"
+
+[node name="BattleAutoButton" type="Button" parent="MainLayout/OrderControls/OrderBarContent/OrderButtons"]
+custom_minimum_size = Vector2(170, 40)
+layout_mode = 2
+text = "Rozstrzygnij od razu"
+metadata/order_name = "battle_auto"
+
 [node name="SaveLoadButtons" type="HBoxContainer" parent="MainLayout/OrderControls/OrderBarContent"]
 layout_mode = 2
 size_flags_horizontal = 4

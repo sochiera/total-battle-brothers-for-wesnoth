@@ -36,6 +36,8 @@ const ORDER_BUTTON_FONT_HOVER := Color(0.14, 0.08, 0.04, 1.0)
 const ORDER_BUTTON_FONT_PRESSED := Color(0.1, 0.05, 0.02, 1.0)
 const ORDER_NAME_META := "order_name"
 const REGION_TARGETED_ORDER_NAMES := ["develop", "recruit", "muster"]
+const BATTLE_ROUND_ORDER_NAMES := ["battle_advance", "battle_auto"]
+const BATTLE_IN_PROGRESS_STATUS := "Bitwa trwa — wybierz następną rundę albo rozstrzygnij od razu."
 const SELECTED_REGION_EMPTY_PL := "Nie wybrano regionu"
 const REINFORCE_NO_PARTY_STATUS := "Brak oddziału do wzmocnienia."
 const REINFORCE_NO_SETTLEMENT_STATUS := "Oddział nie stoi w osadzie."
@@ -70,6 +72,7 @@ var _player_party_region: Variant = null
 var _default_march_label := ""
 var _map_view_min_height_no_battle := 0.0
 var _order_button_handlers: Dictionary = {}
+var _battle_pending := false
 
 func _ready() -> void:
 	_ensure_strategic_window_background()
@@ -306,6 +309,12 @@ func _connect_declared_order_button(button: Button) -> void:
 func _on_declared_order_button_pressed(button: Button) -> void:
 	var order_name := _declared_order_name(button)
 	if not order_name.is_empty():
+		if order_name == "battle_advance":
+			battle_advance_from_bridge(_client)
+			return
+		if order_name == "battle_auto":
+			battle_auto_from_bridge(_client)
+			return
 		var target: String = %MapView.selected_region_name if order_name in REGION_TARGETED_ORDER_NAMES else ""
 		_send_bound_order(order_name, target)
 
@@ -385,6 +394,28 @@ func send_order_from_bridge(client, order_name: String, target: String = "") -> 
 	return applied
 
 
+func battle_advance_from_bridge(client) -> bool:
+	return _send_battle_step_from_bridge(client, "battle_advance")
+
+
+func battle_auto_from_bridge(client) -> bool:
+	return _send_battle_step_from_bridge(client, "battle_auto")
+
+
+func _send_battle_step_from_bridge(client, command_type: String) -> bool:
+	var model: SnapshotModel = (
+		client.battle_advance() if command_type == "battle_advance" else client.battle_auto()
+	)
+	var applied := _apply_model_if_present(model)
+	if applied and _is_battle_pending(model):
+		_set_last_order_status(BATTLE_IN_PROGRESS_STATUS)
+	elif not applied:
+		_set_last_order_status(OrderResult.failure_status_text())
+	else:
+		_set_last_order_status("")
+	return applied
+
+
 func _applied_order_status(client) -> String:
 	var order_result: Variant = _last_order_result(client)
 	var contextual_status := _reinforce_context_status(order_result)
@@ -458,10 +489,13 @@ func _apply_model_with_status(
 
 
 func _set_last_order_status(status: String) -> void:
-	%LastOrderStatusLabel.text = status
+	var visible_status := status
+	if visible_status.is_empty() and _battle_pending:
+		visible_status = BATTLE_IN_PROGRESS_STATUS
+	%LastOrderStatusLabel.text = visible_status
 	# G102.1d: parchment ribbon + slot only for non-empty feedback; label
 	# horizontal insets (±32 in main.tscn) keep text inside the opaque body.
-	_sync_order_status_ribbon_visible(not status.is_empty())
+	_sync_order_status_ribbon_visible(not visible_status.is_empty())
 
 
 func _sync_order_status_ribbon_visible(show_ribbon: bool) -> void:
@@ -472,6 +506,7 @@ func _sync_order_status_ribbon_visible(show_ribbon: bool) -> void:
 func apply_model(model: SnapshotModel) -> void:
 	_current_regions = model.regions
 	_player_party_region = model.player_party_region
+	_battle_pending = _is_battle_pending(model)
 	# Status card hierarchy (G101.1c + G105.1d): label+value rows with major-group
 	# and dense duchy-row HSeparators, not a text wall or bare metric triple.
 	# Visible ResultLabel / PlayerPartyPositionLabel hold value cells only;
@@ -483,6 +518,28 @@ func apply_model(model: SnapshotModel) -> void:
 	# hidden on the status card (map is the sole region picker on screen).
 	_render_region_list(model.regions)
 	_render_world_views(model)
+	_sync_battle_order_controls()
+
+
+func _is_battle_pending(model: SnapshotModel) -> bool:
+	return model != null and model.battle is Dictionary and model.battle.get("result") == null
+
+
+func _sync_battle_order_controls() -> void:
+	## A pending battle owns the turn: only its two continuation orders remain
+	## clickable. Save/load/new-game stay available so persistence is not blocked.
+	%NextTurnButton.disabled = _battle_pending
+	for button: Button in _declared_order_buttons():
+		button.disabled = _battle_order_disabled(button)
+
+
+func _battle_order_disabled(button: Button) -> bool:
+	var is_round_order := _is_battle_round_order(button)
+	return not _battle_pending if is_round_order else _battle_pending
+
+
+func _is_battle_round_order(button: Button) -> bool:
+	return BATTLE_ROUND_ORDER_NAMES.has(_declared_order_name(button))
 
 
 func _apply_status_card(model: SnapshotModel) -> void:

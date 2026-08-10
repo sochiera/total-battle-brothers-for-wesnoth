@@ -190,6 +190,14 @@ func send_order(order_name: String, target: String = "") -> SnapshotModel:
 	return _send_persisted_sequence(_order_command(order_name, target), true)
 
 
+func battle_advance() -> SnapshotModel:
+	return _send_persisted_sequence({"type": "battle_advance"})
+
+
+func battle_auto() -> SnapshotModel:
+	return _send_persisted_sequence({"type": "battle_auto"})
+
+
 func save_party(path: String) -> SnapshotModel:
 	return _send_persisted_sequence({"type": "save", "path": path})
 

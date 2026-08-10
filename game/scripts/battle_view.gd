@@ -70,7 +70,7 @@ func render_model(model: SnapshotModel) -> void:
 		return
 
 	visible = true
-	%BattleResultLabel.text = _result_text(battle.get("result"))
+	_set_result_state(battle.get("result"))
 	var hexes: Variant = battle.get("hexes")
 	if not hexes is Array:
 		return
@@ -134,12 +134,16 @@ func _row_pitch() -> float:
 
 func _result_label_and_banner_pad() -> float:
 	## Fixed (non-scaling) part of the result band: label height + bottom banner pad.
+	if not _has_result_banner():
+		return 0.0
 	var result_label: Control = %BattleResultLabel
 	return result_label.size.y + RESULT_BANNER_PAD
 
 
 func _result_band_height_at_scale(scale: float) -> float:
 	## result_top = max_hex_bottom + GAP*scale; panel bottom = result_top + label_h + PAD.
+	if not _has_result_banner():
+		return 0.0
 	return RESULT_LABEL_GAP * scale + _result_label_and_banner_pad()
 
 
@@ -254,7 +258,8 @@ func _hex_tile_bottom(row: int) -> float:
 func _layout_result_label(max_hex_bottom: float) -> void:
 	var result_label: Control = %BattleResultLabel
 	var result_banner: Control = %BattleResultBanner
-	var result_top := max_hex_bottom + RESULT_LABEL_GAP * _layout_scale
+	var result_gap := RESULT_LABEL_GAP * _layout_scale if _has_result_banner() else 0.0
+	var result_top := max_hex_bottom + result_gap
 	result_label.position.y = result_top
 	# Parchment carrier tracks the outcome text band (not a fixed scene offset).
 	result_banner.position.y = result_top - RESULT_BANNER_PAD
@@ -273,7 +278,19 @@ func _reset_and_hide_view() -> void:
 	_layout_scale = 1.0
 	_last_hexes = []
 	_clear_hex_tiles()
-	%BattleResultLabel.text = ""
+	_set_result_state(null)
+
+
+func _set_result_state(result: Variant) -> void:
+	var result_text := _result_text(result)
+	var has_result := not result_text.is_empty()
+	%BattleResultLabel.text = result_text
+	%BattleResultLabel.visible = has_result
+	%BattleResultBanner.visible = has_result
+
+
+func _has_result_banner() -> bool:
+	return not %BattleResultLabel.text.is_empty()
 
 
 func _clear_hex_tiles() -> void:

@@ -107,20 +107,23 @@ static func _battle(snapshot: Dictionary) -> Variant:
 	var battle_snapshot: Variant = snapshot.get("battle")
 	if not battle_snapshot is Dictionary:
 		return null
-	if not battle_snapshot.has("result") or not battle_snapshot["result"] is String:
+	if not battle_snapshot.has("result"):
+		return null
+	var result: Variant = battle_snapshot["result"]
+	if result != null and not result is String:
 		return null
 	if not battle_snapshot.has("hexes") or not battle_snapshot["hexes"] is Array:
 		return null
 
 	var hexes: Array = []
 	for hex: Variant in battle_snapshot["hexes"]:
-		var projected_hex: Variant = _project_battle_hex(hex)
+		var projected_hex: Variant = _project_battle_hex(hex, result == null)
 		if projected_hex != null:
 			hexes.append(projected_hex)
-	return {"result": battle_snapshot["result"], "hexes": hexes}
+	return {"result": result, "hexes": hexes}
 
 
-static func _project_battle_hex(hex: Variant) -> Variant:
+static func _project_battle_hex(hex: Variant, pending: bool) -> Variant:
 	if not hex is Dictionary:
 		return null
 	if not hex.has("q") or not _is_numeric(hex["q"]):
@@ -133,13 +136,18 @@ static func _project_battle_hex(hex: Variant) -> Variant:
 		return null
 	if not hex.has("hp") or not _is_numeric(hex["hp"]):
 		return null
-	return {
+	if pending and (not hex.has("stunned") or not hex["stunned"] is bool):
+		return null
+	var projected := {
 		"q": int(hex["q"]),
 		"r": int(hex["r"]),
 		"terrain": hex["terrain"],
 		"side": hex["side"],
 		"hp": int(hex["hp"]),
 	}
+	if pending:
+		projected["stunned"] = hex["stunned"]
+	return projected
 
 
 static func from_response(response: Dictionary) -> SnapshotModel:
