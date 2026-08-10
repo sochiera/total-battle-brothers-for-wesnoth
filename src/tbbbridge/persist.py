@@ -6,6 +6,7 @@ publiczne API rdzenia, bez żadnej logiki reguł.
 
 import json
 import os
+from types import MappingProxyType
 from typing import Any
 
 from tbb.building import Building
@@ -202,6 +203,16 @@ def dump_pending_battle(pending_battle: PendingBattle) -> dict:
         "kind": pending_battle.kind,
         "attacker_owner_id": pending_battle.attacker_owner_id,
         "defender_owner_id": pending_battle.defender_owner_id,
+        "attack_targets": [
+            {
+                "attacker": dump_hex(attacker),
+                "target": dump_hex(target),
+            }
+            for attacker, target in sorted(
+                pending_battle.attack_targets.items(),
+                key=lambda pair: (pair[0].q, pair[0].r),
+            )
+        ],
     }
 
 
@@ -216,6 +227,10 @@ def _load_world_region(world: WorldMap, data: dict) -> Region:
 
 def load_pending_battle(data: dict, world: WorldMap) -> PendingBattle:
     """Odtwarza oczekującą bitwę, wiążąc jej regiony z ``world``."""
+    attack_targets = MappingProxyType({
+        load_hex(entry["attacker"]): load_hex(entry["target"])
+        for entry in data.get("attack_targets") or []
+    })
     return PendingBattle(
         battle=load_battle(data["battle"]),
         source=_load_world_region(world, data["source"]),
@@ -223,6 +238,7 @@ def load_pending_battle(data: dict, world: WorldMap) -> PendingBattle:
         kind=data["kind"],
         attacker_owner_id=data["attacker_owner_id"],
         defender_owner_id=data["defender_owner_id"],
+        attack_targets=attack_targets,
     )
 
 

@@ -208,6 +208,65 @@ def test_main_serve_resume_next_turn_uses_state_from_file(tmp_path):
     assert resp["snapshot"] != apply_command(new_session(), {"type": "next_turn"}).snapshot()
 
 
+def test_main_serve_resume_preserves_pending_attack_target_and_advance(tmp_path):
+    """G120.1c AC3: ``serve --resume`` zachowuje cel i dalszy krok bitwy."""
+    from tbbbridge.persist import read_session, save_session
+    from tbbbridge.protocol import handle_command_line
+    from tbbbridge.session import new_session
+
+    saved_session = new_session(seed=73, player_duchy_id="player")
+    for command in (
+        '{"type":"order","order":"recruit"}',
+        '{"type":"order","order":"recruit"}',
+        '{"type":"order","order":"muster"}',
+        '{"type":"order","order":"march"}',
+        '{"type":"next_turn"}',
+    ):
+        saved_session, response = handle_command_line(saved_session, command)
+        assert response["ok"] is True
+
+    saved_session, response = handle_command_line(
+        saved_session, '{"type":"order","order":"engage","target":"border"}'
+    )
+    assert response["ok"] is True
+    assert response["result"]["kind"] == "battle_pending"
+    saved_session, response = handle_command_line(
+        saved_session,
+        json.dumps({
+            "type": "battle_target",
+            "attacker": {"q": 0, "r": 0},
+            "target": {"q": 2, "r": 1},
+        }),
+    )
+    assert response["ok"] is True
+    assert response["result"]["changed"] is True
+
+    state_path = tmp_path / "pending-target.json"
+    save_session(saved_session, state_path)
+    expected_session = read_session(state_path)
+    expected_after, expected_advance = handle_command_line(
+        expected_session, '{"type":"battle_advance"}'
+    )
+
+    in_stream = io.StringIO(
+        '{"type":"snapshot"}\n{"type":"battle_advance"}\n'
+    )
+    out_stream = io.StringIO()
+    rc = main(["serve", "--resume", str(state_path)], stdin=in_stream, stdout=out_stream)
+
+    assert rc == 0
+    responses = [json.loads(line) for line in out_stream.getvalue().splitlines()]
+    assert len(responses) == 2
+    assert responses[0]["ok"] is True
+    assert responses[0]["snapshot"]["battle"]["attack_targets"] == [{
+        "attacker": {"q": 0, "r": 0},
+        "target": {"q": 2, "r": 1},
+    }]
+    assert responses[1]["ok"] is True
+    assert responses[1]["result"] == expected_advance["result"]
+    assert responses[1]["snapshot"] == expected_after.snapshot()
+
+
 def test_main_serve_resume_nonexistent_path_returns_one_writes_stderr_no_stdout(tmp_path):
     """G69.2b kryt-1: ``main(["serve", "--resume", <nieistniejąca_ścieżka>], stdin=<io>,
     stdout=<io>, stderr=<io>)`` **nie** startuje ``serve_stream`` (żadnej linii na

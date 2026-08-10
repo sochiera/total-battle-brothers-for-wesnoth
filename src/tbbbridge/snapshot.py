@@ -2,7 +2,7 @@
 
 import json
 import os
-from typing import Any
+from typing import Any, Mapping
 
 from tbb.battle import HexBattle
 from tbb.duchy import Duchy
@@ -176,6 +176,7 @@ def game_state(
     calendar: Calendar,
     player_duchy_id: str | None = None,
     battle: HexBattle | None = None,
+    attack_targets: Mapping[Any, Any] | None = None,
 ) -> dict[str, Any]:
     """Zwróć json-serializowalny snapshot pełnego stanu gry.
 
@@ -206,12 +207,15 @@ def game_state(
         },
     }
     if battle is not None:
-        state["battle"] = battle_state(battle)
+        state["battle"] = battle_state(battle, attack_targets=attack_targets)
     _assert_json_serializable(state)
     return state
 
 
-def battle_state(battle: HexBattle) -> dict[str, Any]:
+def battle_state(
+    battle: HexBattle,
+    attack_targets: Mapping[Any, Any] | None = None,
+) -> dict[str, Any]:
     """Zwróć json-serializowalny snapshot bitwy heksowej.
 
     Funkcja jest czysta, deterministyczna i bez mutacji `battle`; wynik
@@ -221,6 +225,7 @@ def battle_state(battle: HexBattle) -> dict[str, Any]:
       hexes  -> lista zajętych heksów `battle.units`, posortowana po (q, r),
                 każdy z kluczami q, r, terrain, side, hp, stunned
       result -> `battle.result().value` gdy rozstrzygnięta, inaczej `None`
+      attack_targets -> lista par q/r, gdy podano niepuste intencje
     """
     hexes: list[dict[str, Any]] = []
     for hex_pos in sorted(battle.units.keys(), key=lambda h: (h.q, h.r)):
@@ -239,6 +244,16 @@ def battle_state(battle: HexBattle) -> dict[str, Any]:
         "hexes": hexes,
         "result": result.value if result is not None else None,
     }
+    if attack_targets:
+        state["attack_targets"] = [
+            {
+                "attacker": {"q": attacker.q, "r": attacker.r},
+                "target": {"q": target.q, "r": target.r},
+            }
+            for attacker, target in sorted(
+                attack_targets.items(), key=lambda pair: (pair[0].q, pair[0].r)
+            )
+        ]
     _assert_json_serializable(state)
     return state
 

@@ -67,7 +67,10 @@ def _battle_pending_result(pending: PendingBattle) -> dict:
     """Odpowiedź ``battle_pending`` z planszą bitwy pauzującej w sesji."""
     return {
         "kind": "battle_pending",
-        "battle": battle_state(pending.battle),
+        "battle": battle_state(
+            pending.battle,
+            attack_targets=pending.attack_targets or None,
+        ),
     }
 
 

@@ -280,17 +280,15 @@ class Session:
         Bitwa pauzująca (`pending_battle`) ma pierwszeństwo przed
         `last_battle` — obie nigdy nie są ustawione naraz.
         """
-        battle = (
-            self.pending_battle.battle
-            if self.pending_battle is not None
-            else self.last_battle
-        )
+        pending = self.pending_battle
+        battle = pending.battle if pending is not None else self.last_battle
         return game_state(
             self.world,
             self.game,
             self.calendar,
             self.player_duchy_id,
             battle=battle,
+            attack_targets=pending.attack_targets if pending is not None else None,
         )
 
     def _derive(

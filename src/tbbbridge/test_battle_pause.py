@@ -269,10 +269,33 @@ def test_battle_target_records_intent_without_resolving_pending_battle(
     assert returned.pending_battle is not None
     assert returned.last_battle is None
     assert response["snapshot"]["battle"]["result"] is None
+    public_battle = response["snapshot"]["battle"]
+    assert "attack_targets" in public_battle, (
+        "kryterium 1: battle_pending musi eksponować ustawione cele ataku"
+    )
+    assert public_battle["attack_targets"] == [{
+        "attacker": {"q": attacker[0], "r": attacker[1]},
+        "target": {"q": target[0], "r": target[1]},
+    }]
     assert returned.world is paused.world
     assert returned.calendar == before_calendar
     assert returned.rng.state() == before_rng
-    assert returned.snapshot() == before_snapshot
+    returned_snapshot = returned.snapshot()
+    assert returned_snapshot["calendar"] == before_snapshot["calendar"]
+    assert returned_snapshot["player_duchy"] == before_snapshot["player_duchy"]
+    assert returned_snapshot["duchies"] == before_snapshot["duchies"]
+    assert returned_snapshot["map"] == before_snapshot["map"]
+    assert returned_snapshot["result"] == before_snapshot["result"]
+    assert returned_snapshot["battle"]["hexes"] == before_snapshot["battle"]["hexes"]
+    assert returned_snapshot["battle"]["result"] == before_snapshot["battle"]["result"]
+
+    advanced, advance_response = handle_command_line(
+        returned, '{"type":"battle_advance"}'
+    )
+    assert advance_response["ok"] is True
+    assert advanced.snapshot()["battle"].get("attack_targets", []) == [], (
+        "kryterium 2: zużyty cel nie może sterować kolejną rundą"
+    )
 
 
 def test_battle_target_changes_the_next_round_toward_the_indicated_enemy():

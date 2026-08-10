@@ -1289,6 +1289,8 @@ def test_round_trip_load_dump_session_restores_session_equality_and_rng_sequence
     assert r.seed == s.seed
     assert r.last_battle is None
     assert r.pending_battle is None
+    assert r.snapshot() == s.snapshot()
+    assert "battle" not in r.snapshot()
     restored_rng_sequence = [r.rng.randint(1, 100) for _ in range(10)]
     assert restored_rng_sequence == expected_continuation
 
@@ -1332,6 +1334,8 @@ def test_round_trip_session_with_pending_battle_preserves_snapshot_and_board():
     dumped = persist.dump_session(paused)
     restored = persist.load_session(json.loads(json.dumps(dumped)))
 
+    assert "attack_targets" not in expected_snapshot["battle"]
+    assert dumped["pending_battle"]["attack_targets"] == []
     assert restored.pending_battle is not None, (
         "kryterium 1: load_session musi odtworzyć pending_battle"
     )
@@ -1350,6 +1354,64 @@ def test_round_trip_session_with_pending_battle_preserves_snapshot_and_board():
     assert restored.snapshot() == expected_snapshot, (
         "kryterium 1: snapshot wznowionej bitwy musi być identyczny"
     )
+
+    legacy_dump = copy.deepcopy(dumped)
+    del legacy_dump["pending_battle"]["attack_targets"]
+    legacy_restored = persist.load_session(json.loads(json.dumps(legacy_dump)))
+    assert legacy_restored.pending_battle is not None
+    assert legacy_restored.pending_battle.attack_targets == {}
+    assert legacy_restored.snapshot() == expected_snapshot
+
+
+def test_round_trip_pending_battle_with_target_preserves_intent_and_next_advance():
+    """G120.1c kryteria 1-3: zapis zachowuje cel i dalszy przebieg bitwy.
+
+    Realistyczny defekt: ``battle_target`` może działać w bieżącej sesji, ale
+    ``dump_pending_battle`` albo ``load_pending_battle`` może zgubić tę decyzję;
+    wtedy snapshot po odczycie wygląda jak plansza bez celu, a następny
+    ``battle_advance`` wybiera inną jednostkę lub ścieżkę ruchu.
+    """
+    paused = _paused_battle_session()
+    target_command = json.dumps({
+        "type": "battle_target",
+        "attacker": {"q": 0, "r": 0},
+        "target": {"q": 2, "r": 1},
+    })
+    targeted, target_response = handle_command_line(paused, target_command)
+
+    assert target_response["ok"] is True
+    assert target_response["result"]["changed"] is True
+    expected_targets = [{
+        "attacker": {"q": 0, "r": 0},
+        "target": {"q": 2, "r": 1},
+    }]
+    public_battle = target_response["snapshot"]["battle"]
+    assert "attack_targets" in public_battle, (
+        "kryterium 1: snapshot musi zawierać cele ustawione przez gracza"
+    )
+    assert public_battle["attack_targets"] == expected_targets
+
+    dumped = persist.dump_session(targeted)
+    pending_dump = dumped["pending_battle"]
+    assert pending_dump is not None
+    assert "attack_targets" in pending_dump, (
+        "kryterium 3: zapis pending_battle musi przenosić cele ataku"
+    )
+    assert pending_dump["attack_targets"] == expected_targets
+    restored = persist.load_session(json.loads(json.dumps(dumped)))
+    assert restored.snapshot()["battle"]["attack_targets"] == expected_targets
+
+    expected, expected_response = handle_command_line(
+        targeted, '{"type":"battle_advance"}'
+    )
+    resumed, resumed_response = handle_command_line(
+        restored, '{"type":"battle_advance"}'
+    )
+    assert resumed_response["result"] == expected_response["result"]
+    assert resumed.snapshot() == expected.snapshot(), (
+        "kryterium 3: battle_advance po odczycie musi zachować przebieg"
+    )
+    assert resumed.rng.state() == expected.rng.state()
 
 
 def test_round_trip_pending_battle_resumes_with_same_advance_and_auto_result():
@@ -1529,6 +1591,7 @@ def test_round_trip_session_with_battle_preserves_last_battle_and_components():
     assert restored.calendar == session.calendar
     assert restored.player_duchy_id == session.player_duchy_id
     assert restored.seed == session.seed
+    assert restored.snapshot() == session.snapshot()
 
     expected_rng = [session.rng.randint(1, 100) for _ in range(5)]
     actual_rng = [restored.rng.randint(1, 100) for _ in range(5)]
