@@ -17,6 +17,7 @@ const BATTLE_RESULT_TEXTS := {
 	"defender_win": "Porażka",
 	"draw": "Remis",
 }
+const ACTIVE_ENEMY_REQUIRED_STATUS := "Wybierz aktywną jednostkę wroga."
 
 # Battle base fill (G103.1d): muted parchment plains hex, same family as map grounds.
 const TERRAIN_PLAINS := preload("res://assets/terrain_plains.png")
@@ -51,8 +52,13 @@ const HP_MARKER_SIZE := Vector2(88, 24)
 # 1.0 = native G98/G105 geometry; Main may lower this under with-battle chrome fit.
 var _layout_scale := 1.0
 var _last_hexes: Array = []
+var _selected_attacker: Variant = null
+var _battle_in_progress := false
 # INF = no vertical budget from Main; finite = fit_vertical_budget last request.
 var _vertical_budget := INF
+
+signal battle_target_selected(attacker: Dictionary, target: Dictionary)
+signal battle_selection_rejected(status: String)
 
 
 func _notification(what: int) -> void:
@@ -70,6 +76,7 @@ func render_model(model: SnapshotModel) -> void:
 		return
 
 	visible = true
+	_battle_in_progress = battle.get("result") == null
 	_set_result_state(battle.get("result"))
 	var hexes: Variant = battle.get("hexes")
 	if not hexes is Array:
@@ -271,6 +278,8 @@ func _layout_result_label(max_hex_bottom: float) -> void:
 
 func _reset_and_hide_view() -> void:
 	visible = false
+	_battle_in_progress = false
+	_selected_attacker = null
 	# Drop vertical minimum so MapAndBattle can collapse (G94.1d). Height is set
 	# by _layout_result_label when a battle is shown; zero here clears that
 	# content-driven minimum (not a scene default of 240).
@@ -321,8 +330,57 @@ func _add_tile(q: int, r: int, hex: Dictionary, origin_x: float) -> void:
 	_apply_hex_paint_order(tile, r)
 	tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(tile)
+	var hit_target := Control.new()
+	hit_target.name = "BattleHitTarget"
+	hit_target.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	hit_target.mouse_filter = Control.MOUSE_FILTER_STOP
+	hit_target.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	hit_target.gui_input.connect(_on_tile_gui_input.bind(hex))
+	tile.add_child(hit_target)
 	_add_terrain_layers(tile, hex.get("terrain"))
 	_add_unit_overlay(tile, hex.get("side"), hex.get("hp"))
+
+
+func _on_tile_gui_input(event: InputEvent, hex: Dictionary) -> void:
+	if not _battle_in_progress or not event is InputEventMouseButton:
+		return
+	var mouse_event := event as InputEventMouseButton
+	if mouse_event.button_index != MOUSE_BUTTON_LEFT or not mouse_event.pressed:
+		return
+	if _selected_attacker == null:
+		if _is_active_unit(hex, "attacker"):
+			_selected_attacker = _hex_coordinates(hex)
+		else:
+			battle_selection_rejected.emit("Najpierw wybierz aktywną własną jednostkę.")
+		return
+	if _is_active_unit(hex, "attacker"):
+		var replacement := _hex_coordinates(hex)
+		var changed_selection: bool = replacement != _selected_attacker
+		_selected_attacker = replacement
+		if changed_selection:
+			battle_selection_rejected.emit(ACTIVE_ENEMY_REQUIRED_STATUS)
+		return
+	if not _is_active_unit(hex, "defender"):
+		battle_selection_rejected.emit(ACTIVE_ENEMY_REQUIRED_STATUS)
+		return
+	var attacker: Dictionary = _selected_attacker
+	_selected_attacker = null
+	call_deferred("_emit_battle_target_selected", attacker, _hex_coordinates(hex))
+
+
+func _emit_battle_target_selected(attacker: Dictionary, target: Dictionary) -> void:
+	battle_target_selected.emit(attacker, target)
+
+
+func _is_active_unit(hex: Dictionary, expected_side: String) -> bool:
+	if hex.get("side") != expected_side or hex.get("stunned", false) == true:
+		return false
+	var hp: Variant = hex.get("hp")
+	return (hp is int or hp is float) and hp > 0
+
+
+func _hex_coordinates(hex: Dictionary) -> Dictionary:
+	return {"q": int(hex.get("q", 0)), "r": int(hex.get("r", 0))}
 
 
 func _add_unit_overlay(tile: Control, side: Variant, hp: Variant) -> void:

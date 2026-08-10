@@ -120,7 +120,40 @@ static func _battle(snapshot: Dictionary) -> Variant:
 		var projected_hex: Variant = _project_battle_hex(hex, result == null)
 		if projected_hex != null:
 			hexes.append(projected_hex)
-	return {"result": result, "hexes": hexes}
+	var battle := {"result": result, "hexes": hexes}
+	var projected_targets := _project_attack_targets(battle_snapshot.get("attack_targets"))
+	if not projected_targets.is_empty():
+		battle["attack_targets"] = projected_targets
+	return battle
+
+
+static func _project_attack_targets(value: Variant) -> Array:
+	var projected_targets: Array = []
+	if not value is Array:
+		return projected_targets
+	for pair: Variant in value:
+		var projected_pair: Variant = _project_attack_target(pair)
+		if projected_pair != null:
+			projected_targets.append(projected_pair)
+	return projected_targets
+
+
+static func _project_attack_target(pair: Variant) -> Variant:
+	if not pair is Dictionary:
+		return null
+	var attacker: Variant = _project_battle_coordinates(pair.get("attacker"))
+	var target: Variant = _project_battle_coordinates(pair.get("target"))
+	if attacker == null or target == null:
+		return null
+	return {"attacker": attacker, "target": target}
+
+
+static func _project_battle_coordinates(value: Variant) -> Variant:
+	if not value is Dictionary:
+		return null
+	if not _is_numeric(value.get("q")) or not _is_numeric(value.get("r")):
+		return null
+	return {"q": int(value["q"]), "r": int(value["r"])}
 
 
 static func _project_battle_hex(hex: Variant, pending: bool) -> Variant:

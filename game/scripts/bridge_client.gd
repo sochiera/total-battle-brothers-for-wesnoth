@@ -206,6 +206,15 @@ func battle_auto() -> SnapshotModel:
 	return _send_persisted_sequence({"type": "battle_auto"})
 
 
+func battle_target(attacker: Dictionary, target: Dictionary) -> SnapshotModel:
+	_last_command_result = null
+	return _send_persisted_sequence({
+		"type": "battle_target",
+		"attacker": attacker,
+		"target": target,
+	})
+
+
 func save_party(path: String) -> SnapshotModel:
 	return _send_persisted_sequence({"type": "save", "path": path})
 
@@ -230,6 +239,15 @@ func last_battle_result() -> Variant:
 	result["attacker_losses"] = int(result["attacker_losses"])
 	result["defender_losses"] = int(result["defender_losses"])
 	return result
+
+
+func last_battle_target_result() -> Variant:
+	if (
+		not _last_command_result is Dictionary
+		or _last_command_result.get("kind") != "battle_target"
+	):
+		return null
+	return _last_command_result.duplicate()
 
 
 func snapshot_model() -> SnapshotModel:
