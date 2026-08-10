@@ -31,11 +31,20 @@ import json
 import pytest
 
 import tbb.ai as ai
-from tbb.battle import BattleSide
+from tbb.battle import BattleSide, HexBattle
+from tbb.battlefield import Battlefield
+from tbb.duchy import Duchy
 from tbb.driver import resolve_hero_survival
 from tbb.game import GameState
+from tbb.hex import Hex
+from tbb.party import Party
+from tbb.rng import Rng
+from tbb.settlement import Settlement
+from tbb.turn import Calendar
+from tbb.unit import Unit
+from tbb.world import Region, WorldMap
 from tbbbridge.protocol import handle_command_line
-from tbbbridge.session import new_session
+from tbbbridge.session import PendingBattle, Session, new_session
 from tbbbridge.snapshot import battle_state, game_state
 
 
@@ -83,6 +92,339 @@ def _pause_on_border_engage():
     assert response["ok"] is True
     assert response["result"]["kind"] == "battle_pending"
     return session, paused
+
+
+def _pause_on_keep_assault():
+    keep = Region("Keep")
+    attacker = Party(Unit(equipment=1), owner_id="player")
+    settlement = Settlement(
+        "Keep",
+        population=1,
+        garrison=(Unit(equipment=1),),
+        owner_id="ai",
+    )
+    world = WorldMap(
+        (keep,),
+        settlements={keep: settlement},
+        parties={keep: attacker},
+    )
+    session = Session(
+        world=world,
+        game=GameState(
+            (
+                Duchy("player", attacker.hero, parties=(attacker,)),
+                Duchy("ai", Unit(), settlements=(settlement,)),
+            )
+        ),
+        calendar=Calendar(),
+        rng=Rng(73),
+        player_duchy_id="player",
+        seed=73,
+    )
+    paused, response = handle_command_line(
+        session, '{"type":"order","order":"assault"}'
+    )
+    assert response["ok"] is True
+    assert response["result"]["kind"] == "battle_pending"
+    return session, paused
+
+
+def _battle_target_command(attacker: tuple[int, int], target: tuple[int, int]) -> str:
+    return json.dumps(
+        {
+            "type": "battle_target",
+            "attacker": {"q": attacker[0], "r": attacker[1]},
+            "target": {"q": target[0], "r": target[1]},
+        }
+    )
+
+
+def _two_target_battle_session() -> Session:
+    """Public bridge fixture with one attacker and two active enemy hexes."""
+    start, border = Region("Start"), Region("Border")
+    attacker = Party(Unit(equipment=1), owner_id="player")
+    defender = Party(
+        Unit(equipment=1),
+        units=(Unit(equipment=1),),
+        owner_id="ai",
+    )
+    world = WorldMap(
+        (start, border),
+        ((start, border),),
+        parties={start: attacker, border: defender},
+    )
+    game = GameState(
+        (
+            Duchy("player", attacker.hero, parties=(attacker,)),
+            Duchy("ai", defender.hero, parties=(defender,)),
+        )
+    )
+    return Session(
+        world=world,
+        game=game,
+        calendar=Calendar(),
+        rng=Rng(73),
+        player_duchy_id="player",
+        seed=73,
+    )
+
+
+def _pause_two_target_battle():
+    session = _two_target_battle_session()
+    paused, response = handle_command_line(
+        session, '{"type":"order","order":"engage"}'
+    )
+    assert response["ok"] is True
+    assert response["result"]["kind"] == "battle_pending"
+    return paused
+
+
+def _pause_battle_with_two_attacking_units() -> Session:
+    """Build a pending bridge session whose two attackers have distinct routes."""
+    session = _two_target_battle_session()
+    start, border = session.world.regions
+    battle = (
+        HexBattle(Battlefield())
+        .deploy(Unit(equipment=1), Hex(0, 0), BattleSide.ATTACKER)
+        .deploy(Unit(equipment=1), Hex(1, 0), BattleSide.DEFENDER)
+        .deploy(Unit(equipment=1), Hex(0, 3), BattleSide.ATTACKER)
+        .deploy(Unit(equipment=1), Hex(1, 3), BattleSide.DEFENDER)
+    )
+    return Session(
+        world=session.world,
+        game=session.game,
+        calendar=session.calendar,
+        rng=session.rng,
+        player_duchy_id=session.player_duchy_id,
+        seed=session.seed,
+        pending_battle=PendingBattle(
+            battle=battle,
+            source=start,
+            target=border,
+            kind="party",
+            attacker_owner_id="player",
+            defender_owner_id="ai",
+        ),
+    )
+
+
+def _pause_zero_damage_battle() -> Session:
+    """Build a pending battle that remains unresolved through auto_resolve."""
+    session = _two_target_battle_session()
+    start, border = session.world.regions
+    battle = (
+        HexBattle(Battlefield())
+        .deploy(Unit(equipment=0), Hex(0, 0), BattleSide.ATTACKER)
+        .deploy(Unit(equipment=0), Hex(1, 0), BattleSide.DEFENDER)
+    )
+    return Session(
+        world=session.world,
+        game=session.game,
+        calendar=session.calendar,
+        rng=session.rng,
+        player_duchy_id=session.player_duchy_id,
+        seed=session.seed,
+        pending_battle=PendingBattle(
+            battle=battle,
+            source=start,
+            target=border,
+            kind="party",
+            attacker_owner_id="player",
+            defender_owner_id="ai",
+        ),
+    )
+
+
+def _attacker_positions(snapshot: dict) -> list[tuple[int, int]]:
+    return [
+        (hex_state["q"], hex_state["r"])
+        for hex_state in snapshot["battle"]["hexes"]
+        if hex_state["side"] == "attacker"
+    ]
+
+
+@pytest.mark.parametrize(
+    ("pause_factory", "attacker", "target"),
+    (
+        pytest.param(_pause_on_border_engage, (0, 0), (2, 1), id="engage"),
+        pytest.param(_pause_on_keep_assault, (0, 0), (2, 0), id="assault"),
+    ),
+)
+def test_battle_target_records_intent_without_resolving_pending_battle(
+    pause_factory, attacker, target
+):
+    """G120.1b AC1: a valid target keeps an assault or engage battle paused."""
+    _, paused = pause_factory()
+    before_snapshot = paused.snapshot()
+    before_rng = paused.rng.state()
+    before_calendar = paused.calendar
+
+    returned, response = handle_command_line(
+        paused, _battle_target_command(attacker, target)
+    )
+
+    assert response["ok"] is True, response
+    assert response["result"]["kind"] == "battle_target", response
+    assert response["result"]["changed"] is True, response
+    assert returned.pending_battle is not None
+    assert returned.last_battle is None
+    assert response["snapshot"]["battle"]["result"] is None
+    assert returned.world is paused.world
+    assert returned.calendar == before_calendar
+    assert returned.rng.state() == before_rng
+    assert returned.snapshot() == before_snapshot
+
+
+def test_battle_target_changes_the_next_round_toward_the_indicated_enemy():
+    """G120.1b AC2: an indicated non-nearest enemy changes the next round."""
+    baseline = _pause_two_target_battle()
+    baseline_after, baseline_response = handle_command_line(
+        baseline, '{"type":"battle_advance"}'
+    )
+    assert baseline_response["ok"] is True
+    assert baseline_response["result"]["kind"] == "battle_pending"
+
+    targeted = _pause_two_target_battle()
+    targeted, target_response = handle_command_line(
+        targeted, _battle_target_command((0, 0), (2, 1))
+    )
+    assert target_response["ok"] is True
+    assert target_response["result"]["changed"] is True
+    targeted_after, advance_response = handle_command_line(
+        targeted, '{"type":"battle_advance"}'
+    )
+
+    assert advance_response["ok"] is True
+    assert advance_response["result"]["kind"] == "battle_pending"
+    assert targeted_after.pending_battle is not None
+    assert targeted_after.snapshot()["battle"]["result"] is None
+    assert _attacker_positions(baseline_after.snapshot()) == [(1, 0)]
+    assert _attacker_positions(targeted_after.snapshot()) == [(0, 1)]
+    assert _attacker_positions(targeted_after.snapshot()) != _attacker_positions(
+        baseline_after.snapshot()
+    )
+
+
+def test_battle_target_merges_multiple_attacker_intents_for_one_advance():
+    """G120.1b AC1-2: two targets survive and affect one public round."""
+    paused = _pause_battle_with_two_attacking_units()
+
+    paused, first_response = handle_command_line(
+        paused, _battle_target_command((0, 0), (1, 3))
+    )
+    assert first_response["ok"] is True
+    assert first_response["result"]["changed"] is True
+
+    paused, second_response = handle_command_line(
+        paused, _battle_target_command((0, 3), (1, 0))
+    )
+    assert second_response["ok"] is True
+    assert second_response["result"]["changed"] is True
+
+    advanced, advance_response = handle_command_line(
+        paused, '{"type":"battle_advance"}'
+    )
+
+    assert advance_response["ok"] is True
+    assert advance_response["result"]["kind"] == "battle_pending"
+    assert _attacker_positions(advanced.snapshot()) == [(0, 1), (0, 2)]
+
+
+def test_battle_target_is_used_by_battle_auto_and_is_deterministic():
+    """G120.1b AC4-5: auto honours a target and repeats the public sequence."""
+
+    def run_targeted_auto():
+        session = _pause_two_target_battle()
+        session, target_response = handle_command_line(
+            session, _battle_target_command((0, 0), (2, 1))
+        )
+        assert target_response["ok"] is True
+        assert target_response["result"]["changed"] is True
+
+        session, auto_response = handle_command_line(
+            session, '{"type":"battle_auto"}'
+        )
+        assert auto_response["ok"] is True
+        assert auto_response["result"]["kind"] == "battle"
+        return auto_response, session.snapshot(), session.rng.state()
+
+    first = run_targeted_auto()
+    second = run_targeted_auto()
+
+    assert first == second
+    assert _attacker_positions(first[1]) == [(0, 1)]
+
+
+def test_battle_auto_consumes_targets_when_battle_remains_pending():
+    """A non-resolving auto step must not retain its one-shot target map."""
+    paused = _pause_zero_damage_battle()
+    paused, target_response = handle_command_line(
+        paused, _battle_target_command((0, 0), (1, 0))
+    )
+    assert target_response["ok"] is True
+    assert target_response["result"]["changed"] is True
+
+    advanced, auto_response = handle_command_line(
+        paused, '{"type":"battle_auto"}'
+    )
+
+    assert auto_response["ok"] is True
+    assert auto_response["result"]["kind"] == "battle_pending"
+    assert advanced.pending_battle is not None
+    assert advanced.pending_battle.attack_targets == {}
+
+
+@pytest.mark.parametrize(
+    ("label", "attacker", "target"),
+    (
+        ("empty attacker", (1, 0), (2, 1)),
+        ("defender as attacker", (2, 0), (2, 1)),
+        ("empty target", (0, 0), (1, 0)),
+        ("ally target", (0, 0), (0, 1)),
+        ("same hex", (0, 0), (0, 0)),
+    ),
+)
+def test_battle_target_refuses_invalid_hex_pairs_with_reason(label, attacker, target):
+    """G120.1b AC3: invalid pairs are successful protocol refusals without mutation."""
+    _, paused = _pause_on_border_engage()
+    before_snapshot = paused.snapshot()
+    before_rng = paused.rng.state()
+
+    returned, response = handle_command_line(
+        paused, _battle_target_command(attacker, target)
+    )
+
+    assert response["ok"] is True, (label, response)
+    result = response["result"]
+    assert result["kind"] == "battle_target", (label, result)
+    assert result["changed"] is False, (label, result)
+    assert isinstance(result.get("reason"), str) and result["reason"].strip(), (
+        label,
+        result,
+    )
+    assert returned.world is paused.world
+    assert returned.snapshot() == before_snapshot
+    assert returned.rng.state() == before_rng
+
+
+def test_battle_target_without_pending_battle_is_successful_refusal_with_reason():
+    """G120.1b AC3: the command is refused cleanly when no battle is pending."""
+    session = new_session(seed=73, player_duchy_id="player")
+    before_snapshot = session.snapshot()
+    before_rng = session.rng.state()
+
+    returned, response = handle_command_line(
+        session, _battle_target_command((0, 0), (2, 1))
+    )
+
+    assert response["ok"] is True, response
+    result = response["result"]
+    assert result["kind"] == "battle_target"
+    assert result["changed"] is False
+    assert isinstance(result.get("reason"), str) and result["reason"].strip()
+    assert returned.world is session.world
+    assert returned.snapshot() == before_snapshot
+    assert returned.rng.state() == before_rng
 
 
 def test_engage_that_starts_battle_pauses_with_battle_pending_deployment_board():

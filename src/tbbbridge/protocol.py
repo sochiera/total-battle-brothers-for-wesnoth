@@ -10,6 +10,7 @@ from tbbbridge.session import (
     Session,
     _find_region_by_name,
     _resolve_player_duchy,
+    _battle_target_reason,
     apply_command,
     new_session,
 )
@@ -171,6 +172,18 @@ def command_result(before: Session, after: Session, command: dict) -> dict:
 
     if command_type in ("battle_advance", "battle_auto"):
         return _battle_step_result(command_type, before, after)
+
+    if command_type == "battle_target":
+        if (
+            before.pending_battle is not None
+            and after.pending_battle is not before.pending_battle
+        ):
+            return {"kind": "battle_target", "changed": True}
+        return {
+            "kind": "battle_target",
+            "changed": False,
+            "reason": _battle_target_reason(before, command),
+        }
 
     if command_type == "new_game":
         return {"kind": "new_game"}
