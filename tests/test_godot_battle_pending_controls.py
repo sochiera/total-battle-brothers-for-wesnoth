@@ -179,6 +179,98 @@ def test_live_bridge_round_sequence_updates_board_resolves_and_survives_restart(
     assert resumed["tile_count"] == 0, resumed
 
 
+def test_live_pending_battle_resumes_in_second_process_and_blocks_turn(tmp_path):
+    """G119.1d AC1-3: pause, persistence/continuation, and live blocking.
+
+    Realistic defect missed by the existing live gate: the one-process client
+    sequence can paint a pending board and resolve it while the save made at
+    that point omits the current HexBattle, or while a resumed client silently
+    advances the calendar/RNG when another order is attempted.  The gate uses
+    the public client buttons and methods, saves a pending assault in one
+    process, resumes it in another, and compares both continuations with the
+    same sequence without the process boundary.
+
+    The remaining task criteria are intentionally deferred: AC4 is the longer
+    rush/passive/K112-K118 regression measurement, and AC5 is the documentation
+    plus post-measurement full-build gate.
+    """
+    command = f"PYTHONPATH={shlex.quote(str(ROOT / 'src'))} python3 -m tbbbridge"
+
+    persisted_dir = tmp_path / "persisted"
+    continuous_dir = tmp_path / "continuous"
+    persisted_dir.mkdir()
+    continuous_dir.mkdir()
+    persisted_start = _run_live_probe(persisted_dir, "start_pending")
+    persisted_resume = _run_live_probe(persisted_dir, "resume_pending")
+    continuous = _run_live_probe(continuous_dir, "continuous")
+
+    pending = persisted_start["pending"]
+    assert persisted_start["state_exists"] is True, persisted_start
+    assert persisted_start["session_command"] == (
+        f"{command} serve --resume '{persisted_dir / 'battle-state.json'}'"
+    )
+    assert pending["visible"] is True, pending
+    assert pending["tile_count"] >= 2, pending
+    assert pending["result_text"] == "", pending
+    assert pending["model_battle_result"] is None, pending
+
+    resumed_pending = persisted_resume["pending_before"]
+    assert persisted_resume["state_exists"] is True, persisted_resume
+    assert persisted_resume["session_command"] == (
+        f"{command} serve --resume '{persisted_dir / 'battle-state.json'}'"
+    )
+    assert resumed_pending["model_battle_result"] is None, resumed_pending
+    assert resumed_pending["visible"] is True, resumed_pending
+    assert resumed_pending["tile_count"] >= 2, resumed_pending
+    assert resumed_pending["model_hexes"] == pending["model_hexes"], (
+        "--resume must restore the deployment board exactly"
+    )
+
+    blocked = persisted_resume["blocked_order_result"]
+    assert persisted_resume["blocked_order_model_available"] is True, persisted_resume
+    assert blocked == {
+        "order": "develop",
+        "changed": False,
+        "reason": "bitwa w toku",
+    }, persisted_resume
+    assert persisted_resume["blocked_next_turn_model_available"] is True, persisted_resume
+    next_turn_result = persisted_resume["blocked_next_turn_result"]
+    assert next_turn_result["changed"] is False, persisted_resume
+    assert next_turn_result["reason"] == "bitwa w toku", persisted_resume
+    assert persisted_resume["blocked_before_regions"] == persisted_resume["blocked_after_regions"], (
+        "a blocked order and next_turn must not change the public world snapshot"
+    )
+    assert persisted_resume["blocked_before_date"] == persisted_resume["blocked_after_date"], (
+        "next_turn during a pending battle must not advance the calendar"
+    )
+
+    after_advance = persisted_resume["after_advance"]
+    assert persisted_resume["advance_pressed"] is True, persisted_resume
+    assert after_advance["visible"] is True, after_advance
+    assert after_advance["result_text"] == "", after_advance
+    assert after_advance["model_battle_result"] is None, after_advance
+    assert after_advance["model_hexes"] != resumed_pending["model_hexes"], {
+        "pending": resumed_pending,
+        "after_advance": after_advance,
+    }
+
+    after_auto = persisted_resume["after_auto"]
+    reference_after_advance = continuous["after_advance"]
+    reference_after_auto = continuous["after_auto"]
+    assert persisted_resume["auto_pressed"] is True, persisted_resume
+    assert after_auto["model_battle_result"] is not None, after_auto
+    assert after_auto["result_text"].casefold() in {"zwycięstwo", "porażka", "remis"}, after_auto
+    assert after_advance["model_hexes"] == reference_after_advance["model_hexes"], (
+        "one round after --resume must start from the same saved battle state"
+    )
+    assert after_auto["model_battle_result"] == reference_after_auto["model_battle_result"], (
+        "battle_auto after --resume must preserve the no-resume result"
+    )
+    assert after_auto["model_hexes"] == reference_after_auto["model_hexes"], (
+        "battle_auto after --resume must preserve final positions and hp"
+    )
+
+
 def _png_dimensions(path: Path) -> tuple[int, int]:
     data = path.read_bytes()
     assert data[:8] == b"\x89PNG\r\n\x1a\n", path

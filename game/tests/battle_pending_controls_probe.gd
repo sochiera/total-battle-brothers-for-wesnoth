@@ -168,6 +168,10 @@ func _run_live(args: PackedStringArray) -> void:
 		await process_frame
 
 	var phase: String = args[4]
+	if phase == "resume_pending":
+		await _run_resumed_pending(scene_root, client, args[1])
+		return
+
 	if phase == "resume":
 		print(PREFIX, JSON.stringify({
 			"phase": phase,
@@ -177,7 +181,7 @@ func _run_live(args: PackedStringArray) -> void:
 		}))
 		quit(0)
 		return
-	if phase != "play":
+	if phase != "play" and phase != "start_pending" and phase != "continuous":
 		_fail("unknown live phase: %s" % phase)
 		return
 
@@ -197,6 +201,16 @@ func _run_live(args: PackedStringArray) -> void:
 			await process_frame
 
 	var pending := _battle_observation(scene_root)
+	if phase == "start_pending":
+		print(PREFIX, JSON.stringify({
+			"phase": phase,
+			"state_exists": FileAccess.file_exists(args[1]),
+			"pending": pending,
+			"session_command": client.session_command(),
+		}))
+		quit(0)
+		return
+
 	var regular_buttons := {}
 	for button_name: String in REGULAR_ORDER_BUTTONS:
 		regular_buttons[button_name] = _button_state(scene_root, button_name)
@@ -248,6 +262,75 @@ func _run_live(args: PackedStringArray) -> void:
 		"next_turn_pressed": next_turn_pressed,
 		"next_turn_request_types": next_turn_request_types,
 		"after_next_turn": after_next_turn,
+	}))
+	quit(0)
+
+
+func _run_resumed_pending(scene_root: Control, client: BridgeClient, state_path: String) -> void:
+	var pending_before := _battle_observation(scene_root)
+	var pending_model: Variant = client.snapshot_model()
+	if pending_model == null or not pending_model.battle is Dictionary:
+		_fail("resumed pending battle snapshot unavailable")
+		return
+
+	var blocked_before_date := {
+		"year": pending_model.year,
+		"month": pending_model.month,
+	}
+	var blocked_model: Variant = client.send_order("develop")
+	var blocked_order_result: Variant = client.last_order_result()
+	var blocked_next_turn_responses: Array = client.send_many([
+		{"type": "next_turn"},
+		{"type": "save", "path": state_path},
+	])
+	var blocked_next_turn_model: Variant = null
+	var blocked_next_turn_result: Variant = {}
+	if not blocked_next_turn_responses.is_empty() and blocked_next_turn_responses[0] is Dictionary:
+		var next_turn_response: Dictionary = blocked_next_turn_responses[0]
+		blocked_next_turn_model = SnapshotModel.from_response(next_turn_response)
+		var result: Variant = next_turn_response.get("result")
+		if result is Dictionary:
+			blocked_next_turn_result = result
+	var blocked_before_regions: Array = pending_model.regions
+	var blocked_after_regions: Array = []
+	var blocked_after_date := {
+		"year": -1,
+		"month": -1,
+	}
+	if blocked_next_turn_model != null:
+		blocked_after_regions = blocked_next_turn_model.regions
+		blocked_after_date = {
+			"year": blocked_next_turn_model.year,
+			"month": blocked_next_turn_model.month,
+		}
+
+	var advance_pressed := _press_button(scene_root, "BattleAdvanceButton")
+	for _i in 4:
+		await process_frame
+	var after_advance := _battle_observation(scene_root)
+
+	var auto_pressed := _press_button(scene_root, "BattleAutoButton")
+	for _i in 4:
+		await process_frame
+	var after_auto := _battle_observation(scene_root)
+
+	print(PREFIX, JSON.stringify({
+		"phase": "resume_pending",
+		"state_exists": FileAccess.file_exists(state_path),
+		"session_command": client.session_command(),
+		"pending_before": pending_before,
+		"blocked_order_model_available": blocked_model != null,
+		"blocked_order_result": blocked_order_result if blocked_order_result != null else {},
+		"blocked_next_turn_model_available": blocked_next_turn_model != null,
+		"blocked_next_turn_result": blocked_next_turn_result,
+		"blocked_before_regions": blocked_before_regions,
+		"blocked_after_regions": blocked_after_regions,
+		"blocked_before_date": blocked_before_date,
+		"blocked_after_date": blocked_after_date,
+		"advance_pressed": advance_pressed,
+		"after_advance": after_advance,
+		"auto_pressed": auto_pressed,
+		"after_auto": after_auto,
 	}))
 	quit(0)
 
@@ -333,22 +416,20 @@ func _battle_observation(scene_root: Control) -> Dictionary:
 				"hp_text": "" if hp_marker == null else hp_marker.text,
 				"visible": child.is_visible_in_tree(),
 			})
+	var model_battle_result: Variant = null
+	var model_hexes: Array = []
+	var client: Variant = scene_root.get("_client")
+	if client != null and client.has_method("snapshot_model"):
+		var model: Variant = client.snapshot_model()
+		if model != null and model.battle is Dictionary:
+			model_battle_result = model.battle.get("result")
+			model_hexes = model.battle.get("hexes", [])
 	return {
 		"visible": battle_view != null and battle_view.is_visible_in_tree(),
 		"tile_count": tiles.size(),
 		"tiles": tiles,
 		"result_text": _label_text(scene_root, "BattleResultLabel"),
-		"model_hexes": _model_battle_hexes(scene_root),
+		"model_battle_result": model_battle_result,
+		"model_hexes": model_hexes,
 		"order_status": _label_text(scene_root, "LastOrderStatusLabel"),
 	}
-
-
-func _model_battle_hexes(scene_root: Control) -> Array:
-	var client: Variant = scene_root.get("_client")
-	if client == null or not client.has_method("snapshot_model"):
-		return []
-	var model: Variant = client.snapshot_model()
-	if model == null:
-		return []
-	var battle: Variant = model.get("battle")
-	return battle.get("hexes", []) if battle is Dictionary else []
