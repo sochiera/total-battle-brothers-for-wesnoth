@@ -213,21 +213,33 @@ czysto informacyjny, jak liczby z K113 — nadal wymaga dowodu wizualnego
 1–17. ~~K82–K118~~ — **zrobione** (bootstrap, most, pakiet, assety, próg
    wizualny, pętla sandboxa, ekonomia tury, diagnostyka rozkazów). Regresje
    stoją (bierna R1M7, aktywna R1M4–R1M5).
-18. **K119 — pierwszy krok ku taktycznej bitwie (kadencja 2026-08-09, po K118):**
-    dziś bitwa jest w całości `HexBattle.auto_resolve` w rdzeniu, a brief mówi
-    „taktyczne bitwy na heksach" i „rozegrać bitwę". To **największa otwarta
-    rozbieżność z briefem**; formalne kryterium odhaczyliśmy czytając
-    „rozegrać" jako „zobaczyć wynik", ale to był świadomy kompromis. K119 to
-    **najcieńszy krok**: gracz widzi planszę bitwy przed rozstrzygnięciem i
-    przechodzi rundy (`battle_advance`/`battle_auto`), bez wyboru celu ani
-    sterowania ruchem (to K120+). `take_unit_turn` nietknięty, AI się nie
-    zmienia, reguły walki/ruchu/obrażeń bez zmian. **Zero zmian progu 2:1,
-    tempa AI, kosztów rozkazów i ekonomii z K115.** Diagnoza → `BACKLOG.md`,
-    K119.
-19. **Prawdopodobnie potem:** wybór celu jednostki w bitwie (K120+), tempo
-    presji AI (partia nadal jest krótka — 4–10 miesięcy) oraz panel ekonomii
-    osady (saldo pszenicy — dane w snapshocie od K63, gracz widzi dziś tylko
-    `free` z K114). Tempo AI i panel ekonomii zostają świadomie odłożone.
+18. **US-001–US-005 — pierwszy krok ku taktycznej bitwie (migracja K119,
+    2026-08-10):** dziś bitwa jest w całości rozstrzygana automatycznie, choć
+    brief mówi o taktycznych bitwach na heksach i rozegraniu bitwy. To
+    **największa otwarta rozbieżność z briefem**. Najcieńszy krok zachowuje
+    dotychczasowe reguły: gracz zobaczy rozmieszczenie przed wynikiem, przejdzie
+    rundę albo dokończy walkę automatycznie, dostanie jasną blokadę innych
+    działań podczas bitwy i wznowi zapisany stan walki. Bez wyboru celu,
+    ręcznego ruchu, zmian zachowania AI, reguł walki, progu 2:1, kosztów
+    rozkazów i ekonomii. Kolejność tych efektów zapisuje `BACKLOG.md`.
+19. **Prawdopodobnie potem — dalsza agencja w bitwie:** wybór celu jednostki i
+    sterowanie ruchem, a także pełne pole bitwy z pustymi heksami i wymiarami.
+    To dawny kierunek K120+; wymaga stanu bitwy w toku z US-001–US-005.
+20. **Prawdopodobnie potem — informacja i tempo sandboxa:** panel ekonomii
+    osady z saldem pszenicy oraz ocena tempa presji AI, ponieważ partia nadal
+    trwa zwykle 4–10 miesięcy. Dane ekonomii są w snapshocie od K63; strojenie
+    tempa pozostaje odłożone do pomiaru.
+21. **Etapy warunkowe zachowane ze starego backlogu:** obsługa przez AI szturmu
+    na osadę zajętą przez oddział trzeciej strony dopiero po dodaniu trzeciego
+    księstwa lub reprodukcji w zwykłej partii; mechaniczny teren regionów
+    dopiero po wykazaniu potrzeby odrębnego znaczenia na mapie.
+22. **Poza MVP, zachowane ze starego backlogu:** ewentualny alert gospodarczy
+    w kliencie Godota zamiast w diagnostycznym HTML; bogatszy model ran,
+    terenu i budynków; więcej typów jednostek; balans ekonomii, rozwoju i AI;
+    pełna maszyna faz `StrategicTurn`.
+23. **Dług zachowany ze starego backlogu:** wspólna kwerenda własnych osad
+    dopiero przy następnym konsumencie wzorca oraz podział rozrośniętych plików
+    `docs/ARCHITECTURE.md`, `docs/DESIGN.md`, `docs/DECISIONS.md` i tego pliku.
 
 ## Świadomie odłożone
 - Kampania/fabuła, multiplayer, magia, oddziały masowe, AAA, dźwięk, edytor map
