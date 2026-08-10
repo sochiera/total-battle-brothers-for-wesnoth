@@ -57,3 +57,6 @@ tego samego układu, żeby zapis partii działał także w trakcie walki.
 - Dlaczego teraz: docelowe kryterium PROJECT.md wymaga zapisu i wczytania stanu, więc pauzowana bitwa nie może tworzyć luki w tej obietnicy.
 - Sprawdzenie: rozpocznij bitwę, przejdź rundę, zapisz i wczytaj grę, a następnie potwierdź ten sam układ jednostek, PŻ i możliwość przejścia kolejnej rundy.
 - Poza zakresem: wiele slotów zapisu, historia powtórek i zmiana istniejącego interfejsu zapisu poza obsługą bitwy w toku.
+- Dług dokumentacji: `docs/ARCHITECTURE.md` ma 142 KB — zaplanuj podział pliku.
+- Dług dokumentacji: `docs/DESIGN.md` ma 28 KB — zaplanuj podział pliku.
+- Dług dokumentacji: `docs/DECISIONS.md` ma 74 KB — zaplanuj podział pliku.
