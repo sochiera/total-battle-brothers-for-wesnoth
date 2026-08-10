@@ -48,10 +48,15 @@ const HP_BADGE_BY_SIDE := {
 const SIDE_SILHOUETTE_MARGIN := Vector2(20, 14)
 const HP_MARKER_MARGIN := Vector2(16, 5)
 const HP_MARKER_SIZE := Vector2(88, 24)
+const ATTACK_TARGET_MARKER_MARGIN := Vector2(8, 8)
+const ATTACK_TARGET_MARKER_BOTTOM_CLEARANCE := 42.0
+const ATTACKER_TARGET_MARKER_COLOR := Color(0.95, 0.70, 0.16, 1.0)
+const DEFENDER_TARGET_MARKER_COLOR := Color(0.84, 0.22, 0.16, 1.0)
 
 # 1.0 = native G98/G105 geometry; Main may lower this under with-battle chrome fit.
 var _layout_scale := 1.0
 var _last_hexes: Array = []
+var _last_attack_targets: Array = []
 var _selected_attacker: Variant = null
 var _battle_in_progress := false
 # INF = no vertical budget from Main; finite = fit_vertical_budget last request.
@@ -78,6 +83,7 @@ func render_model(model: SnapshotModel) -> void:
 	visible = true
 	_battle_in_progress = battle.get("result") == null
 	_set_result_state(battle.get("result"))
+	_last_attack_targets = battle.get("attack_targets", []).duplicate(true)
 	var hexes: Variant = battle.get("hexes")
 	if not hexes is Array:
 		return
@@ -286,6 +292,7 @@ func _reset_and_hide_view() -> void:
 	custom_minimum_size.y = 0.0
 	_layout_scale = 1.0
 	_last_hexes = []
+	_last_attack_targets = []
 	_clear_hex_tiles()
 	_set_result_state(null)
 
@@ -339,6 +346,7 @@ func _add_tile(q: int, r: int, hex: Dictionary, origin_x: float) -> void:
 	tile.add_child(hit_target)
 	_add_terrain_layers(tile, hex.get("terrain"))
 	_add_unit_overlay(tile, hex.get("side"), hex.get("hp"))
+	_add_attack_target_marker(tile, q, r)
 
 
 func _on_tile_gui_input(event: InputEvent, hex: Dictionary) -> void:
@@ -400,6 +408,75 @@ func _add_unit_overlay(tile: Control, side: Variant, hp: Variant) -> void:
 		silhouette.offset_bottom -= margin.y
 		tile.add_child(silhouette)
 	_add_hp_marker(tile, side, hp)
+
+
+func _add_attack_target_marker(tile: Control, q: int, r: int) -> void:
+	var marker_kind := _attack_target_marker_kind(q, r)
+	if marker_kind.is_empty():
+		return
+
+	# Keep the marker in the upper portion of the tile so the side-specific PŻ
+	# plate remains unobstructed and readable with several units on the board.
+	var marker := Panel.new()
+	marker.name = "AttackTargetMarker_%s" % marker_kind
+	marker.position = ATTACK_TARGET_MARKER_MARGIN * _layout_scale
+	marker.size = Vector2(
+		_hex_size().x - marker.position.x * 2.0,
+		_hex_size().y - marker.position.y * 2.0
+			- ATTACK_TARGET_MARKER_BOTTOM_CLEARANCE * _layout_scale,
+	)
+	marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	marker.add_theme_stylebox_override(
+		"panel", _attack_target_marker_style(marker_kind)
+	)
+	tile.add_child(marker)
+
+
+func _attack_target_marker_kind(q: int, r: int) -> String:
+	var is_attacker := false
+	var is_target := false
+	for pair: Variant in _last_attack_targets:
+		if not pair is Dictionary:
+			continue
+		var attacker: Variant = pair.get("attacker")
+		var target: Variant = pair.get("target")
+		if _same_hex_coordinates(attacker, q, r):
+			is_attacker = true
+		if _same_hex_coordinates(target, q, r):
+			is_target = true
+	if is_attacker and is_target:
+		return "both"
+	if is_attacker:
+		return "attacker"
+	if is_target:
+		return "target"
+	return ""
+
+
+func _same_hex_coordinates(value: Variant, q: int, r: int) -> bool:
+	return (
+		value is Dictionary
+		and int(value.get("q", 2147483647)) == q
+		and int(value.get("r", 2147483647)) == r
+	)
+
+
+func _attack_target_marker_style(marker_kind: String) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0, 0, 0, 0.06)
+	style.border_color = _attack_target_marker_color(marker_kind)
+	var border_width := maxi(2, roundi(4.0 * _layout_scale))
+	style.set_border_width_all(border_width)
+	style.set_corner_radius_all(maxi(3, roundi(8.0 * _layout_scale)))
+	return style
+
+
+func _attack_target_marker_color(marker_kind: String) -> Color:
+	if marker_kind == "target":
+		return DEFENDER_TARGET_MARKER_COLOR
+	if marker_kind == "both":
+		return Color(0.76, 0.33, 0.82, 1.0)
+	return ATTACKER_TARGET_MARKER_COLOR
 
 
 func _add_hp_marker(tile: Control, side: Variant, hp: Variant) -> void:
