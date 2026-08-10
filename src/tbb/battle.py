@@ -149,17 +149,34 @@ class HexBattle:
         )
         return min(enemies, key=position.distance, default=None)
 
+    def _valid_attack_target(self, position: Hex, target: Hex | None) -> Hex | None:
+        """Return an indicated active enemy, or ``None`` when it is invalid."""
+        if target is None or not self.is_occupied(target):
+            return None
+        return target if (
+            self.sides[target] is not self.sides[position]
+            and self._current_hp[target] > 0
+            and not self.units[target].stunned
+        ) else None
+
     def take_unit_turn(
-        self, position: Hex, move_points: int, morale: int, rng: Rng
+        self,
+        position: Hex,
+        move_points: int,
+        morale: int,
+        rng: Rng,
+        attack_target: Hex | None = None,
     ) -> "HexBattle":
-        """Move toward the nearest enemy or attack it when already adjacent."""
+        """Move toward an indicated or nearest enemy, or attack it when adjacent."""
         unit = self.unit_at(position)
         if unit is None:
             raise ValueError("cannot take a turn from an empty hex")
         if self.current_hp_at(position) == 0 or unit.stunned:
             return self
 
-        enemy = self.nearest_enemy(position)
+        enemy = self._valid_attack_target(position, attack_target)
+        if enemy is None:
+            enemy = self.nearest_enemy(position)
         if enemy is None:
             return self
         if position.distance(enemy) == 1:
@@ -202,6 +219,7 @@ class HexBattle:
         rng: Rng,
         attacker_morale: int = 0,
         defender_morale: int = 0,
+        attack_targets: Mapping[Hex, Hex] | None = None,
     ) -> "HexBattle":
         """Play one deployment-ordered round."""
         battle = self
@@ -237,7 +255,18 @@ class HexBattle:
                 if side is BattleSide.ATTACKER
                 else defender_morale
             )
-            battle = battle.take_unit_turn(current_position, move_points, morale, rng)
+            if attack_targets is None:
+                battle = battle.take_unit_turn(
+                    current_position, move_points, morale, rng
+                )
+            else:
+                battle = battle.take_unit_turn(
+                    current_position,
+                    move_points,
+                    morale,
+                    rng,
+                    attack_target=attack_targets.get(position),
+                )
             if battle.result() is not None:
                 break
         return battle

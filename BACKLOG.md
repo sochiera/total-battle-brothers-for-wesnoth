@@ -1,6 +1,6 @@
 # BACKLOG — Total Battle Brothers
 
-## US-006 — Gracz wskazuje cel ataku jednostki w następnej rundzie bitwy  [nowa]
+## US-006 — Gracz wskazuje cel ataku jednostki w następnej rundzie bitwy  [w toku]
 
 Jako gracz chcę wskazać wrogą jednostkę jako cel ataku własnej jednostki, żeby moja decyzja wpływała na przebieg trwającej bitwy.
 

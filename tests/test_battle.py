@@ -1146,6 +1146,194 @@ def test_take_unit_turn_attacks_adjacent_enemy_with_seeded_hit():
     assert result.current_hp_at(target) == battle.current_hp_at(target) - unit.damage
 
 
+def _take_unit_turn_with_attack_target(battle, source, target):
+    """Invoke the public one-turn API with an optional attack intention.
+
+    Keep a missing or incompatible public entry point as a contract assertion
+    so the first red gate fails for the intended reason rather than with a
+    collection or uncaught invocation error.
+    """
+    try:
+        return battle.take_unit_turn(
+            source, move_points=1, morale=0, rng=Rng(1), attack_target=target
+        )
+    except Exception as exc:
+        pytest.fail(
+            "HexBattle.take_unit_turn must accept a public attack_target "
+            f"intention and apply it; got {type(exc).__name__}: {exc}"
+        )
+
+
+def test_take_unit_turn_uses_a_valid_adjacent_attack_target_instead_of_nearest():
+    """AC1: a valid non-nearest adjacent enemy is the sole melee target."""
+    source, nearest, indicated = Hex(0, 0), Hex(1, 0), Hex(0, 1)
+    attacker = Unit(equipment=3)
+    battle = (
+        HexBattle(Battlefield())
+        .deploy(attacker, source, BattleSide.ATTACKER)
+        .deploy(Unit(training=3), nearest, BattleSide.DEFENDER)
+        .deploy(Unit(training=3), indicated, BattleSide.DEFENDER)
+    )
+
+    result = _take_unit_turn_with_attack_target(battle, source, indicated)
+
+    assert result.current_hp_at(indicated) == battle.current_hp_at(indicated) - attacker.damage
+    assert result.current_hp_at(nearest) == battle.current_hp_at(nearest)
+    assert result.unit_at(source) is attacker
+
+
+def test_take_unit_turn_moves_toward_valid_distant_target_without_attacking_adjacent_enemy():
+    """AC1: a valid distant target controls movement, not a nearer neighbour."""
+    source, nearest, indicated = Hex(0, 0), Hex(1, 0), Hex(3, -1)
+    attacker = Unit(equipment=3)
+    battle = (
+        HexBattle(Battlefield())
+        .deploy(attacker, source, BattleSide.ATTACKER)
+        .deploy(Unit(training=3), nearest, BattleSide.DEFENDER)
+        .deploy(Unit(training=3), indicated, BattleSide.DEFENDER)
+    )
+
+    result = _take_unit_turn_with_attack_target(battle, source, indicated)
+    moved_to = next(position for position, unit in result.units.items() if unit is attacker)
+
+    assert moved_to.distance(indicated) < source.distance(indicated)
+    assert result.current_hp_at(nearest) == battle.current_hp_at(nearest)
+    assert result.current_hp_at(indicated) == battle.current_hp_at(indicated)
+
+
+def _battle_with_invalid_attack_target(kind):
+    source, nearest, invalid = Hex(0, 0), Hex(1, 0), Hex(0, 1)
+    attacker = Unit(equipment=3)
+    battle = (
+        HexBattle(Battlefield())
+        .deploy(attacker, source, BattleSide.ATTACKER)
+        .deploy(Unit(training=3), nearest, BattleSide.DEFENDER)
+    )
+    if kind == "ally":
+        battle = battle.deploy(Unit(training=2), invalid, BattleSide.ATTACKER)
+    elif kind == "dead":
+        dead = Unit(training=2)
+        battle = battle.deploy(dead, invalid, BattleSide.DEFENDER)
+        battle = battle.damage(invalid, dead.hp)
+    elif kind == "stunned":
+        battle = battle.deploy(Unit(training=2, stunned=True), invalid, BattleSide.DEFENDER)
+    elif kind == "empty":
+        pass
+    elif kind == "outside":
+        invalid = Hex(99, 99)
+    else:
+        raise AssertionError(f"unknown invalid target case: {kind}")
+    return battle, source, nearest, invalid
+
+
+@pytest.mark.parametrize("kind", ["empty", "ally", "dead", "stunned", "outside"])
+def test_take_unit_turn_falls_back_to_nearest_enemy_for_invalid_attack_target(kind):
+    """AC2: invalid intent is ignored and retains the existing nearest-enemy rule."""
+    battle, source, nearest, invalid = _battle_with_invalid_attack_target(kind)
+    attacker = battle.unit_at(source)
+
+    result = _take_unit_turn_with_attack_target(battle, source, invalid)
+
+    assert result.current_hp_at(nearest) == battle.current_hp_at(nearest) - attacker.damage
+    if battle.is_occupied(invalid):
+        assert result.unit_at(invalid) == battle.unit_at(invalid)
+        assert result.current_hp_at(invalid) == battle.current_hp_at(invalid)
+
+
+def _resolve_round_with_attack_targets(battle, attack_targets, move_points=0):
+    """Resolve one round through the public per-unit target intention."""
+    resolve_round = getattr(battle, "resolve_round", None)
+    assert callable(resolve_round), "HexBattle must expose public resolve_round"
+    try:
+        return resolve_round(
+            move_points=move_points, rng=Rng(1), attack_targets=attack_targets
+        )
+    except TypeError as exc:
+        pytest.fail(
+            "HexBattle.resolve_round must accept the public attack_targets map "
+            f"(attacker hex -> target hex); got TypeError: {exc}"
+        )
+
+
+def test_resolve_round_honors_attack_target_map_for_the_attacking_unit():
+    """AC1: resolve_round passes a valid target to that unit's turn."""
+    source, nearest, indicated = Hex(0, 0), Hex(1, 0), Hex(0, 1)
+    attacker = Unit(equipment=3)
+    battle = (
+        HexBattle(Battlefield())
+        .deploy(attacker, source, BattleSide.ATTACKER)
+        .deploy(Unit(), nearest, BattleSide.DEFENDER)
+        .deploy(Unit(), indicated, BattleSide.DEFENDER)
+    )
+
+    result = _resolve_round_with_attack_targets(battle, {source: indicated})
+
+    assert result.current_hp_at(indicated) == battle.current_hp_at(indicated) - attacker.damage
+    assert result.current_hp_at(nearest) == battle.current_hp_at(nearest)
+
+
+def test_resolve_round_moves_attacking_unit_toward_valid_distant_target():
+    """AC1: resolve_round uses the indicated target for movement as well."""
+    source, nearest, indicated = Hex(0, 0), Hex(1, 0), Hex(3, -1)
+    attacker = Unit(equipment=3)
+    battle = (
+        HexBattle(Battlefield())
+        .deploy(attacker, source, BattleSide.ATTACKER)
+        .deploy(Unit(), nearest, BattleSide.DEFENDER)
+        .deploy(Unit(), indicated, BattleSide.DEFENDER)
+    )
+    nearest_unit = battle.unit_at(nearest)
+    indicated_unit = battle.unit_at(indicated)
+
+    result = _resolve_round_with_attack_targets(
+        battle, {source: indicated}, move_points=1
+    )
+    moved_to = next(position for position, unit in result.units.items() if unit is attacker)
+    nearest_position = next(
+        position for position, unit in result.units.items() if unit is nearest_unit
+    )
+    indicated_position = next(
+        position for position, unit in result.units.items() if unit is indicated_unit
+    )
+
+    assert moved_to.distance(indicated) < source.distance(indicated)
+    assert result.current_hp_at(nearest_position) == battle.current_hp_at(nearest)
+    assert result.current_hp_at(indicated_position) == battle.current_hp_at(indicated)
+
+
+@pytest.mark.parametrize("kind", ["empty", "ally", "dead", "stunned", "outside"])
+def test_resolve_round_falls_back_to_nearest_enemy_for_invalid_attack_target(kind):
+    """AC2: resolve_round ignores every invalid target kind."""
+    battle, source, nearest, invalid = _battle_with_invalid_attack_target(kind)
+    attacker = battle.unit_at(source)
+
+    result = _resolve_round_with_attack_targets(battle, {source: invalid})
+
+    assert result.current_hp_at(nearest) == battle.current_hp_at(nearest) - attacker.damage
+    if battle.is_occupied(invalid):
+        assert result.unit_at(invalid) == battle.unit_at(invalid)
+        assert result.current_hp_at(invalid) == battle.current_hp_at(invalid)
+
+
+def test_resolve_round_consumes_attack_target_before_the_following_round():
+    """AC3: an indicated target affects one round and is not remembered."""
+    source, nearest, indicated = Hex(0, 0), Hex(1, 0), Hex(0, 1)
+    attacker = Unit(equipment=3)
+    battle = (
+        HexBattle(Battlefield())
+        .deploy(attacker, source, BattleSide.ATTACKER)
+        .deploy(Unit(), nearest, BattleSide.DEFENDER)
+        .deploy(Unit(), indicated, BattleSide.DEFENDER)
+    )
+
+    first_round = _resolve_round_with_attack_targets(battle, {source: indicated})
+    second_round = first_round.resolve_round(move_points=0, rng=Rng(1))
+
+    assert first_round.current_hp_at(indicated) == battle.current_hp_at(indicated) - attacker.damage
+    assert second_round.current_hp_at(nearest) == first_round.current_hp_at(nearest) - attacker.damage
+    assert second_round.current_hp_at(indicated) == first_round.current_hp_at(indicated)
+
+
 @pytest.mark.parametrize(("seed", "dies"), [(4, True), (1, False)])
 def test_take_unit_turn_resolves_enemy_reduced_to_zero_hp(seed, dies):
     attacker, target = Hex(0, 0), Hex(1, 0)
