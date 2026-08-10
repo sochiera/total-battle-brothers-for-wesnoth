@@ -1721,7 +1721,11 @@ def test_seed_73_passive_player_is_defeated_by_thirteenth_turn():
 
 
 def test_seed_73_active_player_wins_in_first_year_month_four():
-    """The measured assault/engage/march player path still wins in R1M4."""
+    """The measured assault/engage/march player path still wins in R1M4.
+
+    task-672 kryt-6: battle orders pause; ``battle_auto`` resolves each
+    battle instead of the former auto-resolution.
+    """
     session = new_session(73)
     commands = (
         {"type": "order", "order": "recruit"},
@@ -1730,10 +1734,13 @@ def test_seed_73_active_player_wins_in_first_year_month_four():
         {"type": "order", "order": "march"},
         {"type": "next_turn"},
         {"type": "order", "order": "engage", "target": "border"},
+        {"type": "battle_auto"},
         {"type": "next_turn"},
         {"type": "order", "order": "assault", "target": "ai outpost"},
+        {"type": "battle_auto"},
         {"type": "next_turn"},
         {"type": "order", "order": "assault", "target": "ai lands"},
+        {"type": "battle_auto"},
     )
 
     for command in commands:

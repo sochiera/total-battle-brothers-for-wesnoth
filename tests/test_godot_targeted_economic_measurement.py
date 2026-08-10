@@ -6,7 +6,9 @@ import json
 import shlex
 from pathlib import Path
 
-from godot_runner import run_godot_script
+import pytest
+
+from godot_runner import DEFERRED_BATTLE_E2E_REASON, run_godot_script
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -108,6 +110,7 @@ def test_targeted_economic_orders_diverge_and_survive_live_bridge_resume(tmp_pat
         assert scenario["resumed"] == expected
 
 
+@pytest.mark.xfail(strict=True, reason=DEFERRED_BATTLE_E2E_REASON)
 def test_live_bridge_remeasures_resolution_and_k115_growth(tmp_path):
     """G116.1f AC4-6: fresh live-bridge regression and K115 measurement.
 

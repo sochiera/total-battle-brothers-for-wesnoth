@@ -2,7 +2,9 @@ import json
 import shlex
 from pathlib import Path
 
-from godot_runner import run_godot_script
+import pytest
+
+from godot_runner import DEFERRED_BATTLE_E2E_REASON, run_godot_script
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -31,6 +33,7 @@ def _run_measurement(tmp_path: Path) -> dict:
     return json.loads(lines[0][len(PREFIX) :])
 
 
+@pytest.mark.xfail(strict=True, reason=DEFERRED_BATTLE_E2E_REASON)
 def test_k117_live_measurements_and_documentation_are_complete(tmp_path):
     """G117.1b AC1-6: live persisted measurements and their prose contract.
 

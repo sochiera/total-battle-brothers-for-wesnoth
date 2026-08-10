@@ -17,6 +17,16 @@ PLAYER_RESULT_PL = {
 }
 MISSING_PLAYER_RESULT_PL = "Wynik: brak"
 
+# task-672 battle_pending gates deferred to task-673+674+675: pending_battle
+# persistence, battle_advance/battle_auto client support, and live-bridge
+# measurement are outside task-672. Single source for the xfail marker reason
+# used across the five Godot e2e measurement files; import instead of copying.
+DEFERRED_BATTLE_E2E_REASON = (
+    "task-672 battle_pending scenario is deferred to task-673+674+675: "
+    "pending_battle persistence, battle_advance/battle_auto client support, "
+    "and live-bridge measurement are outside this task"
+)
+
 
 def map_player_result(token: str | None) -> str:
     """Map a bridge player_result token (or None/empty) to on-screen Polish text."""

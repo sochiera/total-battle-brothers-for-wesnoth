@@ -1037,18 +1037,23 @@ def test_non_battle_transitions_reset_last_battle_to_none():
     assert s.snapshot() == before
 
 
-def test_apply_command_order_assault_auto_applies_recorded_primitive_sets_last_battle_preserves_fields():
-    """G65.3b kryt-1: ``apply_command({"type": "order", "order": "assault"})``
-    bez ``target`` stosuje ``ai.assault_duchy_party_recorded(world,
+def test_apply_command_order_assault_pauses_then_battle_auto_applies_recorded_primitive_sets_last_battle_preserves_fields():
+    """G65.3b kryt-1 (odnowiony przez G119.1b): rozkaz ``assault`` pauzuje
+    bitwę, a ``battle_auto`` stosuje wynik bajtowo równoważny ze starą ścieżką.
+
+    ``apply_command({"type": "order", "order": "assault"})`` bez ``target``
+    pauzuje bitwę rozpoczętą jak w ``ai.assault_duchy_party_recorded(world,
     player_duchy, session.rng, morale_by_owner=m)``, gdzie
-    ``m = {d.duchy_id: d.morale for d in session.game.duchies}``. Z
-    ``"target": <name>`` rozwiązywalnym do ``Region`` z ``world.regions`` (po
-    ``region.name``) stosuje ``ai.assault_duchy_party_to_recorded(world,
-    player_duchy, region, session.rng, morale_by_owner=m)``. W obu razach
-    prymityw zwraca ``(new_world, battle)``; wynikowy ``Session`` ma
-    ``world == new_world``, ``game == game.sync_from_world(new_world)``,
-    ``last_battle == battle``, a ``calendar``/``rng``/``seed``/
-    ``player_duchy_id`` bez zmian. Wejściowa sesja nie jest mutowana.
+    ``m = {d.duchy_id: d.morale for d in session.game.duchies}`` — pauza nie
+    dotyka świata, gry, kalendarza ani RNG. Z ``"target": <name>``
+    rozwiązywalnym do ``Region`` z ``world.regions`` (po ``region.name``)
+    pauzuje bitwę jak w ``ai.assault_duchy_party_to_recorded``. Następne
+    ``apply_command({"type": "battle_auto"})`` rozstrzyga pauzę; wynikowy
+    ``Session`` ma ``world == new_world``, ``game ==
+    game.sync_from_world(new_world)``, ``last_battle == battle`` identyczne z
+    wynikiem prymitywu recorded na tym samym ziarnie, ``pending_battle is
+    None``, a ``calendar``/``rng``/``seed``/``player_duchy_id`` bez zmian.
+    Wejściowa sesja nie jest mutowana.
 
     Scenariusz z dwiema sąsiednimi wrogimi osadami (``Near`` i ``Far``):
     auto-szturm wybiera najbliższą (``Near``), szturm z ``target="Far"``
@@ -1096,7 +1101,7 @@ def test_apply_command_order_assault_auto_applies_recorded_primitive_sets_last_b
             seed=2,
         )
 
-    # --- Ścieżka auto: brak targetu → assault_duchy_party_recorded(...). ---
+    # --- Ścieżka auto: brak targetu → pauza jak assault_duchy_party_recorded(...). ---
     s_auto = _build_session()
     morale = {d.duchy_id: d.morale for d in s_auto.game.duchies}
     expected_world_auto, expected_battle_auto = assault_duchy_party_recorded(
@@ -1104,8 +1109,20 @@ def test_apply_command_order_assault_auto_applies_recorded_primitive_sets_last_b
     )
     assert expected_battle_auto is not None  # walidacja scenariusza: bitwa wybuchła
     before_auto = copy.deepcopy(s_auto.snapshot())
+    rng_state_before_auto = s_auto.rng.state()
 
-    after_auto = apply_command(s_auto, {"type": "order", "order": "assault"})
+    paused_auto = apply_command(s_auto, {"type": "order", "order": "assault"})
+
+    # Pauza: bitwa w toku, świat/gra/kalendarz/RNG nietknięte.
+    assert paused_auto.pending_battle is not None
+    assert paused_auto.last_battle is None
+    assert paused_auto.world is s_auto.world
+    assert paused_auto.game is s_auto.game
+    assert paused_auto.calendar == s_auto.calendar
+    assert paused_auto.rng.state() == rng_state_before_auto
+    assert s_auto.pending_battle is None  # sesja wejściowa nie jest mutowana
+
+    after_auto = apply_command(paused_auto, {"type": "battle_auto"})
 
     assert isinstance(after_auto, Session)
     assert after_auto is not s_auto
@@ -1113,6 +1130,7 @@ def test_apply_command_order_assault_auto_applies_recorded_primitive_sets_last_b
     assert after_auto.seed == 2
     assert after_auto.calendar == s_auto.calendar
     assert after_auto.rng is s_auto.rng
+    assert after_auto.pending_battle is None
     assert after_auto.world == expected_world_auto
     assert after_auto.last_battle == expected_battle_auto
     assert after_auto.last_battle is not None
@@ -1124,7 +1142,7 @@ def test_apply_command_order_assault_auto_applies_recorded_primitive_sets_last_b
     assert s_auto.snapshot() == before_auto
     assert s_auto.last_battle is None
 
-    # --- Ścieżka z targetem rozwiązywalnym → assault_duchy_party_to_recorded(..., far). ---
+    # --- Ścieżka z targetem rozwiązywalnym → pauza jak assault_duchy_party_to_recorded(..., far). ---
     s_target = _build_session()
     morale_t = {d.duchy_id: d.morale for d in s_target.game.duchies}
     far = next(r for r in s_target.world.regions if r.name == "Far")
@@ -1133,10 +1151,18 @@ def test_apply_command_order_assault_auto_applies_recorded_primitive_sets_last_b
     )
     assert expected_battle_t is not None  # walidacja scenariusza: bitwa wybuchła
     before_t = copy.deepcopy(s_target.snapshot())
+    rng_state_before_t = s_target.rng.state()
 
-    after_t = apply_command(
+    paused_t = apply_command(
         s_target, {"type": "order", "order": "assault", "target": "Far"}
     )
+
+    assert paused_t.pending_battle is not None
+    assert paused_t.last_battle is None
+    assert paused_t.world is s_target.world
+    assert paused_t.rng.state() == rng_state_before_t
+
+    after_t = apply_command(paused_t, {"type": "battle_auto"})
 
     assert isinstance(after_t, Session)
     assert after_t is not s_target
@@ -1144,6 +1170,7 @@ def test_apply_command_order_assault_auto_applies_recorded_primitive_sets_last_b
     assert after_t.seed == 2
     assert after_t.calendar == s_target.calendar
     assert after_t.rng is s_target.rng
+    assert after_t.pending_battle is None
     assert after_t.world == expected_world_t
     assert after_t.last_battle == expected_battle_t
     expected_game_t = s_target.game.sync_from_world(expected_world_t)
@@ -1192,8 +1219,14 @@ def test_apply_command_order_assault_without_target_from_enemy_settlement_return
     )
     command = {"type": "order", "order": "assault"}
 
-    after = apply_command(session, command)
-    result = command_result(session, after, command)
+    paused = apply_command(session, command)
+    pause_result = command_result(session, paused, command)
+
+    assert pause_result["kind"] == "battle_pending"
+    assert paused.world is session.world
+
+    after = apply_command(paused, {"type": "battle_auto"})
+    result = command_result(paused, after, {"type": "battle_auto"})
 
     assert result["kind"] == "battle"
     assert result["outcome"] in {"zwycięstwo", "porażka", "remis"}
@@ -1212,15 +1245,17 @@ class _ForbiddenRng:
 
 
 def test_apply_command_order_assault_fallback_and_guards_and_no_op_no_rng():
-    """G65.3b kryt-2: ``target`` pusty/niepasujący → fallback do auto
-    (``assault_duchy_party_recorded``), rozłącznie od ``target=Far`` na
-    scenariuszu Near/Far. Guardy G65.2a (``is_over`` / brak
-    ``player_duchy_id`` / księstwo nieobecne) → no-op z
-    ``last_battle is None``, ``world``/``game``/``calendar`` identyczne z
-    wejściowymi **bez konsumpcji RNG** (wstrzyknięty ``_ForbiddenRng`` rzuca
-    przy poborze). Gdy prymityw zwróci ``(world, None)`` (brak sąsiedniej
-    wrogiej osady) → RNG nietknięty, ``last_battle is None``, wejściowa sesja
-    nie jest mutowana.
+    """G65.3b kryt-2 (odnowiony przez G119.1b): ``target`` pusty/niepasujący →
+    fallback pauzuje auto-szturm (jak ``assault_duchy_party_recorded``),
+    rozłącznie od ``target=Far`` na scenariuszu Near/Far; pauza nie konsumuje
+    RNG, a ``battle_auto`` daje świat równoważny ścieżce recorded. Guardy
+    G65.2a (``is_over`` / brak ``player_duchy_id`` / księstwo nieobecne) →
+    no-op z ``last_battle is None`` i ``pending_battle is None``,
+    ``world``/``game``/``calendar`` identyczne z wejściowymi **bez konsumpcji
+    RNG** (wstrzyknięty ``_ForbiddenRng`` rzuca przy poborze). Gdy prymityw
+    zwróci ``(world, None)`` (brak sąsiedniej wrogiej osady) → RNG nietknięty,
+    ``last_battle is None``, ``pending_battle is None``, wejściowa sesja nie
+    jest mutowana.
     """
     from tbb.ai import assault_duchy_party_recorded
     from tbb.duchy import Duchy
@@ -1280,7 +1315,15 @@ def test_apply_command_order_assault_fallback_and_guards_and_no_op_no_rng():
     for command in fallback_variants:
         s = _build_session()
         before = copy.deepcopy(s.snapshot())
-        after = apply_command(s, command)
+        rng_before = s.rng.state()
+        paused = apply_command(s, command)
+
+        # Fallback pauzuje bitwę auto (Near), nie dotykając świata ani RNG.
+        assert paused.pending_battle is not None
+        assert paused.world is s.world
+        assert paused.rng.state() == rng_before
+
+        after = apply_command(paused, {"type": "battle_auto"})
 
         assert isinstance(after, Session)
         assert after is not s
@@ -1288,6 +1331,7 @@ def test_apply_command_order_assault_fallback_and_guards_and_no_op_no_rng():
         assert after.seed == 2
         assert after.calendar == s.calendar
         assert after.rng is s.rng
+        assert after.pending_battle is None
         # Auto assault resolved Near (not Far): fallback used recorded auto.
         assert after.world == auto_world
         assert after.last_battle == auto_battle
@@ -1321,6 +1365,7 @@ def test_apply_command_order_assault_fallback_and_guards_and_no_op_no_rng():
     assert after_over.game is over_session.game
     assert after_over.calendar is over_session.calendar
     assert after_over.last_battle is None
+    assert after_over.pending_battle is None
     assert "battle" not in after_over.snapshot()
     assert over_session.snapshot() == over_before
 
@@ -1335,6 +1380,7 @@ def test_apply_command_order_assault_fallback_and_guards_and_no_op_no_rng():
     assert after_no_player.game is no_player.game
     assert after_no_player.calendar is no_player.calendar
     assert after_no_player.last_battle is None
+    assert after_no_player.pending_battle is None
     assert no_player.snapshot() == no_player_before
 
     # Player duchy absent guard.
@@ -1348,6 +1394,7 @@ def test_apply_command_order_assault_fallback_and_guards_and_no_op_no_rng():
     assert after_absent.game is absent.game
     assert after_absent.calendar is absent.calendar
     assert after_absent.last_battle is None
+    assert after_absent.pending_battle is None
     assert absent.snapshot() == absent_before
 
     # --- Prymityw zwraca (world, None): nearest enemy settlement nie sąsiaduje. ---
@@ -1386,24 +1433,30 @@ def test_apply_command_order_assault_fallback_and_guards_and_no_op_no_rng():
     assert after_iso is not s_iso
     assert after_iso.world is world_iso
     assert after_iso.last_battle is None
+    assert after_iso.pending_battle is None
     assert "battle" not in after_iso.snapshot()
     assert s_iso.snapshot() == iso_before
     # RNG proxy nie rzuciło — dowód braku konsumpcji na no-op path.
     # (gdyby kod pobrał liczbę, _ForbiddenRng.randint/chance rzuciłby AssertionError)
 
 
-def test_apply_command_order_engage_auto_applies_recorded_primitive_sets_last_battle_preserves_fields():
-    """G65.3c kryt-1: ``apply_command({"type": "order", "order": "engage"})``
-    bez ``target`` stosuje ``ai.engage_duchy_party_recorded(world,
+def test_apply_command_order_engage_pauses_then_battle_auto_applies_recorded_primitive_sets_last_battle_preserves_fields():
+    """G65.3c kryt-1 (odnowiony przez G119.1b): rozkaz ``engage`` pauzuje
+    bitwę, a ``battle_auto`` stosuje wynik bajtowo równoważny ze starą ścieżką.
+
+    ``apply_command({"type": "order", "order": "engage"})`` bez ``target``
+    pauzuje bitwę rozpoczętą jak w ``ai.engage_duchy_party_recorded(world,
     player_duchy, session.rng, morale_by_owner=m)``, gdzie
-    ``m = {d.duchy_id: d.morale for d in session.game.duchies}``. Z
-    ``"target": <name>`` rozwiązywalnym do ``Region`` z ``world.regions`` (po
-    ``region.name``) stosuje ``ai.engage_duchy_party_to_recorded(world,
-    player_duchy, region, session.rng, morale_by_owner=m)``. W obu razach
-    prymityw zwraca ``(new_world, battle)``; wynikowy ``Session`` ma
-    ``world == new_world``, ``game == game.sync_from_world(new_world)``,
-    ``last_battle == battle``, a ``calendar``/``rng``/``seed``/
-    ``player_duchy_id`` bez zmian. Wejściowa sesja nie jest mutowana.
+    ``m = {d.duchy_id: d.morale for d in session.game.duchies}`` — pauza nie
+    dotyka świata, gry, kalendarza ani RNG. Z ``"target": <name>``
+    rozwiązywalnym do ``Region`` z ``world.regions`` (po ``region.name``)
+    pauzuje bitwę jak w ``ai.engage_duchy_party_to_recorded``. Następne
+    ``apply_command({"type": "battle_auto"})`` rozstrzyga pauzę; wynikowy
+    ``Session`` ma ``world == new_world``, ``game ==
+    game.sync_from_world(new_world)``, ``last_battle == battle`` identyczne z
+    wynikiem prymitywu recorded na tym samym ziarnie, ``pending_battle is
+    None``, a ``calendar``/``rng``/``seed``/``player_duchy_id`` bez zmian.
+    Wejściowa sesja nie jest mutowana.
 
     Scenariusz z dwiema sąsiednimi wrogimi partiami (``Near`` i ``Far``):
     auto-starcie wybiera pierwszą (``Near``), starcie z ``target="Far"``
@@ -1455,7 +1508,7 @@ def test_apply_command_order_engage_auto_applies_recorded_primitive_sets_last_ba
             seed=2,
         )
 
-    # --- Ścieżka auto: brak targetu → engage_duchy_party_recorded(...). ---
+    # --- Ścieżka auto: brak targetu → pauza jak engage_duchy_party_recorded(...). ---
     s_auto = _build_session()
     morale = {d.duchy_id: d.morale for d in s_auto.game.duchies}
     expected_world_auto, expected_battle_auto = engage_duchy_party_recorded(
@@ -1463,8 +1516,20 @@ def test_apply_command_order_engage_auto_applies_recorded_primitive_sets_last_ba
     )
     assert expected_battle_auto is not None  # walidacja scenariusza: bitwa wybuchła
     before_auto = copy.deepcopy(s_auto.snapshot())
+    rng_state_before_auto = s_auto.rng.state()
 
-    after_auto = apply_command(s_auto, {"type": "order", "order": "engage"})
+    paused_auto = apply_command(s_auto, {"type": "order", "order": "engage"})
+
+    # Pauza: bitwa w toku, świat/gra/kalendarz/RNG nietknięte.
+    assert paused_auto.pending_battle is not None
+    assert paused_auto.last_battle is None
+    assert paused_auto.world is s_auto.world
+    assert paused_auto.game is s_auto.game
+    assert paused_auto.calendar == s_auto.calendar
+    assert paused_auto.rng.state() == rng_state_before_auto
+    assert s_auto.pending_battle is None  # sesja wejściowa nie jest mutowana
+
+    after_auto = apply_command(paused_auto, {"type": "battle_auto"})
 
     assert isinstance(after_auto, Session)
     assert after_auto is not s_auto
@@ -1472,6 +1537,7 @@ def test_apply_command_order_engage_auto_applies_recorded_primitive_sets_last_ba
     assert after_auto.seed == 2
     assert after_auto.calendar == s_auto.calendar
     assert after_auto.rng is s_auto.rng
+    assert after_auto.pending_battle is None
     assert after_auto.world == expected_world_auto
     assert after_auto.last_battle == expected_battle_auto
     assert after_auto.last_battle is not None
@@ -1483,7 +1549,7 @@ def test_apply_command_order_engage_auto_applies_recorded_primitive_sets_last_ba
     assert s_auto.snapshot() == before_auto
     assert s_auto.last_battle is None
 
-    # --- Ścieżka z targetem rozwiązywalnym → engage_duchy_party_to_recorded(..., far). ---
+    # --- Ścieżka z targetem rozwiązywalnym → pauza jak engage_duchy_party_to_recorded(..., far). ---
     s_target = _build_session()
     morale_t = {d.duchy_id: d.morale for d in s_target.game.duchies}
     far = next(r for r in s_target.world.regions if r.name == "Far")
@@ -1492,10 +1558,18 @@ def test_apply_command_order_engage_auto_applies_recorded_primitive_sets_last_ba
     )
     assert expected_battle_t is not None  # walidacja scenariusza: bitwa wybuchła
     before_t = copy.deepcopy(s_target.snapshot())
+    rng_state_before_t = s_target.rng.state()
 
-    after_t = apply_command(
+    paused_t = apply_command(
         s_target, {"type": "order", "order": "engage", "target": "Far"}
     )
+
+    assert paused_t.pending_battle is not None
+    assert paused_t.last_battle is None
+    assert paused_t.world is s_target.world
+    assert paused_t.rng.state() == rng_state_before_t
+
+    after_t = apply_command(paused_t, {"type": "battle_auto"})
 
     assert isinstance(after_t, Session)
     assert after_t is not s_target
@@ -1503,6 +1577,7 @@ def test_apply_command_order_engage_auto_applies_recorded_primitive_sets_last_ba
     assert after_t.seed == 2
     assert after_t.calendar == s_target.calendar
     assert after_t.rng is s_target.rng
+    assert after_t.pending_battle is None
     assert after_t.world == expected_world_t
     assert after_t.last_battle == expected_battle_t
     expected_game_t = s_target.game.sync_from_world(expected_world_t)
@@ -1518,14 +1593,16 @@ def test_apply_command_order_engage_auto_applies_recorded_primitive_sets_last_ba
 
 
 def test_apply_command_order_engage_fallback_and_guards_and_no_op_no_rng():
-    """G65.3c kryt-2: ``target`` pusty/niepasujący → fallback do starcia
-    automatycznego (``engage_duchy_party_recorded``), rozłącznie od
-    ``target=Far`` na scenariuszu partii Near/Far. Guardy G65.2a (``is_over``
-    / brak ``player_duchy_id`` / księstwo nieobecne) → no-op z
-    ``last_battle is None``, ``world``/``game``/``calendar`` identyczne z
-    wejściowymi **bez konsumpcji RNG** (wstrzyknięty ``_ForbiddenRng`` rzuca
-    przy poborze). Gdy prymityw zwróci ``(world, None)`` (brak sąsiedniego
-    wrogiego oddziału) → RNG nietknięty, ``last_battle is None``, wejściowa
+    """G65.3c kryt-2 (odnowiony przez G119.1b): ``target`` pusty/niepasujący →
+    fallback pauzuje starcie automatyczne (jak ``engage_duchy_party_recorded``),
+    rozłącznie od ``target=Far`` na scenariuszu partii Near/Far; pauza nie
+    konsumuje RNG, a ``battle_auto`` daje świat równoważny ścieżce recorded.
+    Guardy G65.2a (``is_over`` / brak ``player_duchy_id`` / księstwo
+    nieobecne) → no-op z ``last_battle is None`` i ``pending_battle is None``,
+    ``world``/``game``/``calendar`` identyczne z wejściowymi **bez konsumpcji
+    RNG** (wstrzyknięty ``_ForbiddenRng`` rzuca przy poborze). Gdy prymityw
+    zwróci ``(world, None)`` (brak sąsiedniego wrogiego oddziału) → RNG
+    nietknięty, ``last_battle is None``, ``pending_battle is None``, wejściowa
     sesja nie jest mutowana.
     """
     from tbb.ai import (
@@ -1584,7 +1661,15 @@ def test_apply_command_order_engage_fallback_and_guards_and_no_op_no_rng():
     for command in fallback_variants:
         s = _build_session()
         before = copy.deepcopy(s.snapshot())
-        after = apply_command(s, command)
+        rng_before = s.rng.state()
+        paused = apply_command(s, command)
+
+        # Fallback pauzuje bitwę auto (Near), nie dotykając świata ani RNG.
+        assert paused.pending_battle is not None
+        assert paused.world is s.world
+        assert paused.rng.state() == rng_before
+
+        after = apply_command(paused, {"type": "battle_auto"})
 
         assert isinstance(after, Session)
         assert after is not s
@@ -1592,6 +1677,7 @@ def test_apply_command_order_engage_fallback_and_guards_and_no_op_no_rng():
         assert after.seed == 2
         assert after.calendar == s.calendar
         assert after.rng is s.rng
+        assert after.pending_battle is None
         # Auto engage resolved Near (not Far): fallback used recorded auto.
         assert after.world == auto_world
         assert after.last_battle == auto_battle
@@ -1624,6 +1710,7 @@ def test_apply_command_order_engage_fallback_and_guards_and_no_op_no_rng():
     assert after_over.game is over_session.game
     assert after_over.calendar is over_session.calendar
     assert after_over.last_battle is None
+    assert after_over.pending_battle is None
     assert "battle" not in after_over.snapshot()
     assert over_session.snapshot() == over_before
 
@@ -1638,6 +1725,7 @@ def test_apply_command_order_engage_fallback_and_guards_and_no_op_no_rng():
     assert after_no_player.game is no_player.game
     assert after_no_player.calendar is no_player.calendar
     assert after_no_player.last_battle is None
+    assert after_no_player.pending_battle is None
     assert no_player.snapshot() == no_player_before
 
     # Player duchy absent guard.
@@ -1651,6 +1739,7 @@ def test_apply_command_order_engage_fallback_and_guards_and_no_op_no_rng():
     assert after_absent.game is absent.game
     assert after_absent.calendar is absent.calendar
     assert after_absent.last_battle is None
+    assert after_absent.pending_battle is None
     assert absent.snapshot() == absent_before
 
     # --- Prymityw zwraca (world, None): brak sąsiedniego wrogiego oddziału. ---
@@ -1685,6 +1774,7 @@ def test_apply_command_order_engage_fallback_and_guards_and_no_op_no_rng():
     assert after_iso is not s_iso
     assert after_iso.world is world_iso
     assert after_iso.last_battle is None
+    assert after_iso.pending_battle is None
     assert "battle" not in after_iso.snapshot()
     assert s_iso.snapshot() == iso_before
     # RNG proxy nie rzuciło — dowód braku konsumpcji na no-op path.
@@ -1709,9 +1799,10 @@ def test_prepared_seed73_assault_resolves_with_world_matching_battle_result():
     The natural public-button path is covered separately by the Godot e2e;
     this core gate keeps the battle mechanics focused on an explicit fixture.
 
-    Public contract: ``apply_command`` assault on seed 73 (which drives
-    ``resolve_settlement_battle_recorded``) yields a decided ``BattleResult``
-    and a world consistent with that decision; two runs match.
+    Public contract: ``apply_command`` assault on seed 73 pauses the battle
+    and ``battle_auto`` (which drives the same settlement-battle resolution
+    rules) yields a decided ``BattleResult`` and a world consistent with that
+    decision; two runs match.
     """
     from tbb.battle import BattleResult
     from tbb.world import Region
@@ -1727,9 +1818,11 @@ def test_prepared_seed73_assault_resolves_with_world_matching_battle_result():
         before_assault = _seed73_player_at_border_for_assault(recruit_count=2)
         assert before_assault.world.party_at(border) is not None
 
-        after = apply_command(
+        paused = apply_command(
             before_assault, {"type": "order", "order": "assault"}
         )
+        assert paused.pending_battle is not None
+        after = apply_command(paused, {"type": "battle_auto"})
         battle = after.last_battle
         assert battle is not None
         result = battle.result()
@@ -1774,9 +1867,7 @@ def test_prepared_seed73_assault_resolves_with_world_matching_battle_result():
             assert frontier.owner_id == "ai"
 
         # Bridge-facing summary must also report a decided outcome.
-        summary = command_result(
-            before_assault, after, {"type": "order", "order": "assault"}
-        )
+        summary = command_result(paused, after, {"type": "battle_auto"})
         assert summary["kind"] == "battle"
         assert summary["outcome"] in ("zwycięstwo", "porażka", "remis")
         assert summary["outcome"] != "nierozstrzygnięta"
@@ -1816,6 +1907,9 @@ def test_player_order_path_resolves_hero_survival_like_ai_when_party_is_lost():
     G92.2a: the prepared one-recruit path reaches the explicit frontier scene;
     seed 73 still yields DEFENDER_WIN and a wiped player party on that weaker
     force.
+
+    G119.1b: the assault pauses first; hero survival fires when ``battle_auto``
+    applies the resolved battle, not at the order itself.
     """
     from tbb.duchy import Duchy, SUCCESSION_MORALE_PENALTY
 
@@ -1861,7 +1955,9 @@ def test_player_order_path_resolves_hero_survival_like_ai_when_party_is_lost():
             party.owner_id == "player" for party in before_assault.world.parties.values()
         )
 
-        after = apply_command(before_assault, {"type": "order", "order": "assault"})
+        paused = apply_command(before_assault, {"type": "order", "order": "assault"})
+        assert paused.pending_battle is not None
+        after = apply_command(paused, {"type": "battle_auto"})
         player = next(d for d in after.game.duchies if d.duchy_id == "player")
         # Party lost on the prepared seed-73 assault (DEFENDER_WIN).
         assert not any(
@@ -1904,6 +2000,9 @@ def test_player_order_path_promotes_heir_when_party_is_lost_with_successor():
     ``SUCCESSION_MORALE_PENALTY`` — in game state and snapshot.
 
     G92.2a: the same prepared frontier path reaches border before assault.
+
+    G119.1b: the assault pauses first; the heir promotion fires when
+    ``battle_auto`` applies the resolved battle, not at the order itself.
     """
     from tbb.duchy import Duchy, SUCCESSION_MORALE_PENALTY
     from tbb.unit import Unit
@@ -1937,7 +2036,9 @@ def test_player_order_path_promotes_heir_when_party_is_lost_with_successor():
     )
     assert any(party.owner_id == "player" for party in before.world.parties.values())
 
-    after = apply_command(before, {"type": "order", "order": "assault"})
+    paused = apply_command(before, {"type": "order", "order": "assault"})
+    assert paused.pending_battle is not None
+    after = apply_command(paused, {"type": "battle_auto"})
     player = next(d for d in after.game.duchies if d.duchy_id == "player")
     assert not any(
         party.owner_id == "player" for party in after.world.parties.values()

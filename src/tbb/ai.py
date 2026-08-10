@@ -658,6 +658,120 @@ def assault_duchy_party(
     )
 
 
+def _engage_contact(
+    world: WorldMap, duchy: Duchy, target: Region | None
+) -> tuple[Region, Region] | None:
+    """Validate an engage contact; return ``(position, target)`` or ``None``.
+
+    ``target is None`` selects the first neighbor (in ``world.neighbors``
+    order) holding a party with a different explicit owner; an explicit
+    ``target`` must be adjacent and hold such a party. Raises when the acting
+    party lacks an explicit owner. The guard order mirrors the recorded and
+    paused engage entry points, which share this query.
+    """
+    position = _duchy_party_position(world, duchy.duchy_id)
+    if position is None:
+        return None
+    party = world.party_at(position)
+    if party is None:
+        return None
+    if party.owner_id is None:
+        raise ValueError("party must have an explicit owner_id")
+
+    if target is None:
+        for neighbor in world.neighbors(position):
+            other = world.party_at(neighbor)
+            if (
+                other is not None
+                and other.owner_id is not None
+                and other.owner_id != party.owner_id
+            ):
+                return position, neighbor
+        return None
+
+    if target not in world.neighbors(position):
+        return None
+    other = world.party_at(target)
+    if (
+        other is None
+        or other.owner_id is None
+        or other.owner_id == party.owner_id
+    ):
+        return None
+    return position, target
+
+
+def _assault_contact(
+    world: WorldMap, duchy: Duchy, target: Region | None
+) -> tuple[Region, Region] | None:
+    """Validate an assault contact; return ``(position, target)`` or ``None``.
+
+    ``target is None`` resolves the nearest reachable enemy settlement; an
+    explicit ``target`` must be adjacent or the party's own region and hold
+    an enemy settlement. The guard order mirrors the recorded and paused
+    assault entry points, which share this query.
+    """
+    position = _duchy_party_position(world, duchy.duchy_id)
+    if position is None:
+        return None
+
+    if target is None:
+        party = world.party_at(position)
+        if party is None:
+            return None
+        if party.owner_id is None:
+            raise ValueError("party must have an explicit owner_id")
+        target = nearest_enemy_settlement(world, position, party.owner_id)
+        if target is None or not _is_legal_assault_target(world, position, target):
+            return None
+        return position, target
+
+    if not _is_legal_assault_target(world, position, target):
+        return None
+    settlement = world.settlement_at(target)
+    if (
+        settlement is None
+        or settlement.owner_id is None
+        or settlement.owner_id == duchy.duchy_id
+    ):
+        return None
+    return position, target
+
+
+def _party_battle_morale(
+    world: WorldMap,
+    position: Region,
+    target: Region,
+    morale_by_owner: dict[str, int] | None,
+) -> tuple[int, int]:
+    """Return ``(attacker_morale, defender_morale)`` for a party battle."""
+    if morale_by_owner is None:
+        return 0, 0
+    party = world.party_at(position)
+    enemy = world.party_at(target)
+    return (
+        morale_by_owner.get(party.owner_id, 0),
+        morale_by_owner.get(enemy.owner_id, 0),
+    )
+
+
+def _settlement_battle_morale(
+    world: WorldMap,
+    position: Region,
+    target: Region,
+    morale_by_owner: dict[str, int] | None,
+) -> tuple[int, int]:
+    """Return ``(attacker_morale, defender_morale)`` for a settlement assault."""
+    if morale_by_owner is None:
+        return 0, 0
+    party = world.party_at(position)
+    settlement = world.settlement_at(target)
+    return (
+        morale_by_owner.get(party.owner_id, 0),
+        morale_by_owner.get(settlement.owner_id, 0),
+    )
+
+
 def assault_duchy_party_recorded(
     world: WorldMap,
     duchy: Duchy,
@@ -669,25 +783,13 @@ def assault_duchy_party_recorded(
     No-op paths return ``(world, None)`` without consuming RNG. On a hit the
     map matches ``assault_duchy_party`` for the same inputs.
     """
-    position = _duchy_party_position(world, duchy.duchy_id)
-    if position is None:
+    contact = _assault_contact(world, duchy, None)
+    if contact is None:
         return world, None
-    party = world.party_at(position)
-    if party is None:
-        return world, None
-    if party.owner_id is None:
-        raise ValueError("party must have an explicit owner_id")
-
-    target = nearest_enemy_settlement(world, position, party.owner_id)
-    if target is None or not _is_legal_assault_target(world, position, target):
-        return world, None
-
-    attacker_morale = 0
-    defender_morale = 0
-    if morale_by_owner is not None:
-        settlement = world.settlement_at(target)
-        attacker_morale = morale_by_owner.get(party.owner_id, 0)
-        defender_morale = morale_by_owner.get(settlement.owner_id, 0)
+    position, target = contact
+    attacker_morale, defender_morale = _settlement_battle_morale(
+        world, position, target, morale_by_owner
+    )
     return _resolve_settlement_assault(
         world,
         position,
@@ -697,6 +799,31 @@ def assault_duchy_party_recorded(
         attacker_morale=attacker_morale,
         defender_morale=defender_morale,
     )
+
+
+def assault_duchy_party_paused(
+    world: WorldMap,
+    duchy: Duchy,
+) -> tuple[WorldMap, tuple[HexBattle, Region, Region] | None]:
+    """Start the nearest settlement assault without resolving it.
+
+    Returns ``(world, (battle, source, target))`` with the deployment board
+    when the order starts a battle; no-op paths return ``(world, None)``.
+    The world is returned unchanged and no RNG is consumed — the caller keeps
+    the battle paused. The monthly-action guard mirrors the recorded path.
+    """
+    contact = _assault_contact(world, duchy, None)
+    if contact is None:
+        return world, None
+    position, target = contact
+    battle = (
+        world.start_settlement_battle_at(position)
+        if target == position
+        else world.start_settlement_battle(position, target)
+    )
+    if not world._party_can_act(position):
+        return world, None
+    return world, (battle, position, target)
 
 
 def engage_duchy_party_recorded(
@@ -711,34 +838,13 @@ def engage_duchy_party_recorded(
     party with a different explicit ``owner_id``. No-op paths return
     ``(world, None)`` without consuming RNG.
     """
-    position = _duchy_party_position(world, duchy.duchy_id)
-    if position is None:
+    contact = _engage_contact(world, duchy, None)
+    if contact is None:
         return world, None
-    party = world.party_at(position)
-    if party is None:
-        return world, None
-    if party.owner_id is None:
-        raise ValueError("party must have an explicit owner_id")
-
-    target = None
-    for neighbor in world.neighbors(position):
-        other = world.party_at(neighbor)
-        if (
-            other is not None
-            and other.owner_id is not None
-            and other.owner_id != party.owner_id
-        ):
-            target = neighbor
-            break
-    if target is None:
-        return world, None
-
-    attacker_morale = 0
-    defender_morale = 0
-    if morale_by_owner is not None:
-        enemy = world.party_at(target)
-        attacker_morale = morale_by_owner.get(party.owner_id, 0)
-        defender_morale = morale_by_owner.get(enemy.owner_id, 0)
+    position, target = contact
+    attacker_morale, defender_morale = _party_battle_morale(
+        world, position, target, morale_by_owner
+    )
     return world.resolve_party_battle_recorded(
         position,
         target,
@@ -746,6 +852,27 @@ def engage_duchy_party_recorded(
         attacker_morale=attacker_morale,
         defender_morale=defender_morale,
     )
+
+
+def engage_duchy_party_paused(
+    world: WorldMap,
+    duchy: Duchy,
+) -> tuple[WorldMap, tuple[HexBattle, Region, Region] | None]:
+    """Start the battle with the first adjacent enemy party, unresolved.
+
+    Returns ``(world, (battle, source, target))`` with the deployment board
+    when the order starts a battle; no-op paths return ``(world, None)``.
+    The world is returned unchanged and no RNG is consumed — the caller keeps
+    the battle paused. The monthly-action guard mirrors the recorded path.
+    """
+    contact = _engage_contact(world, duchy, None)
+    if contact is None:
+        return world, None
+    position, target = contact
+    battle = world.start_battle(position, target)
+    if not world._party_can_act(position):
+        return world, None
+    return world, (battle, position, target)
 
 
 def engage_duchy_party_to_recorded(
@@ -761,29 +888,13 @@ def engage_duchy_party_to_recorded(
     map matches ``engage_duchy_party_recorded`` when that auto-target is the
     same ``target``.
     """
-    position = _duchy_party_position(world, duchy.duchy_id)
-    if position is None:
+    contact = _engage_contact(world, duchy, target)
+    if contact is None:
         return world, None
-    party = world.party_at(position)
-    if party is None:
-        return world, None
-    if party.owner_id is None:
-        raise ValueError("party must have an explicit owner_id")
-    if target not in world.neighbors(position):
-        return world, None
-    other = world.party_at(target)
-    if (
-        other is None
-        or other.owner_id is None
-        or other.owner_id == party.owner_id
-    ):
-        return world, None
-
-    attacker_morale = 0
-    defender_morale = 0
-    if morale_by_owner is not None:
-        attacker_morale = morale_by_owner.get(party.owner_id, 0)
-        defender_morale = morale_by_owner.get(other.owner_id, 0)
+    position, target = contact
+    attacker_morale, defender_morale = _party_battle_morale(
+        world, position, target, morale_by_owner
+    )
     return world.resolve_party_battle_recorded(
         position,
         target,
@@ -791,6 +902,28 @@ def engage_duchy_party_to_recorded(
         attacker_morale=attacker_morale,
         defender_morale=defender_morale,
     )
+
+
+def engage_duchy_party_to_paused(
+    world: WorldMap,
+    duchy: Duchy,
+    target: Region,
+) -> tuple[WorldMap, tuple[HexBattle, Region, Region] | None]:
+    """Start the battle with an explicit adjacent enemy party, unresolved.
+
+    Returns ``(world, (battle, source, target))`` with the deployment board
+    when the order starts a battle; no-op paths return ``(world, None)``.
+    The world is returned unchanged and no RNG is consumed — the caller keeps
+    the battle paused. The monthly-action guard mirrors the recorded path.
+    """
+    contact = _engage_contact(world, duchy, target)
+    if contact is None:
+        return world, None
+    position, target = contact
+    battle = world.start_battle(position, target)
+    if not world._party_can_act(position):
+        return world, None
+    return world, (battle, position, target)
 
 
 def assault_duchy_party_to(
@@ -843,25 +976,13 @@ def assault_duchy_party_to_recorded(
     No-op paths return ``(world, None)`` without consuming RNG. On a hit the
     map matches ``assault_duchy_party_to`` for the same inputs.
     """
-    position = _duchy_party_position(world, duchy.duchy_id)
-    if position is None:
+    contact = _assault_contact(world, duchy, target)
+    if contact is None:
         return world, None
-    if not _is_legal_assault_target(world, position, target):
-        return world, None
-    settlement = world.settlement_at(target)
-    if (
-        settlement is None
-        or settlement.owner_id is None
-        or settlement.owner_id == duchy.duchy_id
-    ):
-        return world, None
-
-    party = world.party_at(position)
-    attacker_morale = 0
-    defender_morale = 0
-    if morale_by_owner is not None:
-        attacker_morale = morale_by_owner.get(party.owner_id, 0)
-        defender_morale = morale_by_owner.get(settlement.owner_id, 0)
+    position, target = contact
+    attacker_morale, defender_morale = _settlement_battle_morale(
+        world, position, target, morale_by_owner
+    )
     return _resolve_settlement_assault(
         world,
         position,
@@ -871,6 +992,32 @@ def assault_duchy_party_to_recorded(
         attacker_morale=attacker_morale,
         defender_morale=defender_morale,
     )
+
+
+def assault_duchy_party_to_paused(
+    world: WorldMap,
+    duchy: Duchy,
+    target: Region,
+) -> tuple[WorldMap, tuple[HexBattle, Region, Region] | None]:
+    """Start an explicit settlement assault without resolving it.
+
+    Returns ``(world, (battle, source, target))`` with the deployment board
+    when the order starts a battle; no-op paths return ``(world, None)``.
+    The world is returned unchanged and no RNG is consumed — the caller keeps
+    the battle paused. The monthly-action guard mirrors the recorded path.
+    """
+    contact = _assault_contact(world, duchy, target)
+    if contact is None:
+        return world, None
+    position, target = contact
+    battle = (
+        world.start_settlement_battle_at(position)
+        if target == position
+        else world.start_settlement_battle(position, target)
+    )
+    if not world._party_can_act(position):
+        return world, None
+    return world, (battle, position, target)
 
 
 def assault_nearest_enemy_settlement(

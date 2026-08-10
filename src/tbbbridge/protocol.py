@@ -3,24 +3,71 @@
 import json
 
 import tbb.ai as ai
-from tbb.battle import BattleSide
+from tbb.battle import BattleSide, HexBattle
 from tbbbridge.persist import read_session, save_session
 from tbbbridge.session import (
+    PendingBattle,
     Session,
     _find_region_by_name,
     _resolve_player_duchy,
     apply_command,
     new_session,
 )
+from tbbbridge.snapshot import battle_state
 
 _BATTLE_ORDERS = ("assault", "engage")
 _ECONOMIC_ORDERS = ("develop", "recruit", "muster")
+
+_BATTLE_IN_PROGRESS_REASON = "bitwa w toku"
+_NO_PENDING_BATTLE_REASON = "brak bitwy w toku"
 
 _BATTLE_OUTCOME = {
     "attacker_win": "zwycięstwo",
     "defender_win": "porażka",
     "draw": "remis",
 }
+
+
+def _battle_summary(battle: HexBattle) -> dict:
+    """Maszynowe podsumowanie rozstrzygniętej bitwy (bez nazwy rozkazu)."""
+    result = battle.result()
+    outcome = (
+        _BATTLE_OUTCOME[result.value]
+        if result is not None
+        else "nierozstrzygnięta"
+    )
+    return {
+        "kind": "battle",
+        "outcome": outcome,
+        "attacker_losses": len(battle.side_fallen(BattleSide.ATTACKER)),
+        "defender_losses": len(battle.side_fallen(BattleSide.DEFENDER)),
+    }
+
+
+def _battle_step_result(command_type: str, before: Session, after: Session) -> dict:
+    """Wspólny kształt odpowiedzi ``battle_advance``/``battle_auto``.
+
+    Bitwa nadal w toku odpowiada planszą ``battle_pending``; komenda, która
+    domknęła bitwę — podsumowaniem ``{"kind": "battle", …}``; bez bitwy
+    w toku obie odpowiadają odmową ``changed: false`` z tym samym powodem.
+    """
+    if after.pending_battle is not None:
+        return _battle_pending_result(after.pending_battle)
+    if before.pending_battle is not None and after.last_battle is not None:
+        return _battle_summary(after.last_battle)
+    return {
+        "kind": command_type,
+        "changed": False,
+        "reason": _NO_PENDING_BATTLE_REASON,
+    }
+
+
+def _battle_pending_result(pending: PendingBattle) -> dict:
+    """Odpowiedź ``battle_pending`` z planszą bitwy pauzującej w sesji."""
+    return {
+        "kind": "battle_pending",
+        "battle": battle_state(pending.battle),
+    }
 
 
 def _validated_path(command: dict, command_name: str) -> tuple[str | None, str | None]:
@@ -95,7 +142,18 @@ def _order_refusal_reason(
 
 
 def command_result(before: Session, after: Session, command: dict) -> dict:
-    """Maszynowe podsumowanie skutku komendy (sterującej lub niebitewnej)."""
+    """Maszynowe podsumowanie skutku komendy (sterującej lub niebitewnej).
+
+    Pauza bitewna (G119.1b): rozkaz ``assault``/``engage``, który zaczął
+    bitwę, odpowiada ``{"kind": "battle_pending", "battle": battle_state(…)}``
+    z planszą w toku; ``battle_advance`` odpowiada tym samym kształtem po
+    jednej rundzie, a ``battle_auto`` po rozstrzygnięciu reszty rund — oba
+    domykając bitwę odpowiadają kształtem ``{"kind": "battle", …}``
+    z rozstrzygnięciem. Bez bitwy w toku obie komendy odpowiadają
+    ``changed: false`` z powodem ``"brak bitwy w toku"``. Dopóki bitwa
+    gracza jest w toku, każdy inny rozkaz oraz ``next_turn`` odpowiadają
+    ``changed: false`` z powodem ``"bitwa w toku"`` (wzorzec K111/K114/K118).
+    """
     command_type = command.get("type")
 
     if command_type == "next_turn":
@@ -103,9 +161,16 @@ def command_result(before: Session, after: Session, command: dict) -> dict:
             "kind": "turn",
             "date": {"year": after.calendar.year, "month": after.calendar.month},
         }
+        if before.pending_battle is not None:
+            result["changed"] = False
+            result["reason"] = _BATTLE_IN_PROGRESS_REASON
+            return result
         if after.game.is_over:
             result["game_over"] = True
         return result
+
+    if command_type in ("battle_advance", "battle_auto"):
+        return _battle_step_result(command_type, before, after)
 
     if command_type == "new_game":
         return {"kind": "new_game"}
@@ -121,21 +186,15 @@ def command_result(before: Session, after: Session, command: dict) -> dict:
 
     if command_type == "order":
         order_name = command["order"]
-        if order_name in _BATTLE_ORDERS and after.last_battle is not None:
-            battle = after.last_battle
-            result = battle.result()
-            outcome = (
-                _BATTLE_OUTCOME[result.value]
-                if result is not None
-                else "nierozstrzygnięta"
-            )
+        if before.pending_battle is not None:
             return {
-                "kind": "battle",
+                "kind": "order",
                 "order": order_name,
-                "outcome": outcome,
-                "attacker_losses": len(battle.side_fallen(BattleSide.ATTACKER)),
-                "defender_losses": len(battle.side_fallen(BattleSide.DEFENDER)),
+                "changed": False,
+                "reason": _BATTLE_IN_PROGRESS_REASON,
             }
+        if order_name in _BATTLE_ORDERS and after.pending_battle is not None:
+            return _battle_pending_result(after.pending_battle)
         result = {
             "kind": "order",
             "order": order_name,

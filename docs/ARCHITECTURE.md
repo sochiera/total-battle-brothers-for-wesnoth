@@ -308,14 +308,24 @@ klient Godot steruje partią bez duplikowania logiki reguł. Rdzeń `tbb`
 nie importuje sesji ani mostu.
 
 `Session(world, game, calendar, rng, player_duchy_id, seed,
-last_battle=None)` (G65.1a/G65.3a) to uchwyt sesji z polami do odczytu:
+last_battle=None, pending_battle=None)` (G65.1a/G65.3a/G119.1b) to uchwyt
+sesji z polami do odczytu:
 `world: WorldMap`, `game: GameState`, `calendar: Calendar`, `rng: Rng`,
-`player_duchy_id: str | None`, `seed: int`, `last_battle: HexBattle | None`.
+`player_duchy_id: str | None`, `seed: int`, `last_battle: HexBattle | None`,
+`pending_battle: PendingBattle | None`. `PendingBattle` (G119.1b) to mrożony
+dataclass `battle: HexBattle`, `source: Region`, `target: Region`,
+`kind: str` (`"party"` dla engage, `"settlement"` dla assault z sąsiedniego
+regionu, `"settlement_at"` dla assault w miejscu), `attacker_owner_id: str`,
+`defender_owner_id: str` — niesie bitwę gracza pauzującą przed
+rozstrzygnięciem wraz z kontekstem potrzebnym do kontynuacji rund i
+zastosowania wyniku. `pending_battle` i `last_battle` nigdy nie są ustawione
+naraz.
 Metoda `Session.snapshot() -> dict` zwraca
 `game_state(session.world, session.game, session.calendar, session.player_duchy_id,
-battle=session.last_battle)`; gdy `last_battle is None` wynik nie zawiera klucza
-`battle` (bajt-w-bajt identyczny z wcześniejszą postacią funkcji), a gdy jest
-ustawione, jako ostatni klucz osadzany jest `battle_state(session.last_battle)`.
+battle=…)` z bitwą pauzującą mającą pierwszeństwo przed `last_battle`; gdy
+obie są `None` wynik nie zawiera klucza `battle` (bajt-w-bajt identyczny
+z wcześniejszą postacią funkcji), a gdy któraś jest ustawiona, jako ostatni
+klucz osadzany jest jej `battle_state(…)`.
 Jest czysta, nie mutuje sesji, a wynik przechodzi przez `json.dumps`.
 
 `new_session(seed: int = 73, player_duchy_id: str | None = "player") -> Session`
@@ -332,12 +342,17 @@ Zwraca nowy `Session`; `rng` jest tym samym obiektem generatora
 metoda jest no-opem: zwraca równoważną sesję z identycznymi obiektami
 `world`/`game`/`calendar` bez mutacji sesji wejściowej.
 
-`apply_command(session, command)` (G65.1c/G69.1a) to json-owy punkt wejścia mostu.
+`apply_command(session, command)` (G65.1c/G69.1a/G119.1b) to json-owy punkt
+wejścia mostu.
 Rozpoznaje `command["type"]`:
-`"next_turn"` → `session.next_turn()`;
+`"next_turn"` → `session.next_turn()`; podczas bitwy gracza w toku
+(`pending_battle is not None`) zwraca wejściową sesję bez zmian;
 `"snapshot"` → zwraca **tę samą** (identycznościowo) sesję wejściową — czysty
 odczyt stanu bez mutacji `world`/`game`/`calendar`, bez konsumpcji RNG i
 niezależnie od `game.is_over`;
+`"battle_advance"` → jedna runda pauzującej bitwy gracza (niżej);
+`"battle_auto"` → rozstrzygnięcie pozostałych rund pauzującej bitwy gracza
+(niżej);
 `"new_game"` → `new_session(seed=command.get("seed", session.seed),
 player_duchy_id=session.player_duchy_id)` — świeża gra ze startowym kalendarzem
 `{year: 1, month: 1}`, zachowanym `player_duchy_id` i domyślnym seedem z sesji.
@@ -354,19 +369,44 @@ Pierwsze trzy reużywają odpowiednich czystych prymitywów `tbb.ai`
 `world.regions`; w każdym innym przypadku (brak klucza, pusty łańcuch lub
 brak dopasowania — zgodnie z `tbbui.serve`) fallbackuje do automatycznego
 `ai.march_duchy_party(world, player_duchy)`, po czym `game = game.sync_from_world(world)`.
-"assault" reużywa `ai.assault_duchy_party_to_recorded(world, player_duchy,
-region, session.rng, morale_by_owner=m)` gdy `command["target"]` jest
-niepustym łańcuchem pasującym do nazwy regionu z `world.regions`; w każdym
-innym przypadku fallbackuje do `ai.assault_duchy_party_recorded(world,
-player_duchy, session.rng, morale_by_owner=m)`. "engage" reużywa analogicznie
-`ai.engage_duchy_party_to_recorded(world, player_duchy, region, session.rng,
-morale_by_owner=m)` lub `ai.engage_duchy_party_recorded(world, player_duchy,
-session.rng, morale_by_owner=m)`. W obu przypadkach `m = {d.duchy_id:
-d.morale for d in session.game.duchies}`. Prymityw zwraca `(new_world, battle)`;
-nowy `Session` ma `world == new_world`, `game == game.sync_from_world(new_world)`,
-`last_battle == battle` (lub `None` gdy prymityw zwrócił `(world, None)`),
-a `calendar`/`rng`/`seed`/`player_duchy_id` bez zmian; współdzielony `rng`
-jest posuwany wyłącznie gdy rozegrano bitwę.
+"assault" reużywa `ai.assault_duchy_party_to_paused(world, player_duchy,
+region)` gdy `command["target"]` jest niepustym łańcuchem pasującym do nazwy
+regionu z `world.regions`; w każdym innym przypadku fallbackuje do
+`ai.assault_duchy_party_paused(world, player_duchy)`. "engage" reużywa
+analogicznie `ai.engage_duchy_party_to_paused(world, player_duchy, region)`
+lub `ai.engage_duchy_party_paused(world, player_duchy)`. Prymityw zwraca
+`(world, (battle, source, target) | None)`: rozpoczęta bitwa staje się
+`pending_battle` sesji **bez rozstrzygania** (G119.1b) — `world`/`game`/
+`calendar` pozostają identyczne, `rng` nie jest posuwany, a akcja miesiąca
+atakującego nie jest konsumowana (konsumuje ją dopiero zastosowanie wyniku).
+Walidacja tych prymitywów dzieli z wariantami `*_recorded` wspólne zapytania
+`ai._engage_contact` / `ai._assault_contact` (ta sama kolejność guardów, ten
+sam guard miesięcznej akcji `world._party_can_act` po zbudowaniu bitwy);
+ścieżki no-op zwracają `(world, None)`. Ścieżka AI (`take_duchy_turn` →
+warianty `*_recorded` → `auto_resolve`) pozostaje nietknięta.
+
+`"battle_advance"` (G119.1b) rozgrywa dokładnie jedną rundę pauzującej bitwy
+gracza: `pending_battle.battle.resolve_round(1, session.rng,
+attacker_morale=morale(atakujący), defender_morale=morale(obrońca))`, gdzie
+morale obu właścicieli czytane jest z `session.game.duchies` w chwili
+rozkazu. Dopóki `result()` pozostaje `None`, sesja niesie zaktualizowaną
+planszę jako `pending_battle` (świat, gra i kalendarz bez zmian); runda,
+która rozstrzyga bitwę, stosuje wynik do świata istniejącą regułą
+(`apply_party_battle_result` / `apply_settlement_battle_result` /
+`apply_settlement_battle_result_at` + wspólny krok `resolve_hero_survival`
+i synchronizacji gry), ustawia `last_battle` i czyści pauzę. Bez bitwy
+w toku rozkaz zwraca wejściową sesję bez zmian.
+
+`"battle_auto"` (G119.1b) rozstrzyga pozostałe rundy pauzującej bitwy gracza
+od bieżącej planszy: `pending_battle.battle.auto_resolve(1, session.rng,
+attacker_morale=morale(atakujący), defender_morale=morale(obrońca))` —
+kompozycja `resolve_round` z morale obu właścicieli czytanym z
+`session.game.duchies` w chwili rozkazu. Rozstrzygnięta bitwa stosuje wynik
+do świata tą samą istniejącą regułą co `battle_advance` (te trzy kroki
+`apply_*_battle_result` + `resolve_hero_survival` + synchronizacja gry),
+ustawia `last_battle` i czyści pauzę; świat, gra i kalendarz pozostają bez
+zmian do momentu rozstrzygnięcia. Bez bitwy w toku rozkaz zwraca wejściową
+sesję bez zmian.
 
 Rozkaz jest no-opem (zwraca równoważną sesję z identycznymi
 `world`/`game`/`calendar` i `last_battle is None`) gdy `game.is_over`, brak
@@ -374,19 +414,39 @@ Rozkaz jest no-opem (zwraca równoważną sesję z identycznymi
 Nieznana wartość `order` podnosi `ValueError`. Funkcja jest czysta względem
 wejściowej sesji — nigdy jej nie mutuje.
 
-`command_result(before, after, command)` (G66.2a/G66.2b/G68.2a/G69.1a) to
-json-serializowalne, czyste podsumowanie skutku komendy. Dla `next_turn`
-zwraca `{"kind": "turn", "date": {"year": ..., "month": ...}}`, dla `new_game`
-`{"kind": "new_game"}`, dla `snapshot` `{"kind": "snapshot"}`, dla rozkazów
-niebitewnych `{"kind": "order", "order": name, "changed": <bool>}` (różność
-obiektów `world`). Dla rozkazów bojowych `assault`/`engage`, gdy `after.last_battle is not
-None`, zwraca `{"kind": "battle", "order": name, "outcome": ..., "attacker_losses": int,
-"defender_losses": int}`: `outcome` mapowany jest z perspektywy atakującego
-z `report.result.value` (`"attacker_win"` → `"zwycięstwo"`, `"defender_win"` →
-`"porażka"`, `"draw"` → `"remis"`, inne → `None`), straty to liczności
-`report.attacker.fallen` / `report.defender.fallen`). Gdy rozkaz bojowy nie
-rozegrał bitwy (`after.last_battle is None`), zachowuje gałąź `kind: "order"`
-spójnie z rozkazami niebitewnymi. Dla `{"type": "save", "path": str}` zwraca
+**Bitwa w toku blokuje inne rozkazy** (G119.1b): dopóki `pending_battle`
+jest ustawione, każdy rozkaz (`develop`/`recruit`/`muster`/`reinforce`/
+`move`/`march`/`assault`/`engage`) oraz `next_turn` zwracają **wejściową
+sesję** — świat, kalendarz i RNG bez zmian (wzorzec K111/K114/K118;
+odpowiedź z powodem `"bitwa w toku"` składa `command_result`). Komendy
+sterujące (`snapshot`/`new_game`/`save`/`load`), `battle_advance` i
+`battle_auto` nie są blokowane.
+
+`command_result(before, after, command)` (G66.2a/G66.2b/G68.2a/G69.1a/
+G119.1b) to json-serializowalne, czyste podsumowanie skutku komendy. Dla
+`next_turn` zwraca `{"kind": "turn", "date": {"year": ..., "month": ...}}`
+— a podczas bitwy gracza w toku dodatkowo `"changed": false` i `"reason":
+"bitwa w toku"`; dla `new_game` `{"kind": "new_game"}`, dla `snapshot`
+`{"kind": "snapshot"}`, dla rozkazów niebitewnych `{"kind": "order",
+"order": name, "changed": <bool>}` (różność obiektów `world`).
+
+Pauza bitewna (G119.1b): rozkaz bojowy `assault`/`engage`, który zaczął
+bitwę, odpowiada `{"kind": "battle_pending", "battle": battle_state(…)}`
+z planszą w toku (`result` w środku jest `null`); `battle_advance` odpowiada
+tym samym kształtem po każdej rundzie, która nie rozstrzygnęła bitwy,
+`{"kind": "battle", "outcome": …, "attacker_losses": int,
+"defender_losses": int}` gdy runda bitwę domknęła, a bez bitwy w toku
+`{"kind": "battle_advance", "changed": false, "reason": "brak bitwy
+w toku"}`. `battle_auto` odpowiada kształtem `{"kind": "battle", …}`
+z rozstrzygnięciem (bez nazwy rozkazu) po rozstrzygnięciu pozostałych rund
+od bieżącej planszy, a bez bitwy w toku `{"kind": "battle_auto",
+"changed": false, "reason": "brak bitwy w toku"}` — tym samym powodem,
+który dostaje `battle_advance` bez bitwy. Dopóki bitwa gracza jest w toku, każdy inny rozkaz odpowiada
+`{"kind": "order", "order": name, "changed": false, "reason": "bitwa
+w toku"}` — ten jeden wspólny powód zastępuje diagnostykę własną rozkazu
+(wzorzec K111/K114/K118).
+
+`{"type": "save", "path": str}` zwraca
 `{"kind": "save", "path": str}` — `save` jest obsługiwany w warstwie protokołu
 przed `apply_command`, więc `before` i `after` to ta sama sesja.
 

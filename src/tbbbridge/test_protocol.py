@@ -13,6 +13,7 @@ import pytest
 
 from tbbbridge.session import Session, apply_command, new_session
 from tbbbridge.protocol import command_result, handle_command_line, serve_stream
+from tbbbridge.snapshot import battle_state
 
 
 def _assert_player_duchy(snapshot: dict) -> None:
@@ -608,7 +609,7 @@ def test_blocked_automatic_march_reports_the_foreign_party_region():
         session,
         '{"type":"order","order":"engage","target":"border"}',
     )
-    assert battle["result"]["kind"] == "battle"
+    assert battle["result"]["kind"] == "battle_pending"
 
 
 def test_blocked_region_is_omitted_for_a_game_over_march():
@@ -1022,11 +1023,17 @@ def test_second_battle_in_month_is_protocol_noop(order):
     second movement, but miss a second battle with another adjacent enemy;
     without the monthly guard the second command resolves another battle,
     consumes RNG, and returns ``kind: battle`` instead of ``changed: false``.
+    G119.1b: the monthly action is consumed by the resolution
+    (``battle_auto``), not by the pause — the second order is sent after the
+    first battle is resolved.
     """
     session = _build_two_target_battle_session(order)
     session, first = _send_battle_order(session, order, "Middle")
     assert first["ok"] is True
-    assert first["result"]["kind"] == "battle"
+    assert first["result"]["kind"] == "battle_pending"
+    session, resolved = handle_command_line(session, '{"type":"battle_auto"}')
+    assert resolved["ok"] is True
+    assert resolved["result"]["kind"] == "battle"
 
     before_second_world = session.world
     before_second_rng_state = session.rng.state()
@@ -1046,10 +1053,18 @@ def test_second_battle_in_month_is_protocol_noop(order):
 
 @pytest.mark.parametrize("order", ("assault", "engage"))
 def test_battle_is_reenabled_after_next_turn_via_protocol(order):
-    """The same battle order becomes effective again in the next month."""
+    """The same battle order becomes effective again in the next month.
+
+    G119.1b: each effective battle order pauses (``battle_pending``) and only
+    ``battle_auto`` resolves it; the resolution response carries no ``order``
+    key.
+    """
     session = _build_two_target_battle_session(order)
     session, first = _send_battle_order(session, order, "Middle")
-    assert first["result"]["kind"] == "battle"
+    assert first["result"]["kind"] == "battle_pending"
+    session, first_done = handle_command_line(session, '{"type":"battle_auto"}')
+    assert first_done["result"]["kind"] == "battle"
+    assert "order" not in first_done["result"]
 
     session, turn = handle_command_line(session, '{"type":"next_turn"}')
     assert turn["result"] == {
@@ -1059,10 +1074,13 @@ def test_battle_is_reenabled_after_next_turn_via_protocol(order):
 
     before_second_world = session.world
     session, second = _send_battle_order(session, order, "Far")
-
     assert second["ok"] is True
-    assert second["result"]["kind"] == "battle"
-    assert second["result"]["order"] == order
+    assert second["result"]["kind"] == "battle_pending"
+    session, second_done = handle_command_line(session, '{"type":"battle_auto"}')
+
+    assert second_done["ok"] is True
+    assert second_done["result"]["kind"] == "battle"
+    assert "order" not in second_done["result"]
     assert session.world is not before_second_world
     assert session.last_battle is not None
 
@@ -1086,10 +1104,14 @@ def test_ineffective_battle_does_not_consume_monthly_marker(order):
     assert session.world is before_world
     assert session.rng.state() == before_rng_state
     assert session.last_battle is None
+    assert session.pending_battle is None
 
     session, effective = _send_battle_order(session, order, "Middle")
     assert effective["ok"] is True
-    assert effective["result"]["kind"] == "battle"
+    assert effective["result"]["kind"] == "battle_pending"
+    session, resolved = handle_command_line(session, '{"type":"battle_auto"}')
+    assert resolved["ok"] is True
+    assert resolved["result"]["kind"] == "battle"
     assert session.last_battle is not None
 
 
@@ -1259,6 +1281,9 @@ def test_seed73_live_growth_measurement_is_recorded_and_k112_is_closed():
         "player_result": "defeat",
     }
 
+    # AC3 (task-672 kryt-6): the active rush uses the battle pause — every
+    # battle order answers battle_pending and battle_auto resolves it instead
+    # of the former auto-resolution; the rush still wins in R1M4.
     active = new_session(seed=73, player_duchy_id="player")
     active_commands = (
         {"type": "order", "order": "recruit"},
@@ -1267,14 +1292,21 @@ def test_seed73_live_growth_measurement_is_recorded_and_k112_is_closed():
         {"type": "order", "order": "march"},
         {"type": "next_turn"},
         {"type": "order", "order": "engage", "target": "border"},
+        {"type": "battle_auto"},
         {"type": "next_turn"},
         {"type": "order", "order": "assault", "target": "ai outpost"},
+        {"type": "battle_auto"},
         {"type": "next_turn"},
         {"type": "order", "order": "assault", "target": "ai lands"},
+        {"type": "battle_auto"},
     )
     for command in active_commands:
         active, response = handle_command_line(active, json.dumps(command))
         assert response["ok"] is True
+        if command["type"] == "order" and command["order"] in ("assault", "engage"):
+            assert response["result"]["kind"] == "battle_pending", command
+        elif command["type"] == "battle_auto":
+            assert response["result"]["kind"] == "battle", command
     assert active.snapshot()["result"] == {
         "is_over": True,
         "winner": "player",
@@ -1562,34 +1594,58 @@ def test_economic_order_target_routes_to_indicated_settlement_and_absence_is_unc
 
 
 @pytest.mark.parametrize("order", ("assault", "engage"))
-def test_command_result_battle_order_with_last_battle_returns_kind_battle_with_outcome_and_losses(order):
-    """G66.2b kryt-1: ``command_result(before, after, {"type": "order",
-    "order": <assault|engage>})`` gdy ``after.last_battle is not None`` zwraca
-    ``{"kind": "battle", "order": <order>, "outcome": <str|None>,
-    "attacker_losses": int, "defender_losses": int}`` gdzie ``outcome`` jest
-    mapowane z perspektywy atakującego z ``after.last_battle.report().result.value``
+def test_battle_order_pauses_and_battle_auto_resolution_returns_kind_battle_with_outcome_and_losses(order):
+    """G119.1b (odnowiony pin G66.2b kryt-1): rozkaz bojowy pauzuje bitwę, a
+    rozstrzygnięcie przychodzi dopiero z ``battle_auto``.
+
+    ``command_result(before, after, {"type": "order", "order": <assault|engage>})``
+    po rozpoczętej bitwie zwraca ``{"kind": "battle_pending",
+    "battle": battle_state(pauzującej bitwy)}`` (świat i RNG nietknięte).
+    ``command_result(paused, after, {"type": "battle_auto"})`` gdy
+    ``after.last_battle is not None`` zwraca ``{"kind": "battle",
+    "outcome": <str>, "attacker_losses": int, "defender_losses": int}``
+    **bez nazwy rozkazu**, gdzie ``outcome`` jest mapowane z perspektywy
+    atakującego z ``after.last_battle.report().result.value``
     (``"attacker_win"`` → ``"zwycięstwo"``, ``"defender_win"`` → ``"porażka"``,
     ``"draw"`` → ``"remis"``), a straty == ``len(report.attacker.fallen)`` /
-    ``len(report.defender.fallen)``. Wynik przechodzi ``json.dumps``.
+    ``len(report.defender.fallen)``. Wyniki przechodzą ``json.dumps``.
 
     Scenariusz: party gracza (north) skutecznie atakuje sąsiedni cel rozkazem
     ``assault`` albo ``engage``. ``after.last_battle`` jest rozegraną bitwą z
     realnym ``BattleResult`` i poległymi, więc ``command_result`` musi odczytać
-    raport zamiast zwracać gałąź ``kind: "order"``. Skuteczna gałąź nie może
-    dostać diagnostycznego ``reason``.
+    raport zamiast zwracać gałąź ``kind: "order"``. Gałąź rozstrzygnięcia nie
+    może dostać diagnostycznego ``reason``.
     """
     from tbb.battle import BattleResult
 
     command = {"type": "order", "order": order, "target": "Middle"}
     s = _build_two_target_battle_session(order)
-    after = apply_command(s, command)
+    rng_before = s.rng.state()
+    paused = apply_command(s, command)
 
-    # Warunki scenariusza: bitwa wybuchła i jest rozstrzygnięta.
+    # Warunki scenariusza: bitwa wybuchła i jest pauzowana, świat nietknięty.
+    assert paused.pending_battle is not None
+    assert paused.last_battle is None
+    assert paused.world is s.world
+    assert paused.rng.state() == rng_before
+
+    pause_result = command_result(s, paused, command)
+    assert pause_result == {
+        "kind": "battle_pending",
+        "battle": battle_state(paused.pending_battle.battle),
+    }
+    json.dumps(pause_result)
+
+    auto_command = {"type": "battle_auto"}
+    after = apply_command(paused, auto_command)
+
+    # Warunki scenariusza: bitwa rozstrzygnięta przez battle_auto.
     assert after.last_battle is not None
+    assert after.pending_battle is None
     report = after.last_battle.report()
     assert isinstance(report.result, BattleResult)
 
-    result = command_result(s, after, command)
+    result = command_result(paused, after, auto_command)
 
     # Oczekiwane mapowanie outcome z perspektywy atakującego.
     _outcome_from_result = {
@@ -1600,12 +1656,12 @@ def test_command_result_battle_order_with_last_battle_returns_kind_battle_with_o
     expected_outcome = _outcome_from_result[report.result]
     expected = {
         "kind": "battle",
-        "order": order,
         "outcome": expected_outcome,
         "attacker_losses": len(report.attacker.fallen),
         "defender_losses": len(report.defender.fallen),
     }
     assert result == expected
+    assert "order" not in result
 
     # outcome jest str (rozstrzygnięta bitwa w tym scenariuszu).
     assert isinstance(result["outcome"], str)
@@ -1621,6 +1677,10 @@ def test_command_result_battle_order_with_last_battle_returns_kind_battle_with_o
     returned, response = handle_command_line(
         _build_two_target_battle_session(order), json.dumps(command)
     )
+    assert returned.pending_battle is not None
+    assert response["ok"] is True
+    assert response["result"]["kind"] == "battle_pending"
+    returned, response = handle_command_line(returned, '{"type":"battle_auto"}')
     assert returned.last_battle is not None
     assert response["ok"] is True
     assert "error" not in response
@@ -1690,51 +1750,65 @@ def _build_stalemate_battle_session(*, order: str) -> Session:
     )
 
 
-def test_command_result_unresolved_battle_is_success_with_distinct_outcome():
-    """G89.1b-2: nierozstrzygnięta bitwa to udany wynik rozkazu, nie wyjątek.
+def test_unresolvable_battle_stays_paused_through_battle_auto_as_success():
+    """G119.1b (odnowiony pin G89.1b-2): patowa bitwa zostaje pauzą, nie wyjątkiem.
 
-    Defekt: ``command_result`` buduje podsumowanie przez ``last_battle.report()``,
-    a ``report()`` rzuca ``ValueError("cannot report an unfinished battle")`` gdy
-    ``result() is None``. Most albo wywala się przy składaniu odpowiedzi, albo
-    (gdyby wyjątek złapać wyżej) oddaje błąd zamiast ``kind: "battle"`` z
-    niepustym polskim ``outcome`` innym niż zwycięstwo/porażka/remis oraz
-    stratami z rzeczywistej bitwy (tu zera — nikt nie padł).
-
-    Istniejące testy G66.2b pokrywają tylko bitwę rozstrzygniętą albo brak
-    ``last_battle``; ścieżki patowej nie widać.
+    Jednostki z ``equipment=0`` nie zadają obrażeń, więc ``auto_resolve``
+    wyczerpuje limit rund przy ``result() is None``. W kontrakcie pauzy
+    (task-672) taki rozkaz bojowy najpierw odpowiada ``battle_pending``, a
+    ``battle_auto`` nie rozstrzyga bitwy: odpowiada sukcesem z tą samą
+    planszą ``battle_pending`` (bez ``changed``/``reason``/błędu), bitwa
+    nadal pauzuje w sesji, a świat pozostaje nietknięty. Dawniej ten pin
+    sprawdzał outcome ``"nierozstrzygnięta"`` w ``kind: "battle"`` — od
+    G119.1b rozstrzygnięcie bez wyniku nie istnieje, pat to przedłużająca
+    się pauza.
     """
-    from tbb.battle import BattleSide
-
-    resolved_outcomes = frozenset({"zwycięstwo", "porażka", "remis"})
-
     for order in ("assault", "engage"):
         s = _build_stalemate_battle_session(order=order)
         command = {"type": "order", "order": order}
-        after = apply_command(s, command)
+        paused = apply_command(s, command)
 
-        assert after.last_battle is not None
-        assert after.last_battle.result() is None
-        expected_attacker = len(after.last_battle.side_fallen(BattleSide.ATTACKER))
-        expected_defender = len(after.last_battle.side_fallen(BattleSide.DEFENDER))
-        assert expected_attacker == 0
-        assert expected_defender == 0
+        assert paused.pending_battle is not None
+        assert paused.pending_battle.battle.result() is None
+        assert paused.world is s.world
 
-        result = command_result(s, after, command)
+        pause_result = command_result(s, paused, command)
+        assert pause_result == {
+            "kind": "battle_pending",
+            "battle": battle_state(paused.pending_battle.battle),
+        }
+        json.dumps(pause_result)
 
-        assert result["kind"] == "battle"
-        assert result["order"] == order
+        auto_command = {"type": "battle_auto"}
+        after = apply_command(paused, auto_command)
+
+        # Pat: bitwa nadal pauzuje, świat i last_battle bez zmian.
+        assert after.pending_battle is not None
+        assert after.pending_battle.battle.result() is None
+        assert after.last_battle is None
+        assert after.world is s.world
+
+        result = command_result(paused, after, auto_command)
+
+        assert result == {
+            "kind": "battle_pending",
+            "battle": battle_state(after.pending_battle.battle),
+        }
         assert "changed" not in result
-        assert isinstance(result["outcome"], str)
-        assert result["outcome"]
-        assert result["outcome"] not in resolved_outcomes
-        assert result["attacker_losses"] == expected_attacker
-        assert result["defender_losses"] == expected_defender
+        assert "reason" not in result
         json.dumps(result)
 
         # Protokół: sukces ze snapshotem, nie {"ok": false, "error": ...}.
         next_session, resp = handle_command_line(s, json.dumps(command))
-        assert next_session.last_battle is not None
-        assert next_session.last_battle.result() is None
+        assert next_session.pending_battle is not None
+        assert resp["ok"] is True
+        assert "error" not in resp
+        assert resp["result"]["kind"] == "battle_pending"
+        next_session, resp = handle_command_line(
+            next_session, json.dumps(auto_command)
+        )
+        assert next_session.pending_battle is not None
+        assert next_session.pending_battle.battle.result() is None
         assert resp["ok"] is True
         assert "error" not in resp
         assert resp["snapshot"] == next_session.snapshot()
@@ -2096,6 +2170,9 @@ def test_serve_stream_save_new_game_load_restores_last_battle_snapshot_and_repor
     ``load.snapshot["battle"]`` identyczne z ``save.snapshot["battle"]``
     oraz końcową sesję z ``last_battle.report()`` równym raportowi bitwy
     zapisanej przed round-tripem. Bez nowego API protokołu.
+
+    G119.1b: rozstrzygnięcie pochodzi z ``battle_auto`` po pauzie — do zapisu
+    trafia sesja bez bitwy w toku (persystencja pauzy to osobny task-673).
     """
     import os
     import tempfile
@@ -2104,6 +2181,9 @@ def test_serve_stream_save_new_game_load_restores_last_battle_snapshot_and_repor
         _build_battle_session_assault(),
         {"type": "order", "order": "assault"},
     )
+    assert s.pending_battle is not None
+    s = apply_command(s, {"type": "battle_auto"})
+    assert s.pending_battle is None
     assert s.last_battle is not None
     assert "battle" in s.snapshot()
     expected_report = s.last_battle.report()

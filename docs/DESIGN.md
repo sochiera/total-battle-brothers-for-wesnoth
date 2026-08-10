@@ -307,6 +307,14 @@ w regionie (wymaga osady i wolnego slotu party).
   `morale_by_owner` (brak wpisu → `0`); party gracza bez `owner_id` →
   `ValueError`; no-op bez party / target spoza sąsiadów / brak wrogiego party na
   celu → `(world, None)` **bez** RNG.
+- Warianty `_paused` (G119.1b): `engage_duchy_party_paused` /
+  `engage_duchy_party_to_paused` / `assault_duchy_party_paused` /
+  `assault_duchy_party_to_paused` — ta sama walidacja co warianty `_recorded`
+  (wspólne zapytania `_engage_contact` / `_assault_contact`, guard miesięcznej
+  akcji po zbudowaniu bitwy), ale **bez `auto_resolve` i bez RNG**: start przez
+  `start_battle` / `start_settlement_battle(_at)` → `(world, (battle, source,
+  target) | None)`; `world` zawsze niezmieniony. Używane wyłącznie przez most
+  do pauzowania bitwy gracza; ścieżka AI zostaje przy `_recorded`.
 
 **Setup i pętla:**
 - `create_headless_game()` → `WorldMap` + `GameState` z księstwami `player` i `ai`;

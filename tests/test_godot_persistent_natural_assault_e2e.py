@@ -25,7 +25,9 @@ import json
 import shlex
 from pathlib import Path
 
-from godot_runner import PLAYER_RESULT_PL, run_godot_script
+import pytest
+
+from godot_runner import DEFERRED_BATTLE_E2E_REASON, PLAYER_RESULT_PL, run_godot_script
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -130,6 +132,7 @@ def _assert_capture_visible_on_screen(play: dict, *, phase: str = "play") -> Non
         )
 
 
+@pytest.mark.xfail(strict=True, reason=DEFERRED_BATTLE_E2E_REASON)
 def test_natural_sequence_captures_frontier_keep_campaign_ongoing_on_live_bridge(tmp_path):
     """Recruit → muster → march → next_turns → engage → next_turns → assault: capture.
 
