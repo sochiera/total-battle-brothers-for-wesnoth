@@ -69,7 +69,12 @@ i **jawna akceptacja screenshotów przez człowieka**. **[W]** Spełnione
   `ai outpost` przechodzi **2 → 1** i utrzymuje `garrison: 1`.
 - **K114 — DOMKNIĘTY 2026-08-08:** rozkaz **gospodarczy** niesie powód odmowy
   (przejściowy vs trwały, liczy rdzeń — wniosek 42), klient pokazuje go po
-  polsku i dokłada **wolną ludność** do panelu osady.
+  polsku i dokłada **wolną ludność** do panelu osady. Pomiar zamykający z
+  `seed=73`: `recruit`×8 → `develop` daje powód przejściowy przy zapasie 10 i
+  saldzie +5; w turze 3 przebiegu co-turę `develop` + `recruit` obie osady
+  mają `free=0`, zapas 5 i 4 oraz saldo 0 i −2, a odmowa jest trwała; kolejna
+  tura potwierdza brak wzrostu (Keep 8→8, Outpost 9→9), a przy zapasie 0
+  powód nadal jest trwały. Regresje: bierna partia R1M7, aktywna R1M4.
 - **K115 — DOMKNIĘTY 2026-08-08:** naprawa głodu (wniosek 43) — po `develop`×2
   i 5× `next_turn` wolna ludność odrasta (player lands `free` 2→5 /
   population 5→8; player outpost `free` 4→6 / population 5→7, osada utracona
@@ -90,6 +95,18 @@ i **jawna akceptacja screenshotów przez człowieka**. **[W]** Spełnione
   przez most; klient kieruje do `engage`, gdy w zasięgu jest tylko wojsko.
   Domyka wniosek 41(i) na całej klasie rozkazów. Regresje: rush R1M4, bierny
   R1M7, K115/K116/K117 zachowują odrost ludności, wskazany cel i `garrison>=1`.
+  Pomiar zamykający z `seed=73`: `recruit`×3 prowadzi do odmów wojskowych,
+  aktywna ścieżka wygrywa w **R1M4**, bierna przegrywa w **R1M7**.
+
+  Trwałe piny pomiarowe bramek live: K115/K116 — rozdzielone regresje z
+  `seed=73`: bierna sekwencja 6× `next_turn` prowadzi do przegranej w **R1M7**;
+  aktywna sekwencja `recruit`×2 → `muster` → `march` → `next_turn` → `engage`
+  → `next_turn` → `assault` → `next_turn` → `assault` prowadzi do zwycięstwa
+  w **R1M4**. Niezależnie od tej pary wyników po `develop`×2 gracz ma
+  `population=5`, `free=2` (początkowo `free=4`), a po pięciu turach
+  `population=8`, `free=5` (odpowiednio posterunek: `population=7`, `free=6`),
+  a późniejszy rozkaz daje `changed:true`. K117 — po `muster` jest
+  `garrison=1`, aktywna sekwencja to `recruit`×5 → `muster` → `march` → `next_turn` → `reinforce` → `next_turn` → `march` → `next_turn` → `assault` → `next_turn` → `assault` → `next_turn` → `assault`; obrona `develop`×2 → `recruit`×4 → `next_turn`×20 pozostaje `ongoing` w **R2M8** z `garrison=3`.
 
 ## Ograniczenia i priorytety
 - **[W]** Rdzeń `tbb` jest **jedynym źródłem reguł**. Godot nie duplikuje logiki;

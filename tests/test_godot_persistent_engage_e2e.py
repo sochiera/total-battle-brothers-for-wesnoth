@@ -6,9 +6,8 @@ import json
 import shlex
 from pathlib import Path
 
-import pytest
 import tbb.ai as ai
-from godot_runner import DEFERRED_BATTLE_E2E_REASON, run_godot_script
+from godot_runner import run_godot_script
 from tbbbridge.persist import read_session, save_session
 from tbbbridge.protocol import handle_command_line
 from tbbbridge.session import Session, apply_command, new_session
@@ -159,10 +158,11 @@ def _stale_battle_after_month_reset_session() -> Session:
     session path used by the bridge.  That command clears ``last_battle``, so
     restore the deliberately stale battle only after the turn transition.
     """
-    after_battle = apply_command(
+    after_battle_pending = apply_command(
         _adjacent_parties_session(),
         {"type": "order", "order": "engage"},
     )
+    after_battle = apply_command(after_battle_pending, {"type": "battle_auto"})
     after_reset = apply_command(after_battle, {"type": "next_turn"})
     # The public next-turn path also runs the AI.  Keep this fixture's original
     # no-current-target precondition by removing only the AI party after that
@@ -204,7 +204,6 @@ def _polish_battle_outcome(text: str) -> bool:
     return any(outcome in lowered for outcome in ("porażka", "zwycięstwo", "remis"))
 
 
-@pytest.mark.xfail(strict=True, reason=DEFERRED_BATTLE_E2E_REASON)
 def test_engage_button_resolves_party_battle_and_persists_it_across_processes(tmp_path):
     """A live click must not be a dead control or leave the state before combat.
 
@@ -317,7 +316,6 @@ def test_military_refusal_statuses_survive_process_boundary(tmp_path):
     assert read_session(state_path).world == prepared.world
 
 
-@pytest.mark.xfail(strict=True, reason=DEFERRED_BATTLE_E2E_REASON)
 def test_seed73_k118_live_refusal_measurement_is_concrete_and_recorded(tmp_path):
     """K118.1e: exact measured refusals carry through two live client processes.
 
@@ -427,24 +425,19 @@ def test_seed73_k118_live_refusal_measurement_is_concrete_and_recorded(tmp_path)
     assert real_response["result"]["reason"] == real_first["order_results"]["assault"]["reason"]
     assert bridge_real.world is real.world
 
-    # AC4: this is deliberately the red part on the pre-measurement baseline.
-    # Keep the lookup bounded to K118 so an unrelated historical marker cannot
-    # satisfy the gate.
-    backlog = (ROOT / "BACKLOG.md").read_text(encoding="utf-8")
+    # AC4: the measured values are part of the durable K118 product record.
     project = (ROOT / "docs" / "PROJECT.md").read_text(encoding="utf-8")
-    k118_start = backlog.index("## Kamień milowy 118")
-    k118_end = backlog.index("## Dług/refaktor", k118_start)
-    backlog_k118 = backlog[k118_start:k118_end]
-    assert "— UKOŃCZONY" in backlog_k118.splitlines()[0]
-    assert "- [x] **G118.1e [POMIAR]**" in backlog_k118
-    assert "> **Pomiar zamykający K118" in backlog_k118
+    k118_start = project.index("- **K118 — DOMKNIĘTY")
+    project_k118 = project[
+        k118_start : project.index(
+            "\n\n  Trwałe piny pomiarowe bramek live:", k118_start
+        )
+    ]
     for marker in ("recruit`×3", "R1M4", "R1M7"):
-        assert marker in backlog_k118
-    assert "- **K118 — DOMKNIĘTY" in project
-    assert "R1M4" in project and "R1M7" in project
+        assert marker in project_k118
+    assert "- **K118 — DOMKNIĘTY" in project_k118
 
 
-@pytest.mark.xfail(strict=True, reason=DEFERRED_BATTLE_E2E_REASON)
 def test_blocked_march_status_and_followup_engage_survive_process_boundary(tmp_path):
     """A live blocked march explains the blocker; the same saved party can fight.
 
@@ -541,7 +534,6 @@ def test_fresh_bridge_reads_acted_marker_after_persisted_march(tmp_path):
     assert resumed["controls"]["order_status"] == EXHAUSTED_ACTION_STATUS
 
 
-@pytest.mark.xfail(strict=True, reason=DEFERRED_BATTLE_E2E_REASON)
 def test_fresh_bridge_reads_party_marker_instead_of_stale_previous_month_battle(tmp_path):
     """A stale battle must not make a fresh client invent an exhausted action."""
     state_path = tmp_path / "stale-battle-session.json"

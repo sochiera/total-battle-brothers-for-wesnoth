@@ -2,9 +2,7 @@ import json
 import shlex
 from pathlib import Path
 
-import pytest
-
-from godot_runner import DEFERRED_BATTLE_E2E_REASON, run_godot_script
+from godot_runner import run_godot_script
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -33,7 +31,6 @@ def _run_measurement(tmp_path: Path) -> dict:
     return json.loads(lines[0][len(PREFIX) :])
 
 
-@pytest.mark.xfail(strict=True, reason=DEFERRED_BATTLE_E2E_REASON)
 def test_k117_live_measurements_and_documentation_are_complete(tmp_path):
     """G117.1b AC1-6: live persisted measurements and their prose contract.
 
@@ -102,29 +99,27 @@ def test_k117_live_measurements_and_documentation_are_complete(tmp_path):
     for settlement in defensive["settlements"].values():
         assert settlement["garrison"] == 3, defensive
 
-    backlog = (ROOT / "BACKLOG.md").read_text(encoding="utf-8")
-    k117_start = backlog.index("## Kamień milowy 117")
-    k117_end = backlog.index("## Kamień milowy 118", k117_start)
-    k117 = backlog[k117_start:k117_end]
-    assert (
+    project = (ROOT / "docs" / "PROJECT.md").read_text(encoding="utf-8")
+    k117_start = project.index("- **K117 — DOMKNIĘTY")
+    project_k117 = project[
+        k117_start : project.index("\n- **K118 — DOMKNIĘTY", k117_start)
+    ]
+    expected_active_sequence = (
         "`recruit`×5 → `muster` → `march` → `next_turn` → `reinforce` → "
         "`next_turn` → `march` → `next_turn` → `assault` → `next_turn` → "
         "`assault` → `next_turn` → `assault`"
-    ) in k117
-
-    project = (ROOT / "docs" / "PROJECT.md").read_text(encoding="utf-8")
+    )
+    # Markdown may wrap this long pin between two commands; compare its token
+    # sequence while treating source whitespace as presentation only.
+    assert " ".join(expected_active_sequence.split()) in " ".join(project_k117.split())
     passive_date = passive["date"]
     active_date = active["date"]
     defensive_date = defensive["date"]
-    for document in (k117, project):
-        compact_document = document.replace("`", "").replace(" ", "")
-        assert "`garrison=1`" in document, document
-        assert f"R{passive_date['year']}M{passive_date['month']}" in document, document
-        assert f"R{active_date['year']}M{active_date['month']}" in document, document
-        assert (
-            "next_turn×20" in compact_document
-            or "20×next_turn" in compact_document
-        ), document
-        assert f"R{defensive_date['year']}M{defensive_date['month']}" in document, document
-        assert "R2M8" in document, document
-        assert "`garrison=3`" in document, document
+    compact_document = project_k117.replace("`", "").replace(" ", "")
+    assert "`garrison=1`" in project_k117, project_k117
+    assert f"R{passive_date['year']}M{passive_date['month']}" in project_k117, project_k117
+    assert f"R{active_date['year']}M{active_date['month']}" in project_k117, project_k117
+    assert "next_turn×20" in compact_document or "20×next_turn" in compact_document, project_k117
+    assert f"R{defensive_date['year']}M{defensive_date['month']}" in project_k117, project_k117
+    assert "R2M8" in project_k117, project_k117
+    assert "`garrison=3`" in project_k117, project_k117

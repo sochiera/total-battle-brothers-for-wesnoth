@@ -1225,32 +1225,13 @@ def test_seed73_live_growth_measurement_is_recorded_and_k112_is_closed():
     )
 
     root = Path(__file__).resolve().parents[2]
-    backlog = (root / "BACKLOG.md").read_text()
     project = (root / "docs" / "PROJECT.md").read_text()
-    backlog_k112 = backlog[
-        backlog.index(
-            "## Kamień milowy 112 — wojsko z garnizonu trafia w pole "
-            "(koniec martwej partii bez armii) — UKOŃCZONY"
-        ) : backlog.index("## Kamień milowy 113", backlog.index("## Kamień milowy 112"))
-    ]
     project_k112 = project[
         project.index("- **K112 — DOMKNIĘTY 2026-08-08:") : project.index(
-            "\n\n## Ograniczenia", project.index("- **K112 — DOMKNIĘTY")
+            "\n- **K114 — DOMKNIĘTY", project.index("- **K112 — DOMKNIĘTY")
         )
     ]
     missing = [
-        marker
-        for marker in (
-            "## Kamień milowy 112 — wojsko z garnizonu trafia w pole (koniec martwej partii bez armii) — UKOŃCZONY",
-            "8 tur",
-            'winner: "ai"',
-            "oddział AI rośnie",
-            "1 → 3",
-            "garrison: 1",
-        )
-        if marker not in backlog_k112
-    ]
-    missing.extend(
         marker
         for marker in (
             "8 tur",
@@ -1260,7 +1241,7 @@ def test_seed73_live_growth_measurement_is_recorded_and_k112_is_closed():
             "garrison: 1",
         )
         if marker not in project_k112
-    )
+    ]
     assert not missing, (
         "AC5: historical K112 measurement and closure are missing from project "
         f"records: {missing}"
@@ -1418,28 +1399,30 @@ def test_seed73_three_refusal_states_measured_on_live_bridge_and_k114_is_closed(
         "reason": permanent,
     }, "AC1(c): przy zerowym zapasie powód nadal TRWAŁY"
 
-    # --- AC4: pomiar zapisany w BACKLOG.md (K114) i PROJECT.md, K114 domknięty ---
+    # --- AC4: pomiar zapisany w PROJECT.md, K114 domknięty ---
     root = Path(__file__).resolve().parents[2]
-    backlog = (root / "BACKLOG.md").read_text()
     project = (root / "docs" / "PROJECT.md").read_text()
 
-    k114_start = backlog.index("## Kamień milowy 114")
-    k114_end = backlog.index("## Kamień milowy 115", k114_start)
-    backlog_k114 = backlog[k114_start:k114_end]
-
-    assert "— UKOŃCZONY" in backlog_k114.splitlines()[0], (
-        "AC4: nagłówek K114 w BACKLOG.md ma być oznaczony UKOŃCZONY"
-    )
-    assert "- [x] **G114.1d [POMIAR]**" in backlog_k114, (
-        "AC4: pozycja G114.1d w BACKLOG.md ma być odhaczona"
-    )
-    assert "> **Pomiar zamykający K114" in backlog_k114, (
-        "AC4: pomiar z żywego mostu zapisany jako blok zamykający K114 (wzorzec K112)"
-    )
-
-    assert "- **K114 — DOMKNIĘTY" in project, (
-        "AC4: K114 ma figurować jako DOMKNIĘTY w „Stan faktyczny\" w docs/PROJECT.md"
-    )
+    k114_start = project.index("- **K114 — DOMKNIĘTY")
+    k114_end = project.index("\n- **K115 — DOMKNIĘTY", k114_start)
+    project_k114 = project[k114_start:k114_end]
+    for marker in (
+        "- **K114 — DOMKNIĘTY",
+        "`recruit`×8",
+        "przejściowy",
+        "zapasie 10",
+        "saldzie +5",
+        "free=0",
+        "zapas 5 i 4",
+        "saldo 0 i −2",
+        "Keep 8→8",
+        "Outpost 9→9",
+        "R1M7",
+        "R1M4",
+    ):
+        assert marker in project_k114, (
+            f"AC4: docs/PROJECT.md must preserve K114 measurement marker {marker!r}"
+        )
 
 
 def test_economic_order_target_routes_to_indicated_settlement_and_absence_is_unchanged():
@@ -2512,40 +2495,21 @@ def test_seed73_free_population_regrows_on_live_bridge_and_k115_is_closed():
     # Zmierzony przebieg GRACZA: player lands free 2->5/pop 5->8,
     # player outpost free 4->6/pop 5->7 (utrata osady w turze 5).
     root = Path(__file__).resolve().parents[2]
-    backlog = (root / "BACKLOG.md").read_text()
     project = (root / "docs" / "PROJECT.md").read_text()
+    k115_start = project.index("- **K115 — DOMKNIĘTY")
+    project_k115 = project[
+        k115_start : project.index("\n- **K116 — DOMKNIĘTY", k115_start)
+    ]
 
-    k115_start = backlog.index("## Kamień milowy 115")
-    k115_end = backlog.index("## Dług/refaktor", k115_start)
-    backlog_k115 = backlog[k115_start:k115_end]
-
-    assert "— UKOŃCZONY" in backlog_k115.splitlines()[0], (
-        "AC4: nagłówek K115 w BACKLOG.md ma być oznaczony UKOŃCZONY"
-    )
-    assert "- [x] **G115.1b [POMIAR]**" in backlog_k115, (
-        "AC4: pozycja G115.1b w BACKLOG.md ma być odhaczona"
-    )
-    assert "> **Pomiar zamykający K115" in backlog_k115, (
-        "AC4: pomiar odrastania z żywego mostu zapisany jako blok zamykający K115"
-    )
     # Poprawna trajektoria GRACZA: population outpost 5->7 (NIE 5->6 = dane AI
     # po zajęciu osady w turze 5). To rozstrzyga uwagę review o miksu właścicieli.
-    assert "5→7" in backlog_k115, (
-        "AC4: sekcja K115 ma nosić zmierzony population GRACZA outpost 5→7 "
-        "(5→6 to population AI po przejęciu osady w turze 5)"
-    )
-    for marker in ("R1M7", "R1M4"):
-        assert marker in backlog_k115, (
-            f"AC3/AC4: zmierzona liczba tur regresji ({marker}) w sekcji K115 BACKLOG.md"
-        )
-
-    assert "- **K115 — DOMKNIĘTY" in project, (
+    assert "- **K115 — DOMKNIĘTY" in project_k115, (
         "AC4: K115 ma figurować jako DOMKNIĘTY w „Stan faktyczny\" w docs/PROJECT.md"
     )
-    assert "5→7" in project, (
+    assert "5→7" in project_k115, (
         "AC4: docs/PROJECT.md ma nosić population GRACZA outpost 5→7 (nie 5→6 = AI)"
     )
     for marker in ("odrasta", "changed:true", "R1M7", "R1M4"):
-        assert marker in project, (
+        assert marker in project_k115, (
             f"AC4: docs/PROJECT.md ma nosić zmierzone markery K115 ({marker!r})"
         )

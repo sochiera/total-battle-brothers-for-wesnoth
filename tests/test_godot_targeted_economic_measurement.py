@@ -6,9 +6,7 @@ import json
 import shlex
 from pathlib import Path
 
-import pytest
-
-from godot_runner import DEFERRED_BATTLE_E2E_REASON, run_godot_script
+from godot_runner import run_godot_script
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -110,7 +108,6 @@ def test_targeted_economic_orders_diverge_and_survive_live_bridge_resume(tmp_pat
         assert scenario["resumed"] == expected
 
 
-@pytest.mark.xfail(strict=True, reason=DEFERRED_BATTLE_E2E_REASON)
 def test_live_bridge_remeasures_resolution_and_k115_growth(tmp_path):
     """G116.1f AC4-6: fresh live-bridge regression and K115 measurement.
 
@@ -183,10 +180,11 @@ def test_live_bridge_remeasures_resolution_and_k115_growth(tmp_path):
     }
 
     # AC6: the measured numbers are part of the K116 public project record.
-    backlog = (ROOT / "BACKLOG.md").read_text(encoding="utf-8")
-    k116_start = backlog.index("## Kamień milowy 116")
-    k116_end = backlog.index("## Dług/refaktor", k116_start)
-    k116 = backlog[k116_start:k116_end]
+    project = (ROOT / "docs" / "PROJECT.md").read_text(encoding="utf-8")
+    project_pins_start = project.index("  Trwałe piny pomiarowe bramek live:")
+    project_pins = project[
+        project_pins_start : project.index("\n\n## Ograniczenia", project_pins_start)
+    ]
     for marker in (
         "6× `next_turn`",
         "R1M7",
@@ -200,4 +198,6 @@ def test_live_bridge_remeasures_resolution_and_k115_growth(tmp_path):
         "free=6",
         "changed:true",
     ):
-        assert marker in k116, f"K116 must record measured value {marker!r}"
+        assert marker in project_pins, (
+            f"K115/K116 must record measured value in the durable pin block {marker!r}"
+        )

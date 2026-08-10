@@ -5,6 +5,7 @@ extends SceneTree
 ## bridge sessions and remain visible after a serve --resume process.
 
 const BridgeClient = preload("res://scripts/bridge_client.gd")
+const MeasurementBattle = preload("res://tests/measurement_battle_helpers.gd")
 const PREFIX := "TARGETED_ECONOMIC_MEASUREMENT "
 const PLAYER_LANDS := "player lands"
 const PLAYER_OUTPOST := "player outpost"
@@ -126,6 +127,7 @@ func _measure_regressions(args: PackedStringArray) -> Dictionary:
 			model = active.advance_turn()
 		else:
 			model = active.send_order(command["order"], str(command.get("target", "")))
+			model = MeasurementBattle.resolve_pending_battle(active, model)
 		if model == null:
 			_fail("active live bridge snapshot unavailable")
 			return {}

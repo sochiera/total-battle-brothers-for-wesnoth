@@ -12,6 +12,8 @@ var _is_persistent: bool = false
 var state_path: String
 var seed: int
 var _last_order_result: Variant = null
+var _last_command_result: Variant = null
+var _last_battle_order: String = ""
 
 
 static func create(command: String, request_path: String = "") -> BridgeClient:
@@ -151,6 +153,7 @@ func _send_persisted_sequence(
 		return null
 
 	var first_response: Dictionary = responses[0]
+	_last_command_result = first_response.get("result")
 	var model := SnapshotModel.from_response(first_response)
 	var order_result: Variant = null
 	if project_order_result:
@@ -177,6 +180,10 @@ static func _order_command(order_name: String, target: String) -> Dictionary:
 	return command
 
 
+static func _is_battle_order(order_name: String) -> bool:
+	return order_name == "assault" or order_name == "engage"
+
+
 static func _party_acted_this_month_from_model(model: SnapshotModel) -> bool:
 	return (
 		model != null
@@ -187,6 +194,7 @@ static func _party_acted_this_month_from_model(model: SnapshotModel) -> bool:
 
 func send_order(order_name: String, target: String = "") -> SnapshotModel:
 	_last_order_result = null
+	_last_battle_order = order_name if _is_battle_order(order_name) else ""
 	return _send_persisted_sequence(_order_command(order_name, target), true)
 
 
@@ -208,6 +216,20 @@ func load_party(path: String) -> SnapshotModel:
 
 func last_order_result() -> Variant:
 	return _last_order_result
+
+
+func last_battle_result() -> Variant:
+	if (
+		_last_battle_order.is_empty()
+		or not _last_command_result is Dictionary
+		or _last_command_result.get("kind") != "battle"
+	):
+		return null
+	var result: Dictionary = _last_command_result.duplicate()
+	result["order"] = _last_battle_order
+	result["attacker_losses"] = int(result["attacker_losses"])
+	result["defender_losses"] = int(result["defender_losses"])
+	return result
 
 
 func snapshot_model() -> SnapshotModel:

@@ -6,9 +6,7 @@ import json
 import shlex
 from pathlib import Path
 
-import pytest
-
-from godot_runner import DEFERRED_BATTLE_E2E_REASON, run_godot_script
+from godot_runner import run_godot_script
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -44,7 +42,6 @@ def _polish_battle_result(text: str) -> bool:
     )
 
 
-@pytest.mark.xfail(strict=True, reason=DEFERRED_BATTLE_E2E_REASON)
 def test_assault_button_shows_battle_view_across_godot_processes(tmp_path):
     """Assault path must paint BattleView from live bridge state, not only status text.
 

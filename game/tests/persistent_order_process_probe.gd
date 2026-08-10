@@ -65,7 +65,7 @@ func _run() -> void:
 			for _turn in range(AssaultPrecondition.NEXT_TURNS_TO_STAGE_LIVE_FRONTIER):
 				if not _press(scene_root, "NextTurnButton"):
 					return
-			if not _press(scene_root, "EngageButton"):
+			if not _press_battle_order(scene_root, client, "EngageButton"):
 				return
 			# Clear Engage's displayed battle with a non-military order; it cannot
 			# move the party or depend on march's monthly no-op behavior.
@@ -82,28 +82,28 @@ func _run() -> void:
 				_fail("assault precondition failed: %s" % assault_precondition)
 				return
 		"battle":
-			if not _press(scene_root, "AssaultButton"):
+			if not _press_battle_order(scene_root, client, "AssaultButton"):
 				return
 		"second_engage_clear":
 			# The first assault leaves the player at AI Outpost.  There is no
 			# adjacent enemy party left, so engage is a legal unchanged order
 			# that clears the persisted battle view.
-			if not _press(scene_root, "EngageButton"):
+			if not _press_battle_order(scene_root, client, "EngageButton"):
 				return
 		"engage", "second_engage":
-			if not _press(scene_root, "EngageButton"):
+			if not _press_battle_order(scene_root, client, "EngageButton"):
 				return
 		"second_engage_next_turn":
 			var blocked := {}
 			var after_turn := {}
 			var effective := {}
-			if not _press(scene_root, "EngageButton"):
+			if not _press_battle_order(scene_root, client, "EngageButton"):
 				return
 			blocked = _controls(scene_root)
 			if not _press(scene_root, "NextTurnButton"):
 				return
 			after_turn = _controls(scene_root)
-			if not _press(scene_root, "EngageButton"):
+			if not _press_battle_order(scene_root, client, "EngageButton"):
 				return
 			effective = _controls(scene_root)
 			sequence = {
@@ -130,7 +130,7 @@ func _run() -> void:
 			if not _press(scene_root, "MarchButton"):
 				return
 		"engage_after_march":
-			if not _press(scene_root, "EngageButton"):
+			if not _press_battle_order(scene_root, client, "EngageButton"):
 				return
 			sequence = {"engage": _controls(scene_root)}
 		"previous_month_battle":
@@ -144,17 +144,17 @@ func _run() -> void:
 		"military_refusals", "military_refusals_resume":
 			var assault := {}
 			var engage := {}
-			if not _press(scene_root, "AssaultButton"):
+			if not _press_battle_order(scene_root, client, "AssaultButton"):
 				return
 			assault = _controls(scene_root)
 			order_results["assault"] = client.last_order_result()
-			if not _press(scene_root, "EngageButton"):
+			if not _press_battle_order(scene_root, client, "EngageButton"):
 				return
 			engage = _controls(scene_root)
 			order_results["engage"] = client.last_order_result()
 			sequence = {"assault": assault, "engage": engage}
 		"real_assault_refusal":
-			if not _press(scene_root, "AssaultButton"):
+			if not _press_battle_order(scene_root, client, "AssaultButton"):
 				return
 			sequence = {"assault": _controls(scene_root)}
 			order_results["assault"] = client.last_order_result()
@@ -201,6 +201,21 @@ func _press(scene_root: Control, button_name: String) -> bool:
 		_fail("missing %s" % button_name)
 		return false
 	button.emit_signal("pressed")
+	return true
+
+
+func _press_battle_order(scene_root: Control, client: BridgeClient, button_name: String) -> bool:
+	if not _press(scene_root, button_name):
+		return false
+	var pending_model: Variant = client.snapshot_model()
+	if pending_model == null or not pending_model.battle is Dictionary:
+		return true
+	if pending_model.battle.get("result") != null:
+		return true
+	var resolved: Variant = scene_root.call("battle_auto_from_bridge", client)
+	if not resolved:
+		_fail("battle_auto failed after %s" % button_name)
+		return false
 	return true
 
 

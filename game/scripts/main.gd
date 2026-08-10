@@ -412,7 +412,12 @@ func _send_battle_step_from_bridge(client, command_type: String) -> bool:
 	elif not applied:
 		_set_last_order_status(OrderResult.failure_status_text())
 	else:
-		_set_last_order_status("")
+		var battle_result: Variant = (
+			client.last_battle_result() if client.has_method("last_battle_result") else null
+		)
+		_set_last_order_status(
+			OrderResult.status_text(battle_result) if battle_result != null else ""
+		)
 	return applied
 
 

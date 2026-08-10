@@ -5,6 +5,7 @@ extends SceneTree
 ## long defensive strategy.
 
 const BridgeClient = preload("res://scripts/bridge_client.gd")
+const MeasurementBattle = preload("res://tests/measurement_battle_helpers.gd")
 const PREFIX := "TASK664_LIVE_MEASUREMENT "
 const PLAYER_LANDS := "player lands"
 
@@ -135,6 +136,7 @@ func _measure_active(args: PackedStringArray) -> Dictionary:
 			model = client.advance_turn()
 		else:
 			model = client.send_order(command["order"])
+			model = MeasurementBattle.resolve_pending_battle(client, model)
 		if model == null:
 			_fail("active snapshot unavailable")
 			return {}
