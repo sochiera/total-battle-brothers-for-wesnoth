@@ -1334,6 +1334,139 @@ def test_resolve_round_consumes_attack_target_before_the_following_round():
     assert second_round.current_hp_at(indicated) == first_round.current_hp_at(indicated)
 
 
+def _resolve_round_with_move_targets(
+    battle,
+    move_targets,
+    *,
+    move_points=1,
+    attack_targets=None,
+    rng=None,
+):
+    """Resolve one round through the public per-unit move intention map."""
+    resolve_round = getattr(battle, "resolve_round", None)
+    assert callable(resolve_round), "HexBattle must expose public resolve_round"
+    kwargs = {
+        "move_points": move_points,
+        "rng": Rng(1) if rng is None else rng,
+        "move_targets": move_targets,
+    }
+    if attack_targets is not None:
+        kwargs["attack_targets"] = attack_targets
+    try:
+        return resolve_round(**kwargs)
+    except TypeError as exc:
+        pytest.fail(
+            "HexBattle.resolve_round must accept the public move_targets map "
+            f"(unit hex -> destination hex); got TypeError: {exc}"
+        )
+
+
+def test_resolve_round_honors_valid_move_target_instead_of_auto_attack():
+    """AC1: a free adjacent reachable hex ends the unit turn there, not in melee."""
+    source, enemy, destination = Hex(0, 0), Hex(1, 0), Hex(0, 1)
+    mover = Unit(equipment=3)
+    battle = (
+        HexBattle(Battlefield())
+        .deploy(mover, source, BattleSide.ATTACKER)
+        .deploy(Unit(training=3), enemy, BattleSide.DEFENDER)
+    )
+    automatic = battle.resolve_round(move_points=1, rng=Rng(1))
+
+    result = _resolve_round_with_move_targets(battle, {source: destination})
+
+    assert result.unit_at(destination) is mover
+    assert result.unit_at(source) is None
+    assert result.current_hp_at(enemy) == battle.current_hp_at(enemy)
+    assert automatic.current_hp_at(enemy) == battle.current_hp_at(enemy) - mover.damage
+    assert automatic.unit_at(source) is mover
+
+
+def _battle_with_invalid_move_target(kind):
+    source, enemy = Hex(0, 0), Hex(2, 0)
+    mover = Unit(equipment=3)
+    battle = (
+        HexBattle(Battlefield())
+        .deploy(mover, source, BattleSide.ATTACKER)
+        .deploy(Unit(training=3), enemy, BattleSide.DEFENDER)
+    )
+    if kind == "occupied":
+        occupied = Hex(1, 0)
+        battle = battle.deploy(Unit(training=1), occupied, BattleSide.ATTACKER)
+        return battle, source, occupied
+    if kind == "too_far":
+        return battle, source, Hex(3, 0)
+    if kind == "outside":
+        return battle, source, Hex(99, 99)
+    if kind == "missing_unit":
+        return battle, Hex(5, 5), Hex(5, 6)
+    if kind == "stunned":
+        stunned_hex = Hex(0, 1)
+        battle = battle.deploy(Unit(stunned=True), stunned_hex, BattleSide.ATTACKER)
+        return battle, stunned_hex, Hex(0, 2)
+    if kind == "defeated":
+        dead_hex = Hex(0, 1)
+        dead = Unit(training=1)
+        battle = battle.deploy(dead, dead_hex, BattleSide.ATTACKER)
+        battle = battle.damage(dead_hex, dead.hp)
+        return battle, dead_hex, Hex(0, 2)
+    raise AssertionError(f"unknown invalid move case: {kind}")
+
+
+@pytest.mark.parametrize(
+    "kind",
+    ["occupied", "too_far", "outside", "missing_unit", "stunned", "defeated"],
+)
+def test_resolve_round_ignores_invalid_move_target_without_extra_state_change(kind):
+    """AC2: bad move intent keeps the automatic round outcome and raises nothing."""
+    battle, origin, destination = _battle_with_invalid_move_target(kind)
+    baseline = battle.resolve_round(move_points=1, rng=Rng(1))
+
+    result = _resolve_round_with_move_targets(battle, {origin: destination})
+
+    assert result == baseline
+
+
+def test_resolve_round_without_move_targets_matches_prior_deterministic_round():
+    """AC3: omitting move intent preserves resolve_round and auto_resolve outcomes."""
+    source, enemy = Hex(0, 0), Hex(1, 0)
+    battle = (
+        HexBattle(Battlefield())
+        .deploy(Unit(equipment=3), source, BattleSide.ATTACKER)
+        .deploy(Unit(training=2), enemy, BattleSide.DEFENDER)
+    )
+    expected_round = battle.resolve_round(move_points=1, rng=Rng(1))
+    expected_auto = battle.auto_resolve(move_points=1, rng=Rng(1))
+
+    plain = battle.resolve_round(move_points=1, rng=Rng(1))
+    with_empty = _resolve_round_with_move_targets(battle, {})
+    auto = battle.auto_resolve(move_points=1, rng=Rng(1))
+
+    assert plain == expected_round
+    assert with_empty == expected_round
+    assert auto == expected_auto
+
+
+def test_resolve_round_prefers_valid_move_over_simultaneous_attack_target():
+    """AC4: a legal move spends the unit action even when an attack target is set."""
+    source, enemy, destination = Hex(0, 0), Hex(1, 0), Hex(0, 1)
+    mover = Unit(equipment=3)
+    battle = (
+        HexBattle(Battlefield())
+        .deploy(mover, source, BattleSide.ATTACKER)
+        .deploy(Unit(training=3), enemy, BattleSide.DEFENDER)
+    )
+
+    result = _resolve_round_with_move_targets(
+        battle,
+        {source: destination},
+        attack_targets={source: enemy},
+    )
+
+    assert result.unit_at(destination) is mover
+    assert result.unit_at(source) is None
+    assert result.current_hp_at(enemy) == battle.current_hp_at(enemy)
+
+
 @pytest.mark.parametrize(("seed", "dies"), [(4, True), (1, False)])
 def test_take_unit_turn_resolves_enemy_reduced_to_zero_hp(seed, dies):
     attacker, target = Hex(0, 0), Hex(1, 0)

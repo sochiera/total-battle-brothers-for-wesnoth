@@ -159,6 +159,14 @@ class HexBattle:
             and not self.units[target].stunned
         ) else None
 
+    def _valid_move_target(
+        self, position: Hex, target: Hex | None, move_points: int
+    ) -> Hex | None:
+        """Return an indicated adjacent reachable hex, or ``None`` when invalid."""
+        if not isinstance(target, Hex) or position.distance(target) != 1:
+            return None
+        return target if target in self.reachable(position, move_points) else None
+
     def take_unit_turn(
         self,
         position: Hex,
@@ -220,8 +228,14 @@ class HexBattle:
         attacker_morale: int = 0,
         defender_morale: int = 0,
         attack_targets: Mapping[Hex, Hex] | None = None,
+        move_targets: Mapping[Hex, Hex] | None = None,
     ) -> "HexBattle":
-        """Play one deployment-ordered round."""
+        """Play one deployment-ordered round with optional one-time intentions.
+
+        ``attack_targets`` and ``move_targets`` are keyed by each unit's hex at
+        the start of the round. A valid move target consumes the unit's turn
+        before any attack intention or automatic behavior is considered.
+        """
         battle = self
         turn_order = tuple(
             (position, battle.unit_at(position))
@@ -255,7 +269,14 @@ class HexBattle:
                 if side is BattleSide.ATTACKER
                 else defender_morale
             )
-            if attack_targets is None:
+            move_target = battle._valid_move_target(
+                current_position,
+                None if move_targets is None else move_targets.get(position),
+                move_points,
+            )
+            if move_target is not None:
+                battle = battle.move(current_position, move_target, move_points)
+            elif attack_targets is None:
                 battle = battle.take_unit_turn(
                     current_position, move_points, morale, rng
                 )
