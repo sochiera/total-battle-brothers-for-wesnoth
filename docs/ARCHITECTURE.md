@@ -906,6 +906,14 @@ celu bierze max z `size.x` / rodzica `MapAndBattle` (headless bywa na samym
 `custom_minimum_size`). Nagłówek „Bitwa”, baner wyniku PL i brak bitwy — bez
 regresji kontraktu.
 
+**BattleView — wybór ruchu i celu (G120.1d / G121.1d):** w pauzie gracz klika
+najpierw aktywną własną jednostkę. Widok ujawnia legalne sąsiednie wolne pola
+jako tymczasowe `HexTile_q_r` i emituje albo `battle_move_selected(mover,
+destination)`, albo `battle_target_selected(attacker, target)` po kliknięciu
+wroga. `BridgeClient.battle_move` / `battle_target` wysyłają komendy mostu;
+`Main` odświeża model i mapuje odmowę na polski status (m.in. „Pole docelowe
+jest niedostępne.”). Ścieżka ataku wroga pozostaje niezależna od ruchu.
+
 **SelectedRegionPanel — teksturowana rama (G102.1c / task-576):** panel
 używa `StyleBoxTexture` z `res://assets/selected_region_panel.png` (nie
 `StyleBoxFlat`). Kanoniczny styl buduje wyłącznie `main.gd`

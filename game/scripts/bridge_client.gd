@@ -215,6 +215,15 @@ func battle_target(attacker: Dictionary, target: Dictionary) -> SnapshotModel:
 	})
 
 
+func battle_move(mover: Dictionary, destination: Dictionary) -> SnapshotModel:
+	_last_command_result = null
+	return _send_persisted_sequence({
+		"type": "battle_move",
+		"mover": mover,
+		"destination": destination,
+	})
+
+
 func save_party(path: String) -> SnapshotModel:
 	return _send_persisted_sequence({"type": "save", "path": path})
 
@@ -245,6 +254,15 @@ func last_battle_target_result() -> Variant:
 	if (
 		not _last_command_result is Dictionary
 		or _last_command_result.get("kind") != "battle_target"
+	):
+		return null
+	return _last_command_result.duplicate()
+
+
+func last_battle_move_result() -> Variant:
+	if (
+		not _last_command_result is Dictionary
+		or _last_command_result.get("kind") != "battle_move"
 	):
 		return null
 	return _last_command_result.duplicate()

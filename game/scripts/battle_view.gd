@@ -18,6 +18,14 @@ const BATTLE_RESULT_TEXTS := {
 	"draw": "Remis",
 }
 const ACTIVE_ENEMY_REQUIRED_STATUS := "Wybierz aktywną jednostkę wroga."
+const AXIAL_NEIGHBOR_OFFSETS := [
+	Vector2i(1, 0),
+	Vector2i(1, -1),
+	Vector2i(0, -1),
+	Vector2i(-1, 0),
+	Vector2i(-1, 1),
+	Vector2i(0, 1),
+]
 
 # Battle base fill (G103.1d): muted parchment plains hex, same family as map grounds.
 const TERRAIN_PLAINS := preload("res://assets/terrain_plains.png")
@@ -58,16 +66,21 @@ var _layout_scale := 1.0
 var _last_hexes: Array = []
 var _last_attack_targets: Array = []
 var _selected_attacker: Variant = null
+var _move_destinations: Array = []
 var _battle_in_progress := false
+var _relayout_guard := false
 # INF = no vertical budget from Main; finite = fit_vertical_budget last request.
 var _vertical_budget := INF
 
 signal battle_target_selected(attacker: Dictionary, target: Dictionary)
+signal battle_move_selected(mover: Dictionary, destination: Dictionary)
 signal battle_selection_rejected(status: String)
 
 
 func _notification(what: int) -> void:
 	if what != NOTIFICATION_RESIZED or not visible or _last_hexes.is_empty():
+		return
+	if _relayout_guard:
 		return
 	# Container layout can change the panel size after Main rendered the model;
 	# re-fit then so a first frame cannot retain a cluster sized for stale bounds.
@@ -285,7 +298,7 @@ func _layout_result_label(max_hex_bottom: float) -> void:
 func _reset_and_hide_view() -> void:
 	visible = false
 	_battle_in_progress = false
-	_selected_attacker = null
+	_clear_attacker_selection()
 	# Drop vertical minimum so MapAndBattle can collapse (G94.1d). Height is set
 	# by _layout_result_label when a battle is shown; zero here clears that
 	# content-driven minimum (not a scene default of 240).
@@ -317,10 +330,17 @@ func _clear_hex_tiles() -> void:
 
 func _relayout_last_hexes() -> void:
 	## Rebuild the current cluster after a scale or panel-size change.
-	if not visible or _last_hexes.is_empty():
+	if not visible or _last_hexes.is_empty() or _relayout_guard:
 		return
+	_relayout_guard = true
+	var selected: Variant = _selected_attacker
+	_selected_attacker = null
+	_move_destinations = []
 	_clear_hex_tiles()
 	_render_hexes(_last_hexes)
+	if selected is Dictionary:
+		_select_attacker(selected)
+	_relayout_guard = false
 
 
 func _battle_data(model: SnapshotModel) -> Variant:
@@ -337,13 +357,7 @@ func _add_tile(q: int, r: int, hex: Dictionary, origin_x: float) -> void:
 	_apply_hex_paint_order(tile, r)
 	tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(tile)
-	var hit_target := Control.new()
-	hit_target.name = "BattleHitTarget"
-	hit_target.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	hit_target.mouse_filter = Control.MOUSE_FILTER_STOP
-	hit_target.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	hit_target.gui_input.connect(_on_tile_gui_input.bind(hex))
-	tile.add_child(hit_target)
+	_attach_tile_hit_target(tile, hex)
 	_add_terrain_layers(tile, hex.get("terrain"))
 	_add_unit_overlay(tile, hex.get("side"), hex.get("hp"))
 	_add_attack_target_marker(tile, q, r)
@@ -357,27 +371,144 @@ func _on_tile_gui_input(event: InputEvent, hex: Dictionary) -> void:
 		return
 	if _selected_attacker == null:
 		if _is_active_unit(hex, "attacker"):
-			_selected_attacker = _hex_coordinates(hex)
+			_select_attacker(_hex_coordinates(hex))
 		else:
 			battle_selection_rejected.emit("Najpierw wybierz aktywną własną jednostkę.")
 		return
 	if _is_active_unit(hex, "attacker"):
 		var replacement := _hex_coordinates(hex)
 		var changed_selection: bool = replacement != _selected_attacker
-		_selected_attacker = replacement
+		_select_attacker(replacement)
 		if changed_selection:
 			battle_selection_rejected.emit(ACTIVE_ENEMY_REQUIRED_STATUS)
+		return
+	var clicked := _hex_coordinates(hex)
+	if _is_move_destination(clicked):
+		var mover: Dictionary = _selected_attacker
+		_selected_attacker = null
+		# Never free the clicked destination tile inside its gui_input handler.
+		call_deferred("_emit_battle_move_selected", mover, clicked)
 		return
 	if not _is_active_unit(hex, "defender"):
 		battle_selection_rejected.emit(ACTIVE_ENEMY_REQUIRED_STATUS)
 		return
 	var attacker: Dictionary = _selected_attacker
-	_selected_attacker = null
-	call_deferred("_emit_battle_target_selected", attacker, _hex_coordinates(hex))
+	_clear_attacker_selection()
+	call_deferred("_emit_battle_target_selected", attacker, clicked)
 
 
 func _emit_battle_target_selected(attacker: Dictionary, target: Dictionary) -> void:
 	battle_target_selected.emit(attacker, target)
+
+
+func _emit_battle_move_selected(mover: Dictionary, destination: Dictionary) -> void:
+	_clear_move_destination_tiles()
+	battle_move_selected.emit(mover, destination)
+
+
+func _select_attacker(coords: Dictionary) -> void:
+	_selected_attacker = coords
+	_reveal_move_destinations(coords)
+
+
+func _clear_attacker_selection() -> void:
+	_selected_attacker = null
+	_clear_move_destination_tiles()
+
+
+func _reveal_move_destinations(mover: Dictionary) -> void:
+	_clear_move_destination_tiles()
+	if not mover is Dictionary:
+		return
+	var occupied := _occupied_hex_keys()
+	var origin_x := _occupied_cluster_origin_x(_last_hexes)
+	var mq := int(mover.get("q", 0))
+	var mr := int(mover.get("r", 0))
+	var max_bottom := _occupied_hex_bottom()
+	for offset: Vector2i in AXIAL_NEIGHBOR_OFFSETS:
+		var q := mq + offset.x
+		var r := mr + offset.y
+		var key := "%d_%d" % [q, r]
+		if occupied.has(key):
+			continue
+		_move_destinations.append({"q": q, "r": r})
+		_add_move_destination_tile(q, r, origin_x)
+		max_bottom = maxf(max_bottom, _hex_tile_bottom(r))
+	if _move_destinations.is_empty():
+		return
+	# Expanding height can emit RESIZED; keep destinations through the guard.
+	var previous_guard := _relayout_guard
+	_relayout_guard = true
+	_layout_result_label(max_bottom)
+	_relayout_guard = previous_guard
+
+
+func _occupied_hex_bottom() -> float:
+	var max_bottom := 0.0
+	for hex: Variant in _last_hexes:
+		if not hex is Dictionary:
+			continue
+		var qr: Variant = _hex_qr(hex)
+		if qr == null:
+			continue
+		max_bottom = maxf(max_bottom, _hex_tile_bottom(int(qr.y)))
+	return max_bottom
+
+
+func _clear_move_destination_tiles() -> void:
+	var had_destinations := not _move_destinations.is_empty()
+	_move_destinations = []
+	for child: Node in get_children():
+		if child.get_meta("move_destination", false):
+			child.free()
+	if had_destinations and visible and not _last_hexes.is_empty():
+		var previous_guard := _relayout_guard
+		_relayout_guard = true
+		_layout_result_label(_occupied_hex_bottom())
+		_relayout_guard = previous_guard
+
+
+func _occupied_hex_keys() -> Dictionary:
+	var occupied := {}
+	for hex: Variant in _last_hexes:
+		if not hex is Dictionary:
+			continue
+		var qr: Variant = _hex_qr(hex)
+		if qr == null:
+			continue
+		occupied["%d_%d" % [int(qr.x), int(qr.y)]] = true
+	return occupied
+
+
+func _is_move_destination(coords: Dictionary) -> bool:
+	for destination: Variant in _move_destinations:
+		if _same_hex_coordinates(destination, int(coords.get("q", 0)), int(coords.get("r", 0))):
+			return true
+	return false
+
+
+func _add_move_destination_tile(q: int, r: int, origin_x: float) -> void:
+	var hex := {"q": q, "r": r}
+	var tile := Control.new()
+	tile.name = "HexTile_%d_%d" % [q, r]
+	tile.set_meta("move_destination", true)
+	tile.position = _axial_position(q, r, origin_x)
+	tile.size = _hex_size()
+	_apply_hex_paint_order(tile, r)
+	tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(tile)
+	_attach_tile_hit_target(tile, hex)
+	_add_terrain_layers(tile, "Plains")
+
+
+func _attach_tile_hit_target(tile: Control, hex: Dictionary) -> void:
+	var hit_target := Control.new()
+	hit_target.name = "BattleHitTarget"
+	hit_target.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	hit_target.mouse_filter = Control.MOUSE_FILTER_STOP
+	hit_target.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	hit_target.gui_input.connect(_on_tile_gui_input.bind(hex))
+	tile.add_child(hit_target)
 
 
 func _is_active_unit(hex: Dictionary, expected_side: String) -> bool:

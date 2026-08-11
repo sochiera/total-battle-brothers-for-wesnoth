@@ -45,6 +45,17 @@ const BATTLE_TARGET_REASON_STATUS := {
 	"brak aktywnej jednostki atakującej": "Wybierz aktywną własną jednostkę.",
 	"cel nie jest aktywnym wrogiem": "Wybierz aktywną jednostkę wroga.",
 }
+const BATTLE_MOVE_REASON_STATUS := {
+	"brak bitwy w toku": "Brak bitwy w toku.",
+	"nieprawidłowy heks poruszającej się jednostki": (
+		"Nieprawidłowy heks poruszającej się jednostki."
+	),
+	"nieprawidłowy heks docelowy": "Nieprawidłowy heks docelowy.",
+	"brak aktywnej jednostki atakującej": "Wybierz aktywną własną jednostkę.",
+	"pole docelowe nie jest sąsiednie": "Pole docelowe nie jest sąsiednie.",
+	"pole docelowe jest zajęte": "Pole docelowe jest zajęte.",
+	"pole docelowe jest niedostępne": "Pole docelowe jest niedostępne.",
+}
 const SELECTED_REGION_EMPTY_PL := "Nie wybrano regionu"
 const REINFORCE_NO_PARTY_STATUS := "Brak oddziału do wzmocnienia."
 const REINFORCE_NO_SETTLEMENT_STATUS := "Oddział nie stoi w osadzie."
@@ -90,6 +101,7 @@ func _ready() -> void:
 	_sync_order_controls_minimum_size()
 	%MapView.region_selected.connect(_on_region_selected)
 	%BattleView.battle_target_selected.connect(_on_battle_target_selected)
+	%BattleView.battle_move_selected.connect(_on_battle_move_selected)
 	%BattleView.battle_selection_rejected.connect(_on_battle_selection_rejected)
 	# With-battle map min is set only from render/fit; re-run on window resize
 	# so a first-frame fallback (or shrink) cannot leave chrome past the viewport.
@@ -409,18 +421,51 @@ func battle_auto_from_bridge(client) -> bool:
 
 
 func _on_battle_target_selected(attacker: Dictionary, target: Dictionary) -> void:
+	_send_battle_intent(
+		"battle_target",
+		attacker,
+		target,
+		"last_battle_target_result",
+		BATTLE_TARGET_REASON_STATUS,
+		"Nie udało się wskazać celu.",
+	)
+
+
+func _on_battle_move_selected(mover: Dictionary, destination: Dictionary) -> void:
+	_send_battle_intent(
+		"battle_move",
+		mover,
+		destination,
+		"last_battle_move_result",
+		BATTLE_MOVE_REASON_STATUS,
+		"Nie udało się wskazać ruchu.",
+	)
+
+
+func _send_battle_intent(
+	method_name: String,
+	first: Dictionary,
+	second: Dictionary,
+	result_method: String,
+	reason_status: Dictionary,
+	fallback_status: String,
+) -> void:
 	if not _has_bound_client() or not _battle_pending:
 		return
-	var model: SnapshotModel = _client.battle_target(attacker, target)
+	if not _client.has_method(method_name):
+		_set_last_order_status(OrderResult.failure_status_text())
+		return
+	var model: SnapshotModel = _client.call(method_name, first, second)
 	if not _apply_model_if_present(model):
 		_set_last_order_status(OrderResult.failure_status_text())
 		return
 	var result: Variant = (
-		_client.last_battle_target_result()
-		if _client.has_method("last_battle_target_result") else null
+		_client.call(result_method) if _client.has_method(result_method) else null
 	)
 	if result is Dictionary and result.get("changed") == false:
-		_set_last_order_status(_battle_target_status_text(result))
+		_set_last_order_status(
+			_battle_intent_status_text(result, reason_status, fallback_status)
+		)
 	else:
 		_set_last_order_status("")
 
@@ -430,11 +475,13 @@ func _on_battle_selection_rejected(status: String) -> void:
 		_set_last_order_status(status)
 
 
-func _battle_target_status_text(result: Dictionary) -> String:
+func _battle_intent_status_text(
+	result: Dictionary, reason_status: Dictionary, fallback_status: String
+) -> String:
 	var reason: Variant = result.get("reason")
-	if reason is String and BATTLE_TARGET_REASON_STATUS.has(reason):
-		return BATTLE_TARGET_REASON_STATUS[reason]
-	return "Nie udało się wskazać celu."
+	if reason is String and reason_status.has(reason):
+		return reason_status[reason]
+	return fallback_status
 
 
 func _send_battle_step_from_bridge(client, command_type: String) -> bool:
