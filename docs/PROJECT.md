@@ -231,16 +231,23 @@ czysto informacyjny, jak liczby z K113 — nadal wymaga dowodu wizualnego
    wizualny, pętla sandboxa, ekonomia tury, diagnostyka rozkazów). Regresje
    stoją (bierna R1M7, aktywna R1M4–R1M5).
 18. **US-001–US-005 — dostarczona pauzowana bitwa (migracja K119,
-    2026-08-10):** po `assault` lub `engage` gracz widzi rozmieszczenie obu
-    stron przed wynikiem, może przejść następną rundę albo dokończyć walkę
-    automatycznie, dostaje jasną blokadę innych działań podczas bitwy i może
-    wznowić zapisany stan walki. To dostarczony, najcieńszy krok ku taktycznej
-    bitwie na heksach; zachowuje dotychczasowe reguły, bez wyboru celu,
-    ręcznego ruchu, zmian zachowania AI, reguł walki, progu 2:1, kosztów
-    rozkazów i ekonomii. Dalsza kolejka pozostaje w `BACKLOG.md`.
-19. **Prawdopodobnie potem — dalsza agencja w bitwie:** wybór celu jednostki i
-    sterowanie ruchem, a także pełne pole bitwy z pustymi heksami i wymiarami.
-    To dawny kierunek K120+; wymaga stanu bitwy w toku z US-001–US-005.
+     2026-08-10):** po `assault` lub `engage` gracz widzi rozmieszczenie obu
+     stron przed wynikiem, może przejść następną rundę albo dokończyć walkę
+     automatycznie, dostaje jasną blokadę innych działań podczas bitwy i może
+     wznowić zapisany stan walki. To dostarczony, najcieńszy krok ku taktycznej
+     bitwie na heksach; zachowuje dotychczasowe reguły, bez wyboru celu,
+     ręcznego ruchu, zmian zachowania AI, reguł walki, progu 2:1, kosztów
+     rozkazów i ekonomii. Dalsza kolejka pozostaje w `BACKLOG.md`.
+18a. **US-006–US-007 — dostarczona dalsza agencja w bitwie (K120.1–K121.1,
+     2026-08-11):** gracz może wskazać cel ataku własnej jednostki oraz pole
+     ruchu w trwającej bitwie; intencje są widoczne na planszy i przechodzą
+     zapis. Zachowuje dotychczasowe reguły walki i zachowanie AI; bez pełnego
+     pola bitwy, sterowania więcej niż jedną jednostką naraz i nowych reguł
+     walki.
+19. **Następny przyrost w tym kierunku — pełne pole bitwy (US-008):** cała
+     plansza starcia z pustymi heksami i wymiarami, nie tylko pola z
+     jednostkami. To dawny kierunek K120+; wymaga stanu bitwy w toku z
+     US-001–US-005, który jest dostarczony.
 20. **Prawdopodobnie potem — informacja i tempo sandboxa:** panel ekonomii
     osady z saldem pszenicy oraz ocena tempa presji AI, ponieważ partia nadal
     trwa zwykle 4–10 miesięcy. Dane ekonomii są w snapshocie od K63; strojenie

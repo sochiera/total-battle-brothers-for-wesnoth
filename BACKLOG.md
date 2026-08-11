@@ -1,5 +1,13 @@
 # BACKLOG — Total Battle Brothers
 
+## US-008 — Gracz widzi całe pole bitwy, nie tylko pola z jednostkami  [nowa]
+
+Jako gracz chcę widzieć całą planszę bitwy ze wszystkimi polami — łącznie z pustymi przestrzeniami między jednostkami — żeby planować ruch i ataki na pełnej mapie taktycznej starcia, a nie tylko na polach zajętych przez jednostki.
+
+- Dlaczego teraz: PROJECT.md wskazuje pełne pole bitwy z pustymi heksami i wymiarami jako element dalszej agencji w bitwie; wybór celu ataku (US-006) i ruch jednostki (US-007) zostały dostarczone, więc ten przyrost jest następnym naturalnym krokiem tego kierunku.
+- Sprawdzenie: uruchom grę, rozpocznij bitwę i potwierdź, że plansza pokazuje całe pole bitwy — łącznie z pustymi polami między jednostkami — a nie tylko pola zajęte przez jednostki.
+- Poza zakresem: rodzaje terenu i ich bonusy, różne wymiary map dla różnych bitew, sterowanie więcej niż jedną jednostką naraz oraz zmiany reguł walki, ruchu i zachowania AI.
+
 ## US-006 — Gracz wskazuje cel ataku jednostki w następnej rundzie bitwy  [w toku]
 
 Jako gracz chcę wskazać wrogą jednostkę jako cel ataku własnej jednostki, żeby moja decyzja wpływała na przebieg trwającej bitwy.
