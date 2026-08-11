@@ -8,7 +8,7 @@ Jako gracz chcę wskazać wrogą jednostkę jako cel ataku własnej jednostki, �
 - Sprawdzenie: rozpocznij bitwę, wskaż własną jednostkę i wroga, przejdź jedną rundę i potwierdź na planszy, że wybrana jednostka zaatakowała wskazany cel.
 - Poza zakresem: ręczne przemieszczanie jednostek, sterowanie całą rundą, zmiany reguł walki, zachowania AI i pełne pole pustych heksów.
 
-## US-007 — Gracz wskazuje pole ruchu jednostki w następnej rundzie  [w toku]
+## US-007 — Gracz wskazuje pole ruchu jednostki w następnej rundzie  [do weryfikacji]
 
 Jako gracz chcę wskazać sąsiednie wolne pole dla własnej jednostki, żeby świadomie zmienić jej pozycję w trwającej bitwie.
 
