@@ -139,6 +139,16 @@ def _battle_target_command(attacker: tuple[int, int], target: tuple[int, int]) -
     )
 
 
+def _battle_move_command(mover: tuple[int, int], destination: tuple[int, int]) -> str:
+    return json.dumps(
+        {
+            "type": "battle_move",
+            "mover": {"q": mover[0], "r": mover[1]},
+            "destination": {"q": destination[0], "r": destination[1]},
+        }
+    )
+
+
 def _two_target_battle_session() -> Session:
     """Public bridge fixture with one attacker and two active enemy hexes."""
     start, border = Region("Start"), Region("Border")
@@ -448,6 +458,237 @@ def test_battle_target_without_pending_battle_is_successful_refusal_with_reason(
     assert returned.world is session.world
     assert returned.snapshot() == before_snapshot
     assert returned.rng.state() == before_rng
+
+
+@pytest.mark.parametrize(
+    ("pause_factory", "mover", "destination"),
+    (
+        pytest.param(_pause_on_border_engage, (0, 0), (-1, 1), id="engage"),
+        pytest.param(_pause_on_keep_assault, (0, 0), (0, 1), id="assault"),
+    ),
+)
+def test_battle_move_records_intent_without_resolving_pending_battle(
+    pause_factory, mover, destination
+):
+    """G121.1b AC1: valid battle_move keeps the battle paused and board fixed."""
+    _, paused = pause_factory()
+    before_snapshot = paused.snapshot()
+    before_rng = paused.rng.state()
+    before_calendar = paused.calendar
+    before_hexes = before_snapshot["battle"]["hexes"]
+
+    returned, response = handle_command_line(
+        paused, _battle_move_command(mover, destination)
+    )
+
+    assert response["ok"] is True, response
+    assert response["result"]["kind"] == "battle_move", response
+    assert response["result"]["changed"] is True, response
+    assert returned.pending_battle is not None
+    assert returned.last_battle is None
+    assert response["snapshot"]["battle"]["result"] is None
+    assert response["snapshot"]["battle"]["hexes"] == before_hexes
+    assert returned.pending_battle.move_targets == {
+        Hex(*mover): Hex(*destination)
+    }
+    assert returned.world is paused.world
+    assert returned.calendar == before_calendar
+    assert returned.rng.state() == before_rng
+    returned_snapshot = returned.snapshot()
+    assert returned_snapshot["calendar"] == before_snapshot["calendar"]
+    assert returned_snapshot["player_duchy"] == before_snapshot["player_duchy"]
+    assert returned_snapshot["duchies"] == before_snapshot["duchies"]
+    assert returned_snapshot["map"] == before_snapshot["map"]
+    assert returned_snapshot["result"] == before_snapshot["result"]
+    assert returned_snapshot["battle"]["hexes"] == before_hexes
+    assert returned_snapshot["battle"]["result"] is None
+
+
+def test_battle_move_changes_the_next_round_to_the_indicated_hex():
+    """G121.1b AC1: recorded move is consumed by the next battle_advance."""
+    baseline = _pause_two_target_battle()
+    baseline_after, baseline_response = handle_command_line(
+        baseline, '{"type":"battle_advance"}'
+    )
+    assert baseline_response["ok"] is True
+    assert baseline_response["result"]["kind"] == "battle_pending"
+
+    moved = _pause_two_target_battle()
+    moved, move_response = handle_command_line(
+        moved, _battle_move_command((0, 0), (0, 1))
+    )
+    assert move_response["ok"] is True
+    assert move_response["result"]["changed"] is True
+    moved_after, advance_response = handle_command_line(
+        moved, '{"type":"battle_advance"}'
+    )
+
+    assert advance_response["ok"] is True
+    assert advance_response["result"]["kind"] == "battle_pending"
+    assert moved_after.pending_battle is not None
+    assert moved_after.pending_battle.move_targets == {}
+    assert _attacker_positions(baseline_after.snapshot()) == [(1, 0)]
+    assert _attacker_positions(moved_after.snapshot()) == [(0, 1)]
+    assert _attacker_positions(moved_after.snapshot()) != _attacker_positions(
+        baseline_after.snapshot()
+    )
+
+
+@pytest.mark.parametrize(
+    ("label", "mover", "destination"),
+    (
+        ("empty mover", (1, 0), (-1, 1)),
+        ("defender as mover", (2, 0), (2, 1)),
+        ("occupied ally", (0, 0), (0, 1)),
+        ("too far", (0, 0), (2, 1)),
+        ("same hex", (0, 0), (0, 0)),
+        ("malformed mover", "bad", (-1, 1)),
+    ),
+)
+def test_battle_move_refuses_invalid_intents_with_reason(label, mover, destination):
+    """G121.1b AC2: invalid battle_move is a successful refusal without mutation."""
+    _, paused = _pause_on_border_engage()
+    before_snapshot = paused.snapshot()
+    before_rng = paused.rng.state()
+    before_pending = paused.pending_battle
+    if mover == "bad":
+        command = json.dumps(
+            {
+                "type": "battle_move",
+                "mover": {"q": "x", "r": 0},
+                "destination": {"q": destination[0], "r": destination[1]},
+            }
+        )
+    else:
+        command = _battle_move_command(mover, destination)
+
+    returned, response = handle_command_line(paused, command)
+
+    assert response["ok"] is True, (label, response)
+    result = response["result"]
+    assert result["kind"] == "battle_move", (label, result)
+    assert result["changed"] is False, (label, result)
+    assert isinstance(result.get("reason"), str) and result["reason"].strip(), (
+        label,
+        result,
+    )
+    assert returned.world is paused.world
+    assert returned.snapshot() == before_snapshot
+    assert returned.rng.state() == before_rng
+    assert returned.pending_battle is before_pending
+
+
+def test_battle_move_without_pending_battle_is_successful_refusal_with_reason():
+    """G121.1b AC2: battle_move without a paused battle does not mutate the session."""
+    session = new_session(seed=73, player_duchy_id="player")
+    before_snapshot = session.snapshot()
+    before_rng = session.rng.state()
+
+    returned, response = handle_command_line(
+        session, _battle_move_command((0, 0), (0, 1))
+    )
+
+    assert response["ok"] is True, response
+    result = response["result"]
+    assert result["kind"] == "battle_move"
+    assert result["changed"] is False
+    assert isinstance(result.get("reason"), str) and result["reason"].strip()
+    assert returned.world is session.world
+    assert returned.snapshot() == before_snapshot
+    assert returned.rng.state() == before_rng
+
+
+def test_battle_move_merges_and_replaces_intents_for_one_advance():
+    """G121.1b AC3: intents merge across units; a newer choice replaces the old."""
+    paused = _pause_battle_with_two_attacking_units()
+
+    paused, first_response = handle_command_line(
+        paused, _battle_move_command((0, 0), (0, 1))
+    )
+    assert first_response["ok"] is True
+    assert first_response["result"]["changed"] is True
+    assert paused.pending_battle.move_targets == {Hex(0, 0): Hex(0, 1)}
+
+    paused, replace_response = handle_command_line(
+        paused, _battle_move_command((0, 0), (-1, 1))
+    )
+    assert replace_response["ok"] is True
+    assert replace_response["result"]["changed"] is True
+    assert paused.pending_battle.move_targets == {Hex(0, 0): Hex(-1, 1)}
+
+    paused, second_response = handle_command_line(
+        paused, _battle_move_command((0, 3), (0, 2))
+    )
+    assert second_response["ok"] is True
+    assert second_response["result"]["changed"] is True
+    assert paused.pending_battle.move_targets == {
+        Hex(0, 0): Hex(-1, 1),
+        Hex(0, 3): Hex(0, 2),
+    }
+
+    advanced, advance_response = handle_command_line(
+        paused, '{"type":"battle_advance"}'
+    )
+
+    assert advance_response["ok"] is True
+    assert advance_response["result"]["kind"] == "battle_pending"
+    assert advanced.pending_battle.move_targets == {}
+    assert _attacker_positions(advanced.snapshot()) == [(-1, 1), (0, 2)]
+
+
+def test_battle_move_and_battle_target_replace_each_other_for_same_unit():
+    """G121.1b AC4: move and attack intent for one unit replace each other."""
+    _, paused = _pause_on_border_engage()
+    unit = (0, 0)
+    move_dest = (-1, 1)
+    attack_target = (2, 1)
+
+    paused, move_response = handle_command_line(
+        paused, _battle_move_command(unit, move_dest)
+    )
+    assert move_response["ok"] is True
+    assert move_response["result"]["changed"] is True
+    assert paused.pending_battle.move_targets == {Hex(*unit): Hex(*move_dest)}
+    assert paused.pending_battle.attack_targets == {}
+
+    paused, target_response = handle_command_line(
+        paused, _battle_target_command(unit, attack_target)
+    )
+    assert target_response["ok"] is True
+    assert target_response["result"]["changed"] is True
+    assert paused.pending_battle.attack_targets == {
+        Hex(*unit): Hex(*attack_target)
+    }
+    assert paused.pending_battle.move_targets == {}
+
+    paused, move_again_response = handle_command_line(
+        paused, _battle_move_command(unit, move_dest)
+    )
+    assert move_again_response["ok"] is True
+    assert move_again_response["result"]["changed"] is True
+    assert paused.pending_battle.move_targets == {Hex(*unit): Hex(*move_dest)}
+    assert paused.pending_battle.attack_targets == {}
+
+
+def test_battle_auto_consumes_move_targets_when_battle_remains_pending():
+    """G121.1b AC4: partial battle_auto clears one-shot move intents."""
+    paused = _pause_zero_damage_battle()
+    paused, move_response = handle_command_line(
+        paused, _battle_move_command((0, 0), (0, 1))
+    )
+    assert move_response["ok"] is True
+    assert move_response["result"]["changed"] is True
+    assert paused.pending_battle.move_targets == {Hex(0, 0): Hex(0, 1)}
+
+    advanced, auto_response = handle_command_line(
+        paused, '{"type":"battle_auto"}'
+    )
+
+    assert auto_response["ok"] is True
+    assert auto_response["result"]["kind"] == "battle_pending"
+    assert advanced.pending_battle is not None
+    assert advanced.pending_battle.move_targets == {}
+    assert advanced.pending_battle.attack_targets == {}
 
 
 def test_engage_that_starts_battle_pauses_with_battle_pending_deployment_board():

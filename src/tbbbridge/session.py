@@ -43,6 +43,7 @@ class PendingBattle:
       attacker_owner_id -> właściciel atakującego oddziału
       defender_owner_id -> właściciel broniącej partii/osady
       attack_targets    -> jednorazowe intencje celu dla następnej rundy
+      move_targets      -> jednorazowe intencje ruchu dla następnej rundy
     """
 
     battle: HexBattle
@@ -52,6 +53,7 @@ class PendingBattle:
     attacker_owner_id: str
     defender_owner_id: str
     attack_targets: Mapping[Hex, Hex] = field(default_factory=dict)
+    move_targets: Mapping[Hex, Hex] = field(default_factory=dict)
 
 
 def _find_region_by_name(world: WorldMap, name: object) -> object | None:
@@ -186,15 +188,33 @@ def _battle_target_reason(session: "Session", command: dict) -> str | None:
     return None
 
 
+def _merge_battle_intent(
+    pending: PendingBattle,
+    intent_field: str,
+    opposing_field: str,
+    unit: Hex,
+    target: Hex,
+) -> PendingBattle:
+    """Store one intent and remove the other intent for the same unit."""
+    intents = dict(getattr(pending, intent_field))
+    intents[unit] = target
+    opposing = dict(getattr(pending, opposing_field))
+    opposing.pop(unit, None)
+    return replace(
+        pending,
+        **{
+            intent_field: MappingProxyType(intents),
+            opposing_field: MappingProxyType(opposing),
+        },
+    )
+
+
 def _merge_battle_target(
     pending: PendingBattle, attacker: Hex, target: Hex
 ) -> PendingBattle:
     """Add one target while preserving intents for other attackers."""
-    attack_targets = dict(pending.attack_targets)
-    attack_targets[attacker] = target
-    return replace(
-        pending,
-        attack_targets=MappingProxyType(attack_targets),
+    return _merge_battle_intent(
+        pending, "attack_targets", "move_targets", attacker, target
     )
 
 
@@ -211,6 +231,61 @@ def _set_battle_target(session: "Session", command: dict) -> "Session":
         session.game,
         session.calendar,
         pending_battle=_merge_battle_target(pending, attacker, target),
+    )
+
+
+def _battle_move_reason(session: "Session", command: dict) -> str | None:
+    """Return a user-facing refusal reason for a battle-move command."""
+    pending = session.pending_battle
+    if pending is None:
+        return "brak bitwy w toku"
+
+    mover = _parse_battle_hex(command.get("mover"))
+    if mover is None:
+        return "nieprawidłowy heks poruszającej się jednostki"
+    destination = _parse_battle_hex(command.get("destination"))
+    if destination is None:
+        return "nieprawidłowy heks docelowy"
+
+    battle = pending.battle
+    unit = battle.unit_at(mover)
+    if (
+        unit is None
+        or battle.side_at(mover) is not BattleSide.ATTACKER
+        or battle.current_hp_at(mover) == 0
+        or unit.stunned
+    ):
+        return "brak aktywnej jednostki atakującej"
+    if destination.distance(mover) != 1:
+        return "pole docelowe nie jest sąsiednie"
+    if battle.is_occupied(destination):
+        return "pole docelowe jest zajęte"
+    if destination not in battle.reachable(mover, 1):
+        return "pole docelowe jest niedostępne"
+    return None
+
+
+def _merge_battle_move(
+    pending: PendingBattle, mover: Hex, destination: Hex
+) -> PendingBattle:
+    """Add one move while preserving intents for other units."""
+    return _merge_battle_intent(
+        pending, "move_targets", "attack_targets", mover, destination
+    )
+
+
+def _set_battle_move(session: Session, command: dict) -> Session:
+    """Record one valid move without advancing or mutating the battle."""
+    if _battle_move_reason(session, command) is not None:
+        return session
+    pending = session.pending_battle
+    mover = _parse_battle_hex(command.get("mover"))
+    destination = _parse_battle_hex(command.get("destination"))
+    return session._derive(
+        session.world,
+        session.game,
+        session.calendar,
+        pending_battle=_merge_battle_move(pending, mover, destination),
     )
 
 
@@ -477,6 +552,7 @@ def _advance_pending_battle(session: Session) -> Session:
         attacker_morale=attacker_morale,
         defender_morale=defender_morale,
         attack_targets=pending.attack_targets or None,
+        move_targets=pending.move_targets or None,
     )
     if advanced.result() is None:
         return session._derive(
@@ -484,7 +560,10 @@ def _advance_pending_battle(session: Session) -> Session:
             session.game,
             session.calendar,
             pending_battle=replace(
-                pending, battle=advanced, attack_targets=MappingProxyType({})
+                pending,
+                battle=advanced,
+                attack_targets=MappingProxyType({}),
+                move_targets=MappingProxyType({}),
             ),
         )
     return _apply_pending_battle_result(session, advanced)
@@ -494,8 +573,8 @@ def _auto_resolve_pending_battle(session: Session) -> Session:
     """Resolve the remaining rounds of the paused player battle (G119.1b).
 
     When no battle is pending the input session is returned unchanged.  The
-    pending one-shot ``attack_targets`` are consumed by an initial
-    ``resolve_round(1, session.rng, …)``; any remaining rounds then use
+    pending one-shot ``attack_targets`` and ``move_targets`` are consumed by an
+    initial ``resolve_round(1, session.rng, …)``; any remaining rounds then use
     ``auto_resolve(1, session.rng, …)`` from that board.  Both steps use the
     morale of each side's owner read from ``session.game``; the world, game
     and calendar are untouched until resolution.  The resolved battle applies
@@ -509,13 +588,14 @@ def _auto_resolve_pending_battle(session: Session) -> Session:
         return session
     attacker_morale, defender_morale = _pending_battle_morale(session, pending)
     resolved = pending.battle
-    if pending.attack_targets:
+    if pending.attack_targets or pending.move_targets:
         resolved = resolved.resolve_round(
             1,
             session.rng,
             attacker_morale=attacker_morale,
             defender_morale=defender_morale,
             attack_targets=pending.attack_targets,
+            move_targets=pending.move_targets,
         )
     if resolved.result() is None:
         resolved = resolved.auto_resolve(
@@ -530,7 +610,10 @@ def _auto_resolve_pending_battle(session: Session) -> Session:
             session.game,
             session.calendar,
             pending_battle=replace(
-                pending, battle=resolved, attack_targets=MappingProxyType({})
+                pending,
+                battle=resolved,
+                attack_targets=MappingProxyType({}),
+                move_targets=MappingProxyType({}),
             ),
         )
     return _apply_pending_battle_result(session, resolved)
@@ -557,6 +640,8 @@ def apply_command(session: Session, command: dict) -> Session:
         bitwy gracza; bez bitwy w toku zwraca wejściową sesję bez zmian.
       * ``"battle_target"`` — zapisuje cel aktywnej jednostki atakującej
         w pauzującej bitwie; nie rozgrywa rundy.
+      * ``"battle_move"`` — zapisuje sąsiednie pole aktywnej jednostki
+        atakującej w pauzującej bitwie; nie rozgrywa rundy.
       * ``"battle_auto"`` — rozstrzyga pozostałe rundy pauzującej bitwy
         gracza od bieżącej planszy; bez bitwy w toku zwraca wejściową sesję
         bez zmian.
@@ -577,6 +662,8 @@ def apply_command(session: Session, command: dict) -> Session:
         return _auto_resolve_pending_battle(session)
     if command_type == "battle_target":
         return _set_battle_target(session, command)
+    if command_type == "battle_move":
+        return _set_battle_move(session, command)
 
     if command_type == "new_game":
         if set(command.keys()) - {"type", "seed"}:

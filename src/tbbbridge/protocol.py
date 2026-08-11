@@ -10,6 +10,7 @@ from tbbbridge.session import (
     Session,
     _find_region_by_name,
     _resolve_player_duchy,
+    _battle_move_reason,
     _battle_target_reason,
     apply_command,
     new_session,
@@ -186,6 +187,18 @@ def command_result(before: Session, after: Session, command: dict) -> dict:
             "kind": "battle_target",
             "changed": False,
             "reason": _battle_target_reason(before, command),
+        }
+
+    if command_type == "battle_move":
+        if (
+            before.pending_battle is not None
+            and after.pending_battle is not before.pending_battle
+        ):
+            return {"kind": "battle_move", "changed": True}
+        return {
+            "kind": "battle_move",
+            "changed": False,
+            "reason": _battle_move_reason(before, command),
         }
 
     if command_type == "new_game":
