@@ -8,6 +8,14 @@ Jako gracz chcę wskazać wrogą jednostkę jako cel ataku własnej jednostki, �
 - Sprawdzenie: rozpocznij bitwę, wskaż własną jednostkę i wroga, przejdź jedną rundę i potwierdź na planszy, że wybrana jednostka zaatakowała wskazany cel.
 - Poza zakresem: ręczne przemieszczanie jednostek, sterowanie całą rundą, zmiany reguł walki, zachowania AI i pełne pole pustych heksów.
 
+## US-007 — Gracz wskazuje pole ruchu jednostki w następnej rundzie  [nowa]
+
+Jako gracz chcę wskazać sąsiednie wolne pole dla własnej jednostki, żeby świadomie zmienić jej pozycję w trwającej bitwie.
+
+- Dlaczego teraz: PROJECT.md wskazuje sterowanie ruchem jako część dalszej agencji w bitwie; kolejka stawia ten przyrost bezpośrednio po będącym w toku wyborze celu jednostki.
+- Sprawdzenie: rozpocznij bitwę, wskaż własną jednostkę i sąsiednie wolne pole, przejdź jedną rundę i potwierdź na planszy, że jednostka zajęła wskazane pole.
+- Poza zakresem: wyznaczanie ruchu wielu jednostek naraz, ruch o więcej niż jedno pole, zmiany reguł ataku, zachowania AI, terenu i mapy strategicznej.
+
 ## US-001 — Gracz widzi bitwę przed jej rozstrzygnięciem  [do weryfikacji]
 
 Jako gracz chcę po rozpoczęciu szturmu lub starcia zobaczyć rozmieszczenie
