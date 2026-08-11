@@ -1414,6 +1414,87 @@ def test_round_trip_pending_battle_with_target_preserves_intent_and_next_advance
     assert resumed.rng.state() == expected.rng.state()
 
 
+def test_round_trip_pending_battle_with_move_preserves_intent_and_next_advance():
+    """G121.1c AC1-AC4: zapis niesie move_targets; legacy bez pola; zuzycie po advance.
+
+    Realistyczny defekt: battle_move dziala w pamieci, ale dump/load gubi
+    move_targets albo snapshot nie eksponuje listy mover/destination, wiec
+    klient i wznowiona partia widza inny zamiar niz sesja biezaca.
+    """
+    paused = _paused_battle_session()
+    move_command = json.dumps({
+        "type": "battle_move",
+        "mover": {"q": 0, "r": 0},
+        "destination": {"q": -1, "r": 1},
+    })
+    moved, move_response = handle_command_line(paused, move_command)
+
+    assert move_response["ok"] is True
+    assert move_response["result"]["changed"] is True
+    expected_moves = [{
+        "mover": {"q": 0, "r": 0},
+        "destination": {"q": -1, "r": 1},
+    }]
+    public_battle = move_response["snapshot"]["battle"]
+    assert "move_targets" in public_battle, (
+        "G121.1c AC1: snapshot musi zawierac intencje ruchu ustawione przez gracza"
+    )
+    assert public_battle["move_targets"] == expected_moves
+    assert moved.snapshot()["battle"]["move_targets"] == expected_moves
+
+    dumped = persist.dump_session(moved)
+    pending_dump = dumped["pending_battle"]
+    assert pending_dump is not None
+    assert "move_targets" in pending_dump, (
+        "G121.1c AC2: zapis pending_battle musi przenosic intencje ruchu"
+    )
+    assert pending_dump["move_targets"] == expected_moves
+    restored = persist.load_session(json.loads(json.dumps(dumped)))
+    assert restored.pending_battle is not None
+    assert restored.snapshot()["battle"]["move_targets"] == expected_moves
+    assert restored.pending_battle.battle == moved.pending_battle.battle
+    assert restored.pending_battle.move_targets == moved.pending_battle.move_targets
+
+    empty_intent = _paused_battle_session()
+    empty_dump = persist.dump_session(empty_intent)
+    assert empty_dump["pending_battle"]["move_targets"] == []
+    assert "move_targets" not in empty_intent.snapshot()["battle"]
+
+    legacy_dump = copy.deepcopy(dumped)
+    del legacy_dump["pending_battle"]["move_targets"]
+    legacy_restored = persist.load_session(json.loads(json.dumps(legacy_dump)))
+    assert legacy_restored.pending_battle is not None
+    assert legacy_restored.pending_battle.move_targets == {}, (
+        "G121.1c AC3: brak pola move_targets w starym zapisie to pusta mapa"
+    )
+    assert "move_targets" not in legacy_restored.snapshot()["battle"]
+
+    expected, expected_response = handle_command_line(
+        moved, '{"type":"battle_advance"}'
+    )
+    resumed, resumed_response = handle_command_line(
+        restored, '{"type":"battle_advance"}'
+    )
+    assert resumed_response["result"] == expected_response["result"]
+    assert resumed.snapshot() == expected.snapshot(), (
+        "G121.1c AC2: battle_advance po odczycie musi zachowac przebieg z ruchem"
+    )
+    assert resumed.rng.state() == expected.rng.state()
+    assert expected.snapshot()["battle"].get("move_targets", []) == [], (
+        "G121.1c AC4: po advance snapshot nie niesie zuzytej intencji ruchu"
+    )
+    assert resumed.snapshot()["battle"].get("move_targets", []) == []
+    if expected.pending_battle is not None:
+        advanced_dump = persist.dump_session(expected)
+        assert advanced_dump["pending_battle"]["move_targets"] == []
+        advanced_restored = persist.load_session(
+            json.loads(json.dumps(advanced_dump))
+        )
+        assert advanced_restored.pending_battle is not None
+        assert advanced_restored.pending_battle.move_targets == {}
+        assert "move_targets" not in advanced_restored.snapshot()["battle"]
+
+
 def test_round_trip_pending_battle_resumes_with_same_advance_and_auto_result():
     """G119.1b kryt-2: zapis nie zmienia dalszych rund ani wyniku bitwy.
 

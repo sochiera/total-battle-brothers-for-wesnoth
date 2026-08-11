@@ -177,6 +177,7 @@ def game_state(
     player_duchy_id: str | None = None,
     battle: HexBattle | None = None,
     attack_targets: Mapping[Any, Any] | None = None,
+    move_targets: Mapping[Any, Any] | None = None,
 ) -> dict[str, Any]:
     """Zwróć json-serializowalny snapshot pełnego stanu gry.
 
@@ -207,7 +208,11 @@ def game_state(
         },
     }
     if battle is not None:
-        state["battle"] = battle_state(battle, attack_targets=attack_targets)
+        state["battle"] = battle_state(
+            battle,
+            attack_targets=attack_targets,
+            move_targets=move_targets,
+        )
     _assert_json_serializable(state)
     return state
 
@@ -215,6 +220,7 @@ def game_state(
 def battle_state(
     battle: HexBattle,
     attack_targets: Mapping[Any, Any] | None = None,
+    move_targets: Mapping[Any, Any] | None = None,
 ) -> dict[str, Any]:
     """Zwróć json-serializowalny snapshot bitwy heksowej.
 
@@ -226,6 +232,7 @@ def battle_state(
                 każdy z kluczami q, r, terrain, side, hp, stunned
       result -> `battle.result().value` gdy rozstrzygnięta, inaczej `None`
       attack_targets -> lista par q/r, gdy podano niepuste intencje
+      move_targets -> lista par q/r, gdy podano niepuste intencje
     """
     hexes: list[dict[str, Any]] = []
     for hex_pos in sorted(battle.units.keys(), key=lambda h: (h.q, h.r)):
@@ -252,6 +259,16 @@ def battle_state(
             }
             for attacker, target in sorted(
                 attack_targets.items(), key=lambda pair: (pair[0].q, pair[0].r)
+            )
+        ]
+    if move_targets:
+        state["move_targets"] = [
+            {
+                "mover": {"q": mover.q, "r": mover.r},
+                "destination": {"q": destination.q, "r": destination.r},
+            }
+            for mover, destination in sorted(
+                move_targets.items(), key=lambda pair: (pair[0].q, pair[0].r)
             )
         ]
     _assert_json_serializable(state)

@@ -364,6 +364,7 @@ class Session:
             self.player_duchy_id,
             battle=battle,
             attack_targets=pending.attack_targets if pending is not None else None,
+            move_targets=pending.move_targets if pending is not None else None,
         )
 
     def _derive(

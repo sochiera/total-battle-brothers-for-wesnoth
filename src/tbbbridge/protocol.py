@@ -71,6 +71,7 @@ def _battle_pending_result(pending: PendingBattle) -> dict:
         "battle": battle_state(
             pending.battle,
             attack_targets=pending.attack_targets or None,
+            move_targets=pending.move_targets or None,
         ),
     }
 
@@ -177,28 +178,21 @@ def command_result(before: Session, after: Session, command: dict) -> dict:
     if command_type in ("battle_advance", "battle_auto"):
         return _battle_step_result(command_type, before, after)
 
-    if command_type == "battle_target":
+    if command_type in ("battle_target", "battle_move"):
         if (
             before.pending_battle is not None
             and after.pending_battle is not before.pending_battle
         ):
-            return {"kind": "battle_target", "changed": True}
+            return {"kind": command_type, "changed": True}
+        reason = (
+            _battle_target_reason(before, command)
+            if command_type == "battle_target"
+            else _battle_move_reason(before, command)
+        )
         return {
-            "kind": "battle_target",
+            "kind": command_type,
             "changed": False,
-            "reason": _battle_target_reason(before, command),
-        }
-
-    if command_type == "battle_move":
-        if (
-            before.pending_battle is not None
-            and after.pending_battle is not before.pending_battle
-        ):
-            return {"kind": "battle_move", "changed": True}
-        return {
-            "kind": "battle_move",
-            "changed": False,
-            "reason": _battle_move_reason(before, command),
+            "reason": reason,
         }
 
     if command_type == "new_game":

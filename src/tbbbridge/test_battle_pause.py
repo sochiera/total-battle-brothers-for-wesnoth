@@ -488,6 +488,15 @@ def test_battle_move_records_intent_without_resolving_pending_battle(
     assert returned.last_battle is None
     assert response["snapshot"]["battle"]["result"] is None
     assert response["snapshot"]["battle"]["hexes"] == before_hexes
+    expected_move_targets = [{
+        "mover": {"q": mover[0], "r": mover[1]},
+        "destination": {"q": destination[0], "r": destination[1]},
+    }]
+    public_battle = response["snapshot"]["battle"]
+    assert "move_targets" in public_battle, (
+        "G121.1c AC1: battle_pending musi eksponowac ustawione intencje ruchu"
+    )
+    assert public_battle["move_targets"] == expected_move_targets
     assert returned.pending_battle.move_targets == {
         Hex(*mover): Hex(*destination)
     }
@@ -502,6 +511,9 @@ def test_battle_move_records_intent_without_resolving_pending_battle(
     assert returned_snapshot["result"] == before_snapshot["result"]
     assert returned_snapshot["battle"]["hexes"] == before_hexes
     assert returned_snapshot["battle"]["result"] is None
+    assert returned_snapshot["battle"]["move_targets"] == expected_move_targets, (
+        "G121.1c AC1: Session.snapshot musi niesc te same move_targets"
+    )
 
 
 def test_battle_move_changes_the_next_round_to_the_indicated_hex():
@@ -519,6 +531,10 @@ def test_battle_move_changes_the_next_round_to_the_indicated_hex():
     )
     assert move_response["ok"] is True
     assert move_response["result"]["changed"] is True
+    assert move_response["snapshot"]["battle"]["move_targets"] == [{
+        "mover": {"q": 0, "r": 0},
+        "destination": {"q": 0, "r": 1},
+    }]
     moved_after, advance_response = handle_command_line(
         moved, '{"type":"battle_advance"}'
     )
@@ -527,6 +543,12 @@ def test_battle_move_changes_the_next_round_to_the_indicated_hex():
     assert advance_response["result"]["kind"] == "battle_pending"
     assert moved_after.pending_battle is not None
     assert moved_after.pending_battle.move_targets == {}
+    assert moved_after.snapshot()["battle"].get("move_targets", []) == [], (
+        "G121.1c AC4: zuzyta intencja ruchu nie moze zostac w snapshocie"
+    )
+    assert advance_response["snapshot"]["battle"].get("move_targets", []) == [], (
+        "G121.1c AC4: odpowiedz battle_advance nie moze niesc zuzytej intencji"
+    )
     assert _attacker_positions(baseline_after.snapshot()) == [(1, 0)]
     assert _attacker_positions(moved_after.snapshot()) == [(0, 1)]
     assert _attacker_positions(moved_after.snapshot()) != _attacker_positions(
@@ -625,6 +647,18 @@ def test_battle_move_merges_and_replaces_intents_for_one_advance():
         Hex(0, 0): Hex(-1, 1),
         Hex(0, 3): Hex(0, 2),
     }
+    assert paused.snapshot()["battle"]["move_targets"] == [
+        {
+            "mover": {"q": 0, "r": 0},
+            "destination": {"q": -1, "r": 1},
+        },
+        {
+            "mover": {"q": 0, "r": 3},
+            "destination": {"q": 0, "r": 2},
+        },
+    ], (
+        "G121.1c AC1: snapshot musi niesc wszystkie oczekujace intencje ruchu"
+    )
 
     advanced, advance_response = handle_command_line(
         paused, '{"type":"battle_advance"}'
@@ -633,6 +667,7 @@ def test_battle_move_merges_and_replaces_intents_for_one_advance():
     assert advance_response["ok"] is True
     assert advance_response["result"]["kind"] == "battle_pending"
     assert advanced.pending_battle.move_targets == {}
+    assert advanced.snapshot()["battle"].get("move_targets", []) == []
     assert _attacker_positions(advanced.snapshot()) == [(-1, 1), (0, 2)]
 
 
@@ -671,7 +706,7 @@ def test_battle_move_and_battle_target_replace_each_other_for_same_unit():
 
 
 def test_battle_auto_consumes_move_targets_when_battle_remains_pending():
-    """G121.1b AC4: partial battle_auto clears one-shot move intents."""
+    """G121.1b AC4 + G121.1c AC4: partial battle_auto clears one-shot move intents."""
     paused = _pause_zero_damage_battle()
     paused, move_response = handle_command_line(
         paused, _battle_move_command((0, 0), (0, 1))
@@ -679,6 +714,10 @@ def test_battle_auto_consumes_move_targets_when_battle_remains_pending():
     assert move_response["ok"] is True
     assert move_response["result"]["changed"] is True
     assert paused.pending_battle.move_targets == {Hex(0, 0): Hex(0, 1)}
+    assert move_response["snapshot"]["battle"]["move_targets"] == [{
+        "mover": {"q": 0, "r": 0},
+        "destination": {"q": 0, "r": 1},
+    }]
 
     advanced, auto_response = handle_command_line(
         paused, '{"type":"battle_auto"}'
@@ -689,6 +728,12 @@ def test_battle_auto_consumes_move_targets_when_battle_remains_pending():
     assert advanced.pending_battle is not None
     assert advanced.pending_battle.move_targets == {}
     assert advanced.pending_battle.attack_targets == {}
+    assert advanced.snapshot()["battle"].get("move_targets", []) == [], (
+        "G121.1c AC4: po battle_auto snapshot nie niesie zuzytej intencji ruchu"
+    )
+    assert auto_response["snapshot"]["battle"].get("move_targets", []) == [], (
+        "G121.1c AC4: odpowiedz battle_auto nie moze niesc zuzytej intencji"
+    )
 
 
 def test_engage_that_starts_battle_pauses_with_battle_pending_deployment_board():

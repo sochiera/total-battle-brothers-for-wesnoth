@@ -213,6 +213,16 @@ def dump_pending_battle(pending_battle: PendingBattle) -> dict:
                 key=lambda pair: (pair[0].q, pair[0].r),
             )
         ],
+        "move_targets": [
+            {
+                "mover": dump_hex(mover),
+                "destination": dump_hex(destination),
+            }
+            for mover, destination in sorted(
+                pending_battle.move_targets.items(),
+                key=lambda pair: (pair[0].q, pair[0].r),
+            )
+        ],
     }
 
 
@@ -231,6 +241,10 @@ def load_pending_battle(data: dict, world: WorldMap) -> PendingBattle:
         load_hex(entry["attacker"]): load_hex(entry["target"])
         for entry in data.get("attack_targets") or []
     })
+    move_targets = MappingProxyType({
+        load_hex(entry["mover"]): load_hex(entry["destination"])
+        for entry in data.get("move_targets") or []
+    })
     return PendingBattle(
         battle=load_battle(data["battle"]),
         source=_load_world_region(world, data["source"]),
@@ -239,6 +253,7 @@ def load_pending_battle(data: dict, world: WorldMap) -> PendingBattle:
         attacker_owner_id=data["attacker_owner_id"],
         defender_owner_id=data["defender_owner_id"],
         attack_targets=attack_targets,
+        move_targets=move_targets,
     )
 
 
