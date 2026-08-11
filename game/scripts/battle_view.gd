@@ -60,11 +60,18 @@ const ATTACK_TARGET_MARKER_MARGIN := Vector2(8, 8)
 const ATTACK_TARGET_MARKER_BOTTOM_CLEARANCE := 42.0
 const ATTACKER_TARGET_MARKER_COLOR := Color(0.95, 0.70, 0.16, 1.0)
 const DEFENDER_TARGET_MARKER_COLOR := Color(0.84, 0.22, 0.16, 1.0)
+const BOTH_TARGET_MARKER_COLOR := Color(0.76, 0.33, 0.82, 1.0)
+const MOVE_TARGET_MARKER_MARGIN := Vector2(8, 8)
+const MOVE_TARGET_MARKER_BOTTOM_CLEARANCE := 42.0
+const MOVER_MOVE_MARKER_COLOR := Color(0.18, 0.72, 0.88, 1.0)
+const DESTINATION_MOVE_MARKER_COLOR := Color(0.22, 0.42, 0.92, 1.0)
+const BOTH_MOVE_MARKER_COLOR := Color(0.35, 0.78, 0.55, 1.0)
 
 # 1.0 = native G98/G105 geometry; Main may lower this under with-battle chrome fit.
 var _layout_scale := 1.0
 var _last_hexes: Array = []
 var _last_attack_targets: Array = []
+var _last_move_targets: Array = []
 var _selected_attacker: Variant = null
 var _move_destinations: Array = []
 var _battle_in_progress := false
@@ -97,6 +104,7 @@ func render_model(model: SnapshotModel) -> void:
 	_battle_in_progress = battle.get("result") == null
 	_set_result_state(battle.get("result"))
 	_last_attack_targets = battle.get("attack_targets", []).duplicate(true)
+	_last_move_targets = battle.get("move_targets", []).duplicate(true)
 	var hexes: Variant = battle.get("hexes")
 	if not hexes is Array:
 		return
@@ -212,6 +220,7 @@ func _render_hexes(hexes: Array) -> void:
 			continue
 		_add_tile(int(qr.x), int(qr.y), hex, origin_x)
 		max_bottom = maxf(max_bottom, _hex_tile_bottom(int(qr.y)))
+	max_bottom = maxf(max_bottom, _add_pending_move_destination_tiles(origin_x))
 	_layout_result_label(max_bottom)
 
 
@@ -306,6 +315,7 @@ func _reset_and_hide_view() -> void:
 	_layout_scale = 1.0
 	_last_hexes = []
 	_last_attack_targets = []
+	_last_move_targets = []
 	_clear_hex_tiles()
 	_set_result_state(null)
 
@@ -323,9 +333,12 @@ func _has_result_banner() -> bool:
 
 
 func _clear_hex_tiles() -> void:
+	var stale: Array = []
 	for child: Node in get_children():
 		if str(child.name).begins_with("HexTile_"):
-			child.free()
+			stale.append(child)
+	for child: Node in stale:
+		child.free()
 
 
 func _relayout_last_hexes() -> void:
@@ -361,6 +374,7 @@ func _add_tile(q: int, r: int, hex: Dictionary, origin_x: float) -> void:
 	_add_terrain_layers(tile, hex.get("terrain"))
 	_add_unit_overlay(tile, hex.get("side"), hex.get("hp"))
 	_add_attack_target_marker(tile, q, r)
+	_add_move_target_marker(tile, q, r)
 
 
 func _on_tile_gui_input(event: InputEvent, hex: Dictionary) -> void:
@@ -458,9 +472,17 @@ func _occupied_hex_bottom() -> float:
 func _clear_move_destination_tiles() -> void:
 	var had_destinations := not _move_destinations.is_empty()
 	_move_destinations = []
+	var stale: Array = []
 	for child: Node in get_children():
-		if child.get_meta("move_destination", false):
-			child.free()
+		if not child.get_meta("move_destination", false):
+			continue
+		if child.get_meta("pending_move_destination", false):
+			child.set_meta("move_destination", false)
+			_detach_tile_hit_target(child)
+			continue
+		stale.append(child)
+	for child: Node in stale:
+		child.free()
 	if had_destinations and visible and not _last_hexes.is_empty():
 		var previous_guard := _relayout_guard
 		_relayout_guard = true
@@ -489,6 +511,12 @@ func _is_move_destination(coords: Dictionary) -> bool:
 
 func _add_move_destination_tile(q: int, r: int, origin_x: float) -> void:
 	var hex := {"q": q, "r": r}
+	var existing := _find_hex_tile(q, r)
+	if existing != null and existing.get_meta("pending_move_destination", false):
+		existing.set_meta("move_destination", true)
+		if existing.find_child("BattleHitTarget", false, false) == null:
+			_attach_tile_hit_target(existing, hex)
+		return
 	var tile := Control.new()
 	tile.name = "HexTile_%d_%d" % [q, r]
 	tile.set_meta("move_destination", true)
@@ -509,6 +537,12 @@ func _attach_tile_hit_target(tile: Control, hex: Dictionary) -> void:
 	hit_target.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	hit_target.gui_input.connect(_on_tile_gui_input.bind(hex))
 	tile.add_child(hit_target)
+
+
+func _detach_tile_hit_target(tile: Node) -> void:
+	var hit: Node = tile.find_child("BattleHitTarget", false, false)
+	if hit != null:
+		hit.free()
 
 
 func _is_active_unit(hex: Dictionary, expected_side: String) -> bool:
@@ -606,8 +640,103 @@ func _attack_target_marker_color(marker_kind: String) -> Color:
 	if marker_kind == "target":
 		return DEFENDER_TARGET_MARKER_COLOR
 	if marker_kind == "both":
-		return Color(0.76, 0.33, 0.82, 1.0)
+		return BOTH_TARGET_MARKER_COLOR
 	return ATTACKER_TARGET_MARKER_COLOR
+
+
+func _add_pending_move_destination_tiles(origin_x: float) -> float:
+	## Free destinations are not in battle.hexes; still paint a tile so the
+	## public move intent is visible next to occupied units.
+	var max_bottom := 0.0
+	for pair: Variant in _last_move_targets:
+		if not pair is Dictionary:
+			continue
+		var destination: Variant = pair.get("destination")
+		if not destination is Dictionary:
+			continue
+		var q := int(destination.get("q", 0))
+		var r := int(destination.get("r", 0))
+		if _find_hex_tile(q, r) != null:
+			max_bottom = maxf(max_bottom, _hex_tile_bottom(r))
+			continue
+		_add_pending_move_destination_tile(q, r, origin_x)
+		max_bottom = maxf(max_bottom, _hex_tile_bottom(r))
+	return max_bottom
+
+
+func _add_pending_move_destination_tile(q: int, r: int, origin_x: float) -> void:
+	var tile := Control.new()
+	tile.name = "HexTile_%d_%d" % [q, r]
+	tile.set_meta("pending_move_destination", true)
+	tile.position = _axial_position(q, r, origin_x)
+	tile.size = _hex_size()
+	_apply_hex_paint_order(tile, r)
+	tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(tile)
+	_add_terrain_layers(tile, "Plains")
+	_add_move_target_marker(tile, q, r)
+
+
+func _find_hex_tile(q: int, r: int) -> Control:
+	return find_child("HexTile_%d_%d" % [q, r], false, false) as Control
+
+
+func _add_move_target_marker(tile: Control, q: int, r: int) -> void:
+	var marker_kind := _move_target_marker_kind(q, r)
+	if marker_kind.is_empty():
+		return
+	var marker := Panel.new()
+	marker.name = "MoveTargetMarker_%s" % marker_kind
+	marker.position = MOVE_TARGET_MARKER_MARGIN * _layout_scale
+	marker.size = Vector2(
+		_hex_size().x - marker.position.x * 2.0,
+		_hex_size().y - marker.position.y * 2.0
+			- MOVE_TARGET_MARKER_BOTTOM_CLEARANCE * _layout_scale,
+	)
+	marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	marker.add_theme_stylebox_override(
+		"panel", _move_target_marker_style(marker_kind)
+	)
+	tile.add_child(marker)
+
+
+func _move_target_marker_kind(q: int, r: int) -> String:
+	var is_mover := false
+	var is_destination := false
+	for pair: Variant in _last_move_targets:
+		if not pair is Dictionary:
+			continue
+		var mover: Variant = pair.get("mover")
+		var destination: Variant = pair.get("destination")
+		if _same_hex_coordinates(mover, q, r):
+			is_mover = true
+		if _same_hex_coordinates(destination, q, r):
+			is_destination = true
+	if is_mover and is_destination:
+		return "both"
+	if is_mover:
+		return "mover"
+	if is_destination:
+		return "destination"
+	return ""
+
+
+func _move_target_marker_style(marker_kind: String) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0, 0, 0, 0.06)
+	style.border_color = _move_target_marker_color(marker_kind)
+	var border_width := maxi(2, roundi(4.0 * _layout_scale))
+	style.set_border_width_all(border_width)
+	style.set_corner_radius_all(maxi(3, roundi(8.0 * _layout_scale)))
+	return style
+
+
+func _move_target_marker_color(marker_kind: String) -> Color:
+	if marker_kind == "destination":
+		return DESTINATION_MOVE_MARKER_COLOR
+	if marker_kind == "both":
+		return BOTH_MOVE_MARKER_COLOR
+	return MOVER_MOVE_MARKER_COLOR
 
 
 func _add_hp_marker(tile: Control, side: Variant, hp: Variant) -> void:

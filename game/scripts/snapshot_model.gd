@@ -124,6 +124,9 @@ static func _battle(snapshot: Dictionary) -> Variant:
 	var projected_targets := _project_attack_targets(battle_snapshot.get("attack_targets"))
 	if not projected_targets.is_empty():
 		battle["attack_targets"] = projected_targets
+	var projected_moves := _project_move_targets(battle_snapshot.get("move_targets"))
+	if not projected_moves.is_empty():
+		battle["move_targets"] = projected_moves
 	return battle
 
 
@@ -146,6 +149,27 @@ static func _project_attack_target(pair: Variant) -> Variant:
 	if attacker == null or target == null:
 		return null
 	return {"attacker": attacker, "target": target}
+
+
+static func _project_move_targets(value: Variant) -> Array:
+	var projected_moves: Array = []
+	if not value is Array:
+		return projected_moves
+	for pair: Variant in value:
+		var projected_pair: Variant = _project_move_target(pair)
+		if projected_pair != null:
+			projected_moves.append(projected_pair)
+	return projected_moves
+
+
+static func _project_move_target(pair: Variant) -> Variant:
+	if not pair is Dictionary:
+		return null
+	var mover: Variant = _project_battle_coordinates(pair.get("mover"))
+	var destination: Variant = _project_battle_coordinates(pair.get("destination"))
+	if mover == null or destination == null:
+		return null
+	return {"mover": mover, "destination": destination}
 
 
 static func _project_battle_coordinates(value: Variant) -> Variant:

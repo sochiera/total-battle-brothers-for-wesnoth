@@ -914,6 +914,15 @@ wroga. `BridgeClient.battle_move` / `battle_target` wysyłają komendy mostu;
 `Main` odświeża model i mapuje odmowę na polski status (m.in. „Pole docelowe
 jest niedostępne.”). Ścieżka ataku wroga pozostaje niezależna od ruchu.
 
+**BattleView — widoczność intencji ruchu (G121.1e / task-689):**
+`SnapshotModel.from_response` projektuje `battle.move_targets` (pary
+mover/destination q/r) tak jak `attack_targets`. `BattleView` czyta je ze
+snapshota (nie z lokalnych kliknięć), maluje obramowania mover/destination
+w kolorach innych niż cele ataku, dorysowuje kafelek wolnego celu ruchu gdy
+go nie ma w `hexes`, czyści markery przy każdym nowym modelu i zostawia PŻ
+w dolnej części kafla. Dowód 1152×648:
+`game/screenshots/task-689-battle-move-visibility-1152x648.png`.
+
 **SelectedRegionPanel — teksturowana rama (G102.1c / task-576):** panel
 używa `StyleBoxTexture` z `res://assets/selected_region_panel.png` (nie
 `StyleBoxFlat`). Kanoniczny styl buduje wyłącznie `main.gd`
